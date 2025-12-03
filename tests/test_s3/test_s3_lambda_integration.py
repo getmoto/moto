@@ -287,12 +287,13 @@ def test_object_put__sends_to_queue__using_filter():
 )
 def test_put_bucket_notification_sns_sqs(region, partition):
     s3_client = boto3.client("s3", region_name=region)
+    bucket_name = str(uuid4())
     s3_client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": region}
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
     )
 
     sqs_client = boto3.client("sqs", region_name=region)
-    sqs_queue = sqs_client.create_queue(QueueName="queue")
+    sqs_queue = sqs_client.create_queue(QueueName=str(uuid4()))
     sqs_queue_arn = sqs_client.get_queue_attributes(
         QueueUrl=sqs_queue["QueueUrl"], AttributeNames=["QueueArn"]
     )
@@ -309,7 +310,7 @@ def test_put_bucket_notification_sns_sqs(region, partition):
 
     # Set S3 to send ObjectCreated to SNS
     s3_client.put_bucket_notification_configuration(
-        Bucket="bucket",
+        Bucket=bucket_name,
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
@@ -341,7 +342,7 @@ def test_put_bucket_notification_sns_sqs(region, partition):
     assert s3_message_body["Event"] == "s3:TestEvent"
 
     # Upload file to trigger notification
-    s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
+    s3_client.put_object(Bucket=bucket_name, Key="myfile", Body=b"asdf1324")
 
     # Verify queue not empty
     messages = sqs_client.receive_message(
@@ -360,18 +361,19 @@ def test_put_bucket_notification_sns_sqs(region, partition):
     assert s3_message_body["Records"][0]["awsRegion"] == region
     assert (
         s3_message_body["Records"][0]["s3"]["bucket"]["arn"]
-        == f"arn:{partition}:s3:::bucket"
+        == f"arn:{partition}:s3:::{bucket_name}"
     )
 
 
 @mock_aws
 def test_put_bucket_notification_sns_error():
     s3_client = boto3.client("s3", region_name=REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Set S3 to send ObjectCreated to SNS
     s3_client.put_bucket_notification_configuration(
-        Bucket="bucket",
+        Bucket=bucket_name,
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
@@ -384,4 +386,4 @@ def test_put_bucket_notification_sns_error():
     )
 
     # This should not throw an exception
-    s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
+    s3_client.put_object(Bucket=bucket_name, Key="myfile", Body=b"asdf1324")

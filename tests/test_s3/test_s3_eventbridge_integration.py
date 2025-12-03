@@ -22,14 +22,15 @@ else:
 
 
 def _seteup_bucket_notification_eventbridge(
-    bucket_name: str = str(uuid4()),
+    bucket_name: str = None,
     rule_name: str = "test-rule",
-    log_group_name: str = "/test-group",
     region: str = REGION_NAME,
 ) -> dict[str, str]:
     """Setups S3, EventBridge and CloudWatchLogs"""
     # Setup S3
     s3_res = boto3.resource("s3", region_name=region)
+    bucket_name = bucket_name or str(uuid4())
+    log_group_name = f"/l{str(uuid4())}"
     if region == "us-east-1":
         s3_res.create_bucket(Bucket=bucket_name)
     else:
@@ -71,7 +72,7 @@ def _seteup_bucket_notification_eventbridge(
 
 
 def _get_send_events(
-    log_group_name: str = "/test-group", region: str = REGION_NAME
+    log_group_name: str, region: str = REGION_NAME
 ) -> list[dict[str, Any]]:
     logs_client = boto3.client("logs", region_name=region)
     return sorted(
@@ -87,12 +88,13 @@ def _get_send_events(
 def test_put_object_notification_ObjectCreated_PUT(region, partition):
     resource_names = _seteup_bucket_notification_eventbridge(region=region)
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=region)
 
     # Put Object
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
 
-    events = _get_send_events(region=region)
+    events = _get_send_events(log_group_name=log_group_name, region=region)
     assert len(events) == 2
     event_message = json.loads(events[0]["message"])
     assert event_message["detail-type"] == "Object Created"
@@ -112,6 +114,7 @@ def test_put_object_notification_ObjectCreated_POST():
 
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
 
     ###
     # multipart/formdata POST request (this request is processed in S3Response._bucket_response_post)
@@ -125,7 +128,7 @@ def test_put_object_notification_ObjectCreated_POST():
         files={"file": ("tmp.txt", BytesIO(content))},
     )
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 1
     event_message = json.loads(events[0]["message"])
     assert event_message["detail-type"] == "Object Created"
@@ -141,16 +144,17 @@ def test_put_object_notification_ObjectCreated_POST():
 def test_copy_object_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
 
-    # Copy object (send two events; PutObject and CopyObject)
+    # Copy object (send two events; PutObject and CopyObject)_detail_type
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
     object_key = "key2"
     s3_client.copy_object(
         Bucket=bucket_name, CopySource=f"{bucket_name}/keyname", Key="key2"
     )
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 3  # [PutObject, ObjectTagging, CopyObject]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
@@ -167,6 +171,7 @@ def test_copy_object_notification():
 def test_complete_multipart_upload_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     object_key = "testkey"
 
@@ -200,7 +205,7 @@ def test_complete_multipart_upload_notification():
         UploadId=multipart["UploadId"],
     )
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 3  # [PutObject, ObjectTagging, CompleteMultipartUpload]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
@@ -216,6 +221,7 @@ def test_complete_multipart_upload_notification():
 def test_delete_object_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
 
     # Put Object
@@ -224,7 +230,7 @@ def test_delete_object_notification():
     # Delete Object
     s3_client.delete_object(Bucket=bucket_name, Key="keyname")
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 3  # [PutObject, ObjectTagging, DeleteObject]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Deleted"
@@ -239,6 +245,7 @@ def test_delete_object_notification():
 def test_restore_key_notifications():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
 
     s3_resource = boto3.resource("s3", region_name=REGION_NAME)
 
@@ -246,14 +253,14 @@ def test_restore_key_notifications():
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
     key.restore_object(RestoreRequest={"Days": 1})
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
     assert event_names == ["ObjectCreated", "ObjectTagging", "ObjectRestore"]
 
     # Finish the Object Restoration - restore Completes immediately by default
     key.load()
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
     assert event_names == [
         "ObjectCreated",
@@ -265,7 +272,7 @@ def test_restore_key_notifications():
     # Sanity check - loading the Key does not mean the Restore-event is fired every time
     key.load()
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
     assert event_names == [
         "ObjectCreated",
@@ -279,6 +286,7 @@ def test_restore_key_notifications():
 def test_put_object_tagging_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
 
     # Put Object
@@ -296,7 +304,7 @@ def test_put_object_tagging_notification():
         },
     )
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 3
     event_message = json.loads(events[2]["message"])
     assert event_message["detail-type"] == "Object Tags Added"
@@ -311,6 +319,7 @@ def test_put_object_tagging_notification():
 def test_delete_object_tagging_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
 
     # Put Object
@@ -331,7 +340,7 @@ def test_delete_object_tagging_notification():
     # Delete Object Tagging
     s3_client.delete_object_tagging(Bucket=bucket_name, Key="keyname")
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert len(events) == 4
     event_message = json.loads(events[3]["message"])
     assert event_message["detail-type"] == "Object Tags Deleted"
@@ -346,6 +355,7 @@ def test_delete_object_tagging_notification():
 def test_delete_object_acl_update_notification():
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
     s3_client = boto3.client("s3", region_name=REGION_NAME)
 
     # Put Object
@@ -357,7 +367,7 @@ def test_delete_object_acl_update_notification():
     # Delete Object ACL
     s3_client.put_object_acl(Bucket=bucket_name, Key="keyname", ACL="private")
 
-    events = _get_send_events()
+    events = _get_send_events(log_group_name=log_group_name)
     assert (
         len(events) == 4
     )  # [PutObject, ObjectTagging, CompleteMultipartUpload, ObjectAcl]
