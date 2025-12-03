@@ -1621,6 +1621,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorCode": "InternalServiceException",
             "ErrorMessage": "Service not yet supported",
         }
+
         for arn in resource_arns:
             if arn.startswith(
                 f"arn:{get_partition(self.region_name)}:rds:"
