@@ -2144,6 +2144,14 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "use2-az1"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "use2-az1"
  },

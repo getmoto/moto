@@ -1596,6 +1596,14 @@
   "Location": "eu-west-2a"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "eu-west-2a"
  },
@@ -1769,6 +1777,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "eu-west-2a"
  },
  {
@@ -4221,6 +4233,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "eu-west-2b"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "eu-west-2b"
  },
  {

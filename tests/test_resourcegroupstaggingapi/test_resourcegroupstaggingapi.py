@@ -379,19 +379,22 @@ def test_get_resources_ec2():
     # 1 Entry for AMI
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:image"])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "image/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:image/{image_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
     # As were iterating the same data, this rules out that the test above was a fluke
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:instance"])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:instance/{instance_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
     # Basic test of tag filters
     resp = rtapi.get_resources(
         TagFilters=[{"Key": "MY_TAG1", "Values": ["MY_VALUE1", "some_other_value"]}]
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:instance/{instance_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
 
 @mock_aws
@@ -1205,9 +1208,20 @@ def test_get_resources_sqs():
     resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
     assert len(resp["ResourceTagMappingList"]) == 2
 
+    resp = rtapi.get_resources(ResourceTypeFilters=["sqs:queue"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
     # Test tag filtering
     resp = rtapi.get_resources(
         ResourceTypeFilters=["sqs"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
+    # Test tag filtering with sqs:queue
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["sqs:queue"],
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1

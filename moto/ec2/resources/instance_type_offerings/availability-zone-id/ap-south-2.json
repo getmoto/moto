@@ -1140,6 +1140,10 @@
   "Location": "aps2-az1"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "aps2-az1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "aps2-az1"
  },
@@ -2317,6 +2321,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "aps2-az2"
  },
  {

@@ -4901,6 +4901,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "appstream2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -4914,6 +4923,24 @@
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "appstream2.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1",
+                "endpoint": {
+                  "Value": "appstream2.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-2": {
+                "Value": "eu-south-2",
+                "endpoint": {
+                  "Value": "appstream2.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4941,6 +4968,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "appstream2.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "appstream2.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8846,6 +8882,15 @@
               "Value": "https://aws.amazon.com/bedrock/"
             },
             "regions": {
+              "af-south-1": {
+                "Value": "af-south-1",
+                "endpoint": {
+                  "Value": "bedrock.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-east-2": {
                 "Value": "ap-east-2",
                 "endpoint": {
@@ -8963,6 +9008,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "bedrock.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
@@ -9048,6 +9102,24 @@
                 "Value": "me-central-1",
                 "endpoint": {
                   "Value": "bedrock.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "me-south-1": {
+                "Value": "me-south-1",
+                "endpoint": {
+                  "Value": "bedrock.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "bedrock.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22001,6 +22073,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "ds.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35053,6 +35134,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "identitystore.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "identitystore.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50355,6 +50445,15 @@
               }
             }
           },
+          "nova-act": {
+            "Value": "nova-act",
+            "longName": {
+              "Value": "Amazon Nova Act"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/nova/act/"
+            }
+          },
           "oam": {
             "Value": "oam",
             "longName": {
@@ -52290,6 +52389,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66572,10 +66680,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "email.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "email.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "email.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -69862,6 +69988,15 @@
                 "Value": "ap-east-1",
                 "endpoint": {
                   "Value": "oidc.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "oidc.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -15,6 +15,7 @@ import botocore.exceptions
 import pytest
 import requests
 from botocore.client import ClientError
+from botocore.config import Config
 from botocore.handlers import disable_signing
 from freezegun import freeze_time
 
@@ -1634,7 +1635,9 @@ def test_bucket_create():
 @aws_verified
 @pytest.mark.aws_verified
 def test_bucket_create_force_us_east_1():
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource(
+        "s3", region_name=DEFAULT_REGION_NAME, config=Config(parameter_validation=False)
+    )
     with pytest.raises(ClientError) as exc:
         s3_resource.create_bucket(
             Bucket="blah",
@@ -1662,13 +1665,64 @@ def test_bucket_create_eu_central():
     )
 
 
-@mock_aws
-def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_error():
-    s3_resource = boto3.resource("s3", region_name="us-east-1")
+@pytest.mark.aws_verified
+@aws_verified
+def test_bucket_create_empty_location_constraint_non_standard_region_should_return_error():
+    s3_resource = boto3.resource(
+        "s3", region_name="us-east-2", config=Config(parameter_validation=False)
+    )
+    bucket_name = str(uuid.uuid4())
     with pytest.raises(ClientError) as exc:
-        s3_resource.create_bucket(Bucket="whatever", CreateBucketConfiguration={})
-    assert exc.value.response["Error"]["Code"] == "MalformedXML"
+        s3_resource.create_bucket(Bucket=bucket_name, CreateBucketConfiguration=None)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "IllegalLocationConstraintException"
+    assert (
+        err["Message"]
+        == "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    with pytest.raises(ClientError) as exc:
+        s3_resource.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "IllegalLocationConstraintException"
+    assert (
+        err["Message"]
+        == "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    with pytest.raises(ClientError) as exc:
+        s3_resource.create_bucket(
+            Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": None}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "IllegalLocationConstraintException"
+    assert (
+        err["Message"]
+        == "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@pytest.mark.aws_verified
+@aws_verified
+def test_bucket_create_empty_location_constraint_standard_region_should_pass():
+    s3_resource = boto3.resource(
+        "s3", region_name="us-east-1", config=Config(parameter_validation=False)
+    )
+    bucket_name = str(uuid.uuid4())
+
+    bucket = s3_resource.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration=None
+    )
+    bucket.delete()
+    bucket = s3_resource.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={})
+    bucket.delete()
+    bucket = s3_resource.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": None}
+    )
+    bucket.delete()
 
 
 @s3_aws_verified

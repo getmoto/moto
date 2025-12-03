@@ -32,6 +32,8 @@ ecr
 - [X] delete_repository
 - [ ] delete_repository_creation_template
 - [X] delete_repository_policy
+- [ ] delete_signing_configuration
+- [ ] deregister_pull_time_update_exclusion
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
   
@@ -85,6 +87,7 @@ ecr
 
         
 
+- [ ] describe_image_signing_status
 - [X] describe_images
 - [ ] describe_pull_through_cache_rules
 - [X] describe_registry
@@ -102,12 +105,15 @@ ecr
 - [X] get_registry_policy
 - [X] get_registry_scanning_configuration
 - [X] get_repository_policy
+- [ ] get_signing_configuration
 - [ ] initiate_layer_upload
+- [ ] list_image_referrers
 - [X] list_images
   
         maxResults and filtering not implemented
         
 
+- [ ] list_pull_time_update_exclusions
 - [X] list_tags_for_resource
 - [ ] put_account_setting
 - [X] put_image
@@ -117,11 +123,14 @@ ecr
 - [X] put_registry_policy
 - [X] put_registry_scanning_configuration
 - [X] put_replication_configuration
+- [ ] put_signing_configuration
+- [ ] register_pull_time_update_exclusion
 - [X] set_repository_policy
 - [X] start_image_scan
 - [ ] start_lifecycle_policy_preview
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_image_storage_class
 - [ ] update_pull_through_cache_rule
 - [ ] update_repository_creation_template
 - [ ] upload_layer_part

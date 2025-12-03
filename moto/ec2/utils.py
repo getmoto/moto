@@ -22,7 +22,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
+from moto.ec2.exceptions import InvalidUserDataError
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
@@ -931,3 +933,16 @@ def convert_tag_spec(
             {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
         )
     return tags
+
+
+def parse_user_data(value: Any) -> Optional[Base64EncodedString]:
+    if value is None:
+        return None
+    try:
+        if isinstance(value, bytes):
+            user_data = Base64EncodedString.from_encoded_bytes(value)
+        else:
+            user_data = Base64EncodedString(value)
+    except ValueError:
+        raise InvalidUserDataError("Invalid BASE64 encoding of user data.")
+    return user_data

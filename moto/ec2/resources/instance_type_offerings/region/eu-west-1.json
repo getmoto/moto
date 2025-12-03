@@ -3208,6 +3208,14 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "vt1.24xlarge",
   "Location": "eu-west-1"
  },

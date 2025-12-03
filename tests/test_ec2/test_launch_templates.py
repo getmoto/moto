@@ -537,6 +537,63 @@ def test_get_launch_template_data():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "tag_specification_input",
+    [
+        [],
+        [
+            {
+                "ResourceType": "instance",
+                "Tags": [
+                    {"Key": "foo", "Value": "bar"},
+                ],
+            },
+        ],
+        [
+            {
+                "ResourceType": "instance",
+                "Tags": [
+                    {"Key": "foo", "Value": "bar"},
+                    {"Key": "baz", "Value": "qux"},
+                ],
+            },
+        ],
+    ],
+    ids=[
+        "No Tags",
+        "Single Tag",
+        "Multiple Tags",
+    ],
+)
+def test_get_launch_template_data_with_tags(tag_specification_input):
+    client = boto3.client("ec2", region_name="us-east-1")
+    reservation = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        TagSpecifications=tag_specification_input,
+    )
+    instance = reservation["Instances"][0]
+    resp = client.get_launch_template_data(InstanceId=instance["InstanceId"])
+    launch_template_data = resp["LaunchTemplateData"]
+    # Ensure launch template data matches instance
+    assert launch_template_data["ImageId"] == instance["ImageId"]
+    assert launch_template_data["InstanceType"] == instance["InstanceType"]
+    tag_specifications = launch_template_data["TagSpecifications"]
+    for tag_specification in tag_specifications:
+        if tag_specification["ResourceType"] == "instance":
+            assert tag_specification == tag_specification_input[0]
+            break
+    else:
+        assert tag_specifications == tag_specification_input
+    # Ensure a launch template can be created from this data
+    client.create_launch_template(
+        LaunchTemplateName=str(uuid4()),
+        LaunchTemplateData=launch_template_data,
+    )
+
+
+@mock_aws
 def test_delete_launch_template__dryrun():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -763,3 +820,20 @@ def test_modify_launch_template_by_name():
     assert (
         version["LaunchTemplateId"] == create_resp["LaunchTemplate"]["LaunchTemplateId"]
     )
+
+
+@mock_aws
+def test_create_launch_template_with_non_base64_encoded_user_data_fails():
+    client = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_launch_template(
+            LaunchTemplateName="test-template",
+            LaunchTemplateData={
+                "ImageId": "ami-12345678",
+                "InstanceType": "t2.nano",
+                "UserData": "not base64 encoded",
+            },
+        )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidUserData.Malformed"
+    assert error["Message"] == "Invalid BASE64 encoding of user data."

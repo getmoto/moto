@@ -72,6 +72,7 @@ autoscaling
 - [X] execute_policy
 - [ ] exit_standby
 - [ ] get_predictive_scaling_forecast
+- [ ] launch_instances
 - [ ] put_lifecycle_hook
 - [ ] put_notification_configuration
 - [X] put_scaling_policy

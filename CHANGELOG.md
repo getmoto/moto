@@ -1,6 +1,46 @@
 Moto Changelog
 ==============
 
+5.1.18
+-----
+Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_
+
+    General:
+        * Introduces two methods for enabling and disabling IAM authentication:
+            from moto.core import disable_iam_authentication, enable_iam_authentication
+          They behave the same as the `@set_initial_no_auth_action_count`-decorator, but can be used as a fixture/context manager
+
+    New Services:
+        * Pipes:
+            * create_pipe()
+            * delete_pipe()
+            * describe_pipe()
+            * list_pipes()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * S3Control:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * S3Vectors:
+            * delete_vector_bucket_policy()
+            * delete_vectors()
+            * get_vector_bucket_policy()
+            * get_vectors()
+            * list_vectors()
+            * put_vector_bucket_policy()
+            * put_vectors()
+
+    Miscellaneous:
+        * APIGateway: put_rest_api() now correctly creates integrations
+        * AutoScaling: create_auto_scaling_group() now correctly calculates the InstancesDistribution for MixedInstancesPolicies
+        * ResourceGroupsTaggingAPI: get_resources() now supports filtering by `sqs:queue`
+        * SecretsManager: put_secret_value() now adds the AWSCURRENT-label if it's the first version of the Secret being added
+
+
 5.1.17
 -----
 Docker Digest for 5.1.17: _sha256:0361ac8f0cc6687dcf3835da1d60e31cf457fb0d49229d56586f2aa5c510f170_
