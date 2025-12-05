@@ -1269,13 +1269,25 @@ def test_put_item_invalid_number_types(value, expected_error_template):
     table_name = f"T{uuid4()}"
     client.create_table(
         TableName=table_name,
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}, {"AttributeName": "value", "KeyType": "RANGE"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}, {"AttributeName": "value", "AttributeType": "N"}],
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"},],
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
     )
     
-    # Test putting a good value
-    client.put_item(TableName=table_name, Item={"pk": {"S": "good"}, "value": {"N": "42"}})
+    # Test putting items with valid values (to make sure we don't break them)
+    valid_values = [
+        "42",
+        "42.0",
+        # Examples from https://docs.python.org/3/library/functions.html#float
+        '1e-003',
+        '+1E6',
+        "+1.23",
+        # 38 digits of precision are allowed - this is longer, but the trailing 0's don't count 
+        ("0" * 40) + ".42",
+    ]
+
+    for valid_value in valid_values:
+        client.put_item(TableName=table_name, Item={"pk": {"S": "good"}, "value": {"N": valid_value}})
 
     with pytest.raises(ClientError) as exc:
         client.put_item(

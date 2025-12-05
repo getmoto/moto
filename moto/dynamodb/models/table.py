@@ -547,18 +547,9 @@ class Table(CloudFormationModel):
         for key, value in item_attrs.items():
             if isinstance(value, dict):
                 self._validate_item_types(value, attr=key if attr is None else key)
-            elif key == "N":
-                if isinstance(value, int):
-                    # TODO int and float values actually raise a ParamValidationError
-                    raise InvalidConversion
-                if isinstance(value, float):
-                    raise InvalidConversion
-                elif isinstance(value, str):
-                    try:
-                        float(value)
-                    except ValueError:
-                        raise ValidationException(f"The parameter cannot be converted to a numeric value: {value}")
-            if key == "S":
+            if key == "N":
+                self._validate_number_type(value)
+            elif key == "S":
                 # This scenario is usually caught by boto3, but the user can disable parameter validation
                 # Which is why we need to catch it 'server-side' as well
                 if isinstance(value, int):
@@ -569,6 +560,34 @@ class Table(CloudFormationModel):
                     raise SerializationException(
                         "Start of structure or map found where not expected"
                     )
+                
+    def _validate_number_type(self, value: Any) -> None:
+        if isinstance(value, int):
+            # TODO int and float values actually raise a ParamValidationError
+            raise InvalidConversion
+        if isinstance(value, float):
+            raise InvalidConversion
+        if not isinstance(value, str):
+            # TODO This is probably bad too, but keep current behavior
+            return
+        
+        # Quick check - if the value can't be converted to a Python float, 
+        # consider it invalid
+        try:
+            float_val = float(value)
+        except ValueError:
+            raise ValidationException(f"The parameter cannot be converted to a numeric value: {value}")
+        
+        # Check whitespace
+        
+        # More detailed range checks based on these rules:
+        # Numbers can be positive, negative, or zero. Numbers can have up to 38 digits of precision. Exceeding this results in an exception. If you need greater precision than 38 digits, you can use strings.
+        # Positive range: 1E-130 to 9.9999999999999999999999999999999999999E+125
+        # Negative range: -9.9999999999999999999999999999999999999E+125 to -1E-130
+        # In DynamoDB, numbers are represented as variable length. Leading and trailing zeroes are trimmed.
+
+        return
+
 
     def put_item(
         self,
