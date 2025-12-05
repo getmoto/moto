@@ -333,4 +333,4 @@ class ShieldBackend(BaseBackend):
         return self.subscription
 
 
-shield_backends = BackendDict(ShieldBackend, "ec2")
+shield_backends = BackendDict(ShieldBackend, "shield")
