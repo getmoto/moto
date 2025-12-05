@@ -546,8 +546,17 @@ class Table(CloudFormationModel):
         for key, value in item_attrs.items():
             if isinstance(value, dict):
                 self._validate_item_types(value, attr=key if attr is None else key)
-            elif isinstance(value, int) and key == "N":
-                raise InvalidConversion
+            elif key == "N":
+                if isinstance(value, int):
+                    # TODO int and float
+                    raise InvalidConversion
+                if isinstance(value, float):
+                    raise InvalidConversion
+                elif isinstance(value, str):
+                    try:
+                        float(value)
+                    except ValueError:
+                        raise InvalidConversion
             if key == "S":
                 # This scenario is usually caught by boto3, but the user can disable parameter validation
                 # Which is why we need to catch it 'server-side' as well
