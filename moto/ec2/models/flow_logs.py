@@ -1,5 +1,5 @@
 import itertools
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -32,7 +32,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         log_destination_type: str,
         log_format: str,
         deliver_logs_status: str = "SUCCESS",
-        deliver_logs_error_message: str | None = None,
+        deliver_logs_error_message: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = flow_log_id
@@ -104,7 +104,9 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         """
         API Version 2016-11-15 defines the following filters for DescribeFlowLogs:
 
@@ -278,7 +280,7 @@ class FlowLogsBackend:
         return flow_logs_set, unsuccessful
 
     def describe_flow_logs(
-        self, flow_log_ids: list[str] | None = None, filters: Any = None
+        self, flow_log_ids: Optional[list[str]] = None, filters: Any = None
     ) -> list[FlowLogs]:
         matches = list(itertools.chain(list(self.flow_logs.values())))
         if flow_log_ids:
