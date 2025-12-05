@@ -1254,6 +1254,8 @@ def test_put_item_wrong_datatype():
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 _error_string_non_numeric = "The parameter cannot be converted to a numeric value: {value}"
+_error_string_overflow = "Number overflow. Attempting to store a number with magnitude larger than supported range"
+_error_string_underflow = "Number underflow. Attempting to store a number with magnitude smaller than supported range"
 
 @mock_aws
 @pytest.mark.parametrize("value, expected_error_template",
@@ -1262,6 +1264,23 @@ _error_string_non_numeric = "The parameter cannot be converted to a numeric valu
         ("foo",_error_string_non_numeric),
         # Extra-quoted string
         ('"42.0"',_error_string_non_numeric),
+        # Leading and trailing whitespace pass float conversion in Python,
+        # but fail validation on the AWS side
+        (" 1.23", _error_string_non_numeric),
+        ("1.23 ", _error_string_non_numeric),
+        # Valid floats in Python, but not AWS
+        ("inf", _error_string_non_numeric),
+        ("nan", _error_string_non_numeric),
+        ("Infinity", _error_string_non_numeric),
+
+        # Outside the valid range
+        ("1.7976931348623157e+150", _error_string_overflow),
+        ("2.2250738585072014e-150", _error_string_underflow),
+        ("-1.7976931348623157e+150", _error_string_overflow),
+        ("-2.2250738585072014e-150", _error_string_underflow),
+
+        # More than 38 digits of precision
+        # ("." + ("1234" * 10), "Attempting to store more than 38 significant digits in a Number") TODO
     ]
 )
 def test_put_item_invalid_number_types(value, expected_error_template):
@@ -1284,6 +1303,9 @@ def test_put_item_invalid_number_types(value, expected_error_template):
         "+1.23",
         # 38 digits of precision are allowed - this is longer, but the trailing 0's don't count 
         ("0" * 40) + ".42",
+        # Make sure we don't exclude 0.0 from the range check
+        "0.0",
+        "-0.0",
     ]
 
     for valid_value in valid_values:

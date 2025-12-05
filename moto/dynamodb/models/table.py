@@ -1,4 +1,5 @@
 import copy
+import math
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any, Optional, Union
@@ -571,20 +572,32 @@ class Table(CloudFormationModel):
             # TODO This is probably bad too, but keep current behavior
             return
         
-        # Quick check - if the value can't be converted to a Python float, 
-        # consider it invalid
+        non_numeric_error =f"The parameter cannot be converted to a numeric value: {value}"
+
+        # Quick check - if the value can't be converted to a Python float, consider it invalid
         try:
             float_val = float(value)
         except ValueError:
-            raise ValidationException(f"The parameter cannot be converted to a numeric value: {value}")
+            raise ValidationException(non_numeric_error)
         
-        # Check whitespace
+        # Check for leading/trailing whitespace
+        if value != value.strip():
+            raise ValidationException(non_numeric_error)
+        
+        if not math.isfinite(float_val):
+            raise ValidationException(non_numeric_error)
         
         # More detailed range checks based on these rules:
-        # Numbers can be positive, negative, or zero. Numbers can have up to 38 digits of precision. Exceeding this results in an exception. If you need greater precision than 38 digits, you can use strings.
-        # Positive range: 1E-130 to 9.9999999999999999999999999999999999999E+125
-        # Negative range: -9.9999999999999999999999999999999999999E+125 to -1E-130
+        # * Numbers can be positive, negative, or zero. Numbers can have up to 38 digits of precision. Exceeding this results in an exception.
+        # * Positive range: 1E-130 to 9.9999999999999999999999999999999999999E+125
+        # * Negative range: -9.9999999999999999999999999999999999999E+125 to -1E-130
         # In DynamoDB, numbers are represented as variable length. Leading and trailing zeroes are trimmed.
+        # Source: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
+        if float_val != 0.0:
+            if abs(float_val) > 9.9999999999999999999999999999999999999E+125:
+                raise ValidationException("Number overflow. Attempting to store a number with magnitude larger than supported range")
+            elif abs(float_val) < 1E-130:
+                raise ValidationException("Number underflow. Attempting to store a number with magnitude smaller than supported range")
 
         return
 
