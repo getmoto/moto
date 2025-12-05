@@ -382,6 +382,11 @@ class InvalidConversion(JsonRESTError):
         er = "SerializationException"
         super().__init__(er, "NUMBER_VALUE cannot be converted to String")
 
+class ValidationException(JsonRESTError):
+    def __init__(self, msg: str) -> None:
+        er = "ValidationException"
+        super().__init__(er, message=msg)
+
 
 class TransactWriteSingleOpException(MockValidationException):
     there_can_be_only_one = (

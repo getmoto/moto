@@ -1253,6 +1253,42 @@ def test_put_item_wrong_datatype():
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
+_error_string_non_numeric = "The parameter cannot be converted to a numeric value: {value}"
+
+@mock_aws
+@pytest.mark.parametrize("value, expected_error_template",
+    [
+        # Non-numeric string, definitely invalid
+        ("foo",_error_string_non_numeric),
+        # Extra-quoted string
+        ('"42.0"',_error_string_non_numeric),
+    ]
+)
+def test_put_item_invalid_number_types(value, expected_error_template):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}, {"AttributeName": "value", "KeyType": "RANGE"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}, {"AttributeName": "value", "AttributeType": "N"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
+    )
+    
+    # Test putting a good value
+    client.put_item(TableName=table_name, Item={"pk": {"S": "good"}, "value": {"N": "42"}})
+
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name,
+                Item={
+                "pk": {"S": str(uuid4())},
+                "value": {"N": value}
+            }
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == expected_error_template.format(value=value)
+
 
 @dynamodb_aws_verified()
 @pytest.mark.aws_verified

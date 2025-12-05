@@ -15,6 +15,7 @@ from moto.dynamodb.exceptions import (
     MockValidationException,
     RangeKeyTooLong,
     SerializationException,
+    ValidationException
 )
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
@@ -548,7 +549,7 @@ class Table(CloudFormationModel):
                 self._validate_item_types(value, attr=key if attr is None else key)
             elif key == "N":
                 if isinstance(value, int):
-                    # TODO int and float
+                    # TODO int and float values actually raise a ParamValidationError
                     raise InvalidConversion
                 if isinstance(value, float):
                     raise InvalidConversion
@@ -556,7 +557,7 @@ class Table(CloudFormationModel):
                     try:
                         float(value)
                     except ValueError:
-                        raise InvalidConversion
+                        raise ValidationException(f"The parameter cannot be converted to a numeric value: {value}")
             if key == "S":
                 # This scenario is usually caught by boto3, but the user can disable parameter validation
                 # Which is why we need to catch it 'server-side' as well
