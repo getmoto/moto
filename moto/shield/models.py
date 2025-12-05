@@ -18,6 +18,7 @@ from moto.shield.exceptions import (
 )
 from moto.utilities.arns import parse_arn
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES
 
 
 @dataclass
@@ -333,4 +334,4 @@ class ShieldBackend(BaseBackend):
         return self.subscription
 
 
-shield_backends = BackendDict(ShieldBackend, "shield")
+shield_backends = BackendDict(ShieldBackend, "shield", additional_regions=PARTITION_NAMES)
