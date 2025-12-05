@@ -1253,17 +1253,22 @@ def test_put_item_wrong_datatype():
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
-_error_string_non_numeric = "The parameter cannot be converted to a numeric value: {value}"
+
+_error_string_non_numeric = (
+    "The parameter cannot be converted to a numeric value: {value}"
+)
 _error_string_overflow = "Number overflow. Attempting to store a number with magnitude larger than supported range"
 _error_string_underflow = "Number underflow. Attempting to store a number with magnitude smaller than supported range"
 
+
 @mock_aws
-@pytest.mark.parametrize("value, expected_error_template",
+@pytest.mark.parametrize(
+    "value, expected_error_template",
     [
         # Non-numeric string, definitely invalid
-        ("foo",_error_string_non_numeric),
+        ("foo", _error_string_non_numeric),
         # Extra-quoted string
-        ('"42.0"',_error_string_non_numeric),
+        ('"42.0"', _error_string_non_numeric),
         # Leading and trailing whitespace pass float conversion in Python,
         # but fail validation on the AWS side
         (" 1.23", _error_string_non_numeric),
@@ -1272,36 +1277,38 @@ _error_string_underflow = "Number underflow. Attempting to store a number with m
         ("inf", _error_string_non_numeric),
         ("nan", _error_string_non_numeric),
         ("Infinity", _error_string_non_numeric),
-
         # Outside the valid range
         ("1.7976931348623157e+150", _error_string_overflow),
         ("2.2250738585072014e-150", _error_string_underflow),
         ("-1.7976931348623157e+150", _error_string_overflow),
         ("-2.2250738585072014e-150", _error_string_underflow),
-
         # More than 38 digits of precision
         # ("." + ("1234" * 10), "Attempting to store more than 38 significant digits in a Number") TODO
-    ]
+    ],
 )
 def test_put_item_invalid_number_types(value, expected_error_template):
     client = boto3.client("dynamodb", region_name="us-east-1")
     table_name = f"T{uuid4()}"
     client.create_table(
         TableName=table_name,
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"},],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"},],
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+        ],
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
     )
-    
+
     # Test putting items with valid values (to make sure we don't break them)
     valid_values = [
         "42",
         "42.0",
         # Examples from https://docs.python.org/3/library/functions.html#float
-        '1e-003',
-        '+1E6',
+        "1e-003",
+        "+1E6",
         "+1.23",
-        # 38 digits of precision are allowed - this is longer, but the trailing 0's don't count 
+        # 38 digits of precision are allowed - this is longer, but the trailing 0's don't count
         ("0" * 40) + ".42",
         # Make sure we don't exclude 0.0 from the range check
         "0.0",
@@ -1309,15 +1316,15 @@ def test_put_item_invalid_number_types(value, expected_error_template):
     ]
 
     for valid_value in valid_values:
-        client.put_item(TableName=table_name, Item={"pk": {"S": "good"}, "value": {"N": valid_value}})
+        client.put_item(
+            TableName=table_name,
+            Item={"pk": {"S": "good"}, "value": {"N": valid_value}},
+        )
 
     with pytest.raises(ClientError) as exc:
         client.put_item(
             TableName=table_name,
-                Item={
-                "pk": {"S": str(uuid4())},
-                "value": {"N": value}
-            }
+            Item={"pk": {"S": str(uuid4())}, "value": {"N": value}},
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
