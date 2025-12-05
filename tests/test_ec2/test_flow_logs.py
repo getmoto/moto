@@ -67,9 +67,7 @@ def test_create_flow_logs_s3(region, partition):
 
 
 @mock_aws
-@pytest.mark.parametrize(
-    "region", ["us-west-2", "cn-north-1"]
-)
+@pytest.mark.parametrize("region", ["us-west-2", "cn-north-1"])
 def test_create_flow_logs_max_aggregation_interval(region):
     s3 = boto3.resource("s3", region_name=region)
     client = boto3.client("ec2", region_name=region)
@@ -99,7 +97,7 @@ def test_create_flow_logs_max_aggregation_interval(region):
         TrafficType="ALL",
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
-        MaxAggregationInterval=600 # check explicitly set interval
+        MaxAggregationInterval=600,  # check explicitly set interval
     )["FlowLogIds"]
     flow_logs = client.describe_flow_logs(FlowLogIds=[response[0]])["FlowLogs"]
     assert len(flow_logs) == 1
