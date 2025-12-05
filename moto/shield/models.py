@@ -334,4 +334,6 @@ class ShieldBackend(BaseBackend):
         return self.subscription
 
 
-shield_backends = BackendDict(ShieldBackend, "shield", additional_regions=PARTITION_NAMES)
+shield_backends = BackendDict(
+    ShieldBackend, "shield", additional_regions=PARTITION_NAMES
+)
