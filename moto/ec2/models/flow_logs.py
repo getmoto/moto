@@ -104,9 +104,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(
-        self, filter_name: str, method_name: str | None = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         """
         API Version 2016-11-15 defines the following filters for DescribeFlowLogs:
 
