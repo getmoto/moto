@@ -684,6 +684,128 @@ def test_get_tag_values_cloudwatch():
 
 
 @mock_aws
+def test_get_resources_sesv2():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    # Create two tagged contact lists
+    for i in range(1, 3):
+        i_str = str(i)
+
+        sesv2.create_contact_list(
+            ContactListName="test-contact-list-" + i_str,
+            Tags=[
+                {"Key": "Test", "Value": i_str},
+            ],
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["ses:contact-list"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
+    sesv2.create_configuration_set(
+        ConfigurationSetName="test-configuration-set",
+        Tags=[{"Key": "ConfigKey", "Value": "ConfigValue"}],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:configuration-set"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "ConfigKey", "Value": "ConfigValue"}
+    ]
+
+    # dedicated-ip-pool
+    sesv2.create_dedicated_ip_pool(
+        PoolName="test-dedicated-ip-pool",
+        Tags=[{"Key": "PoolKey", "Value": "PoolValue"}],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:dedicated-ip-pool"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "PoolKey", "Value": "PoolValue"}
+    ]
+
+    # email-identity
+    sesv2.create_email_identity(
+        EmailIdentity="email-identity",
+        Tags=[{"Key": "IdentityKey", "Value": "IdentityValue"}],
+    )
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:email-identity"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "IdentityKey", "Value": "IdentityValue"}
+    ]
+
+
+@mock_aws
+def test_tag_sesv2_resources():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    sesv2.create_contact_list(ContactListName="contact-list-no-tags")
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 0
+
+    arn = "arn:aws:ses:us-east-1:123456789012:contact-list/contact-list-no-tags"
+    rtapi.tag_resources(
+        ResourceARNList=[arn],
+        Tags={"newKey": "newVal"},
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "newKey", "Value": "newVal"}
+    ]
+
+    resp = sesv2.list_tags_for_resource(ResourceArn=arn)
+    assert resp["Tags"] == [{"Key": "newKey", "Value": "newVal"}]
+
+
+@mock_aws
+def test_untag_sesv2_resources():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    sesv2.create_contact_list(
+        ContactListName="contact-list-with-tags",
+        Tags=[{"Key": "KeyToRemove", "Value": "ValueToRemove"}],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "KeyToRemove", "Value": "ValueToRemove"}
+    ]
+
+    arn = "arn:aws:ses:us-east-1:123456789012:contact-list/contact-list-with-tags"
+
+    rtapi.untag_resources(
+        ResourceARNList=[arn],
+        TagKeys=["KeyToRemove"],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 0
+
+    resp = sesv2.list_tags_for_resource(ResourceArn=arn)
+    assert resp["Tags"] == []
+
+
+@mock_aws
 def test_get_many_resources():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
