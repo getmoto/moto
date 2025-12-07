@@ -3324,6 +3324,38 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "x8aedz.12xlarge",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.24xlarge",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.3xlarge",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.6xlarge",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.large",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.metal-12xl",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.metal-24xl",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "x8aedz.xlarge",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "z1d.12xlarge",
   "Location": "apne1-az1"
  },
