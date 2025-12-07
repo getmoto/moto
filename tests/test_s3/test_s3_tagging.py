@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 import requests
@@ -145,7 +147,7 @@ def test_get_bucket_tagging(bucket_name=None):
 @mock_aws
 def test_delete_bucket_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
     s3_client.put_bucket_tagging(
@@ -304,7 +306,7 @@ def test_put_object_tagging(bucket_name=None):
 @mock_aws
 def test_put_object_tagging_on_earliest_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_resource = boto3.resource("s3")
@@ -376,7 +378,7 @@ def test_put_object_tagging_on_earliest_version():
 @mock_aws
 def test_put_object_tagging_on_both_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_resource = boto3.resource("s3")
@@ -461,7 +463,7 @@ def test_put_object_tagging_on_both_version():
 @mock_aws
 def test_put_object_tagging_with_single_tag():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -479,7 +481,7 @@ def test_put_object_tagging_with_single_tag():
 @mock_aws
 def test_get_object_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -510,13 +512,13 @@ def test_objects_tagging_with_same_key_name():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "file.txt"
 
-    bucket1 = "bucket-1"
+    bucket1 = str(uuid4())
     s3_client.create_bucket(Bucket=bucket1)
     tagging = "variable=one"
 
     s3_client.put_object(Bucket=bucket1, Body=b"test", Key=key_name, Tagging=tagging)
 
-    bucket2 = "bucket-2"
+    bucket2 = str(uuid4())
     s3_client.create_bucket(Bucket=bucket2)
     tagging2 = "variable=two"
 
@@ -536,12 +538,13 @@ def test_objects_tagging_with_same_key_name():
 @mock_aws
 def test_generate_url_for_tagged_object():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="my-bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
     s3_client.put_object(
-        Bucket="my-bucket", Key="test.txt", Body=b"abc", Tagging="MyTag=value"
+        Bucket=bucket_name, Key="test.txt", Body=b"abc", Tagging="MyTag=value"
     )
     url = s3_client.generate_presigned_url(
-        "get_object", Params={"Bucket": "my-bucket", "Key": "test.txt"}
+        "get_object", Params={"Bucket": bucket_name, "Key": "test.txt"}
     )
     kwargs = {}
     if settings.is_test_proxy_mode():

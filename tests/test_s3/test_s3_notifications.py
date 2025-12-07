@@ -78,7 +78,7 @@ def test_send_event_bridge_message():
     events_client.put_rule(
         Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]})
     )
-    log_group_name = "/test-group"
+    log_group_name = f"/loggroup{str(uuid4())}"
     logs_client.create_log_group(logGroupName=log_group_name)
     mocked_bucket = FakeBucket(str(uuid4()), ACCOUNT_ID, REGION_NAME)
     mocked_key = FakeKey(
