@@ -1,10 +1,8 @@
 import json
 import typing
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
-
-from dateutil.tz import tzutc
 
 from moto.s3.models import s3_backends
 from moto.utilities.utils import get_partition
@@ -96,7 +94,7 @@ def filter_model_cards(
         if creation_time_after:
             if isinstance(creation_time_after, int):
                 creation_time_after = datetime.fromtimestamp(
-                    creation_time_after, tz=tzutc()
+                    creation_time_after, tz=timezone.utc
                 )
             filtered_versions = [
                 v
@@ -107,7 +105,7 @@ def filter_model_cards(
         if creation_time_before:
             if isinstance(creation_time_before, int):
                 creation_time_before = datetime.fromtimestamp(
-                    creation_time_before, tz=tzutc()
+                    creation_time_before, tz=timezone.utc
                 )
             filtered_versions = [
                 v

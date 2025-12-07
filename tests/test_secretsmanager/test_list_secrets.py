@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 
 from moto import mock_aws
 from moto.secretsmanager.list_secrets.filters import split_words
@@ -27,6 +26,7 @@ def test_empty():
 @mock_aws
 def test_list_secrets():
     conn = boto_client()
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
@@ -45,10 +45,10 @@ def test_list_secrets():
     assert secrets["SecretList"][1]["Name"] == "test-secret-2"
     assert secrets["SecretList"][1]["Tags"] == [{"Key": "a", "Value": "1"}]
     assert secrets["SecretList"][1]["SecretVersionsToStages"] is not None
-    assert secrets["SecretList"][0]["CreatedDate"] <= datetime.now(tz=tzlocal())
-    assert secrets["SecretList"][1]["CreatedDate"] <= datetime.now(tz=tzlocal())
-    assert secrets["SecretList"][0]["LastChangedDate"] <= datetime.now(tz=tzlocal())
-    assert secrets["SecretList"][1]["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][0]["CreatedDate"] <= datetime.now(tz=tzlocal)
+    assert secrets["SecretList"][1]["CreatedDate"] <= datetime.now(tz=tzlocal)
+    assert secrets["SecretList"][0]["LastChangedDate"] <= datetime.now(tz=tzlocal)
+    assert secrets["SecretList"][1]["LastChangedDate"] <= datetime.now(tz=tzlocal)
 
 
 @mock_aws

@@ -1,14 +1,14 @@
-import datetime
 import re
 import time
+from datetime import datetime, timedelta
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 
 @mock_aws
@@ -27,10 +27,8 @@ def test_create_cluster():
     assert cluster["NodeType"] == "ds2.xlarge"
     assert cluster["ClusterStatus"] == "creating"
     create_time = cluster["ClusterCreateTime"]
-    assert create_time < datetime.datetime.now(create_time.tzinfo)
-    assert create_time > (
-        datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
-    )
+    assert create_time < datetime.now(create_time.tzinfo)
+    assert create_time > (datetime.now(create_time.tzinfo) - timedelta(minutes=1))
     assert cluster["MasterUsername"] == "user"
     assert cluster["DBName"] == "test"
     assert cluster["AutomatedSnapshotRetentionPeriod"] == 1
@@ -67,10 +65,8 @@ def test_create_cluster_with_enhanced_vpc_routing_enabled():
     )
     assert response["Cluster"]["NodeType"] == "ds2.xlarge"
     create_time = response["Cluster"]["ClusterCreateTime"]
-    assert create_time < datetime.datetime.now(create_time.tzinfo)
-    assert create_time > (
-        datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
-    )
+    assert create_time < datetime.now(create_time.tzinfo)
+    assert create_time > (datetime.now(create_time.tzinfo) - timedelta(minutes=1))
     assert response["Cluster"]["EnhancedVpcRouting"] is True
 
 
@@ -1904,9 +1900,7 @@ def test_get_cluster_credentials():
         NodeType="ds2.xlarge",
     )
 
-    expected_expiration = time.mktime(
-        (datetime.datetime.now(tzutc()) + datetime.timedelta(0, 900)).timetuple()
-    )
+    expected_expiration = time.mktime((utcnow() + timedelta(seconds=900)).timetuple())
     db_user = "some_user"
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user
@@ -1927,9 +1921,7 @@ def test_get_cluster_credentials():
     )
     assert response["DbUser"] == "IAM:some_other_user"
 
-    expected_expiration = time.mktime(
-        (datetime.datetime.now(tzutc()) + datetime.timedelta(0, 3000)).timetuple()
-    )
+    expected_expiration = time.mktime((utcnow() + timedelta(seconds=3000)).timetuple())
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000
     )

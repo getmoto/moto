@@ -1,11 +1,10 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -448,9 +447,10 @@ def test_put_image_with_push_date():
 
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
 
     with freeze_time("2018-08-28 00:00:00"):
-        image1_date = datetime.now(tzlocal())
+        image1_date = datetime.now(tzlocal)
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -458,7 +458,7 @@ def test_put_image_with_push_date():
         )
 
     with freeze_time("2019-05-31 00:00:00"):
-        image2_date = datetime.now(tzlocal())
+        image2_date = datetime.now(tzlocal)
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -1015,6 +1015,7 @@ def test_describe_images_by_digest():
 @mock_aws
 def test_get_authorization_token_assume_region():
     client = boto3.client("ecr", region_name=ECR_REGION)
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
     auth_token_response = client.get_authorization_token()
 
     assert "authorizationData" in auth_token_response
@@ -1023,7 +1024,7 @@ def test_get_authorization_token_assume_region():
         {
             "authorizationToken": "QVdTOjEyMzQ1Njc4OTAxMi1hdXRoLXRva2Vu",
             "proxyEndpoint": f"https://{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
         }
     ]
 
@@ -1031,6 +1032,7 @@ def test_get_authorization_token_assume_region():
 @mock_aws
 def test_get_authorization_token_explicit_regions():
     client = boto3.client("ecr", region_name=ECR_REGION)
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
     auth_token_response = client.get_authorization_token(
         registryIds=["10987654321", "878787878787"]
     )
@@ -1041,12 +1043,12 @@ def test_get_authorization_token_explicit_regions():
         {
             "authorizationToken": "QVdTOjEwOTg3NjU0MzIxLWF1dGgtdG9rZW4=",
             "proxyEndpoint": "https://10987654321.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
         },
         {
             "authorizationToken": "QVdTOjg3ODc4Nzg3ODc4Ny1hdXRoLXRva2Vu",
             "proxyEndpoint": "https://878787878787.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
         },
     ]
 
