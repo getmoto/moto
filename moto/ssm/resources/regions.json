@@ -4998,6 +4998,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "awstransform": {
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "backup": {
                 "Value": "backup",
                 "endpoint": {
@@ -6981,6 +6990,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -7793,6 +7811,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "awstransform": {
+                "Value": "awstransform"
               },
               "backup": {
                 "Value": "backup",
@@ -9556,6 +9577,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-northeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12088,6 +12118,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "awstransform": {
+                "Value": "awstransform"
+              },
               "backup": {
                 "Value": "backup",
                 "endpoint": {
@@ -13772,6 +13805,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-south-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17972,6 +18014,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -18807,6 +18858,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "awstransform": {
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "backup": {
@@ -20832,6 +20892,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26346,6 +26415,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -26873,6 +26951,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-southeast-7.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28066,6 +28153,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "awstransform": {
+                "Value": "awstransform"
               },
               "backup": {
                 "Value": "backup",
@@ -29775,6 +29865,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ca-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36829,6 +36928,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -40596,6 +40704,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-north-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46847,6 +46964,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -47711,6 +47837,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "awstransform": {
+                "Value": "awstransform"
               },
               "backup": {
                 "Value": "backup",
@@ -49543,6 +49672,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51739,6 +51877,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-west-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62679,6 +62826,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "nova-act": {
+                "Value": "nova-act",
+                "endpoint": {
+                  "Value": "nova-act.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -63148,6 +63304,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -65902,6 +66067,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -74512,6 +74686,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
