@@ -9,7 +9,6 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -772,27 +771,28 @@ def test_get_random_too_long_password():
 @mock_aws
 def test_describe_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
 
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
     conn.create_secret(Name="test-secret-2", SecretString="barsecret")
 
     secret_description = conn.describe_secret(SecretId="test-secret")
     secret_description_2 = conn.describe_secret(SecretId="test-secret-2")
 
     assert secret_description  # Returned dict is not empty
-    assert secret_description["Name"] == ("test-secret")
+    assert secret_description["Name"] == "test-secret"
     assert secret_description["ARN"] != ""  # Test arn not empty
-    assert secret_description_2["Name"] == ("test-secret-2")
+    assert secret_description_2["Name"] == "test-secret-2"
     assert secret_description_2["ARN"] != ""  # Test arn not empty
-    assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
-    assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description_2["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
-    assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description["LastChangedDate"] > datetime.fromtimestamp(
         1, timezone.utc
     )
-    assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description_2["LastChangedDate"] > datetime.fromtimestamp(
         1, timezone.utc
     )
@@ -965,7 +965,8 @@ def test_cancel_rotate_secret():
 @mock_aws
 def test_rotate_secret():
     # Setup
-    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal)
     rotate_after_days = 10
     with freeze_time(frozen_time):
         conn = boto3.client("secretsmanager", region_name="us-west-2")

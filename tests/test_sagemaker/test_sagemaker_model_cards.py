@@ -1,14 +1,13 @@
 """Unit tests for sagemaker-supported APIs."""
 
 import time
-from datetime import datetime
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 
 from moto import mock_aws
+from moto.core.utils import utcnow
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -153,7 +152,7 @@ def test_list_model_cards_advanced():
             Content='{"model_overview": {"model_description": f"my {c} model"}}',
         )
     time.sleep(1)
-    datetime_now = datetime.now(tzutc())
+    datetime_now = utcnow()
     client.create_model_card(
         ModelCardName="my-fourth-model-card",
         ModelCardStatus="Approved",

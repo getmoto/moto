@@ -1,10 +1,8 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from re import Pattern
 from typing import Any, Optional
-
-from dateutil.tz import tzlocal
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -347,11 +345,12 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
+        tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionStarted",
                     "id": 1,
@@ -364,7 +363,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "PassStateEntered",
                     "id": 2,
@@ -377,7 +376,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "PassStateExited",
                     "id": 3,
@@ -390,7 +389,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionSucceeded",
                     "id": 4,
@@ -405,7 +404,7 @@ class Execution:
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionStarted",
                     "id": 1,
@@ -418,7 +417,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "FailStateEntered",
                     "id": 2,
@@ -431,7 +430,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionFailed",
                     "id": 3,

@@ -521,7 +521,7 @@ class FakeBillingGroup(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:billinggroup/{billing_group_name}"
         self.version = 1
         self.things: list[str] = []
-        self.metadata = {"creationDate": datetime.utcnow().isoformat()}
+        self.metadata = {"creationDate": utcnow().isoformat()}
 
     def to_dict(self) -> dict[str, Any]:
         return {

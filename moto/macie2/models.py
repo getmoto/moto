@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
 from .exceptions import ResourceNotFoundException
@@ -12,7 +12,7 @@ class Invitation(BaseModel):
     def __init__(self, account_id: str, region_name: str, admin_account_id: str):
         self.account_id = account_id
         self.invitation_id = mock_random.get_random_hex()
-        self.invited_at = datetime.utcnow()
+        self.invited_at = utcnow()
         self.relationship_status = "Invited"
         self.arn = f"arn:aws:macie2:{region_name}:{admin_account_id}:invitation/{self.invitation_id}"
 
@@ -35,7 +35,7 @@ class Member(BaseModel):
     ):
         self.account_id = account_id
         self.relationship_status = "Enabled"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = utcnow()
         self.arn = (
             f"arn:aws:macie2:{region_name}:{admin_account_id}:member/{self.account_id}"
         )
@@ -63,11 +63,11 @@ class MacieBackend(BaseBackend):
         self.administrator_account: Optional[Member] = None
         self.organization_admin_account_id: Optional[str] = None
         self.macie_session: Optional[dict[str, Any]] = {
-            "createdAt": datetime.utcnow(),
+            "createdAt": utcnow(),
             "findingPublishingFrequency": "FIFTEEN_MINUTES",
             "serviceRole": f"arn:aws:iam::{account_id}:role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie",
             "status": "ENABLED",
-            "updatedAt": datetime.utcnow(),
+            "updatedAt": utcnow(),
         }
 
     def create_invitations(self, account_ids: list[str]) -> None:
@@ -168,7 +168,7 @@ class MacieBackend(BaseBackend):
         finding_publishing_frequency: str = "FIFTEEN_MINUTES",
         status: str = "ENABLED",
     ) -> None:
-        now = datetime.utcnow()
+        now = utcnow()
         self.macie_session = {
             "createdAt": now,
             "findingPublishingFrequency": finding_publishing_frequency,

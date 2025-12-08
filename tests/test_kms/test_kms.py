@@ -3,7 +3,7 @@ import binascii
 import itertools
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import mock
 
 import boto3
@@ -12,7 +12,6 @@ import pytest
 from botocore.exceptions import ClientError
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws
@@ -553,7 +552,7 @@ def test_schedule_key_deletion():
             response = client.schedule_key_deletion(KeyId=key_id)
             assert response["KeyId"] == key_id
             assert response["DeletionDate"] == datetime(
-                2015, 1, 31, 12, 0, tzinfo=tzutc()
+                2015, 1, 31, 12, 0, tzinfo=timezone.utc
             )
     else:
         # Can't manipulate time in server mode
@@ -577,7 +576,7 @@ def test_schedule_key_deletion_custom():
             )
             assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
             assert response["DeletionDate"] == datetime(
-                2015, 1, 8, 12, 0, tzinfo=tzutc()
+                2015, 1, 8, 12, 0, tzinfo=timezone.utc
             )
     else:
         # Can't manipulate time in server mode
