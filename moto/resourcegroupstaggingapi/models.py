@@ -209,8 +209,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
-        # Workspaces service has limited region availability
-        if self.region_name in workspaces_backends[self.account_id].regions:
+        # WorkspacesWeb service has limited region availability
+        if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
 
