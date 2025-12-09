@@ -139,8 +139,6 @@ backend_url_patterns = [
     ("medialive", re.compile("https?://medialive\\.(.+)\\.amazonaws.com")),
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
     ("mediapackagev2", re.compile("https?://mediapackagev2\\.(.+)\\.amazonaws\\.com")),
-    ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
-    ("mediastoredata", re.compile("https?://data\\.mediastore\\.(.+)\\.amazonaws.com")),
     ("memorydb", re.compile("https?://memory-db\\.(.+)\\.amazonaws\\.com")),
     (
         "meteringmarketplace",
