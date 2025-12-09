@@ -148,7 +148,7 @@ class LaunchTemplates(EC2BaseResponse):
                 {
                     "CreateTime": version.create_time,
                     "CreatedBy": f"arn:{self.partition}:iam::{self.current_account}:root",
-                    "DefaultVersion": True,
+                    "DefaultVersion": template.is_default(version),
                     "LaunchTemplateData": version.data,
                     "LaunchTemplateId": template.id,
                     "LaunchTemplateName": template.name,
