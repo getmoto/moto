@@ -7,7 +7,13 @@ from typing import Any, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
+
+from .exceptions import (
+    InvalidParametersException,
+    ResourceNotFoundException,
+)
 
 PAGINATION_MODEL = {
     "list_portfolio_access": {
@@ -31,6 +37,7 @@ class Portfolio(BaseModel):
         tags: list[dict[str, str]],
         region_name: str,
         account_id: str,
+        backend: "ServiceCatalogBackend",
     ) -> None:
         self.id = portfolio_id
         self.display_name = display_name
@@ -40,6 +47,9 @@ class Portfolio(BaseModel):
         self.tags = tags
         self.region_name = region_name
         self.account_id = account_id
+        self.backend = backend
+        if tags:
+            self.backend._tag_resource(self.arn, tags)
 
     @property
     def arn(self) -> str:
@@ -56,6 +66,69 @@ class Portfolio(BaseModel):
         }
 
 
+class Product(BaseModel):
+    """Service Catalog Product resource."""
+
+    def __init__(
+        self,
+        name: str,
+        owner: str,
+        description: Optional[str],
+        distributor: Optional[str],
+        support_description: Optional[str],
+        support_email: Optional[str],
+        support_url: Optional[str],
+        product_type: str,
+        tags: Optional[list[dict[str, str]]],
+        provisioning_artifact_parameters: Optional[dict[str, Any]],
+        source_connection: Optional[dict[str, Any]],
+        accept_language: Optional[str],
+        region_name: str,
+        account_id: str,
+        backend: "ServiceCatalogBackend",
+    ) -> None:
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.owner = owner
+        self.description = description
+        self.distributor = distributor
+        self.support_description = support_description
+        self.support_email = support_email
+        self.support_url = support_url
+        self.product_type = product_type
+        self.tags = tags or []
+        self.provisioning_artifact_parameters = provisioning_artifact_parameters or {}
+        self.source_connection = source_connection or {}
+        self.accept_language = accept_language
+        self.created_time = datetime.now()
+        self.region_name = region_name
+        self.account_id = account_id
+        self.backend = backend
+        if tags:
+            self.backend._tag_resource(self.arn, tags)
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:product/{self.id}"
+
+    def to_dict(self) -> dict[str, Any]:
+        product_view_summary = {
+            "Id": self.id,  # ?
+            "ProductId": self.id,  # ?
+            "Name": self.name,
+            "Owner": self.owner,
+            "Type": self.product_type,
+            "Distributor": self.distributor,
+            "HasDefaultPath": False,
+            "ShortDescription": self.description,
+            "SupportDescription": self.support_description,
+            "SupportEmail": self.support_email,
+            "SupportUrl": self.support_url,
+        }
+
+        return product_view_summary
+
+
 class ServiceCatalogBackend(BaseBackend):
     """Implementation of ServiceCatalog APIs."""
 
@@ -65,6 +138,8 @@ class ServiceCatalogBackend(BaseBackend):
         self.portfolios: dict[str, Portfolio] = {}
         self.idempotency_tokens: dict[str, str] = {}
         self.portfolio_share_tokens: dict[str, list[str]] = {}
+        self.products: dict[str, Product] = {}
+        self.tagger = TaggingService()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_portfolio_access(
@@ -153,6 +228,7 @@ class ServiceCatalogBackend(BaseBackend):
             tags=tags or [],
             region_name=self.region_name,
             account_id=self.account_id,
+            backend=self,
         )
 
         self.portfolios[portfolio_id] = portfolio
@@ -294,6 +370,90 @@ class ServiceCatalogBackend(BaseBackend):
         budgets: list[dict[str, Any]] = []
 
         return portfolio_detail, tags, tag_options, budgets
+
+    def create_product(
+        self,
+        name: str,
+        owner: str,
+        description: Optional[str],
+        distributor: Optional[str],
+        support_description: Optional[str],
+        support_email: Optional[str],
+        support_url: Optional[str],
+        product_type: str,
+        tags: list[dict[str, str]],
+        provisioning_artifact_parameters: Optional[dict[str, Any]],
+        idempotency_token: Optional[str] = None,
+        source_connection: Optional[dict[str, Any]] = None,
+        accept_language: Optional[str] = None,
+    ) -> Product:
+        token = idempotency_token or str(uuid.uuid4())
+        existing_id = self.idempotency_tokens.get(token)
+        if existing_id:
+            return self.products[existing_id]
+
+        product = Product(
+            name=name,
+            owner=owner,
+            description=description,
+            distributor=distributor,
+            support_description=support_description,
+            support_email=support_email,
+            support_url=support_url,
+            product_type=product_type,
+            tags=tags,
+            provisioning_artifact_parameters=provisioning_artifact_parameters,
+            source_connection=source_connection,
+            accept_language=accept_language,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            backend=self,
+        )
+
+        self.products[product.id] = product
+        self.idempotency_tokens[token] = product.id
+
+        return product
+
+    def describe_product(
+        self, accept_language: Optional[str], id: str, name: str
+    ) -> Product:
+        if not id and not name:
+            raise InvalidParametersException("Either Id or Name must be specified.")
+
+        if id:
+            product = self.products.get(id)
+            if not product:
+                raise ResourceNotFoundException(f"Product with Id '{id}' not found.")
+        else:
+            product = self.lookup_by_name(name)
+            if not product:
+                raise ResourceNotFoundException(
+                    f"Product with Name '{name}' not found."
+                )
+
+        return product
+
+    def lookup_by_name(self, name: str) -> Optional[Product]:
+        for product in self.products.values():
+            if name == product.name:
+                return product
+
+        return None
+
+    def delete_product(self, accept_language: Optional[str], id: str) -> None:
+        if id in self.products:
+            del self.products[id]
+
+        return None
+
+    def _tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def _list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        if self.tagger.has_tags(resource_arn):
+            return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
+        return []
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

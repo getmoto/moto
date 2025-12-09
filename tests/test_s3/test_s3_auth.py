@@ -1,5 +1,6 @@
 import json
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -14,6 +15,7 @@ DEFAULT_REGION_NAME = "us-east-1"
 
 @mock_aws
 @set_initial_no_auth_action_count(0)
+@pytest.mark.requires_clean_slate
 def test_load_unexisting_object_without_auth_should_return_403():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
@@ -21,7 +23,7 @@ def test_load_unexisting_object_without_auth_should_return_403():
     # Head an S3 object we should have no access to.
     resource = boto3.resource("s3", region_name="us-east-1")
 
-    obj = resource.Object("myfakebucket", "myfakekey")
+    obj = resource.Object(str(uuid4()), "myfakekey")
     with pytest.raises(ClientError) as ex:
         obj.load()
     err = ex.value.response["Error"]
@@ -33,6 +35,7 @@ def test_load_unexisting_object_without_auth_should_return_403():
 
 @set_initial_no_auth_action_count(4)
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_head_bucket_with_correct_credentials():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
@@ -47,11 +50,12 @@ def test_head_bucket_with_correct_credentials():
         aws_secret_access_key=iam_keys["SecretAccessKey"],
         region_name=DEFAULT_REGION_NAME,
     )
-    s3_client.create_bucket(Bucket="mock_bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Calling head_bucket with the correct credentials works
     my_head_bucket(
-        "mock_bucket",
+        bucket_name,
         aws_access_key_id=iam_keys["AccessKeyId"],
         aws_secret_access_key=iam_keys["SecretAccessKey"],
     )
@@ -59,12 +63,13 @@ def test_head_bucket_with_correct_credentials():
     # Verify we can make calls that contain a querystring.  Specifically,
     # verify that we are able to build/match the AWS signature for a URL
     # with a querystring.
-    s3_client.get_bucket_location(Bucket="mock_bucket")
-    s3_client.list_objects_v2(Bucket="mock_bucket")
+    s3_client.get_bucket_location(Bucket=bucket_name)
+    s3_client.list_objects_v2(Bucket=bucket_name)
 
 
 @set_initial_no_auth_action_count(4)
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_head_bucket_with_incorrect_credentials():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
@@ -79,12 +84,13 @@ def test_head_bucket_with_incorrect_credentials():
         aws_secret_access_key=iam_keys["SecretAccessKey"],
         region_name=DEFAULT_REGION_NAME,
     )
-    s3_client.create_bucket(Bucket="mock_bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Call head_bucket with incorrect credentials
     with pytest.raises(ClientError) as ex:
         my_head_bucket(
-            "mock_bucket",
+            bucket_name,
             aws_access_key_id=iam_keys["AccessKeyId"],
             aws_secret_access_key="invalid",
         )
@@ -151,12 +157,13 @@ def create_role_with_attached_policy_and_assume_it(
 
 @set_initial_no_auth_action_count(7)
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_delete_objects_without_access_throws_custom_error():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
 
     role_name = "some-test-role"
-    bucket_name = "some-test-bucket"
+    bucket_name = str(uuid4())
 
     # Setup Bucket
     client = boto3.client("s3", region_name="us-east-1")

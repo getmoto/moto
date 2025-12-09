@@ -292,7 +292,7 @@ def test_condition_expression__attr_doesnt_exist():
     )
 
     client.put_item(
-        TableName=table_name, Item={"forum_name": {"S": "foo"}, "ttl": {"N": "bar"}}
+        TableName=table_name, Item={"forum_name": {"S": "foo"}, "ttl": {"N": "4567.89"}}
     )
 
     def update_if_attr_doesnt_exist():

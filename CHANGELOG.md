@@ -1,6 +1,93 @@
 Moto Changelog
 ==============
 
+5.1.18
+-----
+Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_
+
+    General:
+        * Introduces two methods for enabling and disabling IAM authentication:
+            from moto.core import disable_iam_authentication, enable_iam_authentication
+          They behave the same as the `@set_initial_no_auth_action_count`-decorator, but can be used as a fixture/context manager
+
+    New Services:
+        * Pipes:
+            * create_pipe()
+            * delete_pipe()
+            * describe_pipe()
+            * list_pipes()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * S3Control:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * S3Vectors:
+            * delete_vector_bucket_policy()
+            * delete_vectors()
+            * get_vector_bucket_policy()
+            * get_vectors()
+            * list_vectors()
+            * put_vector_bucket_policy()
+            * put_vectors()
+
+    Miscellaneous:
+        * APIGateway: put_rest_api() now correctly creates integrations
+        * AutoScaling: create_auto_scaling_group() now correctly calculates the InstancesDistribution for MixedInstancesPolicies
+        * ResourceGroupsTaggingAPI: get_resources() now supports filtering by `sqs:queue`
+        * SecretsManager: put_secret_value() now adds the AWSCURRENT-label if it's the first version of the Secret being added
+
+
+5.1.17
+-----
+Docker Digest for 5.1.17: _sha256:0361ac8f0cc6687dcf3835da1d60e31cf457fb0d49229d56586f2aa5c510f170_
+
+    General:
+        * The MotoServer dashboard (available on http://localhost:5000/moto-api) now has an new and improved look, making it easier to search for and find your resources
+
+    New Methods:
+        * CloudFront:
+            * tag_resource()
+            * untag_resource()
+
+        * DMS:
+            * create_replication_subnet_group()
+            * describe_connection()
+            * describe_replication_subnet_group()
+            * delete_endpoint()
+            * delete_replication_instance()
+            * delete_replication_subnet_group()
+            * test_endpoint()
+
+        * EC2:
+            * describe_reserved_instances_offerings()
+
+        * RDS:
+            * add_role_to_db_cluster()
+            * add_role_to_db_instance()
+
+        * S3Vectors:
+            * create_index()
+            * delete_index()
+            * get_index()
+            * list_indexes()
+
+        * ServiceCatalog:
+            * create_product()
+            * describe_product()
+            * delete_product()
+
+    Miscellaneous:
+        * ACM-PCA: get_certificate() now returns the CertificateChain-attribute, if appropriate
+        * DMS: Manual control of the State Transition is now available for the `dms:connection` and `dms:replicationinstance` models.
+        * Organizations: describe_account() now returns the State-attribute.
+        * ResourceGroupsTaggingAPI: get_resources() now supports all Comprehend models
+        * StepFunctions: create_execution() now takes the execution input into account when checking idempotency.
+
+
 5.1.16
 -----
 Docker Digest for 5.1.16: _sha256:f78c8e0370cabe2516395f351fb27e1df1aa6dc2d728d6de16d5dfbc9ccf595d_

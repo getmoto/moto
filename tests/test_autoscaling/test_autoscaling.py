@@ -7,21 +7,23 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID, aws_verified
 
 from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_aws
-def test_propogate_tags():
+def test_propagate_attributes():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
+    user_data = Base64EncodedString.from_raw_string("test user data")
     conn.create_launch_configuration(
         LaunchConfigurationName="TestLC",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t2.medium",
+        UserData=user_data.decode(),
     )
-
     conn.create_auto_scaling_group(
         AutoScalingGroupName="TestGroup1",
         MinSize=1,
@@ -38,13 +40,16 @@ def test_propogate_tags():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.describe_instances()
-
-    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    instance = instances["Reservations"][0]["Instances"][0]
+    tags = instance["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
+    resp = ec2.describe_instance_attribute(
+        InstanceId=instance["InstanceId"], Attribute="userData"
+    )
+    assert resp["UserData"]["Value"] == str(user_data)
 
 
 @mock_aws

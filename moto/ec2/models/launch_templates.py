@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
+from moto.core.types import Base64EncodedString
 
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
@@ -12,6 +13,7 @@ from ..exceptions import (
 from ..utils import (
     convert_tag_spec,
     generic_filter,
+    parse_user_data,
     random_launch_template_id,
     random_launch_template_name,
     utc_date_and_time,
@@ -49,8 +51,12 @@ class LaunchTemplateVersion:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self) -> str:
-        return self.data.get("UserData", "")
+    def user_data(self) -> Optional[Base64EncodedString]:
+        user_data = self.data.get("UserData")
+        # UserData can be specified via multiple services/api endpoints,
+        # so we make an assertion here that it's in the format we expect.
+        assert user_data is None or isinstance(user_data, Base64EncodedString)
+        return user_data
 
 
 class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
@@ -139,6 +145,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         properties = cloudformation_json["Properties"]
         name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
+        data["UserData"] = parse_user_data(data.get("UserData"))
         description = properties.get("VersionDescription")
         tag_spec = convert_tag_spec(
             properties.get("TagSpecifications", {}), tag_key="Tags"
@@ -169,6 +176,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         data = properties.get("LaunchTemplateData")
+        data["UserData"] = parse_user_data(data.get("UserData"))
         description = properties.get("VersionDescription")
 
         launch_template = backend.get_launch_template(original_resource.id)

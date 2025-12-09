@@ -26,7 +26,7 @@ jobs:
             test-server-mode: "true"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set up Python ${{ env.python-version }}

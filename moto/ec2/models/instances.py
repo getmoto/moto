@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import copy
 from collections import OrderedDict
@@ -6,6 +8,7 @@ from typing import Any, Optional
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.fleets import Fleet
@@ -41,7 +44,6 @@ from ..utils import (
     random_instance_id,
     random_private_ip,
     random_reservation_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -63,20 +65,12 @@ class MetadataOptions:
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
-        self.hop_limit = int(options.get("HttpPutResponseHopLimit", 1))
+        self.http_put_response_hop_limit = int(
+            options.get("HttpPutResponseHopLimit", 1)
+        )
         self.http_endpoint = options.get("HttpEndpoint", "enabled")
-        self.http_protocol = options.get("HttpProtocolIpv6", "disabled")
+        self.http_protocol_ipv6 = options.get("HttpProtocolIpv6", "disabled")
         self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "State": str(self.state),
-            "HttpTokens": str(self.http_tokens),
-            "HttpPutResponseHopLimit": int(self.hop_limit),
-            "HttpEndpoint": str(self.http_endpoint),
-            "HttpProtocolIpv6": str(self.http_protocol),
-            "InstanceMetadataTags": str(self.instance_metadata_tags),
-        }
 
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
@@ -101,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Any,
+        user_data: Optional[Base64EncodedString],
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -109,6 +103,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
         self.owner_id = ec2_backend.account_id
+        self.client_token = kwargs.get("client_token")
         self.lifecycle: Optional[str] = kwargs.get("lifecycle")
 
         nics = copy.deepcopy(kwargs.get("nics", []))
@@ -130,24 +125,24 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self._state = InstanceState("running", 16)
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type: str = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
-        self.placement_hostid = kwargs.get("placement_hostid")
-        self.subnet_id = kwargs.get("subnet_id")
-        if not self.subnet_id:
-            self.subnet_id = next(
+        self.placement.host_id = kwargs.get("placement_hostid")
+        self._subnet_id = kwargs.get("subnet_id")
+        if not self._subnet_id:
+            self._subnet_id = next(
                 (n["SubnetId"] for n in nics if "SubnetId" in n), None
             )
-        in_ec2_classic = not bool(self.subnet_id)
+        in_ec2_classic = not bool(self._subnet_id)
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.monitoring_state = kwargs.get("monitoring_state", "disabled")
         self.source_dest_check = True
-        self.launch_time = utc_date_and_time()
+        self.launch_time = utcnow()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
         self.instance_initiated_shutdown_behavior = (
@@ -168,22 +163,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
-        self.root_device_name = ami.root_device_name if ami else None
+        self.root_device_name = ami.root_device_name if ami else "/dev/sda1"
+        self.root_device_type = "ebs"
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
+        self.kernel_id = ami.kernel_id if ami else "None"
 
-        self.metadata_options = MetadataOptions(
-            kwargs.get("metadata_options", {})
-        ).to_dict()
+        self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {}))
 
-        # handle weird bug around user_data -- something grabs the repr(), so
-        # it must be clean
-        if isinstance(self.user_data, list) and len(self.user_data) > 0:
-            if isinstance(self.user_data[0], bytes):
-                # string will have a "b" prefix -- need to get rid of it
-                self.user_data[0] = self.user_data[0].decode("utf-8")
-
-        if self.subnet_id:
+        if self._subnet_id:
             subnet: Subnet = ec2_backend.get_subnet(self.subnet_id)
             self._placement.zone = subnet.availability_zone
 
@@ -207,6 +195,54 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         )
 
     @property
+    def instance_state(self) -> InstanceState:
+        return self._state
+
+    @property
+    def state_transition_reason(self) -> Optional[str]:
+        return self._reason
+
+    @property
+    def state(self) -> str:
+        return self._state.name  # type: ignore
+
+    @property
+    def state_code(self) -> int:
+        return self._state.code  # type: ignore
+
+    @property
+    def instance_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
+
+    @property
+    def system_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
+
+    @property
+    def monitoring(self) -> dict[str, str | None]:
+        return {"State": self.monitoring_state}
+
+    @property
     def vpc_id(self) -> Optional[str]:
         if self.subnet_id:
             with contextlib.suppress(InvalidSubnetIdError):
@@ -214,6 +250,14 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 return subnet.vpc_id
         if self.nics and 0 in self.nics:
             return self.nics[0].subnet.vpc_id
+        return None
+
+    @property
+    def subnet_id(self) -> Optional[str]:
+        if self._subnet_id:
+            return self._subnet_id
+        if self.nics:
+            return self.nics[0].subnet.id
         return None
 
     def __del__(self) -> None:
@@ -267,11 +311,26 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.block_device_mapping.items()
 
     @property
+    def block_device_mappings(self) -> list[dict[str, Any]]:
+        return [
+            {"DeviceName": device_name, "Ebs": block}
+            for device_name, block in self.get_block_device_mapping
+        ]
+
+    @property
+    def network_interfaces(self) -> list[NetworkInterface]:
+        return list(self.nics.values())
+
+    @property
     def private_ip(self) -> Optional[str]:
         return self.nics[0].private_ip_address
 
     @property
-    def private_dns(self) -> str:
+    def private_ip_address(self) -> Optional[str]:
+        return self.nics[0].private_ip_address
+
+    @property
+    def private_dns_name(self) -> str:
         formatted_ip = self.private_ip.replace(".", "-")  # type: ignore[union-attr]
         if self.region_name == "us-east-1":
             return f"ip-{formatted_ip}.ec2.internal"
@@ -283,7 +342,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.nics[0].public_ip
 
     @property
-    def public_dns(self) -> Optional[str]:
+    def public_ip_address(self) -> Optional[str]:
+        return self.nics[0].public_ip
+
+    @property
+    def public_dns_name(self) -> Optional[str]:
         if self.public_ip:
             formatted_ip = self.public_ip.replace(".", "-")
             if self.region_name == "us-east-1":
@@ -309,7 +372,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Instance":
+    ) -> Instance:
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -389,7 +452,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 16
 
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
 
         return previous_state
 
@@ -403,7 +466,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 80
 
         self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        self._state_reason = StateReason(
+        self.state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
         )
@@ -457,7 +520,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 48
 
         self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        self._state_reason = StateReason(
+        self.state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
         )
@@ -478,7 +541,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 16
 
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
 
     @property
     def dynamic_group_list(self) -> list[SecurityGroup]:
@@ -528,6 +591,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "SubnetId": self.subnet_id,
             "PrivateIpAddress": private_ip,
             "AssociatePublicIpAddress": associate_public_ip,
+            "Description": "Primary network interface",
         }
         primary_nic = {k: v for k, v in primary_nic.items() if v}
 
@@ -591,6 +655,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     group_ids=group_ids,
                     delete_on_termination=nic.get("DeleteOnTermination") is True,
                     ipv6_address_count=ipv6_address_count,
+                    description=nic.get("Description"),
                 )
 
             self.attach_eni(use_nic, device_index)
@@ -602,7 +667,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # This is used upon associate/disassociate public IP.
         eni.instance = self
         eni.attachment_id = random_eni_attach_id()
-        eni.attach_time = utc_date_and_time()
+        eni.attach_time = utcnow()
         eni.status = "in-use"
         eni.device_index = device_index
 
@@ -630,11 +695,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "AvailabilityZone":
-            return self.placement
+            return self.availability_zone
         elif attribute_name == "PrivateDnsName":
-            return self.private_dns
+            return self.private_dns_name
         elif attribute_name == "PublicDnsName":
-            return self.public_dns
+            return self.public_dns_name
         elif attribute_name == "PrivateIp":
             return self.private_ip
         elif attribute_name == "PublicIp":
@@ -673,7 +738,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Optional[str],
+        user_data: Optional[Base64EncodedString],
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:
@@ -732,7 +797,10 @@ class InstanceBackend:
             else:
                 security_groups.append(sg_id)
 
-        new_reservation = Reservation(reservation_id=random_reservation_id())
+        new_reservation = Reservation(
+            reservation_id=random_reservation_id(),
+            owner_id=self.account_id,  # type: ignore[attr-defined]
+        )
 
         self.reservations[new_reservation.id] = new_reservation
 
@@ -853,7 +921,6 @@ class InstanceBackend:
         metadata_tags: Optional[str] = None,
     ) -> MetadataOptions:
         instance = self.get_instance(instance_id)
-
         metadata_dict = {
             "State": "applied",
             "HttpTokens": http_tokens,
@@ -862,11 +929,8 @@ class InstanceBackend:
             "HttpProtocolIpv6": http_protocol,
             "InstanceMetadataTags": metadata_tags,
         }
-
         metadata_options = MetadataOptions(metadata_dict)
-
-        instance.metadata_options = metadata_options.to_dict()
-
+        instance.metadata_options = metadata_options
         return metadata_options
 
     def modify_instance_security_groups(

@@ -571,6 +571,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "client_keep_alive.seconds",
         "deletion_protection.enabled",
         "dns_record.client_routing_policy",
+        "health_check_logs.s3.enabled",
         "idle_timeout.timeout_seconds",
         "ipv6.deny_all_igw_traffic",
         "load_balancing.cross_zone.enabled",

@@ -756,6 +756,46 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -2016,6 +2056,14 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -3152,6 +3200,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eu-central-1a"
  },
@@ -4205,6 +4257,18 @@
  },
  {
   "InstanceType": "f1.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "f2.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -6636,6 +6700,10 @@
   "Location": "eu-central-1b"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "eu-central-1b"
  },
@@ -7645,6 +7713,18 @@
  },
  {
   "InstanceType": "f1.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "f2.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
   "Location": "eu-central-1c"
  },
  {
@@ -9921,6 +10001,10 @@
  },
  {
   "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "eu-central-1c"
  },
  {

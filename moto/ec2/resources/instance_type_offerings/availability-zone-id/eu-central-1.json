@@ -848,6 +848,18 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "g4dn.12xlarge",
   "Location": "euc1-az1"
  },
@@ -3124,6 +3136,10 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "euc1-az1"
  },
@@ -4037,6 +4053,46 @@
  },
  {
   "InstanceType": "c8gd.xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "euc1-az2"
  },
  {
@@ -5300,6 +5356,14 @@
   "Location": "euc1-az2"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "euc1-az2"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "euc1-az2"
  },
@@ -6436,6 +6500,10 @@
   "Location": "euc1-az2"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "euc1-az2"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "euc1-az2"
  },
@@ -7489,6 +7557,18 @@
  },
  {
   "InstanceType": "f1.4xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "f2.12xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
   "Location": "euc1-az3"
  },
  {
@@ -9917,6 +9997,10 @@
  },
  {
   "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "euc1-az3"
  },
  {

@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -127,8 +126,10 @@ def test_describe_domain_config():
     assert ev_status["PendingDeletion"] is False
 
     if not settings.TEST_SERVER_MODE:
-        assert ev_status["CreationDate"] == datetime(2015, 1, 1, 12, tzinfo=tzlocal())
-        assert ev_status["UpdateDate"] == datetime(2015, 1, 1, 12, tzinfo=tzlocal())
+        assert ev_status["CreationDate"] == datetime(
+            2015, 1, 1, 12, tzinfo=timezone.utc
+        )
+        assert ev_status["UpdateDate"] == datetime(2015, 1, 1, 12, tzinfo=timezone.utc)
 
 
 @mock_aws

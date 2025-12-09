@@ -218,3 +218,68 @@ def test_put_rest_api__as_yaml():
     assert response["id"] == api_id
     assert response["name"] == "my_api"
     assert response["description"] == "this is my api"
+
+
+@mock_aws
+def test_put_rest_api__as_yaml_with_integrations():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    response = client.create_rest_api(
+        name="my_api_with_integrations", description="this is my api with integrations"
+    )
+    api_id = response["id"]
+
+    path = os.path.dirname(os.path.abspath(__file__))
+    with open(path + "/resources/test_api_integration.yaml", "rb") as api_yaml:
+        response = client.put_rest_api(
+            restApiId=api_id,
+            mode="overwrite",
+            failOnWarnings=True,
+            body=api_yaml.read(),
+        )
+
+    # Basic assertions that the API has been updated
+    assert response["id"] == api_id
+    assert response["name"] == "my_api_with_integrations"
+    assert response["description"] == "this is my api with integrations"
+
+    # Check some of the details of one of the integrations to check we've called all the
+    # right functions (the integration side of things is more fully tested in
+    # tests/test_apigateway/test_apigateway_integration.py)
+    resources = client.get_resources(
+        restApiId=api_id,
+    )
+    root_resource = next(
+        (
+            item
+            for item in resources.get("items", [])
+            if item.get("path") == "/" and "GET" in item.get("resourceMethods", {})
+        ),
+        None,
+    )
+    assert root_resource, "Expected a root level resource with a GET"
+    assert "GET" in root_resource["resourceMethods"]
+
+    root_get_method = root_resource["resourceMethods"]["GET"]
+    assert root_get_method["httpMethod"] == "GET"
+
+    root_integration = root_get_method.get("methodIntegration")
+    assert root_integration, "Expected root level GET resource to have an integration"
+    assert root_integration.get("type") == "HTTP"
+    assert root_integration.get("httpMethod") == "GET"
+    assert root_integration.get("uri") == "https://nlb.example.com:8080/api/"
+    assert root_integration.get("connectionType") == "VPC_LINK"
+
+    assert "integrationResponses" in root_integration
+    assert "200" in root_integration["integrationResponses"]
+    default_integration_response = root_integration["integrationResponses"]["200"]
+    assert default_integration_response["statusCode"] == "200"
+    assert not default_integration_response.get("selectionPattern"), (
+        "Default integration response does not have a selection pattern"
+    )
+
+    # Create a deployment - this should succeed without error as we have integrations
+    client.create_deployment(
+        restApiId=api_id,
+        description="Test deployment",
+    )

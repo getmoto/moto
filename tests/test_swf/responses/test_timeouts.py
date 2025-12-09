@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
-from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -47,9 +46,8 @@ def test_activity_task_heartbeat_timeout():
         attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
         assert attrs["timeoutType"] == "HEARTBEAT"
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        assert isinstance(resp["events"][-2]["eventTimestamp"], datetime)
         ts = resp["events"][-2]["eventTimestamp"]
-        assert ts == dtparse("2015-01-01 12:05:00 UTC")
+        assert ts == datetime(2015, 1, 1, 12, 5, 00, tzinfo=timezone.utc)
 
 
 # Decision Task Start to Close timeout
@@ -98,9 +96,8 @@ def test_decision_task_start_to_close_timeout():
             "timeoutType": "START_TO_CLOSE",
         }
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        assert isinstance(resp["events"][-2]["eventTimestamp"], datetime)
         ts = resp["events"][-2]["eventTimestamp"]
-        assert ts == dtparse("2015-01-01 12:05:00 UTC")
+        assert ts == datetime(2015, 1, 1, 12, 5, 00, tzinfo=timezone.utc)
 
 
 # Workflow Execution Start to Close timeout
@@ -137,6 +134,5 @@ def test_workflow_execution_start_to_close_timeout():
         attrs = resp["events"][-1]["workflowExecutionTimedOutEventAttributes"]
         assert attrs == {"childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"}
         # checks that event has been emitted at 14:00:00, not 14:00:30
-        assert isinstance(resp["events"][-1]["eventTimestamp"], datetime)
         ts = resp["events"][-1]["eventTimestamp"]
-        assert ts == dtparse("2015-01-01 14:00:00 UTC")
+        assert ts == datetime(2015, 1, 1, 14, 0, 00, tzinfo=timezone.utc)
