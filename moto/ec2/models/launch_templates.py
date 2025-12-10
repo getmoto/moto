@@ -89,7 +89,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         return version
 
     def is_default(self, version: LaunchTemplateVersion) -> bool:
-        return self.default_version == version.number  # type: ignore
+        return self.default_version_number == version.number
 
     def get_version(self, num: Any) -> LaunchTemplateVersion:
         if str(num).lower() == "$latest":
