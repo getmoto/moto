@@ -163,13 +163,38 @@ def test_describe_launch_template_versions_by_name_when_absent():
     ):
         cli.describe_launch_template_versions(LaunchTemplateName=template_name)
 
-    # test default response
-    resp = cli.describe_launch_template_versions()
-    assert resp["LaunchTemplateVersions"] == []
 
-    # test using $Latest version
+@aws_verified
+@pytest.mark.aws_verified
+def test_describe_launch_template_versions_without_name_or_id():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        cli.describe_launch_template_versions()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert (
+        err["Message"]
+        == "To describe the launch template data for all your launch templates, for ‘--versions’ specify ‘$Latest’, ‘$Default’, or both, and omit ‘--launch-template-id’, ‘--launch-template-name’, and version numbers. To describe the launch template data for a specific launch template, specify ‘--launch-template-id’ or ‘--launch-template-name’, and for ‘--versions’ specify one or more of the following values: ‘$Latest’, ‘$Default’, or one or more version numbers."
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_describe_launch_template_versions_with_just_version():
+    cli = boto3.client("ec2", region_name="us-east-1")
     resp = cli.describe_launch_template_versions(Versions=["$Latest"])
     assert resp["LaunchTemplateVersions"] == []
+
+    # Note that this is only possible when using $Latest/$Default - we can't retrieve versions with just a number
+    with pytest.raises(ClientError) as exc:
+        cli.describe_launch_template_versions(Versions=["1"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "To describe the launch template data for all your launch templates, for ‘--versions’ specify ‘$Latest’, ‘$Default’, or both, and omit ‘--launch-template-id’, ‘--launch-template-name’, and version numbers. To describe the launch template data for a specific launch template, specify ‘--launch-template-id’ or ‘--launch-template-name’, and for ‘--versions’ specify one or more of the following values: ‘$Latest’, ‘$Default’, or one or more version numbers."
+    )
 
 
 @ec2_launch_template_aws_verified(pass_creation_response=True)
@@ -420,6 +445,57 @@ def test_describe_launch_template_versions_with_min_and_max():
     assert (
         resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"]
         == "ami-hij789"
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_describe_launch_template_versions_with_wrong_name():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        cli.describe_launch_template_versions(LaunchTemplateName="template_name")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidLaunchTemplateName.NotFoundException"
+    assert (
+        err["Message"]
+        == "The specified launch template, with template name template_name, does not exist."
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_describe_launch_template_versions_with_wrong_id():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    lt_id = "lt-07ff4bb0369cd679c"  # lt-{17-digit hexadecimal}
+    with pytest.raises(ClientError) as exc:
+        cli.describe_launch_template_versions(LaunchTemplateId=lt_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidLaunchTemplateId.NotFound"
+    assert (
+        err["Message"]
+        == f"The specified launch template, with template ID {lt_id}, does not exist."
+    )
+
+
+@ec2_launch_template_aws_verified(pass_creation_response=True)
+@pytest.mark.aws_verified
+def test_describe_launch_template_versions_with_wrong_version(
+    template_name=None, creation=None
+):
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    lt_id = creation["LaunchTemplate"]["LaunchTemplateId"]
+    with pytest.raises(ClientError) as exc:
+        cli.describe_launch_template_versions(
+            LaunchTemplateName=template_name, Versions=["3"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidLaunchTemplateId.VersionNotFound"
+    assert (
+        err["Message"]
+        == f"Could not find the specified version 3 for the launch template with ID {lt_id}."
     )
 
 
@@ -828,30 +904,96 @@ def test_launch_template_describe_with_tags():
     assert lt["Tags"][0] == {"Key": "test1", "Value": "value1"}
 
 
-@mock_aws
-def test_modify_launch_template_by_name():
+@ec2_launch_template_aws_verified()
+@pytest.mark.aws_verified
+def test_modify_launch_template_by_name(template_name=None):
     cli = boto3.client("ec2", region_name="us-east-1")
 
-    template_name = str(uuid4())
-    create_resp = cli.create_launch_template(
-        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
-    )
-
-    version_resp = cli.create_launch_template_version(
-        LaunchTemplateId=create_resp["LaunchTemplate"]["LaunchTemplateId"],
-        LaunchTemplateData={"ImageId": "ami-def456"},
+    cli.create_launch_template_version(
+        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-def456"}
     )
 
     resp = cli.modify_launch_template(
-        LaunchTemplateId=create_resp["LaunchTemplate"]["LaunchTemplateId"],
-        DefaultVersion="2",
+        LaunchTemplateName=template_name, DefaultVersion="2"
+    )
+    assert resp["LaunchTemplate"]["DefaultVersionNumber"] == 2
+
+    template = cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ][0]
+    assert template["DefaultVersionNumber"] == 2
+
+    versions = cli.describe_launch_template_versions(LaunchTemplateName=template_name)[
+        "LaunchTemplateVersions"
+    ]
+
+    version1 = next(v for v in versions if v["VersionNumber"] == 1)
+    version2 = next(v for v in versions if v["VersionNumber"] == 2)
+    assert version1["DefaultVersion"] is False
+    assert version2["DefaultVersion"] is True
+
+
+@ec2_launch_template_aws_verified(pass_creation_response=True)
+@pytest.mark.aws_verified
+def test_modify_launch_template_by_id(template_name=None, creation=None):
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_id = creation["LaunchTemplate"]["LaunchTemplateId"]
+    cli.create_launch_template_version(
+        LaunchTemplateId=template_id,
+        LaunchTemplateData={"ImageId": "ami-def456"},
     )
 
-    assert "DefaultVersionNumber" in resp["LaunchTemplate"]
-    version = version_resp["LaunchTemplateVersion"]
+    resp = cli.modify_launch_template(LaunchTemplateId=template_id, DefaultVersion="2")
+
     assert resp["LaunchTemplate"]["DefaultVersionNumber"] == 2
+
+    template = cli.describe_launch_templates(LaunchTemplateNames=[template_name])[
+        "LaunchTemplates"
+    ][0]
+    assert template["DefaultVersionNumber"] == 2
+
+    versions = cli.describe_launch_template_versions(LaunchTemplateName=template_name)[
+        "LaunchTemplateVersions"
+    ]
+
+    version1 = next(v for v in versions if v["VersionNumber"] == 1)
+    version2 = next(v for v in versions if v["VersionNumber"] == 2)
+    assert version1["DefaultVersion"] is False
+    assert version2["DefaultVersion"] is True
+
+
+@ec2_launch_template_aws_verified()
+@pytest.mark.aws_verified
+def test_modify_launch_template_by_name_and_id(template_name=None):
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        cli.modify_launch_template(
+            LaunchTemplateId="template_n",
+            LaunchTemplateName=template_name,
+            DefaultVersion="2",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
     assert (
-        version["LaunchTemplateId"] == create_resp["LaunchTemplate"]["LaunchTemplateId"]
+        err["Message"]
+        == "Either provide launch template ID or launch template name to modify the template."
+    )
+
+
+@ec2_launch_template_aws_verified()
+@pytest.mark.aws_verified
+def test_modify_launch_template_with_unknown_version(template_name=None):
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        cli.modify_launch_template(LaunchTemplateName=template_name, DefaultVersion="2")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidLaunchTemplateId.VersionNotFound"
+    assert (
+        err["Message"]
+        == "The launch template version 2 is not found for the specified launch template."
     )
 
 
