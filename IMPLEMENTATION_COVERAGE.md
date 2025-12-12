@@ -3111,7 +3111,7 @@
 - [ ] describe_ipams
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
-- [ ] describe_launch_template_versions
+- [X] describe_launch_template_versions
 - [X] describe_launch_templates
 - [ ] describe_local_gateway_route_table_virtual_interface_group_associations
 - [ ] describe_local_gateway_route_table_vpc_associations

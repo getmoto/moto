@@ -1,5 +1,5 @@
 from moto.core.responses import ActionResult
-from moto.ec2.exceptions import FilterNotImplementedError
+from moto.ec2.exceptions import InvalidParameterCombination
 from moto.ec2.utils import parse_user_data
 
 from ._base_response import EC2BaseResponse
@@ -103,45 +103,22 @@ class LaunchTemplates(EC2BaseResponse):
     def describe_launch_template_versions(self) -> ActionResult:
         name = self._get_param("LaunchTemplateName")
         template_id = self._get_param("LaunchTemplateId")
-        if name:
-            template = self.ec2_backend.get_launch_template_by_name(name)
-        elif template_id:
-            template = self.ec2_backend.get_launch_template(template_id)
-        else:
-            template = None
 
         max_results = self._get_int_param("MaxResults", 15)
         versions = self._get_param("Versions", [])
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
 
-        filters = self._filters_from_querystring()
-        if filters:
-            raise FilterNotImplementedError(
-                "all filters", "DescribeLaunchTemplateVersions"
-            )
-
         self.error_on_dryrun()
 
-        ret_versions = []
-        if versions and template is not None:
-            for v in versions:
-                ret_versions.append(template.get_version(v))
-        elif min_version:
-            if max_version:
-                vMax = max_version
-            else:
-                vMax = min_version + max_results
-
-            vMin = min_version - 1
-            ret_versions = template.versions[vMin:vMax]
-        elif max_version:
-            vMax = max_version
-            ret_versions = template.versions[:vMax]
-        elif template is not None:
-            ret_versions = template.versions
-
-        ret_versions = ret_versions[:max_results]
+        ret_versions = self.ec2_backend.describe_launch_template_versions(
+            template_name=name,
+            template_id=template_id,
+            versions=versions,
+            min_version=min_version,
+            max_version=max_version,
+            max_results=max_results,
+        )
 
         result = {
             "LaunchTemplateVersions": [
@@ -155,7 +132,7 @@ class LaunchTemplates(EC2BaseResponse):
                     "VersionDescription": version.description,
                     "VersionNumber": version.number,
                 }
-                for version in ret_versions
+                for template, version in ret_versions
             ]
         }
 
@@ -291,6 +268,11 @@ class LaunchTemplates(EC2BaseResponse):
         template_name = self._get_param("LaunchTemplateName")
         template_id = self._get_param("LaunchTemplateId")
         default_version = self._get_param("DefaultVersion")
+
+        if template_name and template_id:
+            raise InvalidParameterCombination(
+                "Either provide launch template ID or launch template name to modify the template."
+            )
 
         self.error_on_dryrun()
 
