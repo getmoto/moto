@@ -99,8 +99,6 @@ if TYPE_CHECKING:
     from moto.mediaconnect.models import MediaConnectBackend
     from moto.medialive.models import MediaLiveBackend
     from moto.mediapackage.models import MediaPackageBackend
-    from moto.mediastore.models import MediaStoreBackend
-    from moto.mediastoredata.models import MediaStoreDataBackend
     from moto.memorydb.models import MemoryDBBackend
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
@@ -290,9 +288,7 @@ SERVICE_NAMES = Union[
     "Literal['mediaconnect']",
     "Literal['medialive']",
     "Literal['mediapackage']",
-    "Literal['mediastore']",
     "Literal['memorydb']",
-    "Literal['mediastore-data']",
     "Literal['meteringmarketplace']",
     "Literal['moto_api']",
     "Literal['mq']",
@@ -610,12 +606,6 @@ def get_backend(name: "Literal['medialive']") -> "BackendDict[MediaLiveBackend]"
 def get_backend(
     name: "Literal['mediapackage']",
 ) -> "BackendDict[MediaPackageBackend]": ...
-@overload
-def get_backend(name: "Literal['mediastore']") -> "BackendDict[MediaStoreBackend]": ...
-@overload
-def get_backend(
-    name: "Literal['mediastore-data']",
-) -> "BackendDict[MediaStoreDataBackend]": ...
 @overload
 def get_backend(name: "Literal['memorydb']") -> "BackendDict[MemoryDBBackend]": ...
 @overload
