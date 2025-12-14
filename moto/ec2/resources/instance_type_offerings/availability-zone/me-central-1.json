@@ -220,6 +220,46 @@
   "Location": "me-central-1a"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "me-central-1a"
+ },
+ {
   "InstanceType": "g5.12xlarge",
   "Location": "me-central-1a"
  },
@@ -1233,6 +1273,46 @@
  },
  {
   "InstanceType": "c7i.xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "me-central-1b"
  },
  {
@@ -2273,6 +2353,46 @@
  },
  {
   "InstanceType": "c7i.xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "me-central-1c"
  },
  {
