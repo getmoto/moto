@@ -4,7 +4,7 @@ import contextlib
 import copy
 from collections import OrderedDict
 from collections.abc import ItemsView
-from typing import Any, Optional
+from typing import Any
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
@@ -61,7 +61,7 @@ class StateReason:
 
 
 class MetadataOptions:
-    def __init__(self, options: Optional[dict[str, Any]] = None):
+    def __init__(self, options: dict[str, Any] | None = None):
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
@@ -76,21 +76,21 @@ class MetadataOptions:
 class BlockDeviceWrapper:
     def __init__(self, block):
         object.__setattr__(self, '_block', block)
-    
+
     def __getattr__(self, name):
         block = object.__getattribute__(self, '_block')
         return getattr(block, name)
-    
+
     @property
     def status(self):
         block = object.__getattribute__(self, '_block')
         volume_status = block.status
-        
+
         if volume_status == "in-use":
             return "attached"
         elif volume_status == "available":
             return "detached"
-        
+
         return volume_status
 
 
@@ -116,7 +116,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Optional[Base64EncodedString],
+        user_data: Base64EncodedString | None,
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -125,7 +125,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.id = random_instance_id()
         self.owner_id = ec2_backend.account_id
         self.client_token = kwargs.get("client_token")
-        self.lifecycle: Optional[str] = kwargs.get("lifecycle")
+        self.lifecycle: str | None = kwargs.get("lifecycle")
 
         nics = copy.deepcopy(kwargs.get("nics", []))
 
@@ -220,7 +220,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self._state
 
     @property
-    def state_transition_reason(self) -> Optional[str]:
+    def state_transition_reason(self) -> str | None:
         return self._reason
 
     @property
@@ -264,7 +264,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return {"State": self.monitoring_state}
 
     @property
-    def vpc_id(self) -> Optional[str]:
+    def vpc_id(self) -> str | None:
         if self.subnet_id:
             with contextlib.suppress(InvalidSubnetIdError):
                 subnet: Subnet = self.ec2_backend.get_subnet(self.subnet_id)
@@ -274,7 +274,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return None
 
     @property
-    def subnet_id(self) -> Optional[str]:
+    def subnet_id(self) -> str | None:
         if self._subnet_id:
             return self._subnet_id
         if self.nics:
@@ -295,11 +295,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         size: int,
         device_path: str,
-        snapshot_id: Optional[str],
+        snapshot_id: str | None,
         encrypted: bool,
         delete_on_termination: bool,
-        kms_key_id: Optional[str],
-        volume_type: Optional[str],
+        kms_key_id: str | None,
+        volume_type: str | None,
     ) -> None:
         volume = self.ec2_backend.create_volume(
             size=size,
@@ -329,11 +329,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @property
     def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
-        return self.block_device_mapping.items()              
+        return self.block_device_mapping.items()
 
     @property
     def block_device_mappings(self) -> list[dict[str, Any]]:
-            
+
         return [
             {"DeviceName": device_name, "Ebs": BlockDeviceWrapper(block)}
             for device_name, block in self.get_block_device_mapping
@@ -344,11 +344,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return list(self.nics.values())
 
     @property
-    def private_ip(self) -> Optional[str]:
+    def private_ip(self) -> str | None:
         return self.nics[0].private_ip_address
 
     @property
-    def private_ip_address(self) -> Optional[str]:
+    def private_ip_address(self) -> str | None:
         return self.nics[0].private_ip_address
 
     @property
@@ -360,15 +360,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             return f"ip-{formatted_ip}.{self.region_name}.compute.internal"
 
     @property
-    def public_ip(self) -> Optional[str]:
+    def public_ip(self) -> str | None:
         return self.nics[0].public_ip
 
     @property
-    def public_ip_address(self) -> Optional[str]:
+    def public_ip_address(self) -> str | None:
         return self.nics[0].public_ip
 
     @property
-    def public_dns_name(self) -> Optional[str]:
+    def public_dns_name(self) -> str | None:
         if self.public_ip:
             formatted_ip = self.public_ip.replace(".", "-")
             if self.region_name == "us-east-1":
@@ -569,7 +569,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def dynamic_group_list(self) -> list[SecurityGroup]:
         return self.security_groups
 
-    def _get_private_ip_from_nic(self, nic: dict[str, Any]) -> Optional[str]:
+    def _get_private_ip_from_nic(self, nic: dict[str, Any]) -> str | None:
         private_ip = nic.get("PrivateIpAddress")
         if private_ip:
             return private_ip
@@ -581,10 +581,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def prep_nics(
         self,
         nic_spec: list[dict[str, Any]],
-        private_ip: Optional[str] = None,
-        associate_public_ip: Optional[bool] = None,
-        security_groups: Optional[list[SecurityGroup]] = None,
-        ipv6_address_count: Optional[int] = None,
+        private_ip: str | None = None,
+        associate_public_ip: bool | None = None,
+        security_groups: list[SecurityGroup] | None = None,
+        ipv6_address_count: int | None = None,
     ) -> None:
         self.nics: dict[int, NetworkInterface] = {}
         for nic in nic_spec:
@@ -760,7 +760,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Optional[Base64EncodedString],
+        user_data: Base64EncodedString | None,
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:
@@ -935,12 +935,12 @@ class InstanceBackend:
     def modify_instance_metadata_options(
         self,
         instance_id: str,
-        http_tokens: Optional[str] = None,
-        hop_limit: Optional[int] = None,
-        http_endpoint: Optional[str] = None,
-        dry_run: Optional[bool] = False,
-        http_protocol: Optional[str] = None,
-        metadata_tags: Optional[str] = None,
+        http_tokens: str | None = None,
+        hop_limit: int | None = None,
+        http_endpoint: str | None = None,
+        dry_run: bool | None = False,
+        http_protocol: str | None = None,
+        metadata_tags: str | None = None,
     ) -> MetadataOptions:
         instance = self.get_instance(instance_id)
         metadata_dict = {
@@ -1027,7 +1027,7 @@ class InstanceBackend:
             raise InvalidInstanceIdError(not_found_instance_ids)
         return result
 
-    def get_instance_by_id(self, instance_id: str) -> Optional[Instance]:
+    def get_instance_by_id(self, instance_id: str) -> Instance | None:
         for reservation in self.all_reservations():
             for instance in reservation.instances:
                 if instance.id == instance_id:
