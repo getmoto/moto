@@ -4,7 +4,7 @@ import contextlib
 import copy
 from collections import OrderedDict
 from collections.abc import ItemsView
-from typing import Any
+from typing import Any, Optional
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
@@ -61,7 +61,7 @@ class StateReason:
 
 
 class MetadataOptions:
-    def __init__(self, options: dict[str, Any] | None = None):
+    def __init__(self, options: Optional[dict[str, Any]] = None):
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
@@ -95,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Base64EncodedString | None,
+        user_data: Optional[Base64EncodedString],
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -104,7 +104,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.id = random_instance_id()
         self.owner_id = ec2_backend.account_id
         self.client_token = kwargs.get("client_token")
-        self.lifecycle: str | None = kwargs.get("lifecycle")
+        self.lifecycle: Optional[str] = kwargs.get("lifecycle")
 
         nics = copy.deepcopy(kwargs.get("nics", []))
 
@@ -199,7 +199,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self._state
 
     @property
-    def state_transition_reason(self) -> str | None:
+    def state_transition_reason(self) -> Optional[str]:
         return self._reason
 
     @property
@@ -243,7 +243,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return {"State": self.monitoring_state}
 
     @property
-    def vpc_id(self) -> str | None:
+    def vpc_id(self) -> Optional[str]:
         if self.subnet_id:
             with contextlib.suppress(InvalidSubnetIdError):
                 subnet: Subnet = self.ec2_backend.get_subnet(self.subnet_id)
@@ -253,7 +253,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return None
 
     @property
-    def subnet_id(self) -> str | None:
+    def subnet_id(self) -> Optional[str]:
         if self._subnet_id:
             return self._subnet_id
         if self.nics:
@@ -274,11 +274,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         size: int,
         device_path: str,
-        snapshot_id: str | None,
+        snapshot_id: Optional[str],
         encrypted: bool,
         delete_on_termination: bool,
-        kms_key_id: str | None,
-        volume_type: str | None,
+        kms_key_id: Optional[str],
+        volume_type: Optional[str],
     ) -> None:
         volume = self.ec2_backend.create_volume(
             size=size,
@@ -322,11 +322,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return list(self.nics.values())
 
     @property
-    def private_ip(self) -> str | None:
+    def private_ip(self) -> Optional[str]:
         return self.nics[0].private_ip_address
 
     @property
-    def private_ip_address(self) -> str | None:
+    def private_ip_address(self) -> Optional[str]:
         return self.nics[0].private_ip_address
 
     @property
@@ -338,15 +338,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             return f"ip-{formatted_ip}.{self.region_name}.compute.internal"
 
     @property
-    def public_ip(self) -> str | None:
+    def public_ip(self) -> Optional[str]:
         return self.nics[0].public_ip
 
     @property
-    def public_ip_address(self) -> str | None:
+    def public_ip_address(self) -> Optional[str]:
         return self.nics[0].public_ip
 
     @property
-    def public_dns_name(self) -> str | None:
+    def public_dns_name(self) -> Optional[str]:
         if self.public_ip:
             formatted_ip = self.public_ip.replace(".", "-")
             if self.region_name == "us-east-1":
@@ -547,7 +547,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def dynamic_group_list(self) -> list[SecurityGroup]:
         return self.security_groups
 
-    def _get_private_ip_from_nic(self, nic: dict[str, Any]) -> str | None:
+    def _get_private_ip_from_nic(self, nic: dict[str, Any]) -> Optional[str]:
         private_ip = nic.get("PrivateIpAddress")
         if private_ip:
             return private_ip
@@ -559,10 +559,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def prep_nics(
         self,
         nic_spec: list[dict[str, Any]],
-        private_ip: str | None = None,
-        associate_public_ip: bool | None = None,
-        security_groups: list[SecurityGroup] | None = None,
-        ipv6_address_count: int | None = None,
+        private_ip: Optional[str] = None,
+        associate_public_ip: Optional[bool] = None,
+        security_groups: Optional[list[SecurityGroup]] = None,
+        ipv6_address_count: Optional[int] = None,
     ) -> None:
         self.nics: dict[int, NetworkInterface] = {}
         for nic in nic_spec:
@@ -738,7 +738,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Base64EncodedString | None,
+        user_data: Optional[Base64EncodedString],
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:
@@ -913,12 +913,12 @@ class InstanceBackend:
     def modify_instance_metadata_options(
         self,
         instance_id: str,
-        http_tokens: str | None = None,
-        hop_limit: int | None = None,
-        http_endpoint: str | None = None,
-        dry_run: bool | None = False,
-        http_protocol: str | None = None,
-        metadata_tags: str | None = None,
+        http_tokens: Optional[str] = None,
+        hop_limit: Optional[int] = None,
+        http_endpoint: Optional[str] = None,
+        dry_run: Optional[bool] = False,
+        http_protocol: Optional[str] = None,
+        metadata_tags: Optional[str] = None,
     ) -> MetadataOptions:
         instance = self.get_instance(instance_id)
         metadata_dict = {
@@ -1005,7 +1005,7 @@ class InstanceBackend:
             raise InvalidInstanceIdError(not_found_instance_ids)
         return result
 
-    def get_instance_by_id(self, instance_id: str) -> Instance | None:
+    def get_instance_by_id(self, instance_id: str) -> Optional[Instance]:
         for reservation in self.all_reservations():
             for instance in reservation.instances:
                 if instance.id == instance_id:
