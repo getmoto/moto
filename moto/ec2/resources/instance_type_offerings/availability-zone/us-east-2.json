@@ -848,6 +848,46 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "c8i-flex.12xlarge",
   "Location": "us-east-2a"
  },
@@ -4700,6 +4740,46 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "c8i-flex.12xlarge",
   "Location": "us-east-2b"
  },
@@ -8525,6 +8605,46 @@
  },
  {
   "InstanceType": "c8gd.xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "us-east-2c"
  },
  {

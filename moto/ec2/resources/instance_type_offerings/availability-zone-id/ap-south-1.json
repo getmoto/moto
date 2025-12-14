@@ -2428,6 +2428,10 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "aps1-az1"
  },
