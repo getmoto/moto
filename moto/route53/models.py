@@ -671,11 +671,12 @@ class Route53Backend(BaseBackend):
                 self.resource_tags[resource_id][key] = value
         else:
             if "Key" in tags:
-                if isinstance(tags["Key"], list):
-                    for key in tags["Key"]:
-                        del self.resource_tags[resource_id][key]
-                else:
-                    del self.resource_tags[resource_id][tags["Key"]]
+                if resource_id in self.resource_tags:
+                    if isinstance(tags["Key"], list):
+                        for key in tags["Key"]:
+                            self.resource_tags[resource_id].pop(key, None)
+                    else:
+                        self.resource_tags[resource_id].pop(key, None)
 
     def list_tags_for_resource(self, resource_id: str) -> dict[str, str]:
         if resource_id in self.resource_tags:
