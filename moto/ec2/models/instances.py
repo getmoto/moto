@@ -75,15 +75,15 @@ class MetadataOptions:
 
 class BlockDeviceWrapper:
     def __init__(self, block):
-        object.__setattr__(self, '_block', block)
+        object.__setattr__(self, "_block", block)
 
     def __getattr__(self, name):
-        block = object.__getattribute__(self, '_block')
+        block = object.__getattribute__(self, "_block")
         return getattr(block, name)
 
     @property
     def status(self):
-        block = object.__getattribute__(self, '_block')
+        block = object.__getattribute__(self, "_block")
         volume_status = block.status
 
         if volume_status == "in-use":
@@ -333,7 +333,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @property
     def block_device_mappings(self) -> list[dict[str, Any]]:
-
         return [
             {"DeviceName": device_name, "Ebs": BlockDeviceWrapper(block)}
             for device_name, block in self.get_block_device_mapping
