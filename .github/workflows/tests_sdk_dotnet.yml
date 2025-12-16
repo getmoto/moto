@@ -16,7 +16,7 @@ jobs:
     - name: Start MotoServer
       uses: ./.github/actions/run_moto_server
     - uses: actions/setup-dotnet@v5
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
         # Look to see if there is a cache hit for the corresponding requirements file
