@@ -241,7 +241,6 @@ class InstanceResponse(EC2BaseResponse):
                 {"InstanceId": instance.id, "CpuCredits": "standard"}
                 for instance in instances
             ],
-            "NextToken": "string",
         }
         return ActionResult(result)
 
