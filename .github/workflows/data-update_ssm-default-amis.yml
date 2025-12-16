@@ -43,7 +43,7 @@ jobs:
         pip install moto[all]
         python scripts/ssm_get_default_amis.py
     - name: Create PR
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         branch: 'chore-update-ssm-amis-${{ github.run_number }}'
         title: "chore: update SSM Instance AMI's"

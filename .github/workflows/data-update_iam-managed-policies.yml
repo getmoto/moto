@@ -42,7 +42,7 @@ jobs:
         pip install -r requirements-dev.txt
         make aws_managed_policies
     - name: Create PR
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         branch: 'chore-update-iam-managed-policies-${{ github.run_number }}'
         title: 'chore: update IAM Managed Policies'
