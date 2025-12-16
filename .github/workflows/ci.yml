@@ -45,7 +45,7 @@ jobs:
           python-version: '3.13'
 
       - name: Configure Git
-        run: | 
+        run: |
           # Configure git
           git config --global user.name 'LocalStack Bot'
           git config --global user.email 'localstack-bot@users.noreply.github.com'
@@ -120,7 +120,7 @@ jobs:
       - name: Rebase localstack branch with latest master from upstream
         run: |
           git fetch upstream
-          git rebase upstream/master
+          git rebase -f upstream/master
 
       - name: Determine new version
         run: |
