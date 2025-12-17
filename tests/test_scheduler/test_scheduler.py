@@ -298,3 +298,38 @@ def test_create_schedule__exception_with_start_date(start_date):
     err = exc.value.response["Error"]
     assert err["Code"] == expected_error
     assert err["Message"] == expected_error_message
+
+
+@mock_aws
+def test_list_schedules_with_filters():
+    client = boto3.client("scheduler", region_name="eu-west-1")
+
+    # Create test schedules
+    schedules_to_create = ["blabla-1", "blabla-2", "other-1", "blabla-3", "other-2"]
+
+    for schedule in schedules_to_create:
+        client.create_schedule(
+            Name=schedule,
+            ScheduleExpression="rate(1 minute)",
+            FlexibleTimeWindow={"MaximumWindowInMinutes": 4, "Mode": "OFF"},
+            Target={"Arn": "not supported yet", "RoleArn": "n/a"},
+        )
+
+    # Test NamePrefix filter
+    schedules = client.list_schedules(NamePrefix="blabla")["Schedules"]
+    assert len(schedules) == 3
+    schedule_names = [s["Name"] for s in schedules]
+    assert all(name.startswith("blabla") for name in schedule_names)
+    assert "other-1" not in schedule_names
+    assert "other-2" not in schedule_names
+
+    # Test MaxResults filter
+    schedules = client.list_schedules(MaxResults=2)["Schedules"]
+    assert len(schedules) == 2
+    assert "NextToken" in client.list_schedules(MaxResults=2)
+
+    # Test both filters together
+    schedules = client.list_schedules(NamePrefix="blabla", MaxResults=2)["Schedules"]
+    assert len(schedules) == 2
+    assert all(s["Name"].startswith("blabla") for s in schedules)
+    assert "NextToken" in client.list_schedules(NamePrefix="blabla", MaxResults=2)
