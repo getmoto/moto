@@ -319,6 +319,28 @@ def create_basic_workgroup(client, name):
 
 
 @mock_aws
+def test_create_workgroup_with_default_configuration():
+    client = boto3.client("athena", region_name="us-east-1")
+    wg_name = "test-workgroup"
+    client.create_work_group(
+        Name=wg_name,
+        Description="Test work group",
+    )
+    resp = client.get_work_group(WorkGroup=wg_name)
+    default_configuration = {
+        "EnableMinimumEncryptionConfiguration": False,
+        "EnforceWorkGroupConfiguration": True,
+        "EngineVersion": {
+            "EffectiveEngineVersion": "Athena engine version 3",
+            "SelectedEngineVersion": "AUTO",
+        },
+        "PublishCloudWatchMetricsEnabled": False,
+        "RequesterPaysEnabled": False,
+    }
+    assert resp["WorkGroup"]["Configuration"] == default_configuration
+
+
+@mock_aws
 def test_create_data_catalog():
     client = boto3.client("athena", region_name="us-east-1")
     response = client.create_data_catalog(
