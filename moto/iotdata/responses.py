@@ -58,9 +58,9 @@ class IoTDataPlaneResponse(BaseResponse):
         # https://github.com/pallets/flask/issues/900
         topic = unquote(topic) if "%" in topic else topic
         self.iotdata_backend.publish(topic=topic, payload=self.body)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_named_shadows_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
         shadows = self.iotdata_backend.list_named_shadows_for_thing(thing_name)
-        return json.dumps({"results": [shadow.to_dict() for shadow in shadows]})
+        return json.dumps({"results": shadows})

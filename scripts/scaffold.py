@@ -19,6 +19,7 @@ TODO:
   - Some services's operations might cause this script to crash. If that
     should happen, please create an issue for the problem.
 """
+
 import os
 import random
 import re
@@ -41,14 +42,24 @@ from moto.core.base_backend import BaseBackend
 from inflection import singularize
 from implementation_coverage import get_moto_implementation
 
-PRIMITIVE_SHAPES = ["string", "timestamp", "integer", "boolean", "sensitiveStringType", "long"]
+PRIMITIVE_SHAPES = [
+    "string",
+    "timestamp",
+    "integer",
+    "boolean",
+    "sensitiveStringType",
+    "long",
+]
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "./template")
 
 INPUT_IGNORED_IN_BACKEND = ["Marker", "PageSize"]
 OUTPUT_IGNORED_IN_BACKEND = ["NextMarker"]
 
-root_dir = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+root_dir = (
+    subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+)
+
 
 def print_progress(title, body, color):
     """Prints a color-code message describing current state of progress."""
@@ -217,9 +228,7 @@ def get_operation_name_in_keys(operation_name, operation_keys):
     return operation_keys[index]
 
 
-def get_function_in_responses(
-    service, operation, protocol
-):  # pylint: disable=too-many-locals
+def get_function_in_responses(service, operation, protocol):  # pylint: disable=too-many-locals
     """refers to definition of API in botocore, and autogenerates function
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
@@ -255,7 +264,7 @@ def get_function_in_responses(
     body += "    params = self._get_params()\n"
 
     for input_name, input_type in inputs.items():
-        body += f"    {to_snake_case(input_name)} = params.get(\"{input_name}\")\n"
+        body += f'    {to_snake_case(input_name)} = params.get("{input_name}")\n'
     if output_names:
         body += f"    {', '.join(output_names)} = self.{escaped_service}_backend.{operation}(\n"
     else:
@@ -319,10 +328,10 @@ def get_func_in_tests(service, operation):
     body = "\n\n"
     body += f"@mock_aws\n"
     body += f"def test_{operation}():\n"
-    body += f"    client = boto3.client(\"{service}\", region_name=\"{random_region}\")\n"
+    body += f'    client = boto3.client("{service}", region_name="{random_region}")\n'
     body += f"    resp = client.{operation}()\n"
     body += f"\n"
-    body += f"    raise Exception(\"NotYetImplemented\")"
+    body += f'    raise Exception("NotYetImplemented")'
     body += "\n"
     return body
 
@@ -431,7 +440,7 @@ def get_response_query_template(service, operation):  # pylint: disable=too-many
 
 def get_response_restxml_template(service, operation):
     """refers to definition of API in botocore, and autogenerates template
-        Assume that protocol is rest-xml. Shares some familiarity with protocol=query
+    Assume that protocol is rest-xml. Shares some familiarity with protocol=query
     """
     client = boto3.client(service)
     aws_operation_name = get_operation_name_in_keys(
@@ -439,6 +448,10 @@ def get_response_restxml_template(service, operation):
         list(client._service_model._service_description["operations"].keys()),
     )
     op_model = client._service_model.operation_model(aws_operation_name)
+    # Resolves https://github.com/getmoto/moto/issues/8726
+    if not hasattr(op_model.output_shape, "output"):
+        # Response has no output
+        return ""
     result_wrapper = op_model._operation_model["output"]["shape"]
     response_wrapper = result_wrapper.replace("Result", "Response")
     metadata = op_model.metadata
@@ -477,11 +490,15 @@ def get_response_restxml_template(service, operation):
                 child = details.get("locationName", child)
                 if details["shape"] in PRIMITIVE_SHAPES:
                     t_member = etree.Element(child)
-                    t_member.text = "{{ " + ".".join(name_prefix) + f".{to_snake_case(child)} }}}}"
+                    t_member.text = (
+                        "{{ " + ".".join(name_prefix) + f".{to_snake_case(child)} }}}}"
+                    )
                     tree.append(t_member)
                 else:
                     t = etree.Element(child)
-                    _find_member(t, details["shape"], name_prefix + [to_snake_case(child)])
+                    _find_member(
+                        t, details["shape"], name_prefix + [to_snake_case(child)]
+                    )
                     tree.append(t)
 
     # build result
@@ -497,13 +514,23 @@ def get_response_restxml_template(service, operation):
             _find_member(t_result, name, name_prefix=["root"])
     t_root.append(t_result)
     xml_body = etree.tostring(t_root, pretty_print=True).decode("utf-8")
+
     #
     # Still need to add FOR-loops in this template
     #     <REPLACE_FOR for="x" in="y">
     # becomes
     #     {% for x in y %}
     def conv(m):
-        return m.group().replace("REPLACE_FOR", "").replace("=", "").replace('"', " ").replace("<", "{%").replace(">", "%}").strip()
+        return (
+            m.group()
+            .replace("REPLACE_FOR", "")
+            .replace("=", "")
+            .replace('"', " ")
+            .replace("<", "{%")
+            .replace(">", "%}")
+            .strip()
+        )
+
     xml_body = re.sub(r"<REPLACE_FOR[\sa-zA-Z\"=_.]+>", conv, xml_body)
     xml_body = xml_body.replace("</REPLACE_FOR>", "{% endfor %}")
     body = f'\n{operation.upper()}_TEMPLATE = """{xml_body}"""'
@@ -546,6 +573,8 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
         list(client._service_model._service_description["operations"].keys()),
     )
     uri = client._service_model.operation_model(aws_operation_name).http["requestUri"]
+    if "?" in uri:
+        uri = uri.split("?")[0]
 
     path = os.path.join(
         os.path.dirname(__file__), "..", "moto", get_escaped_service(service), "urls.py"
@@ -555,6 +584,7 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
 
     if any(_ for _ in lines if re.match(uri, _)):
         return
+    uri = BaseResponse.uri_to_regexp(uri)[1:-1]
 
     url_paths_found = False
     last_elem_line_index = -1
@@ -570,7 +600,7 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
 
     # generate url pattern
     if api_protocol == "rest-json":
-        new_line = f'    "{0}/.*$": {service_class}Response.dispatch,'
+        new_line = f'    "{{0}}{uri}$": {service_class}Response.dispatch,'
     elif api_protocol == "rest-xml":
         new_line = f'    "{{0}}{uri}$": {service_class}Response.{operation},'
     else:
@@ -616,7 +646,7 @@ def insert_codes(service, operation, api_protocol):
     insert_url(service, operation, api_protocol)
 
     # Edit tests
-    tests_path= f"tests/test_{escaped_service}/test_{escaped_service}.py"
+    tests_path = f"tests/test_{escaped_service}/test_{escaped_service}.py"
     print_progress("inserting code", tests_path, "green")
     with open(tests_path, "a", encoding="utf-8") as fhandle:
         fhandle.write(func_in_tests)
@@ -624,12 +654,13 @@ def insert_codes(service, operation, api_protocol):
 
 @click.command()
 def main():
-
     click.echo("This script uses the click-module.\n")
-    click.echo(" - Start typing the name of the service you want to extend\n"
-               " - Use Tab to auto-complete the first suggest service\n"
-               " - Use the up and down-arrows on the keyboard to select something from the dropdown\n"
-               " - Press enter to continue\n")
+    click.echo(
+        " - Start typing the name of the service you want to extend\n"
+        " - Use Tab to auto-complete the first suggest service\n"
+        " - Use the up and down-arrows on the keyboard to select something from the dropdown\n"
+        " - Press enter to continue\n"
+    )
 
     """Create basic files needed for the user's choice of service and op."""
     service = select_service()
@@ -652,14 +683,16 @@ def main():
             )
 
         click.echo("Updating backend index...")
-        subprocess.check_output([f"{root_dir}/scripts/update_backend_index.py"]).decode().strip()
+        subprocess.check_output(
+            [f"{root_dir}/scripts/update_backend_index.py"]
+        ).decode().strip()
 
         click.echo(
             "\n"
             "Please select another operation, or Ctrl-X/Ctrl-C to cancel."
             "\n\n"
             "Remaining steps after development is complete:\n"
-            '- Run scripts/implementation_coverage.py,\n'
+            "- Run scripts/implementation_coverage.py,\n"
             "\n"
         )
 

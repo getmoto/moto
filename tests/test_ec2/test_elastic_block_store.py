@@ -11,6 +11,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.ec2.models.elastic_block_store import IOPS_REQUIRED_VOLUME_TYPES
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_create_and_delete_volume():
@@ -28,12 +30,7 @@ def test_create_and_delete_volume():
 
     with pytest.raises(ClientError) as ex:
         volume.delete(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.delete()
 
@@ -56,9 +53,22 @@ def test_modify_volumes():
 
     old_size = 80
     new_size = 160
+    old_type = "gp3"
     new_type = "io2"
+    old_iops = 3000
+    new_iops = 4000
+    old_throughput = 100
+    new_throughput = 150
+    old_multi_attach_enabled = False
+    new_multi_attach_enabled = True
 
-    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+    volume_id = ec2.create_volume(
+        Size=old_size,
+        AvailabilityZone="us-east-1a",
+        Iops=old_iops,
+        Throughput=old_throughput,
+        VolumeType=old_type,
+    ).id
 
     # Ensure no modification records exist
     modifications = client.describe_volumes_modifications()
@@ -74,16 +84,52 @@ def test_modify_volumes():
 
     # Ensure volume type can be modified
     response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
-    assert response["VolumeModification"]["OriginalVolumeType"] == "gp2"
+    assert response["VolumeModification"]["OriginalVolumeType"] == old_type
     assert response["VolumeModification"]["TargetVolumeType"] == new_type
     assert (
         client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["VolumeType"]
         == new_type
     )
 
+    # Ensure volume iops can be modified
+    response = client.modify_volume(VolumeId=volume_id, Iops=new_iops)
+    assert response["VolumeModification"]["OriginalIops"] == old_iops
+    assert response["VolumeModification"]["TargetIops"] == new_iops
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Iops"] == new_iops
+    )
+
+    # Ensure volume throughput can be modified
+    response = client.modify_volume(VolumeId=volume_id, Throughput=new_throughput)
+    assert response["VolumeModification"]["OriginalThroughput"] == old_throughput
+    assert response["VolumeModification"]["TargetThroughput"] == new_throughput
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Throughput"]
+        == new_throughput
+    )
+
+    # Ensure volume multi attach enabled can be modified
+    response = client.modify_volume(
+        VolumeId=volume_id, MultiAttachEnabled=new_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["OriginalMultiAttachEnabled"]
+        == old_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["TargetMultiAttachEnabled"]
+        == new_multi_attach_enabled
+    )
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+            "MultiAttachEnabled"
+        ]
+        == new_multi_attach_enabled
+    )
+
     # Ensure volume modifications are tracked
     modifications = client.describe_volumes_modifications()
-    assert len(modifications["VolumesModifications"]) == 2
+    assert len(modifications["VolumesModifications"]) == 5
 
 
 @mock_aws
@@ -130,12 +176,7 @@ def test_create_encrypted_volume_dryrun():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_volume(Size=80, AvailabilityZone="us-east-1a", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -315,12 +356,7 @@ def test_volume_attach_and_detach():
         volume.attach_to_instance(
             InstanceId=instance["InstanceId"], Device="/dev/sdh", DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
 
@@ -330,12 +366,7 @@ def test_volume_attach_and_detach():
 
     with pytest.raises(ClientError) as ex:
         volume.detach_from_instance(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.detach_from_instance(InstanceId=instance["InstanceId"])
 
@@ -369,12 +400,7 @@ def test_create_snapshot():
 
     with pytest.raises(ClientError) as ex:
         volume.create_snapshot(Description="a dryrun snapshot", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     snapshot = volume.create_snapshot(Description="a test snapshot")
     snapshot.reload()
@@ -488,11 +514,11 @@ def test_snapshot_filters():
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]
         if others:
-            actual = set([s["SnapshotId"] for s in snapshots])
+            actual = {s["SnapshotId"] for s in snapshots}
             for e in expected:
                 assert e in actual
         else:
-            assert set([s["SnapshotId"] for s in snapshots]) == set(expected)
+            assert {s["SnapshotId"] for s in snapshots} == set(expected)
 
     verify_filter("description", snapshot1_desc, expected=snapshot1.id)
     verify_filter("snapshot-id", snapshot1.id, expected=snapshot1.id)
@@ -526,6 +552,14 @@ def test_snapshot_filters():
     assert snapshot1.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot2.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot3.id in [s["SnapshotId"] for s in snapshots]
+    #
+    # Create a copy with a KMS key, and filter on that
+    snapshot4 = client.copy_snapshot(
+        SourceSnapshotId=snapshot1.id,
+        SourceRegion="us-east-1",
+        KmsKeyId="newkmskey",
+    )["SnapshotId"]
+    verify_filter("kms-key-id", "newkmskey", expected=[snapshot4])
 
 
 @mock_aws
@@ -539,9 +573,9 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "Snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "Snapshot should have no permissions."
+    )
 
     ADD_GROUP_ARGS = {
         "SnapshotId": snapshot.id,
@@ -570,15 +604,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Add is idempotent
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Remove 'all' group and confirm
     with pytest.raises(ClientError):
@@ -594,15 +628,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Remove is idempotent
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Error: Add with group != 'all'
     with pytest.raises(ClientError) as cm:
@@ -734,12 +768,7 @@ def test_modify_attribute_blockDeviceMapping():
             ],
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(
         BlockDeviceMappings=[
@@ -763,12 +792,7 @@ def test_volume_tag_escaping():
 
     with pytest.raises(ClientError) as ex:
         snapshot.create_tags(Tags=[{"Key": "key", "Value": "</closed>"}], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     assert len(snapshot.tags) == 0
 
@@ -965,12 +989,7 @@ def test_create_snapshots_dryrun():
         client.create_snapshots(
             InstanceSpecification={"InstanceId": "asf"}, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSnapshots operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -1054,7 +1073,7 @@ def test_create_snapshots_multiple_volumes():
     # 3 Snapshots ; 1 boot, two additional volumes
     assert len(snapshots) == 3
     # 3 unique snapshot IDs
-    assert len(set([s["SnapshotId"] for s in snapshots])) == 3
+    assert len({s["SnapshotId"] for s in snapshots}) == 3
 
     boot_snapshot = next(
         s for s in snapshots if s["VolumeId"] == boot_volume["VolumeId"]
@@ -1137,3 +1156,104 @@ def test_create_volume_with_throughput_fails():
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
     assert "Throughput" in ex.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    for volume_type in ["io1", "io2"]:
+        volume = ec2.create_volume(
+            AvailabilityZone="us-east-1a",
+            Size=10,
+            VolumeType=volume_type,
+            Iops=300,
+            MultiAttachEnabled=True,
+        )
+        assert volume["MultiAttachEnabled"]
+
+        volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+        assert volume["MultiAttachEnabled"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled_fails():
+    resource = boto3.resource("ec2", region_name="us-east-1")
+
+    for volume_type in ["standard", "gp2", "gp3", "sc1", "sc2"]:
+        with pytest.raises(ClientError) as ex:
+            resource.create_volume(
+                AvailabilityZone="us-east-1a",
+                Size=10,
+                VolumeType=volume_type,
+                MultiAttachEnabled=True,
+            )
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
+        assert "MultiAttachEnabled" in ex.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_modify_ebs_default_kms_key_id():
+    new_default_alias = "alias/my-new-ebs-default"
+    kms = boto3.client("kms", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    # Get the original default key
+    original_default_ebs_key_arn = kms.describe_key(KeyId="alias/aws/ebs")[
+        "KeyMetadata"
+    ]["Arn"]
+
+    # Create a new default key
+    new_default_key = kms.create_key(Description="test ebs key")["KeyMetadata"]
+    kms.create_alias(AliasName=new_default_alias, TargetKeyId=new_default_key["KeyId"])
+
+    # Modify the default ebs key using the KeyId
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_key["KeyId"]
+    )["KmsKeyId"]
+
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+
+    # Creating an encrypted volume should create (and use) the new default key.
+    resource = boto3.resource("ec2", region_name="us-east-1")
+    volume = resource.create_volume(
+        AvailabilityZone="us-east-1a", Encrypted=True, Size=10
+    )
+
+    assert volume.kms_key_id == new_default_ebs_key_arn
+    assert volume.encrypted is True
+
+    # Revert to the original default key by passing empty string
+    ec2.modify_ebs_default_kms_key_id(KmsKeyId="")
+    # Creating an encrypted volume should create (and use) the original default key.
+    volume = resource.create_volume(
+        AvailabilityZone="us-east-1a", Encrypted=True, Size=10
+    )
+    assert volume.kms_key_id == original_default_ebs_key_arn
+
+    # Modify the default ebs key using a key alias
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_alias
+    )["KmsKeyId"]
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+    ec2.modify_ebs_default_kms_key_id(KmsKeyId="")
+
+    # Modify the default ebs key using a key arn
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_key["Arn"]
+    )["KmsKeyId"]
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+
+
+@mock_aws
+def test_create_volume_without_size():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_volume(AvailabilityZone="us-east-1a")
+
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain the parameter size/snapshot"
+    )

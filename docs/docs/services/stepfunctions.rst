@@ -16,14 +16,14 @@ stepfunctions
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_activity
+- [X] create_activity
 - [X] create_state_machine
 - [ ] create_state_machine_alias
-- [ ] delete_activity
+- [X] delete_activity
 - [X] delete_state_machine
 - [ ] delete_state_machine_alias
 - [ ] delete_state_machine_version
-- [ ] describe_activity
+- [X] describe_activity
 - [X] describe_execution
 - [X] describe_map_run
 - [X] describe_state_machine
@@ -31,7 +31,7 @@ stepfunctions
 - [X] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
-- [ ] list_activities
+- [X] list_activities
 - [X] list_executions
 - [X] list_map_runs
 - [ ] list_state_machine_aliases
@@ -52,4 +52,5 @@ stepfunctions
 - [X] update_map_run
 - [X] update_state_machine
 - [ ] update_state_machine_alias
+- [ ] validate_state_machine_definition
 

@@ -52,7 +52,7 @@ def test_s3_server_bucket_create(key_name):
     assert res.status_code == 200
     assert "ETag" in dict(res.headers)
 
-    # ListBuckets
+    # ListObjects
     res = test_client.get(
         "/", "http://foobaz.localhost:5000/", query_string={"prefix": key_name}
     )
@@ -60,6 +60,29 @@ def test_s3_server_bucket_create(key_name):
     content = xmltodict.parse(res.data)["ListBucketResult"]["Contents"]
     # If we receive a dict, we only received one result
     # If content is of type list, our call returned multiple results - which is not correct
+    assert isinstance(content, dict)
+    assert content["Key"] == key_name
+
+    # ListObjects V2
+    res = test_client.get(
+        "/",
+        "http://foobaz.localhost:5000/",
+        query_string={"prefix": key_name, "list-type": "2"},
+    )
+    assert res.status_code == 200
+    content = xmltodict.parse(res.data)["ListBucketResult"]["Contents"]
+    assert isinstance(content, dict)
+    assert content["Key"] == key_name
+
+    # ListObjectsVersions
+    res = test_client.get(
+        "/",
+        "http://foobaz.localhost:5000/",
+        query_string={"prefix": key_name, "versions": ""},
+    )
+    assert res.status_code == 200
+    assert xmltodict.parse(res.data)["ListVersionsResult"]["Prefix"] == key_name
+    content = xmltodict.parse(res.data)["ListVersionsResult"]["Version"]
     assert isinstance(content, dict)
     assert content["Key"] == key_name
 
@@ -201,7 +224,7 @@ def test_s3_server_post_unicode_bucket_key():
     backend_app = dispatcher.get_application(
         {
             "HTTP_HOST": "s3.amazonaws.com",
-            "PATH_INFO": "/test-bucket/test-object-てすと".encode("utf-8"),
+            "PATH_INFO": "/test-bucket/test-object-てすと".encode(),
         }
     )
     assert backend_app
@@ -224,13 +247,32 @@ def test_s3_server_post_cors():
     )
     assert res.status_code in [200, 204]
 
-    expected_methods = set(["DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"])
+    expected_methods = {"DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"}
     assert (
         set(res.headers["Access-Control-Allow-Methods"].split(", ")) == expected_methods
     )
 
     assert res.headers["Access-Control-Allow-Origin"] == "https://localhost:9000"
     assert res.headers["Access-Control-Allow-Headers"] == "origin, x-requested-with"
+
+
+def test_s3_no_default_cors():
+    """Test default CORS headers are not set if MOTO_DISABLE_GLOBAL_CORS is true"""
+    for disable_cors in [True, False]:
+        with patch("moto.moto_server.werkzeug_app.DISABLE_GLOBAL_CORS", disable_cors):
+            test_client = authenticated_client()
+
+            # Create a bucket and a file
+            test_client.put("/", "http://nodefaultcors.localhost:5000/")
+            test_client.put("/test", "http://nodefaultcors.localhost:5000/")
+            test_client.put("/", "http://tester.localhost:5000/")
+
+            resp = test_client.get(
+                "/test",
+                "http://nodefaultcors.localhost:5000/",
+                headers={"Origin": "example.com"},
+            )
+            assert ("Access-Control-Allow-Origin" not in resp.headers) == disable_cors
 
 
 def test_s3_server_post_cors_exposed_header():
@@ -274,7 +316,7 @@ def test_s3_server_post_cors_exposed_header():
     assert res.status_code == 200
 
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
-    assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
+    assert b"<ExposeHeader>ETag</ExposeHeader>" in cors_res.data
 
     # Test OPTIONS bucket response and key response
     for key_name in ("/", "/test"):

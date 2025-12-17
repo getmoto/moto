@@ -1,32 +1,35 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple
+import re
+from typing import Any, Optional
 
 import boto3
 
 from moto.core.common_models import ConfigQueryModel
 from moto.core.exceptions import InvalidNextTokenException
 from moto.iam.models import IAMBackend, iam_backends
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 
 class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
     def list_config_service_resources(
         self,
         account_id: str,
-        resource_ids: Optional[List[str]],
+        partition: str,
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # IAM roles are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
         # The resource name is a user-assigned string like "MyDevelopmentAdminRole"
         # Stored in moto backend with the AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
 
         # Grab roles from backend; need the full values since names and id's are different
-        role_list = list(self.backends[account_id]["global"].roles.values())
+        role_list = list(self.backends[account_id][partition].roles.values())
 
         if not role_list:
             return [], None
@@ -133,12 +136,13 @@ class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        role = self.backends[account_id]["global"].roles.get(resource_id)
+    ) -> Optional[dict[str, Any]]:
+        role = self.backends[account_id][partition].roles.get(resource_id)
 
         if not role:
             return None
@@ -164,21 +168,22 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
     def list_config_service_resources(
         self,
         account_id: str,
-        resource_ids: Optional[List[str]],
+        partition: str,
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # IAM policies are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "ANPA0BSVNSZK00SJSPVUJ"
         # The resource name is a user-assigned string like "my-development-policy"
         # Stored in moto backend with the arn like "arn:aws:iam::123456789012:policy/my-development-policy"
 
         policy_list = list(
-            self.backends[account_id]["global"].managed_policies.values()
+            self.backends[account_id][partition].managed_policies.values()
         )
 
         # We don't want to include AWS Managed Policies. This technically needs to
@@ -187,7 +192,9 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
         # custom configuration recorders, we'll just behave as default.
         policy_list = list(
             filter(
-                lambda policy: not policy.arn.startswith("arn:aws:iam::aws"),
+                lambda policy: not re.match(
+                    ARN_PARTITION_REGEX + ":iam::aws", policy.arn
+                ),
                 policy_list,
             )
         )
@@ -305,16 +312,19 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         # policies are listed in the backend as arns, but we have to accept the PolicyID as the resource_id
         # we'll make a really crude search for it
         policy = None
-        for arn in self.backends[account_id]["global"].managed_policies.keys():
-            policy_candidate = self.backends[account_id]["global"].managed_policies[arn]
+        for arn in self.backends[account_id][partition].managed_policies.keys():
+            policy_candidate = self.backends[account_id][partition].managed_policies[
+                arn
+            ]
             if policy_candidate.id == resource_id:
                 policy = policy_candidate
                 break

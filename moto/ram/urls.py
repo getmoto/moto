@@ -7,5 +7,8 @@ url_paths = {
     "{0}/deleteresourceshare/?$": ResourceAccessManagerResponse.dispatch,
     "{0}/enablesharingwithawsorganization$": ResourceAccessManagerResponse.dispatch,
     "{0}/getresourceshares$": ResourceAccessManagerResponse.dispatch,
+    "{0}/getresourceshareassociations$": ResourceAccessManagerResponse.dispatch,
     "{0}/updateresourceshare$": ResourceAccessManagerResponse.dispatch,
+    "{0}/listresourcetypes$": ResourceAccessManagerResponse.dispatch,
+    "{0}/listpermissions$": ResourceAccessManagerResponse.dispatch,
 }

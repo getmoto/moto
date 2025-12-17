@@ -22,8 +22,6 @@ url_paths = {
     "{0}/list-resiliency-policies$": ResilienceHubResponse.dispatch,
     "{0}/publish-app-version$": ResilienceHubResponse.dispatch,
     "{0}/tags/.+$": ResilienceHubResponse.dispatch,
-    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": ResilienceHubResponse.method_dispatch(
-        ResilienceHubResponse.tags  # type: ignore
-    ),
+    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": ResilienceHubResponse.dispatch,
     "{0}/.*$": ResilienceHubResponse.dispatch,
 }

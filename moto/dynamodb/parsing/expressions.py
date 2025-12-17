@@ -67,12 +67,14 @@ class NestableExpressionParserMixin:
         pos = self.token_pos
         fc = factory_class.__class__.__name__
         logger.debug(
-            f"Move token pos {pos} to continue parsing with specific factory class {fc}"
+            "Move token pos %s to continue parsing with specific factory class %s",
+            pos,
+            fc,
         )
         # noinspection PyProtectedMember
         ast, token_pos = factory_class(**self._initializer_args())._parse_with_pos()
         self.target_clauses.append(ast)
-        logger.debug(f"Continue where previous parsing ended {token_pos}")
+        logger.debug("Continue where previous parsing ended: %s", token_pos)
         self.token_pos = token_pos
 
     @abstractmethod
@@ -353,7 +355,7 @@ class NestableBinExpressionParser(ExpressionParser):
             **self._initializer_args()
         )._parse_with_pos()
         self.target_nodes.append(ast)
-        logger.debug(f"Continue where previous parsing ended {self.token_pos}")
+        logger.debug("Continue where previous parsing ended: %s", self.token_pos)
 
     def _parse(self):
         self._parse_target_clause(self._operand_factory_class())
@@ -481,7 +483,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         return self._create_node()
 
     @classmethod
-    def make(cls, expression_str):
+    def make(cls, expression_str) -> UpdateExpression:
         token_list = ExpressionTokenizer.make_list(expression_str)
         return cls(token_list).parse()
 
@@ -552,7 +554,7 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
         if len(self.target_clauses) == 0:
             nc = self._nestable_class().__name__
             nepc = self._nested_expression_parser_class().__name__
-            logger.debug(f"Didn't encounter a single {nc} in {nepc}.")
+            logger.debug("Didn't encounter a single %s in %s.", nc, nepc)
             self.raise_unexpected_token()
 
         return self._create_node()

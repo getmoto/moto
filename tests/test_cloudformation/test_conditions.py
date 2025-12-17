@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from . import cloudformation_aws_verified
+from tests import aws_verified
 
 conditional_output_conditional_value = """
 Outputs:
@@ -38,7 +38,7 @@ Resources:
 
 
 @pytest.mark.aws_verified
-@cloudformation_aws_verified()
+@aws_verified
 def test_conditional_output_conditional_value():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     param = [{"ParameterKey": "roleName", "ParameterValue": "myrole"}]
@@ -104,7 +104,7 @@ Resources:
 
 
 @pytest.mark.aws_verified
-@cloudformation_aws_verified()
+@aws_verified
 def test_permanent_output_conditional_value():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     param = [{"ParameterKey": "roleName", "ParameterValue": "myrole"}]
@@ -174,7 +174,7 @@ Resources:
 
 
 @pytest.mark.aws_verified
-@cloudformation_aws_verified()
+@aws_verified
 def test_conditional_output_of_permanent_value():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     param = [{"ParameterKey": "roleName", "ParameterValue": "myrole"}]

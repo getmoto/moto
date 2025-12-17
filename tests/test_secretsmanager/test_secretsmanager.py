@@ -2,18 +2,26 @@ import os
 import re
 import string
 from datetime import datetime, timedelta, timezone
+from time import sleep
 from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
-from dateutil.tz import tzlocal
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.secretsmanager.models import secretsmanager_backends
+from moto.secretsmanager.utils import SecretsManagerSecretIdentifier
+from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
+from tests import allow_aws_request
+from tests.test_awslambda import lambda_aws_verified
+from tests.test_awslambda.utilities import _process_lambda
+from tests.test_dynamodb import dynamodb_aws_verified
 
+from .. import DEFAULT_ACCOUNT_ID
 from . import secretsmanager_aws_verified
 
 DEFAULT_SECRET_NAME = "test-secret7"
@@ -659,6 +667,17 @@ def test_delete_secret_that_is_marked_deleted():
 
 
 @mock_aws
+def test_force_delete_secret_that_is_marked_deleted():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    conn.delete_secret(SecretId="test-secret")
+
+    conn.delete_secret(SecretId="test-secret", ForceDeleteWithoutRecovery=True)
+
+
+@mock_aws
 def test_get_random_password_default_length():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -773,34 +792,37 @@ def test_get_random_too_short_password():
 def test_get_random_too_long_password():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         conn.get_random_password(PasswordLength=5555)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
 
 
 @mock_aws
 def test_describe_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
 
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
     conn.create_secret(Name="test-secret-2", SecretString="barsecret")
 
     secret_description = conn.describe_secret(SecretId="test-secret")
     secret_description_2 = conn.describe_secret(SecretId="test-secret-2")
 
     assert secret_description  # Returned dict is not empty
-    assert secret_description["Name"] == ("test-secret")
+    assert secret_description["Name"] == "test-secret"
     assert secret_description["ARN"] != ""  # Test arn not empty
-    assert secret_description_2["Name"] == ("test-secret-2")
+    assert secret_description_2["Name"] == "test-secret-2"
     assert secret_description_2["ARN"] != ""  # Test arn not empty
-    assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
-    assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description_2["CreatedDate"] > datetime.fromtimestamp(1, timezone.utc)
-    assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description["LastChangedDate"] > datetime.fromtimestamp(
         1, timezone.utc
     )
-    assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal)
     assert secret_description_2["LastChangedDate"] > datetime.fromtimestamp(
         1, timezone.utc
     )
@@ -973,7 +995,8 @@ def test_cancel_rotate_secret():
 @mock_aws
 def test_rotate_secret():
     # Setup
-    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal)
     rotate_after_days = 10
     with freeze_time(frozen_time):
         conn = boto3.client("secretsmanager", region_name="us-west-2")
@@ -1075,10 +1098,22 @@ def test_rotate_secret_that_does_not_match():
 
 @mock_aws
 def test_rotate_secret_client_request_token_too_short():
-    # Test is intentionally empty. Boto3 catches too short ClientRequestToken
-    # and raises ParamValidationError before Moto can see it.
-    # test_server actually handles this error.
-    assert True
+    from botocore.config import Config
+
+    conn = boto3.client(
+        "secretsmanager",
+        region_name="us-west-2",
+        config=Config(parameter_validation=False),
+    )
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    client_request_token = "TOO-SHORT"
+    with pytest.raises(ClientError) as exc_info:
+        conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME, ClientRequestToken=client_request_token
+        )
+    error = exc_info.value.response["Error"]
+    assert error["Message"] == "ClientRequestToken must be 32-64 characters long."
+    assert error["Code"] == "InvalidParameterException"
 
 
 @mock_aws
@@ -1108,11 +1143,32 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 
 
 @mock_aws
-def test_rotate_secret_rotation_period_zero():
-    # Test is intentionally empty. Boto3 catches zero day rotation period
-    # and raises ParamValidationError before Moto can see it.
-    # test_server actually handles this error.
-    assert True
+@pytest.mark.parametrize(
+    "days",
+    [
+        pytest.param(0, id="below min"),
+        pytest.param(1001, id="above max"),
+    ],
+)
+def test_rotate_secret_rotation_period_validation(days):
+    from botocore.config import Config
+
+    conn = boto3.client(
+        "secretsmanager",
+        region_name="us-west-2",
+        config=Config(parameter_validation=False),
+    )
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    with pytest.raises(ClientError) as exc_info:
+        conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME, RotationRules={"AutomaticallyAfterDays": days}
+        )
+    error = exc_info.value.response["Error"]
+    assert (
+        error["Message"]
+        == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
+    )
+    assert error["Code"] == "InvalidParameterException"
 
 
 @mock_aws
@@ -1126,20 +1182,47 @@ def test_rotate_secret_rotation_period_too_long():
 
 
 def get_rotation_zip_file():
-    from tests.test_awslambda.utilities import _process_lambda
+    endpoint = "" if allow_aws_request() else 'endpoint_url="http://motoserver:5000"'
 
-    func_str = """
+    func_str = (
+        """
 import boto3
 import json
+import os
 
 def lambda_handler(event, context):
     arn = event['SecretId']
     token = event['ClientRequestToken']
     step = event['Step']
 
-    client = boto3.client("secretsmanager", region_name="us-west-2", endpoint_url="http://motoserver:5000")
+    client = boto3.client("secretsmanager", region_name="us-east-1", """
+        + endpoint
+        + """)
     metadata = client.describe_secret(SecretId=arn)
-    value = client.get_secret_value(SecretId=arn, VersionId=token, VersionStage="AWSPENDING")
+    metadata.pop('LastChangedDate', None)
+    metadata.pop('LastAccessedDate', None)
+    metadata.pop('NextRotationDate', None)
+    metadata.pop('CreatedDate')
+    metadata.pop('ResponseMetadata')
+    print(metadata)
+    versions = client.list_secret_version_ids(SecretId=arn, IncludeDeprecated=True)["Versions"]
+    for v in versions:
+        v.pop('LastAccessedDate', None)
+        v.pop('CreatedDate', None)
+    print(versions)
+    try:
+        pending_value = client.get_secret_value(SecretId=arn, VersionId=token, VersionStage='AWSPENDING')
+        pending_value.pop('CreatedDate', None)
+        pending_value.pop('ResponseMetadata')
+    except Exception as e:
+        pending_value = str(e)
+    print(pending_value)
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1", """
+        + endpoint
+        + """)
+    table = dynamodb.Table(os.environ["table_name"])
+    table.put_item(Item={"pk": step, "token": token, "metadata": metadata, "versions": versions, "pending_value": pending_value})
 
     if not metadata['RotationEnabled']:
         print("Secret %s is not enabled for rotation." % arn)
@@ -1156,23 +1239,18 @@ def lambda_handler(event, context):
         raise ValueError("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
 
     if step == 'createSecret':
-        try:
-            client.get_secret_value(SecretId=arn, VersionId=token, VersionStage='AWSPENDING')
-        except client.exceptions.ResourceNotFoundException:
-            client.put_secret_value(
-                SecretId=arn,
-                ClientRequestToken=token,
-                SecretString=json.dumps({'create': True}),
-                VersionStages=['AWSPENDING']
-            )
-
-    if step == 'setSecret':
         client.put_secret_value(
             SecretId=arn,
             ClientRequestToken=token,
             SecretString='UpdatedValue',
-            VersionStages=["AWSPENDING"]
+            VersionStages=['AWSPENDING']
         )
+
+    if step == 'setSecret':
+        # This method should set the AWSPENDING secret in the service that the secret belongs to.
+        # For example, if the secret is a database credential,
+        # this method should take the value of the AWSPENDING secret and set the user's password to this value in the database.
+        pass
 
     elif step == 'finishSecret':
         current_version = next(
@@ -1193,60 +1271,193 @@ def lambda_handler(event, context):
             RemoveFromVersionId=token
         )
     """
+    )
     return _process_lambda(func_str)
 
 
-if settings.TEST_SERVER_MODE:
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+@lambda_aws_verified
+@secretsmanager_aws_verified
+def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=None):
+    role_name = iam_role_arn.split("/")[-1]
+    if not allow_aws_request() and not settings.TEST_SERVER_MODE:
+        raise SkipTest("Can only test this in ServerMode")
 
-    @mock_aws
-    def test_rotate_secret_using_lambda():
-        from tests.test_awslambda.utilities import get_role_name
-
-        # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
-        lambda_conn = boto3.client(
-            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000"
+    iam = boto3.client("iam", "us-east-1")
+    if allow_aws_request():
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/SecretsManagerReadWrite",
+            RoleName=role_name,
         )
-        func = lambda_conn.create_function(
-            FunctionName="testFunction",
-            Runtime="python3.11",
-            Role=get_role_name(),
-            Handler="lambda_function.lambda_handler",
-            Code={"ZipFile": get_rotation_zip_file()},
-            Description="Secret rotator",
-            Timeout=3,
-            MemorySize=128,
-            Publish=True,
-        )
-
-        secrets_conn = boto3.client(
-            "secretsmanager",
-            region_name="us-west-2",
-            endpoint_url="http://localhost:5000",
-        )
-        secret = secrets_conn.create_secret(
-            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue"
-        )
-        initial_version = secret["VersionId"]
-
-        rotated_secret = secrets_conn.rotate_secret(
-            SecretId=DEFAULT_SECRET_NAME,
-            RotationLambdaARN=func["FunctionArn"],
-            RotationRules={"AutomaticallyAfterDays": 30},
+        # Testing this against AWS itself is a bit of pain
+        # Uncomment this to get more insights into what is happening during execution of the Lambda
+        # iam.attach_role_policy(
+        #    PolicyArn="arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+        #    RoleName=role_name,
+        # )
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+            RoleName=role_name,
         )
 
-        # Ensure we received an updated VersionId from `rotate_secret`
-        assert rotated_secret["VersionId"] != initial_version
+    function_name = "moto_test_" + str(uuid4())[0:6]
 
+    # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
+    lambda_conn = boto3.client("lambda", region_name="us-east-1")
+    func = lambda_conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.11",
+        Role=iam_role_arn,
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_rotation_zip_file()},
+        Publish=True,
+        Environment={"Variables": {"table_name": table_name}},
+    )
+    lambda_conn.add_permission(
+        FunctionName=function_name,
+        StatementId="allow_secrets_manager",
+        Action="lambda:InvokeFunction",
+        Principal="secretsmanager.amazonaws.com",
+    )
+    lambda_conn.get_waiter("function_active_v2").wait(FunctionName=function_name)
+
+    secrets_conn = boto3.client("secretsmanager", region_name="us-east-1")
+
+    initial_version = secret["VersionId"]
+
+    rotated_secret = secrets_conn.rotate_secret(
+        SecretId=secret["ARN"],
+        RotationLambdaARN=func["FunctionArn"],
+        RotationRules={"AutomaticallyAfterDays": 30},
+        RotateImmediately=True,
+    )
+
+    # Ensure we received an updated VersionId from `rotate_secret`
+    assert rotated_secret["VersionId"] != initial_version
+
+    secret_not_updated = True
+    while secret_not_updated:
         updated_secret = secrets_conn.get_secret_value(
-            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT"
+            SecretId=secret["ARN"], VersionStage="AWSCURRENT"
         )
-        rotated_version = updated_secret["VersionId"]
+        if updated_secret["SecretString"] == "UpdatedValue":
+            secret_not_updated = False
+        else:
+            sleep(5)
+    rotated_version = updated_secret["VersionId"]
 
-        assert initial_version != rotated_version
-        metadata = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
-        assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
-        assert metadata["VersionIdsToStages"][rotated_version] == ["AWSCURRENT"]
-        assert updated_secret["SecretString"] == "UpdatedValue"
+    # Delete function as early as possible, to ensure it's not left dangling
+    lambda_conn.delete_function(FunctionName=function_name)
+
+    assert initial_version != rotated_version
+
+    u2 = secrets_conn.get_secret_value(SecretId=secret["ARN"])
+    assert u2["SecretString"] == "UpdatedValue"
+    assert u2["VersionId"] == rotated_version
+
+    metadata = secrets_conn.describe_secret(SecretId=secret["ARN"])
+    assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
+    # XXX: Test is non-deterministic - sometimes this will return AWSCURRENT, sometimes both AWSCURRENT and AWSPENDING
+    assert "AWSCURRENT" in metadata["VersionIdsToStages"][rotated_version]
+    assert updated_secret["SecretString"] == "UpdatedValue"
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    items = dynamodb.Table(table_name).scan()["Items"]
+
+    create_secret = [i for i in items if i["pk"] == "createSecret"][0]
+    assert "(ResourceNotFoundException)" in create_secret["pending_value"]
+    assert create_secret["versions"][0]["VersionStages"] == ["AWSCURRENT"]
+
+    finish_secret = [i for i in items if i["pk"] == "finishSecret"][0]
+    assert finish_secret["pending_value"]["SecretString"] == "UpdatedValue"
+    assert finish_secret["pending_value"]["VersionStages"] == ["AWSPENDING"]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+@lambda_aws_verified
+@secretsmanager_aws_verified
+def test_rotate_secret_using_lambda_dont_rotate_immediately(
+    secret=None, iam_role_arn=None, table_name=None
+):
+    role_name = iam_role_arn.split("/")[-1]
+    if not allow_aws_request() and not settings.TEST_SERVER_MODE:
+        raise SkipTest("Can only test this in ServerMode")
+
+    iam = boto3.client("iam", "us-east-1")
+    if allow_aws_request():
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/SecretsManagerReadWrite",
+            RoleName=role_name,
+        )
+        # Testing this against AWS itself is a bit of pain
+        # Uncomment this to get more insights into what is happening during execution of the Lambda
+        # iam.attach_role_policy(
+        #    PolicyArn="arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+        #    RoleName=role_name,
+        # )
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+            RoleName=role_name,
+        )
+
+    function_name = "moto_test_" + str(uuid4())[0:6]
+
+    # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
+    lambda_conn = boto3.client("lambda", region_name="us-east-1")
+    func = lambda_conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.11",
+        Role=iam_role_arn,
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_rotation_zip_file()},
+        Publish=True,
+        Environment={"Variables": {"table_name": table_name}},
+    )
+    lambda_conn.add_permission(
+        FunctionName=function_name,
+        StatementId="allow_secrets_manager",
+        Action="lambda:InvokeFunction",
+        Principal="secretsmanager.amazonaws.com",
+    )
+    lambda_conn.get_waiter("function_active_v2").wait(FunctionName=function_name)
+
+    secrets_conn = boto3.client("secretsmanager", region_name="us-east-1")
+
+    initial_version = secret["VersionId"]
+
+    secrets_conn.rotate_secret(
+        SecretId=secret["ARN"],
+        RotationLambdaARN=func["FunctionArn"],
+        RotationRules={"AutomaticallyAfterDays": 30},
+        RotateImmediately=False,
+    )
+
+    lambda_conn.delete_function(FunctionName=function_name)
+
+    current_secret = secrets_conn.get_secret_value(
+        SecretId=secret["ARN"], VersionStage="AWSCURRENT"
+    )
+    assert current_secret["SecretString"] == "old_secret"
+    assert current_secret["VersionId"] == initial_version
+
+    secret = secrets_conn.get_secret_value(SecretId=secret["ARN"])
+    assert secret["SecretString"] == "old_secret"
+    assert secret["VersionId"] == initial_version
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    items = dynamodb.Table(table_name).scan()["Items"]
+
+    attempts = 0
+    while not items and attempts < 10:
+        sleep(5)
+        items = dynamodb.Table(table_name).scan()["Items"]
+        attempts += 1
+
+    assert items[0]["pending_value"]["VersionStages"] == ["AWSPENDING"]
+    assert items[0]["pending_value"]["SecretString"] == "old_secret"
+    assert items[0]["pending_value"]["VersionId"] != initial_version
 
 
 @mock_aws
@@ -1373,6 +1584,19 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
 
 
 @mock_aws
+def test_put_secret_value_versions_adds_awscurrent_label_in_first_version():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME)
+    put_secret_value_dict = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="dupe_secret",
+        VersionStages=["AWSPENDING"],
+    )
+
+    assert put_secret_value_dict["VersionStages"] == ["AWSPENDING", "AWSCURRENT"]
+
+
+@mock_aws
 def test_put_secret_value_maintains_description_and_tags():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -1427,6 +1651,85 @@ def test_can_list_secret_version_ids():
     returned_version_ids = [v["VersionId"] for v in versions_list["Versions"]]
 
     assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
+
+
+@mock_aws
+def test_managing_secrets_versions_with_client_request_tokens():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    # Create a secret with a specific client request token
+    crt = uuid4()
+    response = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    secret_arn = response["ARN"]
+    # Trying to create this secret again with the same ClientRequestToken AND the same secret value should
+    # result in the request just being ignored
+    response = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.create_secret(
+            Name=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
+
+    # The same applies when using PutSecret as well
+    # Trying to use the same ClientRequestToken AND the same secret value should result in the request just being ignored
+    response = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.put_secret_value(
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
+
+    # And finally, we repeat the set of steps with UpdateSecret
+    response = conn.update_secret(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.update_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
 
 
 @mock_aws
@@ -1888,64 +2191,53 @@ def test_update_secret_with_client_request_token():
         SecretId=secret_name, SecretString="third-secret"
     )
     assert client_request_token != updated_secret["VersionId"]
-    invalid_request_token = "test-token"
-    with pytest.raises(ParamValidationError) as pve:
-        client.update_secret(
-            SecretId=secret_name,
-            SecretString="fourth-secret",
-            ClientRequestToken=invalid_request_token,
-        )
-        assert pve.value.response["Error"]["Code"] == "InvalidParameterException"
-        assert pve.value.response["Error"]["Message"] == (
-            "ClientRequestToken must be 32-64 characters long."
-        )
 
 
 @secretsmanager_aws_verified
 @pytest.mark.aws_verified
-def test_update_secret_version_stage_manually(secret_arn=None):
+def test_update_secret_version_stage_manually(secret=None):
     sm_client = boto3.client("secretsmanager", "us-east-1")
     current_version = sm_client.put_secret_value(
-        SecretId=secret_arn,
+        SecretId=secret["ARN"],
         SecretString="previous_secret",
         VersionStages=["AWSCURRENT"],
     )["VersionId"]
 
     initial_secret = sm_client.get_secret_value(
-        SecretId=secret_arn, VersionStage="AWSCURRENT"
+        SecretId=secret["ARN"], VersionStage="AWSCURRENT"
     )
     assert initial_secret["VersionStages"] == ["AWSCURRENT"]
     assert initial_secret["SecretString"] == "previous_secret"
 
     token = str(uuid4())
     sm_client.put_secret_value(
-        SecretId=secret_arn,
+        SecretId=secret["ARN"],
         ClientRequestToken=token,
         SecretString="new_secret",
         VersionStages=["AWSPENDING"],
     )
 
     pending_secret = sm_client.get_secret_value(
-        SecretId=secret_arn, VersionStage="AWSPENDING"
+        SecretId=secret["ARN"], VersionStage="AWSPENDING"
     )
     assert pending_secret["VersionStages"] == ["AWSPENDING"]
     assert pending_secret["SecretString"] == "new_secret"
 
     sm_client.update_secret_version_stage(
-        SecretId=secret_arn,
+        SecretId=secret["ARN"],
         VersionStage="AWSCURRENT",
         MoveToVersionId=token,
         RemoveFromVersionId=current_version,
     )
 
     current_secret = sm_client.get_secret_value(
-        SecretId=secret_arn, VersionStage="AWSCURRENT"
+        SecretId=secret["ARN"], VersionStage="AWSCURRENT"
     )
-    assert list(sorted(current_secret["VersionStages"])) == ["AWSCURRENT", "AWSPENDING"]
+    assert sorted(current_secret["VersionStages"]) == ["AWSCURRENT", "AWSPENDING"]
     assert current_secret["SecretString"] == "new_secret"
 
     previous_secret = sm_client.get_secret_value(
-        SecretId=secret_arn, VersionStage="AWSPREVIOUS"
+        SecretId=secret["ARN"], VersionStage="AWSPREVIOUS"
     )
     assert previous_secret["VersionStages"] == ["AWSPREVIOUS"]
     assert previous_secret["SecretString"] == "previous_secret"
@@ -1953,17 +2245,17 @@ def test_update_secret_version_stage_manually(secret_arn=None):
 
 @secretsmanager_aws_verified
 @pytest.mark.aws_verified
-def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None):
+def test_update_secret_version_stage_dont_specify_current_stage(secret=None):
     sm_client = boto3.client("secretsmanager", "us-east-1")
     current_version = sm_client.put_secret_value(
-        SecretId=secret_arn,
+        SecretId=secret["ARN"],
         SecretString="previous_secret",
         VersionStages=["AWSCURRENT"],
     )["VersionId"]
 
     token = str(uuid4())
     sm_client.put_secret_value(
-        SecretId=secret_arn,
+        SecretId=secret["ARN"],
         ClientRequestToken=token,
         SecretString="new_secret",
         VersionStages=["AWSPENDING"],
@@ -1972,7 +2264,7 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None)
     # Without specifying version that currently has stage AWSCURRENT
     with pytest.raises(ClientError) as exc:
         sm_client.update_secret_version_stage(
-            SecretId=secret_arn, VersionStage="AWSCURRENT", MoveToVersionId=token
+            SecretId=secret["ARN"], VersionStage="AWSCURRENT", MoveToVersionId=token
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
@@ -1980,3 +2272,66 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None)
         err["Message"]
         == f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version}, so you must explicitly reference that version in RemoveFromVersionId."
     )
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
+)
+def test_create_secret_custom_id(set_custom_id):
+    secret_suffix = "randomSuffix"
+    secret_name = "secret-name"
+    region_name = "us-east-1"
+
+    client = boto3.client("secretsmanager", region_name=region_name)
+
+    set_custom_id(
+        SecretsManagerSecretIdentifier(DEFAULT_ACCOUNT_ID, region_name, secret_name),
+        secret_suffix,
+    )
+    secret = client.create_secret(Name=secret_name, SecretString="my secret")
+
+    assert secret["ARN"].split(":")[-1] == f"{secret_name}-{secret_suffix}"
+
+
+@mock_aws
+def test_create_secret_with_tag_custom_id(set_custom_id):
+    secret_suffix = "randomSuffix"
+    secret_name = "secret-name"
+
+    client = boto3.client("secretsmanager", "us-east-1")
+
+    secret = client.create_secret(
+        Name=secret_name,
+        SecretString="my secret",
+        Tags=[{"Key": TAG_KEY_CUSTOM_ID, "Value": secret_suffix}],
+    )
+
+    assert secret["ARN"].split(":")[-1] == f"{secret_name}-{secret_suffix}"
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE,
+    reason="Can't modify backend directly if not in decorator mode.",
+)
+def test_aws_managed_secret(set_custom_id):
+    # We have to poke directly at the backend because technically this secret
+    # would be managed by RDS, and wouldn't be able to be created via the
+    # public API (due to the restricted 'aws' tag prefix).
+    backend = secretsmanager_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    secret = backend.create_managed_secret("rds", "secret-managed-by-rds", "53cr3t")
+    assert secret.kms_key_id == "alias/aws/secretsmanager"
+    client = boto3.client("secretsmanager", region_name="us-east-1")
+    resp = client.describe_secret(SecretId=secret.arn)
+    assert "KmsKeyId" not in resp
+    assert resp["OwningService"] == "rds"
+    owning_service_filter = {"Key": "owning-service", "Values": ["rds"]}
+    resp = client.list_secrets(Filters=[owning_service_filter])
+    assert len(resp["SecretList"]) == 1
+    assert resp["SecretList"][0]["ARN"] == secret.arn
+    assert resp["SecretList"][0]["OwningService"] == secret.owning_service
+    resp = client.batch_get_secret_value(Filters=[owning_service_filter])
+    assert len(resp["SecretValues"]) == 1
+    assert resp["SecretValues"][0]["ARN"] == secret.arn
+    assert resp["SecretValues"][0]["SecretString"] == "53cr3t"

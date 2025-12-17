@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..exceptions import InvalidCustomerGatewayIdError
 from ..utils import random_customer_gateway_id
@@ -14,7 +14,7 @@ class CustomerGateway(TaggedEC2Resource):
         ip_address: str,
         bgp_asn: str,
         state: str = "available",
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = gateway_id
@@ -33,14 +33,14 @@ class CustomerGateway(TaggedEC2Resource):
 
 class CustomerGatewayBackend:
     def __init__(self) -> None:
-        self.customer_gateways: Dict[str, CustomerGateway] = {}
+        self.customer_gateways: dict[str, CustomerGateway] = {}
 
     def create_customer_gateway(
         self,
         gateway_type: str,
         ip_address: str,
         bgp_asn: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> CustomerGateway:
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
@@ -50,8 +50,8 @@ class CustomerGatewayBackend:
         return customer_gateway
 
     def describe_customer_gateways(
-        self, filters: Any = None, customer_gateway_ids: Optional[List[str]] = None
-    ) -> List[CustomerGateway]:
+        self, filters: Any = None, customer_gateway_ids: Optional[list[str]] = None
+    ) -> list[CustomerGateway]:
         customer_gateways = list(self.customer_gateways.copy().values())
         if customer_gateway_ids:
             customer_gateways = [

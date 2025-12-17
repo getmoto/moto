@@ -1,10 +1,9 @@
-import datetime
 import time
+from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -293,7 +292,7 @@ def test_get_records_at_sequence_number():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -332,7 +331,7 @@ def test_get_records_after_sequence_number():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -372,7 +371,7 @@ def test_get_records_latest():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -489,7 +488,8 @@ def test_get_records_timestamp_filtering():
     conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
 
     time.sleep(1.0)
-    timestamp = datetime.datetime.now(tz=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    timestamp = datetime.now(tz=tzlocal)
 
     conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
 
@@ -543,7 +543,7 @@ def test_get_records_at_very_new_timestamp():
     for k in keys:
         conn.put_record(StreamName=stream_name, Data=k, PartitionKey=k)
 
-    timestamp = utcnow() + datetime.timedelta(seconds=1)
+    timestamp = utcnow() + timedelta(seconds=1)
 
     # Get a shard iterator
     response = conn.describe_stream(StreamName=stream_name)
@@ -802,13 +802,13 @@ def test_merge_shards():
     for index in range(1, 50):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
     for index in range(51, 100):
         client.put_record(
             StreamARN=stream_arn,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 

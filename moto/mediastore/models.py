@@ -1,9 +1,10 @@
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ContainerNotFoundException,
@@ -24,7 +25,7 @@ class Container(BaseModel):
         self.metric_policy: Optional[str] = None
         self.tags = kwargs.get("tags")
 
-    def to_dict(self, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
+    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
         data = {
             "ARN": self.arn,
             "Name": self.name,
@@ -42,10 +43,10 @@ class Container(BaseModel):
 class MediaStoreBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._containers: Dict[str, Container] = OrderedDict()
+        self._containers: dict[str, Container] = OrderedDict()
 
-    def create_container(self, name: str, tags: Dict[str, str]) -> Container:
-        arn = f"arn:aws:mediastore:container:{name}"
+    def create_container(self, name: str, tags: dict[str, str]) -> Container:
+        arn = f"arn:{get_partition(self.region_name)}:mediastore:container:{name}"
         container = Container(
             arn=arn,
             name=name,
@@ -69,13 +70,13 @@ class MediaStoreBackend(BaseBackend):
         container.status = "ACTIVE"
         return container
 
-    def list_containers(self) -> List[Dict[str, Any]]:
+    def list_containers(self) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
         return [c.to_dict() for c in self._containers.values()]
 
-    def list_tags_for_resource(self, name: str) -> Optional[Dict[str, str]]:
+    def list_tags_for_resource(self, name: str) -> Optional[dict[str, str]]:
         if name not in self._containers:
             raise ContainerNotFoundException()
         tags = self._containers[name].tags

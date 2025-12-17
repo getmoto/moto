@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import DetectorNotFoundException, FilterNotFoundException
 
@@ -11,15 +12,19 @@ from .exceptions import DetectorNotFoundException, FilterNotFoundException
 class GuardDutyBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.admin_account_ids: List[str] = []
-        self.detectors: Dict[str, Detector] = {}
+        self.admin_account_ids: list[str] = []
+        self.detectors: dict[str, Detector] = {}
+        self.admin_accounts: dict[
+            str, Detector
+        ] = {}  # Store admin accounts by detector_id
 
     def create_detector(
         self,
         enable: bool,
         finding_publishing_frequency: str,
-        data_sources: Dict[str, Any],
-        tags: Dict[str, str],
+        data_sources: dict[str, Any],
+        tags: dict[str, str],
+        features: list[dict[str, Any]],
     ) -> str:
         if finding_publishing_frequency not in [
             "FIFTEEN_MINUTES",
@@ -30,11 +35,13 @@ class GuardDutyBackend(BaseBackend):
 
         detector = Detector(
             account_id=self.account_id,
+            region_name=self.region_name,
             created_at=datetime.now(),
             finding_publish_freq=finding_publishing_frequency,
             enabled=enable,
             datasources=data_sources,
             tags=tags,
+            features=features,
         )
         self.detectors[detector.id] = detector
         return detector.id
@@ -45,7 +52,7 @@ class GuardDutyBackend(BaseBackend):
         name: str,
         action: str,
         description: str,
-        finding_criteria: Dict[str, Any],
+        finding_criteria: dict[str, Any],
         rank: int,
     ) -> None:
         detector = self.get_detector(detector_id)
@@ -62,13 +69,13 @@ class GuardDutyBackend(BaseBackend):
     def enable_organization_admin_account(self, admin_account_id: str) -> None:
         self.admin_account_ids.append(admin_account_id)
 
-    def list_organization_admin_accounts(self) -> List[str]:
+    def list_organization_admin_accounts(self) -> list[str]:
         """
         Pagination is not yet implemented
         """
         return self.admin_account_ids
 
-    def list_detectors(self) -> List[str]:
+    def list_detectors(self) -> list[str]:
         """
         The MaxResults and NextToken-parameter have not yet been implemented.
         """
@@ -82,6 +89,20 @@ class GuardDutyBackend(BaseBackend):
             raise DetectorNotFoundException
         return self.detectors[detector_id]
 
+    def get_administrator_account(self, detector_id: str) -> dict[str, Any]:
+        """Get administrator account details."""
+        self.get_detector(detector_id)
+
+        if not self.admin_account_ids:
+            return {}
+
+        return {
+            "Administrator": {
+                "AccountId": self.admin_account_ids[0],
+                "RelationshipStatus": "ENABLED",
+            }
+        }
+
     def get_filter(self, detector_id: str, filter_name: str) -> "Filter":
         detector = self.get_detector(detector_id)
         return detector.get_filter(filter_name)
@@ -91,10 +112,11 @@ class GuardDutyBackend(BaseBackend):
         detector_id: str,
         enable: bool,
         finding_publishing_frequency: str,
-        data_sources: Dict[str, Any],
+        data_sources: dict[str, Any],
+        features: list[dict[str, Any]],
     ) -> None:
         detector = self.get_detector(detector_id)
-        detector.update(enable, finding_publishing_frequency, data_sources)
+        detector.update(enable, finding_publishing_frequency, data_sources, features)
 
     def update_filter(
         self,
@@ -102,7 +124,7 @@ class GuardDutyBackend(BaseBackend):
         filter_name: str,
         action: str,
         description: str,
-        finding_criteria: Dict[str, Any],
+        finding_criteria: dict[str, Any],
         rank: int,
     ) -> None:
         detector = self.get_detector(detector_id)
@@ -121,7 +143,7 @@ class Filter(BaseModel):
         name: str,
         action: str,
         description: str,
-        finding_criteria: Dict[str, Any],
+        finding_criteria: dict[str, Any],
         rank: int,
     ):
         self.name = name
@@ -134,7 +156,7 @@ class Filter(BaseModel):
         self,
         action: Optional[str],
         description: Optional[str],
-        finding_criteria: Optional[Dict[str, Any]],
+        finding_criteria: Optional[dict[str, Any]],
         rank: Optional[int],
     ) -> None:
         if action is not None:
@@ -146,7 +168,7 @@ class Filter(BaseModel):
         if rank is not None:
             self.rank = rank
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "action": self.action,
@@ -160,22 +182,27 @@ class Detector(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         created_at: datetime,
         finding_publish_freq: str,
         enabled: bool,
-        datasources: Dict[str, Any],
-        tags: Dict[str, str],
+        datasources: dict[str, Any],
+        tags: dict[str, str],
+        features: list[dict[str, Any]],
     ):
         self.id = mock_random.get_random_hex(length=32)
         self.created_at = created_at
         self.finding_publish_freq = finding_publish_freq
-        self.service_role = f"arn:aws:iam::{account_id}:role/aws-service-role/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"
+        self.service_role = f"arn:{get_partition(region_name)}:iam::{account_id}:role/aws-service-role/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"
         self.enabled = enabled
         self.updated_at = created_at
         self.datasources = datasources or {}
         self.tags = tags or {}
+        # TODO: Implement feature configuration object and validation
+        # https://docs.aws.amazon.com/guardduty/latest/APIReference/API_DetectorFeatureConfiguration.html
+        self.features = features or []
 
-        self.filters: Dict[str, Filter] = dict()
+        self.filters: dict[str, Filter] = {}
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter
@@ -193,7 +220,7 @@ class Detector(BaseModel):
         filter_name: str,
         action: str,
         description: str,
-        finding_criteria: Dict[str, Any],
+        finding_criteria: dict[str, Any],
         rank: int,
     ) -> None:
         _filter = self.get_filter(filter_name)
@@ -208,7 +235,8 @@ class Detector(BaseModel):
         self,
         enable: bool,
         finding_publishing_frequency: str,
-        data_sources: Dict[str, Any],
+        data_sources: dict[str, Any],
+        features: list[dict[str, Any]],
     ) -> None:
         if enable is not None:
             self.enabled = enable
@@ -216,8 +244,10 @@ class Detector(BaseModel):
             self.finding_publish_freq = finding_publishing_frequency
         if data_sources is not None:
             self.datasources = data_sources
+        if features is not None:
+            self.features = features
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         data_sources = {
             "cloudTrail": {"status": "DISABLED"},
             "dnsLogs": {"status": "DISABLED"},
@@ -245,6 +275,7 @@ class Detector(BaseModel):
             "updatedAt": self.updated_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "dataSources": data_sources,
             "tags": self.tags,
+            "features": self.features,
         }
 
 

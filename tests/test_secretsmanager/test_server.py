@@ -3,6 +3,7 @@ import unittest
 
 import boto3
 import pytest
+import requests
 
 import moto.server as server
 from moto import mock_aws, settings
@@ -1033,58 +1034,18 @@ def test_batch_get_secret_value_with_filters():
     assert len(json_data["SecretValues"]) == len(matched) == 2
 
 
-#
-# The following tests should work, but fail on the embedded dict in
-# RotationRules. The error message suggests a problem deeper in the code, which
-# needs further investigation.
-#
-
-# @mock_aws
-# def test_rotate_secret_rotation_period_zero():
-#     backend = server.create_backend_app('secretsmanager')
-#     test_client = backend.test_client()
-
-#     create_secret = test_client.post('/',
-#                         data={"Name": "test-secret",
-#                               "SecretString": "foosecret"},
-#                         headers={
-#                             "X-Amz-Target": "secretsmanager.CreateSecret"
-#                         },
-#                     )
-
-#     rotate_secret = test_client.post('/',
-#                         data={"SecretId": "test-secret",
-#                               "RotationRules": {"AutomaticallyAfterDays": 0}},
-#                         headers={
-#                             "X-Amz-Target": "secretsmanager.RotateSecret"
-#                         },
-#                     )
-
-#     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-#     assert json_data['message'] == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
-#     assert json_data['__type'] == 'InvalidParameterException'
-
-# @mock_aws
-# def test_rotate_secret_rotation_period_too_long():
-#     backend = server.create_backend_app('secretsmanager')
-#     test_client = backend.test_client()
-
-#     create_secret = test_client.post('/',
-#                         data={"Name": "test-secret",
-#                               "SecretString": "foosecret"},
-#                         headers={
-#                             "X-Amz-Target": "secretsmanager.CreateSecret"
-#                         },
-#                     )
-
-#     rotate_secret = test_client.post('/',
-#                         data={"SecretId": "test-secret",
-#                               "RotationRules": {"AutomaticallyAfterDays": 1001}},
-#                         headers={
-#                             "X-Amz-Target": "secretsmanager.RotateSecret"
-#                         },
-#                     )
-
-#     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-#     assert json_data['message'] == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
-#     assert json_data['__type'] == 'InvalidParameterException'
+@mock_aws
+def test_data_api() -> None:
+    base_url = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    data_url = f"{base_url}/moto-api/data.json"
+    conn = boto3.client("secretsmanager", region_name="us-west-1")
+    conn.create_secret(Name="test-secret")
+    data = requests.post(data_url).json()
+    secrets = data["secretsmanager"]["FakeSecret"]
+    assert len(secrets) == 1
+    secret = secrets[0]
+    assert secret["name"] == "test-secret"

@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -14,8 +15,9 @@ from . import dynamodb_aws_verified
 @mock_aws
 def test_create_table():
     client = boto3.client("dynamodb", region_name="us-east-2")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="messages",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -35,7 +37,7 @@ def test_create_table():
         ],
     )
 
-    actual = client.describe_table(TableName="messages")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
 
     assert actual["AttributeDefinitions"] == [
         {"AttributeName": "id", "AttributeType": "S"},
@@ -52,6 +54,11 @@ def test_create_table():
                 "ReadCapacityUnits": 1,
                 "WriteCapacityUnits": 1,
             },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 1,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 1,
+            },
         }
     ]
     assert actual["LocalSecondaryIndexes"] == []
@@ -61,31 +68,34 @@ def test_create_table():
         "WriteCapacityUnits": 1,
     }
     assert actual["TableSizeBytes"] == 0
-    assert actual["TableName"] == "messages"
+    assert actual["TableName"] == table_name
     assert actual["TableStatus"] == "ACTIVE"
     assert (
-        actual["TableArn"] == f"arn:aws:dynamodb:us-east-2:{ACCOUNT_ID}:table/messages"
+        actual["TableArn"]
+        == f"arn:aws:dynamodb:us-east-2:{ACCOUNT_ID}:table/{table_name}"
     )
     assert actual["KeySchema"] == [{"AttributeName": "id", "KeyType": "HASH"}]
     assert actual["ItemCount"] == 0
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_delete_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
+    table_name = f"T{uuid4()}"
     conn.create_table(
-        TableName="messages",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
     assert len(conn.list_tables()["TableNames"]) == 1
 
-    conn.delete_table(TableName="messages")
+    conn.delete_table(TableName=table_name)
     assert conn.list_tables()["TableNames"] == []
 
     with pytest.raises(ClientError) as ex:
-        conn.delete_table(TableName="messages")
+        conn.delete_table(TableName=table_name)
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -96,7 +106,7 @@ def test_delete_table():
 def test_item_add_and_describe_and_update():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
-        TableName="messages",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
@@ -138,7 +148,7 @@ def test_item_put_without_table():
 
     with pytest.raises(ClientError) as ex:
         conn.put_item(
-            TableName="messages",
+            TableName=f"T{uuid4()}",
             Item={
                 "forum_name": {"S": "LOLCat Forum"},
                 "Body": {"S": "http://url_to_lolcat.gif"},
@@ -156,7 +166,9 @@ def test_get_item_with_undeclared_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
     with pytest.raises(ClientError) as ex:
-        conn.get_item(TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}})
+        conn.get_item(
+            TableName=f"T{uuid4()}", Key={"forum_name": {"S": "LOLCat Forum"}}
+        )
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -167,7 +179,7 @@ def test_get_item_with_undeclared_table():
 def test_delete_item():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
-        TableName="messages",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
@@ -180,11 +192,9 @@ def test_delete_item():
         "ReceivedTime": "12/9/2011 11:36:03 PM",
     }
     table.put_item(Item=item_data)
-
     assert table.item_count == 1
 
     table.delete_item(Key={"id": "LOLCat Forum"})
-
     assert table.item_count == 0
 
     table.delete_item(Key={"id": "LOLCat Forum"})
@@ -196,7 +206,7 @@ def test_delete_item_with_undeclared_table():
 
     with pytest.raises(ClientError) as ex:
         conn.delete_item(
-            TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}}
+            TableName=f"T{uuid4()}", Key={"forum_name": {"S": "LOLCat Forum"}}
         )
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
@@ -209,7 +219,7 @@ def test_scan_with_undeclared_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
     with pytest.raises(ClientError) as ex:
-        conn.scan(TableName="messages")
+        conn.scan(TableName=f"T{uuid4()}")
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -220,7 +230,7 @@ def test_scan_with_undeclared_table():
 def test_get_key_schema():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
-        TableName="messages",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
@@ -232,8 +242,9 @@ def test_get_key_schema():
 @mock_aws
 def test_update_item_double_nested_remove():
     conn = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     conn.create_table(
-        TableName="messages",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
@@ -245,18 +256,18 @@ def test_update_item_double_nested_remove():
             "M": {"Name": {"M": {"First": {"S": "Steve"}, "Last": {"S": "Urkel"}}}}
         },
     }
-    conn.put_item(TableName="messages", Item=item)
+    conn.put_item(TableName=table_name, Item=item)
     key_map = {"username": {"S": "steve"}}
 
     # Then remove the Meta.FullName field
     conn.update_item(
-        TableName="messages",
+        TableName=table_name,
         Key=key_map,
         UpdateExpression="REMOVE Meta.#N.#F",
         ExpressionAttributeNames={"#N": "Name", "#F": "First"},
     )
 
-    returned_item = conn.get_item(TableName="messages", Key=key_map)
+    returned_item = conn.get_item(TableName=table_name, Key=key_map)
     expected_item = {
         "username": {"S": "steve"},
         "Meta": {"M": {"Name": {"M": {"Last": {"S": "Urkel"}}}}},
@@ -268,7 +279,7 @@ def test_update_item_double_nested_remove():
 def test_update_item_set():
     conn = boto3.resource("dynamodb", region_name="us-east-1")
     table = conn.create_table(
-        TableName="messages",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
@@ -291,26 +302,26 @@ def test_update_item_set():
 @mock_aws
 def test_create_table__using_resource():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     table = dynamodb.create_table(
-        TableName="users",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    assert table.name == "users"
+    assert table.name == table_name
 
 
 def _create_user_table():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
-    dynamodb.create_table(
-        TableName="users",
+    return dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    return dynamodb.Table("users")
 
 
 @mock_aws
@@ -500,7 +511,7 @@ def test_update_settype_item_with_conditions():
     table.update_item(
         Key={"username": "johndoe"},
         UpdateExpression="SET foo=:new_value",
-        ExpressionAttributeValues={":new_value": set(["baz"])},
+        ExpressionAttributeValues={":new_value": {"baz"}},
         Expected={
             "foo": {
                 "ComparisonOperator": "EQ",
@@ -511,7 +522,7 @@ def test_update_settype_item_with_conditions():
         },
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert returned_item["Item"]["foo"] == set(["baz"])
+    assert returned_item["Item"]["foo"] == {"baz"}
 
 
 @pytest.mark.aws_verified

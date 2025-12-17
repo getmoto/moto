@@ -1,7 +1,7 @@
 """RekognitionBackend class with methods for supported APIs."""
 
 import string
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -18,7 +18,7 @@ class RekognitionBackend(BaseBackend):
 
     def get_face_search(
         self,
-    ) -> Tuple[str, str, Dict[str, Any], List[Dict[str, Any]], str, str]:
+    ) -> tuple[str, str, dict[str, Any], list[dict[str, Any]], str, str]:
         """
         This returns hardcoded values and none of the parameters are taken into account.
         """
@@ -33,7 +33,7 @@ class RekognitionBackend(BaseBackend):
 
     def get_text_detection(
         self,
-    ) -> Tuple[str, str, Dict[str, Any], List[Dict[str, Any]], str, str]:
+    ) -> tuple[str, str, dict[str, Any], list[dict[str, Any]], str, str]:
         """
         This returns hardcoded values and none of the parameters are taken into account.
         """
@@ -48,12 +48,12 @@ class RekognitionBackend(BaseBackend):
 
     def compare_faces(
         self,
-    ) -> Tuple[
-        List[Dict[str, Any]],
+    ) -> tuple[
+        list[dict[str, Any]],
         str,
         str,
-        List[Dict[str, Any]],
-        Dict[str, Any],
+        list[dict[str, Any]],
+        dict[str, Any],
     ]:
         return (
             self._face_matches(),
@@ -63,18 +63,21 @@ class RekognitionBackend(BaseBackend):
             self.source_image_face(),
         )
 
-    def detect_labels(self) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
+    def detect_labels(self) -> tuple[list[dict[str, Any]], dict[str, Any], str]:
         return (
             self._mobile_phone_label(),
             self._image_properties(),
             "3.0",
         )
 
-    def detect_text(self) -> Tuple[List[Dict[str, Any]], str]:
+    def detect_text(self) -> tuple[list[dict[str, Any]], str]:
         return (
             self._detect_text_text_detections(),
             "3.0",
         )
+
+    def detect_custom_labels(self) -> tuple[list[dict[str, Any]]]:
+        return (self._detect_custom_labels_detections(),)
 
     # private
 
@@ -95,7 +98,7 @@ class RekognitionBackend(BaseBackend):
     def _text_model_version(self) -> str:
         return "3.1"
 
-    def _video_metadata(self) -> Dict[str, Any]:
+    def _video_metadata(self) -> dict[str, Any]:
         return {
             "Codec": "h264",
             "DurationMillis": 15020,
@@ -106,7 +109,7 @@ class RekognitionBackend(BaseBackend):
             "ColorRange": "LIMITED",
         }
 
-    def _persons(self) -> List[Dict[str, Any]]:
+    def _persons(self) -> list[dict[str, Any]]:
         return [
             {
                 "Timestamp": 0,
@@ -223,7 +226,7 @@ class RekognitionBackend(BaseBackend):
             }
         ]
 
-    def _text_detections(self) -> List[Dict[str, Any]]:
+    def _text_detections(self) -> list[dict[str, Any]]:
         return [
             {
                 "Timestamp": 0,
@@ -369,7 +372,7 @@ class RekognitionBackend(BaseBackend):
             },
         ]
 
-    def _face_matches(self) -> List[Dict[str, Any]]:
+    def _face_matches(self) -> list[dict[str, Any]]:
         return [
             {
                 "Face": {
@@ -421,7 +424,7 @@ class RekognitionBackend(BaseBackend):
             }
         ]
 
-    def _unmatched_faces(self) -> List[Dict[str, Any]]:
+    def _unmatched_faces(self) -> list[dict[str, Any]]:
         return [
             {
                 "BoundingBox": {
@@ -466,7 +469,7 @@ class RekognitionBackend(BaseBackend):
             }
         ]
 
-    def source_image_face(self) -> Dict[str, Any]:
+    def source_image_face(self) -> dict[str, Any]:
         return {
             "BoundingBox": {
                 "Width": 0.5521978139877319,
@@ -477,7 +480,7 @@ class RekognitionBackend(BaseBackend):
             "Confidence": 99.98751068115234,
         }
 
-    def _mobile_phone_label(self) -> List[Dict[str, Any]]:
+    def _mobile_phone_label(self) -> list[dict[str, Any]]:
         return [
             {
                 "Name": "Mobile Phone",
@@ -510,7 +513,7 @@ class RekognitionBackend(BaseBackend):
             }
         ]
 
-    def _image_properties(self) -> Dict[str, Any]:
+    def _image_properties(self) -> dict[str, Any]:
         return {
             "ImageProperties": {
                 "Quality": {
@@ -566,7 +569,7 @@ class RekognitionBackend(BaseBackend):
             }
         }
 
-    def _detect_text_text_detections(self) -> List[Dict[str, Any]]:
+    def _detect_text_text_detections(self) -> list[dict[str, Any]]:
         return [
             {
                 "Confidence": 99.35693359375,
@@ -753,6 +756,22 @@ class RekognitionBackend(BaseBackend):
                 "ParentId": 3,
                 "Type": "WORD",
             },
+        ]
+
+    def _detect_custom_labels_detections(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "Name": "MyLogo",
+                "Confidence": 77.7729721069336,
+                "Geometry": {
+                    "BoundingBox": {
+                        "Width": 0.198987677693367,
+                        "Height": 0.31296101212501526,
+                        "Left": 0.07924537360668182,
+                        "Top": 0.4037395715713501,
+                    }
+                },
+            }
         ]
 
 

@@ -27,14 +27,14 @@ class RekognitionResponse(BaseResponse):
         ) = self.rekognition_backend.get_face_search()
 
         return json.dumps(
-            dict(
-                JobStatus=job_status,
-                StatusMessage=status_message,
-                VideoMetadata=video_metadata,
-                Persons=persons,
-                NextToken=next_token,
-                TextModelVersion=text_model_version,
-            )
+            {
+                "JobStatus": job_status,
+                "StatusMessage": status_message,
+                "VideoMetadata": video_metadata,
+                "Persons": persons,
+                "NextToken": next_token,
+                "TextModelVersion": text_model_version,
+            }
         )
 
     def get_text_detection(self) -> str:
@@ -48,14 +48,14 @@ class RekognitionResponse(BaseResponse):
         ) = self.rekognition_backend.get_text_detection()
 
         return json.dumps(
-            dict(
-                JobStatus=job_status,
-                StatusMessage=status_message,
-                VideoMetadata=video_metadata,
-                TextDetections=text_detections,
-                NextToken=next_token,
-                TextModelVersion=text_model_version,
-            )
+            {
+                "JobStatus": job_status,
+                "StatusMessage": status_message,
+                "VideoMetadata": video_metadata,
+                "TextDetections": text_detections,
+                "NextToken": next_token,
+                "TextModelVersion": text_model_version,
+            }
         )
 
     def compare_faces(self) -> str:
@@ -68,13 +68,13 @@ class RekognitionResponse(BaseResponse):
         ) = self.rekognition_backend.compare_faces()
 
         return json.dumps(
-            dict(
-                FaceMatches=face_matches,
-                SourceImageOrientationCorrection=source_image_orientation_correction,
-                TargetImageOrientationCorrection=target_image_orientation_correction,
-                UnmatchedFaces=unmatched_faces,
-                SourceImageFace=source_image_face,
-            )
+            {
+                "FaceMatches": face_matches,
+                "SourceImageOrientationCorrection": source_image_orientation_correction,
+                "TargetImageOrientationCorrection": target_image_orientation_correction,
+                "UnmatchedFaces": unmatched_faces,
+                "SourceImageFace": source_image_face,
+            }
         )
 
     def detect_labels(self) -> str:
@@ -84,11 +84,11 @@ class RekognitionResponse(BaseResponse):
             label_model_version,
         ) = self.rekognition_backend.detect_labels()
         return json.dumps(
-            dict(
-                Labels=labels,
-                ImageProperties=image_properties,
-                LabelModelVersion=label_model_version,
-            )
+            {
+                "Labels": labels,
+                "ImageProperties": image_properties,
+                "LabelModelVersion": label_model_version,
+            }
         )
 
     def detect_text(self) -> str:
@@ -97,10 +97,18 @@ class RekognitionResponse(BaseResponse):
             text_model_version,
         ) = self.rekognition_backend.detect_text()
         return json.dumps(
-            dict(
-                TextDetections=text_detections,
-                TextModelVersion=text_model_version,
-            )
+            {
+                "TextDetections": text_detections,
+                "TextModelVersion": text_model_version,
+            }
+        )
+
+    def detect_custom_labels(self) -> str:
+        (custom_labels,) = self.rekognition_backend.detect_custom_labels()
+        return json.dumps(
+            {
+                "CustomLabels": custom_labels,
+            }
         )
 
     def start_face_search(self) -> TYPE_RESPONSE:

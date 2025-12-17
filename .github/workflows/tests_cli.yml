@@ -1,0 +1,23 @@
+name: AWS CLI test
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - name: Start MotoServer
+      uses: ./.github/actions/run_moto_server
+    - name: Install BATS
+      run: sudo apt-get install bats -y
+    - name: Run tests
+      run: |
+        mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
+        bats other_langs/tests_cli

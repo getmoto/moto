@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from moto.dynamodb.exceptions import (
     IncorrectDataType,
     IncorrectOperandType,
+    MockValidationException,
     ProvidedKeyDoesNotExist,
 )
 from moto.dynamodb.models.dynamo_type import (
@@ -28,7 +29,7 @@ from moto.dynamodb.parsing.validators import ExpressionPathResolver
 
 
 class NodeExecutor:
-    def __init__(self, ast_node: Node, expression_attribute_names: Dict[str, str]):
+    def __init__(self, ast_node: Node, expression_attribute_names: dict[str, str]):
         self.node = ast_node
         self.expression_attribute_names = expression_attribute_names
 
@@ -37,8 +38,8 @@ class NodeExecutor:
         pass
 
     def get_item_part_for_path_nodes(
-        self, item: Item, path_nodes: List[Node]
-    ) -> Union[DynamoType, Dict[str, Any]]:
+        self, item: Item, path_nodes: list[Node]
+    ) -> Union[DynamoType, dict[str, Any]]:
         """
         For a list of path nodes travers the item by following the path_nodes
         Args:
@@ -57,7 +58,7 @@ class NodeExecutor:
 
     def get_item_before_end_of_path(
         self, item: Item
-    ) -> Union[DynamoType, Dict[str, Any]]:
+    ) -> Union[DynamoType, dict[str, Any]]:
         """
         Get the part ot the item where the item will perform the action. For most actions this should be the parent. As
         that element will need to be modified by the action.
@@ -71,7 +72,7 @@ class NodeExecutor:
             item, self.get_path_expression_nodes()[:-1]
         )
 
-    def get_item_at_end_of_path(self, item: Item) -> Union[DynamoType, Dict[str, Any]]:
+    def get_item_at_end_of_path(self, item: Item) -> Union[DynamoType, dict[str, Any]]:
         """
         For a DELETE the path points at the stringset so we need to evaluate the full path.
         Args:
@@ -86,7 +87,7 @@ class NodeExecutor:
     # that element will need to be modified by the action.
     get_item_part_in_which_to_perform_action = get_item_before_end_of_path
 
-    def get_path_expression_nodes(self) -> List[Node]:
+    def get_path_expression_nodes(self) -> list[Node]:
         update_expression_path = self.node.children[0]
         assert isinstance(update_expression_path, UpdateExpressionPath)
         return update_expression_path.children
@@ -121,10 +122,10 @@ class SetExecutor(NodeExecutor):
     @classmethod
     def set(  # type: ignore[misc]
         cls,
-        item_part_to_modify_with_set: Union[DynamoType, Dict[str, Any]],
+        item_part_to_modify_with_set: Union[DynamoType, dict[str, Any]],
         element_to_set: Any,
         value_to_set: Any,
-        expression_attribute_names: Dict[str, str],
+        expression_attribute_names: dict[str, str],
     ) -> None:
         if isinstance(element_to_set, ExpressionAttribute):
             attribute_name = element_to_set.get_attribute_name()
@@ -155,7 +156,11 @@ class DeleteExecutor(NodeExecutor):
                 DDBTypeConversion.get_human_type(string_set_to_remove.type),
             )
 
-        string_set = self.get_item_at_end_of_path(item)
+        try:
+            string_set = self.get_item_at_end_of_path(item)
+        except ProvidedKeyDoesNotExist:
+            # Deleting a non-empty key, or from a non-empty set, is not a problem
+            return
         assert isinstance(string_set, DynamoType)
         if string_set.type != string_set_to_remove.type:
             raise IncorrectDataType()
@@ -222,6 +227,10 @@ class AddExecutor(NodeExecutor):
         value_to_add = self.get_action_value()
         if isinstance(value_to_add, DynamoType):
             if value_to_add.is_set():
+                if len(value_to_add.value) == 0:
+                    raise MockValidationException(
+                        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+                    )
                 try:
                     current_string_set = self.get_item_at_end_of_path(item)
                 except ProvidedKeyDoesNotExist:
@@ -272,7 +281,7 @@ class UpdateExpressionExecutor:
     }
 
     def __init__(
-        self, update_ast: Node, item: Item, expression_attribute_names: Dict[str, str]
+        self, update_ast: Node, item: Item, expression_attribute_names: dict[str, str]
     ):
         self.update_ast = update_ast
         self.item = item
@@ -303,7 +312,7 @@ class UpdateExpressionExecutor:
         else:
             node_executor(node, self.expression_attribute_names).execute(self.item)
 
-    def get_specific_execution(self, node: Node) -> Optional[Type[NodeExecutor]]:
+    def get_specific_execution(self, node: Node) -> Optional[type[NodeExecutor]]:
         for node_class in self.execution_map:
             if isinstance(node, node_class):
                 return self.execution_map[node_class]

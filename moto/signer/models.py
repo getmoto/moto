@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class SigningProfile(BaseModel):
@@ -12,8 +13,8 @@ class SigningProfile(BaseModel):
         backend: "SignerBackend",
         name: str,
         platform_id: str,
-        signing_material: Dict[str, str],
-        signature_validity_period: Optional[Dict[str, Any]],
+        signing_material: dict[str, str],
+        signature_validity_period: Optional[dict[str, Any]],
     ):
         self.name = name
         self.platform_id = platform_id
@@ -24,7 +25,7 @@ class SigningProfile(BaseModel):
         self.backend = backend
 
         self.status = "Active"
-        self.arn = f"arn:aws:signer:{backend.region_name}:{backend.account_id}:/signing-profiles/{name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:signer:{backend.region_name}:{backend.account_id}:/signing-profiles/{name}"
         self.profile_version = mock_random.get_random_hex(10)
         self.profile_version_arn = f"{self.arn}/{self.profile_version}"
         self.signing_material = signing_material
@@ -32,8 +33,8 @@ class SigningProfile(BaseModel):
     def cancel(self) -> None:
         self.status = "Canceled"
 
-    def to_dict(self, full: bool = True) -> Dict[str, Any]:
-        small: Dict[str, Any] = {
+    def to_dict(self, full: bool = True) -> dict[str, Any]:
+        small: dict[str, Any] = {
             "arn": self.arn,
             "profileVersion": self.profile_version,
             "profileVersionArn": self.profile_version_arn,
@@ -162,7 +163,7 @@ class SignerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.signing_profiles: Dict[str, SigningProfile] = dict()
+        self.signing_profiles: dict[str, SigningProfile] = {}
         self.tagger = TaggingService()
 
     def cancel_signing_profile(self, profile_name: str) -> None:
@@ -174,10 +175,10 @@ class SignerBackend(BaseBackend):
     def put_signing_profile(
         self,
         profile_name: str,
-        signature_validity_period: Optional[Dict[str, Any]],
+        signature_validity_period: Optional[dict[str, Any]],
         platform_id: str,
-        signing_material: Dict[str, str],
-        tags: Dict[str, str],
+        signing_material: dict[str, str],
+        tags: dict[str, str],
     ) -> SigningProfile:
         """
         The following parameters are not yet implemented: Overrides, SigningParameters
@@ -193,24 +194,22 @@ class SignerBackend(BaseBackend):
         self.tag_resource(profile.arn, tags)
         return profile
 
-    def list_signing_platforms(self) -> List[Dict[str, Any]]:
+    def list_signing_platforms(self) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented. The parameters category, partner, target are not yet implemented
         """
         return SignerBackend.platforms
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(
             resource_arn, TaggingService.convert_dict_to_tags_input(tags)
         )
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
-# Using the lambda-regions
-# boto3.Session().get_available_regions("signer") still returns an empty list
-signer_backends = BackendDict(SignerBackend, "lambda")
+signer_backends = BackendDict(SignerBackend, "signer")

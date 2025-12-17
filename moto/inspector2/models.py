@@ -1,11 +1,13 @@
 import json
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class FilterResource(BaseModel):
@@ -17,12 +19,12 @@ class FilterResource(BaseModel):
         reason: Optional[str],
         action: str,
         description: Optional[str],
-        filter_criteria: Dict[str, Any],
+        filter_criteria: dict[str, Any],
         backend: "Inspector2Backend",
     ):
         filter_id = mock_random.get_random_hex(10)
         self.owner_id = account_id
-        self.arn = f"arn:aws:inspector2:{region}:{account_id}:owner/{self.owner_id}/filter/{filter_id}"
+        self.arn = f"arn:{get_partition(region)}:inspector2:{region}:{account_id}:owner/{self.owner_id}/filter/{filter_id}"
         self.name = name
         self.reason = reason
         self.action = action
@@ -31,7 +33,7 @@ class FilterResource(BaseModel):
         self.created_at = unix_time()
         self.backend = backend
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "action": self.action,
             "arn": self.arn,
@@ -53,7 +55,7 @@ class AccountStatus(BaseModel):
         self._lambda = "DISABLED"
         self.lambda_code = "DISABLED"
 
-    def toggle(self, resource_types: List[str], enable: bool) -> None:
+    def toggle(self, resource_types: list[str], enable: bool) -> None:
         if "EC2" in resource_types:
             self.ec2 = "ENABLED" if enable else "DISABLED"
         if "ECR" in resource_types:
@@ -63,7 +65,7 @@ class AccountStatus(BaseModel):
         if "LAMBDA_CODE" in resource_types or "LAMBDACODE" in resource_types:
             self.lambda_code = "ENABLED" if enable else "DISABLED"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "accountId": self.account_id,
             "resourceStatus": {
@@ -82,7 +84,7 @@ class AccountStatus(BaseModel):
             else "DISABLED"
         )
 
-    def to_batch_json(self) -> Dict[str, Any]:
+    def to_batch_json(self) -> dict[str, Any]:
         return {
             "accountId": self.account_id,
             "resourceState": {
@@ -102,7 +104,7 @@ class Member(BaseModel):
         self.status = "ENABLED"
         self.updated_at = unix_time()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "accountId": self.account_id,
             "delegatedAdminAccountId": self.admin_account_id,
@@ -114,10 +116,10 @@ class Member(BaseModel):
 class Inspector2Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.filters: Dict[str, FilterResource] = dict()
-        self.admin_accounts: Dict[str, str] = dict()
-        self.account_status: Dict[str, AccountStatus] = dict()
-        self.members: Dict[str, Member] = dict()
+        self.filters: dict[str, FilterResource] = {}
+        self.admin_accounts: dict[str, str] = {}
+        self.account_status: dict[str, AccountStatus] = {}
+        self.members: dict[str, Member] = {}
         self.org_config = {
             "ec2": False,
             "ecr": False,
@@ -125,17 +127,17 @@ class Inspector2Backend(BaseBackend):
             "lambdaCode": False,
         }
         self.tagger = TaggingService()
-        self.findings_queue: List[Any] = []
-        self.findings: Dict[str, Any] = {}
+        self.findings_queue: list[Any] = []
+        self.findings: dict[str, Any] = {}
 
     def create_filter(
         self,
         action: str,
         description: str,
-        filter_criteria: Dict[str, Any],
+        filter_criteria: dict[str, Any],
         name: str,
         reason: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> str:
         _filter = FilterResource(
             region=self.region_name,
@@ -154,7 +156,7 @@ class Inspector2Backend(BaseBackend):
     def delete_filter(self, arn: str) -> None:
         self.filters.pop(arn, None)
 
-    def list_filters(self, action: str, arns: List[str]) -> Iterable[FilterResource]:
+    def list_filters(self, action: str, arns: list[str]) -> Iterable[FilterResource]:
         """
         Pagination is not yet implemented
         """
@@ -168,11 +170,11 @@ class Inspector2Backend(BaseBackend):
 
     def list_findings(
         self,
-        filter_criteria: List[Dict[str, Any]],
+        filter_criteria: list[dict[str, Any]],
         max_results: str,
         next_token: str,
         sort_criteria: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         This call will always return 0 findings by default.
 
@@ -212,7 +214,7 @@ class Inspector2Backend(BaseBackend):
         else:
             return []
 
-    def list_delegated_admin_accounts(self) -> Dict[str, str]:
+    def list_delegated_admin_accounts(self) -> dict[str, str]:
         return self.admin_accounts
 
     def enable_delegated_admin_account(self, account_id: str) -> None:
@@ -221,18 +223,18 @@ class Inspector2Backend(BaseBackend):
     def disable_delegated_admin_account(self, account_id: str) -> None:
         self.admin_accounts[account_id] = "DISABLED"
 
-    def describe_organization_configuration(self) -> Dict[str, Any]:
+    def describe_organization_configuration(self) -> dict[str, Any]:
         return {"autoEnable": self.org_config, "maxAccountLimitReached": False}
 
     def update_organization_configuration(
-        self, auto_enable: Dict[str, bool]
-    ) -> Dict[str, Any]:
+        self, auto_enable: dict[str, bool]
+    ) -> dict[str, Any]:
         self.org_config.update(auto_enable)
         return {"autoEnable": self.org_config}
 
     def disable(
-        self, account_ids: List[str], resource_types: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, account_ids: list[str], resource_types: list[str]
+    ) -> list[dict[str, Any]]:
         for acct in account_ids:
             if acct not in self.account_status:
                 self.account_status[acct] = AccountStatus(acct)
@@ -245,8 +247,8 @@ class Inspector2Backend(BaseBackend):
         ]
 
     def enable(
-        self, account_ids: List[str], resource_types: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, account_ids: list[str], resource_types: list[str]
+    ) -> list[dict[str, Any]]:
         for acct in account_ids:
             if acct not in self.account_status:
                 self.account_status[acct] = AccountStatus(acct)
@@ -258,7 +260,7 @@ class Inspector2Backend(BaseBackend):
             if a_id in account_ids
         ]
 
-    def batch_get_account_status(self, account_ids: List[str]) -> List[Dict[str, Any]]:
+    def batch_get_account_status(self, account_ids: list[str]) -> list[dict[str, Any]]:
         return [
             status.to_batch_json()
             for a_id, status in self.account_status.items()
@@ -279,15 +281,15 @@ class Inspector2Backend(BaseBackend):
     def get_member(self, account_id: str) -> Member:
         return self.members[account_id]
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(
             resource_arn, TaggingService.convert_dict_to_tags_input(tags)
         )
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
 

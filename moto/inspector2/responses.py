@@ -1,8 +1,7 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import Inspector2Backend, inspector2_backends
@@ -31,12 +30,12 @@ class Inspector2Response(BaseResponse):
             reason=reason,
             tags=tags,
         )
-        return json.dumps(dict(arn=arn))
+        return json.dumps({"arn": arn})
 
     def delete_filter(self) -> str:
         arn = self._get_param("arn")
         self.inspector2_backend.delete_filter(arn=arn)
-        return json.dumps(dict(arn=arn))
+        return json.dumps({"arn": arn})
 
     def list_filters(self) -> str:
         action = self._get_param("action")
@@ -55,7 +54,7 @@ class Inspector2Response(BaseResponse):
             next_token=next_token,
             sort_criteria=sort_criteria,
         )
-        return json.dumps(dict(findings=findings))
+        return json.dumps({"findings": findings})
 
     def list_delegated_admin_accounts(self) -> str:
         accounts = self.inspector2_backend.list_delegated_admin_accounts()
@@ -90,20 +89,20 @@ class Inspector2Response(BaseResponse):
         account_ids = self._get_param("accountIds")
         resource_types = self._get_param("resourceTypes")
         accounts = self.inspector2_backend.enable(account_ids, resource_types)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def disable(self) -> str:
         account_ids = self._get_param("accountIds")
         resource_types = self._get_param("resourceTypes")
         accounts = self.inspector2_backend.disable(account_ids, resource_types)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def batch_get_account_status(self) -> str:
         account_ids = self._get_param("accountIds")
         accounts = self.inspector2_backend.batch_get_account_status(account_ids)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def list_members(self) -> str:
@@ -125,28 +124,19 @@ class Inspector2Response(BaseResponse):
         member = self.inspector2_backend.get_member(account_id)
         return json.dumps({"member": member.to_json()})
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> str:
         arn = unquote(self.path.split("/tags/")[-1])
         tags = self.inspector2_backend.list_tags_for_resource(arn)
-        return 200, {}, json.dumps({"tags": tags})
+        return json.dumps({"tags": tags})
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tags = self._get_param("tags")
         self.inspector2_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return 200, {}, "{}"
+        return "{}"
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tag_keys = self.querystring.get("tagKeys")
         self.inspector2_backend.untag_resource(resource_arn, tag_keys)  # type: ignore
-        return 200, {}, "{}"
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
+        return "{}"

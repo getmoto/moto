@@ -1,6 +1,6 @@
 import pytest
 
-from . import fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_efs  # noqa
 
 
 @pytest.fixture(scope="function", name="file_system")

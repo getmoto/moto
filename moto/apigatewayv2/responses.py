@@ -21,224 +21,6 @@ class ApiGatewayV2Response(BaseResponse):
         """Return backend instance specific for this region."""
         return apigatewayv2_backends[self.current_account][self.region]
 
-    def apis(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.create_api()
-        if self.method == "GET":
-            return self.get_apis()
-
-    def api(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "GET":
-            return self.get_api()
-        if self.method == "PATCH":
-            return self.update_api()
-        if self.method == "PUT":
-            return self.reimport_api()
-        if self.method == "DELETE":
-            return self.delete_api()
-
-    def authorizer(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_authorizer()
-        if self.method == "GET":
-            return self.get_authorizer()
-        if self.method == "PATCH":
-            return self.update_authorizer()
-
-    def authorizers(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.create_authorizer()
-
-    def cors(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_cors_configuration()
-
-    def route_request_parameter(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_route_request_parameter()
-
-    def model(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_model()
-        if self.method == "GET":
-            return self.get_model()
-        if self.method == "PATCH":
-            return self.update_model()
-
-    def models(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.create_model()
-
-    def integration(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_integration()
-        if self.method == "GET":
-            return self.get_integration()
-        if self.method == "PATCH":
-            return self.update_integration()
-
-    def integrations(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "GET":
-            return self.get_integrations()
-        if self.method == "POST":
-            return self.create_integration()
-
-    def integration_response(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_integration_response()
-        if self.method == "GET":
-            return self.get_integration_response()
-        if self.method == "PATCH":
-            return self.update_integration_response()
-
-    def integration_responses(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "GET":
-            return self.get_integration_responses()
-        if self.method == "POST":
-            return self.create_integration_response()
-
-    def route(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_route()
-        if self.method == "GET":
-            return self.get_route()
-        if self.method == "PATCH":
-            return self.update_route()
-
-    def routes(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "GET":
-            return self.get_routes()
-        if self.method == "POST":
-            return self.create_route()
-
-    def route_response(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "DELETE":
-            return self.delete_route_response()
-        if self.method == "GET":
-            return self.get_route_response()
-
-    def route_responses(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.create_route_response()
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.tag_resource()
-        if self.method == "GET":
-            return self.get_tags()
-        if self.method == "DELETE":
-            return self.untag_resource()
-
-    def vpc_link(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "DELETE":
-            return self.delete_vpc_link()
-        if request.method == "GET":
-            return self.get_vpc_link()
-        if request.method == "PATCH":
-            return self.update_vpc_link()
-
-    def vpc_links(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_vpc_links()
-        if request.method == "POST":
-            return self.create_vpc_link()
-
-    def domain_names(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_domain_names()
-        if request.method == "POST":
-            return self.create_domain_name()
-
-    def domain_name(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_domain_name()
-        if request.method == "DELETE":
-            return self.delete_domain_name()
-
-    def api_mappings(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_api_mappings()
-        if request.method == "POST":
-            return self.create_api_mapping()
-
-    def api_mapping(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if request.method == "GET":
-            return self.get_api_mapping()
-        if request.method == "DELETE":
-            return self.delete_api_mapping()
-
-    def stages(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.create_stage()
-        if self.method == "GET":
-            return self.get_stages()
-
-    def stage(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "GET":
-            return self.get_stage()
-        if self.method == "DELETE":
-            return self.delete_stage()
-
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
 
@@ -279,6 +61,15 @@ class ApiGatewayV2Response(BaseResponse):
         api_id = self.path.split("/")[-1]
         api = self.apigatewayv2_backend.get_api(api_id=api_id)
         return 200, {}, json.dumps(api.to_json())
+
+    @staticmethod
+    def get_api_without_id(*args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        """
+        AWS is returning an empty response when apiId is an empty string. This is slightly odd and it seems an
+        outlier, therefore it was decided we could have a custom handler for this particular use case instead of
+        trying to make it work with the existing url-matcher.
+        """
+        return 200, {}, "{}"
 
     def get_apis(self) -> TYPE_RESPONSE:
         apis = self.apigatewayv2_backend.get_apis()
@@ -835,7 +626,7 @@ class ApiGatewayV2Response(BaseResponse):
     def get_domain_names(self) -> TYPE_RESPONSE:
         domain_names = self.apigatewayv2_backend.get_domain_names()
         list_of_dict = [domain_name.to_json() for domain_name in domain_names]
-        return 200, {}, json.dumps(dict(items=list_of_dict))
+        return 200, {}, json.dumps({"items": list_of_dict})
 
     def create_api_mapping(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-2]
@@ -864,7 +655,7 @@ class ApiGatewayV2Response(BaseResponse):
         domain_name = self.path.split("/")[-2]
         mappings = self.apigatewayv2_backend.get_api_mappings(domain_name=domain_name)
         list_of_dict = [mapping.to_json() for mapping in mappings]
-        return 200, {}, json.dumps(dict(items=list_of_dict))
+        return 200, {}, json.dumps({"items": list_of_dict})
 
     def delete_domain_name(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-1]
@@ -890,13 +681,13 @@ class ApiGatewayV2Response(BaseResponse):
 
     def get_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         stage = self.apigatewayv2_backend.get_stage(api_id, stage_name)
         return 200, {}, json.dumps(stage.to_json())
 
     def delete_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         self.apigatewayv2_backend.delete_stage(api_id, stage_name)
         return 200, {}, "{}"
 

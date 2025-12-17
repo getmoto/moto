@@ -13,7 +13,7 @@ class CostExplorerResponse(BaseResponse):
     @property
     def ce_backend(self) -> CostExplorerBackend:
         """Return backend instance specific for this region."""
-        return ce_backends[self.current_account]["global"]
+        return ce_backends[self.current_account][self.partition]
 
     def create_cost_category_definition(self) -> str:
         params = json.loads(self.body)
@@ -37,7 +37,7 @@ class CostExplorerResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(
-            dict(CostCategoryArn=cost_category_arn, EffectiveStart=effective_start)
+            {"CostCategoryArn": cost_category_arn, "EffectiveStart": effective_start}
         )
 
     def describe_cost_category_definition(self) -> str:
@@ -46,7 +46,7 @@ class CostExplorerResponse(BaseResponse):
         cost_category = self.ce_backend.describe_cost_category_definition(
             cost_category_arn=cost_category_arn
         )
-        return json.dumps(dict(CostCategory=cost_category.to_json()))
+        return json.dumps({"CostCategory": cost_category.to_json()})
 
     def delete_cost_category_definition(self) -> str:
         params = json.loads(self.body)
@@ -58,7 +58,7 @@ class CostExplorerResponse(BaseResponse):
             cost_category_arn=cost_category_arn,
         )
         return json.dumps(
-            dict(CostCategoryArn=cost_category_arn, EffectiveEnd=effective_end)
+            {"CostCategoryArn": cost_category_arn, "EffectiveEnd": effective_end}
         )
 
     def update_cost_category_definition(self) -> str:
@@ -81,7 +81,7 @@ class CostExplorerResponse(BaseResponse):
             split_charge_rules=split_charge_rules,
         )
         return json.dumps(
-            dict(CostCategoryArn=cost_category_arn, EffectiveStart=effective_start)
+            {"CostCategoryArn": cost_category_arn, "EffectiveStart": effective_start}
         )
 
     def list_tags_for_resource(self) -> str:

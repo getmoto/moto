@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
@@ -20,18 +19,18 @@ boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
-def test_create_template_without_required_param_boto3():
+def test_create_template_without_required_param():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     with pytest.raises(ClientError) as ex:
         cf.create_stack(StackName="test_stack", TemplateBody=template_json)
     err = ex.value.response["Error"]
-    assert err["Code"] == "Missing Parameter"
+    assert err["Code"] == "ValidationError"
     assert err["Message"] == "Missing parameter KeyName"
 
 
 @mock_aws
-def test_fn_join_boto3():
+def test_fn_join():
     template_json = json.dumps(fn_join.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
@@ -44,7 +43,7 @@ def test_fn_join_boto3():
 
 
 @mock_aws
-def test_conditional_resources_boto3():
+def test_conditional_resources():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Parameters": {
@@ -79,7 +78,7 @@ def test_conditional_resources_boto3():
 
 
 @mock_aws
-def test_conditional_if_handling_boto3():
+def test_conditional_if_handling():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Conditions": {"EnvEqualsPrd": {"Fn::Equals": [{"Ref": "ENV"}, "prd"]}},
@@ -122,7 +121,7 @@ def test_conditional_if_handling_boto3():
 
 
 @mock_aws
-def test_cloudformation_mapping_boto3():
+def test_cloudformation_mapping():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Mappings": {
@@ -288,9 +287,6 @@ def lambda_handler(event, context):
     assert lv["CompatibleRuntimes"] == ["python2.7", "python3.6"]
     assert lv["Description"] == "Test Layer"
     assert lv["LicenseInfo"] == "MIT"
-    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
-        # "Parameters only available in newer versions"
-        assert lv["CompatibleArchitectures"] == []
 
 
 @mock_aws
@@ -1045,7 +1041,7 @@ def test_stack_dynamodb_resources_integration():
 
 @mock_aws
 def test_create_log_group_using_fntransform():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", "us-west-2")
     s3_resource.create_bucket(
         Bucket="owi-common-cf",
         CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
@@ -1189,7 +1185,7 @@ def test_delete_stack_containing_cloudwatch_logs_resource_policy():
 
 
 @mock_aws
-def test_delete_stack_with_deletion_policy_boto3():
+def test_delete_stack_with_deletion_policy():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {

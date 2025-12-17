@@ -6,6 +6,7 @@ import string
 import boto3
 
 from moto import mock_aws
+from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -116,3 +117,16 @@ def test_get_text_detection():
 
     assert resp["JobStatus"] == "SUCCEEDED"
     assert resp["TextDetections"][0]["TextDetection"]["DetectedText"] == "Hello world"
+
+
+@mock_aws
+def test_detect_custom_labels():
+    client = boto3.client("rekognition", region_name="us-east-2")
+    resp = client.detect_custom_labels(
+        Image={"S3Object": {"Bucket": "string", "Name": "name.jpg"}},
+        MaxResults=10,
+        MinConfidence=80,
+        ProjectVersionArn=mock_random.get_random_string(),
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp["CustomLabels"][0]["Name"] == "MyLogo"

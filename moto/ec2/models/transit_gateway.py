@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -21,7 +21,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         "DnsSupport": "enable",
         "MulticastSupport": "disable",
         "PropagationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
-        "TransitGatewayCidrBlocks": None,
+        "TransitGatewayCidrBlocks": [],
         "VpnEcmpSupport": "enable",
     }
 
@@ -29,7 +29,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self,
         backend: Any,
         description: Optional[str],
-        options: Optional[Dict[str, str]] = None,
+        options: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = backend
         self.id = random_transit_gateway_id()
@@ -38,12 +38,26 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
         self._created_at = utcnow()
 
+        # creating default route table
+        self.default_route_table = backend.create_transit_gateway_route_table(
+            transit_gateway_id=self.id,
+            tags={},
+            default_association_route_table=True,
+            default_propagation_route_table=True,
+        )
+        self.options["AssociationDefaultRouteTableId"] = self.default_route_table.id
+        self.options["PropagationDefaultRouteTableId"] = self.default_route_table.id
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return self.get_tags()
+
     @property
     def physical_resource_id(self) -> str:
         return self.id
 
     @property
-    def create_time(self) -> str:
+    def creation_time(self) -> str:
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
     @property
@@ -52,7 +66,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:transit-gateway/{self.id}"
+        return f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:transit-gateway/{self.id}"
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -93,13 +107,13 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
 class TransitGatewayBackend:
     def __init__(self) -> None:
-        self.transit_gateways: Dict[str, TransitGateway] = {}
+        self.transit_gateways: dict[str, TransitGateway] = {}
 
     def create_transit_gateway(
         self,
         description: Optional[str],
-        options: Optional[Dict[str, str]] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        options: Optional[dict[str, str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> TransitGateway:
         transit_gateway = TransitGateway(self, description, options)
         for tag in tags or []:
@@ -109,8 +123,8 @@ class TransitGatewayBackend:
         return transit_gateway
 
     def describe_transit_gateways(
-        self, filters: Any, transit_gateway_ids: Optional[List[str]]
-    ) -> List[TransitGateway]:
+        self, filters: Any, transit_gateway_ids: Optional[list[str]]
+    ) -> list[TransitGateway]:
         transit_gateways = list(self.transit_gateways.values())
 
         if transit_gateway_ids:
@@ -138,7 +152,7 @@ class TransitGatewayBackend:
         self,
         transit_gateway_id: str,
         description: Optional[str] = None,
-        options: Optional[Dict[str, str]] = None,
+        options: Optional[dict[str, str]] = None,
     ) -> TransitGateway:
         transit_gateway = self.transit_gateways[transit_gateway_id]
         if description:

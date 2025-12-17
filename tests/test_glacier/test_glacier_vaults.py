@@ -26,7 +26,7 @@ def test_describe_vault():
 
 
 @mock_aws
-def test_delete_vault_boto3():
+def test_delete_vault():
     client = boto3.client("glacier", region_name="us-west-2")
 
     client.create_vault(vaultName="myvault")

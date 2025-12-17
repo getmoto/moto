@@ -3,7 +3,7 @@ from ._base_response import EC2BaseResponse
 
 class Fleets(EC2BaseResponse):
     def delete_fleets(self) -> str:
-        fleet_ids = self._get_multi_param("FleetId.")
+        fleet_ids = self._get_param("FleetIds", [])
         terminate_instances = self._get_bool_param("TerminateInstances")
         fleets = self.ec2_backend.delete_fleets(fleet_ids, terminate_instances)
         template = self.response_template(DELETE_FLEETS_TEMPLATE)
@@ -17,7 +17,7 @@ class Fleets(EC2BaseResponse):
         return template.render(fleet_id=fleet_id, instances=instances)
 
     def describe_fleets(self) -> str:
-        fleet_ids = self._get_multi_param("FleetId.")
+        fleet_ids = self._get_param("FleetIds", [])
 
         requests = self.ec2_backend.describe_fleets(fleet_ids)
         template = self.response_template(DESCRIBE_FLEETS_TEMPLATE)
@@ -25,15 +25,12 @@ class Fleets(EC2BaseResponse):
         return rend
 
     def create_fleet(self) -> str:
-        on_demand_options = self._get_multi_param_dict("OnDemandOptions")
-        spot_options = self._get_multi_param_dict("SpotOptions")
-        target_capacity_specification = self._get_multi_param_dict(
-            "TargetCapacitySpecification"
+        on_demand_options = self._get_param("OnDemandOptions", {})
+        spot_options = self._get_param("SpotOptions", {})
+        target_capacity_specification = self._get_param(
+            "TargetCapacitySpecification", {}
         )
-        launch_template_configs = self._get_multi_param(
-            param_prefix="LaunchTemplateConfigs"
-        )
-
+        launch_template_configs = self._get_param("LaunchTemplateConfigs", [])
         excess_capacity_termination_policy = self._get_param(
             "ExcessCapacityTerminationPolicy"
         )
@@ -45,7 +42,7 @@ class Fleets(EC2BaseResponse):
         valid_from = self._get_param("ValidFrom")
         valid_until = self._get_param("ValidUntil")
 
-        tag_specifications = self._get_multi_param("TagSpecification")
+        tag_specifications = self._get_param("TagSpecifications", [])
 
         request = self.ec2_backend.create_fleet(
             on_demand_options=on_demand_options,
@@ -131,16 +128,16 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                     {% endif %}
                                 </acceleratorCount>
                                 {% endif %}
-                                {% if override.InstanceRequirements.AcceleratorManufacturer %}
+                                {% if override.InstanceRequirements.AcceleratorManufacturers %}
                                 <acceleratorManufacturerSet>
-                                    {% for manufacturer in override.InstanceRequirements.AcceleratorManufacturer %}
+                                    {% for manufacturer in override.InstanceRequirements.AcceleratorManufacturers %}
                                     <item>{{ manufacturer }}</item>
                                     {% endfor %}
                                 </acceleratorManufacturerSet>
                                 {% endif %}
-                                {% if override.InstanceRequirements.AcceleratorName %}
+                                {% if override.InstanceRequirements.AcceleratorNames %}
                                 <acceleratorNameSet>
-                                    {% for name in override.InstanceRequirements.AcceleratorName %}
+                                    {% for name in override.InstanceRequirements.AcceleratorNames %}
                                     <item>{{ name }}</item>
                                     {% endfor %}
                                 </acceleratorNameSet>
@@ -155,9 +152,9 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                     {% endif %}
                                 </acceleratorTotalMemoryMiB>
                                 {% endif %}
-                                {% if override.InstanceRequirements.AcceleratorType %}
+                                {% if override.InstanceRequirements.AcceleratorTypes %}
                                 <acceleratorTypeSet>
-                                    {% for type in override.InstanceRequirements.AcceleratorType %}
+                                    {% for type in override.InstanceRequirements.AcceleratorTypes %}
                                     <item>{{ type }}</item>
                                     {% endfor %}
                                 </acceleratorTypeSet>
@@ -178,23 +175,23 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                 {% if override.InstanceRequirements.BurstablePerformance %}
                                 <burstablePerformance>{{ override.InstanceRequirements.BurstablePerformance }}</burstablePerformance>
                                 {% endif %}
-                                {% if override.InstanceRequirements.CpuManufacturer %}
+                                {% if override.InstanceRequirements.CpuManufacturers %}
                                 <cpuManufacturerSet>
-                                    {% for manufacturer in override.InstanceRequirements.CpuManufacturer %}
+                                    {% for manufacturer in override.InstanceRequirements.CpuManufacturers %}
                                     <item>{{ manufacturer }}</item>
                                     {% endfor %}
                                 </cpuManufacturerSet>
                                 {% endif %}
-                                {% if override.InstanceRequirements.ExcludedInstanceType %}
+                                {% if override.InstanceRequirements.ExcludedInstanceTypes %}
                                 <excludedInstanceTypeSet>
-                                    {% for type in override.InstanceRequirements.ExcludedInstanceType %}
+                                    {% for type in override.InstanceRequirements.ExcludedInstanceTypes %}
                                     <item>{{ type }}</item>
                                     {% endfor %}
                                 </excludedInstanceTypeSet>
                                 {% endif %}
-                                {% if override.InstanceRequirements.InstanceGeneration %}
+                                {% if override.InstanceRequirements.InstanceGenerations %}
                                 <instanceGenerationSet>
-                                    {% for generation in override.InstanceRequirements.InstanceGeneration %}
+                                    {% for generation in override.InstanceRequirements.InstanceGenerations %}
                                     <item>{{ generation }}</item>
                                     {% endfor %}
                                 </instanceGenerationSet>
@@ -202,9 +199,9 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                 {% if override.InstanceRequirements.LocalStorage %}
                                 <localStorage>{{ override.InstanceRequirements.LocalStorage }}</localStorage>
                                 {% endif %}
-                                {% if override.InstanceRequirements.LocalStorageType %}
+                                {% if override.InstanceRequirements.LocalStorageTypes %}
                                 <localStorageTypeSet>
-                                    {% for type in override.InstanceRequirements.LocalStorageType %}
+                                    {% for type in override.InstanceRequirements.LocalStorageTypes %}
                                     <item>{{ type }}</item>
                                     {% endfor %}
                                 </localStorageTypeSet>
@@ -243,7 +240,7 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                                 <onDemandMaxPricePercentageOverLowestPrice>{{ override.InstanceRequirements.OnDemandMaxPricePercentageOverLowestPrice }}</onDemandMaxPricePercentageOverLowestPrice>
                                 {% endif %}
                                 {% if override.InstanceRequirements.RequireHibernateSupport %}
-                                <requireHibernateSupport>{{ override.InstanceRequirements.RequireHibernateSupport }}</requireHibernateSupport>
+                                <requireHibernateSupport>{{ override.InstanceRequirements.RequireHibernateSupport|lower }}</requireHibernateSupport>
                                 {% endif %}
                                 {% if override.InstanceRequirements.SpotMaxPricePercentageOverLowestPrice %}
                                 <spotMaxPricePercentageOverLowestPrice>{{ override.InstanceRequirements.SpotMaxPricePercentageOverLowestPrice }}</spotMaxPricePercentageOverLowestPrice>
@@ -338,10 +335,10 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                 <minTargetCapacity>{{ request.spot_options.MinTargetCapacity }}</minTargetCapacity>
                 {% endif %}
                 {% if request.spot_options.SingleAvailabilityZone %}
-                <singleAvailabilityZone>{{ request.spot_options.SingleAvailabilityZone }}</singleAvailabilityZone>
+                <singleAvailabilityZone>{{ request.spot_options.SingleAvailabilityZone|lower }}</singleAvailabilityZone>
                 {% endif %}
                 {% if request.spot_options.SingleInstanceType %}
-                <singleInstanceType>{{ request.spot_options.SingleInstanceType }}</singleInstanceType>
+                <singleInstanceType>{{ request.spot_options.SingleInstanceType|lower }}</singleInstanceType>
                 {% endif %}
             </spotOptions>
             {% endif %}
@@ -358,10 +355,10 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                 <minTargetCapacity>{{ request.on_demand_options.MinTargetCapacity }}</minTargetCapacity>
                 {% endif %}
                 {% if request.on_demand_options.SingleAvailabilityZone %}
-                <singleAvailabilityZone>{{ request.on_demand_options.SingleAvailabilityZone }}</singleAvailabilityZone>
+                <singleAvailabilityZone>{{ request.on_demand_options.SingleAvailabilityZone|lower }}</singleAvailabilityZone>
                 {% endif %}
                 {% if request.on_demand_options.SingleInstanceType %}
-                <singleInstanceType>{{ request.on_demand_options.SingleInstanceType }}</singleInstanceType>
+                <singleInstanceType>{{ request.on_demand_options.SingleInstanceType|lower }}</singleInstanceType>
                 {% endif %}
                 {% if request.on_demand_options.CapacityReservationOptions %}
                 <capacityReservationOptions>
@@ -372,15 +369,15 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
                 {% endif %}
             </onDemandOptions>
             {% endif %}
-            <terminateInstancesWithExpiration>{{ request.terminate_instances_with_expiration }}</terminateInstancesWithExpiration>
+            <terminateInstancesWithExpiration>{{ request.terminate_instances_with_expiration|lower }}</terminateInstancesWithExpiration>
             <type>{{ request.fleet_type }}</type>
             {% if request.valid_from %}
-            <validFrom>{{ request.valid_from }}</validFrom>
+            <validFrom>{{ request.valid_from_as_string }}</validFrom>
             {% endif %}
             {% if request.valid_until %}
-            <validUntil>{{ request.valid_until }}</validUntil>
+            <validUntil>{{ request.valid_until_as_string }}</validUntil>
             {% endif %}
-            <replaceUnhealthyInstances>{{ request.replace_unhealthy_instances }}</replaceUnhealthyInstances>
+            <replaceUnhealthyInstances>{{ request.replace_unhealthy_instances|lower }}</replaceUnhealthyInstances>
             <tagSet>
                 {% for tag in request.tags %}
                 <item>

@@ -6,14 +6,21 @@ from moto import mock_aws
 
 
 @mock_aws
-def test_put_list_dashboard():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
+@pytest.mark.parametrize(
+    "region,partition", [("eu-central-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_list_dashboard(region, partition):
+    client = boto3.client("cloudwatch", region_name=region)
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
 
     client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-    resp = client.list_dashboards()
+    dashboards = client.list_dashboards()["DashboardEntries"]
 
-    assert len(resp["DashboardEntries"]) == 1
+    assert len(dashboards) == 1
+    assert (
+        dashboards[0]["DashboardArn"]
+        == f"arn:{partition}:cloudwatch::123456789012:dashboard/test1"
+    )
 
 
 @mock_aws

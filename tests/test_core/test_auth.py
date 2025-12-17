@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -17,7 +17,7 @@ boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
-def create_user_with_access_key(user_name: str = "test-user") -> Dict[str, str]:
+def create_user_with_access_key(user_name: str = "test-user") -> dict[str, str]:
     client = boto3.client("iam", region_name="us-east-1")
     client.create_user(UserName=user_name)
     return client.create_access_key(UserName=user_name)["AccessKey"]
@@ -25,9 +25,12 @@ def create_user_with_access_key(user_name: str = "test-user") -> Dict[str, str]:
 
 @mock_aws
 def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
-    user_name: str, policy_document: Dict[str, Any], policy_name: str = "policy1"
-) -> Dict[str, str]:
-    client = boto3.client("iam", region_name="us-east-1")
+    user_name: str,
+    policy_document: dict[str, Any],
+    policy_name: str = "policy1",
+    region_name: str = "us-east-1",
+) -> dict[str, str]:
+    client = boto3.client("iam", region_name=region_name)
     client.create_user(UserName=user_name)
     client.put_user_policy(
         UserName=user_name,
@@ -39,8 +42,8 @@ def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
 
 @mock_aws
 def create_user_with_access_key_and_attached_policy(  # type: ignore[misc]
-    user_name: str, policy_document: Dict[str, Any], policy_name: str = "policy1"
-) -> Dict[str, str]:
+    user_name: str, policy_document: dict[str, Any], policy_name: str = "policy1"
+) -> dict[str, str]:
     client = boto3.client("iam", region_name="us-east-1")
     client.create_user(UserName=user_name)
     policy_arn = client.create_policy(
@@ -53,11 +56,11 @@ def create_user_with_access_key_and_attached_policy(  # type: ignore[misc]
 @mock_aws
 def create_user_with_access_key_and_multiple_policies(  # type: ignore[misc]
     user_name: str,
-    inline_policy_document: Dict[str, Any],
-    attached_policy_document: Dict[str, Any],
+    inline_policy_document: dict[str, Any],
+    attached_policy_document: dict[str, Any],
     inline_policy_name: str = "policy1",
     attached_policy_name: str = "policy1",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     client = boto3.client("iam", region_name="us-east-1")
     client.create_user(UserName=user_name)
     policy_arn = client.create_policy(
@@ -75,7 +78,7 @@ def create_user_with_access_key_and_multiple_policies(  # type: ignore[misc]
 
 def create_group_with_attached_policy_and_add_user(
     user_name: str,
-    policy_document: Dict[str, Any],
+    policy_document: dict[str, Any],
     group_name: str = "test-group",
     policy_name: Optional[str] = None,
 ) -> None:
@@ -92,7 +95,7 @@ def create_group_with_attached_policy_and_add_user(
 
 def create_group_with_inline_policy_and_add_user(
     user_name: str,
-    policy_document: Dict[str, Any],
+    policy_document: dict[str, Any],
     group_name: str = "test-group",
     policy_name: str = "policy1",
 ) -> None:
@@ -108,8 +111,8 @@ def create_group_with_inline_policy_and_add_user(
 
 def create_group_with_multiple_policies_and_add_user(
     user_name: str,
-    inline_policy_document: Dict[str, Any],
-    attached_policy_document: Dict[str, Any],
+    inline_policy_document: dict[str, Any],
+    attached_policy_document: dict[str, Any],
     group_name: str = "test-group",
     inline_policy_name: str = "policy1",
     attached_policy_name: Optional[str] = None,
@@ -134,11 +137,11 @@ def create_group_with_multiple_policies_and_add_user(
 @mock_aws
 def create_role_with_attached_policy_and_assume_it(  # type: ignore[misc]
     role_name: str,
-    trust_policy_document: Dict[str, Any],
-    policy_document: Dict[str, Any],
+    trust_policy_document: dict[str, Any],
+    policy_document: dict[str, Any],
     session_name: str = "session1",
     policy_name: str = "policy1",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     iam_client = boto3.client("iam", region_name="us-east-1")
     sts_client = boto3.client("sts", region_name="us-east-1")
     role_arn = iam_client.create_role(
@@ -156,11 +159,11 @@ def create_role_with_attached_policy_and_assume_it(  # type: ignore[misc]
 @mock_aws
 def create_role_with_inline_policy_and_assume_it(  # type: ignore[misc]
     role_name: str,
-    trust_policy_document: Dict[str, Any],
-    policy_document: Dict[str, Any],
+    trust_policy_document: dict[str, Any],
+    policy_document: dict[str, Any],
     session_name: str = "session1",
     policy_name: str = "policy1",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     iam_client = boto3.client("iam", region_name="us-east-1")
     sts_client = boto3.client("sts", region_name="us-east-1")
     role_arn = iam_client.create_role(
@@ -174,6 +177,34 @@ def create_role_with_inline_policy_and_assume_it(  # type: ignore[misc]
     return sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)[
         "Credentials"
     ]
+
+
+@mock_aws
+def create_role(  # type: ignore[misc]
+    role_name: str,
+    trust_policy_document: dict[str, Any],
+) -> None:
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    iam_client.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument=json.dumps(trust_policy_document)
+    )
+
+
+@mock_aws
+def create_role_with_attached_policy(  # type: ignore[misc]
+    role_name: str,
+    trust_policy_document: dict[str, Any],
+    policy_document: dict[str, Any],
+    policy_name: str = "policy1",
+) -> None:
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    create_role(role_name, trust_policy_document)
+
+    iam_client.put_role_policy(
+        RoleName=role_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
 
 
 @set_initial_no_auth_action_count(0)
@@ -822,7 +853,10 @@ def test_s3_invalid_token_with_temporary_credentials() -> None:
 
 @set_initial_no_auth_action_count(3)
 @mock_aws
-def test_allow_bucket_access_using_resource_arn() -> None:
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_allow_bucket_access_using_resource_arn(region: str, partition: str) -> None:
     user_name = "test-user"
     policy_doc = {
         "Version": "2012-10-17",
@@ -830,21 +864,25 @@ def test_allow_bucket_access_using_resource_arn() -> None:
             {
                 "Action": ["s3:*"],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::my_bucket",
+                "Resource": f"arn:{partition}:s3:::my_bucket",
                 "Sid": "BucketLevelGrants",
             },
         ],
     }
-    access_key = create_user_with_access_key_and_inline_policy(user_name, policy_doc)
+    access_key = create_user_with_access_key_and_inline_policy(
+        user_name, policy_doc, region_name=region
+    )
 
     s3_client = boto3.client(
         "s3",
-        region_name="us-east-1",
+        region_name=region,
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
 
-    s3_client.create_bucket(Bucket="my_bucket")
+    s3_client.create_bucket(
+        Bucket="my_bucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
     with pytest.raises(ClientError):
         s3_client.create_bucket(Bucket="my_bucket2")
 
@@ -901,3 +939,287 @@ def test_ssm_service() -> None:
     )
 
     ssmc.put_parameter(Name="test", Value="value", Type="String")
+
+
+@set_initial_no_auth_action_count(4)
+@mock_aws
+def test_sts_assume_role_with_external_id() -> None:
+    user_name = "test-user"
+    role_name = "test-role"
+
+    user_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            }
+        ],
+    }
+
+    user_access_keys = create_user_with_access_key_and_inline_policy(
+        user_name, user_policy_doc
+    )
+
+    external_id = "test-external-id"
+    incorrect_external_id = "test-incorrect-external-id"
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                    "AWS": f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}",
+                },
+                "Condition": {
+                    "StringEquals": {
+                        "sts:ExternalId": external_id,
+                    },
+                },
+            },
+        ],
+    }
+    create_role(role_name, trust_policy_document)
+
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=user_access_keys["AccessKeyId"],
+        aws_secret_access_key=user_access_keys["SecretAccessKey"],
+    )
+    with pytest.raises(ClientError) as ex:
+        client.assume_role(
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            RoleSessionName="test-session",
+            ExternalId=incorrect_external_id,
+        )
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: sts:AssumeRole"
+    )
+    # Not raising means success
+    client.assume_role(
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+        RoleSessionName="test-session",
+        ExternalId=external_id,
+    )
+
+
+@set_initial_no_auth_action_count(7)
+@mock_aws
+def test_sts_assume_role_with_principal() -> None:
+    user_name = "test-user"
+    incorrect_user_name = "test-incorrect-user"
+    role_name = "test-role"
+
+    user_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            }
+        ],
+    }
+
+    user_access_keys = create_user_with_access_key_and_inline_policy(
+        user_name, user_policy_doc, policy_name="policy-1"
+    )
+    incorrect_user_access_keys = create_user_with_access_key_and_inline_policy(
+        incorrect_user_name, user_policy_doc, policy_name="policy-2"
+    )
+
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                    "AWS": f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}",
+                },
+            },
+        ],
+    }
+    create_role(role_name, trust_policy_document)
+
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=incorrect_user_access_keys["AccessKeyId"],
+        aws_secret_access_key=incorrect_user_access_keys["SecretAccessKey"],
+    )
+    with pytest.raises(ClientError) as ex:
+        client.assume_role(
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            RoleSessionName="test-session",
+        )
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{incorrect_user_name} is not authorized to perform: sts:AssumeRole"
+    )
+    # Not raising means success
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=user_access_keys["AccessKeyId"],
+        aws_secret_access_key=user_access_keys["SecretAccessKey"],
+    )
+    client.assume_role(
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+        RoleSessionName="test-session",
+    )
+
+
+@set_initial_no_auth_action_count(6)
+@mock_aws
+def test_perform_role_based_action() -> None:
+    user_name = "test-user"
+    role_name = "test-role"
+    incorrect_role_name = "test-incorrect-role"
+
+    user_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": [
+                    f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+                    f"arn:aws:iam::{ACCOUNT_ID}:role/{incorrect_role_name}",
+                ],
+            }
+        ],
+    }
+
+    user_access_keys = create_user_with_access_key_and_inline_policy(
+        user_name, user_policy_doc
+    )
+
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                    "AWS": f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}",
+                },
+            },
+        ],
+    }
+    attached_policy_name = "test-attached-policy"
+    attached_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "iam:ListRolePolicies",
+                "Resource": f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            }
+        ],
+    }
+
+    create_role(incorrect_role_name, trust_policy_document)
+    create_role_with_attached_policy(
+        role_name, trust_policy_document, attached_policy_doc, attached_policy_name
+    )
+
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=user_access_keys["AccessKeyId"],
+        aws_secret_access_key=user_access_keys["SecretAccessKey"],
+    )
+
+    session_name = "test-session"
+    assumed_role_credentials = client.assume_role(
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+        RoleSessionName=session_name,
+    )["Credentials"]
+
+    iam_client = boto3.client(
+        "iam",
+        region_name="us-east-1",
+        aws_access_key_id=assumed_role_credentials["AccessKeyId"],
+        aws_secret_access_key=assumed_role_credentials["SecretAccessKey"],
+        aws_session_token=assumed_role_credentials["SessionToken"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        iam_client.list_role_policies(RoleName=incorrect_role_name)
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name} is not authorized to perform: iam:ListRolePolicies"
+    )
+
+    assert (
+        attached_policy_name
+        in iam_client.list_role_policies(RoleName=role_name)["PolicyNames"]
+    )
+
+
+@set_initial_no_auth_action_count(4)
+@mock_aws
+def test_sts_assume_role_with_external_id_unsupported_operation_should_supress_error() -> (
+    None
+):
+    user_name = "test-user"
+    role_name = "test-role"
+
+    user_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            }
+        ],
+    }
+
+    user_access_keys = create_user_with_access_key_and_inline_policy(
+        user_name, user_policy_doc
+    )
+
+    external_id = "test-external-id"
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                    "AWS": f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}",
+                },
+                "Condition": {
+                    "UnsupportedOperation": {
+                        "sts:ExternalId": external_id,
+                    },
+                },
+            },
+        ],
+    }
+    create_role(role_name, trust_policy_document)
+
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=user_access_keys["AccessKeyId"],
+        aws_secret_access_key=user_access_keys["SecretAccessKey"],
+    )
+    # Not raising means success
+    client.assume_role(
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+        RoleSessionName="test-session",
+        ExternalId=external_id,
+    )

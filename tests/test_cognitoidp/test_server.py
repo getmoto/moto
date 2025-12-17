@@ -92,9 +92,7 @@ def test_sign_up_user_without_authentication():
     )
     assert res.status_code == 200
     data = json.loads(res.data)
-    assert data["UserPoolId"] == user_pool_id
     assert data["Username"] == "test@gmail.com"
-    assert data["UserStatus"] == "CONFIRMED"
 
 
 def test_admin_create_user_without_authentication():
@@ -181,3 +179,94 @@ def test_admin_create_user_without_authentication():
     assert "AuthenticationResult" in response
     assert "IdToken" in response["AuthenticationResult"]
     assert "AccessToken" in response["AuthenticationResult"]
+
+
+def test_associate_software_token():
+    backend = server.create_backend_app("cognito-idp")
+    test_client = backend.test_client()
+
+    # Create User Pool
+    res = test_client.post(
+        "/",
+        data='{"PoolName": "test-pool"}',
+        headers={
+            "X-Amz-Target": "AWSCognitoIdentityProviderService.CreateUserPool",
+            "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-2/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
+        },
+    )
+    user_pool_id = json.loads(res.data)["UserPool"]["Id"]
+
+    # Create User Pool Client
+    data = {
+        "UserPoolId": user_pool_id,
+        "ClientName": "some-client",
+        "GenerateSecret": False,
+        "ExplicitAuthFlows": ["ALLOW_USER_PASSWORD_AUTH"],
+    }
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={
+            "X-Amz-Target": "AWSCognitoIdentityProviderService.CreateUserPoolClient",
+            "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-2/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
+        },
+    )
+    client_id = json.loads(res.data)["UserPoolClient"]["ClientId"]
+
+    # Sign Up User
+    data = {
+        "ClientId": client_id,
+        "Username": "user_2_mfa",
+        "Password": "12312sdfasASDFDSF$",
+    }
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.SignUp"},
+    )
+    assert res.status_code == 200
+    assert json.loads(res.data)["UserConfirmed"] is False
+
+    # Confirm Sign Up User
+    data = {"ClientId": client_id, "Username": "user_2_mfa", "ConfirmationCode": "sth"}
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.ConfirmSignUp"},
+    )
+
+    # Initiate Auth
+    data = {
+        "AuthFlow": "USER_PASSWORD_AUTH",
+        "AuthParameters": {
+            "USERNAME": "user_2_mfa",
+            "PASSWORD": "12312sdfasASDFDSF$",
+            "SECRET_HASH": "kIWuIv6ElVe9ahZHJ+gqvZe6CgEkVE/BjQmJcMSgF3E=",
+        },
+        "ClientId": client_id,
+    }
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth"},
+    )
+    auth_data = json.loads(res.data.decode("utf-8"))["AuthenticationResult"]
+
+    # Get User
+    data = {"AccessToken": auth_data["AccessToken"]}
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.GetUser"},
+    )
+
+    # Associate Software Token
+    data = {"AccessToken": auth_data["AccessToken"]}
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={
+            "X-Amz-Target": "AWSCognitoIdentityProviderService.AssociateSoftwareToken"
+        },
+    )
+    assert json.loads(res.data.decode("utf-8")) == {"SecretCode": "asdfasdfasdf"}

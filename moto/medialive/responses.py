@@ -38,14 +38,20 @@ class MediaLiveResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(channel=channel.to_dict(exclude=["pipelinesRunningCount"]))
+            {"channel": channel.to_dict(exclude=["pipelinesRunningCount"])}
         )
 
     def list_channels(self) -> str:
         max_results = self._get_int_param("maxResults")
-        channels = self.medialive_backend.list_channels(max_results=max_results)
+        next_token = self._get_param("nextToken")
+        channels, next_token = self.medialive_backend.list_channels(
+            max_results=max_results, next_token=next_token
+        )
+        channel_dicts = [
+            c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
+        ]
 
-        return json.dumps(dict(channels=channels, nextToken=None))
+        return json.dumps({"channels": channel_dicts, "nextToken": next_token})
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("channelId")
@@ -88,7 +94,7 @@ class MediaLiveResponse(BaseResponse):
             name=name,
             role_arn=role_arn,
         )
-        return json.dumps(dict(channel=channel.to_dict()))
+        return json.dumps({"channel": channel.to_dict()})
 
     def create_input(self) -> str:
         destinations = self._get_param("destinations")
@@ -120,9 +126,14 @@ class MediaLiveResponse(BaseResponse):
 
     def list_inputs(self) -> str:
         max_results = self._get_int_param("maxResults")
-        inputs = self.medialive_backend.list_inputs(max_results=max_results)
+        next_token = self._get_param("nextToken")
+        inputs, next_token = self.medialive_backend.list_inputs(
+            max_results=max_results, next_token=next_token
+        )
 
-        return json.dumps(dict(inputs=inputs, nextToken=None))
+        return json.dumps(
+            {"inputs": [i.to_dict() for i in inputs], "nextToken": next_token}
+        )
 
     def delete_input(self) -> str:
         input_id = self._get_param("inputId")
@@ -148,4 +159,4 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
         )
-        return json.dumps(dict(input=a_input.to_dict()))
+        return json.dumps({"input": a_input.to_dict()})

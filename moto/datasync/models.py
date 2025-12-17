@@ -1,8 +1,9 @@
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import InvalidRequestException
 
@@ -13,7 +14,7 @@ class Location(BaseModel):
         location_uri: str,
         region_name: str,
         typ: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         arn_counter: int = 0,
     ):
         self.uri = location_uri
@@ -21,7 +22,7 @@ class Location(BaseModel):
         self.metadata = metadata
         self.typ = typ
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
 
 
 class Task(BaseModel):
@@ -31,7 +32,7 @@ class Task(BaseModel):
         destination_location_arn: str,
         name: str,
         region_name: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         arn_counter: int = 0,
     ):
         self.source_location_arn = source_location_arn
@@ -42,7 +43,7 @@ class Task(BaseModel):
         self.status = "AVAILABLE"
         self.current_task_execution_arn: Optional[str] = None
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
 
 
 class TaskExecution(BaseModel):
@@ -99,12 +100,12 @@ class DataSyncBackend(BaseBackend):
         # Always increase when new things are created
         # This ensures uniqueness
         self.arn_counter = 0
-        self.locations: Dict[str, Location] = OrderedDict()
-        self.tasks: Dict[str, Task] = OrderedDict()
-        self.task_executions: Dict[str, TaskExecution] = OrderedDict()
+        self.locations: dict[str, Location] = OrderedDict()
+        self.tasks: dict[str, Task] = OrderedDict()
+        self.task_executions: dict[str, TaskExecution] = OrderedDict()
 
     def create_location(
-        self, location_uri: str, typ: str, metadata: Dict[str, Any]
+        self, location_uri: str, typ: str, metadata: dict[str, Any]
     ) -> str:
         """
         # AWS DataSync allows for duplicate LocationUris
@@ -144,7 +145,7 @@ class DataSyncBackend(BaseBackend):
         source_location_arn: str,
         destination_location_arn: str,
         name: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> str:
         if source_location_arn not in self.locations:
             raise InvalidRequestException(f"Location {source_location_arn} not found.")
@@ -170,7 +171,7 @@ class DataSyncBackend(BaseBackend):
         else:
             raise InvalidRequestException
 
-    def update_task(self, task_arn: str, name: str, metadata: Dict[str, Any]) -> None:
+    def update_task(self, task_arn: str, name: str, metadata: dict[str, Any]) -> None:
         if task_arn in self.tasks:
             task = self.tasks[task_arn]
             task.name = name

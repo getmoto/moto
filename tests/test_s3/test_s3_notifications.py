@@ -1,5 +1,4 @@
 import json
-from typing import List
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -51,12 +50,12 @@ REGION_NAME = "us-east-1"
             "Object Storage Class Changed",
         ),
         ([S3NotificationEvent.INTELLIGENT_TIERING_EVENT], "Object Access Tier Changed"),
-        ([S3NotificationEvent.OBJECT_ACL_EVENT], "Object ACL Updated"),
+        ([S3NotificationEvent.OBJECT_ACL_UPDATE_EVENT], "Object ACL Updated"),
         ([S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT], "Object Tags Added"),
         ([S3NotificationEvent.OBJECT_TAGGING_DELETE_EVENT], "Object Tags Deleted"),
     ],
 )
-def test_detail_type(event_names: List[str], expected_event_message: str):
+def test_detail_type(event_names: list[str], expected_event_message: str):
     for event_name in event_names:
         assert _detail_type(event_name) == expected_event_message
 
@@ -79,11 +78,14 @@ def test_send_event_bridge_message():
     events_client.put_rule(
         Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]})
     )
-    log_group_name = "/test-group"
+    log_group_name = f"/loggroup{str(uuid4())}"
     logs_client.create_log_group(logGroupName=log_group_name)
     mocked_bucket = FakeBucket(str(uuid4()), ACCOUNT_ID, REGION_NAME)
     mocked_key = FakeKey(
-        "test-key", bytes("test content", encoding="utf-8"), ACCOUNT_ID
+        "test-key",
+        bytes("test content", encoding="utf-8"),
+        ACCOUNT_ID,
+        region_name=REGION_NAME,
     )
 
     # do nothing if event target does not exists.
@@ -114,7 +116,7 @@ def test_send_event_bridge_message():
     )
 
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+        raise SkipTest("Doesn't quite work right with the Proxy or Server")
     # an event is correctly sent to the log group.
     _send_event_bridge_message(
         ACCOUNT_ID,

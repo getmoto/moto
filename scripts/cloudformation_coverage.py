@@ -55,26 +55,14 @@ class CloudFormationChecklist:
         return report.strip()
 
     @property
-    def service_name(self):
-        return self.resource_name.split("::")[1].lower()
-
-    @property
-    def model_name(self):
-        return self.resource_name.split("::")[2]
-
-    @property
     def moto_model(self):
         from moto.core.common_models import CloudFormationModel
 
         for subclass in CloudFormationModel.__subclasses__():
-            subclass_service = subclass.__module__.split(".")[1]
-            subclass_model = subclass.__name__
 
-            if subclass_service == self.service_name and subclass_model in (
-                self.model_name,
-                "Fake" + self.model_name,
-            ):
+            if subclass.cloudformation_type() == self.resource_name:
                 return subclass
+
 
     @property
     def expected_attrs(self):
@@ -121,7 +109,9 @@ def write_main_document(supported):
         file.write("## Supported CloudFormation resources")
         file.write("\n\n")
         file.write("A list of all resources that can be created via CloudFormation. \n")
-        file.write("Please let us know if you'd like support for a resource not yet listed here.")
+        file.write(
+            "Please let us know if you'd like support for a resource not yet listed here."
+        )
         file.write("\n\n")
 
         for checklist in supported:
@@ -145,19 +135,30 @@ def write_documentation(supported):
         file.write("==================================\n")
         file.write("\n\n")
         file.write("A list of all resources that can be created via CloudFormation. \n")
-        file.write("Please let us know if you'd like support for a resource not yet listed here.")
+        file.write(
+            "Please let us know if you'd like support for a resource not yet listed here."
+        )
         file.write("\n\n")
 
         max_resource_name_length = max([len(cf.resource_name) for cf in supported]) + 2
-        max_fn_att_length = 40
+        max_fn_att_length = 75
 
         file.write(".. table:: \n\n")
-        file.write(f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n")
-        file.write(f"  |{(' '*max_resource_name_length)}| Create | Update | Delete | {('Fn::GetAtt'.ljust(max_fn_att_length-2))} |\n")
-        file.write(f"  +{('='*max_resource_name_length)}+========+========+========+{('=' * max_fn_att_length)}+\n")
+        file.write(
+            f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n"
+        )
+        file.write(
+            f"  |{(' '*max_resource_name_length)}| Create | Update | Delete | {('Fn::GetAtt'.ljust(max_fn_att_length-2))} |\n"
+        )
+        file.write(
+            f"  +{('='*max_resource_name_length)}+========+========+========+{('=' * max_fn_att_length)}+\n"
+        )
 
         for checklist in supported:
-            attrs = [f" - [{check(att not in checklist.missing_attrs)}] {att}" for att in checklist.expected_attrs]
+            attrs = [
+                f" - [{check(att not in checklist.missing_attrs)}] {att}"
+                for att in checklist.expected_attrs
+            ]
             first_attr = attrs[0] if attrs else ""
             file.write("  |")
             file.write(checklist.resource_name.ljust(max_resource_name_length))
@@ -172,13 +173,19 @@ def write_documentation(supported):
             for index, attr in enumerate(attrs[1:]):
                 if index % 2 == 0:
                     file.write(
-                        f"  +{('-' * max_resource_name_length)}+--------+--------+--------+{attr.ljust(max_fn_att_length)}|\n")
+                        f"  +{('-' * max_resource_name_length)}+--------+--------+--------+{attr.ljust(max_fn_att_length)}|\n"
+                    )
                 else:
                     file.write(
-                        f"  |{(' ' * max_resource_name_length)}|        |        |        |{attr.ljust(max_fn_att_length)}|\n")
+                        f"  |{(' ' * max_resource_name_length)}|        |        |        |{attr.ljust(max_fn_att_length)}|\n"
+                    )
             if len(attrs) > 1 and len(attrs) % 2 == 0:
-                file.write(f"  |{(' ' * max_resource_name_length)}|        |        |        |{(' ' * max_fn_att_length)}|\n")
-            file.write(f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n")
+                file.write(
+                    f"  |{(' ' * max_resource_name_length)}|        |        |        |{(' ' * max_fn_att_length)}|\n"
+                )
+            file.write(
+                f"  +{('-'*max_resource_name_length)}+--------+--------+--------+{('-' * max_fn_att_length)}+\n"
+            )
 
 
 if __name__ == "__main__":
@@ -189,6 +196,10 @@ if __name__ == "__main__":
     # Only collect checklists for models that implement CloudFormationModel;
     # otherwise the checklist is very long and mostly empty because there
     # are so many niche AWS services and resources that moto doesn't implement yet.
-    supported = [CloudFormationChecklist(resource_name, schema) for resource_name, schema in sorted(cfn_spec["ResourceTypes"].items()) if CloudFormationChecklist(resource_name, schema).moto_model]
-    #write_main_document(supported)
+    supported = [
+        CloudFormationChecklist(resource_name, schema)
+        for resource_name, schema in sorted(cfn_spec["ResourceTypes"].items())
+        if CloudFormationChecklist(resource_name, schema).moto_model
+    ]
+    # write_main_document(supported)
     write_documentation(supported)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -6,6 +6,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import AppNotFound, AppVersionNotFound, ResiliencyPolicyNotFound
 
@@ -31,7 +32,7 @@ class AppComponent(BaseModel):
         self.name = name
         self.type = _type
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -45,13 +46,13 @@ class App(BaseModel):
         backend: "ResilienceHubBackend",
         assessment_schedule: str,
         description: str,
-        event_subscriptions: List[Dict[str, Any]],
+        event_subscriptions: list[dict[str, Any]],
         name: str,
-        permission_model: Dict[str, Any],
+        permission_model: dict[str, Any],
         policy_arn: str,
     ):
         self.backend = backend
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
         self.assessment_schedule = assessment_schedule or "Disabled"
         self.compliance_status = "NotAssessed"
         self.description = description
@@ -62,7 +63,7 @@ class App(BaseModel):
         self.policy_arn = policy_arn
         self.resilience_score = 0.0
         self.status = "Active"
-        self.app_versions: List[AppVersion] = []
+        self.app_versions: list[AppVersion] = []
 
         app_version = AppVersion(app_arn=self.arn, version_name=None, identifier=0)
         self.app_versions.append(app_version)
@@ -73,7 +74,7 @@ class App(BaseModel):
                 return v
         raise AppVersionNotFound
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         resp = {
             "appArn": self.arn,
             "assessmentSchedule": self.assessment_schedule,
@@ -99,17 +100,17 @@ class App(BaseModel):
 class Resource:
     def __init__(
         self,
-        logical_resource_id: Dict[str, Any],
+        logical_resource_id: dict[str, Any],
         physical_resource_id: str,
         resource_type: str,
-        components: List[AppComponent],
+        components: list[AppComponent],
     ):
         self.logical_resource_id = logical_resource_id
         self.physical_resource_id = physical_resource_id
         self.resource_type = resource_type
         self.components = components
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "appComponents": [c.to_json() for c in self.components],
             "resourceType": self.resource_type,
@@ -122,18 +123,18 @@ class Resource:
 class AppVersion(BaseModel):
     def __init__(self, app_arn: str, version_name: Optional[str], identifier: int):
         self.app_arn = app_arn
-        self.eks_sources: List[Dict[str, Any]] = []
-        self.source_arns: List[str] = []
-        self.terraform_sources: List[Dict[str, str]] = []
+        self.eks_sources: list[dict[str, Any]] = []
+        self.source_arns: list[str] = []
+        self.terraform_sources: list[dict[str, str]] = []
         self.app_version = "release" if version_name else "draft"
         self.identifier = identifier
         self.creation_time = unix_time()
         self.version_name = version_name
-        self.app_components: List[AppComponent] = []
+        self.app_components: list[AppComponent] = []
         self.status = "Pending"
-        self.resources: List[Resource] = []
+        self.resources: list[Resource] = []
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         resp = {
             "appVersion": self.app_version,
             "creationTime": self.creation_time,
@@ -148,13 +149,13 @@ class Policy(BaseModel):
     def __init__(
         self,
         backend: "ResilienceHubBackend",
-        policy: Dict[str, Dict[str, int]],
+        policy: dict[str, dict[str, int]],
         policy_name: str,
         data_location_constraint: str,
         policy_description: str,
         tier: str,
     ):
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
         self.backend = backend
         self.data_location_constraint = data_location_constraint
         self.creation_time = unix_time()
@@ -163,7 +164,7 @@ class Policy(BaseModel):
         self.policy_name = policy_name
         self.tier = tier
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         resp = {
             "creationTime": self.creation_time,
             "policy": self.policy,
@@ -182,19 +183,22 @@ class Policy(BaseModel):
 class ResilienceHubBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.apps: Dict[str, App] = dict()
-        self.policies: Dict[str, Policy] = dict()
+        self.apps: dict[str, App] = {}
+        self.policies: dict[str, Policy] = {}
         self.tagger = TaggingService()
+
+        self.app_assessments_queue: list[list[dict[str, Any]]] = []
+        self.app_assessments_results: dict[str, list[dict[str, Any]]] = {}
 
     def create_app(
         self,
         assessment_schedule: str,
         description: str,
-        event_subscriptions: List[Dict[str, Any]],
+        event_subscriptions: list[dict[str, Any]],
         name: str,
-        permission_model: Dict[str, Any],
+        permission_model: dict[str, Any],
         policy_arn: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> App:
         """
         The ClientToken-parameter is not yet implemented
@@ -215,10 +219,10 @@ class ResilienceHubBackend(BaseBackend):
     def create_resiliency_policy(
         self,
         data_location_constraint: str,
-        policy: Dict[str, Any],
+        policy: dict[str, Any],
         policy_description: str,
         policy_name: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         tier: str,
     ) -> Policy:
         """
@@ -237,7 +241,7 @@ class ResilienceHubBackend(BaseBackend):
         return pol
 
     @paginate(PAGINATION_MODEL)
-    def list_apps(self, app_arn: str, name: str, reverse_order: bool) -> List[App]:
+    def list_apps(self, app_arn: str, name: str, reverse_order: bool) -> list[App]:
         """
         The FromAssessmentTime/ToAssessmentTime-parameters are not yet implemented
         """
@@ -251,7 +255,49 @@ class ResilienceHubBackend(BaseBackend):
             app_summaries.reverse()
         return app_summaries
 
-    def list_app_assessments(self) -> List[str]:
+    def list_app_assessments(self, request_identifier: str) -> list[dict[str, Any]]:
+        """
+        Moto will not actually execute any assessments, so this operation will return an empty list by default.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `list_app_assessments` will take the first result from that queue, with subsequent calls with the same parameters returning the same result.
+
+        Calling `list_app_assessments` with a different set of parameters will return the second result from that queue - and so on, or an empty list of the queue is empty.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/resilience-hub-assessments/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            summary1 = {"appArn": "app_arn1", "appVersion": "some version", ...}
+            summary2 = {"appArn": "app_arn2", ...}
+            results = {"results": [[summary1, summary2], [summary2]], "region": "us-east-1"}
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/resilience-hub-assessments/response",
+                json=results,
+            )
+
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            # First result
+            resp = client.list_app_assessments() # [summary1, summary2]
+            # Second result
+            resp = client.list_app_assessments(assessmentStatus="Pending") # [summary2]
+
+        If you're using MotoServer, make sure to make this request to where MotoServer is running:
+
+        .. sourcecode:: python
+
+            http://localhost:5000/moto-api/static/resilience-hub-assessments/response
+
+        """
+        if request_identifier in self.app_assessments_results:
+            return self.app_assessments_results[request_identifier]
+        if self.app_assessments_queue:
+            self.app_assessments_results[request_identifier] = (
+                self.app_assessments_queue.pop(0)
+            )
+            return self.app_assessments_results[request_identifier]
         return []
 
     def describe_app(self, app_arn: str) -> App:
@@ -260,7 +306,7 @@ class ResilienceHubBackend(BaseBackend):
         return self.apps[app_arn]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resiliency_policies(self, policy_name: str) -> List[Policy]:
+    def list_resiliency_policies(self, policy_name: str) -> list[Policy]:
         if policy_name:
             return [p for p in self.policies.values() if p.policy_name == policy_name]
         return list(self.policies.values())
@@ -270,23 +316,23 @@ class ResilienceHubBackend(BaseBackend):
             raise ResiliencyPolicyNotFound(policy_arn)
         return self.policies[policy_arn]
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(
             resource_arn, TaggingService.convert_dict_to_tags_input(tags)
         )
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def import_resources_to_draft_app_version(
         self,
         app_arn: str,
-        eks_sources: List[Dict[str, Any]],
-        source_arns: List[str],
-        terraform_sources: List[Dict[str, str]],
+        eks_sources: list[dict[str, Any]],
+        source_arns: list[str],
+        terraform_sources: list[dict[str, str]],
     ) -> AppVersion:
         app = self.describe_app(app_arn)
         app_version = app.get_version("draft")
@@ -317,15 +363,15 @@ class ResilienceHubBackend(BaseBackend):
 
     def list_app_version_app_components(
         self, app_arn: str, app_version: str
-    ) -> List[AppComponent]:
+    ) -> list[AppComponent]:
         app = self.describe_app(app_arn)
         return app.get_version(app_version).app_components
 
     def create_app_version_resource(
         self,
         app_arn: str,
-        app_components: List[str],
-        logical_resource_id: Dict[str, str],
+        app_components: list[str],
+        logical_resource_id: dict[str, str],
         physical_resource_id: str,
         resource_type: str,
     ) -> Resource:
@@ -345,11 +391,11 @@ class ResilienceHubBackend(BaseBackend):
 
     def list_app_version_resources(
         self, app_arn: str, app_version: str
-    ) -> List[Resource]:
+    ) -> list[Resource]:
         app = self.describe_app(app_arn)
         return app.get_version(app_version).resources
 
-    def list_app_versions(self, app_arn: str) -> List[AppVersion]:
+    def list_app_versions(self, app_arn: str) -> list[AppVersion]:
         app = self.describe_app(app_arn)
         return app.app_versions
 

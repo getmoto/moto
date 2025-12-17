@@ -8,7 +8,7 @@ from moto import mock_aws
 from moto.core.utils import unix_time, utcnow
 
 
-def setup_swf_environment_boto3():
+def setup_swf_environment():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain",
@@ -32,8 +32,8 @@ def setup_swf_environment_boto3():
 
 # StartWorkflowExecution endpoint
 @mock_aws
-def test_start_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_start_workflow_execution():
+    client = setup_swf_environment()
 
     wf = client.start_workflow_execution(
         domain="test-domain",
@@ -44,8 +44,8 @@ def test_start_workflow_execution_boto3():
 
 
 @mock_aws
-def test_signal_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_signal_workflow_execution():
+    client = setup_swf_environment()
     hsh = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -70,7 +70,7 @@ def test_signal_workflow_execution_boto3():
 
 @mock_aws
 def test_signal_workflow_execution_without_runId():
-    conn = setup_swf_environment_boto3()
+    conn = setup_swf_environment()
     hsh = conn.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -94,8 +94,8 @@ def test_signal_workflow_execution_without_runId():
 
 
 @mock_aws
-def test_start_already_started_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_start_already_started_workflow_execution():
+    client = setup_swf_environment()
     client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -114,8 +114,8 @@ def test_start_already_started_workflow_execution_boto3():
 
 
 @mock_aws
-def test_start_workflow_execution_on_deprecated_type_boto3():
-    client = setup_swf_environment_boto3()
+def test_start_workflow_execution_on_deprecated_type():
+    client = setup_swf_environment()
     client.deprecate_workflow_type(
         domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
     )
@@ -135,8 +135,8 @@ def test_start_workflow_execution_on_deprecated_type_boto3():
 
 # DescribeWorkflowExecution endpoint
 @mock_aws
-def test_describe_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_describe_workflow_execution():
+    client = setup_swf_environment()
     hsh = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -152,8 +152,8 @@ def test_describe_workflow_execution_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_describe_non_existent_workflow_execution():
+    client = setup_swf_environment()
 
     with pytest.raises(ClientError) as ex:
         client.describe_workflow_execution(
@@ -169,8 +169,8 @@ def test_describe_non_existent_workflow_execution_boto3():
 
 # GetWorkflowExecutionHistory endpoint
 @mock_aws
-def test_get_workflow_execution_history_boto3():
-    client = setup_swf_environment_boto3()
+def test_get_workflow_execution_history():
+    client = setup_swf_environment()
     hsh = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -186,8 +186,8 @@ def test_get_workflow_execution_history_boto3():
 
 
 @mock_aws
-def test_get_workflow_execution_history_with_reverse_order_boto3():
-    client = setup_swf_environment_boto3()
+def test_get_workflow_execution_history_with_reverse_order():
+    client = setup_swf_environment()
     hsh = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -205,8 +205,8 @@ def test_get_workflow_execution_history_with_reverse_order_boto3():
 
 
 @mock_aws
-def test_get_workflow_execution_history_on_non_existent_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_get_workflow_execution_history_on_non_existent_workflow_execution():
+    client = setup_swf_environment()
 
     with pytest.raises(ClientError) as ex:
         client.get_workflow_execution_history(
@@ -222,8 +222,8 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution_boto3
 
 # ListOpenWorkflowExecutions endpoint
 @mock_aws
-def test_list_open_workflow_executions_boto3():
-    client = setup_swf_environment_boto3()
+def test_list_open_workflow_executions():
+    client = setup_swf_environment()
     # One open workflow execution
     client.start_workflow_execution(
         domain="test-domain",
@@ -264,8 +264,8 @@ def test_list_open_workflow_executions_boto3():
 
 # ListClosedWorkflowExecutions endpoint
 @mock_aws
-def test_list_closed_workflow_executions_boto3():
-    client = setup_swf_environment_boto3()
+def test_list_closed_workflow_executions():
+    client = setup_swf_environment()
     # Leave one workflow execution open to make sure it isn't displayed
     client.start_workflow_execution(
         domain="test-domain",
@@ -306,8 +306,8 @@ def test_list_closed_workflow_executions_boto3():
 
 # TerminateWorkflowExecution endpoint
 @mock_aws
-def test_terminate_workflow_execution_boto3():
-    client = setup_swf_environment_boto3()
+def test_terminate_workflow_execution():
+    client = setup_swf_environment()
     run_id = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",
@@ -334,8 +334,8 @@ def test_terminate_workflow_execution_boto3():
 
 
 @mock_aws
-def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
-    client = setup_swf_environment_boto3()
+def test_terminate_workflow_execution_with_wrong_workflow_or_run_id():
+    client = setup_swf_environment()
     run_id = client.start_workflow_execution(
         domain="test-domain",
         workflowId="uid-abcd1234",

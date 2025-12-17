@@ -2,7 +2,7 @@ from uuid import uuid1
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -13,16 +13,16 @@ def test_codebuild_create_project_s3_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
-    artifacts = dict()
+    artifacts = {}
     artifacts["type"] = "S3"
     artifacts["location"] = "bucketname"
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -37,6 +37,7 @@ def test_codebuild_create_project_s3_artifacts():
         artifacts=artifacts,
         environment=environment,
         serviceRole=service_role,
+        tags=[{"key": "k1", "value": "v1"}],
     )["project"]
 
     assert "serviceRole" in project
@@ -51,20 +52,22 @@ def test_codebuild_create_project_s3_artifacts():
     assert project["source"] == {"location": "bucketname/path/file.zip", "type": "S3"}
     assert project["artifacts"] == {"location": "bucketname", "type": "S3"}
 
+    assert project["tags"] == [{"key": "k1", "value": "v1"}]
+
 
 @mock_aws
 def test_codebuild_create_project_no_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -131,13 +134,13 @@ def test_codebuild_create_project_when_exists():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -168,16 +171,16 @@ def test_codebuild_create_project_when_exists():
 def test_codebuild_list_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
-    artifacts = dict()
+    artifacts = {}
     artifacts["type"] = "S3"
     artifacts["location"] = "bucketname"
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -210,13 +213,13 @@ def test_codebuild_list_builds_for_project_no_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -242,13 +245,13 @@ def test_codebuild_list_builds_for_project_with_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -269,42 +272,6 @@ def test_codebuild_list_builds_for_project_with_history():
     assert len(response["ids"]) == 1
 
 
-# project never started
-@mock_aws
-def test_codebuild_get_batch_builds_for_project_no_history():
-    client = boto3.client("codebuild", region_name="eu-central-1")
-
-    name = "some_project"
-    source = dict()
-    source["type"] = "S3"
-    # repository location for S3
-    source["location"] = "bucketname/path/file.zip"
-    artifacts = {"type": "NO_ARTIFACTS"}
-
-    environment = dict()
-    environment["type"] = "LINUX_CONTAINER"
-    environment["image"] = "contents_not_validated"
-    environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = (
-        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
-    )
-
-    client.create_project(
-        name=name,
-        source=source,
-        artifacts=artifacts,
-        environment=environment,
-        serviceRole=service_role,
-    )
-
-    response = client.list_builds_for_project(projectName=name)
-    assert response["ids"] == []
-
-    with pytest.raises(ParamValidationError) as err:
-        client.batch_get_builds(ids=response["ids"])
-    assert err.typename == "ParamValidationError"
-
-
 @mock_aws
 def test_codebuild_start_build_no_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
@@ -321,13 +288,13 @@ def test_codebuild_start_build_no_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -352,13 +319,13 @@ def test_codebuild_start_build_multiple_times():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -386,13 +353,13 @@ def test_codebuild_start_build_with_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -424,13 +391,13 @@ def test_codebuild_batch_get_builds_1_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -461,13 +428,13 @@ def test_codebuild_batch_get_builds_1_project():
 def test_codebuild_batch_get_builds_2_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -516,26 +483,17 @@ def test_codebuild_batch_get_builds_invalid_build_id():
 
 
 @mock_aws
-def test_codebuild_batch_get_builds_empty_build_id():
-    client = boto3.client("codebuild", region_name="eu-central-1")
-
-    with pytest.raises(ParamValidationError) as err:
-        client.batch_get_builds(ids=[])
-    assert err.typename == "ParamValidationError"
-
-
-@mock_aws
 def test_codebuild_delete_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -567,13 +525,13 @@ def test_codebuild_stop_build():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -612,3 +570,42 @@ def test_codebuild_stop_build_bad_uid():
     with pytest.raises(client.exceptions.InvalidInputException) as err:
         client.stop_build(id=f"some_project{uuid1()}")
     assert err.value.response["Error"]["Code"] == "InvalidInputException"
+
+
+@mock_aws
+def test_codebuild_batch_get_projects():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    name = "some_project"
+    source = {}
+    source["type"] = "S3"
+    # repository location for S3
+    source["location"] = "bucketname/path/file.zip"
+    artifacts = {"type": "NO_ARTIFACTS"}
+
+    environment = {}
+    environment["type"] = "LINUX_CONTAINER"
+    environment["image"] = "contents_not_validated"
+    environment["computeType"] = "BUILD_GENERAL1_SMALL"
+    service_role = (
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
+    )
+
+    project_arn = client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )["project"]["arn"]
+
+    projects_batch = client.batch_get_projects(names=[name])["projects"]
+    assert len(projects_batch) == 1
+    assert projects_batch[0]["name"] == name
+    assert projects_batch[0]["arn"] == project_arn
+
+    # Assert we can also use the ARN
+    projects_batch = client.batch_get_projects(names=[project_arn])["projects"]
+    assert len(projects_batch) == 1
+    assert projects_batch[0]["name"] == name
+    assert projects_batch[0]["arn"] == project_arn

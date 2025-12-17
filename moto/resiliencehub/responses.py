@@ -1,5 +1,4 @@
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -9,15 +8,6 @@ from .models import ResilienceHubBackend, resiliencehub_backends
 
 
 class ResilienceHubResponse(BaseResponse):
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
-
     def __init__(self) -> None:
         super().__init__(service_name="resiliencehub")
 
@@ -43,7 +33,7 @@ class ResilienceHubResponse(BaseResponse):
             policy_arn=policy_arn,
             tags=tags,
         )
-        return json.dumps(dict(app=app.to_json()))
+        return json.dumps({"app": app.to_json()})
 
     def create_resiliency_policy(self) -> str:
         params = json.loads(self.body)
@@ -56,7 +46,7 @@ class ResilienceHubResponse(BaseResponse):
 
         required_policy_types = ["Software", "Hardware", "AZ"]
         all_policy_types = required_policy_types + ["Region"]
-        if any((p_type not in all_policy_types for p_type in policy.keys())):
+        if any(p_type not in all_policy_types for p_type in policy.keys()):
             raise ValidationException(
                 "1 validation error detected: Value at 'policy' failed to satisfy constraint: Map keys must satisfy constraint: [Member must satisfy enum value set: [Software, Hardware, Region, AZ]]"
             )
@@ -74,7 +64,7 @@ class ResilienceHubResponse(BaseResponse):
             tags=tags,
             tier=tier,
         )
-        return json.dumps(dict(policy=policy.to_json()))
+        return json.dumps({"policy": policy.to_json()})
 
     def list_apps(self) -> str:
         params = self._get_params()
@@ -91,14 +81,31 @@ class ResilienceHubResponse(BaseResponse):
             reverse_order=reverse_order,
         )
         return json.dumps(
-            dict(
-                appSummaries=[a.to_json() for a in app_summaries], nextToken=next_token
-            )
+            {
+                "appSummaries": [a.to_json() for a in app_summaries],
+                "nextToken": next_token,
+            }
         )
 
     def list_app_assessments(self) -> str:
-        summaries = self.resiliencehub_backend.list_app_assessments()
-        return json.dumps(dict(assessmentSummaries=summaries))
+        supported_params = [
+            "appArn",
+            "assessmentName",
+            "assessmentStatus",
+            "complianceStatus",
+            "invoker",
+            "maxResults",
+            "nextToken",
+            "reverseOrder",
+        ]
+        provided_params = [p for p in self.querystring.keys() if p in supported_params]
+        request_identifier = json.dumps(
+            {key: self.querystring[key] for key in sorted(provided_params)}
+        )
+        summaries = self.resiliencehub_backend.list_app_assessments(
+            request_identifier=request_identifier,
+        )
+        return json.dumps({"assessmentSummaries": summaries})
 
     def describe_app(self) -> str:
         params = json.loads(self.body)
@@ -106,7 +113,7 @@ class ResilienceHubResponse(BaseResponse):
         app = self.resiliencehub_backend.describe_app(
             app_arn=app_arn,
         )
-        return json.dumps(dict(app=app.to_json()))
+        return json.dumps({"app": app.to_json()})
 
     def list_resiliency_policies(self) -> str:
         params = self._get_params()
@@ -122,7 +129,7 @@ class ResilienceHubResponse(BaseResponse):
             policy_name=policy_name,
         )
         policies = [p.to_json() for p in resiliency_policies]
-        return json.dumps(dict(nextToken=next_token, resiliencyPolicies=policies))
+        return json.dumps({"nextToken": next_token, "resiliencyPolicies": policies})
 
     def describe_resiliency_policy(self) -> str:
         params = json.loads(self.body)
@@ -130,7 +137,7 @@ class ResilienceHubResponse(BaseResponse):
         policy = self.resiliencehub_backend.describe_resiliency_policy(
             policy_arn=policy_arn,
         )
-        return json.dumps(dict(policy=policy.to_json()))
+        return json.dumps({"policy": policy.to_json()})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -156,7 +163,7 @@ class ResilienceHubResponse(BaseResponse):
         tags = self.resiliencehub_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def import_resources_to_draft_app_version(self) -> str:
         app_arn = self._get_param("appArn")

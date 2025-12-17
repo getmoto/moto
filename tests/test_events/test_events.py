@@ -3,6 +3,8 @@ import random
 import unittest
 import warnings
 from datetime import datetime, timezone
+from time import sleep
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -11,6 +13,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from tests import allow_aws_request, aws_verified
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -356,6 +359,21 @@ def test_list_targets_by_rule():
 
 
 @mock_aws
+def test_list_targets_by_rule_pagination():
+    rule_name = "test1"
+    client = generate_environment()
+    page1 = client.list_targets_by_rule(Rule=rule_name, Limit=1)
+    assert len(page1["Targets"]) == 1
+    assert "NextToken" in page1
+
+    page2 = client.list_targets_by_rule(Rule=rule_name, NextToken=page1["NextToken"])
+    assert len(page2["Targets"]) == 5
+
+    large_page = client.list_targets_by_rule(Rule=rule_name, Limit=4)
+    assert len(large_page["Targets"]) == 4
+
+
+@mock_aws
 def test_list_targets_by_rule_for_different_event_bus():
     client = generate_environment()
 
@@ -687,7 +705,7 @@ def test_put_events():
         with warnings.catch_warnings(record=True) as ws:
             client.put_events(Entries=[event])
         messages = [str(w.message) for w in ws]
-        assert any(["EventDetail should be of type dict" in msg for msg in messages])
+        assert any("EventDetail should be of type dict" in msg for msg in messages)
 
 
 @mock_aws
@@ -835,25 +853,35 @@ def test_describe_event_bus():
     client = boto3.client("events", "us-east-1")
 
     response = client.describe_event_bus()
-
     assert response["Name"] == "default"
     assert response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default"
     assert "Policy" not in response
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
 
-    client.create_event_bus(Name="test-bus")
+    bus_name = "test-bus"
+    client.create_event_bus(
+        Name=bus_name,
+        Description="Test description",
+        KmsKeyIdentifier="arn:aws:kms:us-east-1:123456789012:key/test",
+        DeadLetterConfig={"Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"},
+    )
+
     client.put_permission(
-        EventBusName="test-bus",
+        EventBusName=bus_name,
         Action="events:PutEvents",
         Principal="111111111111",
         StatementId="test",
     )
 
-    response = client.describe_event_bus(Name="test-bus")
+    response = client.describe_event_bus(Name=bus_name)
 
-    assert response["Name"] == "test-bus"
+    assert response["Name"] == bus_name
     assert (
-        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus"
+        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}"
     )
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
     assert json.loads(response["Policy"]) == {
         "Version": "2012-10-17",
         "Statement": [
@@ -862,9 +890,15 @@ def test_describe_event_bus():
                 "Effect": "Allow",
                 "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
                 "Action": "events:PutEvents",
-                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus",
+                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}",
             }
         ],
+    }
+
+    assert response["Description"] == "Test description"
+    assert response["KmsKeyIdentifier"] == "arn:aws:kms:us-east-1:123456789012:key/test"
+    assert response["DeadLetterConfig"] == {
+        "Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"
     }
 
 
@@ -1566,14 +1600,17 @@ def test_delete_archive_error_unknown_archive():
     assert ex.response["Error"]["Message"] == f"Archive {name} does not exist."
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_archive_actual_events():
     # given
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
     client = boto3.client("events", "eu-central-1")
     name = "test-archive"
     name_2 = "test-archive-no-match"
     name_3 = "test-archive-matches"
-    event_bus_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:event-bus/default"
+    event_bus_arn = f"arn:aws:events:eu-central-1:{account_id}:event-bus/default"
     event = {
         "Source": "source",
         "DetailType": "type",
@@ -1591,24 +1628,72 @@ def test_archive_actual_events():
         EventPattern=json.dumps({"detail-type": ["type"], "source": ["source"]}),
     )
 
+    # then
+    rules = client.list_rules()["Rules"]
+    assert len(rules) >= 3
+    for rule in rules:
+        assert rule["Name"] in [
+            f"Events-Archive-{name}",
+            f"Events-Archive-{name_2}",
+            f"Events-Archive-{name_3}",
+        ]
+        assert rule["ManagedBy"] == "prod.vhs.events.aws.internal"
+        if rule["Name"] == f"Events-Archive-{name}":
+            assert json.loads(rule["EventPattern"]) == {
+                "replay-name": [{"exists": False}]
+            }
+        if rule["Name"] == f"Events-Archive-{name_2}":
+            assert json.loads(rule["EventPattern"]) == {
+                "detail-type": ["type"],
+                "replay-name": [{"exists": False}],
+                "source": ["test"],
+            }
+        if rule["Name"] == f"Events-Archive-{name_3}":
+            assert json.loads(rule["EventPattern"]) == {
+                "detail-type": ["type"],
+                "replay-name": [{"exists": False}],
+                "source": ["source"],
+            }
+
+        targets = client.list_targets_by_rule(Rule=rule["Name"])["Targets"]
+        assert len(targets) == 1
+        assert targets[0]["Arn"] == "arn:aws:events:eu-central-1:::"
+
+        transformer = targets[0]["InputTransformer"]
+        assert transformer["InputPathsMap"] == {}
+
+        template = transformer["InputTemplate"]
+        assert '"archive-arn"' in template
+        assert '"event": <aws.events.event.json>' in template
+        assert '"ingestion-time": <aws.events.event.ingestion-time>' in template
+
     # when
     response = client.put_events(Entries=[event])
-
-    # then
     assert response["FailedEntryCount"] == 0
     assert len(response["Entries"]) == 1
 
-    response = client.describe_archive(ArchiveName=name)
-    assert response["EventCount"] == 1
-    assert response["SizeBytes"] > 0
+    # then
+    if not allow_aws_request():
+        # AWS doesn't (immediately) update the EventCount
+        # Only test this against Moto
+        response = client.describe_archive(ArchiveName=name)
+        assert response["EventCount"] == 1
+        assert response["SizeBytes"] > 0
 
-    response = client.describe_archive(ArchiveName=name_2)
-    assert response["EventCount"] == 0
-    assert response["SizeBytes"] == 0
+        response = client.describe_archive(ArchiveName=name_2)
+        assert response["EventCount"] == 0
+        assert response["SizeBytes"] == 0
 
-    response = client.describe_archive(ArchiveName=name_3)
-    assert response["EventCount"] == 1
-    assert response["SizeBytes"] > 0
+        response = client.describe_archive(ArchiveName=name_3)
+        assert response["EventCount"] == 1
+        assert response["SizeBytes"] > 0
+
+    client.delete_archive(ArchiveName=name)
+    client.delete_archive(ArchiveName=name_2)
+    client.delete_archive(ArchiveName=name_3)
+
+    rules = client.list_rules()["Rules"]
+    assert rules == []
 
 
 @mock_aws
@@ -2221,6 +2306,49 @@ def test_start_replay_send_to_log_group():
 
 
 @mock_aws
+def test_send_transformed_events_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": f"arn:aws:logs:eu-central-1:{ACCOUNT_ID}:log-group:{log_group_name}",
+                "InputTransformer": {
+                    # TODO: validate whether is this a valid template for AWS, or if certain fields are required
+                    "InputTemplate": '{"id": "test"}'
+                },
+            }
+        ],
+    )
+
+    # when
+    client.put_events(
+        Entries=[
+            {
+                "Time": datetime.now(),
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # then
+    log_events = logs_client.filter_log_events(logGroupName=log_group_name)["events"]
+    assert len(log_events) == 1
+    event_original = json.loads(log_events[0]["message"])
+    assert event_original == {"id": "test"}
+
+
+@mock_aws
 def test_create_and_list_connections():
     client = boto3.client("events", "eu-central-1")
 
@@ -2248,6 +2376,7 @@ def test_create_and_list_connections():
         f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:connection/test/"
         in response["Connections"][0]["ConnectionArn"]
     )
+    assert response["Connections"][0]["Name"] == "test"
 
 
 @mock_aws
@@ -2269,6 +2398,7 @@ def test_create_and_describe_connection():
     assert description["Description"] == "test description"
     assert description["AuthorizationType"] == "API_KEY"
     assert description["ConnectionState"] == "AUTHORIZED"
+    assert description["SecretArn"] is not None
     assert "CreationTime" in description
 
 
@@ -2294,6 +2424,97 @@ def test_create_and_update_connection():
     assert description["AuthorizationType"] == "API_KEY"
     assert description["ConnectionState"] == "AUTHORIZED"
     assert "CreationTime" in description
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "auth_type,auth_parameters",
+    [
+        (
+            "API_KEY",
+            {"ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}},
+        ),
+        ("BASIC", {"BasicAuthParameters": {"Username": "un", "Password": "pw"}}),
+    ],
+    ids=["auth_params", "basic_auth_params"],
+)
+@pytest.mark.parametrize(
+    "with_headers", [True, False], ids=["with_headers", "without_headers"]
+)
+def test_kms_key_is_created(auth_type, auth_parameters, with_headers):
+    client = boto3.client("events", "us-east-1")
+    secrets = boto3.client("secretsmanager", "us-east-1")
+    sts = boto3.client("sts", "us-east-1")
+
+    name = f"event_{str(uuid4())[0:6]}"
+    account_id = sts.get_caller_identity()["Account"]
+    connection_deleted = False
+    if with_headers:
+        auth_parameters["InvocationHttpParameters"] = {
+            "HeaderParameters": [
+                {"Key": "k1", "Value": "v1", "IsValueSecret": True},
+                {"Key": "k2", "Value": "v2", "IsValueSecret": False},
+            ]
+        }
+    else:
+        auth_parameters.pop("InvocationHttpParameters", None)
+
+    client.create_connection(
+        Name=name,
+        AuthorizationType=auth_type,
+        AuthParameters=auth_parameters,
+    )
+    try:
+        description = client.describe_connection(Name=name)
+        secret_arn = description["SecretArn"]
+        assert secret_arn.startswith(
+            f"arn:aws:secretsmanager:us-east-1:{account_id}:secret:events!connection/{name}/"
+        )
+
+        secret = secrets.describe_secret(SecretId=secret_arn)
+        assert secret["Name"].startswith(f"events!connection/{name}/")
+        assert secret["Tags"] == [
+            {"Key": "aws:secretsmanager:owningService", "Value": "events"}
+        ]
+        assert secret["OwningService"] == "events"
+
+        if auth_type == "BASIC":
+            expected_secret = {"username": "un", "password": "pw"}
+        else:
+            expected_secret = {"api_key_name": "test", "api_key_value": "test"}
+        if with_headers:
+            expected_secret["invocation_http_parameters"] = {
+                "header_parameters": [
+                    {"key": "k1", "value": "v1", "is_value_secret": True},
+                    {"key": "k2", "value": "v2", "is_value_secret": False},
+                ]
+            }
+
+        secret_value = secrets.get_secret_value(SecretId=secret_arn)
+        assert json.loads(secret_value["SecretString"]) == expected_secret
+
+        client.delete_connection(Name=name)
+        connection_deleted = True
+
+        secret_deleted = False
+        attempts = 0
+        while not secret_deleted and attempts < 10:
+            try:
+                attempts += 1
+                secrets.describe_secret(SecretId=secret_arn)
+                sleep(1)
+            except ClientError as exc:
+                err = exc.response["Error"]
+                secret_deleted = err["Code"] == "ResourceNotFoundException"
+
+        if not secret_deleted:
+            raise AssertionError(
+                f"Should have automatically deleted secret {secret_arn}"
+            )
+    finally:
+        if not connection_deleted:
+            client.delete_connection(Name=name)
 
 
 @mock_aws
@@ -2412,7 +2633,7 @@ def test_create_and_update_api_destination(key, initial_value, updated_value):
     destination = client.describe_api_destination(Name="test")
     assert destination[key] == initial_value
 
-    client.update_api_destination(Name="test", **dict({key: updated_value}))
+    client.update_api_destination(Name="test", **{key: updated_value})
 
     destination = client.describe_api_destination(Name="test")
     assert destination[key] == updated_value

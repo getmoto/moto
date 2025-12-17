@@ -34,6 +34,11 @@ class ThreadedMotoServer:
         self._thread.start()
         self._server_ready_event.wait()
 
+    def get_host_and_port(self) -> tuple[str, int]:
+        assert self._server is not None, "Make sure to call start() first"
+        host, port = self._server.server_address[:2]
+        return (str(host), port)
+
     def stop(self) -> None:
         self._server_ready_event.clear()
         if self._server:

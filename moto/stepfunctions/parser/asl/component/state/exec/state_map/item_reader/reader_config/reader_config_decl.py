@@ -1,4 +1,4 @@
-from typing import Final, List, Optional, TypedDict
+from typing import Final, Optional, TypedDict
 
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.csv_header_location import (
@@ -11,8 +11,8 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.re
     InputType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
-    MaxItems,
     MaxItemsDecl,
+    MaxItemsInt,
 )
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 
@@ -27,7 +27,7 @@ class CSVHeaderLocationOutput(str):
     GIVEN = "GIVEN"
 
 
-CSVHeadersOutput = List[str]
+CSVHeadersOutput = list[str]
 MaxItemsValueOutput = int
 
 
@@ -40,7 +40,7 @@ class ReaderConfigOutput(TypedDict):
 
 class ReaderConfig(EvalComponent):
     input_type: Final[InputType]
-    max_items: Final[MaxItemsDecl]
+    max_items_decl: Final[MaxItemsDecl]
     csv_header_location: Final[CSVHeaderLocation]
     csv_headers: Optional[CSVHeaders]
 
@@ -49,10 +49,10 @@ class ReaderConfig(EvalComponent):
         input_type: InputType,
         csv_header_location: CSVHeaderLocation,
         csv_headers: Optional[CSVHeaders],
-        max_items: Optional[MaxItemsDecl],
+        max_items_decl: Optional[MaxItemsDecl],
     ):
         self.input_type = input_type
-        self.max_items = max_items or MaxItems()
+        self.max_items_decl = max_items_decl or MaxItemsInt()
         self.csv_header_location = csv_header_location
         self.csv_headers = csv_headers
         # TODO: verify behaviours:
@@ -60,7 +60,7 @@ class ReaderConfig(EvalComponent):
         #  - headers are declared with first_fow location set
 
     def _eval_body(self, env: Environment) -> None:
-        self.max_items.eval(env=env)
+        self.max_items_decl.eval(env=env)
         max_items_value: int = env.stack.pop()
 
         reader_config_output = ReaderConfigOutput(

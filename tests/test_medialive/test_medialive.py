@@ -33,19 +33,19 @@ def _create_input_config(name, **kwargs):
     vpc_config = kwargs.get(
         "vpc", {"SubnetIds": ["subnet-1"], "SecurityGroupIds": ["sg-0001"]}
     )
-    input_config = dict(
-        Name=name,
-        Destinations=destinations,
-        InputDevices=input_devices,
-        InputSecurityGroups=input_security_groups,
-        MediaConnectFlows=media_connect_flows,
-        RoleArn=role_arn,
-        RequestId=request_id,
-        Sources=sources,
-        Type=input_type,
-        Tags=tags,
-        Vpc=vpc_config,
-    )
+    input_config = {
+        "Name": name,
+        "Destinations": destinations,
+        "InputDevices": input_devices,
+        "InputSecurityGroups": input_security_groups,
+        "MediaConnectFlows": media_connect_flows,
+        "RoleArn": role_arn,
+        "RequestId": request_id,
+        "Sources": sources,
+        "Type": input_type,
+        "Tags": tags,
+        "Vpc": vpc_config,
+    }
     return input_config
 
 
@@ -91,17 +91,17 @@ def _create_channel_config(name, **kwargs):
     input_specification = kwargs.get("input_specification", {})
     log_level = kwargs.get("log_level", "INFO")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(
-        Name=name,
-        RoleArn=role_arn,
-        InputAttachments=input_settings,
-        Destinations=destinations,
-        EncoderSettings=encoder_settings,
-        InputSpecification=input_specification,
-        RequestId=name,
-        LogLevel=log_level,
-        Tags=tags,
-    )
+    channel_config = {
+        "Name": name,
+        "RoleArn": role_arn,
+        "InputAttachments": input_settings,
+        "Destinations": destinations,
+        "EncoderSettings": encoder_settings,
+        "InputSpecification": input_specification,
+        "RequestId": name,
+        "LogLevel": log_level,
+        "Tags": tags,
+    }
     return channel_config
 
 
@@ -126,23 +126,40 @@ def test_create_channel_succeeds():
 @mock_aws
 def test_list_channels_succeeds():
     client = boto3.client("medialive", region_name=region)
-    channel1_config = _create_channel_config("test channel 1", request_id="request-1")
-    channel2_config = _create_channel_config("test channel 2", request_id="request-2")
-    channel2_config["ChannelClass"] = "SINGLE_PIPELINE"
+    channel_configs = [
+        _create_channel_config(f"test {idx}", request_id=f"req-{idx}")
+        for idx in range(10)
+    ]
+    channel_configs[1]["ChannelClass"] = "SINGLE_PIPELINE"
 
-    client.create_channel(**channel1_config)
-    client.create_channel(**channel2_config)
+    for config in channel_configs:
+        client.create_channel(**config)
 
     response = client.list_channels()
-    assert len(response["Channels"]) == 2
+    assert len(response["Channels"]) == 10
 
-    assert response["Channels"][0]["Name"] == "test channel 1"
+    assert response["Channels"][0]["Name"] == "test 0"
     assert response["Channels"][0]["ChannelClass"] == "STANDARD"
     assert response["Channels"][0]["PipelinesRunningCount"] == 2
 
-    assert response["Channels"][1]["Name"] == "test channel 2"
+    assert response["Channels"][1]["Name"] == "test 1"
     assert response["Channels"][1]["ChannelClass"] == "SINGLE_PIPELINE"
     assert response["Channels"][1]["PipelinesRunningCount"] == 1
+
+    page1 = client.list_channels(MaxResults=2)
+    assert len(page1["Channels"]) == 2
+    channel_names = [c["Name"] for c in page1["Channels"]]
+    assert ["test 0", "test 1"] == sorted(channel_names)
+
+    page2 = client.list_channels(MaxResults=5, NextToken=page1["NextToken"])
+    assert len(page2["Channels"]) == 5
+    channel_names = [c["Name"] for c in page2["Channels"]]
+    assert ["test 2", "test 3", "test 4", "test 5", "test 6"] == sorted(channel_names)
+
+    page3 = client.list_channels(NextToken=page2["NextToken"])
+    assert len(page3["Channels"]) == 3
+    channel_names = [c["Name"] for c in page3["Channels"]]
+    assert ["test 7", "test 8", "test 9"] == sorted(channel_names)
 
 
 @mock_aws
@@ -272,16 +289,27 @@ def test_describe_input_succeeds():
 @mock_aws
 def test_list_inputs_succeeds():
     client = boto3.client("medialive", region_name=region)
-    input_config1 = _create_input_config("Input One")
-    client.create_input(**input_config1)
-    input_config2 = _create_input_config("Input Two")
-    client.create_input(**input_config2)
+    configs = [_create_input_config(f"Input {idx}") for idx in range(10)]
+    for config in configs:
+        client.create_input(**config)
 
     inputs = client.list_inputs()["Inputs"]
-    assert len(inputs) == 2
+    assert len(inputs) == 10
 
-    assert inputs[0]["Name"] == "Input One"
-    assert inputs[1]["Name"] == "Input Two"
+    page1 = client.list_inputs(MaxResults=2)
+    assert len(page1["Inputs"]) == 2
+    names = [i["Name"] for i in page1["Inputs"]]
+    assert sorted(names) == ["Input 0", "Input 1"]
+
+    page2 = client.list_inputs(MaxResults=5, NextToken=page1["NextToken"])
+    assert len(page2["Inputs"]) == 5
+    names = [i["Name"] for i in page2["Inputs"]]
+    assert sorted(names) == ["Input 2", "Input 3", "Input 4", "Input 5", "Input 6"]
+
+    page3 = client.list_inputs(NextToken=page2["NextToken"])
+    assert len(page3["Inputs"]) == 3
+    names = [i["Name"] for i in page3["Inputs"]]
+    assert sorted(names) == ["Input 7", "Input 8", "Input 9"]
 
 
 @mock_aws

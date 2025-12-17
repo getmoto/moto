@@ -1,8 +1,10 @@
 from typing import Final
 
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringSampler,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
 
 
 class NoSuchVariable:
@@ -11,13 +13,15 @@ class NoSuchVariable:
 
 
 class Variable(EvalComponent):
-    def __init__(self, value: str):
-        self.value: Final[str] = value
+    string_sampler: Final[StringSampler]
+
+    def __init__(self, string_sampler: StringSampler):
+        self.string_sampler = string_sampler
 
     def _eval_body(self, env: Environment) -> None:
         try:
-            inp = env.stack[-1]
-            value = JSONPathUtils.extract_json(self.value, inp)
+            self.string_sampler.eval(env=env)
+            value = env.stack.pop()
         except Exception as ex:
-            value = NoSuchVariable(f"{self.value}, {ex}")
+            value = NoSuchVariable(f"{self.string_sampler.literal_value}, {ex}")
         env.stack.append(value)

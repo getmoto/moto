@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
@@ -121,6 +121,11 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
         )
 
 
+class ExpressionAttributeValuesEmpty(MockValidationException):
+    def __init__(self) -> None:
+        super().__init__("ExpressionAttributeValues must not be empty")
+
+
 class UpdateExprSyntaxError(InvalidUpdateExpression):
     update_expr_syntax_error_msg = "Syntax error; {error_detail}"
 
@@ -203,7 +208,7 @@ class ConditionalCheckFailed(DynamodbException):
     error_type = ERROR_TYPE_PREFIX + "ConditionalCheckFailedException"
 
     def __init__(
-        self, msg: Optional[str] = None, item: Optional[Dict[str, Any]] = None
+        self, msg: Optional[str] = None, item: Optional[dict[str, Any]] = None
     ):
         _msg = msg or "The conditional request failed"
         super().__init__(ConditionalCheckFailed.error_type, _msg)
@@ -233,7 +238,7 @@ class TransactionCanceledException(DynamodbException):
     cancel_reason_msg = "Transaction cancelled, please refer cancellation reasons for specific reasons [{}]"
     error_type = "com.amazonaws.dynamodb.v20120810#TransactionCanceledException"
 
-    def __init__(self, errors: List[Any]):
+    def __init__(self, errors: list[Any]):
         msg = self.cancel_reason_msg.format(
             ", ".join([str(code) for code, _, _ in errors])
         )
@@ -299,17 +304,24 @@ class InvalidAttributeTypeError(MockValidationException):
 
 
 class DuplicateUpdateExpression(InvalidUpdateExpression):
-    def __init__(self, names: List[str]):
+    def __init__(self, name_1: str, name_2: str):
         super().__init__(
-            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
+            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(name_1.split('.'))}], path two: [{', '.join(name_2.split('.'))}]"
         )
 
 
-class TooManyAddClauses(InvalidUpdateExpression):
-    msg = 'The "ADD" section can only be used once in an update expression;'
+class InvalidProjectionExpression(MockValidationException):
+    def __init__(self, path_1: str, path_2: str):
+        super().__init__(
+            f"Invalid ProjectionExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(path_1.split('.'))}], path two: [{', '.join(path_2.split('.'))}]"
+        )
 
-    def __init__(self) -> None:
-        super().__init__(self.msg)
+
+class TooManyClauses(InvalidUpdateExpression):
+    def __init__(self, _type: str) -> None:
+        super().__init__(
+            f'The "{_type}" section can only be used once in an update expression;'
+        )
 
 
 class ResourceNotFoundException(JsonRESTError):
@@ -325,6 +337,14 @@ class TableNotFoundException(JsonRESTError):
     def __init__(self, name: str):
         err = ERROR_TYPE_PREFIX + "TableNotFoundException"
         super().__init__(err, f"Table not found: {name}")
+
+
+class PointInTimeRecoveryUnavailable(JsonRESTError):
+    def __init__(self, name: str):
+        err = ERROR_TYPE_PREFIX + "PointInTimeRecoveryUnavailableException"
+        super().__init__(
+            err, f"Point in time recovery is not enabled for table '{name}'"
+        )
 
 
 class SourceTableNotFoundException(JsonRESTError):
@@ -363,6 +383,12 @@ class InvalidConversion(JsonRESTError):
         super().__init__(er, "NUMBER_VALUE cannot be converted to String")
 
 
+class ValidationException(JsonRESTError):
+    def __init__(self, msg: str) -> None:
+        er = "ValidationException"
+        super().__init__(er, message=msg)
+
+
 class TransactWriteSingleOpException(MockValidationException):
     there_can_be_only_one = (
         "TransactItems can only contain one of Check, Put, Update or Delete"
@@ -381,3 +407,17 @@ class UnknownKeyType(MockValidationException):
     def __init__(self, key_type: str, position: str):
         msg = f"1 validation error detected: Value '{key_type}' at '{position}' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
         super().__init__(msg)
+
+
+class DeletionProtectedException(MockValidationException):
+    def __init__(self, table_name: str):
+        msg = f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
+        super().__init__(msg)
+
+
+class PolicyNotFoundException(DynamodbException):
+    error_type = ERROR_TYPE_PREFIX + "PolicyNotFoundException"
+
+    def __init__(self, message: str):
+        super().__init__(PolicyNotFoundException.error_type, message=message)
+        self.exception_msg = message

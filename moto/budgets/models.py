@@ -1,23 +1,25 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import BudgetMissingLimit, DuplicateRecordException, NotFoundException
 
 
 class Notification(BaseModel):
-    def __init__(self, details: Dict[str, Any], subscribers: Dict[str, Any]):
+    def __init__(self, details: dict[str, Any], subscribers: dict[str, Any]):
         self.details = details
         self.subscribers = subscribers
 
 
 class Budget(BaseModel):
-    def __init__(self, budget: Dict[str, Any], notifications: List[Dict[str, Any]]):
+    def __init__(self, budget: dict[str, Any], notifications: list[dict[str, Any]]):
         if "BudgetLimit" not in budget and "PlannedBudgetLimits" not in budget:
             raise BudgetMissingLimit()
         # Storing the budget as a Dict for now - if we need more control, we can always read/write it back
@@ -36,7 +38,7 @@ class Budget(BaseModel):
                 "End": 3706473600,  # "2087-06-15T00:00:00+00:00"
             }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         cp = deepcopy(self.budget)
         if "CalculatedSpend" not in cp:
             cp["CalculatedSpend"] = {
@@ -60,14 +62,14 @@ class Budget(BaseModel):
         return cp
 
     def add_notification(
-        self, details: Dict[str, Any], subscribers: Dict[str, Any]
+        self, details: dict[str, Any], subscribers: dict[str, Any]
     ) -> None:
         self.notifications.append(Notification(details, subscribers))
 
-    def delete_notification(self, details: Dict[str, Any]) -> None:
+    def delete_notification(self, details: dict[str, Any]) -> None:
         self.notifications = [n for n in self.notifications if n.details != details]
 
-    def get_notifications(self) -> Iterable[Dict[str, Any]]:
+    def get_notifications(self) -> Iterable[dict[str, Any]]:
         return [n.details for n in self.notifications]
 
 
@@ -76,13 +78,13 @@ class BudgetsBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.budgets: Dict[str, Dict[str, Budget]] = defaultdict(dict)
+        self.budgets: dict[str, dict[str, Budget]] = defaultdict(dict)
 
     def create_budget(
         self,
         account_id: str,
-        budget: Dict[str, Any],
-        notifications: List[Dict[str, Any]],
+        budget: dict[str, Any],
+        notifications: list[dict[str, Any]],
     ) -> None:
         budget_name = budget["BudgetName"]
         if budget_name in self.budgets[account_id]:
@@ -91,14 +93,14 @@ class BudgetsBackend(BaseBackend):
             )
         self.budgets[account_id][budget_name] = Budget(budget, notifications)
 
-    def describe_budget(self, account_id: str, budget_name: str) -> Dict[str, Any]:
+    def describe_budget(self, account_id: str, budget_name: str) -> dict[str, Any]:
         if budget_name not in self.budgets[account_id]:
             raise NotFoundException(
                 f"Unable to get budget: {budget_name} - the budget doesn't exist."
             )
         return self.budgets[account_id][budget_name].to_dict()
 
-    def describe_budgets(self, account_id: str) -> Iterable[Dict[str, Any]]:
+    def describe_budgets(self, account_id: str) -> Iterable[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -114,8 +116,8 @@ class BudgetsBackend(BaseBackend):
         self,
         account_id: str,
         budget_name: str,
-        notification: Dict[str, Any],
-        subscribers: Dict[str, Any],
+        notification: dict[str, Any],
+        subscribers: dict[str, Any],
     ) -> None:
         if budget_name not in self.budgets[account_id]:
             raise NotFoundException(
@@ -126,7 +128,7 @@ class BudgetsBackend(BaseBackend):
         )
 
     def delete_notification(
-        self, account_id: str, budget_name: str, notification: Dict[str, Any]
+        self, account_id: str, budget_name: str, notification: dict[str, Any]
     ) -> None:
         if budget_name not in self.budgets[account_id]:
             raise NotFoundException(
@@ -136,7 +138,7 @@ class BudgetsBackend(BaseBackend):
 
     def describe_notifications_for_budget(
         self, account_id: str, budget_name: str
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> Iterable[dict[str, Any]]:
         """
         Pagination has not yet been implemented
         """
@@ -144,5 +146,8 @@ class BudgetsBackend(BaseBackend):
 
 
 budgets_backends = BackendDict(
-    BudgetsBackend, "budgets", use_boto3_regions=False, additional_regions=["global"]
+    BudgetsBackend,
+    "budgets",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

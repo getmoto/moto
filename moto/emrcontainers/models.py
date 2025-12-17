@@ -1,16 +1,18 @@
 """EMRContainersBackend class with methods for supported APIs."""
 
 import re
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.utilities.utils import get_partition
 
 from ..config.exceptions import ValidationException
 from .exceptions import ResourceNotFoundException
-from .utils import get_partition, paginated_list, random_cluster_id, random_job_id
+from .utils import paginated_list, random_cluster_id, random_job_id
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/virtualclusters/{virtual_cluster_id}"
 
@@ -25,12 +27,12 @@ class FakeCluster(BaseModel):
     def __init__(
         self,
         name: str,
-        container_provider: Dict[str, Any],
+        container_provider: dict[str, Any],
         client_token: str,
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         virtual_cluster_id: Optional[str] = None,
     ):
         self.id = virtual_cluster_id or random_cluster_id()
@@ -52,7 +54,7 @@ class FakeCluster(BaseModel):
         )
         self.tags = tags
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         yield "id", self.id
         yield "name", self.name
         yield "arn", self.arn
@@ -61,7 +63,7 @@ class FakeCluster(BaseModel):
         yield "createdAt", self.creation_date
         yield "tags", self.tags
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # Format for summary https://docs.aws.amazon.com/emr-on-eks/latest/APIReference/API_DescribeVirtualCluster.html
         # (response syntax section)
         return {
@@ -84,11 +86,11 @@ class FakeJob(BaseModel):
         execution_role_arn: str,
         release_label: str,
         job_driver: str,
-        configuration_overrides: Dict[str, Any],
+        configuration_overrides: dict[str, Any],
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[dict[str, str]],
     ):
         self.id = random_job_id()
         self.name = name
@@ -115,7 +117,7 @@ class FakeJob(BaseModel):
         self.failure_reason = None
         self.tags = tags
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         yield "id", self.id
         yield "name", self.name
         yield "virtualClusterId", self.virtual_cluster_id
@@ -133,7 +135,7 @@ class FakeJob(BaseModel):
         yield "failureReason", self.failure_reason
         yield "tags", self.tags
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # Format for summary https://docs.aws.amazon.com/emr-on-eks/latest/APIReference/API_DescribeJobRun.html
         # (response syntax section)
         return {
@@ -161,18 +163,18 @@ class EMRContainersBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.virtual_clusters: Dict[str, FakeCluster] = dict()
+        self.virtual_clusters: dict[str, FakeCluster] = {}
         self.virtual_cluster_count = 0
-        self.jobs: Dict[str, FakeJob] = dict()
+        self.jobs: dict[str, FakeJob] = {}
         self.job_count = 0
         self.partition = get_partition(region_name)
 
     def create_virtual_cluster(
         self,
         name: str,
-        container_provider: Dict[str, Any],
+        container_provider: dict[str, Any],
         client_token: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> FakeCluster:
         occupied_namespaces = [
             virtual_cluster.namespace
@@ -205,7 +207,7 @@ class EMRContainersBackend(BaseBackend):
         self.virtual_clusters[cluster_id].state = "TERMINATED"
         return self.virtual_clusters[cluster_id]
 
-    def describe_virtual_cluster(self, cluster_id: str) -> Dict[str, Any]:
+    def describe_virtual_cluster(self, cluster_id: str) -> dict[str, Any]:
         if cluster_id not in self.virtual_clusters:
             raise ValidationException(f"Virtual cluster {cluster_id} doesn't exist.")
 
@@ -217,10 +219,10 @@ class EMRContainersBackend(BaseBackend):
         container_provider_type: str,
         created_after: str,
         created_before: str,
-        states: Optional[List[str]],
+        states: Optional[list[str]],
         max_results: int,
         next_token: Optional[str],
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         virtual_clusters = [
             virtual_cluster.to_dict()
             for virtual_cluster in self.virtual_clusters.values()
@@ -272,8 +274,8 @@ class EMRContainersBackend(BaseBackend):
         execution_role_arn: str,
         release_label: str,
         job_driver: str,
-        configuration_overrides: Dict[str, Any],
-        tags: Dict[str, str],
+        configuration_overrides: dict[str, Any],
+        tags: dict[str, str],
     ) -> FakeJob:
         if virtual_cluster_id not in self.virtual_clusters.keys():
             raise ResourceNotFoundException(
@@ -336,10 +338,10 @@ class EMRContainersBackend(BaseBackend):
         created_before: str,
         created_after: str,
         name: str,
-        states: Optional[List[str]],
+        states: Optional[list[str]],
         max_results: int,
         next_token: Optional[str],
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         jobs = [job.to_dict() for job in self.jobs.values()]
 
         jobs = [job for job in jobs if job["virtualClusterId"] == virtual_cluster_id]
@@ -359,7 +361,7 @@ class EMRContainersBackend(BaseBackend):
         sort_key = "id"
         return paginated_list(jobs, sort_key, max_results, next_token)
 
-    def describe_job_run(self, job_id: str, virtual_cluster_id: str) -> Dict[str, Any]:
+    def describe_job_run(self, job_id: str, virtual_cluster_id: str) -> dict[str, Any]:
         if not re.match(r"[a-z,A-Z,0-9]{19}", job_id):
             raise ValidationException("Invalid job run short id")
 

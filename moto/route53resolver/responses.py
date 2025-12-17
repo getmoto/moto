@@ -231,9 +231,7 @@ class Route53ResolverResponse(BaseResponse):
             resource_arn=resource_arn, next_token=next_token, max_results=max_results
         )
 
-        response = {"Tags": tags}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": tags, "NextToken": next_token}
         return json.dumps(response)
 
     def tag_resource(self) -> str:
@@ -283,3 +281,49 @@ class Route53ResolverResponse(BaseResponse):
             )
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def associate_resolver_query_log_config(self) -> str:
+        """Associate an Amazon VPC with a query logging configuration."""
+        resolver_query_log_config_id = self._get_param("ResolverQueryLogConfigId")
+        resource_id = self._get_param("ResourceId")
+
+        association = self.route53resolver_backend.associate_resolver_query_log_config(
+            resolver_query_log_config_id=resolver_query_log_config_id,
+            resource_id=resource_id,
+        )
+
+        return json.dumps(
+            {"ResolverQueryLogConfigAssociation": association.description()}
+        )
+
+    def create_resolver_query_log_config(self) -> str:
+        """Create a Resolver query logging configuration."""
+        name = self._get_param("Name")
+        destination_arn = self._get_param("DestinationArn")
+        creator_request_id = self._get_param("CreatorRequestId")
+        tags = self._get_param("Tags", [])
+        resolver_query_log_config = (
+            self.route53resolver_backend.create_resolver_query_log_config(
+                name=name,
+                destination_arn=destination_arn,
+                creator_request_id=creator_request_id,
+                tags=tags,
+            )
+        )
+        return json.dumps(
+            {"ResolverQueryLogConfig": resolver_query_log_config.description()}
+        )
+
+    def get_resolver_query_log_config(self) -> str:
+        """Get information about a specified Resolver query logging configuration."""
+        resolver_query_log_config_id = self._get_param("ResolverQueryLogConfigId")
+
+        resolver_query_log_config = (
+            self.route53resolver_backend.get_resolver_query_log_config(
+                resolver_query_log_config_id=resolver_query_log_config_id,
+            )
+        )
+
+        return json.dumps(
+            {"ResolverQueryLogConfig": resolver_query_log_config.description()}
+        )

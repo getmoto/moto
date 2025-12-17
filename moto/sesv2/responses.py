@@ -2,12 +2,10 @@
 
 import base64
 import json
-from typing import List
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
-from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend, sesv2_backends
 
 
@@ -30,7 +28,7 @@ class SESV2Response(BaseResponse):
         destination = params.get("Destination", {})
         content = params.get("Content")
         if "Raw" in content:
-            all_destinations: List[str] = []
+            all_destinations: list[str] = []
             if "ToAddresses" in destination:
                 all_destinations = all_destinations + destination["ToAddresses"]
             if "CcAddresses" in destination:
@@ -57,9 +55,7 @@ class SESV2Response(BaseResponse):
         elif "Template" in content:
             raise NotImplementedError("Template functionality not ready")
 
-        # use v1 templates as response same in v1 and v2
-        template = self.response_template(SEND_EMAIL_RESPONSE)
-        return template.render(message=message)
+        return json.dumps({"MessageId": message.id})
 
     def create_contact_list(self) -> str:
         params = json.loads(self.body)
@@ -73,7 +69,7 @@ class SESV2Response(BaseResponse):
 
     def list_contact_lists(self) -> str:
         contact_lists = self.sesv2_backend.list_contact_lists()
-        return json.dumps(dict(ContactLists=[c.response_object for c in contact_lists]))
+        return json.dumps({"ContactLists": [c.response_object for c in contact_lists]})
 
     def delete_contact_list(self) -> str:
         name = self._get_param("ContactListName")
@@ -95,10 +91,205 @@ class SESV2Response(BaseResponse):
     def list_contacts(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         contacts = self.sesv2_backend.list_contacts(contact_list_name)
-        return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
+        return json.dumps({"Contacts": [c.response_object for c in contacts]})
 
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
         contact_list_name = self._get_param("ContactListName")
         self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
+
+    def create_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        tags = self._get_param("Tags")
+        dkim_signing_attributes = self._get_param("DkimSigningAttributes")
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        email_identity = self.sesv2_backend.create_email_identity(
+            email_identity=email_identity_name,
+            tags=tags,
+            dkim_signing_attributes=dkim_signing_attributes,
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps(
+            {
+                "IdentityType": email_identity.identity_type,
+                "VerifiedForSendingStatus": email_identity.verified_for_sending_status,
+                "DkimAttributes": email_identity.dkim_attributes,
+            }
+        )
+
+    def delete_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        self.sesv2_backend.delete_email_identity(email_identity=email_identity_name)
+        return json.dumps({})
+
+    def get_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        email_identity = self.sesv2_backend.get_email_identity(
+            email_identity=email_identity_name,
+        )
+        return json.dumps(email_identity.get_response_object)
+
+    def list_email_identities(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        email_identities, next_token = self.sesv2_backend.list_email_identities(
+            next_token=next_token,
+            page_size=page_size,
+        )
+        if isinstance(email_identities, list):
+            response = [e.list_response_object for e in email_identities]
+        else:
+            response = []
+
+        return json.dumps(
+            {
+                "EmailIdentities": response,
+                "NextToken": next_token,
+            }
+        )
+
+    def create_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        tracking_options = self._get_param("TrackingOptions")
+        delivery_options = self._get_param("DeliveryOptions")
+        reputation_options = self._get_param("ReputationOptions")
+        sending_options = self._get_param("SendingOptions")
+        tags = self._get_param("Tags")
+        suppression_options = self._get_param("SuppressionOptions")
+        vdm_options = self._get_param("VdmOptions")
+        self.sesv2_backend.create_configuration_set(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+        return json.dumps({})
+
+    def delete_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        self.sesv2_backend.delete_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps({})
+
+    def get_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        config_set = self.sesv2_backend.get_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps(config_set.to_dict_v2())
+
+    def list_configuration_sets(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        configuration_sets, next_token = self.sesv2_backend.list_configuration_sets(
+            next_token=next_token, page_size=page_size
+        )
+        config_set_names = [c.configuration_set_name for c in configuration_sets]
+
+        return json.dumps(
+            {"ConfigurationSets": config_set_names, "NextToken": next_token}
+        )
+
+    def create_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        tags = self._get_param("Tags")
+        scaling_mode = self._get_param("ScalingMode")
+        self.sesv2_backend.create_dedicated_ip_pool(
+            pool_name=pool_name,
+            tags=tags,
+            scaling_mode=scaling_mode,
+        )
+        return json.dumps({})
+
+    def delete_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        self.sesv2_backend.delete_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps({})
+
+    def list_dedicated_ip_pools(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        dedicated_ip_pools, next_token = self.sesv2_backend.list_dedicated_ip_pools(
+            next_token=next_token, page_size=page_size
+        )
+        return json.dumps(
+            {"DedicatedIpPools": dedicated_ip_pools, "NextToken": next_token}
+        )
+
+    def get_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps({"DedicatedIpPool": dedicated_ip_pool.to_dict()})
+
+    def create_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        policy = self._get_param("Policy")
+        self.sesv2_backend.create_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+            policy=policy,
+        )
+        return json.dumps({})
+
+    def delete_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        self.sesv2_backend.delete_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+        )
+        return json.dumps({})
+
+    def update_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        policy = self._get_param("Policy")
+        self.sesv2_backend.update_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+            policy=policy,
+        )
+        return json.dumps({})
+
+    def get_email_identity_policies(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policies = self.sesv2_backend.get_email_identity_policies(
+            email_identity=email_identity,
+        )
+        return json.dumps({"Policies": policies})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        self.sesv2_backend.tag_resource(
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self.__dict__["data"]["TagKeys"]
+        self.sesv2_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self.sesv2_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"Tags": tags})

@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-DEFAULT_REGION = "us-west-2"
+from . import DEFAULT_REGION
 
 
 @mock_aws
@@ -27,37 +27,36 @@ def test_create_db_proxy():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[{"Key": "TestKey", "Value": "TestValue"}],
     )
     db_proxy = resp["DBProxy"]
     assert db_proxy["DBProxyName"] == "testrdsproxy"
-    assert (
-        db_proxy["DBProxyArn"]
-        == f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:testrdsproxy"
+    assert db_proxy["DBProxyArn"].startswith(
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:"
     )
-    assert db_proxy["Status"] == "availible"
+    assert db_proxy["Status"] == "available"
     assert db_proxy["EngineFamily"] == "MYSQL"
     assert db_proxy["VpcId"] == vpc_id
-    assert db_proxy["VpcSecurityGroupIds"] == []
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
-            "SecretArn": "TestSecretARN",
+            "SecretArn": "TestSecretARNLongerThan20Chars",
             "IAMAuth": "ENABLED",
             "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
         }
     ]
-    assert db_proxy["RoleArn"] == "TestArn"
+    assert db_proxy["RoleArn"] == "TestArnLongerThan20Chars"
     assert db_proxy["RequireTLS"] is True
     assert db_proxy["IdleClientTimeout"] == 1800
     assert db_proxy["DebugLogging"] is False
@@ -82,12 +81,12 @@ def test_describe_db_proxies():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[
@@ -98,25 +97,24 @@ def test_describe_db_proxies():
     response = rds_client.describe_db_proxies(DBProxyName="testrdsproxydescribe")
     db_proxy = response["DBProxies"][0]
     assert db_proxy["DBProxyName"] == "testrdsproxydescribe"
-    assert (
-        db_proxy["DBProxyArn"]
-        == f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:testrdsproxydescribe"
+    assert db_proxy["DBProxyArn"].startswith(
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:prx-"
     )
-    assert db_proxy["Status"] == "availible"
+    assert db_proxy["Status"] == "available"
     assert db_proxy["EngineFamily"] == "MYSQL"
     assert db_proxy["VpcId"] == vpc_id
-    assert db_proxy["VpcSecurityGroupIds"] == []
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
-            "SecretArn": "TestSecretARN",
+            "SecretArn": "TestSecretARNLongerThan20Chars",
             "IAMAuth": "ENABLED",
             "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
         }
     ]
-    assert db_proxy["RoleArn"] == "TestArn"
+    assert db_proxy["RoleArn"] == "TestArnLongerThan20Chars"
     assert db_proxy["RequireTLS"] is True
     assert db_proxy["IdleClientTimeout"] == 1800
     assert db_proxy["DebugLogging"] is False
@@ -141,12 +139,12 @@ def test_list_tags_db_proxy():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[
@@ -183,12 +181,12 @@ def test_create_db_proxy_invalid_subnet():
                     "Description": "Test Description",
                     "UserName": "Test Username",
                     "AuthScheme": "SECRETS",
-                    "SecretArn": "TestSecretARN",
+                    "SecretArn": "TestSecretARNLongerThan20Chars",
                     "IAMAuth": "ENABLED",
                     "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
                 },
             ],
-            RoleArn="TestArn",
+            RoleArn="TestArnLongerThan20Chars",
             VpcSubnetIds=[subnet_id, subnet_id_2],
             RequireTLS=True,
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],
@@ -216,12 +214,12 @@ def test_create_db_proxy_duplicate_name():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[{"Key": "TestKey", "Value": "TestValue"}],
@@ -235,12 +233,12 @@ def test_create_db_proxy_duplicate_name():
                     "Description": "Test Description",
                     "UserName": "Test Username",
                     "AuthScheme": "SECRETS",
-                    "SecretArn": "TestSecretARN",
+                    "SecretArn": "TestSecretARNLongerThan20Chars",
                     "IAMAuth": "ENABLED",
                     "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
                 },
             ],
-            RoleArn="TestArn",
+            RoleArn="TestArnLongerThan20Chars",
             VpcSubnetIds=[subnet_id, subnet_id_2],
             RequireTLS=True,
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],

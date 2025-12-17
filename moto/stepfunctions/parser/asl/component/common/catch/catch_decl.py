@@ -1,4 +1,4 @@
-from typing import Final, List
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.common.catch.catch_outcome import (
     CatchOutcome,
@@ -15,8 +15,8 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class CatchDecl(EvalComponent):
-    def __init__(self, catchers: List[CatcherDecl]):
-        self.catchers: Final[List[CatcherDecl]] = catchers
+    def __init__(self, catchers: list[CatcherDecl]):
+        self.catchers: Final[list[CatcherDecl]] = catchers
 
     def _eval_body(self, env: Environment) -> None:
         for catcher in self.catchers:

@@ -66,7 +66,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     )
 
     # Put Object
-    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+    s3_client.put_object(Bucket=bucket_name, Key="key name", Body="bodyofnewobject")
 
     # Find the output of AWSLambda
     expected_msg = "FINISHED_PRINTING_EVENT"
@@ -100,7 +100,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     assert records[0]["s3"]["configurationId"] == "s3eventtriggerslambda"
     assert "object" in records[0]["s3"]
     assert records[0]["s3"]["object"]["eTag"] == "61ea96c3c8d2c76fc5a42bfccb6affd9"
-    assert records[0]["s3"]["object"]["key"] == "keyname"
+    assert records[0]["s3"]["object"]["key"] == "key+name"
     assert records[0]["s3"]["object"]["size"] == 15
 
 
@@ -178,7 +178,7 @@ def test_object_copy__sends_to_queue():
     # Copy an Object
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
     s3_client.copy_object(
-        Bucket=bucket_name, CopySource=f"{bucket_name}/keyname", Key="key2"
+        Bucket=bucket_name, CopySource=f"{bucket_name}/keyname", Key="key!"
     )
 
     # Read SQS messages - we should have the Copy-event here
@@ -198,7 +198,7 @@ def test_object_copy__sends_to_queue():
     assert records[0]["s3"]["configurationId"] == "queue_config"
     assert "object" in records[0]["s3"]
     assert records[0]["s3"]["object"]["eTag"] == "61ea96c3c8d2c76fc5a42bfccb6affd9"
-    assert records[0]["s3"]["object"]["key"] == "key2"
+    assert records[0]["s3"]["object"]["key"] == "key%21"
     assert records[0]["s3"]["object"]["size"] == 15
 
 
@@ -282,17 +282,23 @@ def test_object_put__sends_to_queue__using_filter():
 
 
 @mock_aws
-def test_put_bucket_notification_sns_sqs():
-    s3_client = boto3.client("s3", region_name=REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_bucket_notification_sns_sqs(region, partition):
+    s3_client = boto3.client("s3", region_name=region)
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
+    )
 
-    sqs_client = boto3.client("sqs", region_name=REGION_NAME)
-    sqs_queue = sqs_client.create_queue(QueueName="queue")
+    sqs_client = boto3.client("sqs", region_name=region)
+    sqs_queue = sqs_client.create_queue(QueueName=str(uuid4()))
     sqs_queue_arn = sqs_client.get_queue_attributes(
         QueueUrl=sqs_queue["QueueUrl"], AttributeNames=["QueueArn"]
     )
 
-    sns_client = boto3.client("sns", region_name=REGION_NAME)
+    sns_client = boto3.client("sns", region_name=region)
     sns_topic = sns_client.create_topic(Name="topic")
 
     # Subscribe SQS queue to SNS topic
@@ -304,7 +310,7 @@ def test_put_bucket_notification_sns_sqs():
 
     # Set S3 to send ObjectCreated to SNS
     s3_client.put_bucket_notification_configuration(
-        Bucket="bucket",
+        Bucket=bucket_name,
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
@@ -336,7 +342,7 @@ def test_put_bucket_notification_sns_sqs():
     assert s3_message_body["Event"] == "s3:TestEvent"
 
     # Upload file to trigger notification
-    s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
+    s3_client.put_object(Bucket=bucket_name, Key="myfile", Body=b"asdf1324")
 
     # Verify queue not empty
     messages = sqs_client.receive_message(
@@ -352,16 +358,22 @@ def test_put_bucket_notification_sns_sqs():
     # Get S3 notification from SNS message
     s3_message_body = json.loads(sns_message["Message"])
     assert s3_message_body["Records"][0]["eventName"] == "ObjectCreated:Put"
+    assert s3_message_body["Records"][0]["awsRegion"] == region
+    assert (
+        s3_message_body["Records"][0]["s3"]["bucket"]["arn"]
+        == f"arn:{partition}:s3:::{bucket_name}"
+    )
 
 
 @mock_aws
 def test_put_bucket_notification_sns_error():
     s3_client = boto3.client("s3", region_name=REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Set S3 to send ObjectCreated to SNS
     s3_client.put_bucket_notification_configuration(
-        Bucket="bucket",
+        Bucket=bucket_name,
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
@@ -374,4 +386,4 @@ def test_put_bucket_notification_sns_error():
     )
 
     # This should not throw an exception
-    s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
+    s3_client.put_object(Bucket=bucket_name, Key="myfile", Body=b"asdf1324")

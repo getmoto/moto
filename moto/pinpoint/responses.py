@@ -1,7 +1,6 @@
 """Handles incoming pinpoint requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -21,21 +20,12 @@ class PinpointResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return pinpoint_backends[self.current_account][self.region]
 
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "DELETE":
-            return self.untag_resource()
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-
     def create_app(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         name = params.get("Name")
         tags = params.get("tags", {})
         app = self.pinpoint_backend.create_app(name=name, tags=tags)
-        return 201, {}, json.dumps(app.to_json())
+        return 201, {"status": 201}, json.dumps(app.to_json())
 
     def delete_app(self) -> str:
         application_id = self.path.split("/")[-1]
@@ -71,25 +61,25 @@ class PinpointResponse(BaseResponse):
         response["ApplicationId"] = application_id
         return json.dumps(response)
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tags = self.pinpoint_backend.list_tags_for_resource(resource_arn=resource_arn)
-        return 200, {}, json.dumps(tags)
+        return json.dumps(tags)
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> str:
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tags = json.loads(self.body).get("tags", {})
         self.pinpoint_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return 200, {}, "{}"
+        return "{}"
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> str:
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tag_keys = self.querystring.get("tagKeys")
         self.pinpoint_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,  # type: ignore[arg-type]
         )
-        return 200, {}, "{}"
+        return "{}"
 
     def put_event_stream(self) -> str:
         application_id = self.path.split("/")[-2]

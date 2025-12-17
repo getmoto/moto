@@ -1,6 +1,1932 @@
 Moto Changelog
 ==============
 
+5.1.18
+-----
+Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_
+
+    General:
+        * Introduces two methods for enabling and disabling IAM authentication:
+            from moto.core import disable_iam_authentication, enable_iam_authentication
+          They behave the same as the `@set_initial_no_auth_action_count`-decorator, but can be used as a fixture/context manager
+
+    New Services:
+        * Pipes:
+            * create_pipe()
+            * delete_pipe()
+            * describe_pipe()
+            * list_pipes()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * S3Control:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * S3Vectors:
+            * delete_vector_bucket_policy()
+            * delete_vectors()
+            * get_vector_bucket_policy()
+            * get_vectors()
+            * list_vectors()
+            * put_vector_bucket_policy()
+            * put_vectors()
+
+    Miscellaneous:
+        * APIGateway: put_rest_api() now correctly creates integrations
+        * AutoScaling: create_auto_scaling_group() now correctly calculates the InstancesDistribution for MixedInstancesPolicies
+        * ResourceGroupsTaggingAPI: get_resources() now supports filtering by `sqs:queue`
+        * SecretsManager: put_secret_value() now adds the AWSCURRENT-label if it's the first version of the Secret being added
+
+
+5.1.17
+-----
+Docker Digest for 5.1.17: _sha256:0361ac8f0cc6687dcf3835da1d60e31cf457fb0d49229d56586f2aa5c510f170_
+
+    General:
+        * The MotoServer dashboard (available on http://localhost:5000/moto-api) now has an new and improved look, making it easier to search for and find your resources
+
+    New Methods:
+        * CloudFront:
+            * tag_resource()
+            * untag_resource()
+
+        * DMS:
+            * create_replication_subnet_group()
+            * describe_connection()
+            * describe_replication_subnet_group()
+            * delete_endpoint()
+            * delete_replication_instance()
+            * delete_replication_subnet_group()
+            * test_endpoint()
+
+        * EC2:
+            * describe_reserved_instances_offerings()
+
+        * RDS:
+            * add_role_to_db_cluster()
+            * add_role_to_db_instance()
+
+        * S3Vectors:
+            * create_index()
+            * delete_index()
+            * get_index()
+            * list_indexes()
+
+        * ServiceCatalog:
+            * create_product()
+            * describe_product()
+            * delete_product()
+
+    Miscellaneous:
+        * ACM-PCA: get_certificate() now returns the CertificateChain-attribute, if appropriate
+        * DMS: Manual control of the State Transition is now available for the `dms:connection` and `dms:replicationinstance` models.
+        * Organizations: describe_account() now returns the State-attribute.
+        * ResourceGroupsTaggingAPI: get_resources() now supports all Comprehend models
+        * StepFunctions: create_execution() now takes the execution input into account when checking idempotency.
+
+
+5.1.16
+-----
+Docker Digest for 5.1.16: _sha256:f78c8e0370cabe2516395f351fb27e1df1aa6dc2d728d6de16d5dfbc9ccf595d_
+
+    General:
+        * Removed support for the RoboMaker and QLDB, now that AWS has also deprecated these services
+
+    New Services:
+        * S3Vectors:
+            * create_vector_bucket()
+            * delete_vector_bucket()
+            * get_vector_bucket()
+            * list_vector_buckets()
+
+    New Methods:
+        * Glue:
+            * create_security_configuration()
+            * delete_security_configuration()
+            * get_security_configuration()
+            * get_security_configurations()
+
+        * FSx:
+            * create_backup()
+            * delete_backup()
+            * list_tags_for_resource()
+
+        * VPCLattice:
+            * get_service()
+            * get_service_network()
+            * list_services()
+            * list_service_networks()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ACM: list_certificates() now supports the 'keyTypes'-filter
+        * APIGateway: get_stage() now supports stages that are URL encoded, like '$default'
+        * DynamoDB now supports the WarmThroughput parameter on Tables and Indexes
+        * DynamoDB: execute_statement() now supports querying indexes (both GSI and LSI)
+        * EC2: create_volume() now supports the MultiAttachEnabled-parameter
+        * EC2: modify_volume() now supports the parameters Iops, Throughput and MultiAttachEnabled
+        * ElastiCache: create_cache_cluster() now validates that the mandatory parameter CacheNodeType is provided
+        * ELBv2: describe_listener_certificates() now returns the IsDefault-field
+        * Glue: create_connection() now supports the parameters ConnectionProperties, SparkProperties, AthenaProperties and PythonProperties
+        * ResourceGroupsTaggingAPI: get_resources() now supports FSx resource types (Backups and FileSystems)
+        * ResourceGroupsTaggingAPI: get_resources() now supports VPCLattice resource types (Services and Service Networks)
+        * ResourceGroupsTaggingAPI: untag_resources() now supports RDS resource types
+        * S3: put_object_tagging() now throws MethodNotAllowed when trying to tag a DeleteMarker
+        * SSM: get_parameters_by_path() now validates that the maxResults-parameter is 10 at most
+
+
+5.1.15
+-----
+Docker Digest for 5.1.15: _sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914_
+
+    General:
+        * Python 3.14 is now officially supported
+
+    New Methods:
+        * IdentityStore:
+            * get_user_id()
+
+        * SESv2:
+            * delete_email_identity()
+
+        * VPCLattice:
+            * create_access_log_subscription()
+            * delete_access_log_subscription()
+            * get_access_log_subscription()
+            * list_access_log_subscriptions()
+            * update_access_log_subscription()
+
+    Miscellaneous:
+        * ACM: request_certificate() now supports the Option-parameter
+        * ACM: list_certificates() now supports the Includes-parameter, supporting Exportable Public Certificates
+        * APIGatewayV2: get_domain_name() now returns the DomainNameArn-attribute
+        * Athena: Executions can now be delayed using state transitions
+        * CloudFormation: validate_template() now supports short function refs (!Sub)
+        * Config: Now supports "AWS::SNS::Topic"-resources
+        * EC2: create_subnet() now supports the Ipv6Native-parameter
+        * EC2: create_transit_gateway_vpc_attachment() now validates that the TransitGateway exists
+        * EC2: create_transit_gateway_vpc_attachment() now validates that no other attachment to this VPC exists
+        * EC2: create_transit_gateway_vpc_attachment() now automatically adds the attachment to the default RouteTable
+        * EC2: create_transit_gateway_vpc_attachment() now correctly creates multiple attachments if called twice (for different VPC's)
+        * EC2: create_vpn_connection() now validates that only one of [VPNGateway|TransitGateway] is provided
+        * EC2: create_vpn_connection() now validates that the provided CustomerGateway and TransitGateway exists
+        * EC2: create/modify/describe_vpc_endpoint_service_configuration now supports the SupportedRegions-param
+        * EC2: describe_transit_gateway_attachments() now returns the correct RouteTableID
+        * EC2: describe_vpc_endpoints() now supports the 'vpc-endpoint-state'-filter
+        * Lambda: list_layer_versions() now returns the layers in the correct order - latest version first.
+        * ResourceGroupsTaggingAPI: get_resources() now supports SSM Parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports the 'kms:key' type
+        * SESv2: send_email() can now use an email registered by `create_email_identity()`, instead of having the SESv1:verify_domain_identity()-method
+
+
+5.1.14
+-----
+Docker Digest for 5.1.14: _sha256:800719627036dc38dc699e9f314f624f2c98ac3d8bb754db078cb2698f08ee77_
+
+    New Services:
+        * CloudWatch-Synthetics:
+            * create_canary()
+            * get_canary()
+            * describe_canaries()
+            * list_tags_for_resource()
+
+        * MediaPackageV2:
+            * create_channel()
+            * create_channel_group()
+            * delete_channel()
+            * delete_channel_group()
+            * get_channel()
+            * get_channel_group()
+            * list_channel_groups()
+
+        * VPCLattice:
+            * create_service()
+            * create_service_network()
+            * create_service_network_vpc_association()
+            * create_rule()
+
+    New Methods:
+        * Kinesis:
+            * describe_limits()
+
+        * Macie2:
+            * disassociate_member()
+            * enable_organization_admin_account()
+            * list_organization_admin_accounts()
+
+        * SecurityHub:
+            * describe_hub()
+            * disable_security_hub()
+            * enable_security_hub()
+
+        * ServiceHub-AppRegistry:
+            * get_configuration()
+            * put_configuration()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now supports state=None
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now returns ARN's for Athena resources, instead of names
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now supports Kinesis Firehose resources
+        * S3: put_object() now stores the correct (actual) content when using the Java SDK, and no longer include the checksum headers in the body
+        * Shield: create_protection() now only allows ARN's of Elastic IP Addresses, instead of all EC2 resources
+
+
+5.1.13
+-----
+Docker Digest for 5.1.13: _sha256:0503bdc569e122966fc5fceef43d4a9562ed21e4091cf865801dba90cbb62ea5_
+
+    New Services:
+        * Macie2:
+            * accept_invitation()
+            * create_invitations()
+            * decline_invitations()
+            * delete_member()
+            * disable_macie()
+            * enable_macie()
+            * get_administrator_account()
+            * get_macie_session()
+            * list_invitations()
+            * list_members()
+
+    New Methods:
+        * Athena:
+            * list_capacity_reservation()
+            * update_capacity_reservation()
+
+    Miscellaneous:
+        * CloudWatch: get_metric_data() now supports the ReturnData-parameter again (broken in 5.1.12)
+        * CognitoIDP: admin_respond_to_auth_challenge() now returns the scope=aws.cognito.signin.user.admin in the AccessToken
+        * ELB: modify_load_balancer_attributes() now supports the `secondary_ips.auto_assigned.per_subnet` attribute
+        * IAM: get_server_certificate() now returns the CertificateChain-parameter
+        * S3: put_bucket_lifecycle_configuration() now correctly processes a LifeCycleConfiguration with 0 Rules
+        * SNS: publish_batch() now returns the original MessageAttributes provided by the user again (broken in 5.1.12)
+
+
+5.1.12
+-----
+Docker Digest for 5.1.12: _sha256:e1cf8b624019e6eba25cb5b37efdf95a463fc24691978540a1c7008b7d02fda0_
+
+    General:
+        * Removed support for OpsWorks, now that AWS has also deprecated this service.
+          https://docs.aws.amazon.com/opsworks/latest/userguide/stacks-eol-faqs.html
+
+    New Methods:
+        * Glue:
+            * batch_get_workflows()
+            * create_workflow()
+            * delete_workflow()
+            * get_workflow()
+            * get_workflow_run()
+            * get_workflow_runs()
+            * get_workflow_run_properties()
+            * list_workflows()
+            * put_workflow_run_properties()
+            * start_workflow_run()
+            * stop_workflow_run()
+            * update_workflow()
+
+        * IOT:
+            * add_thing_to_billing_group()
+            * create_billing_group()
+            * delete_billing_group()
+            * describe_billing_group()
+            * list_billing_groups()
+            * list_things_in_billing_group()
+            * remove_thing_from_billing_group()
+            * update_billing_group()
+
+        * SES:
+            * clone_receipt_rule_set()
+
+        * SSM:
+            * create_data_source()
+            * deregister_patch_baseline_for_patch_group()
+            * delete_data_source()
+            * describe_data_source()
+            * get_patch_baseline_for_patch_group()
+            * list_data_sources()
+            * list_tags_for_resource()
+            * register_patch_baseline_for_patch_group()
+            * update_data_source()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * EC2: describe_network_interfaces() now returns the attributes PublicIP, PublicDNSName and IpOwnerId
+        * IOT: search_index() now supports logical expression handling in the queryString-parameter, with NOT, AND, OR and parentheses for complex queries
+        * IOT: search_index() now supports thingGroupNames in the queryString-parameter
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now supports QuickSight resources
+        * ResourceGroupsTaggingAPI: tag_resource() now supports QuickSight resources
+        * ResourceGroupsTaggingAPI: untag_resource() now supports QuickSight resources
+        * SES: create_receipt_rule() now contains additional validation around the RuleSetName and the provided rule-actions
+        * SES: create_receipt_rule() now supports the After-parameter
+        * STS: assume_role() now validates that the length of the roleSessionName-parameter is max 64 characters long
+        * QuickSight: create_data_set() now supports the Tags-parameter
+
+
+5.1.11
+-----
+Docker Digest for 5.1.11: _sha256:8ca337023ebaa5c0b8b33503b178d4db3326fca184551d6f47b07b8dd8532644_
+
+    New Methods:
+        * Athena:
+            * list_tags_for_resource()
+
+        * Comprehend:
+            * delete_resource_policy()
+            * describe_document_classification_job()
+            * describe_dominant_language_detection_job()
+            * describe_entities_detection_job()
+            * describe_events_detection_job()
+            * describe_key_phrases_detection_job()
+            * describe_pii_entities_detection_job()
+            * describe_resource_policy()
+            * describe_sentiment_detection_job()
+            * describe_targeted_sentiment_detection_job()
+            * describe_topics_detection_job()
+            * list_document_classification_jobs()
+            * list_dominant_language_detection_jobs()
+            * list_entities_detection_jobs()
+            * list_events_detection_jobs()
+            * list_key_phrases_detection_jobs()
+            * list_pii_entities_detection_jobs()
+            * list_sentiment_detection_jobs()
+            * list_targeted_sentiment_detection_jobs()
+            * list_topics_detection_jobs()
+            * put_resource_policy()
+            * start_document_classification_job()
+            * start_dominant_language_detection_job()
+            * start_entities_detection_job()
+            * start_events_detection_job()
+            * start_key_phrases_detection_job()
+            * start_pii_entities_detection_job()
+            * start_sentiment_detection_job()
+            * start_targeted_sentiment_detection_job()
+            * start_topics_detection_job()
+            * stop_dominant_language_detection_job()
+            * stop_entities_detection_job()
+            * stop_events_detection_job()
+            * stop_key_phrases_detection_job()
+            * stop_pii_entities_detection_job()
+            * stop_sentiment_detection_job()
+            * stop_targeted_sentiment_detection_job()
+
+        * ElasticSearch:
+            * describe_elasticsearch_domain_config()
+
+        * Redshift:
+            * describe_cluster_parameters()
+            * describe_default_cluster_parameters()
+
+        * S3Control:
+            * list_access_points()
+
+    Miscellaneous:
+        * DMS: describe_replication_tasks() now correctly supports the `Filters`-parameter
+        * EC2: create_security_group() now returns the SecurityGroupArn-attribute
+        * EC2: describe_network_interfaces() now returns the `RequesterId` and `RequesterManaged`-attributes
+        * ECR: create_repository() now supports the imageTagMutabilityExclusionFilters-parameter
+        * ECR: create_repository() now enforces the imageTagMutability-parameter
+        * ECS: start_task() now supports the `group`-parameter
+        * ECS: run_task() now supports the `group`-parameter
+        * ElastiCache: create_user() now supports the `Tags`-parameter
+        * ELBv2: ARNs are now unique for Listeners/LoadBalancers/TargetGroups
+        * ELBv2: create_rule() now assigns a default Weight of 1, if not specified
+        * ELBv2: create_target_group() now only returns the HealthCheckPort if the target is not 'lambda'
+        * ELBv2: describe_load_balancer_attributes() now correctly returns an empty string for `access_logs.s3`-attributes
+        * EMR: describe_cluster() now returns the correct Cluster.MasterPublicDnsName-attribute (if applicable)
+        * EMR: run_job_flow() now supports the parameters `EbsRootVolumeSize`, `EbsRootVolumeIops` and `EbsRootVolumeThroughput`
+        * Glue: start_job_run() now no longer returns mock-values for the parameters: `Arguments`, `NotificationProperty`, `SecurityConfiguration`, `Timeout` and `PreviousRunId`
+        * MediaPackage: create_origin_endpoint() now supports the `WhiteList` and `TimeDelaySeconds`-parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports Athena's CapacityReservations, Workgroups and DataCatalog resources
+        * S3: complete_multipart_upload() now respects the IfNoneMatch-parameter for objects created by MultiPart-uploads
+        * S3Control: get_storage_lens_configuration() now returns the `AccountLevel` and `StorageLensArn`-attributes
+        * SecretsManager: create_secret() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: put_secret_value() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: update_secret() now supports the `ClientRequestToken`-parameter
+
+
+5.1.10
+-----
+Docker Digest for 5.1.10: _sha256:c8d59f06ef51ed29ba1a6d008785e9538f0c32f636c2d77bb188b73dd21d8832_
+
+    New Methods:
+        * Glue:
+            * delete_dev_endpoint()
+            * list_crawls()
+
+        * ElastiCache:
+            * delete_replication_group()
+
+        * EKS:
+            * update_cluster_config()
+
+        * ResourceGroupsTaggingAPI:
+            * untag_resources() (Currently only supports Lambda and EFS resources)
+
+        * S3Control:
+            * get_storage_lens_configuration_tagging()
+            * put_storage_lens_configuration_tagging()
+
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports filters with an asterisk
+        * Batch: list_jobs() now ignores jobStatus when the filters parameter is provided, in parity with AWS
+        * Batch: submit_job() now supports the tags-parameter
+        * CloudFormation: describe_stack_resources() now supports the LogicalResourceId-parameter
+        * EC2: describe_images() now returns the CreationDate-attribute in the correct format (RFC3339) (broken in 5.1.9)
+        * EC2: describe_managed_prefix_lists() now no longer returns a StateMessage, in parity with AWS
+        * EC2: describe_managed_prefix_lists() now returns 'AWS' in upper case for the OwnerId
+        * EC2: modify_vpc_endpoint() now supports the parameters AddSecurityGroupId, RemoveSecurityGroupId and RemoveSubnetId
+        * ELBv2: describe_load_balancers() now returns the CanonicalHostedZoneId again (broken in 5.1.9)
+        * Events: put_targets() now supports StepFunctions
+        * RDS: create_blue_green_deployment() now works correctly when ManageMasterUserPassword has been updated to False
+        * RDS: create_database() now supports the DomainMembership parameters (Domain/DomainFqdn/DomainOu/DomainAuthSecretArn/DomainDnsIps)
+        * ResourceGroupsTaggingAPI: get_resources() now supports DirectConnect resources
+        * ResourceGroupsTaggingAPI: tag_resources() now supports Lambda and EFS resources
+        * SES: describe_receipt_rule_set() now returns the Metadata.CreatedTimestamp field (broken in 5.1.9)
+        * SQS: The max message size has been updated to 1MB, from 256KB (AWS updated this a week ago).
+        * SQS: send_message() now no longer throws an error when supplying the MessageGroupId-parameter against a regular (non-FIFO) queues
+
+
+5.1.9
+-----
+Docker Digest for 5.1.9: _sha256:1fae2f297efbd05522835fec12c20ae88cb4734e1c4c2b9297ddc3063858dcc4_
+
+    General:
+        * Docker Image is now based on Python 3.13.
+          Various improvements have been made to reduce the total image size from 792MB to 523MB.
+        * A large number of services have been refactored to streamline the generation of API responses, and to ensure that the format is equivalent to AWS'.
+          This should not have any impact - but please let us know if you run into problems.
+
+    Miscellaneous:
+        * CloudFormation: ChangeSets now no longer throw an error if the change set is created without the UsePreviousTemplate argument
+        * CloudFormation: ChangeSets now also look at default parameters, instead of always expecting a parameter to be provided
+        * EC2: describe_images() now supports the 'source-instance-id'-filter
+        * Logs: describe_destinations() no longer treats the DestinationNamePrefix-parameter as mandatory
+        * ResourceGroupsTaggingAPI: get_resources() now supports ECS: TaskDefinition resources
+        * S3: Object notifications (to Lambda/SNS/SQS/etc) now send an URL-encoded key name
+
+    New Methods:
+        * Athena:
+            * create_capacity_reservation()
+            * get_capacity_reservation()
+
+        * ElastiCache:
+            * create_replication_group()
+            * describe_replication_groups()
+
+        * EMR:
+            * list_release_labels()
+            * list_supported_instance_types()
+
+        * RDS:
+            * create_db_shard_group
+            * describe_db_cluster_parameters()
+            * describe_db_shard_groups()
+            * modify_db_cluster_parameter_group()
+
+
+5.1.8
+-----
+Docker Digest for 5.1.8: sha256:b5d4a53fc2eefd264b3bfabfc40aa3a883c68c7751d738d490f4e6f2d0191f53
+
+    New Methods:
+
+        * Connect-Campaigns:
+            * get_campaign_state()
+            * list_campaigns()
+            * list_tags_for_resource()
+            * pause_campaign()
+            * resume_campaign()
+            * start_campaign()
+            * stop_campaign()
+            * tag_resource()
+            * untag_resource()
+
+        * ECS:
+            * delete_task_definitions()
+
+        * ElastiCache:
+            * create_cache_subnet_group()
+            * describe_cache_subnet_groups()
+
+        * RAM:
+            * list_permissions()
+            * list_resource_types()
+
+        * RDS:
+            * create_blue_green_deployment()
+            * delete_blue_green_deployment()
+            * describe_blue_green_deployments()
+            * switchover_blue_green_deployment()
+
+    Miscellaneous:
+        * Athena: get_query_execution() now returns some additional attributes: 'ResultReuseConfiguration', 'Status.CompletionDateTime', 'Status.ServicePreProcessingTimeInMillis', 'Status.ResultReuseInformation'
+        * DynamoDB: query() now validates that all attributes in the KeyConditionExpression are actually keys
+        * DynamoDB: update_item() now validates unused ExpressionAttributeNames/ExpressionAttributeValues
+        * EC2: modify_vpc_attribute() now correctly handles the EnableDnsHostnames-attribute
+        * ECS: list_task_definitions() now supports the status-parameter
+        * ELB: describe_load_balancer_attributes() now returns the AdditionalAttributes-attribute
+        * ElastiCache: list_tags_for_resource() now supports SubnetGroups
+        * EventBridge: put_events() no longer throws a KeyError: 'time' for targets with a custom InputTemplate that do not specify the time
+        * Logs: get_query_results() now returns values as strings, in-line with how AWS behaves
+        * NetworkFirewall: describe_logging_configuration() no longer throws an error for LoggingConfigurations without tags
+        * RDS: create_db_cluster() now supports the PubliclyAccessible-parameter
+        * ResourceGroupTaggingAPI: get_resources() now supports resources from Comprehend: DocumentClassifiers and EntityRecognizers
+        * ResourceGroupTaggingAPI: get_resources() now supports resources from ConnectCampaign: Campaigns
+        * S3: get_bucket_cors() now returns the ID-attribute for CORS-rules
+        * S3: get_object() no longer returns the ContentEncoding=aws-chunked
+        * SecretsManager: list_secrets() now supports filtering by tags/description/owning-service for ReplicaSecrets
+        * ServiceDiscovery: create_public_dns_namespace()/create_private_dns_namespace() now actually creates a HostedZone in Route53
+        * SES: describe_configuration_set() now supports ConfigurationSetAttributeNames=["eventDestinations"] (other names are not yet supported)
+        * SSM: describe_parameters() now correctly returns tag-updates from add_tags_to_resource() and remove_tags_from_resource()
+
+
+5.1.6
+-----
+Docker Digest for 5.1.6: _sha256:0afd091e9d26ba1660ad54708ff1e853ffa1f437f057c91163b47d35155a852b_
+
+    New Methods:
+        * Athena:
+            * get_query_statistics()
+
+        * AppSync:
+            * create_api()
+            * create_channel_namespace()
+            * delete_api()
+            * delete_channel_namespace()
+            * get_api()
+            * list_apis()
+            * list_channel_namespaces()
+
+        * CloudDirectory:
+            * apply_schema()
+            * create_schema()
+            * delete_schema()
+            * list_development_schema_arns()
+            * list_published_schema_arns()
+            * publish_schema()
+
+        * DirectConnect:
+            * describe_tags()
+            * tag_resource()
+            * untag_resource()
+
+        * EC2:
+            * modify_security_group_rules()
+
+        * Glue:
+            * delete_resource_policy()
+
+        * SecurityHub:
+            * describe_organization_configuration()
+            * enable_organization_admin_account()
+            * get_administrator_account()
+            * update_organization_configuration()
+
+        * StepFunctions:
+            * create_activity()
+            * delete_activity()
+            * describe_activity()
+            * list_activities()
+
+    Miscellaneous:
+        * CodeDeploy: get_deployment_group() now returns the deploymentGroupId-attribute
+        * CognitoIDP: create_user_pool_client() now supports MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH to ensure predictable identifiers
+        * Lambda: EventSourceMappings for FIFO queues now support custom batch sizes
+        * Lambda: EventSourceMappings now support tagging
+        * NetworkFirewall: describe_firewall() now returns the UpdateToken-parameter
+        * OpenSearch: get_compatible_versions() now longer requires the DomainName-parameter
+        * OpenSearch: describe_domain_config() now actually works (used to be completely broken)
+        * Route53: change_tags_for_resource(): Validate ZoneId parameter
+        * SNS: Now allows sending messages from standard topics to FIFO queues
+
+5.1.5
+-----
+Docker Digest for 5.1.5: _sha256:b9dbd12d211c88e5799d023db15ec809bca4cc6df93a8aa78f26ccbfb073d18a_
+
+    New Services:
+        * Connect Campaign:
+            * create_campaign()
+            * delete_campaign()
+            * describe_campaign()
+            * get_connect_instance_config()
+            * start_instance_onboarding_job()
+
+        * CloudDirectory:
+            * create_directory()
+            * delete_directory()
+            * get_directory()
+            * list_directories()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Network Firewall:
+            * create_firewall()
+            * describe_firewall()
+            * describe_logging_configuration()
+            * list_firewalls()
+            * update_logging_configuration()
+
+        * ServiceCatalog-AppRegistry:
+            * associate_resource()
+            * create_application()
+            * list_applications()
+            * list_associated_resources()
+
+    New Methods:
+        * ACM PCA:
+            * list_certificate_authorities()
+
+        * CloudWatch:
+            * delete_insight_rules()
+            * describe_insight_rules()
+            * disable_insight_rules()
+            * enable_insight_rules()
+            * put_insight_rule()
+
+        * CodeDeploy:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Comprehend:
+            * create_document_classifier()
+            * create_endpoint()
+            * create_flywheel()
+            * describe_document_classifier()
+            * describe_endpoint()
+            * describe_flywheel()
+            * delete_document_classifier()
+            * delete_endpoint()
+            * delete_flywheel()
+            * list_document_classifiers()
+            * list_endpoints()
+            * list_flywheels()
+            * start_flywheel_iteration()
+            * stop_training_document_classifier()
+            * update_endpoint()
+
+        * Config:
+            * delete_resource_config()
+            * put_resource_config()
+            * select_resource_config()
+
+        * DMS:
+            * create_endpoint()
+            * describe_endpoints()
+            * list_tags_for_resource()
+
+        * EC2:
+            * modify_instance_metadata_options()
+
+        * Glue:
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * RAM:
+            * get_resource_share_associations()
+
+        * S3:
+            * get_bucket_inventory_configuration()
+            * get_storage_lens_configuration()
+            * list_bucket_inventory_configuration()
+            * list_storage_lens_configurations()
+            * put_bucket_inventory_configurations()
+            * put_storage_lens_configuration()
+
+        * Timestream InfluxDB:
+            * create_db_cluster()
+            * create_db_parameter_group()
+            * get_db_cluster()
+            * get_db_parameter_group()
+            * list_db_clusters()
+            * list_db_parameter_groups()
+
+    Miscellaneous:
+        * ACMPCA: All SAN's are now passed through from the CSR to the certificate
+        * APIGateway: delete_api_key()/update_api_key() now throw a ApiKeyNotFoundException (instead of a KeyError)
+        * AppSync: create_graphql_api() now supports the tags-parameter
+        * CloudFront: create_distribution() now correctly handles the CloudFrontDefaultCertificate-parameter
+        * CodeDeploy: create_application() now supports the tags-parameter
+        * CodeDeploy: create_deployment_group() now supports the tags-parameter
+        * EC2: describe_instance_status() now correctly handles multiple filters and scenarios where both filters and InstanceIds are supplied
+        * EC2: disassociate_iam_instance_profile() now actually removes the IAMInstanceProfile from the Instances
+        * EC2: run_instances() now throws an error if now default Subnet is available and no SubnetId is supplied
+        * EventBridge: describe_event_bus() now returns additional fields (CreationTime, LastModifiedTime, DeadLetterConfig, Description, KmsKeyIdentifier)
+        * IOTData: update_thing_shadow() now correctly handles empty dicts
+        * Neptune: create_db_instance() now supports the Neptune-engine
+        * Organizations: create_policy() now supports TYPE=TAG_POLICY
+        * ResourceGroups: delete_group()/get_group() now support ARNs as the GroupName-parameter
+        * ResourceGroupsTaggingApi: get_resources now supports CloudWatch Alarms and InsightRules
+        * S3: Calls now return Content-Type=application/xml headers where appropriate
+        * S3: put_object() - IfMatch is now supported
+        * SageMaker: create_endpoint_config() now supports the AsyncInferenceConfig-parameter
+        * SageMaker: describe_transform_job() now returns the Arn-attribute
+        * SQS: receive_message() now supports the MessageSystemAttributeNames-parameter
+        * Textract: start_document_text_detection() now supports the NotificationChannel-parameter and integrates with SNS
+
+
+
+5.1.4
+-----
+Docker Digest for 5.1.4: _sha256:32d7805d8bd4c81db789c4fff2c36f96a8837cbd8e7a3853116b6516b9490dde_
+
+    New Services:
+        * CodeDeploy:
+            * batch_get_applications()
+            * batch_get_deployments()
+            * create_application()
+            * create_deployment()
+            * create_deployment_group()
+            * get_application()
+            * get_deployment()
+            * get_deployment_group()
+            * list_applications()
+            * list_deployments()
+            * list_deployment_groups()
+
+    New Methods:
+        * ACM:
+            * get_account_configuration()
+            * put_account_configuration()
+
+        * ACM PCA:
+            * get_policy()
+            * delete_policy()
+            * put_policy()
+
+        * EC2:
+            * create_default_subnet()
+
+        * Glue:
+            * get_job_runs()
+
+        * Route53 Resolver:
+            * associate_resolver_query_log_config()
+            * create_resolver_query_log_config()
+            * get_resolver_query_log_config()
+
+        * SES:
+            * create_email_identity_policy()
+            * delete_email_identity_policy()
+            * get_email_identity_policies()
+            * get_identity_dkim_attributes()
+            * update_configuration_set_reputation_metrics_enabled()
+            * update_email_identity_policy()
+
+        * Textract:
+            * get_document_analysis()
+            * start_document_analysis()
+
+        * WAFv2:
+            * create_regex_pattern_set()
+            * delete_regex_pattern_set()
+            * get_regex_pattern_set()
+            * list_regex_pattern_sets()
+            * update_regex_pattern_set()
+
+
+    Miscellaneous:
+        * If IAM validation is enabled, Moto now also validates the principal and ExternalId for assumed roles
+        * ACM: describe_certificate() now return status=Expired if appropriate
+        * ACM: describe_certificate() now always set status=Issued if the issuer=Amazon
+        * ACM PCA: get_certificate_authority_certificate() now returns the CertificateChain in the correct format
+        * Batch: create_compute_environment() now supports adding the instanceRole using the role name only, instead of the full ARN
+        * Batch: create_job_queue() now supports adding the computeEnvironment using just the name, instead of the full ARN
+        * CloudFormation: update_stack() now allows removal of resources in any order, regardless of dependencies
+        * CloudFront now supports additional ViewerCertificate fields (IAMCertificateId, ACMCertificateARN, SSLSupportMethod)
+        * CloudFront now supports TrustedSigners in the DefaultCacheBehaviour
+        * CognitoIdentity: get_id() now supports identity pools in non-standard regions when using the CLI
+        * EC2: create_fleet() now propagates instance-tags of type=instant
+        * EC2: describe_security_group_rules() now correctly filters by group-id and tags
+        * EC2: delete_vpc() now validates that all Subnets are deleted first
+        * ECS: The pendingTasksCount and runningTasksCount-properties of a cluster are now updated accordingly when creating/updating services
+        * ResourceGroupsTaggingAPI: get_resources() now supports KinesisAnalyticsV2' Applications
+        * RDS: Identifiers of all resources are now case-insensitive
+        * RDS: stop_db_instance() now creates a snapshot of type=manual, instead of automatic
+        * S3: get_bucket_replication() now returns Destination.Account for cross-account replication
+        * S3: get_object() can now retrieve objects in GLACIER_IR; support for EXPRESS_ONEZONE
+        * SES, SESv2: list_configuration_sets() now supports pagination
+        * SecretsManager: list_secrets() now supports the owning-service filter
+
+
+5.1.3
+-----
+Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a9403919a6ff994d0e5438b7_
+
+    New Methods:
+        * DMS:
+            * create_replication_instance()
+            * describe_replication_instances()
+
+        * Service Catalog:
+            * describe_portfolio()
+
+    Miscellaneous:
+        * ACM: request_certificate() now correctly handles IPv4-addresses
+        * DynamoDB: update_item(): Fixed a bug where the PathOverlap-exception was thrown erroneously
+        * EC2: Improved the behaviour of SecurityGroupRules with multiple IP ranges
+        * MediaConnect: create_flow() now supports the Maintenance-parameter
+        * RDS: Managed Secrets are now actually created in Secrets Manager
+        * S3: delete_objects(): The BypassGovernanceMode-parameter is now compatible with botocore==1.27.25
+        * SNS: SMS messages are now exposed via the Moto API
+
+
+5.1.2
+-----
+Docker Digest for 5.1.2: _sha256:3144ffd311b381594efde7ed4a41fb8fe2d66829ae5f3bf493f93f2ca1a8c82b_
+
+    * New Services:
+        * KinesisAnalyticsV2:
+            * create_application()
+            * describe_application()
+            * list_applications()
+            * list_tags_for_resource()
+            * tag_resource()
+
+        * Service Catalog:
+            * create_portfolio()
+            * create_portfolio_share()
+            * delete_portfolio()
+            * delete_portfolio_share()
+            * describe_portfolio_shares()
+            * list_portfolio_access()
+            * list_portfolios()
+
+    * New Methods:
+        * DirectoryServices:
+            * create_log_subscription()
+            * delete_log_subscription()
+            * list_log_subscriptions()
+
+        * EC2:
+            * modify_launch_template()
+
+        * Glue:
+            * get_data_catalog_encryption_settings()
+            * put_data_catalog_encryption_settings()
+
+        * Lambda:
+            * add_layer_version_permission()
+            * get_layer_version_policy()
+            * remove_layer_version_permission()
+
+        * RDS:
+            * copy_db_parameter_group()
+
+        * SESv2:
+            * create_email_identity()
+            * get_email_identity()
+            * list_email_identities()
+
+        * QuickSight:
+            * create_dashboard()
+            * describe_account_settings()
+            * describe_dashboard()
+            * list_dashboards()
+            * update_account_settings()
+            * update_public_sharing_settings()
+
+    * Miscellaneous:
+        * ApplicationAutoscaling: register_scalable_target() now returns the ScalableTargetARN-attribute
+        * Autoscaling: create_auto_scaling_group() now supports the LaunchTemplate-parameter
+        * DynamoDB: Add validation around attribute name use checks
+        * DynamoDB: Add path overlap checks for all updates
+        * ECS: create_service() now supports the role-parameter
+        * ECR: describe_image_scan_findings() now allows the configuration of custom results
+        * EKS: create_cluster() now supports the RemoteNetworkConfig-parameter
+        * ElastiCache: create_cache_cluster() now supports parameters AutoMinorVersionUpgrade and TransitEncryptionEnabled
+        * NetworkManager: list_core_networks() now returns the OwnerAccountId-attribute
+        * ResourceGroupTaggingAPI: get_resources() now supports AppSync's GraphQL-API resources
+        * ResourceGroupTaggingAPI: get_resources() now supports CloudFront's Distribution resources
+        * RDS: create_db_cluster() now supports the AutoMinorVersionUpgrade-parameter
+        * S3: get_object()/head_object() now return the 'x-amz-checksum-' header when appropriate
+        * TimestreamWrite: list_tables() no longer requires the DatabaseName-parameter
+        * WAF: Resources in CloudFront scope now use the us-east-1 region in the ARN, instead of 'global'
+
+
+5.1.1
+-----
+Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_
+
+    * General:
+        * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
+        * Removed dependency on typing_extensions (introduced in 5.1.0)
+
+    * New Methods:
+        * CognitoIDP:
+            * delete_identity_pool()
+
+        * Glue:
+            * create_connection()
+            * get_connection()
+            * get_connections()
+
+        * GuardDuty:
+            * get_administrator_account()
+
+    * Miscellaneous:
+        * ResourceGroupsTaggingAPI: get_resources() now supports EventBusses
+        * RDS: create_db_instance() now throws an error when referencing a non-existent DBCluster
+
+5.1.0
+-----
+Docker Digest for 5.1.0: _sha256:aaf5f4a72412b753b2115417e26360612564d3a29b1831f9316708e15138d699_
+
+    * General:
+        * Dropped support for Python 3.8
+
+    * New Services:
+        * Lex V2 Models:
+            * create_bot()
+            * create_bot_alias()
+            * create_resource_policy()
+            * delete_bot()
+            * delete_bot_alias()
+            * delete_resource_policy()
+            * describe_bot()
+            * describe_bot_alias()
+            * describe_resource_policy()
+            * list_bots()
+            * list_bot_aliases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_bot()
+            * update_bot_alias()
+            * update_resource_policy()
+            * untag_resource()
+
+        * CloudHSM V2:
+            * create_cluster()
+            * delete_cluster()
+            * describe_backups()
+            * describe_clusters()
+            * get_resource_policy()
+            * list_tags()
+            * put_resource_policy()
+            * tag_resource()
+            * untag_resource()
+
+    * New Methods:
+        * ElasticSearch:
+            * add_tags()
+            * list_tags()
+            * remove_tags()
+
+        * RDS:
+            * describe_events()
+            * describe_db_log_files()
+            * failover_db_cluster()
+            * restore_db_cluster_to_point_in_time()
+
+        * SecurityHub:
+            * batch_import_findings()
+            * get_findings()
+
+        * TimeStream InfluxDB:
+            * create_db_instance()
+            * delete_db_instance()
+            * get_db_instance()
+            * list_db_instances()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    * Miscellaneous:
+        * CognitoIDP: AccessTokens and IDTokens now contain the jti and origin_jti values
+        * DynamoDB: query()/scan() now handle pagination for GSI's correctly
+        * EC2: The DisableApiStop-attribute is now propagated properly and respected
+        * EC2: create_volume() now throws an error if the Size-parameter is not provided
+        * EC2: describe_subnets() now correctly handles a Filter without a Value
+        * ELBv2: create_listener() now validates the provided protocol against the LoadBalancer type
+        * ECS: run_task() now contains the Container-info in the response
+        * KMS: create_key() now supports the Origin-parameter
+        * Lambda: EventSourceMappings now support all parameters
+        * Lambda: list_functions() now works with the JS SDK
+        * Lambda: Choosing the image repository is now deterministic - first a custom source, then mlupin, lambci last
+        * RDS: Too many improvements to list, with many more supported features and bugfixes
+
+
+5.0.28
+-----
+Docker Digest for 5.0.28: _sha256:d3532929e4c498334949a014e9f0af6617ec1e89d92be690cd192fa3354ad7e6_
+
+    * General:
+        * Bootstrapping a CDK project is now supported
+
+    * New Services:
+        * S3 Tables:
+            * create_namespace()
+            * create_table()
+            * create_table_bucket()
+            * delete_namespace()
+            * delete_table()
+            * delete_table_bucket()
+            * get_metadata_location()
+            * get_table()
+            * get_table_bucket()
+            * list_namespaces()
+            * list_table_buckets()
+            * list_tables()
+            * rename_table()
+            * update_metadata_location()
+
+    * Miscellaneous:
+        * DynamoDB: delete_item() now returns ConsumedCapacity
+        * DynamoDB: transact_write_items() now returns a ReturnValuesOnConditionCheckFailure for all operations
+        * ECR: Lifecycle Policies() now support the tagPatternList-parameter
+        * S3: get_object() now returns the ETag when returning a 304 (Not Modified)
+        * SecretsManager: get_secret_value() no longer throws an error after calling rotate_secret(RotateImmediately=False)
+        * SecretsManager: list_secrets() now filters values with special chars correctly
+        * Organizations: list_roots() now returns the roots of the parent organization, if called from within a child organization
+
+
+5.0.27
+-----
+Docker Digest for 5.0.27: _sha256:ac5312f68c6b748b667526025f9e7a8c2e4112837c258eee68f96fa36d9dbbef_
+
+    New Methods:
+        * Glue:
+            * create_dev_endpoint()
+            * get_dev_endpoint()
+            * get_dev_endpoints()
+
+        * KMS:
+            * generate_mac()
+            * list_key_rotations()
+            * rotate_key_on_demand()
+            * verify_mac()
+
+        * SES:
+            * delete_configuration_set()
+            * list_configuration_sets()
+
+        * SESv2:
+            * create_configuration_set()
+            * create_dedicated_ip_pool()
+            * delete_configuration_set()
+            * delete_dedicated_ip_pool()
+            * get_configuration_set()
+            * get_dedicated_ip_pool()
+            * list_configuration_sets()
+            * list_dedicated_ip_pools()
+
+    Miscellaneous:
+        * Introduced a new setting for ServerMode, `MOTO_DISABLE_GLOBAL_CORS`. Disabling the global CORS setting makes it possible to test the CORS-policies on S3 buckets
+        * ElastiCache: create_user() now supports the AuthenticationMode-parameter
+        * ElasticSearch/OpenSearch: list_domain_names() now returns domains from both services
+        * Kafka: list_clusters_v2() now returns all parameters
+        * Scheduler: The `schedule_expression_timezone` now defaults to UTC
+        * RDS: create_db_instance() now throws an exception if an instance with that ID already exists
+        * RDS: restore_db_instance_from_db_snapshot() now throws an exception if an instance with that ID already exists
+
+
+5.0.26
+-----
+Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_
+
+    New Services:
+        * Kinesis:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() now validates empty ExpressionAttributeValues
+        * Logs: describe_log_groups() now returns the logStreamArn-property
+        * Organizations now has additional validation around creation and deletion of organizations and accounts
+        * SecretsManager: list_secrets() now properly splits words when filtering
+        * StepFunctions: describe_state_machine() now takes Version ARN's
+        * StepFunctions: describe_state_machine() now returns the versionDescription
+
+5.0.25
+-----
+Docker Digest for 5.0.25: _sha256:1ac2d89ce8c79a6cdfebffb37678a5bd8bb54a39dcbced069f6ac5e29e4cc752_
+
+    New Services:
+        * DSQL:
+            * create_cluster()
+            * get_cluster()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now better calculates the delta between the desired and reported values
+        * S3: select_object_content() now returns the proper Stats (BytesScanned, BytesReturned)
+        * StepFunctions: Various upgrades for the emulated parser
+
+5.0.24
+-----
+Docker Digest for 5.0.24: _sha256:68042b17e9a55c7a32347f802b7a02f2793201b4f1c788ca0e85084f5218c233_
+
+    Miscellaneous:
+        * EC2: Terminating instances will now release private ip addresses from the NIC's attached to the interface
+        * S3: Fixes a bug in complete_multipart_upload() where it was no longer possible to overwrite an earlier multipart upload (Broken in 5.0.23)
+        * S3: get_object_cors() now correctly returns the ExposeHeader-value
+
+
+5.0.23
+-----
+Docker Digest for 5.0.23: _sha256:d41e007bb1f7d41b530959ae9cbed1edf42737ee839faf8da7e925bf19f63105_
+
+    New Services:
+        * Kafka:
+            * create_cluster()
+            * create_cluster_v2()
+            * describe_cluster()
+            * describe_cluster_v2()
+            * delete_cluster()
+            * list_clusters()
+            * list_clusters_v2()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * DirectConnect:
+            * associate_mac_sec_key()
+            * create_lag()
+            * describe_lags()
+            * describe_settings()
+            * disassociate_mac_sec_key()
+            * update_settings()
+
+        * EFS:
+            * describe_file_system_policy()
+            * put_file_system_policy()
+
+        * ES:
+            * describe_elasticsearch_domains()
+
+        * OpenSearch:
+            * describe_domains()
+
+    Miscellaneous:
+        * Athena: list_query_executions() now supports the WorkGroup-parameter
+        * Athena: start_query_execution() now supports the WorkGroup-parameter
+        * CloudFormation: AWS::IAM::Role now supports updates
+        * CognitoIDP: list_users() now correctly filters before applying the Limit
+        * DirectConnect: describe_trusts() no longer requires a DirectoryId-parameter
+        * DynamoDB: The DeleteProtectionEnabled can now be disabled
+        * DynamoDB: update_item() can now return list of binaries
+        * EC2: SecurityGroups now contain a SecurityGroupArn
+        * EC2: update_route() now correctly handles DestinationPrefixListId
+        * KMS: get_public_key() now supports passing in aliases
+        * Lambda: publish_function() now publishes a function even if the updated code hasn't changed
+        * MemoryDB: tag_resource/list_tags_for_resource() now supports Snapshots and SubnetGroups
+        * RDS: copy_db_snapshot() now supports the CopyTags-parameter
+        * RDS: copy_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * RDS: restore_db_instance_from_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * S3: complete_multipart_upload() now supports IfNoneMatch-parameter
+
+5.0.22
+-----
+Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_
+
+    Miscellaneous:
+        * DS: enable_ldaps() is now supported for 'ADConnector' directory types
+        * EC2: Resource identifiers are now 17 characters long, up from 8, in-line with the values that AWS returns
+        * ECS: create_service() now supports and validates the networkConfiguration-parameter
+        * ELBv2: register_targets() now validates that instances are running
+        * IOTData: update_thing_shadow() now properly handles complex nested deltas
+        * MediaLive: list_channels() and list_inputs() now support pagination
+        * OpenSearch: create_domain() now returns the EngineVersion in the correct format
+        * ResourceGroupsTaggingAPI: get_resources() now returns secrets from SecretsManager
+        * S3: put_object_acl() now sends an EventBridge-notification
+        * SecretsManager: list_secrets() no longer shows deleted secrets unless the `include_planned_deletion`-parameter is set
+        * WAFv2: list_ip_sets(), list_logging_configurations(), list_rule_groups(), list_tags_for_resource(), list_web_acls() now all support pagination
+
+5.0.21
+-----
+Docker Digest for 5.0.21: _sha256:9ba3753fddbe2445667a1261a04dc92e75d9c329a1f2d0610f1dd8bb1c4f4eca_
+
+    New Methods:
+        * IOT:
+            * create_job_template()
+            * create_role_alias()
+            * delete_job_template()
+            * delete_role_alias()
+            * describe_job_template()
+            * describe_role_alias()
+            * get_indexing_configuration()
+            * list_job_templates()
+            * list_role_aliases()
+            * update_indexing_configuration()
+            * update_role_alias()
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports the arrayJobId-parameter
+        * CloudFormation now supports the types AWS::IoT::JobTemplate, AWS::IoT::RoleAlias
+        * DynamoDB: ProjectionExpressions are now validated for duplicate values
+        * DynamoDB: scan() now supports parallelization using the Segment/TotalSegments parameters
+        * DynamoDB: update_item() now validates when an ADD/DELETE occurs on the same set
+        * EC2: create_fleet() now correctly handles Overrides with a single value
+        * ECR: list_images() now lists images with multiple tags separately
+        * IOT: create_job() now supports the parameters abortConfig, jobExecutionsRetryConfig, schedulingConfig, timeoutConfig
+        * S3: get_object_attributes() no longer throws an error for Glacier objects
+
+
+5.0.20
+-----
+Docker Digest for 5.0.20: _sha256:a1041f318c56ed341c70541647b256d40dae776ce654ca4db9d27d94600542a1_
+
+    Miscellaneous:
+        * Removed runtime-dependency on `typing_extensions`
+
+5.0.19
+-----
+Docker Digest for 5.0.19: _sha256:5d857d7ce17a9b1dadea166d8e0d310771983f026334a555a9d2690a370cf904_
+
+    New Methods:
+        * ELBv2:
+            * describe_listener_attributes()
+            * modify_listener_attributes()
+
+        * Panorama:
+            * create_application_instance()
+            * describe_application_instance()
+            * describe_application_instance_details()
+            * list_application_instances()
+
+        * WAFv2:
+            * create_rule_group()
+            * delete_rule_group()
+            * get_rule_group()
+            * update_rule_group()
+
+    Miscellaneous:
+        * CloudFormation now supports the types AWS::IoT::Thing, AWS::IoT::ThingType, AWS::IoT::Policy
+        * EC2: Key Pairs now use the correct algorithm to calculate the fingerprint
+        * ELBv2: modify_lb_attr() now supports zonal-shift config
+        * ECS: create_task_set() now actually creates tasks
+        * Lambda: The MOTO_DOCKER_LAMBDA_IMAGE config option now accepts full image names, including the tag
+        * Lambda: Events send to DynamoDB now have the correct eventName
+        * Organizations: describe_organization() now describes the parent account (if applicable)
+        * WAFv2: create_web_acl() now supports additional parameters (AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+        * WAFv2: delete_web_acl() now supports the LockToken-parameter
+        * WAFv2: update_web_acl() now supports additional parameters (LockToken, AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+
+5.0.18
+-----
+Docker Digest for 5.0.18: _sha256:62423941446f8863f499ebdfd04c1d1743b5afd84c3837799df7ce08ce3bb750_
+
+    New Methods:
+        * RDS:
+            * delete_db_proxy()
+            * deregister_db_proxy_targets()
+            * describe_db_proxy_target_groups()
+            * describe_db_proxy_targets()
+            * modify_db_proxy_target_group()
+            * register_db_proxy_targets()
+
+    Miscellaneous:
+        * CloudFormation: create_change_set() now supports the UsePreviousTemplate-parameter
+        * CognitoIDP: MFA-related features (like AssociateSoftwareToken) now also work with non-Python SDK's
+        * ECS: update_service() now correctly sets the createdAt/updatedAt values when forceNewDeployment=True
+        * ELBv2: remove_tags() now throws a ResourceNotFound Exception
+
+
+5.0.17
+-----
+Docker Digest for 5.0.17: _sha256:39372432cb24ab46211ca45648ca787e104589070b0d0a13ea0d73c6eb550079_
+
+    New Methods:
+        * CloudFront:
+            * create_key_group()
+            * create_public_key()
+            * delete_public_key()
+            * get_key_group()
+            * get_public_key()
+            * list_key_groups()
+            * list_public_keys()
+
+        * QuickSight:
+            * list_user_groups()
+            * search_groups()
+            * update_user()
+
+        * Workspaces Web:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * APIGateway: get_api_keys()/get_usage_plan_keys() now support the nameQuery param
+        * AppSync: create_graphql_api() now supports the visibility-parameter
+        * DynamoDB: delete_item() now returns the item when a ConditionalCheckFailed is thrown and ReturnValuesOnConditionCheckFailure == ALL_OLD
+        * QuickSight: Users can now have special characters in their name
+        * QuickSight: list_group_memberships() now supports pagination
+        * QuickSight: list_groups() now supports pagination
+        * QuickSight: list_users() now supports pagination
+        * SageMaker: search() now also supports ModelPackages/Pipelines/Jobs/Executions
+        * SecretsManager: delete_secret() now allows force deletion of already marked-for-delete secret
+        * StepFunctions: create_state_machine() now supports the parameters encryptionConfiguration, tracingConfiguration, loggingConfiguration
+
+
+5.0.16
+-----
+Docker Digest for 5.0.16: _sha256:9506ad3448a87082a436533855c61afaf3f1869e73f39f6575917db975569908_
+
+    New Services:
+        * OpenSearch Ingestion Service:
+            * create_pipeline()
+            * delete_pipeline()
+            * get_pipeline()
+            * list_pipelines()
+            * list_tags_for_resource()
+            * start_pipeline()
+            * stop_pipeline()
+            * tag_resource()
+            * untag_resource()
+            * update_pipeline()
+
+    New Methods:
+        * CloudFront:
+            * get_invalidation()
+
+        * Directory Service:
+            * create_trust()
+            * delete_trust()
+            * describe_ldaps_settings()
+            * describe_trusts()
+            * disable_ldaps()
+            * enable_ldaps()
+
+        * EC2: 
+            * modify_ebs_default_kms_key_id()
+
+    Miscellaneous:
+        * CloudFormation: AWS::ECS::TaskDefinition now correctly validates the provided memory parameters
+        * EC2: create_network_acl_entry() now supports the Ipv6CidrBlock-parameter 
+        * EC2: create_tags() now takes existing tags into account before throwing a TagLimitExceeded-exception
+        * Firehose: put_record_batch() no longer fails when the SnowflakeDestinationConfiguration-parameter is set
+        * FSx: The FileSystemID now uses the same pattern as AWS (fs-xxxxxxxx)
+        * GuardDuty: create_detector() now supports the Features-parameter
+        * Polly has been updated with the latest voices
+        * RDS: modify_option_groups() now correctly parses OptionsToInclude
+        * ResourceGroupsTaggingAPI: get_resources() now supports EC2 NAT Gateways, route tables, subnets
+        * Scheduler: create_chedule() now validates the start_date-parameter for recurrent schedule expressions
+        * SNS: publish() and publish_batch now support MessageStructure=json
+        * WAFv2: associate_web_acl() now allows any resource to be associated
+
+
+5.0.15
+-----
+Docker Digest for 5.0.15: _sha256:9d78f63668017ca6eb9bdb415418d8077e1e503a1e81edb4657f93cf7ff34be1_
+
+    New Services:
+        * MemoryDB:
+            * create_cluster()
+            * create_snapshot()
+            * create_subnet_group()
+            * delete_cluster()
+            * delete_snapshot()
+            * delete_subnet_group()
+            * describe_clusters()
+            * describe_snapshots()
+            * describe_subnet_groups()
+            * list_tags()
+            * tag_resource()
+            * untag_resource()
+            * update_cluster()
+
+        * WorkspacesWeb:
+            * associate_browser_settings()
+            * associate_network_settings()
+            * associate_user_access_logging_settings()
+            * associate_user_settings()
+            * create_browser_settings()
+            * create_network_settings()
+            * create_portal()
+            * create_user_access_logging_settings()
+            * create_user_settings()
+            * delete_browser_settings()
+            * delete_network_settings()
+            * delete_portal()
+            * delete_user_access_logging_settings()
+            * delete_user_settings()
+            * get_browser_settings()
+            * get_network_settings()
+            * get_portal()
+            * get_user_access_logging_settings()
+            * get_user_settings()
+            * list_browser_settings()
+            * list_network_settings()
+            * list_portals()
+            * list_user_access_logging_settings()
+            * list_user_settings()
+
+    New Methods:
+        * ApiGateway:
+            * get_account()
+            * update_account()
+
+        * AppSync:
+            * create_api_cache()
+            * delete_api_cache()
+            * get_api_cache()
+
+    Miscellaneous:
+        * DynamoDB: get/delete/update_item() now validates all provided keys exist
+        * Firehose: create_delivery_stream() now supports the SnowflakeDestinationConfiguration-parameter
+        * S3: put_object() now support conditional writes
+
+
+5.0.14
+-----
+Docker Digest for 5.0.14: _sha256:5399ffa0daadd1eb6c00250ec64453675f9635d0a210563f43c26b43e0dfd178_
+
+    General:
+        * All JSON files in the binary distribution are shipped compressed, significantly reducing the size on disk
+
+    New Services:
+        * Shield:
+            * create_subscription()
+            * describe_subscription()
+
+        * TimestreamQuery:
+            * create_scheduled_query()
+            * delete_scheduled_query()
+            * describe_endpoints()
+            * describe_scheduled_query()
+            * query()
+            * update_scheduled_query()
+
+    New Methods:
+        * AppMesh:
+            * create_virtual_node()
+            * delete_virtual_node()
+            * describe_virtual_node()
+            * list_virtual_nodes()
+            * update_virtual_node()
+            * create_virtual_router()
+            * delete_virtual_router()
+            * describe_virtual_router()
+            * list_virtual_routers()
+            * update_virtual_router()
+            * create_route()
+            * delete_route()
+            * describe_route()
+            * list_routes()
+            * update_route()
+
+    Miscellaneous:
+        * CloudFormation templates now support the Fn::Base64-function
+        * CognitoIDP: Enhanced support for MFA flows/challenges
+        * DynamoDB: update_item() now validates empty string sets
+        * EC2: describe_snapshots() now supports the kms-key-id filter
+        * EC2: run_instances() now supports the parameter Ipv6AddressCount
+        * ECS: Tasks can now be created with unknown security groups
+        * IAM: generate_credentials_report() now shows active certificates
+        * KMS: sign() now supports Alias ARNs
+        * Route53: list_resource_record_sets() now validates record names
+        * S3: create_bucket() now has additional LocationConstraint-validation
+        * S3: delete_objects() now respects BucketPolicy and ObjectLocks
+        * S3: head_object() now handles Range-parameter correctly
+        * SageMaker: search() now supports the CONTAINS filter
+        * Sagemaker Runtime: invoke_endpoint_async() now supports failure responses
+        * SNS: Signature of HTTP Messages are now valid
+        * SSM: get_maintenance_window() now returns an exception if the window does not exist
+        * SQS: delete_message_batch() now validates there's at least one entry
+
+
+5.0.13
+-----
+Docker Digest for 5.0.13: _sha256:de97faba597d8f1bfb4dab1c7d562e1997ac5e0ba1186c4392430650b0f6bd4e_
+
+    General:
+        * Support for Python 3.13
+        * Moto now supports whitelisting which services can be used
+
+    New Services:
+        * AppMesh:
+            * create_mesh()
+            * delete_mesh()
+            * describe_mesh()
+            * list_meshes()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_mesh()
+
+        * Transfer:
+            * create_server()
+            * create_user()
+            * delete_server()
+            * delete_ssh_public_key()
+            * delete_user()
+            * describe_server()
+            * describe_user()
+            * import_ssh_public_key()
+
+    New Methods:
+        * Athena:
+            * delete_work_group()
+
+        * CodeBuild:
+            * batch_get_projects()
+
+        * DynamoDB:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * EMR:
+            * get_block_public_access_configuration()
+            * put_block_public_access_configuration()
+
+        * QLDB:
+            * create_ledger()
+            * delete_ledger()
+            * describe_ledger()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_ledger()
+
+        * SageMaker:
+            * create_data_quality_job_definition()
+            * create_model_bias_job_definition()
+            * create_model_card()
+            * delete_data_quality_job_definition()
+            * delete_model_bias_job_definition()
+            * delete_model_card()
+            * describe_data_quality_job_definition()
+            * describe_model_bias_job_definition()
+            * describe_model_card()
+            * list_data_quality_job_definitions()
+            * list_model_bias_job_definitions()
+            * list_model_cards()
+            * list_model_card_versions()
+
+    Miscellaneous:
+        * ACM-PCA: create_certificate_authority() now uses the provided Subject
+        * Athena: The default work group now has the correct configuration
+        * ApplicationAutoscaling - put_scheduled_action() now allows multiple actions per Namespace/Dimension/Id
+        * Autoscaling: update_group() now validates that the Group exists
+        * Batch: now supports parameters in Job commands
+        * CloudFormation: create_change_set() now validates the provided ChangeSetName
+        * CloudFormation: describe_stacks() now returns export names in the Outputs
+        * CloudFormation: AWS::Events::Rule's now also creates/deletes Targets 
+        * CloudWatch: get_metric_data() now returns everything when querying for Metric Insights Queries
+        * CodeBuild: create_project() now supports the parameter description, tags, cache, timeoutInMinutes, queuedTimeoutInMinutes, sourceVersion, logsConfig and vpcConfig
+        * CognitoIDP: sign_up() now returns CodeDeliveryDetails
+        * DynamoDB: export_table_to_point_in_time() now exports data in correct format
+        * DynamoDB: update_item() now validates an empty ExpressionAttributeValues and UpdateExpression
+        * DynamoDB: All applicable methods that accept a TableName-parameter now also accept the ARN of the table
+        * EC2: describe_security_group_rules() now correctly exposes rules with duplicate port/protocol values
+        * EC2: Terminating an instance now also terminates any NIC's
+        * EventBridge: create_connection() now creates a KMS Secret
+        * EventBridge: Messages are now formatted using the InputTemplate, if provided
+        * KMS: describe_key() now exposes the MultiRegionConfiguration-attribute
+        * Organizations: create_account() now comes preconfigured with an IAM role
+        * RDS: update_db_instance() now supports the CloudwatchLogsExportConfiguration-parameter
+        * ResourceGroupsTagging API now supports additional SageMaker resources
+          (CompilationJobs, Domains, ModelExplainabilityJobDefinition, ModelQualityJobDefinition, HyperParameterTuningJob)
+        * S3: copy_object() now respects the CopySourceIfNoneMatch-parameter
+        * SageMaker: search() now supports ModelPackageGroups
+        * StepFunctions now has improved JSONPath support
+        * StepFunctions now supports MaxItem/MaxItemPath/MaxConcurrencyPath
+        * StepFunctions now supports MaxAttempts with value 0
+
+
+5.0.12
+-----
+Docker Digest for 5.0.12: _sha256:e1bde8f908f2fdf0878c8e4398561badd016b51b4d9fd8dcb9f4daef936a4427_
+
+    General:
+        * The MotoProxy can now be run on Windows
+
+    New Services:
+        * DirectConnect:
+            * create_connection()
+            * delete_connection()
+            * describe_connections()
+            * update_connection()
+
+        * DynamoDB:
+            * describe_export()
+            * export_table_to_point_in_time()
+            * list_export()
+
+        * NetworkManager:
+            * create_device()
+            * create_link()
+            * create_link()
+            * delete_device()
+            * delete_link()
+            * delete_site()
+            * get_devices()
+            * get_links()
+            * get_sites()
+            * list_tags_for_resource()
+
+        * SageMaker:
+            * list_endpoints()
+            * list_endpoint_configs()
+            * create_auto_ml_job_v2()
+            * describe_auto_ml_job_v2()
+            * list_auto_ml_jobs()
+            * stop_auto_ml_job()
+            * create_compilation_job()
+            * describe_compilation_job()
+            * list_compilation_jobs()
+            * delete_compilation_job()
+            * create_domain()
+            * describe_domain()
+            * list_domains()
+            * delete_domain()
+            * create_model_explainability_job_definition()
+            * describe_model_explainability_job_definition()
+            * list_model_explainability_job_definitions()
+            * delete_model_explainability_job_definition()
+            * create_hyper_parameter_tuning_job()
+            * describe_hyper_parameter_tuning_job()
+            * list_hyper_parameter_tuning_jobs()
+            * delete_hyper_parameter_tuning_job()
+            * create_model_quality_job_definition()
+            * describe_model_quality_job_definition()
+            * list_model_quality_job_definitions()
+            * delete_model_quality_job_definition()
+
+        * Route53:
+            * list_tags_for_resource()
+
+    Miscellaneous:
+        * ACM: export_certificate() now only allows exporting private certificates
+        * ACM: DomainValidationOptions now have SUCCESS-status, fixing the `certificate_validated` waiter
+        * Athena: QueryResults are now stored in S3
+        * CloudFormation: update_stack() now persists the new parameters provided
+        * CloudFormation: update_stack() now understands UsePreviousValue=False
+        * CloudFormation: update_stack() now throws an exception when using UsePreviousValue=True and a new parameter value
+        * CloudFormation: update_stack() is now able to update resources where only the parameters have changed
+        * CloudFormation: AWS::S3::Bucket resources will now create/update Tags
+        * CloudFormation: AWS::S3::Bucket resources are no longer recreated for every update
+        * CognitoIDP: initiate_auth() now supports USERNAME_PASSWORD_AUTH and SMS/Software Token MFA
+        * CognitoIDP: initiate_auth() now returns th email in the ID-token claims
+        * DynamoDB: query() now sorts the results correctly when querying GSI data with identical hash keys 
+        * EC2: describe_security_group_rules() now enumerates multiple rules correctly
+        * EC2: run_instances() can now use $Default or $Latest launch template version
+        * Events: list_targets_by_rule() now supports pagination
+        * EventBridge Scheduler - get_schedule() now returns the ActionAfterCompletion
+        * Firehose: create_delivery_stream() now creates S3 files with the correct filename if no prefix is provided
+        * IOT: Certificates hashes can now be computed using the DER encoding, per the AWS spec
+               This is an opt-in behaviour, and can be enabled with the following configuration:
+               @mock_aws(config={"iot": {"use_valid_cert": True}})
+        * ResourceGroupsTaggingAPI: tag_resources() now supports SageMaker resources
+        * S3: head_object()/get_object() now support the PartNumber-argument
+        * S3: put_object() now correctly enforces the BucketPolicy when creating new objects
+        * SESv2: send_email() now returns the MessageId
+
+
+5.0.11
+-----
+Docker Digest for 5.0.11: _sha256:438f7fbb5fa1dff2cf0887c59466ff78bed5aaca9ea7b5cf54d6a41fc2418e28_
+
+    New Methods:
+        * ServiceDiscovery:
+            * deregister_instance()
+            * discover_instances()
+            * discover_instances_revision()
+            * get_instance()
+            * get_instances_health_status()
+            * list_instances()
+            * register_instance()
+            * update_http_namespace()
+            * update_instance_custom_health_status()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() no longer throws a ValidationException when passing multiple set actions, only when passing multiple set clauses
+        * DynamoDB: transact_write_items() no longer throws an Exception when ExpressionAttributeNames are not provided
+          (Both bugs were introduced in 5.0.10)
+
+        * IOT-data: update_thing_shadow() now calculates the delta correctly
+        * ResourceGroupsTagging: get_resources() now supports EFS resources
+
+
+5.0.10
+-----
+Docker Digest for 5.0.10: _sha256:bfb9cd2a437fc7c754b3a6a66b7fb528ec1a53e0c683e8b75514bff81543cf55_
+
+    General:
+        * CloudFormation now supports cfn-lint v1, as well as v0
+
+    New Services:
+
+        * FSX:
+            * create_file_system()
+            * delete_file_system()
+            * describe_file_systems()
+            * tag_resource()
+            * untag_resource()
+
+        * OpenSearch Serverless:
+            * batch_get_collection()
+            * create_collection()
+            * create_security_policy()
+            * create_vpc_endpoint()
+            * delete_collection()
+            * get_security_policy()
+            * list_collections()
+            * list_security_policies()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_security_policy()
+
+        * Shield:
+            * create_protection()
+            * delete_protection()
+            * describe_protection()
+            * list_protections()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * Sagemaker:
+            * create_cluster()
+            * delete_cluster()
+            * describe_cluster()
+            * list_clusters()
+            * list_cluster_nodes()
+
+    Miscellaneous:
+        * CognitoIDP: admin_list_groups_by_user() now supports pagination
+        * DynamoDB: transact_write_items() now validates the number of SET expressions
+        * DynamoDB: update_item() now validates unused ExpressionAttributeValues
+        * DynamoDB: query() now supports pagination when querying Global Indexes
+        * EC2: describe_images() - feat: support filtering images by ExecutableUsers=['self']
+        * EC2: describe_route_tables() now supports the filter `route.transit-gateway-id`
+        * EC2: update_security_group_rule_descriptions_ingress() now supports updating multiple descriptions
+        * EKS: create_nodegroup() now supports the `taints`-parameter
+        * ELBv2: add_listener_certificates() now validates when adding too many certificates (> 25)
+        * ELBv2: describe_target_health() now handles unknown/deregistered/terminated instances better
+        * ResourceGroupsTaggingAPI: get_resources() now supports ResourceType=s3:bucket
+        * RDS: Clusters now have the `creating`-status on create, and `available` immediately after - in line with AWS
+        * SSM: get_parameter() now supports ARN's for the Name-parameter
+
+
+5.0.9
+-----
+Docker Digest for 5.0.9: _sha256:df61e4e76344017f6c82924a3dd1cdd4dcbac4095cf234c6d6fb0a0f800fbeff_
+
+    General:
+        * Fixed an InfiniteRecursion-bug when accessing S3-buckets that was introduced in 5.0.8
+
+    New Methods:
+        * SSO-Admin:
+            * list_accounts_for_provisioned_permission_set()
+            * list_instances()
+            * list_permission_sets_provisioned_to_account()
+            * provision_permission_set()
+            * update_instance()
+
+    Miscellaneous:
+        * DynamoDB: query() now handles pagination correctly on a GSI without a range key
+        * IAM: create_policy() now returns tags correctly
+        * S3: list_objects(): The default value for MaxKeys can now be configured, using an environment variable:
+          MOTO_S3_DEFAULT_MAX_KEYS=1
+
+5.0.8
+-----
+Docker Digest for 5.0.8: _sha256:cfcd97074011bd563cdbeebac35ed710581a23cb2be07ab9b67aa00298fc3369_
+
+    General:
+        * Improved support for non-generic partitions (China, GovCloud, ISO-regions). 
+          All ARN's now contain the correct partition for resources created in those regions.
+
+    New Services:
+        * NetworkManager:
+            * create_global_network()
+            * describe_global_networks()
+            * create_core_network()
+            * create_global_network()
+            * delete_core_network()
+            * list_core_networks()
+            * get_core_network()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ResilienceHub: list_app_assessments() can now return pre-configured results
+        * ResourceGroupTagging: get_resources() now returns results when filtering on "lambda:function"
+        * S3: delete_object_tagging()/put_object_tagging() now send an EventBridge notification
+
+
+5.0.7
+-----
+Docker Digest for 5.0.7: _sha256:81ac52ff74b0bf0f4957ee4260e6a7e75d66c9e5d040ed4f721a5500b873c88a_
+
+    New Services:
+        * Sagemaker Metrics:
+            * batch_put_metrics()
+
+    New Methods:
+        * DynamoDB:
+            * describe_import()
+            * import_table()
+
+        * EMR Serverless:
+            * cancel_job_run()
+            * get_job_run()
+            * list_job_runs()
+            * start_job_run()
+
+        * IAM:
+            * tag_instance_profile()
+            * untag_instance_profile()
+
+        * Panorama:
+            * create_node_from_template_job()
+            * describe_node_from_template_job()
+            * list_nodes()
+
+        * SSO-Admin:
+            * describe_account_assignment_creation_status()
+            * describe_account_assignment_deletion_status()
+
+        * WAFv2:
+            * create_ip_set()
+            * delete_ip_set()
+            * list_ip_sets()
+            * get_ip_set()
+            * update_ip_set()
+            * put_logging_configuration()
+            * get_logging_configuration()
+            * list_logging_configurations()
+            * delete_logging_configuration()
+
+    Miscellaneous:
+        * Athena: start_query_execution() now supports the ExecutionParameters-parameter
+        * DynamoDB: Tables now support DeleteProtection
+        * DynamoDB: update_item() no longer throws an error when deleting an item from an empty set
+        * DynamoDB: update_item() no throws an error when adding an empty set
+        * EC2: delete_network_acl() now throws an error when the ACL still has associations attached to it
+        * EC2: describe_route_tables() now supports the `route.nat-gateway-id` filter
+        * EC2: revoke_security_group_ingress/_egress() now throw an error when an unknown Security Group is passed
+
+5.0.6
+-----
+Docker Digest for 5.0.6: _sha256:da919d3c1db07b378c413ed00a6c1c3e32ce1943a13671658c4db0f55dd49e42_
+
+    New Services:
+        * Bedrock:
+            * create_model_customization_job()
+            * delete_custom_model()
+            * delete_model_invocation_logging_configuration()
+            * get_custom_model()
+            * get_model_customization_job()
+            * get_model_invocation_logging_configuration()
+            * list_custom_models()
+            * list_model_customization_jobs()
+            * list_tags_for_resource()
+            * put_model_invocation_logging_configuration()
+            * stop_model_customization_job()
+            * tag_resource()
+            * untag_resource()
+
+        * BedrockAgent:
+            * create_agent()
+            * create_knowledge_base()
+            * delete_agent()
+            * delete_knowledge_base()
+            * get_agent()
+            * get_knowledge_base()
+            * list_agents()
+            * list_knowledge_bases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * EC2:
+            * describe_addresses_attributes()
+
+        * Rekognition:
+            * detect_custom_labels()
+
+        * Sagemaker:
+            * update_trial_component()
+
+    Miscellaneous:
+        * CloudFront: update_distribution() now supports the CacheBehaviours-parameter
+        * DynamoDB: query() now acts correctly when paginating GSI tables without range keys
+        * EC2: RouteTables can now have multiple propagations
+        * EC2: describe_instances() now now filter by product-code and product-code.type
+        * EC2: describe_security_group_rules() now validates the format of the incoming security group id's
+        * ECS: update_service() now supports the loadBalancers-parameter
+        * Logs: describe_metric_filter() now has the correct validation for metricNamespaces
+        * IOT: search_index() now supports thingTypeName
+        * SFN: send_task_failure()/send_task_success() now work correctly when using the Parser
+        * SNS: subscribe() now throws an exception if the endpoint doesn't exist
+        * SQS: Improved queue name validation
+
+
 5.0.5
 -----
 Docker Digest for 5.0.5: _sha256:b95cf0d65557475f29e7256938028eef352e23acafe8e07c071cd58b67c44708_

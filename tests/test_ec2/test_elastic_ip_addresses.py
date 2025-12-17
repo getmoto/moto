@@ -7,6 +7,8 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_eip_allocate_classic():
@@ -16,12 +18,7 @@ def test_eip_allocate_classic():
 
     with pytest.raises(ClientError) as ex:
         client.allocate_address(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     standard = client.allocate_address(Domain="standard")
     assert "PublicIp" in standard
@@ -34,12 +31,7 @@ def test_eip_allocate_classic():
 
     with pytest.raises(ClientError) as ex:
         standard.release(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     standard.release()
 
@@ -53,12 +45,7 @@ def test_describe_addresses_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_addresses(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeAddresses operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -69,12 +56,7 @@ def test_eip_allocate_vpc():
 
     with pytest.raises(ClientError) as ex:
         client.allocate_address(Domain="vpc", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     vpc = client.allocate_address(Domain="vpc")
     assert "AllocationId" in vpc
@@ -143,12 +125,7 @@ def test_eip_associate_classic():
         client.associate_address(
             InstanceId=instance.id, PublicIp=eip.public_ip, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.associate_address(InstanceId=instance.id, PublicIp=eip.public_ip)
     eip.reload()
@@ -156,12 +133,7 @@ def test_eip_associate_classic():
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address(PublicIp=eip.public_ip, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DisassociateAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.disassociate_address(PublicIp=eip.public_ip)
     eip.reload()
@@ -212,12 +184,7 @@ def test_eip_associate_vpc():
 
     with pytest.raises(ClientError) as ex:
         eip.release(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     eip.release()
     instance.terminate()
@@ -564,7 +531,7 @@ def test_eip_filters():
         if all_values:
             assert len(addresses) == 2
             ips = [addr.public_ip for addr in addresses]
-            assert set(ips) == set([eip1.public_ip, eip2.public_ip])
+            assert set(ips) == {eip1.public_ip, eip2.public_ip}
             assert inst1.public_ip_address in ips
         else:
             ips = [addr.public_ip for addr in addresses]
@@ -708,3 +675,16 @@ def test_describe_addresses_with_vpc_associated_eni():
     assert address["PrivateIpAddress"] == eni.private_ip_address
     assert address["AssociationId"] == association_id
     assert address["NetworkInterfaceOwnerId"] == eni.owner_id
+
+
+@mock_aws
+def test_describe_addresses_attributes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    eip = client.allocate_address(Domain="vpc")
+
+    addresses = client.describe_addresses_attribute(
+        AllocationIds=[eip["AllocationId"]], Attribute="domain-name"
+    )["Addresses"]
+    assert addresses == [
+        {"PublicIp": eip["PublicIp"], "AllocationId": eip["AllocationId"]}
+    ]

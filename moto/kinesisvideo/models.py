@@ -1,9 +1,10 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceInUseException, ResourceNotFoundException
 
@@ -18,7 +19,7 @@ class Stream(BaseModel):
         media_type: str,
         kms_key_id: str,
         data_retention_in_hours: int,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ):
         self.region_name = region_name
         self.stream_name = stream_name
@@ -30,7 +31,7 @@ class Stream(BaseModel):
         self.status = "ACTIVE"
         self.version = random.get_random_string(include_digits=False, lower_case=True)
         self.creation_time = utcnow()
-        stream_arn = f"arn:aws:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
+        stream_arn = f"arn:{get_partition(region_name)}:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
         self.data_endpoint_number = random.get_random_hex()
         self.arn = stream_arn
 
@@ -38,7 +39,7 @@ class Stream(BaseModel):
         data_endpoint_prefix = "s-" if api_name in ("PUT_MEDIA", "GET_MEDIA") else "b-"
         return f"https://{data_endpoint_prefix}{self.data_endpoint_number}.kinesisvideo.{self.region_name}.amazonaws.com"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "DeviceName": self.device_name,
             "StreamName": self.stream_name,
@@ -55,7 +56,7 @@ class Stream(BaseModel):
 class KinesisVideoBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.streams: Dict[str, Stream] = {}
+        self.streams: dict[str, Stream] = {}
 
     def create_stream(
         self,
@@ -64,7 +65,7 @@ class KinesisVideoBackend(BaseBackend):
         media_type: str,
         kms_key_id: str,
         data_retention_in_hours: int,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> str:
         streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
         if len(streams) > 0:
@@ -87,18 +88,17 @@ class KinesisVideoBackend(BaseBackend):
             streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
             if len(streams) == 0:
                 raise ResourceNotFoundException()
-            stream = streams[0]
-        elif stream_arn:
-            stream = self.streams.get(stream_arn)
-            if stream is None:
-                raise ResourceNotFoundException()
+            return streams[0]
+        # Assume stream_arn is supplied instead
+        if not (stream := self.streams.get(stream_arn)):
+            raise ResourceNotFoundException()
         return stream
 
-    def describe_stream(self, stream_name: str, stream_arn: str) -> Dict[str, Any]:
+    def describe_stream(self, stream_name: str, stream_arn: str) -> dict[str, Any]:
         stream = self._get_stream(stream_name, stream_arn)
         return stream.to_dict()
 
-    def list_streams(self) -> List[Dict[str, Any]]:
+    def list_streams(self) -> list[dict[str, Any]]:
         """
         Pagination and the StreamNameCondition-parameter are not yet implemented
         """

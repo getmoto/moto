@@ -10,11 +10,11 @@ class TestHashKey:
     @pytest.mark.parametrize("expression", ["job_id = :id", "job_id = :id "])
     def test_hash_key_only(self, expression):
         eav = {":id": {"S": "asdasdasd"}}
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expression,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == eav[":id"]
         assert comparison is None
@@ -28,7 +28,7 @@ class TestHashKey:
                 expression_attribute_values=eav,
                 key_condition_expression=kce,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert exc.value.message == "Query condition missed key schema element: job_id"
 
@@ -47,7 +47,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=kce,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert exc.value.message == "Query condition missed key schema element: job_id"
 
@@ -66,7 +66,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=expr,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert (
             exc.value.message == "Query condition missed key schema element: start_date"
@@ -84,11 +84,11 @@ class TestHashAndRangeKey:
     )
     def test_begin_with(self, expr):
         eav = {":id": "pk", ":sk": "19"}
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == "BEGINS_WITH"
@@ -102,7 +102,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=f"job_id = :id AND {fn}(start_date,:sk)",
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert (
             exc.value.message
@@ -119,11 +119,11 @@ class TestHashAndRangeKey:
     )
     def test_in_between(self, expr):
         eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == "BETWEEN"
@@ -133,11 +133,11 @@ class TestHashAndRangeKey:
     def test_numeric_comparisons(self, operator):
         eav = {":id": "pk", ":sk": "19"}
         expr = f"job_id = :id and start_date{operator}:sk"
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == operator.strip()
@@ -154,11 +154,11 @@ class TestHashAndRangeKey:
     )
     def test_reverse_keys(self, expr):
         eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
 
@@ -171,11 +171,11 @@ class TestHashAndRangeKey:
         ],
     )
     def test_brackets(self, expr):
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values={":id": "pk", ":sk": "19"},
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
 
@@ -187,7 +187,7 @@ class TestNamesAndValues:
         kce = ":j = :id"
         ean = {":j": "job_id"}
         eav = {":id": {"S": "asdasdasd"}}
-        desired_hash_key, comparison, range_values = parse_expression(
+        desired_hash_key, comparison, range_values, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=kce,
             schema=self.schema,
@@ -196,3 +196,18 @@ class TestNamesAndValues:
         assert desired_hash_key == eav[":id"]
         assert comparison is None
         assert range_values == []
+
+
+def test_expression_attribute_names_found():
+    kce = ":j = :id"
+    ean = {":j": "job_id"}
+    eav = {":id": {"S": "asdasdasd"}}
+    desired_hash_key, comparison, range_values, expression_attribute_names_used = (
+        parse_expression(
+            expression_attribute_values=eav,
+            key_condition_expression=kce,
+            schema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+            expression_attribute_names=ean,
+        )
+    )
+    assert expression_attribute_names_used == [":j"]

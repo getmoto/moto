@@ -1,7 +1,7 @@
 import copy
 import logging
 import threading
-from typing import Any, Final, List, Optional, Set
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.program.program import Program
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
@@ -21,6 +21,15 @@ class Job:
         self.job_input = job_input
         self.job_output = None
 
+
+class JobClosed:
+    job_index: Final[int]
+    job_output: Optional[Any]
+
+    def __init__(self, job_index: int, job_output: Optional[Any]):
+        self.job_index = job_index
+        self.job_output = job_output
+
     def __hash__(self):
         return hash(self.job_index)
 
@@ -31,21 +40,17 @@ class JobPool:
     _worker_exception: Optional[Exception]
 
     _jobs_number: Final[int]
-    _open_jobs: Final[List[Job]]
-    _closed_jobs: Final[Set[Job]]
+    _open_jobs: Final[list[Job]]
+    _closed_jobs: Final[set[JobClosed]]
 
-    def __init__(self, job_program: Program, job_inputs: List[Any]):
+    def __init__(self, job_program: Program, job_inputs: list[Any]):
         self._mutex = threading.Lock()
         self._termination_event = threading.Event()
         self._worker_exception = None
 
         self._jobs_number = len(job_inputs)
         self._open_jobs = [
-            Job(
-                job_index=job_index,
-                job_program=copy.deepcopy(job_program),
-                job_input=job_input,
-            )
+            Job(job_index=job_index, job_program=job_program, job_input=job_input)
             for job_index, job_input in enumerate(job_inputs)
         ]
         self._open_jobs.reverse()
@@ -66,35 +71,39 @@ class JobPool:
             or self._worker_exception is not None
         )
 
-    def _notify_on_termination(self):
+    def _notify_on_termination(self) -> None:
         if self._is_terminated():
             self._termination_event.set()
 
     def get_worker_exception(self) -> Optional[Exception]:
         return self._worker_exception
 
-    def close_job(self, job: Job):
+    def close_job(self, job: Job) -> None:
         with self._mutex:
             if self._is_terminated():
                 return
 
             if job in self._closed_jobs:
                 LOG.warning(
-                    f"Duplicate execution of Job with index '{job.job_index}' and input '{to_json_str(job.job_input)}'"
+                    "Duplicate execution of Job with index '%s' and input '%s'",
+                    job.job_index,
+                    to_json_str(job.job_input),
                 )
 
             if isinstance(job.job_output, Exception):
                 self._worker_exception = job.job_output
             else:
-                self._closed_jobs.add(job)
+                self._closed_jobs.add(
+                    JobClosed(job_index=job.job_index, job_output=job.job_output)
+                )
 
             self._notify_on_termination()
 
-    def get_closed_jobs(self) -> List[Job]:
+    def get_closed_jobs(self) -> list[JobClosed]:
         with self._mutex:
             closed_jobs = copy.deepcopy(self._closed_jobs)
         return sorted(closed_jobs, key=lambda closed_job: closed_job.job_index)
 
-    def await_jobs(self):
+    def await_jobs(self) -> None:
         if not self._is_terminated():
             self._termination_event.wait()

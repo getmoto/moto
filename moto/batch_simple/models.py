@@ -1,7 +1,7 @@
 import datetime
 from os import getenv
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.batch.exceptions import ClientException
 from moto.batch.models import BatchBackend, Job, batch_backends
@@ -52,11 +52,13 @@ class BatchSimpleBackend(BatchBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
-        array_properties: Dict[str, Any],
-        depends_on: Optional[List[Dict[str, str]]] = None,
-        container_overrides: Optional[Dict[str, Any]] = None,
-        timeout: Optional[Dict[str, int]] = None,
-    ) -> Tuple[str, str, str]:
+        array_properties: dict[str, Any],
+        depends_on: Optional[list[dict[str, str]]] = None,
+        container_overrides: Optional[dict[str, Any]] = None,
+        timeout: Optional[dict[str, int]] = None,
+        parameters: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> tuple[str, str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
@@ -70,22 +72,26 @@ class BatchSimpleBackend(BatchBackend):
             job_name,
             job_def,
             queue,
+            self,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
             depends_on=depends_on,
             all_jobs=self._jobs,
             timeout=timeout,
             array_properties=array_properties,
+            parameters=parameters,
+            tags=tags,
         )
 
         if "size" in array_properties:
-            child_jobs: List[Job] = []
+            child_jobs: list[Job] = []
             for array_index in range(array_properties.get("size", 0)):
                 provided_job_id = f"{job.job_id}:{array_index}"
                 child_job = Job(
                     job_name,
                     job_def,
                     queue,
+                    self,
                     log_backend=self.logs_backend,
                     container_overrides=container_overrides,
                     depends_on=depends_on,
@@ -93,6 +99,7 @@ class BatchSimpleBackend(BatchBackend):
                     timeout=timeout,
                     array_properties={"statusSummary": {}, "index": array_index},
                     provided_job_id=provided_job_id,
+                    parameters=parameters,
                 )
                 self._mark_job_as_finished(include_start_attempt=True, job=child_job)
                 child_jobs.append(child_job)

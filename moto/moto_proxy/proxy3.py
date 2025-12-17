@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 import select
 import socket
@@ -6,7 +5,7 @@ import ssl
 from http.server import BaseHTTPRequestHandler
 from subprocess import CalledProcessError, check_output
 from threading import Lock
-from typing import Any, Dict, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 from botocore.awsrequest import AWSPreparedRequest
@@ -16,6 +15,7 @@ from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.exceptions import RESTError
+from moto.core.utils import get_equivalent_url_in_aws_domain
 from moto.moto_api._internal.models import moto_api_backend
 
 from . import debug, error, info, with_color
@@ -34,8 +34,13 @@ class MotoRequestHandler:
         if host == f"http://localhost:{self.port}":
             return "moto_api"
 
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom S3 endpoints.
+        parsed_url, _ = get_equivalent_url_in_aws_domain(host)
+        # Remove the querystring from the URL, as we'll never match on that
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
         for backend, pattern in backend_url_patterns:
-            if pattern.match(host):
+            if pattern.match(clean_url):
                 return backend
 
     def get_handler_for_host(self, host: str, path: str) -> Any:
@@ -52,7 +57,7 @@ class MotoRequestHandler:
             if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
                 backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
             else:
-                backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
         else:
             backend = backend_dict["global"]
 
@@ -69,7 +74,7 @@ class MotoRequestHandler:
         path: str,
         headers: Any,
         body: bytes,
-        form_data: Dict[str, Any],
+        form_data: dict[str, Any],
     ) -> Any:
         handler = self.get_handler_for_host(host=host, path=path)
         if handler is None:
@@ -108,14 +113,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_CONNECT(self) -> None:
         address = self.path.split(":")
-        port = int(address[1]) or 443  # type: ignore
+        port = int(address[1]) or 443
         if address[0] in moto_api_backend.proxy_hosts_to_passthrough:
             self.connect_relay((address[0], port))
             return
 
         certpath = self.cert_creator.create(self.path)
         self.wfile.write(
-            f"{self.protocol_version} 200 Connection Established\r\n".encode("utf-8")
+            f"{self.protocol_version} 200 Connection Established\r\n".encode()
         )
         self.send_header("k", "v")
         self.end_headers()
@@ -145,21 +150,24 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         if f"{host}{path}" in moto_api_backend.proxy_urls_to_passthrough:
             parsed = urlparse(host)
-            self.passthrough_http((parsed.netloc, 80))
+            target_host, target_port = parsed.netloc, "80"
+            if ":" in target_host:
+                target_host, target_port = target_host.split(":")
+            self.passthrough_http((target_host, int(target_port)))
             return
 
         req_body = b""
-        if "Content-Length" in req.headers:
-            content_length = int(req.headers["Content-Length"])
-            req_body = self.rfile.read(content_length)
-        elif "chunked" in self.headers.get("Transfer-Encoding", ""):
+        if "chunked" in self.headers.get("Transfer-Encoding", ""):
             # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
             req_body = self.read_chunked_body(self.rfile)
+        elif "Content-Length" in req.headers:
+            content_length = int(req.headers["Content-Length"])
+            req_body = self.rfile.read(content_length)
         if self.headers.get("Content-Type", "").startswith("multipart/form-data"):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore
             for key, val in form_data.items():
-                self.headers[key] = [val]  # type: ignore[assignment]
+                self.headers[key] = [val]  # type: ignore
         else:
             form_data = {}
 
@@ -208,7 +216,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             res_headers["Content-Length"] = str(len(res_body))
 
         self.wfile.write(
-            f"{self.protocol_version} {res_status} {res_reason}\r\n".encode("utf-8")
+            f"{self.protocol_version} {res_status} {res_reason}\r\n".encode()
         )
         if res_headers:
             for k, v in res_headers.items():
@@ -221,7 +229,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(res_body)
         self.close_connection = True
 
-    def _get_host_and_path(self, req: Any) -> Tuple[str, str]:
+    def _get_host_and_path(self, req: Any) -> tuple[str, str]:
         if isinstance(self.connection, ssl.SSLSocket):
             host = "https://" + req.headers["Host"]
         else:
@@ -231,11 +239,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             path = path[len(host) :]
         return host, path
 
-    def passthrough_http(self, address: Tuple[str, int]) -> None:
+    def passthrough_http(self, address: tuple[str, int]) -> None:
         s = socket.create_connection(address, timeout=self.timeout)
         s.send(self.raw_requestline)  # type: ignore[attr-defined]
         for key, val in self.headers.items():
-            s.send(f"{key}: {val}\r\n".encode("utf-8"))
+            s.send(f"{key}: {val}\r\n".encode())
         s.send(b"\r\n")
         while True:
             data = s.recv(1024)
@@ -243,7 +251,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 break
             self.wfile.write(data)
 
-    def connect_relay(self, address: Tuple[str, int]) -> None:
+    def connect_relay(self, address: tuple[str, int]) -> None:
         try:
             s = socket.create_connection(address, timeout=self.timeout)
         except Exception:
@@ -283,7 +291,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 break
         return chunked_body
 
-    def decode_request_body(self, headers: Dict[str, str], body: Any) -> Any:
+    def decode_request_body(self, headers: dict[str, str], body: Any) -> Any:
         if body is None:
             return body
         if headers.get("Content-Type", "") in [

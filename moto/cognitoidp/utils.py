@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import re
 import string
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.moto_api._internal import mock_random as random
 
@@ -39,6 +39,12 @@ PAGINATION_MODEL = {
         "unique_attribute": "id",
     },
     "list_groups": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 60,
+        "unique_attribute": "group_name",
+    },
+    "admin_list_groups_for_user": {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 60,
@@ -85,11 +91,11 @@ def validate_username_format(username: str, _format: str = "email") -> bool:
     return re.fullmatch(FORMATS.get(_format, r"a^"), username) is not None
 
 
-def flatten_attrs(attrs: List[Dict[str, Any]]) -> Dict[str, Any]:
+def flatten_attrs(attrs: list[dict[str, Any]]) -> dict[str, Any]:
     return {attr["Name"]: attr["Value"] for attr in attrs}
 
 
-def expand_attrs(attrs: Dict[str, Any]) -> List[Dict[str, Any]]:
+def expand_attrs(attrs: dict[str, Any]) -> list[dict[str, Any]]:
     return [{"Name": k, "Value": v} for k, v in attrs.items()]
 
 

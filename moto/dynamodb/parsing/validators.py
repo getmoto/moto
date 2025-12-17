@@ -4,11 +4,12 @@ See docstring class Validator below for more details on validation
 
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Type, Union
+from typing import Any, Callable, Union
 
 from moto.dynamodb.exceptions import (
     AttributeDoesNotExist,
     AttributeIsReservedKeyword,
+    DuplicateUpdateExpression,
     EmptyKeyAttributeException,
     ExpressionAttributeNameNotDefined,
     ExpressionAttributeValueNotDefined,
@@ -17,6 +18,7 @@ from moto.dynamodb.exceptions import (
     InvalidUpdateExpressionInvalidDocumentPath,
     MockValidationException,
     ProvidedKeyDoesNotExist,
+    TooManyClauses,
     UpdateHashRangeKeyException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
@@ -32,26 +34,31 @@ from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
     ExpressionValueOperator,
     Node,
     NoneExistingPath,
+    UpdateExpression,
     UpdateExpressionAddAction,
+    UpdateExpressionAddClause,
     UpdateExpressionClause,
     UpdateExpressionDeleteAction,
     UpdateExpressionFunction,
     UpdateExpressionPath,
     UpdateExpressionRemoveAction,
+    UpdateExpressionRemoveClause,
     UpdateExpressionSetAction,
+    UpdateExpressionSetClause,
     UpdateExpressionValue,
 )
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates, find_path_overlaps
 
 
 class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[misc]
-    def __init__(self, expression_attribute_values: Dict[str, Dict[str, Any]]):
+    def __init__(self, expression_attribute_values: dict[str, dict[str, Any]]):
         self.expression_attribute_values = expression_attribute_values
 
     def _processing_map(
         self,
-    ) -> Dict[
-        Type[ExpressionAttributeValue],
+    ) -> dict[
+        type[ExpressionAttributeValue],
         Callable[[ExpressionAttributeValue], DDBTypedValue],
     ]:
         return {
@@ -74,7 +81,7 @@ class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[mi
 
 
 class ExpressionPathResolver:
-    def __init__(self, expression_attribute_names: Dict[str, str]):
+    def __init__(self, expression_attribute_names: dict[str, str]):
         self.expression_attribute_names = expression_attribute_names
 
     @classmethod
@@ -89,7 +96,7 @@ class ExpressionPathResolver:
         return self.resolve_expression_path_nodes(item, update_expression_path.children)
 
     def resolve_expression_path_nodes(
-        self, item: Item, update_expression_path_nodes: List[Node]
+        self, item: Item, update_expression_path_nodes: list[Node]
     ) -> Union[NoneExistingPath, DDBTypedValue]:
         target = item.attrs
 
@@ -134,7 +141,7 @@ class ExpressionPathResolver:
         return DDBTypedValue(target)
 
     def resolve_expression_path_nodes_to_dynamo_type(
-        self, item: Item, update_expression_path_nodes: List[Node]
+        self, item: Item, update_expression_path_nodes: list[Node]
     ) -> Any:
         node = self.resolve_expression_path_nodes(item, update_expression_path_nodes)
         if isinstance(node, NoneExistingPath):
@@ -146,13 +153,13 @@ class ExpressionPathResolver:
 class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):  # type: ignore[misc]
     def _processing_map(
         self,
-    ) -> Dict[Type[UpdateExpressionClause], Callable[[DDBTypedValue], DDBTypedValue]]:
+    ) -> dict[type[UpdateExpressionClause], Callable[[DDBTypedValue], DDBTypedValue]]:
         return {
             UpdateExpressionSetAction: self.disable_resolving,
             UpdateExpressionPath: self.process_expression_path_node,
         }
 
-    def __init__(self, expression_attribute_names: Dict[str, str], item: Item):
+    def __init__(self, expression_attribute_names: dict[str, str], item: Item):
         self.expression_attribute_names = expression_attribute_names
         self.item = item
         self.resolving = False
@@ -222,8 +229,8 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):  # type: ignore[mi
 
     def _processing_map(
         self,
-    ) -> Dict[
-        Type[UpdateExpressionFunction],
+    ) -> dict[
+        type[UpdateExpressionFunction],
         Callable[[UpdateExpressionFunction], DDBTypedValue],
     ]:
         return {UpdateExpressionFunction: self.process_function}
@@ -273,7 +280,7 @@ class NoneExistingPathChecker(DepthFirstTraverser):  # type: ignore[misc]
     Pass through the AST and make sure there are no none-existing paths.
     """
 
-    def _processing_map(self) -> Dict[Type[NoneExistingPath], Callable[[Node], None]]:
+    def _processing_map(self) -> dict[type[NoneExistingPath], Callable[[Node], None]]:
         return {NoneExistingPath: self.raise_none_existing_path}
 
     def raise_none_existing_path(self, node: Node) -> None:
@@ -283,7 +290,7 @@ class NoneExistingPathChecker(DepthFirstTraverser):  # type: ignore[misc]
 class ExecuteOperations(DepthFirstTraverser):  # type: ignore[misc]
     def _processing_map(
         self,
-    ) -> Dict[Type[UpdateExpressionValue], Callable[[Node], DDBTypedValue]]:
+    ) -> dict[type[UpdateExpressionValue], Callable[[Node], DDBTypedValue]]:
         return {UpdateExpressionValue: self.process_update_expression_value}
 
     def process_update_expression_value(self, node: Node) -> DDBTypedValue:
@@ -359,13 +366,13 @@ class ExecuteOperations(DepthFirstTraverser):  # type: ignore[misc]
 
 
 class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
-    def __init__(self, key_attributes: List[str]):
+    def __init__(self, key_attributes: list[str]):
         self.key_attributes = key_attributes
 
     def _processing_map(
         self,
-    ) -> Dict[
-        Type[UpdateExpressionSetAction],
+    ) -> dict[
+        type[UpdateExpressionSetAction],
         Callable[[UpdateExpressionSetAction], UpdateExpressionSetAction],
     ]:
         return {UpdateExpressionSetAction: self.check_for_empty_string_key_value}
@@ -388,13 +395,13 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
 
 
 class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
-    def __init__(self, key_attributes_type: List[Dict[str, str]]):
+    def __init__(self, key_attributes_type: list[dict[str, str]]):
         self.key_attributes_type = key_attributes_type
 
     def _processing_map(
         self,
-    ) -> Dict[
-        Type[UpdateExpressionSetAction],
+    ) -> dict[
+        type[UpdateExpressionSetAction],
         Callable[[UpdateExpressionSetAction], UpdateExpressionSetAction],
     ]:
         return {UpdateExpressionSetAction: self.check_for_type_mismatch}
@@ -418,16 +425,16 @@ class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
 class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
     def __init__(
         self,
-        table_key_attributes: List[str],
-        expression_attribute_names: Dict[str, str],
+        table_key_attributes: list[str],
+        expression_attribute_names: dict[str, str],
     ):
         self.table_key_attributes = table_key_attributes
         self.expression_attribute_names = expression_attribute_names
 
     def _processing_map(
         self,
-    ) -> Dict[
-        Type[UpdateExpressionPath],
+    ) -> dict[
+        type[UpdateExpressionPath],
         Callable[[UpdateExpressionPath], UpdateExpressionPath],
     ]:
         return {UpdateExpressionPath: self.check_for_hash_or_range_key}
@@ -445,6 +452,82 @@ class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
         return node
 
 
+class OverlappingPathsValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, expression_attribute_names: dict[str, str]):
+        self.expression_attribute_names = expression_attribute_names
+
+    def _processing_map(
+        self,
+    ) -> dict[
+        type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.check_for_overlapping_paths}
+
+    def check_for_overlapping_paths(self, node: UpdateExpression) -> UpdateExpression:
+        actions = node.find_clauses(
+            [
+                UpdateExpressionSetAction,
+                UpdateExpressionAddAction,
+                UpdateExpressionRemoveAction,
+                UpdateExpressionDeleteAction,
+            ]
+        )
+        expression_attribute_name_paths = []
+        plaintext_paths = []
+        for action in actions:
+            path = action.children[0]
+            path_name = path.children[0]
+            # for some reason, if we only have a root expression ('#path1', '#path2'),
+            # AWS only checks for direct matches, not path overlaps
+            if (
+                isinstance(path_name, ExpressionAttributeName)
+                and len(path.children) == 1
+            ):
+                expression_attribute_name_paths.append(
+                    self.expression_attribute_names[
+                        path_name.get_attribute_name_placeholder()
+                    ]
+                )
+            else:
+                plaintext_paths.append(path.to_str())
+
+        overlapping_paths = find_path_overlaps(plaintext_paths)
+        if overlapping_paths:
+            # There might be more than one attribute duplicated:
+            # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+            raise DuplicateUpdateExpression(*overlapping_paths)
+
+        duplicates = find_duplicates(plaintext_paths + expression_attribute_name_paths)
+        if duplicates:
+            raise DuplicateUpdateExpression(*duplicates)
+        return node
+
+
+class ActionCountValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def _processing_map(
+        self,
+    ) -> dict[
+        type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.verify_action_counts}
+
+    def verify_action_counts(self, node: UpdateExpression) -> UpdateExpression:
+        add_clauses = node.find_clauses([UpdateExpressionAddClause])
+        remove_clauses = node.find_clauses([UpdateExpressionRemoveClause])
+        set_clauses = node.find_clauses([UpdateExpressionSetClause])
+
+        # Only allow single ADD/REMOVE clauses
+        if len(add_clauses) > 1:
+            raise TooManyClauses("ADD")
+        if len(remove_clauses) > 1:
+            raise TooManyClauses("REMOVE")
+        if len(set_clauses) > 1:
+            raise TooManyClauses("SET")
+        return node
+
+
 class Validator:
     """
     A validator is used to validate expressions which are passed in as an AST.
@@ -453,8 +536,8 @@ class Validator:
     def __init__(
         self,
         expression: Node,
-        expression_attribute_names: Dict[str, str],
-        expression_attribute_values: Dict[str, Dict[str, Any]],
+        expression_attribute_names: dict[str, str],
+        expression_attribute_values: dict[str, dict[str, Any]],
         item: Item,
         table: Table,
     ):
@@ -476,7 +559,7 @@ class Validator:
         self.node_to_validate = deepcopy(expression)
 
     @abstractmethod
-    def get_ast_processors(self) -> List[DepthFirstTraverser]:  # type: ignore[misc]
+    def get_ast_processors(self) -> list[DepthFirstTraverser]:  # type: ignore[misc]
         """Get the different processors that go through the AST tree and processes the nodes."""
 
     def validate(self) -> Node:
@@ -487,9 +570,11 @@ class Validator:
 
 
 class UpdateExpressionValidator(Validator):
-    def get_ast_processors(self) -> List[DepthFirstTraverser]:
+    def get_ast_processors(self) -> list[DepthFirstTraverser]:
         """Get the different processors that go through the AST tree and processes the nodes."""
         processors = [
+            ActionCountValidator(),
+            OverlappingPathsValidator(self.expression_attribute_names),
             UpdateHashRangeKeyValidator(
                 self.table.table_key_attrs, self.expression_attribute_names or {}
             ),

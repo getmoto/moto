@@ -1,6 +1,6 @@
 """ServiceQuotasBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -16,7 +16,7 @@ class ServiceQuotasBackend(BaseBackend):
 
     def list_aws_default_service_quotas(
         self, service_code: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         The ServiceCodes that are currently implemented are: vpc
         Pagination is not yet implemented.
@@ -25,7 +25,7 @@ class ServiceQuotasBackend(BaseBackend):
             return VPC_DEFAULT_QUOTAS
         raise NoSuchResource
 
-    def get_service_quota(self, service_code: str, quota_code: str) -> Dict[str, Any]:
+    def get_service_quota(self, service_code: str, quota_code: str) -> dict[str, Any]:
         if service_code == "vpc":
             for quota in VPC_DEFAULT_QUOTAS:
                 if quota["QuotaCode"] == quota_code:

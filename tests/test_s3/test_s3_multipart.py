@@ -3,6 +3,7 @@ import re
 from functools import wraps
 from io import BytesIO
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -19,7 +20,7 @@ from moto.settings import (
 )
 from tests import DEFAULT_ACCOUNT_ID
 
-from .test_s3 import add_proxy_details
+from .test_s3 import add_proxy_details, s3_aws_verified
 
 if settings.TEST_DECORATOR_MODE:
     REDUCED_PART_SIZE = 256
@@ -53,12 +54,16 @@ def test_default_key_buffer_size():
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
-    fake_key = s3model.FakeKey("a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID)
+    fake_key = s3model.FakeKey(
+        "a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert fake_key._value_buffer._rolled is False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
-    fake_key = s3model.FakeKey("a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID)
+    fake_key = s3model.FakeKey(
+        "a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert fake_key._value_buffer._rolled is True
 
     # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the
@@ -76,27 +81,27 @@ def test_default_key_buffer_size():
 def test_multipart_upload_too_small():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
-    multipart = client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    multipart = client.create_multipart_upload(Bucket=bucket.name, Key="the-key")
     up1 = client.upload_part(
         Body=BytesIO(b"hello"),
         PartNumber=1,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
     up2 = client.upload_part(
         Body=BytesIO(b"world"),
         PartNumber=2,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
     # Multipart with total size under 5MB is refused
     with pytest.raises(ClientError) as ex:
         client.complete_multipart_upload(
-            Bucket="foobar",
+            Bucket=bucket.name,
             Key="the-key",
             MultipartUpload={
                 "Parts": [
@@ -118,28 +123,28 @@ def test_multipart_upload_too_small():
 def test_multipart_upload(key: str):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     part1 = b"0" * REDUCED_PART_SIZE
     part2 = b"1"
-    multipart = client.create_multipart_upload(Bucket="foobar", Key=key)
+    multipart = client.create_multipart_upload(Bucket=bucket.name, Key=key)
     up1 = client.upload_part(
         Body=BytesIO(part1),
         PartNumber=1,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key=key,
         UploadId=multipart["UploadId"],
     )
     up2 = client.upload_part(
         Body=BytesIO(part2),
         PartNumber=2,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key=key,
         UploadId=multipart["UploadId"],
     )
 
     client.complete_multipart_upload(
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key=key,
         MultipartUpload={
             "Parts": [
@@ -150,8 +155,46 @@ def test_multipart_upload(key: str):
         UploadId=multipart["UploadId"],
     )
     # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key=key)
+    response = client.get_object(Bucket=bucket.name, Key=key)
     assert response["Body"].read() == part1 + part2
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_idempotent_multipart_upload(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
+    kwargs = {
+        "Bucket": bucket_name,
+        "Key": "key.txt",
+        "UploadId": multipart["UploadId"],
+    }
+
+    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
+    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
+
+    parts = {
+        "Parts": [
+            {"ETag": up1["ETag"], "PartNumber": 1},
+            {"ETag": up2["ETag"], "PartNumber": 2},
+        ]
+    }
+
+    resp1 = client.complete_multipart_upload(MultipartUpload=parts, **kwargs)
+    assert resp1["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # We can call this method again
+    resp2 = client.complete_multipart_upload(
+        MultipartUpload=parts,
+        # Even with this parameter supplied
+        IfNoneMatch="*",
+        **kwargs,
+    )
+    assert resp2["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp1["ETag"] == resp2["ETag"]
 
 
 @mock_aws
@@ -159,28 +202,28 @@ def test_multipart_upload(key: str):
 def test_multipart_upload_out_of_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     part1 = b"0" * REDUCED_PART_SIZE
     part2 = b"1"
-    multipart = client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    multipart = client.create_multipart_upload(Bucket=bucket.name, Key="the-key")
     up1 = client.upload_part(
         Body=BytesIO(part1),
         PartNumber=4,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
     up2 = client.upload_part(
         Body=BytesIO(part2),
         PartNumber=2,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
 
     client.complete_multipart_upload(
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         MultipartUpload={
             "Parts": [
@@ -191,7 +234,7 @@ def test_multipart_upload_out_of_order():
         UploadId=multipart["UploadId"],
     )
     # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
+    response = client.get_object(Bucket=bucket.name, Key="the-key")
     assert response["Body"].read() == part1 + part2
 
 
@@ -200,7 +243,7 @@ def test_multipart_upload_out_of_order():
 def test_multipart_upload_with_headers():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "fancymultiparttest"
+    bucket_name = str(uuid4())
     key_name = "the-key"
     s3_resource.create_bucket(Bucket=bucket_name)
 
@@ -255,28 +298,29 @@ def test_multipart_upload_with_headers():
 @reduced_min_part_size
 def test_multipart_upload_with_copy_key(original_key_name):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="foobar")
-    s3_client.put_object(Bucket="foobar", Key=original_key_name, Body="key_value")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_object(Bucket=bucket_name, Key=original_key_name, Body="key_value")
 
-    mpu = s3_client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     part1 = b"0" * REDUCED_PART_SIZE
     up1 = s3_client.upload_part(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
         PartNumber=1,
         UploadId=mpu["UploadId"],
         Body=BytesIO(part1),
     )
     up2 = s3_client.upload_part_copy(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": original_key_name},
+        CopySource={"Bucket": bucket_name, "Key": original_key_name},
         CopySourceRange="0-3",
         PartNumber=2,
         UploadId=mpu["UploadId"],
     )
     s3_client.complete_multipart_upload(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
         MultipartUpload={
             "Parts": [
@@ -286,7 +330,7 @@ def test_multipart_upload_with_copy_key(original_key_name):
         },
         UploadId=mpu["UploadId"],
     )
-    response = s3_client.get_object(Bucket="foobar", Key="the-key")
+    response = s3_client.get_object(Bucket=bucket_name, Key="the-key")
     assert response["Body"].read() == part1 + b"key_"
 
 
@@ -294,40 +338,42 @@ def test_multipart_upload_with_copy_key(original_key_name):
 @reduced_min_part_size
 def test_multipart_upload_cancel():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="foobar")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
-    mpu = s3_client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     part1 = b"0" * REDUCED_PART_SIZE
     s3_client.upload_part(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
         PartNumber=1,
         UploadId=mpu["UploadId"],
         Body=BytesIO(part1),
     )
 
-    uploads = s3_client.list_multipart_uploads(Bucket="foobar")["Uploads"]
+    uploads = s3_client.list_multipart_uploads(Bucket=bucket_name)["Uploads"]
     assert len(uploads) == 1
     assert uploads[0]["Key"] == "the-key"
 
     s3_client.abort_multipart_upload(
-        Bucket="foobar", Key="the-key", UploadId=mpu["UploadId"]
+        Bucket=bucket_name, Key="the-key", UploadId=mpu["UploadId"]
     )
 
-    assert "Uploads" not in s3_client.list_multipart_uploads(Bucket="foobar")
+    assert "Uploads" not in s3_client.list_multipart_uploads(Bucket=bucket_name)
 
 
 @mock_aws
 @reduced_min_part_size
 def test_multipart_etag_quotes_stripped():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="foobar")
-    s3_client.put_object(Bucket="foobar", Key="original-key", Body="key_value")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_object(Bucket=bucket_name, Key="original-key", Body="key_value")
 
-    mpu = s3_client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     part1 = b"0" * REDUCED_PART_SIZE
     up1 = s3_client.upload_part(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
         PartNumber=1,
         UploadId=mpu["UploadId"],
@@ -335,16 +381,16 @@ def test_multipart_etag_quotes_stripped():
     )
     etag1 = up1["ETag"].replace('"', "")
     up2 = s3_client.upload_part_copy(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": "original-key"},
+        CopySource={"Bucket": bucket_name, "Key": "original-key"},
         CopySourceRange="0-3",
         PartNumber=2,
         UploadId=mpu["UploadId"],
     )
     etag2 = up2["CopyPartResult"]["ETag"].replace('"', "")
     s3_client.complete_multipart_upload(
-        Bucket="foobar",
+        Bucket=bucket_name,
         Key="the-key",
         MultipartUpload={
             "Parts": [
@@ -354,7 +400,7 @@ def test_multipart_etag_quotes_stripped():
         },
         UploadId=mpu["UploadId"],
     )
-    response = s3_client.get_object(Bucket="foobar", Key="the-key")
+    response = s3_client.get_object(Bucket=bucket_name, Key="the-key")
     assert response["Body"].read() == part1 + b"key_"
 
 
@@ -363,15 +409,15 @@ def test_multipart_etag_quotes_stripped():
 def test_multipart_duplicate_upload():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     part1 = b"0" * REDUCED_PART_SIZE
     part2 = b"1"
-    multipart = client.create_multipart_upload(Bucket="foobar", Key="the-key")
+    multipart = client.create_multipart_upload(Bucket=bucket.name, Key="the-key")
     client.upload_part(
         Body=BytesIO(part1),
         PartNumber=1,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
@@ -379,20 +425,20 @@ def test_multipart_duplicate_upload():
     up1 = client.upload_part(
         Body=BytesIO(part1),
         PartNumber=1,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
     up2 = client.upload_part(
         Body=BytesIO(part2),
         PartNumber=2,
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         UploadId=multipart["UploadId"],
     )
 
     client.complete_multipart_upload(
-        Bucket="foobar",
+        Bucket=bucket.name,
         Key="the-key",
         MultipartUpload={
             "Parts": [
@@ -403,45 +449,45 @@ def test_multipart_duplicate_upload():
         UploadId=multipart["UploadId"],
     )
     # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
+    response = client.get_object(Bucket=bucket.name, Key="the-key")
     assert response["Body"].read() == part1 + part2
 
 
 @mock_aws
 def test_list_multiparts():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="foobar")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
-    mpu1 = s3_client.create_multipart_upload(Bucket="foobar", Key="one-key")
-    mpu2 = s3_client.create_multipart_upload(Bucket="foobar", Key="two-key")
+    mpu1 = s3_client.create_multipart_upload(Bucket=bucket_name, Key="one-key")
+    mpu2 = s3_client.create_multipart_upload(Bucket=bucket_name, Key="two-key")
 
-    uploads = s3_client.list_multipart_uploads(Bucket="foobar")["Uploads"]
+    uploads = s3_client.list_multipart_uploads(Bucket=bucket_name)["Uploads"]
     assert len(uploads) == 2
     assert {u["Key"]: u["UploadId"] for u in uploads} == (
         {"one-key": mpu1["UploadId"], "two-key": mpu2["UploadId"]}
     )
 
     s3_client.abort_multipart_upload(
-        Bucket="foobar", Key="the-key", UploadId=mpu2["UploadId"]
+        Bucket=bucket_name, Key="the-key", UploadId=mpu2["UploadId"]
     )
 
-    uploads = s3_client.list_multipart_uploads(Bucket="foobar")["Uploads"]
+    uploads = s3_client.list_multipart_uploads(Bucket=bucket_name)["Uploads"]
     assert len(uploads) == 1
     assert uploads[0]["Key"] == "one-key"
 
     s3_client.abort_multipart_upload(
-        Bucket="foobar", Key="the-key", UploadId=mpu1["UploadId"]
+        Bucket=bucket_name, Key="the-key", UploadId=mpu1["UploadId"]
     )
 
-    res = s3_client.list_multipart_uploads(Bucket="foobar")
+    res = s3_client.list_multipart_uploads(Bucket=bucket_name)
     assert "Uploads" not in res
 
 
 @mock_aws
 def test_multipart_should_throw_nosuchupload_if_there_are_no_parts():
-    bucket = boto3.resource("s3", region_name=DEFAULT_REGION_NAME).Bucket(
-        "randombucketname"
-    )
+    resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = resource.Bucket(str(uuid4()))
     bucket.create()
     s3_object = bucket.Object("my/test2")
 
@@ -461,7 +507,7 @@ def test_multipart_should_throw_nosuchupload_if_there_are_no_parts():
 
 @mock_aws
 def test_multipart_wrong_partnumber():
-    bucket_name = "mputest-3593"
+    bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -488,7 +534,7 @@ def test_multipart_wrong_partnumber():
 
 @mock_aws
 def test_multipart_upload_with_tags():
-    bucket = "mybucket"
+    bucket = str(uuid4())
     key = "test/multipartuploadtag/file.txt"
     tags = "a=b"
 
@@ -515,7 +561,7 @@ def test_multipart_upload_with_tags():
 
 @mock_aws
 def test_multipart_upload_should_return_part_10000():
-    bucket = "dummybucket"
+    bucket = str(uuid4())
     s3_client = boto3.client("s3", "us-east-1")
 
     key = "test_file"
@@ -540,7 +586,7 @@ def test_multipart_upload_should_return_part_10000():
 
 @mock_aws
 def test_multipart_upload_without_parts():
-    bucket = "dummybucket"
+    bucket = str(uuid4())
     s3_client = boto3.client("s3", "us-east-1")
 
     key = "test_file"
@@ -556,7 +602,7 @@ def test_multipart_upload_without_parts():
 @mock_aws
 @pytest.mark.parametrize("part_nr", [10001, 10002, 20000])
 def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
-    bucket = "dummy"
+    bucket = str(uuid4())
     s3_client = boto3.client("s3", "us-east-1")
 
     key = "test_file"
@@ -581,12 +627,13 @@ def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
 @mock_aws
 def test_s3_abort_multipart_data_with_invalid_upload_and_key():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
 
-    client.create_bucket(Bucket="blah")
+    client.create_bucket(Bucket=bucket_name)
 
     with pytest.raises(ClientError) as exc:
         client.abort_multipart_upload(
-            Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
+            Bucket=bucket_name, Key="foobar", UploadId="dummy_upload_id"
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchUpload"
@@ -602,16 +649,17 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
 def test_multipart_etag():
     # Create Bucket so that test can run
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
-    upload_id = s3_client.create_multipart_upload(Bucket="mybucket", Key="the-key")[
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")[
         "UploadId"
     ]
     part1 = b"0" * REDUCED_PART_SIZE
     etags = []
     etags.append(
         s3_client.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=1,
             UploadId=upload_id,
@@ -622,7 +670,7 @@ def test_multipart_etag():
     part2 = b"1"
     etags.append(
         s3_client.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=2,
             UploadId=upload_id,
@@ -631,7 +679,7 @@ def test_multipart_etag():
     )
 
     s3_client.complete_multipart_upload(
-        Bucket="mybucket",
+        Bucket=bucket_name,
         Key="the-key",
         UploadId=upload_id,
         MultipartUpload={
@@ -641,7 +689,7 @@ def test_multipart_etag():
         },
     )
     # we should get both parts as the key contents
-    resp = s3_client.get_object(Bucket="mybucket", Key="the-key")
+    resp = s3_client.get_object(Bucket=bucket_name, Key="the-key")
     assert resp["ETag"] == EXPECTED_ETAG
 
 
@@ -650,20 +698,21 @@ def test_multipart_etag():
 def test_multipart_version():
     # Create Bucket so that test can run
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     s3_client.put_bucket_versioning(
-        Bucket="mybucket", VersioningConfiguration={"Status": "Enabled"}
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
 
-    upload_id = s3_client.create_multipart_upload(Bucket="mybucket", Key="the-key")[
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")[
         "UploadId"
     ]
     part1 = b"0" * REDUCED_PART_SIZE
     etags = []
     etags.append(
         s3_client.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=1,
             UploadId=upload_id,
@@ -674,7 +723,7 @@ def test_multipart_version():
     part2 = b"1"
     etags.append(
         s3_client.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=2,
             UploadId=upload_id,
@@ -682,7 +731,7 @@ def test_multipart_version():
         )["ETag"]
     )
     response = s3_client.complete_multipart_upload(
-        Bucket="mybucket",
+        Bucket=bucket_name,
         Key="the-key",
         UploadId=upload_id,
         MultipartUpload={
@@ -713,7 +762,7 @@ def test_multipart_version():
 )
 def test_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
     s3_client = boto3.client("s3", region_name="us-east-1")
-    bucket_name = "mybucketasdfljoqwerasdfas"
+    bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
     mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
@@ -741,7 +790,7 @@ def test_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
 @reduced_min_part_size
 def test_multipart_list_parts():
     s3_client = boto3.client("s3", region_name="us-east-1")
-    bucket_name = "mybucketasdfljoqwerasdfas"
+    bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
     mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
@@ -850,9 +899,10 @@ def test_multipart_list_parts():
 @reduced_min_part_size
 def test_multipart_part_size():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
-    mpu = s3_client.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu = s3_client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     mpu_id = mpu["UploadId"]
 
     parts = []
@@ -861,7 +911,7 @@ def test_multipart_part_size():
         part_size = REDUCED_PART_SIZE + i
         body = b"1" * part_size
         part = s3_client.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=i,
             UploadId=mpu_id,
@@ -871,21 +921,21 @@ def test_multipart_part_size():
         parts.append({"PartNumber": i, "ETag": part["ETag"]})
 
     s3_client.complete_multipart_upload(
-        Bucket="mybucket",
+        Bucket=bucket_name,
         Key="the-key",
         UploadId=mpu_id,
         MultipartUpload={"Parts": parts},
     )
 
     for i in range(1, n_parts + 1):
-        obj = s3_client.head_object(Bucket="mybucket", Key="the-key", PartNumber=i)
+        obj = s3_client.head_object(Bucket=bucket_name, Key="the-key", PartNumber=i)
         assert obj["ContentLength"] == REDUCED_PART_SIZE + i
 
 
 @mock_aws
 def test_complete_multipart_with_empty_partlist():
     """Verify InvalidXML-error sent for MultipartUpload with empty part list."""
-    bucket = "testbucketthatcompletesmultipartuploadwithoutparts"
+    bucket = str(uuid4())
     key = "test-multi-empty"
 
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -910,7 +960,7 @@ def test_complete_multipart_with_empty_partlist():
 def test_ssm_key_headers_in_create_multipart():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    bucket_name = "ssm-headers-bucket"
+    bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
     kms_key_id = "random-id"
@@ -951,7 +1001,7 @@ def test_ssm_key_headers_in_create_multipart():
 def test_generate_presigned_url_on_multipart_upload_without_acl():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    bucket_name = "testing"
+    bucket_name = str(uuid4())
     client.create_bucket(Bucket=bucket_name)
 
     object_key = "test_multipart_object"
@@ -995,7 +1045,7 @@ def test_generate_presigned_url_on_multipart_upload_without_acl():
 @mock_aws
 @reduced_min_part_size
 def test_head_object_returns_part_count():
-    bucket = "telstra-energy-test"
+    bucket = str(uuid4())
     key = "test-single-multi-part"
 
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -1037,7 +1087,7 @@ def test_head_object_returns_part_count():
 def test_generate_presigned_url_for_multipart_upload():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("No point in testing this outside decorator mode")
-    bucket_name = "mock-bucket"
+    bucket_name = str(uuid4())
     file_name = "mock-file"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
@@ -1061,3 +1111,55 @@ def test_generate_presigned_url_for_multipart_upload():
 
     resp = requests.put(url, data=data)
     assert resp.status_code == 200
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified()
+def test_multipart_upload_overwrites(bucket_name=None):
+    s3_client = boto3.client("s3", "us-east-1")
+    key = "mykey.txt"
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    part_data = b"First part data"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=part_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    new_data = b"New data that should overwrite"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=new_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    result = s3_client.get_object(Bucket=bucket_name, Key=key)
+    content = result["Body"].read()
+
+    assert content == new_data

@@ -22,15 +22,17 @@ servicediscovery
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
-- [ ] deregister_instance
-- [ ] discover_instances
-- [ ] discover_instances_revision
-- [ ] get_instance
-- [ ] get_instances_health_status
+- [ ] delete_service_attributes
+- [X] deregister_instance
+- [X] discover_instances
+- [X] discover_instances_revision
+- [X] get_instance
+- [X] get_instances_health_status
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
-- [ ] list_instances
+- [ ] get_service_attributes
+- [X] list_instances
 - [X] list_namespaces
   
         Pagination or the Filters-parameter is not yet implemented
@@ -47,12 +49,13 @@ servicediscovery
         
 
 - [X] list_tags_for_resource
-- [ ] register_instance
+- [X] register_instance
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_http_namespace
-- [ ] update_instance_custom_health_status
+- [X] update_http_namespace
+- [X] update_instance_custom_health_status
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
+- [ ] update_service_attributes
 

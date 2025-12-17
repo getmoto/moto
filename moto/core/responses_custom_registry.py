@@ -1,6 +1,6 @@
 # This will only exist in responses >= 0.17
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib.parse import urlunparse
 
 import responses
@@ -19,10 +19,10 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
     """
 
     def __init__(self) -> None:
-        self._registered: Dict[str, List[responses.BaseResponse]] = defaultdict(list)
+        self._registered: dict[str, list[responses.BaseResponse]] = defaultdict(list)
 
     @property
-    def registered(self) -> List[responses.BaseResponse]:
+    def registered(self) -> list[responses.BaseResponse]:
         res = []
         for resps in self._registered.values():
             res += resps
@@ -32,10 +32,27 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         self._registered[response.method].append(response)
         return response
 
+    def replace(self, response: responses.BaseResponse) -> responses.BaseResponse:
+        registered = self._registered[response.method]
+        try:
+            index = registered.index(response)
+        except ValueError:
+            raise ValueError(f"Response is not registered for URL {response.url}")
+        registered[index] = response
+        return response
+
+    def remove(self, response: responses.BaseResponse) -> list[responses.BaseResponse]:
+        removed_responses = []
+        registered = self._registered[response.method]
+        while response in registered:
+            registered.remove(response)
+            removed_responses.append(response)
+        return removed_responses
+
     def reset(self) -> None:
         self._registered.clear()
 
-    def find(self, request: Any) -> Tuple[Optional[responses.BaseResponse], List[str]]:
+    def find(self, request: Any) -> tuple[Optional[responses.BaseResponse], list[str]]:
         # We don't have to search through all possible methods - only the ones registered for this particular method
         all_possibles = (
             responses._default_mock._registry.registered
@@ -75,7 +92,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
             #  - Callbacks created by APIGateway to intercept URL requests to *.execute-api.amazonaws.com
             #
             for match in implemented_matches:
-                if type(match) == responses.CallbackResponse:
+                if type(match) is responses.CallbackResponse:
                     return match, match_failed_reasons
             # Return moto.core.custom_responses_mock.CallbackResponse otherwise
             return implemented_matches[0], match_failed_reasons

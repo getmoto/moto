@@ -142,6 +142,17 @@ def test_get_api_unknown():
 
 
 @mock_aws
+def test_get_api_without_id():
+    client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
+    resp = client.get_api(ApiId="")
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    del resp["ResponseMetadata"]
+    assert resp == {}
+
+
+@mock_aws
 def test_get_api():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-get-api", ProtocolType="WEBSOCKET")["ApiId"]

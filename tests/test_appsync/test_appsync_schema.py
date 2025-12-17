@@ -95,8 +95,11 @@ def test_get_schema_creation_status_invalid():
 
 
 @mock_aws
-def test_get_type_from_schema():
-    client = boto3.client("appsync", region_name="us-east-2")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_type_from_schema(region, partition):
+    client = boto3.client("appsync", region_name=region)
 
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
         "graphqlApi"
@@ -109,7 +112,7 @@ def test_get_type_from_schema():
     graphql_type = resp["type"]
     assert graphql_type["name"] == "Post"
     assert graphql_type["description"] == "My custom post type"
-    assert graphql_type["arn"] == "arn:aws:appsync:graphql_type/Post"
+    assert graphql_type["arn"] == f"arn:{partition}:appsync:graphql_type/Post"
     assert graphql_type["definition"] == "NotYetImplemented"
     assert graphql_type["format"] == "SDL"
 

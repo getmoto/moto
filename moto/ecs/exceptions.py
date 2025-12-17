@@ -1,63 +1,51 @@
-from moto.core.exceptions import JsonRESTError, RESTError
+from moto.core.exceptions import ServiceException
 
 
-class ServiceNotFoundException(RESTError):
-    code = 400
+class ECSException(ServiceException):
+    pass
 
+
+class ServiceNotFoundException(ECSException):
+    def __init__(self) -> None:
+        super().__init__("ServiceNotFoundException", "Service not found.")
+
+
+class TaskDefinitionNotFoundException(ECSException):
     def __init__(self) -> None:
         super().__init__(
-            error_type="ServiceNotFoundException", message="Service not found."
+            "ClientException",
+            "Unable to describe task definition.",
         )
 
 
-class TaskDefinitionNotFoundException(JsonRESTError):
-    code = 400
+class RevisionNotFoundException(ECSException):
+    def __init__(self) -> None:
+        super().__init__("ClientException", "Revision is missing.")
 
+
+class TaskSetNotFoundException(ECSException):
     def __init__(self) -> None:
         super().__init__(
-            error_type="ClientException",
-            message="Unable to describe task definition.",
+            "ClientException",
+            "The specified task set does not exist.",
         )
 
 
-class RevisionNotFoundException(JsonRESTError):
-    code = 400
-
+class ClusterNotFoundException(ECSException):
     def __init__(self) -> None:
-        super().__init__(error_type="ClientException", message="Revision is missing.")
+        super().__init__("ClusterNotFoundException", "Cluster not found.")
 
 
-class TaskSetNotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            error_type="ClientException",
-            message="The specified task set does not exist.",
-        )
+class EcsClientException(ECSException):
+    def __init__(self, message: str):
+        super().__init__("ClientException", message)
 
 
-class ClusterNotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            error_type="ClusterNotFoundException", message="Cluster not found."
-        )
-
-
-class EcsClientException(JsonRESTError):
-    code = 400
+class InvalidParameterException(ECSException):
+    code = "InvalidParameterException"
 
     def __init__(self, message: str):
-        super().__init__(error_type="ClientException", message=message)
-
-
-class InvalidParameterException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__(error_type="InvalidParameterException", message=message)
+        super().__init__(message)
 
 
 class UnknownAccountSettingException(InvalidParameterException):
@@ -67,17 +55,17 @@ class UnknownAccountSettingException(InvalidParameterException):
         )
 
 
-class TaskDefinitionMemoryError(JsonRESTError):
+class TaskDefinitionMemoryError(ECSException):
     def __init__(self, container_name: str) -> None:
         super().__init__(
-            error_type="ClientException",
-            message=f"Invalid setting for container '{container_name}'. At least one of 'memory' or 'memoryReservation' must be specified.",
+            "ClientException",
+            f"Invalid setting for container '{container_name}'. At least one of 'memory' or 'memoryReservation' must be specified.",
         )
 
 
-class TaskDefinitionMissingPropertyError(JsonRESTError):
+class TaskDefinitionMissingPropertyError(ECSException):
     def __init__(self, missing_prop: str) -> None:
         super().__init__(
-            error_type="ClientException",
-            message=f"Container.{missing_prop} should not be null or empty.",
+            "ClientException",
+            f"Container.{missing_prop} should not be null or empty.",
         )

@@ -1,20 +1,22 @@
 import re
 import string
-from typing import Pattern, Union
+from re import Pattern
+from typing import Union
 
 from moto.moto_api._internal import mock_random as random
 
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
-ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"
-MASTER_ACCOUNT_ARN_FORMAT = "arn:aws:organizations::{0}:account/{1}/{0}"
-ACCOUNT_ARN_FORMAT = "arn:aws:organizations::{0}:account/{1}/{2}"
-ROOT_ARN_FORMAT = "arn:aws:organizations::{0}:root/{1}/{2}"
-OU_ARN_FORMAT = "arn:aws:organizations::{0}:ou/{1}/{2}"
-SCP_ARN_FORMAT = "arn:aws:organizations::{0}:policy/{1}/service_control_policy/{2}"
+ORGANIZATION_ARN_FORMAT = "arn:{0}:organizations::{1}:organization/{2}"
+MASTER_ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{1}"
+ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{3}"
+ROOT_ARN_FORMAT = "arn:{0}:organizations::{1}:root/{2}/{3}"
+OU_ARN_FORMAT = "arn:{0}:organizations::{1}:ou/{2}/{3}"
+SCP_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/service_control_policy/{3}"
 AI_POLICY_ARN_FORMAT = (
-    "arn:aws:organizations::{0}:policy/{1}/aiservices_opt_out_policy/{2}"
+    "arn:{0}:organizations::{1}:policy/{2}/aiservices_opt_out_policy/{3}"
 )
+TAG_POLICY_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/tag_policy/{3}"
 
 CHARSET = string.ascii_lowercase + string.digits
 ORG_ID_SIZE = 10
@@ -45,14 +47,14 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 20,
         "result_key": "Accounts",
-        "unique_attribute": "JoinedTimestamp",
+        "unique_attribute": "id",
     },
     "list_organizational_units_for_parent": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 20,
         "result_key": "OrganizationalUnits",
-        "unique_attribute": "Id",
+        "unique_attribute": "id",
     },
 }
 

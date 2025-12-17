@@ -1,5 +1,4 @@
 import json
-import os
 from functools import wraps
 from time import sleep
 from typing import TYPE_CHECKING, Callable, TypeVar
@@ -10,6 +9,7 @@ import requests
 
 from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests import allow_aws_request
 from tests.test_stepfunctions.parser.templates.templates import load_template
 
 if TYPE_CHECKING:
@@ -31,11 +31,7 @@ def aws_verified(func):
 
     @wraps(func)
     def pagination_wrapper():
-        allow_aws_request = (
-            os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
-        )
-
-        if allow_aws_request:
+        if allow_aws_request():
             return func()
         else:
             with mock_aws():
@@ -74,23 +70,40 @@ def verify_execution_result(
     execution_arn, state_machine_arn = _start_execution(
         client, load_template(tmpl_name), exec_input, sfn_role
     )
-    for _ in range(10):
+    for _ in range(30):
         execution = client.describe_execution(executionArn=execution_arn)
-        if execution["status"] == expected_status:
-            result = _verify_result(client, execution, execution_arn)
-            if result is not False:
-                client.delete_state_machine(stateMachineArn=state_machine_arn)
-                iam.delete_role_policy(
-                    RoleName=role_name, PolicyName="allowLambdaInvoke"
-                )
-                iam.delete_role(RoleName=role_name)
-                break
-        sleep(0.1)
+        if expected_status is None or execution["status"] == expected_status:
+            try:
+                result = _verify_result(client, execution, execution_arn)
+                if result is not False:
+                    _teardown(client, iam, role_name, state_machine_arn)
+                    break
+            except Exception:
+                _teardown(client, iam, role_name, state_machine_arn)
+                raise
+        sleep(10 if allow_aws_request() else 0.1)
     else:
-        client.delete_state_machine(stateMachineArn=state_machine_arn)
-        iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
-        iam.delete_role(RoleName=role_name)
-        assert False, "Should have failed already"
+        _teardown(client, iam, role_name, state_machine_arn)
+        raise AssertionError("Should have failed already")
+
+
+def _teardown(client, iam, role_name, state_machine_arn):
+    # Stop/Cancel any existing executions, as deletion will only occur after all executions have finished
+    execs = client.list_executions(stateMachineArn=state_machine_arn)["executions"]
+    for exec in execs:
+        if exec["status"] == "RUNNING":
+            try:
+                client.stop_execution(executionArn=exec["executionArn"])
+            except Exception as e:
+                # list_executions sometimes returns an execution as RUNNING,even though it has already failed
+                # Cancelling it again will fail, but we should not stop everything
+                # Just log it for visibility
+                print(f"Unable to stop 'running' execution in {state_machine_arn}")  # noqa
+                print(e)  # noqa
+    # Delete actual resources
+    client.delete_state_machine(stateMachineArn=state_machine_arn)
+    iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
+    iam.delete_role(RoleName=role_name)
 
 
 def _start_execution(client, definition, exec_input, sfn_role):

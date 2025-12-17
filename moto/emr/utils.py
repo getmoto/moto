@@ -1,12 +1,10 @@
 import copy
 import re
 import string
-from typing import Any, Dict, Iterator, List, Tuple
+from collections.abc import Iterator
+from typing import Any
 
-from moto.core.utils import (
-    camelcase_to_underscores,
-    iso_8601_datetime_with_milliseconds,
-)
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 
 
@@ -27,139 +25,6 @@ def random_instance_group_id() -> str:
     return f"i-{random_id()}"
 
 
-def steps_from_query_string(
-    querystring_dict: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    steps = []
-    for step in querystring_dict:
-        step["jar"] = step.pop("hadoop_jar_step._jar")
-        step["args"] = []
-        idx = 1
-        keyfmt = "hadoop_jar_step._args.member.{0}"
-        while keyfmt.format(idx) in step:
-            step["args"].append(step.pop(keyfmt.format(idx)))
-            idx += 1
-
-        idx = 1
-        keyfmt_prop = "hadoop_jar_step._properties.member.{0}._key"
-        properties = {}
-        while keyfmt_prop.format(idx) in step:
-            key = keyfmt_prop.format(idx)
-            value = key.replace("_key", "_value")
-            properties[step.pop(key)] = step.pop(value)
-            idx += 1
-
-        step["properties"] = properties
-        steps.append(step)
-    return steps
-
-
-class Unflattener:
-    @staticmethod
-    def unflatten_complex_params(input_dict: Dict[str, Any], param_name: str) -> None:  # type: ignore[misc]
-        """Function to unflatten (portions of) dicts with complex keys.  The moto request parser flattens the incoming
-        request bodies, which is generally helpful, but for nested dicts/lists can result in a hard-to-manage
-        parameter exposion.  This function allows one to selectively unflatten a set of dict keys, replacing them
-        with a deep dist/list structure named identically to the root component in the complex name.
-
-        Complex keys are composed of multiple components
-        separated by periods. Components may be prefixed with _, which is stripped.  Lists indexes are represented
-        with two components, 'member' and the index number."""
-        items_to_process = {}
-        for k in input_dict.keys():
-            if k.startswith(param_name):
-                items_to_process[k] = input_dict[k]
-        if len(items_to_process) == 0:
-            return
-
-        for k in items_to_process.keys():
-            del input_dict[k]
-
-        for k in items_to_process.keys():
-            Unflattener._set_deep(k, input_dict, items_to_process[k])
-
-    @staticmethod
-    def _set_deep(complex_key: Any, container: Any, value: Any) -> None:  # type: ignore[misc]
-        keys = complex_key.split(".")
-        keys.reverse()
-
-        while len(keys) > 0:
-            if len(keys) == 1:
-                key = keys.pop().strip("_")
-                Unflattener._add_to_container(container, key, value)
-            else:
-                key = keys.pop().strip("_")
-                if keys[-1] == "member":
-                    keys.pop()
-                    if not Unflattener._key_in_container(container, key):
-                        container = Unflattener._add_to_container(container, key, [])
-                    else:
-                        container = Unflattener._get_child(container, key)
-                else:
-                    if not Unflattener._key_in_container(container, key):
-                        container = Unflattener._add_to_container(container, key, {})
-                    else:
-                        container = Unflattener._get_child(container, key)
-
-    @staticmethod
-    def _add_to_container(container: Any, key: Any, value: Any) -> Any:  # type: ignore[misc]
-        if isinstance(container, dict):
-            container[key] = value
-        elif isinstance(container, list):
-            i = int(key)
-            while len(container) < i:
-                container.append(None)
-            container[i - 1] = value
-        return value
-
-    @staticmethod
-    def _get_child(container: Any, key: Any) -> Any:  # type: ignore[misc]
-        if isinstance(container, dict):
-            return container[key]
-        elif isinstance(container, list):
-            i = int(key)
-            return container[i - 1]
-
-    @staticmethod
-    def _key_in_container(container: Any, key: Any) -> bool:  # type: ignore
-        if isinstance(container, dict):
-            return key in container
-        elif isinstance(container, list):
-            i = int(key)
-            return len(container) >= i
-
-
-class CamelToUnderscoresWalker:
-    """A class to convert the keys in dict/list hierarchical data structures from CamelCase to snake_case (underscores)"""
-
-    @staticmethod
-    def parse(x: Any) -> Any:  # type: ignore[misc]
-        if isinstance(x, dict):
-            return CamelToUnderscoresWalker.parse_dict(x)
-        elif isinstance(x, list):
-            return CamelToUnderscoresWalker.parse_list(x)
-        else:
-            return CamelToUnderscoresWalker.parse_scalar(x)
-
-    @staticmethod
-    def parse_dict(x: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
-        temp = {}
-        for key in x.keys():
-            temp[camelcase_to_underscores(key)] = CamelToUnderscoresWalker.parse(x[key])
-        return temp
-
-    @staticmethod
-    def parse_list(x: Any) -> Any:  # type: ignore[misc]
-        temp = []
-        for i in x:
-            temp.append(CamelToUnderscoresWalker.parse(i))
-        return temp
-
-    @staticmethod
-    def parse_scalar(x: Any) -> Any:  # type: ignore[misc]
-        return x
-
-
 class ReleaseLabel:
     version_re = re.compile(r"^emr-(\d+)\.(\d+)\.(\d+)$")
 
@@ -171,7 +36,7 @@ class ReleaseLabel:
         self.patch = patch
 
     @classmethod
-    def parse(cls, release_label: str) -> Tuple[int, int, int]:
+    def parse(cls, release_label: str) -> tuple[int, int, int]:
         if not release_label:
             raise ValueError(f"Invalid empty ReleaseLabel: {release_label}")
 
@@ -190,7 +55,7 @@ class ReleaseLabel:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self)})"
 
-    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
+    def __iter__(self) -> Iterator[tuple[int, int, int]]:
         return iter((self.major, self.minor, self.patch))  # type: ignore
 
     def __eq__(self, other: Any) -> bool:
@@ -397,7 +262,7 @@ class EmrSecurityGroupManager:
         master_security_group: str,
         slave_security_group: str,
         service_access_security_group: str,
-    ) -> Tuple[Any, Any, Any]:
+    ) -> tuple[Any, Any, Any]:
         group_metadata = [
             (
                 master_security_group,
@@ -415,7 +280,7 @@ class EmrSecurityGroupManager:
                 EmrManagedServiceAccessSecurityGroup,
             ),
         ]
-        managed_groups: Dict[str, Any] = {}
+        managed_groups: dict[str, Any] = {}
         for name, kind, defaults in group_metadata:
             managed_groups[kind] = self._get_or_create_sg(name, defaults)
         self._add_rules_to(managed_groups)
@@ -438,7 +303,7 @@ class EmrSecurityGroupManager:
             group = create_sg(defaults.group_name, defaults.description(), self.vpc_id)
         return group
 
-    def _add_rules_to(self, managed_groups: Dict[str, Any]) -> None:
+    def _add_rules_to(self, managed_groups: dict[str, Any]) -> None:
         rules_metadata = [
             (self.MANAGED_RULES_EGRESS, self.ec2.authorize_security_group_egress),
             (self.MANAGED_RULES_INGRESS, self.ec2.authorize_security_group_ingress),
@@ -456,8 +321,8 @@ class EmrSecurityGroupManager:
 
     @staticmethod
     def _render_rules(  # type: ignore[misc]
-        rules: Any, managed_groups: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        rules: Any, managed_groups: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         rendered_rules = copy.deepcopy(rules)
         for rule in rendered_rules:
             rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id

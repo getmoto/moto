@@ -44,3 +44,15 @@ class LimitExceededException(LogsClientError):
     def __init__(self) -> None:
         self.code = 400
         super().__init__("LimitExceededException", "Resource limit exceeded.")
+
+
+class ValidationException(LogsClientError):
+    def __init__(self, msg: str) -> None:
+        self.code = 400
+        super().__init__("ValidationException", msg)
+
+
+class ConflictException(LogsClientError):
+    def __init__(self, msg: str) -> None:
+        self.code = 400
+        super().__init__("ConflictException", msg)

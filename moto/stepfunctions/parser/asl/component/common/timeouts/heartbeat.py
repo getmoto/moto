@@ -1,9 +1,25 @@
 import abc
 from typing import Final
 
+from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, HistoryEventType
+from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
+    FailureEvent,
+    FailureEventException,
+)
+from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name import (
+    StatesErrorName,
+)
+from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
+    StatesErrorNameType,
+)
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringJSONata,
+    StringSampler,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
+from moto.stepfunctions.parser.asl.utils.json_path import NoSuchJsonPathError
 
 
 class Heartbeat(EvalComponent, abc.ABC):
@@ -27,17 +43,46 @@ class HeartbeatSeconds(Heartbeat):
         return self.heartbeat_seconds
 
 
-class HeartbeatSecondsPath(Heartbeat):
-    def __init__(self, path: str):
-        self.path: Final[str] = path
+class HeartbeatSecondsJSONata(Heartbeat):
+    string_jsonata: Final[StringJSONata]
 
-    @classmethod
-    def from_raw(cls, path: str):
-        return cls(path=path)
+    def __init__(self, string_jsonata: StringJSONata):
+        super().__init__()
+        self.string_jsonata = string_jsonata
 
     def _eval_seconds(self, env: Environment) -> int:
-        inp = env.stack[-1]
-        seconds = JSONPathUtils.extract_json(self.path, inp)
+        self.string_jsonata.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        seconds = int(env.stack.pop())
+        return seconds
+
+
+class HeartbeatSecondsPath(Heartbeat):
+    string_sampler: Final[StringSampler]
+
+    def __init__(self, string_sampler: StringSampler):
+        self.string_sampler = string_sampler
+
+    def _eval_seconds(self, env: Environment) -> int:
+        try:
+            self.string_sampler.eval(env=env)
+        except NoSuchJsonPathError as no_such_json_path_error:
+            json_path = no_such_json_path_error.json_path
+            cause = f"Invalid path '{json_path}' : No results for path: $['{json_path[2:]}']"
+            raise FailureEventException(
+                failure_event=FailureEvent(
+                    env=env,
+                    error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
+                    event_type=HistoryEventType.ExecutionFailed,
+                    event_details=EventDetails(
+                        executionFailedEventDetails=ExecutionFailedEventDetails(
+                            error=StatesErrorNameType.StatesRuntime.to_name(),
+                            cause=cause,
+                        )
+                    ),
+                )
+            )
+        seconds = env.stack.pop()
         if not isinstance(seconds, int) and seconds <= 0:
             raise ValueError(
                 f"Expected non-negative integer for HeartbeatSecondsPath, got '{seconds}' instead."

@@ -7,21 +7,23 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from tests import EXAMPLE_AMI_ID
+from moto.core.types import Base64EncodedString
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_aws
-def test_propogate_tags():
+def test_propagate_attributes():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
+    user_data = Base64EncodedString.from_raw_string("test user data")
     conn.create_launch_configuration(
         LaunchConfigurationName="TestLC",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t2.medium",
+        UserData=user_data.decode(),
     )
-
     conn.create_auto_scaling_group(
         AutoScalingGroupName="TestGroup1",
         MinSize=1,
@@ -38,13 +40,16 @@ def test_propogate_tags():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.describe_instances()
-
-    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    instance = instances["Reservations"][0]["Instances"][0]
+    tags = instance["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
+    resp = ec2.describe_instance_attribute(
+        InstanceId=instance["InstanceId"], Attribute="userData"
+    )
+    assert resp["UserData"]["Value"] == str(user_data)
 
 
 @mock_aws
@@ -409,6 +414,56 @@ def test_describe_autoscaling_groups_launch_template():
 
 
 @mock_aws
+def test_describe_autoscaling_groups_launch_template_with_block_device_mappings():
+    mocked_networking = setup_networking()
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_launch_template(
+        LaunchTemplateName="test_launch_template",
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "InstanceType": "t2.micro",
+            "BlockDeviceMappings": [
+                {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": 20,
+                        "DeleteOnTermination": True,
+                        "VolumeType": "gp3",
+                        "Encrypted": True,
+                    },
+                }
+            ],
+        },
+    )
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchTemplate={"LaunchTemplateName": "test_launch_template", "Version": "1"},
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+        NewInstancesProtectedFromScaleIn=True,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    group = response["AutoScalingGroups"][0]
+    for instance in group["Instances"]:
+        volumes = ec2_client.describe_volumes(
+            Filters=[
+                {"Name": "attachment.instance-id", "Values": [instance["InstanceId"]]}
+            ]
+        )["Volumes"]
+        # The standard root volume
+        assert volumes[0]["VolumeType"] == "gp2"
+        assert volumes[0]["Size"] == 8
+        # Our Ebs-volume
+        assert volumes[1]["VolumeType"] == "gp3"
+        assert volumes[1]["Size"] == 20
+
+
+@mock_aws
 def test_describe_autoscaling_instances_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -652,6 +707,53 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
 
 
 @mock_aws
+def test_update_autoscaling_group_health_check():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+
+    client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=2,
+        MaxSize=20,
+        DesiredCapacity=3,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "EC2"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 300
+    client.update_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        HealthCheckType="ELB",
+        HealthCheckGracePeriod=500,
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "ELB"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 500
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_update_unknown_group():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_auto_scaling_group(
+            AutoScalingGroupName="fake-asg",
+            MinSize=2,
+            MaxSize=2,
+            DesiredCapacity=2,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "AutoScalingGroup name not found - null"
+
+
+@mock_aws
 def test_autoscaling_describe_policies():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -796,10 +898,7 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
             "PredefinedMetricType": "ASGAverageNetworkIn",
         },
         "CustomizedMetricSpecification": {
-            "MetricName": "None",
-            "Namespace": "None",
             "Dimensions": [],
-            "Statistic": "None",
             "Metrics": [
                 {
                     "Label": "Get ASGAverageCPUUtilization",
@@ -813,7 +912,6 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                             ],
                         },
                         "Stat": "Average",
-                        "Unit": "None",
                     },
                     "ReturnData": False,
                 },
@@ -1348,6 +1446,14 @@ def test_sets_created_time():
 
     asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
     assert len(asgs) == 1
-    assert asgs[0]["CreatedTime"] != datetime.strptime(
-        "2013-05-06T17:47:15.107Z", "%Y-%m-%dT%H:%M:%S.%f%z"
+    assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
+        "%Y %m %d"
     )
+
+
+@mock_aws
+def test_describe_scaling_activities():
+    conn = boto3.client("autoscaling", region_name="us-east-1")
+    response = conn.describe_scaling_activities()
+    # Not yet implemented.
+    assert response["Activities"] == []

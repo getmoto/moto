@@ -64,14 +64,12 @@ def test_create_load_balancer(zones, region_name):
         "LoadBalancerPort": 80,
         "InstanceProtocol": "TCP",
         "InstancePort": 8080,
-        "SSLCertificateId": "None",
     }
     assert http == {
         "Protocol": "HTTP",
         "LoadBalancerPort": 81,
         "InstanceProtocol": "HTTP",
         "InstancePort": 9000,
-        "SSLCertificateId": "None",
     }
 
 
@@ -176,7 +174,7 @@ def test_create_load_balancer_with_invalid_certificate():
             AvailabilityZones=["us-east-2a"],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "CertificateNotFoundException"
+    assert err["Code"] == "CertificateNotFound"
 
 
 @mock_aws
@@ -400,7 +398,7 @@ def test_create_lb_listener_with_ssl_certificate_from_acm():
     assert len(listeners) == 2
 
     assert listeners[0]["Listener"]["Protocol"] == "HTTP"
-    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
+    assert listeners[0]["Listener"].get("SSLCertificateId") is None
 
     assert listeners[1]["Listener"]["Protocol"] == "TCP"
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
@@ -440,7 +438,7 @@ def test_create_lb_listener_with_ssl_certificate_from_iam():
     assert len(listeners) == 2
 
     assert listeners[0]["Listener"]["Protocol"] == "HTTP"
-    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
+    assert listeners[0]["Listener"].get("SSLCertificateId") is None
 
     assert listeners[1]["Listener"]["Protocol"] == "TCP"
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
@@ -469,7 +467,7 @@ def test_create_lb_listener_with_invalid_ssl_certificate():
             ],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "CertificateNotFoundException"
+    assert err["Code"] == "CertificateNotFound"
 
 
 @mock_aws
@@ -503,11 +501,57 @@ def test_set_sslcertificate():
 
     listener = elb["ListenerDescriptions"][0]["Listener"]
     assert listener["LoadBalancerPort"] == 80
-    assert listener["SSLCertificateId"] == "None"
+    assert listener.get("SSLCertificateId") is None
 
     listener = elb["ListenerDescriptions"][1]["Listener"]
     assert listener["LoadBalancerPort"] == 81
     assert listener["SSLCertificateId"] == certificate_arn
+
+
+@mock_aws
+def test_set_sslcertificate_update_to_iam_certificate():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name = str(uuid4())[0:6]
+
+    old_cert_response = iam_client.upload_server_certificate(
+        ServerCertificateName="old-cert",
+        CertificateBody="old-cert-body",
+        PrivateKey="old-private-key",
+    )
+    old_cert_arn = old_cert_response["ServerCertificateMetadata"]["Arn"]
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {
+                "Protocol": "https",
+                "LoadBalancerPort": 443,
+                "InstancePort": 8080,
+                "SSLCertificateId": old_cert_arn,
+            }
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    new_cert_response = iam_client.upload_server_certificate(
+        ServerCertificateName="new-cert",
+        CertificateBody="new-cert-body",
+        PrivateKey="new-private-key",
+    )
+    new_cert_arn = new_cert_response["ServerCertificateMetadata"]["Arn"]
+
+    client.set_load_balancer_listener_ssl_certificate(
+        LoadBalancerName=lb_name,
+        LoadBalancerPort=443,
+        SSLCertificateId=new_cert_arn,
+    )
+
+    elb = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    listener = elb["ListenerDescriptions"][0]["Listener"]
+    assert listener["SSLCertificateId"] == new_cert_arn
 
 
 @mock_aws
@@ -629,7 +673,7 @@ def test_register_instances():
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     instance_ids = [instance["InstanceId"] for instance in balancer["Instances"]]
-    assert set(instance_ids) == set([instance_id1, instance_id2])
+    assert set(instance_ids) == {instance_id1, instance_id2}
 
 
 @mock_aws
@@ -680,6 +724,7 @@ def test_default_attributes():
     assert attributes["AccessLog"] == {"Enabled": False}
     assert attributes["ConnectionDraining"] == {"Enabled": False}
     assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
+    assert attributes["AdditionalAttributes"] == []
 
 
 @mock_aws
@@ -926,14 +971,12 @@ def test_add_remove_tags():
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a", "Value": "b"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
     assert tags["a"] == "b"
 
     client.add_tags(
@@ -957,14 +1000,12 @@ def test_add_remove_tags():
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "j", "Value": "c"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
 
     assert tags["a"] == "b"
     assert tags["b"] == "b"
@@ -980,14 +1021,12 @@ def test_add_remove_tags():
 
     client.remove_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
 
     assert "a" not in tags
     assert tags["b"] == "b"
@@ -1010,14 +1049,12 @@ def test_add_remove_tags():
         LoadBalancerNames=["other-lb"], Tags=[{"Key": "other", "Value": "something"}]
     )
 
-    lb_tags = dict(
-        [
-            (lb["LoadBalancerName"], dict([(d["Key"], d["Value"]) for d in lb["Tags"]]))
-            for lb in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
-                "TagDescriptions"
-            ]
+    lb_tags = {
+        lb["LoadBalancerName"]: {d["Key"]: d["Value"] for d in lb["Tags"]}
+        for lb in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
+            "TagDescriptions"
         ]
-    )
+    }
 
     assert "my-lb" in lb_tags
     assert "other-lb" in lb_tags
@@ -1037,12 +1074,12 @@ def test_create_with_tags():
         Tags=[{"Key": "k", "Value": "v"}],
     )
 
-    tags = dict(
-        (d["Key"], d["Value"])
+    tags = {
+        d["Key"]: d["Value"]
         for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
             0
         ]["Tags"]
-    )
+    }
     assert tags["k"] == "v"
 
 
@@ -1073,6 +1110,24 @@ def test_modify_attributes():
     lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
     assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"] is True
     assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"] == 45
+
+    # Add additional attributes
+    client.modify_load_balancer_attributes(
+        LoadBalancerName="my-lb",
+        LoadBalancerAttributes={
+            "AdditionalAttributes": [
+                {
+                    "Key": "elb.http.desyncmitigationmode",
+                    "Value": "monitor",
+                }
+            ]
+        },
+    )
+    lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
+    assert lb_attrs["LoadBalancerAttributes"]["AdditionalAttributes"][0] == {
+        "Key": "elb.http.desyncmitigationmode",
+        "Value": "monitor",
+    }
 
 
 @mock_aws

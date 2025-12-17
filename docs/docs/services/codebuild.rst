@@ -17,10 +17,12 @@ codebuild
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
+- [ ] batch_get_command_executions
 - [ ] batch_get_fleets
-- [ ] batch_get_projects
+- [X] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
+- [ ] batch_get_sandboxes
 - [ ] create_fleet
 - [X] create_project
 - [ ] create_report_group
@@ -43,12 +45,15 @@ codebuild
 - [ ] list_build_batches_for_project
 - [X] list_builds
 - [X] list_builds_for_project
+- [ ] list_command_executions_for_sandbox
 - [ ] list_curated_environment_images
 - [ ] list_fleets
 - [X] list_projects
 - [ ] list_report_groups
 - [ ] list_reports
 - [ ] list_reports_for_report_group
+- [ ] list_sandboxes
+- [ ] list_sandboxes_for_project
 - [ ] list_shared_projects
 - [ ] list_shared_report_groups
 - [ ] list_source_credentials
@@ -57,8 +62,12 @@ codebuild
 - [ ] retry_build_batch
 - [X] start_build
 - [ ] start_build_batch
+- [ ] start_command_execution
+- [ ] start_sandbox
+- [ ] start_sandbox_connection
 - [X] stop_build
 - [ ] stop_build_batch
+- [ ] stop_sandbox
 - [ ] update_fleet
 - [ ] update_project
 - [ ] update_project_visibility

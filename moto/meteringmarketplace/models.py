@@ -1,12 +1,12 @@
 import collections
-from typing import Any, Deque, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 
 
-class UsageRecord(BaseModel, Dict[str, Any]):  # type: ignore[misc]
+class UsageRecord(BaseModel, dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         timestamp: str,
@@ -54,7 +54,7 @@ class UsageRecord(BaseModel, Dict[str, Any]):  # type: ignore[misc]
         self["Quantity"] = value
 
 
-class Result(BaseModel, Dict[str, Any]):  # type: ignore[misc]
+class Result(BaseModel, dict[str, Any]):  # type: ignore[misc]
     SUCCESS = "Success"
     CUSTOMER_NOT_SUBSCRIBED = "CustomerNotSubscribed"
     DUPLICATE_RECORD = "DuplicateRecord"
@@ -105,12 +105,12 @@ class Result(BaseModel, Dict[str, Any]):  # type: ignore[misc]
         )
 
 
-class CustomerDeque(Deque[str]):
+class CustomerDeque(collections.deque[str]):
     def is_subscribed(self, customer: str) -> bool:
         return customer in self
 
 
-class ResultDeque(Deque[Result]):
+class ResultDeque(collections.deque[Result]):
     def is_duplicate(self, result: Result) -> bool:
         return any(record.is_duplicate(result) for record in self)
 
@@ -118,16 +118,16 @@ class ResultDeque(Deque[Result]):
 class MeteringMarketplaceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.customers_by_product: Dict[str, CustomerDeque] = collections.defaultdict(
+        self.customers_by_product: dict[str, CustomerDeque] = collections.defaultdict(
             CustomerDeque
         )
-        self.records_by_product: Dict[str, ResultDeque] = collections.defaultdict(
+        self.records_by_product: dict[str, ResultDeque] = collections.defaultdict(
             ResultDeque
         )
 
     def batch_meter_usage(
-        self, product_code: str, usage_records: List[Dict[str, Any]]
-    ) -> List[Result]:
+        self, product_code: str, usage_records: list[dict[str, Any]]
+    ) -> list[Result]:
         results = []
         for usage in usage_records:
             result = Result(**usage)

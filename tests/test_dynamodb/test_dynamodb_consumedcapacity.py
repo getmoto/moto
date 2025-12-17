@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -8,15 +10,13 @@ from moto import mock_aws
 @mock_aws
 def test_error_on_wrong_value_for_consumed_capacity():
     resource = boto3.resource("dynamodb", region_name="ap-northeast-3")
-    client = boto3.client("dynamodb", region_name="ap-northeast-3")
-    client.create_table(
-        TableName="jobs",
+    table = resource.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    table = resource.Table("jobs")
     item = {"job_id": "asdasdasd", "expires_at": "1"}
 
     # PUT_ITEM
@@ -33,21 +33,22 @@ def test_error_on_wrong_value_for_consumed_capacity():
 @mock_aws
 def test_consumed_capacity_get_unknown_item():
     conn = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     conn.create_table(
-        TableName="test_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "u", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "u", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
     response = conn.get_item(
-        TableName="test_table",
+        TableName=table_name,
         Key={"u": {"S": "does_not_exist"}},
         ReturnConsumedCapacity="TOTAL",
     )
 
     # Should still return ConsumedCapacity, even if it does not return an item
     assert response["ConsumedCapacity"] == {
-        "TableName": "test_table",
+        "TableName": table_name,
         "CapacityUnits": 0.5,
     }
 
@@ -67,8 +68,8 @@ def test_only_return_consumed_capacity_when_required(
 ):
     resource = boto3.resource("dynamodb", region_name="ap-northeast-3")
     client = boto3.client("dynamodb", region_name="ap-northeast-3")
-    client.create_table(
-        TableName="jobs",
+    table = resource.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
         LocalSecondaryIndexes=[
             {
@@ -84,7 +85,6 @@ def test_only_return_consumed_capacity_when_required(
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    table = resource.Table("jobs")
     item = {"job_id": "asdasdasd", "expires_at": "1"}
 
     # PUT_ITEM
@@ -95,14 +95,14 @@ def test_only_return_consumed_capacity_when_required(
     validate_response(response, should_have_capacity, should_have_table)
 
     # GET_ITEM
-    args = {"Key": item}
+    args = {"Key": {"job_id": item["job_id"]}}
     if capacity:
         args["ReturnConsumedCapacity"] = capacity
     response = table.get_item(**args)
     validate_response(response, should_have_capacity, should_have_table, value=0.5)
 
     # SCAN
-    args = {"TableName": "jobs"}
+    args = {"TableName": table.name}
     if capacity:
         args["ReturnConsumedCapacity"] = capacity
     response = client.scan(**args)
@@ -115,7 +115,7 @@ def test_only_return_consumed_capacity_when_required(
 
     # QUERY
     args = {
-        "TableName": "jobs",
+        "TableName": table.name,
         "KeyConditionExpression": "job_id = :id",
         "ExpressionAttributeValues": {":id": {"S": "asdasdasd"}},
     }
@@ -136,7 +136,6 @@ def validate_response(
 ):
     if should_have_capacity:
         capacity = response["ConsumedCapacity"]
-        assert capacity["TableName"] == "jobs"
         assert capacity["CapacityUnits"] == value
         if should_have_table:
             assert capacity["Table"] == {"CapacityUnits": value}

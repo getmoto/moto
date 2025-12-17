@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from moto.utilities.tokenizer import GenericTokenizer
 
@@ -6,8 +6,8 @@ from moto.utilities.tokenizer import GenericTokenizer
 class ParsedQuery:
     def __init__(self) -> None:
         self.limit: Optional[int] = None
-        self.fields: List[str] = []
-        self.sort: List[Tuple[str, str]] = []
+        self.fields: list[str] = []
+        self.sort: list[tuple[str, str]] = []
 
     def sort_reversed(self) -> bool:
         # Descending is the default

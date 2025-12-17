@@ -15,36 +15,15 @@ class EBSResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="ebs")
 
+    def setup_class(self, request: Any, full_url: str, headers: Any) -> None:  # type: ignore
+        super().setup_class(request, full_url, headers, use_raw_body=True)
+
     @property
     def ebs_backend(self) -> EBSBackend:
         """Return backend instance specific for this region."""
         return ebs_backends[self.current_account][self.region]
 
-    def snapshots(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.start_snapshot()
-
-    def snapshot_block(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers, use_raw_body=True)
-        if request.method == "PUT":
-            return self.put_snapshot_block(full_url, headers)
-        if request.method == "GET":
-            return self.get_snapshot_block()
-
-    def snapshot_blocks(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_snapshot_blocks()
-
-    def start_snapshot(self) -> TYPE_RESPONSE:
-        """
-        The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
-        """
+    def start_snapshot(self) -> str:
         params = json.loads(self.body)
         volume_size = params.get("VolumeSize")
         tags = params.get("Tags")
@@ -54,28 +33,18 @@ class EBSResponse(BaseResponse):
             tags=tags,
             description=description,
         )
-        return 200, {}, json.dumps(snapshot.to_json())
+        return json.dumps(snapshot.to_json())
 
-    def complete_snapshot(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        """
-        The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
-        """
-        self.setup_class(request, full_url, headers)
-        snapshot_id = full_url.split("/")[-1]
+    def complete_snapshot(self) -> TYPE_RESPONSE:
+        snapshot_id = self.parsed_url.path.split("/")[-1]
         status = self.ebs_backend.complete_snapshot(snapshot_id=snapshot_id)
-        return 202, {}, json.dumps(status)
+        return 202, {"status": 202}, json.dumps(status)
 
-    def put_snapshot_block(self, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        """
-        The following parameters are currently not taken into account: DataLength, Progress.
-        The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
-        """
-        snapshot_id = full_url.split("/")[-3]
-        block_index = full_url.split("/")[-1]
+    def put_snapshot_block(self) -> TYPE_RESPONSE:
+        snapshot_id = self.parsed_url.path.split("/")[-3]
+        block_index = self.parsed_url.path.split("/")[-1]
         block_data = self.body
-        headers = {k.lower(): v for k, v in headers.items()}
+        headers = {k.lower(): v for k, v in self.headers.items()}
         checksum = headers.get("x-amz-checksum")
         checksum_algorithm = headers.get("x-amz-checksum-algorithm")
         data_length = headers.get("x-amz-data-length")
@@ -83,18 +52,16 @@ class EBSResponse(BaseResponse):
             snapshot_id=snapshot_id,
             block_index=block_index,
             block_data=block_data,
-            checksum=checksum,
-            checksum_algorithm=checksum_algorithm,
-            data_length=data_length,
+            checksum=checksum,  # type: ignore
+            checksum_algorithm=checksum_algorithm,  # type: ignore
+            data_length=data_length,  # type: ignore
         )
-        return (
-            201,
-            {
-                "x-amz-Checksum": checksum,
-                "x-amz-Checksum-Algorithm": checksum_algorithm,
-            },
-            "{}",
-        )
+        resp_headers = {
+            "status": 201,
+            "x-amz-Checksum": checksum,
+            "x-amz-Checksum-Algorithm": checksum_algorithm,
+        }
+        return 201, resp_headers, "{}"
 
     def get_snapshot_block(self) -> TYPE_RESPONSE:
         snapshot_id = self.path.split("/")[-3]
@@ -110,10 +77,7 @@ class EBSResponse(BaseResponse):
         }
         return 200, headers, block.block_data
 
-    def snapshot_changed_blocks(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
+    def list_changed_blocks(self) -> str:
         first_snapshot_id = self._get_params().get("firstSnapshotId")
         second_snapshot_id = self.path.split("/")[-2]
         changed_blocks, snapshot = self.ebs_backend.list_changed_blocks(
@@ -124,22 +88,15 @@ class EBSResponse(BaseResponse):
             {"BlockIndex": idx, "FirstBlockToken": x, "SecondBlockToken": y}
             for idx, (x, y) in changed_blocks.items()
         ]
-        return (
-            200,
-            {},
-            json.dumps(
-                dict(
-                    ChangedBlocks=blocks,
-                    VolumeSize=snapshot.volume_size,
-                    BlockSize=snapshot.block_size,
-                )
-            ),
+        return json.dumps(
+            {
+                "ChangedBlocks": blocks,
+                "VolumeSize": snapshot.volume_size,
+                "BlockSize": snapshot.block_size,
+            }
         )
 
-    def list_snapshot_blocks(self) -> TYPE_RESPONSE:
-        """
-        The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
-        """
+    def list_snapshot_blocks(self) -> str:
         snapshot_id = self.path.split("/")[-2]
         snapshot = self.ebs_backend.list_snapshot_blocks(
             snapshot_id=snapshot_id,
@@ -148,14 +105,10 @@ class EBSResponse(BaseResponse):
             {"BlockIndex": idx, "BlockToken": b.block_token}
             for idx, b in snapshot.blocks.items()
         ]
-        return (
-            200,
-            {},
-            json.dumps(
-                dict(
-                    Blocks=blocks,
-                    VolumeSize=snapshot.volume_size,
-                    BlockSize=snapshot.block_size,
-                )
-            ),
+        return json.dumps(
+            {
+                "Blocks": blocks,
+                "VolumeSize": snapshot.volume_size,
+                "BlockSize": snapshot.block_size,
+            }
         )

@@ -26,7 +26,7 @@ def test_log_groups_tags():
     log_group_name = "test"
 
     logs.create_log_group(logGroupName=log_group_name, tags={"key1": "val1"})
-    arn = logs.describe_log_groups()["logGroups"][0]["arn"]
+    arn = logs.describe_log_groups()["logGroups"][0]["logGroupArn"]
 
     _verify_tag_operations(arn, logs)
 

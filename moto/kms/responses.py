@@ -2,10 +2,11 @@ import base64
 import json
 import os
 import re
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExistsException,
@@ -43,7 +44,7 @@ class KmsResponse(BaseResponse):
         else:
             id_type = "key/"
 
-        return f"arn:aws:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
+        return f"arn:{get_partition(self.region)}:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
 
     def _validate_cmk_id(self, key_id: str) -> None:
         """Determine whether a CMK ID exists.
@@ -122,9 +123,10 @@ class KmsResponse(BaseResponse):
         description = self._get_param("Description")
         tags = self._get_param("Tags")
         multi_region = self._get_param("MultiRegion")
+        origin = self._get_param("Origin") or "AWS_KMS"
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags, multi_region
+            policy, key_usage, key_spec, description, tags, multi_region, origin
         )
         return json.dumps(key.to_dict())
 
@@ -175,7 +177,7 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
         self._validate_cmk_id(key_id)
 
-        tags: Dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
+        tags: dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
         tags.update({"NextMarker": None, "Truncated": False})
         return json.dumps(tags)
 
@@ -245,7 +247,10 @@ class KmsResponse(BaseResponse):
             )
 
         self._validate_cmk_id(target_key_id)
-        self.kms_backend.add_alias(target_key_id, alias_name)
+        if update:
+            self.kms_backend.update_alias(target_key_id, alias_name)
+        else:
+            self.kms_backend.create_alias(target_key_id, alias_name)
 
         return json.dumps(None)
 
@@ -272,13 +277,13 @@ class KmsResponse(BaseResponse):
 
         response_aliases = []
 
-        backend_aliases = self.kms_backend.get_all_aliases()
+        backend_aliases = self.kms_backend.list_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
                 # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
-                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{alias_name}",
+                        "AliasArn": f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{alias_name}",
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
                     }
@@ -288,7 +293,7 @@ class KmsResponse(BaseResponse):
                 a for a in response_aliases if a["AliasName"] == reserved_alias
             ]
             if not exsisting:
-                arn = f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}"
+                arn = f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
                         "TargetKeyId": target_key_id,
@@ -550,20 +555,16 @@ class KmsResponse(BaseResponse):
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                    "to satisfy constraint: Member must have value less than or "
-                    "equal to 1024"
-                ).format(number_of_bytes=number_of_bytes)
+                f"1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must have value less than or "
+                "equal to 1024"
             )
 
         if key_spec and key_spec not in ("AES_256", "AES_128"):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: "
-                    "[AES_256, AES_128]"
-                ).format(key_spec=key_spec)
+                f"1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                "[AES_256, AES_128]"
             )
         if not key_spec and not number_of_bytes:
             raise ValidationException(
@@ -600,17 +601,45 @@ class KmsResponse(BaseResponse):
 
         return json.dumps(result)
 
+    def generate_mac(self) -> str:
+        message = self._get_param("Message")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
+            )
+
+        mac, mac_algorithm, key_id = self.kms_backend.generate_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps({"Mac": mac, "MacAlgorithm": mac_algorithm, "KeyId": key_id})
+
     def generate_random(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
         number_of_bytes = self._get_param("NumberOfBytes")
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                    "to satisfy constraint: Member must have value less than or "
-                    "equal to 1024"
-                ).format(number_of_bytes=number_of_bytes)
+                f"1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must have value less than or "
+                "equal to 1024"
             )
 
         entropy = os.urandom(number_of_bytes)
@@ -699,11 +728,44 @@ class KmsResponse(BaseResponse):
             }
         )
 
+    def verify_mac(self) -> str:
+        message = self._get_param("Message")
+        mac = self._get_param("Mac")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
+            )
+
+        self.kms_backend.verify_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            mac=mac,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps(
+            {"KeyId": key_id, "MacValid": True, "MacAlgorithm": mac_algorithm}
+        )
+
     def get_public_key(self) -> str:
         key_id = self._get_param("KeyId")
 
         self._validate_key_id(key_id)
-        self._validate_cmk_id(key_id)
         key, public_key = self.kms_backend.get_public_key(key_id)
         return json.dumps(
             {
@@ -715,6 +777,35 @@ class KmsResponse(BaseResponse):
                 "SigningAlgorithms": key.signing_algorithms,
             }
         )
+
+    def rotate_key_on_demand(self) -> str:
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+
+        key_id = self.kms_backend.rotate_key_on_demand(
+            key_id=key_id,
+        )
+        return json.dumps({"KeyId": key_id})
+
+    def list_key_rotations(self) -> str:
+        key_id = self._get_param("KeyId")
+        limit = self._get_param("Limit", 1000)
+        marker = self._get_param("Marker")
+
+        self._validate_key_id(key_id)
+
+        rotations, next_marker = self.kms_backend.list_key_rotations(
+            key_id=key_id, limit=limit, next_marker=marker
+        )
+        is_truncated = next_marker is not None
+
+        response = {"Rotations": rotations, "Truncated": is_truncated}
+
+        if is_truncated:
+            response["NextMarker"] = next_marker
+
+        return json.dumps(response)
 
 
 def _assert_default_policy(policy_name: str) -> None:

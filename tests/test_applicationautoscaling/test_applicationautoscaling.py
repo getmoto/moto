@@ -5,6 +5,7 @@ import pytest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.test_dynamodb import dynamodb_aws_verified
 
 DEFAULT_REGION = "us-east-1"
 DEFAULT_ECS_CLUSTER = "default"
@@ -48,6 +49,33 @@ def _create_ecs_defaults(ecs, create_service=True):
             taskDefinition=DEFAULT_ECS_TASK,
             desiredCount=2,
         )
+
+
+def delete_scheduled_actions():
+    service_namespaces = ["custom-resource", "dynamodb", "ecs"]
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+
+    for namespace in service_namespaces:
+        actions = client.describe_scheduled_actions(ServiceNamespace=namespace)[
+            "ScheduledActions"
+        ]
+        for a in actions:
+            client.delete_scheduled_action(
+                ServiceNamespace=namespace,
+                ScheduledActionName=a["ScheduledActionName"],
+                ResourceId=a["ResourceId"],
+                ScalableDimension=a["ScalableDimension"],
+            )
+
+        targets = client.describe_scalable_targets(ServiceNamespace=namespace)[
+            "ScalableTargets"
+        ]
+        for t in targets:
+            client.deregister_scalable_target(
+                ServiceNamespace=namespace,
+                ResourceId=t["ResourceId"],
+                ScalableDimension=t["ScalableDimension"],
+            )
 
 
 @mock_aws
@@ -276,7 +304,7 @@ def test_register_scalable_target_updates_existing_target():
         "ScheduledScalingSuspended": False,
     }
 
-    client.register_scalable_target(
+    response = client.register_scalable_target(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
         ResourceId=DEFAULT_RESOURCE_ID,
         ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
@@ -284,12 +312,16 @@ def test_register_scalable_target_updates_existing_target():
         MaxCapacity=updated_max_capacity,
         SuspendedState=updated_suspended_state,
     )
+    expected_arn_prefix = f"arn:aws:application-autoscaling:{DEFAULT_REGION}:{ACCOUNT_ID}:scalable-target/"
+    assert response["ScalableTargetARN"].startswith(expected_arn_prefix)
+
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
     )
 
     assert len(response["ScalableTargets"]) == 1
     t = response["ScalableTargets"][0]
+    assert t["ScalableTargetARN"].startswith(expected_arn_prefix)
     assert t["MinCapacity"] == updated_min_capacity
     assert t["MaxCapacity"] == updated_max_capacity
     assert (
@@ -535,30 +567,71 @@ def test_describe_scheduled_actions():
     assert len(resp["ScheduledActions"]) == 0
 
 
-@mock_aws
-def test_put_scheduled_action():
-    client = boto3.client("application-autoscaling", region_name="ap-southeast-1")
-    client.put_scheduled_action(
-        ServiceNamespace="ecs",
-        ScheduledActionName="action_name",
-        ResourceId="ecs:cluster:x",
-        ScalableDimension="ecs:service:DesiredCount",
-    )
+@dynamodb_aws_verified()
+@pytest.mark.aws_verified
+def test_put_scheduled_action(table_name=None):
+    client = boto3.client("application-autoscaling", region_name="us-east-1")
+    try:
+        resource_id = f"table/{table_name}"
+        client.register_scalable_target(
+            ServiceNamespace="dynamodb",
+            ResourceId=resource_id,
+            ScalableDimension="dynamodb:table:ReadCapacityUnits",
+            MinCapacity=1,
+            MaxCapacity=100,
+        )
+        client.put_scheduled_action(
+            ServiceNamespace="dynamodb",
+            Schedule="rate(2 minutes)",
+            ScheduledActionName="action_name",
+            ResourceId=resource_id,
+            ScalableDimension="dynamodb:table:ReadCapacityUnits",
+            ScalableTargetAction={"MinCapacity": 1, "MaxCapacity": 5},
+        )
 
-    resp = client.describe_scheduled_actions(ServiceNamespace="ecs")
-    assert len(resp["ScheduledActions"]) == 1
+        resp = client.describe_scheduled_actions(ServiceNamespace="dynamodb")
+        assert len(resp["ScheduledActions"]) == 1
 
-    action = resp["ScheduledActions"][0]
-    assert action["ScheduledActionName"] == "action_name"
-    assert (
-        action["ScheduledActionARN"]
-        == f"arn:aws:autoscaling:ap-southeast-1:{ACCOUNT_ID}:scheduledAction:ecs:scheduledActionName/action_name"
-    )
-    assert action["ServiceNamespace"] == "ecs"
-    assert action["ResourceId"] == "ecs:cluster:x"
-    assert action["ScalableDimension"] == "ecs:service:DesiredCount"
-    assert "CreationTime" in action
-    assert "ScalableTargetAction" not in action
+        action = resp["ScheduledActions"][0]
+        assert action["ScheduledActionName"] == "action_name"
+        assert action["ServiceNamespace"] == "dynamodb"
+        assert action["ResourceId"] == resource_id
+        assert action["ScalableDimension"] == "dynamodb:table:ReadCapacityUnits"
+        assert "CreationTime" in action
+
+        # Verify it's possible to create a second action against the same Dimension
+        client.put_scheduled_action(
+            ServiceNamespace="dynamodb",
+            Schedule="rate(1 hour)",
+            ScheduledActionName="action_name2",
+            ResourceId=resource_id,
+            ScalableDimension="dynamodb:table:ReadCapacityUnits",
+            ScalableTargetAction={"MinCapacity": 1, "MaxCapacity": 5},
+        )
+        actions = client.describe_scheduled_actions(ServiceNamespace="dynamodb")[
+            "ScheduledActions"
+        ]
+        assert len(actions) == 2
+
+        action1 = [a for a in actions if a["ScheduledActionName"] == "action_name"][0]
+        action2 = [a for a in actions if a["ScheduledActionName"] == "action_name2"][0]
+
+        assert action1["ResourceId"] == resource_id
+        assert action2["ResourceId"] == resource_id
+
+        # AWS includes a random ID
+        # arn:aws:autoscaling:us-east-1:{ACCOUNT_ID}:scheduledAction:2e767478-3c94-463b-8d0c-5a5fb3ee04cf:resource/dynamodb/table/{table_name}:scheduledActionName/action_name
+        assert action1["ScheduledActionARN"].endswith(
+            f"dynamodb/table/{table_name}:scheduledActionName/action_name"
+        )
+        assert action2["ScheduledActionARN"].endswith(
+            f"dynamodb/table/{table_name}:scheduledActionName/action_name2"
+        )
+
+        assert action1["Schedule"] == "rate(2 minutes)"
+        assert action2["Schedule"] == "rate(1 hour)"
+    finally:
+        delete_scheduled_actions()
 
 
 @mock_aws
@@ -572,7 +645,7 @@ def test_put_scheduled_action__use_update():
     )
     client.put_scheduled_action(
         ServiceNamespace="ecs",
-        ScheduledActionName="action_name_updated",
+        ScheduledActionName="action_name",
         ResourceId="ecs:cluster:x",
         ScalableDimension="ecs:service:DesiredCount",
         ScalableTargetAction={
@@ -585,10 +658,10 @@ def test_put_scheduled_action__use_update():
     assert len(resp["ScheduledActions"]) == 1
 
     action = resp["ScheduledActions"][0]
-    assert action["ScheduledActionName"] == "action_name_updated"
+    assert action["ScheduledActionName"] == "action_name"
     assert (
         action["ScheduledActionARN"]
-        == f"arn:aws:autoscaling:ap-southeast-1:{ACCOUNT_ID}:scheduledAction:ecs:scheduledActionName/action_name"
+        == f"arn:aws:autoscaling:ap-southeast-1:{ACCOUNT_ID}:scheduledAction:ecs/ecs:cluster:x:scheduledActionName/action_name"
     )
     assert action["ServiceNamespace"] == "ecs"
     assert action["ResourceId"] == "ecs:cluster:x"

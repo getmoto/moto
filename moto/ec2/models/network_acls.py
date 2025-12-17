@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, TypedDict
 
 from ..exceptions import (
+    DependencyViolationError,
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
     NetworkAclEntryAlreadyExistsError,
@@ -15,7 +16,7 @@ from .core import TaggedEC2Resource
 
 class NetworkAclBackend:
     def __init__(self) -> None:
-        self.network_acls: Dict[str, "NetworkAcl"] = {}
+        self.network_acls: dict[str, NetworkAcl] = {}
 
     def get_network_acl(self, network_acl_id: str) -> "NetworkAcl":
         network_acl = self.network_acls.get(network_acl_id, None)
@@ -26,7 +27,7 @@ class NetworkAclBackend:
     def create_network_acl(
         self,
         vpc_id: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         default: bool = False,
     ) -> "NetworkAcl":
         network_acl_id = random_network_acl_id()
@@ -40,11 +41,16 @@ class NetworkAclBackend:
         return network_acl
 
     def add_default_entries(self, network_acl_id: str) -> None:
-        default_acl_entries = [
-            {"rule_number": "100", "rule_action": "allow", "egress": "true"},
-            {"rule_number": "32767", "rule_action": "deny", "egress": "true"},
-            {"rule_number": "100", "rule_action": "allow", "egress": "false"},
-            {"rule_number": "32767", "rule_action": "deny", "egress": "false"},
+        class AclEntry(TypedDict):
+            rule_number: int
+            rule_action: str
+            egress: bool
+
+        default_acl_entries: list[AclEntry] = [
+            {"rule_number": 100, "rule_action": "allow", "egress": True},
+            {"rule_number": 32767, "rule_action": "deny", "egress": True},
+            {"rule_number": 100, "rule_action": "allow", "egress": False},
+            {"rule_number": 32767, "rule_action": "deny", "egress": False},
         ]
         for entry in default_acl_entries:
             self.create_network_acl_entry(
@@ -58,9 +64,18 @@ class NetworkAclBackend:
                 icmp_type=None,
                 port_range_from=None,
                 port_range_to=None,
+                ipv6_cidr_block=None,
             )
 
     def delete_network_acl(self, network_acl_id: str) -> "NetworkAcl":
+        if any(
+            network_acl.id == network_acl_id and len(network_acl.associations) > 0
+            for network_acl in self.network_acls.values()
+        ):
+            raise DependencyViolationError(
+                f"The network ACL '{network_acl_id}' has dependencies and cannot be deleted."
+            )
+
         deleted = self.network_acls.pop(network_acl_id, None)
         if not deleted:
             raise InvalidNetworkAclIdError(network_acl_id)
@@ -69,15 +84,16 @@ class NetworkAclBackend:
     def create_network_acl_entry(
         self,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: Optional[int],
         icmp_type: Optional[int],
         port_range_from: Optional[int],
         port_range_to: Optional[int],
+        ipv6_cidr_block: Optional[str],
     ) -> "NetworkAclEntry":
         network_acl = self.get_network_acl(network_acl_id)
         if any(
@@ -87,23 +103,24 @@ class NetworkAclBackend:
             raise NetworkAclEntryAlreadyExistsError(rule_number)
         network_acl_entry = NetworkAclEntry(
             self,
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
 
         network_acl.network_acl_entries.append(network_acl_entry)
         return network_acl_entry
 
     def delete_network_acl_entry(
-        self, network_acl_id: str, rule_number: str, egress: str
+        self, network_acl_id: str, rule_number: int, egress: bool
     ) -> "NetworkAclEntry":
         network_acl = self.get_network_acl(network_acl_id)
         entry = next(
@@ -118,28 +135,30 @@ class NetworkAclBackend:
     def replace_network_acl_entry(
         self,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: int,
         icmp_type: int,
         port_range_from: int,
         port_range_to: int,
+        ipv6_cidr_block: Optional[str],
     ) -> "NetworkAclEntry":
         self.delete_network_acl_entry(network_acl_id, rule_number, egress)
         network_acl_entry = self.create_network_acl_entry(
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
         return network_acl_entry
 
@@ -182,8 +201,8 @@ class NetworkAclBackend:
         )
 
     def describe_network_acls(
-        self, network_acl_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List["NetworkAcl"]:
+        self, network_acl_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list["NetworkAcl"]:
         network_acls = list(self.network_acls.values())
 
         if network_acl_ids:
@@ -195,7 +214,7 @@ class NetworkAclBackend:
             if len(network_acls) != len(network_acl_ids):
                 invalid_id = list(
                     set(network_acl_ids).difference(
-                        set([network_acl.id for network_acl in network_acls])
+                        {network_acl.id for network_acl in network_acls}
                     )
                 )[0]
                 raise InvalidRouteTableIdError(invalid_id)
@@ -231,15 +250,15 @@ class NetworkAcl(TaggedEC2Resource):
         self.id = network_acl_id
         self.vpc_id = vpc_id
         self.owner_id = owner_id or ec2_backend.account_id
-        self.network_acl_entries: List[NetworkAclEntry] = []
-        self.associations: Dict[str, NetworkAclAssociation] = {}
-        self.default = "true" if default is True else "false"
+        self.network_acl_entries: list[NetworkAclEntry] = []
+        self.associations: dict[str, NetworkAclAssociation] = {}
+        self.default = default
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
     ) -> Any:
         if filter_name == "default":
-            return self.default
+            return str(self.default).lower()
         elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.network-acl-id":
@@ -251,11 +270,11 @@ class NetworkAcl(TaggedEC2Resource):
         elif filter_name == "entry.protocol":
             return [entry.protocol for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-number":
-            return [entry.rule_number for entry in self.network_acl_entries]
+            return [str(entry.rule_number) for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-action":
             return [entry.rule_action for entry in self.network_acl_entries]
         elif filter_name == "entry.egress":
-            return [entry.egress for entry in self.network_acl_entries]
+            return [str(entry.egress).lower() for entry in self.network_acl_entries]
         elif filter_name == "owner-id":
             return self.owner_id
         else:
@@ -267,15 +286,16 @@ class NetworkAclEntry(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: Optional[int],
         icmp_type: Optional[int],
         port_range_from: Optional[int],
         port_range_to: Optional[int],
+        ipv6_cidr_block: Optional[str],
     ):
         self.ec2_backend = ec2_backend
         self.network_acl_id = network_acl_id
@@ -284,6 +304,7 @@ class NetworkAclEntry(TaggedEC2Resource):
         self.rule_action = rule_action
         self.egress = egress
         self.cidr_block = cidr_block
+        self.ipv6_cidr_block = ipv6_cidr_block
         self.icmp_code = icmp_code
         self.icmp_type = icmp_type
         self.port_range_from = port_range_from

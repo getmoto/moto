@@ -11,7 +11,7 @@ class BudgetsResponse(BaseResponse):
 
     @property
     def backend(self) -> BudgetsBackend:
-        return budgets_backends[self.current_account]["global"]
+        return budgets_backends[self.current_account][self.partition]
 
     def create_budget(self) -> str:
         account_id = self._get_param("AccountId")
@@ -20,7 +20,7 @@ class BudgetsResponse(BaseResponse):
         self.backend.create_budget(
             account_id=account_id, budget=budget, notifications=notifications
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_budget(self) -> str:
         account_id = self._get_param("AccountId")
@@ -28,18 +28,18 @@ class BudgetsResponse(BaseResponse):
         budget = self.backend.describe_budget(
             account_id=account_id, budget_name=budget_name
         )
-        return json.dumps(dict(Budget=budget))
+        return json.dumps({"Budget": budget})
 
     def describe_budgets(self) -> str:
         account_id = self._get_param("AccountId")
         budgets = self.backend.describe_budgets(account_id=account_id)
-        return json.dumps(dict(Budgets=budgets, nextToken=None))
+        return json.dumps({"Budgets": budgets, "nextToken": None})
 
     def delete_budget(self) -> str:
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
         self.backend.delete_budget(account_id=account_id, budget_name=budget_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_notification(self) -> str:
         account_id = self._get_param("AccountId")
@@ -52,7 +52,7 @@ class BudgetsResponse(BaseResponse):
             notification=notification,
             subscribers=subscribers,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_notification(self) -> str:
         account_id = self._get_param("AccountId")
@@ -61,7 +61,7 @@ class BudgetsResponse(BaseResponse):
         self.backend.delete_notification(
             account_id=account_id, budget_name=budget_name, notification=notification
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_notifications_for_budget(self) -> str:
         account_id = self._get_param("AccountId")
@@ -69,4 +69,4 @@ class BudgetsResponse(BaseResponse):
         notifications = self.backend.describe_notifications_for_budget(
             account_id=account_id, budget_name=budget_name
         )
-        return json.dumps(dict(Notifications=notifications, NextToken=None))
+        return json.dumps({"Notifications": notifications, "NextToken": None})

@@ -2,19 +2,33 @@ import copy
 import itertools
 import json
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.dynamodb.comparisons import create_condition_expression_parser
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
+from moto.dynamodb.models.table import (
+    DEFAULT_WARM_THROUGHPUT_RCU,
+    DEFAULT_WARM_THROUGHPUT_WCU,
+)
 from moto.dynamodb.models.utilities import dynamo_json_dump
+from moto.dynamodb.parsing.expressions import (  # type: ignore
+    ExpressionAttributeName,
+    ExpressionAttributeValue,
+    UpdateExpressionParser,
+)
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
+    ExpressionAttributeValuesEmpty,
+    InvalidProjectionExpression,
     KeyIsEmptyStringException,
     MockValidationException,
+    ProvidedKeyDoesNotExist,
     ResourceNotFoundException,
     UnknownKeyType,
 )
@@ -29,7 +43,7 @@ def include_consumed_capacity(
     Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]],
 ]:
     def _inner(
-        f: Callable[..., Union[str, TYPE_RESPONSE]],
+        f: Callable[["DynamoHandler"], str],
     ) -> Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]]:
         @wraps(f)
         def _wrapper(
@@ -52,28 +66,25 @@ def include_consumed_capacity(
 
             response = f(*args, **kwargs)
 
-            if isinstance(response, str):
-                body = json.loads(response)
+            body = json.loads(response)
 
-                if expected_capacity == "TOTAL":
-                    body["ConsumedCapacity"] = {
-                        "TableName": table_name,
-                        "CapacityUnits": val,
+            if expected_capacity == "TOTAL":
+                body["ConsumedCapacity"] = {
+                    "TableName": table_name,
+                    "CapacityUnits": val,
+                }
+            elif expected_capacity == "INDEXES":
+                body["ConsumedCapacity"] = {
+                    "TableName": table_name,
+                    "CapacityUnits": val,
+                    "Table": {"CapacityUnits": val},
+                }
+                if index_name:
+                    body["ConsumedCapacity"]["LocalSecondaryIndexes"] = {
+                        index_name: {"CapacityUnits": val}
                     }
-                elif expected_capacity == "INDEXES":
-                    body["ConsumedCapacity"] = {
-                        "TableName": table_name,
-                        "CapacityUnits": val,
-                        "Table": {"CapacityUnits": val},
-                    }
-                    if index_name:
-                        body["ConsumedCapacity"]["LocalSecondaryIndexes"] = {
-                            index_name: {"CapacityUnits": val}
-                        }
 
-                return dynamo_json_dump(body)
-
-            return response
+            return dynamo_json_dump(body)
 
         return _wrapper
 
@@ -81,7 +92,7 @@ def include_consumed_capacity(
 
 
 def validate_put_has_empty_keys(
-    field_updates: Dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
+    field_updates: dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
 ) -> None:
     """
     Error if any keys have an empty value. Checks Global index attributes as well
@@ -121,26 +132,27 @@ def validate_put_has_empty_keys(
             raise MockValidationException(msg.format(empty_key))
 
 
-def put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> bool:
+def validate_put_has_empty_attrs(field_updates: dict[str, Any], table: Table) -> None:
     # Example invalid attribute: [{'M': {'SS': {'NS': []}}}]
-    def _validate_attr(attr: Dict[str, Any]) -> bool:
-        if "NS" in attr and attr["NS"] == []:
-            return True
+    def _validate_attr(attr: dict[str, Any]) -> None:
+        for set_type, error in [("NS", "number"), ("SS", "string")]:
+            if set_type in attr and attr[set_type] == []:
+                raise MockValidationException(
+                    f"One or more parameter values were invalid: An {error} set  may not be empty"
+                )
+
         else:
-            return any(
-                [_validate_attr(val) for val in attr.values() if isinstance(val, dict)]
-            )
+            for val in attr.values():
+                if isinstance(val, dict):
+                    _validate_attr(val)
 
     if table:
-        key_names = table.attribute_keys
-        attrs_to_check = [
-            val for attr, val in field_updates.items() if attr not in key_names
-        ]
-        return any([_validate_attr(attr) for attr in attrs_to_check])
-    return False
+        for attr, val in field_updates.items():
+            if attr not in table.attribute_keys:
+                _validate_attr(val)
 
 
-def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) -> None:
+def validate_put_has_gsi_keys_set_to_none(item: dict[str, Any], table: Table) -> None:
     for gsi in table.global_indexes:
         for attr in gsi.schema:
             attr_name = attr["AttributeName"]
@@ -148,6 +160,18 @@ def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) ->
                 raise MockValidationException(
                     f"One or more parameter values were invalid: Type mismatch for Index Key {attr_name} Expected: S Actual: NULL IndexName: {gsi.name}"
                 )
+
+
+def validate_attributes_used(
+    attribute_names: Optional[dict[str, Any]],
+    names_used: list[str],
+    provided_attr: str = "Names",
+) -> None:
+    for name in attribute_names or []:
+        if name not in names_used:
+            raise MockValidationException(
+                f"Value provided in ExpressionAttribute{provided_attr} unused in expressions: keys: {{{name}}}"
+            )
 
 
 def check_projection_expression(expression: str) -> None:
@@ -163,6 +187,45 @@ def check_projection_expression(expression: str) -> None:
         raise MockValidationException(
             "ProjectionExpression: Attribute name contains white space"
         )
+
+
+class ProjectionExpressionParser:
+    def __init__(
+        self,
+        projection_expression: Optional[str],
+        expression_attribute_names: Optional[dict[str, str]],
+    ):
+        self.projection_expression = projection_expression
+        self.expression_attribute_names = (
+            expression_attribute_names if expression_attribute_names else {}
+        )
+
+        self.expr_attr_names_found: list[str] = []
+
+    def parse(self) -> list[list[str]]:
+        """
+        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
+        """
+
+        if self.projection_expression:
+            expressions = [x.strip() for x in self.projection_expression.split(",")]
+            duplicates = find_duplicates(expressions)
+            if duplicates:
+                raise InvalidProjectionExpression(*duplicates)
+            for expression in expressions:
+                check_projection_expression(expression)
+            output = []
+            for nested_expr in expressions:
+                nested_array = []
+                for expr in nested_expr.split("."):
+                    if self.expression_attribute_names.get(expr):
+                        self.expr_attr_names_found.append(expr)
+                        nested_array.append(self.expression_attribute_names[expr])
+                    else:
+                        nested_array.append(expr)
+                output.append(nested_array)
+            return output
+        return []
 
 
 class DynamoHandler(BaseResponse):
@@ -202,7 +265,7 @@ class DynamoHandler(BaseResponse):
             limit, exclusive_start_table_name
         )
 
-        response: Dict[str, Any] = {"TableNames": tables}
+        response: dict[str, Any] = {"TableNames": tables}
         if last_eval:
             response["LastEvaluatedTableName"] = last_eval
 
@@ -210,27 +273,70 @@ class DynamoHandler(BaseResponse):
 
     def create_table(self) -> str:
         body = self.body
-        # get the table name
         table_name = body["TableName"]
         # check billing mode and get the throughput
         if "BillingMode" in body.keys() and body["BillingMode"] == "PAY_PER_REQUEST":
-            if "ProvisionedThroughput" in body.keys():
-                raise MockValidationException(
-                    "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
-                )
-            throughput = None
             billing_mode = "PAY_PER_REQUEST"
-        else:  # Provisioned (default billing mode)
-            throughput = body.get("ProvisionedThroughput")
-            if throughput is None:
-                raise MockValidationException(
-                    "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
-                )
-            billing_mode = "PROVISIONED"
-        # getting ServerSideEncryption details
+        else:
+            billing_mode = "PROVISIONED"  # Default
+        throughput = body.get("ProvisionedThroughput")
         sse_spec = body.get("SSESpecification")
-        # getting the schema
         key_schema = body["KeySchema"]
+        attr = body["AttributeDefinitions"]
+        global_indexes = body.get("GlobalSecondaryIndexes")
+        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        streams = body.get("StreamSpecification")
+        tags = body.get("Tags", [])
+        deletion_protection_enabled = body.get("DeletionProtectionEnabled", False)
+        warm_throughput = body.get("WarmThroughput")
+
+        self._validate_table_creation(
+            billing_mode=billing_mode,
+            throughput=throughput,
+            key_schema=key_schema,
+            global_indexes=global_indexes,
+            local_secondary_indexes=local_secondary_indexes,
+            attr=attr,
+            warm_throughput=warm_throughput,
+        )
+
+        table = self.dynamodb_backend.create_table(
+            table_name,
+            schema=key_schema,
+            throughput=throughput,
+            attr=attr,
+            global_indexes=global_indexes or [],
+            indexes=local_secondary_indexes or [],
+            streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_spec,
+            tags=tags,
+            deletion_protection_enabled=deletion_protection_enabled,
+            warm_throughput=warm_throughput,
+        )
+        return dynamo_json_dump(table.describe())
+
+    def _validate_table_creation(
+        self,
+        billing_mode: str,
+        throughput: Optional[dict[str, Any]],
+        key_schema: list[dict[str, str]],
+        global_indexes: Optional[list[dict[str, Any]]],
+        local_secondary_indexes: Optional[list[dict[str, Any]]],
+        attr: list[dict[str, str]],
+        warm_throughput: Optional[dict[str, Any]],
+    ) -> None:
+        # Validate Throughput
+        if billing_mode == "PAY_PER_REQUEST" and throughput:
+            raise MockValidationException(
+                "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
+            )
+        if billing_mode == "PROVISIONED" and throughput is None:
+            raise MockValidationException(
+                "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
+            )
+
+        # Validate KeySchema
         for idx, _key in enumerate(key_schema, start=1):
             key_type = _key["KeyType"]
             if key_type not in ["HASH", "RANGE"]:
@@ -245,82 +351,122 @@ class DynamoHandler(BaseResponse):
             provided_keys = ", ".join(key_elements)
             err = f"1 validation error detected: Value '[{provided_keys}]' at 'keySchema' failed to satisfy constraint: Member must have length less than or equal to 2"
             raise MockValidationException(err)
-        # getting attribute definition
-        attr = body["AttributeDefinitions"]
 
-        # getting/validating the indexes
-        global_indexes = body.get("GlobalSecondaryIndexes")
+        # Validate Global Indexes
         if global_indexes == []:
             raise MockValidationException(
                 "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
             )
-        global_indexes = global_indexes or []
-        for idx, g_idx in enumerate(global_indexes, start=1):
+        for idx, g_idx in enumerate(global_indexes or [], start=1):
+            idx_throughput = g_idx.get("ProvisionedThroughput", None)
+            idx_warm_throughput = g_idx.get("WarmThroughput", None)
+            min_rcu = (
+                idx_throughput["ReadCapacityUnits"]
+                if idx_throughput
+                else DEFAULT_WARM_THROUGHPUT_RCU
+            )
+            min_wcu = (
+                idx_throughput["WriteCapacityUnits"]
+                if idx_throughput
+                else DEFAULT_WARM_THROUGHPUT_WCU
+            )
+
+            if idx_throughput:
+                error_rcu_end = "ReadCapacityUnits of ProvisionedThroughput"
+                error_wcu_end = "WriteCapacityUnits of ProvisionedThroughput"
+            else:
+                error_rcu_end = "initial throughput for OnDemand"
+                error_wcu_end = "initial throughput for OnDemand"
+
+            error_rcu = f"One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for index {g_idx['IndexName']} is lower than {error_rcu_end}"
+            error_wcu = f"One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for index {g_idx['IndexName']} is lower than {error_wcu_end}"
+
+            if (
+                idx_warm_throughput
+                and idx_warm_throughput.get("ReadUnitsPerSecond", min_rcu) < min_rcu
+            ):
+                raise MockValidationException(error_rcu)
+            if (
+                idx_warm_throughput
+                and idx_warm_throughput.get("WriteUnitsPerSecond", min_wcu) < min_wcu
+            ):
+                raise MockValidationException(error_wcu)
+
             for idx2, _key in enumerate(g_idx["KeySchema"], start=1):
                 key_type = _key["KeyType"]
                 if key_type not in ["HASH", "RANGE"]:
                     position = f"globalSecondaryIndexes.{idx}.member.keySchema.{idx2}.member.keyType"
                     raise UnknownKeyType(key_type=key_type, position=position)
 
-        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        # Validate Local Indexes
         if local_secondary_indexes == []:
             raise MockValidationException(
                 "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty"
             )
-        local_secondary_indexes = local_secondary_indexes or []
-        for idx, g_idx in enumerate(local_secondary_indexes, start=1):
+        for idx, g_idx in enumerate(local_secondary_indexes or [], start=1):
             for idx2, _key in enumerate(g_idx["KeySchema"], start=1):
                 key_type = _key["KeyType"]
                 if key_type not in ["HASH", "RANGE"]:
                     position = f"localSecondaryIndexes.{idx}.member.keySchema.{idx2}.member.keyType"
                     raise UnknownKeyType(key_type=key_type, position=position)
 
-        # Verify AttributeDefinitions list all
+        # Validate Attributes
         expected_attrs = []
         expected_attrs.extend([key["AttributeName"] for key in key_schema])
-        expected_attrs.extend(
-            schema["AttributeName"]
-            for schema in itertools.chain(
-                *list(idx["KeySchema"] for idx in local_secondary_indexes)
-            )
+        local_key_schemas = itertools.chain(
+            *[idx["KeySchema"] for idx in (local_secondary_indexes or [])]
         )
-        expected_attrs.extend(
-            schema["AttributeName"]
-            for schema in itertools.chain(
-                *list(idx["KeySchema"] for idx in global_indexes)
-            )
+        expected_attrs.extend(schema["AttributeName"] for schema in local_key_schemas)
+
+        global_key_schemas = itertools.chain(
+            *[idx["KeySchema"] for idx in (global_indexes or [])]
         )
+        expected_attrs.extend(schema["AttributeName"] for schema in global_key_schemas)
         expected_attrs = list(set(expected_attrs))
         expected_attrs.sort()
         actual_attrs = [item["AttributeName"] for item in attr]
         actual_attrs.sort()
+        has_index = global_indexes is not None or local_secondary_indexes is not None
         if actual_attrs != expected_attrs:
-            self._throw_attr_error(
-                actual_attrs, expected_attrs, global_indexes or local_secondary_indexes
-            )
-        # get the stream specification
-        streams = body.get("StreamSpecification")
-        # Get any tags
-        tags = body.get("Tags", [])
+            self._throw_attr_error(actual_attrs, expected_attrs, has_index)
 
-        table = self.dynamodb_backend.create_table(
-            table_name,
-            schema=key_schema,
-            throughput=throughput,
-            attr=attr,
-            global_indexes=global_indexes,
-            indexes=local_secondary_indexes,
-            streams=streams,
-            billing_mode=billing_mode,
-            sse_specification=sse_spec,
-            tags=tags,
+        # Validate WarmThroughput
+        min_rcu = (
+            throughput["ReadCapacityUnits"]
+            if throughput
+            else DEFAULT_WARM_THROUGHPUT_RCU
         )
-        return dynamo_json_dump(table.describe())
+        min_wcu = (
+            throughput["WriteCapacityUnits"]
+            if throughput
+            else DEFAULT_WARM_THROUGHPUT_WCU
+        )
+
+        if throughput:
+            error_rcu_end = "ReadCapacityUnits of ProvisionedThroughput"
+            error_wcu_end = "WriteCapacityUnits of ProvisionedThroughput"
+        else:
+            error_rcu_end = "initial throughput for OnDemand"
+            error_wcu_end = "initial throughput for OnDemand"
+
+        error_rcu = f"One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for table is lower than {error_rcu_end}"
+        error_wcu = f"One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for table is lower than {error_wcu_end}"
+
+        if (
+            warm_throughput
+            and warm_throughput.get("ReadUnitsPerSecond", min_rcu) < min_rcu
+        ):
+            raise MockValidationException(error_rcu)
+        if (
+            warm_throughput
+            and warm_throughput.get("WriteUnitsPerSecond", min_wcu) < min_wcu
+        ):
+            raise MockValidationException(error_wcu)
 
     def _throw_attr_error(
-        self, actual_attrs: List[str], expected_attrs: List[str], indexes: bool
+        self, actual_attrs: list[str], expected_attrs: list[str], indexes: bool
     ) -> None:
-        def dump_list(list_: List[str]) -> str:
+        def dump_list(list_: list[str]) -> str:
             return str(list_).replace("'", "")
 
         err_head = "One or more parameter values were invalid: "
@@ -431,6 +577,8 @@ class DynamoHandler(BaseResponse):
         throughput = self.body.get("ProvisionedThroughput", None)
         billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
+        deletion_protection_enabled = self.body.get("DeletionProtectionEnabled")
+        warm_throughput = self.body.get("WarmThroughput")
         table = self.dynamodb_backend.update_table(
             name=name,
             attr_definitions=attr_definitions,
@@ -438,6 +586,8 @@ class DynamoHandler(BaseResponse):
             throughput=throughput,
             billing_mode=billing_mode,
             stream_spec=stream_spec,
+            deletion_protection_enabled=deletion_protection_enabled,
+            warm_throughput=warm_throughput,
         )
         return dynamo_json_dump(table.describe())
 
@@ -460,10 +610,7 @@ class DynamoHandler(BaseResponse):
 
         table = self.dynamodb_backend.get_table(name)
         validate_put_has_empty_keys(item, table)
-        if put_has_empty_attrs(item, table):
-            raise MockValidationException(
-                "One or more parameter values were invalid: An number set  may not be empty"
-            )
+        validate_put_has_empty_attrs(item, table)
         validate_put_has_gsi_keys_set_to_none(item, table)
 
         overwrite = "Expected" not in self.body
@@ -484,6 +631,16 @@ class DynamoHandler(BaseResponse):
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+
+        parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        parser.parse()
+        validate_attributes_used(
+            expression_attribute_names, parser.expr_attr_names_found
+        )
 
         if condition_expression:
             overwrite = False
@@ -555,7 +712,7 @@ class DynamoHandler(BaseResponse):
     @include_consumed_capacity(0.5)
     def get_item(self) -> str:
         name = self.body["TableName"]
-        self.dynamodb_backend.get_table(name)
+        table = self.dynamodb_backend.get_table(name)
         key = self.body["Key"]
         empty_keys = [k for k, v in key.items() if not next(iter(v.values()))]
         if empty_keys:
@@ -569,19 +726,24 @@ class DynamoHandler(BaseResponse):
             )
 
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
+        if projection_expression is None and expression_attribute_names:
+            raise MockValidationException(
+                "ExpressionAttributeNames can only be specified when using expressions"
+            )
         if expression_attribute_names == {}:
-            if projection_expression is None:
-                raise MockValidationException(
-                    "ExpressionAttributeNames can only be specified when using expressions"
-                )
-            else:
-                raise MockValidationException(
-                    "ExpressionAttributeNames must not be empty"
-                )
+            raise MockValidationException("ExpressionAttributeNames must not be empty")
+
+        if not all(k in table.attribute_keys for k in key):
+            raise ProvidedKeyDoesNotExist
 
         expression_attribute_names = expression_attribute_names or {}
-        projection_expressions = self._adjust_projection_expression(
+        parser = ProjectionExpressionParser(
             projection_expression, expression_attribute_names
+        )
+        projection_expressions = parser.parse()
+
+        validate_attributes_used(
+            expression_attribute_names, parser.expr_attr_names_found
         )
 
         item = self.dynamodb_backend.get_item(name, key, projection_expressions)
@@ -595,7 +757,7 @@ class DynamoHandler(BaseResponse):
     def batch_get_item(self) -> str:
         table_batches = self.body["RequestItems"]
 
-        results: Dict[str, Any] = {
+        results: dict[str, Any] = {
             "ConsumedCapacity": [],
             "Responses": {},
             "UnprocessedKeys": {},
@@ -632,8 +794,12 @@ class DynamoHandler(BaseResponse):
                 "ExpressionAttributeNames", {}
             )
 
-            projection_expressions = self._adjust_projection_expression(
+            parser = ProjectionExpressionParser(
                 projection_expression, expression_attribute_names
+            )
+            projection_expressions = parser.parse()
+            validate_attributes_used(
+                expression_attribute_names, parser.expr_attr_names_found
             )
 
             results["Responses"][table_name] = []
@@ -658,7 +824,7 @@ class DynamoHandler(BaseResponse):
             )
         return dynamo_json_dump(results)
 
-    def _contains_duplicates(self, keys: List[str]) -> bool:
+    def _contains_duplicates(self, keys: list[str]) -> bool:
         unique_keys = []
         for k in keys:
             if k in unique_keys:
@@ -676,9 +842,17 @@ class DynamoHandler(BaseResponse):
         filter_expression = self._get_filter_expression()
         expression_attribute_values = self._get_expr_attr_values()
 
-        projection_expressions = self._adjust_projection_expression(
+        condition_parser = create_condition_expression_parser(
+            filter_expression, expression_attribute_names, expression_attribute_values
+        )
+        condition_parser.parse()
+        expression_attribute_names_used = condition_parser.expr_attr_names_found
+
+        projection_parser = ProjectionExpressionParser(
             projection_expression, expression_attribute_names
         )
+        projection_expressions = projection_parser.parse()
+        expression_attribute_names_used += projection_parser.expr_attr_names_found
 
         filter_kwargs = {}
 
@@ -687,11 +861,19 @@ class DynamoHandler(BaseResponse):
             schema = self.dynamodb_backend.get_schema(
                 table_name=name, index_name=index_name
             )
-            hash_key, range_comparison, range_values = parse_expression(
+            (
+                hash_key,
+                range_comparison,
+                range_values,
+                expression_attribute_names_used_by_key_condition,
+            ) = parse_expression(
                 key_condition_expression=key_condition_expression,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 schema=schema,
+            )
+            expression_attribute_names_used += (
+                expression_attribute_names_used_by_key_condition
             )
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
@@ -732,6 +914,10 @@ class DynamoHandler(BaseResponse):
                             range_values = []
             if query_filters:
                 filter_kwargs.update(query_filters)
+
+        validate_attributes_used(
+            expression_attribute_names, expression_attribute_names_used
+        )
         index_name = self.body.get("IndexName")
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
@@ -755,7 +941,7 @@ class DynamoHandler(BaseResponse):
             **filter_kwargs,
         )
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "Count": len(items),
             "ScannedCount": scanned_count,
         }
@@ -767,27 +953,6 @@ class DynamoHandler(BaseResponse):
             result["LastEvaluatedKey"] = last_evaluated_key
 
         return dynamo_json_dump(result)
-
-    def _adjust_projection_expression(
-        self, projection_expression: Optional[str], expr_attr_names: Dict[str, str]
-    ) -> List[List[str]]:
-        """
-        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
-        """
-
-        def _adjust(expression: str) -> str:
-            return (expr_attr_names or {}).get(expression, expression)
-
-        if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(",")]
-            for expression in expressions:
-                check_projection_expression(expression)
-            return [
-                [_adjust(expr) for expr in nested_expr.split(".")]
-                for nested_expr in expressions
-            ]
-
-        return []
 
     @include_consumed_capacity()
     def scan(self) -> str:
@@ -805,14 +970,50 @@ class DynamoHandler(BaseResponse):
         filter_expression = self._get_filter_expression()
         expression_attribute_values = self._get_expr_attr_values()
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
+
+        filter_parser = create_condition_expression_parser(
+            filter_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        try:
+            filter_parser.parse()
+        except ValueError as err:
+            raise MockValidationException(f"Bad Filter Expression: {err}")
+        expression_attribute_names_used = filter_parser.expr_attr_names_found
+
         projection_expression = self._get_projection_expression()
+        projection_parser = ProjectionExpressionParser(
+            projection_expression, expression_attribute_names
+        )
+        projection_expressions = projection_parser.parse()
+        expression_attribute_names_used += projection_parser.expr_attr_names_found
+
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
         consistent_read = self.body.get("ConsistentRead", False)
+        segment = self.body.get("Segment")
+        total_segments = self.body.get("TotalSegments")
+        if segment is not None and total_segments is None:
+            raise MockValidationException(
+                "The TotalSegments parameter is required but was not present in the request when Segment parameter is present"
+            )
+        if total_segments is not None and segment is None:
+            raise MockValidationException(
+                "The Segment parameter is required but was not present in the request when parameter TotalSegments is present"
+            )
+        if (
+            segment is not None
+            and total_segments is not None
+            and segment >= total_segments
+        ):
+            raise MockValidationException(
+                f"The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: {segment} is not less than TotalSegments: {total_segments}"
+            )
 
-        projection_expressions = self._adjust_projection_expression(
-            projection_expression, expression_attribute_names
+        validate_attributes_used(
+            expression_attribute_names, expression_attribute_names_used
         )
 
         try:
@@ -821,12 +1022,13 @@ class DynamoHandler(BaseResponse):
                 filters,
                 limit,
                 exclusive_start_key,
-                filter_expression,
-                expression_attribute_names,
-                expression_attribute_values,
-                index_name,
-                consistent_read,
-                projection_expressions,
+                filter_expression=filter_expression,
+                expr_names=expression_attribute_names,
+                expr_values=expression_attribute_values,
+                index_name=index_name,
+                consistent_read=consistent_read,
+                projection_expression=projection_expressions,
+                segments=(segment, total_segments),
             )
         except ValueError as err:
             raise MockValidationException(f"Bad Filter Expression: {err}")
@@ -840,6 +1042,7 @@ class DynamoHandler(BaseResponse):
             result["LastEvaluatedKey"] = last_evaluated_key
         return dynamo_json_dump(result)
 
+    @include_consumed_capacity()
     def delete_item(self) -> str:
         name = self.body["TableName"]
         key = self.body["Key"]
@@ -847,13 +1050,28 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        self.dynamodb_backend.get_table(name)
+        table = self.dynamodb_backend.get_table(name)
+        if not all(k in table.attribute_keys for k in key):
+            raise ProvidedKeyDoesNotExist
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+        return_values_on_condition_check_failure = self.body.get(
+            "ReturnValuesOnConditionCheckFailure"
+        )
+
+        parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        parser.parse()
+        validate_attributes_used(
+            expression_attribute_names, parser.expr_attr_names_found
+        )
 
         item = self.dynamodb_backend.delete_item(
             name,
@@ -861,6 +1079,7 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names,
             expression_attribute_values,
             condition_expression,
+            return_values_on_condition_check_failure,
         )
 
         if item and return_values == "ALL_OLD":
@@ -874,12 +1093,42 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         key = self.body["Key"]
         return_values = self.body.get("ReturnValues", "NONE")
-        update_expression = self.body.get("UpdateExpression", "").strip()
+        update_expression = self.body.get("UpdateExpression", None)
         attribute_updates = self.body.get("AttributeUpdates")
-        if update_expression and attribute_updates:
+        if update_expression is not None and attribute_updates:
             raise MockValidationException(
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
             )
+
+        table = self.dynamodb_backend.get_table(name)
+        if not all(k in table.attribute_keys for k in key):
+            raise ProvidedKeyDoesNotExist
+
+        expression_attribute_names_used = []
+        expression_attribute_values_used = []
+        if update_expression is not None:
+            update_expression = update_expression.strip()
+            if update_expression == "":
+                raise MockValidationException(
+                    "Invalid UpdateExpression: The expression can not be empty;"
+                )
+            update_expression_ast = UpdateExpressionParser.make(update_expression)
+            attr_name_clauses = update_expression_ast.find_clauses(
+                [ExpressionAttributeName]
+            )
+            expression_attribute_names_used = [
+                attr.get_attribute_name_placeholder() for attr in attr_name_clauses
+            ]
+            attr_value_clauses = update_expression_ast.find_clauses(
+                [ExpressionAttributeValue]
+            )
+            expression_attribute_values_used.extend(
+                [attr.get_value_name() for attr in attr_value_clauses]
+            )
+
+        else:
+            update_expression = ""
+
         return_values_on_condition_check_failure = self.body.get(
             "ReturnValuesOnConditionCheckFailure"
         )
@@ -909,6 +1158,20 @@ class DynamoHandler(BaseResponse):
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+        condition_parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        condition_parser.parse()
+        expression_attribute_names_used += condition_parser.expr_attr_names_found
+        expression_attribute_values_used += condition_parser.expr_attr_values_found
+        validate_attributes_used(
+            expression_attribute_names, expression_attribute_names_used
+        )
+        validate_attributes_used(
+            expression_attribute_values, expression_attribute_values_used, "Values"
+        )
 
         item = self.dynamodb_backend.update_item(
             name,
@@ -949,17 +1212,25 @@ class DynamoHandler(BaseResponse):
             )
         return dynamo_json_dump(item_dict)
 
-    def _get_expr_attr_values(self) -> Dict[str, Dict[str, str]]:
-        values = self.body.get("ExpressionAttributeValues", {})
-        for key in values.keys():
+    def _get_expr_attr_values(self) -> dict[str, dict[str, str]]:
+        values = self.body.get("ExpressionAttributeValues")
+        if values is None:
+            return {}
+        if len(values) == 0:
+            raise ExpressionAttributeValuesEmpty
+        for key in values:
             if not key.startswith(":"):
                 raise MockValidationException(
                     f'ExpressionAttributeValues contains invalid key: Syntax error; key: "{key}"'
                 )
+            if values[key] == {"NS": []}:
+                raise MockValidationException(
+                    f"ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key {key}"
+                )
         return values
 
     def _build_updated_new_attributes(self, original: Any, changed: Any) -> Any:
-        if type(changed) != type(original):
+        if type(changed) is not type(original):
             return changed
         else:
             if isinstance(changed, dict):
@@ -1009,30 +1280,28 @@ class DynamoHandler(BaseResponse):
 
     def transact_get_items(self) -> str:
         transact_items = self.body["TransactItems"]
-        responses: List[Dict[str, Any]] = list()
+        responses: list[dict[str, Any]] = []
 
         if len(transact_items) > TRANSACTION_MAX_ITEMS:
             msg = "1 validation error detected: Value '["
-            err_list = list()
+            err_list = []
             request_id = 268435456
             for _ in transact_items:
                 request_id += 1
                 hex_request_id = format(request_id, "x")
                 err_list.append(
-                    "com.amazonaws.dynamodb.v20120810.TransactGetItem@%s"
-                    % hex_request_id
+                    f"com.amazonaws.dynamodb.v20120810.TransactGetItem@{hex_request_id}"
                 )
             msg += ", ".join(err_list)
             msg += (
                 "'] at 'transactItems' failed to satisfy constraint: "
-                "Member must have length less than or equal to %s"
-                % TRANSACTION_MAX_ITEMS
+                f"Member must have length less than or equal to {TRANSACTION_MAX_ITEMS}"
             )
 
             raise MockValidationException(msg)
 
         ret_consumed_capacity = self.body.get("ReturnConsumedCapacity", "NONE")
-        consumed_capacity: Dict[str, Any] = dict()
+        consumed_capacity: dict[str, Any] = {}
 
         for transact_item in transact_items:
             table_name = transact_item["Get"]["TableName"]
@@ -1060,10 +1329,10 @@ class DynamoHandler(BaseResponse):
                     "ReadCapacityUnits": read_capacity_units,
                 }
 
-        result = dict()
+        result = {}
         result.update({"Responses": responses})
         if ret_consumed_capacity != "NONE":
-            result.update({"ConsumedCapacity": [v for v in consumed_capacity.values()]})
+            result.update({"ConsumedCapacity": list(consumed_capacity.values())})
 
         return dynamo_json_dump(result)
 
@@ -1071,11 +1340,36 @@ class DynamoHandler(BaseResponse):
         transact_items = self.body["TransactItems"]
         # Validate first - we should error before we start the transaction
         for item in transact_items:
+            # This logic is common among all types of write items
+            item_values = list(item.values())[
+                0
+            ]  # Each item only has one of Put, Update, Delete, ConditionCheck
+            condition_expression = item_values.get("ConditionExpression")
+            expression_attribute_names = item_values.get("ExpressionAttributeNames", {})
+            expression_attribute_values = item_values.get(
+                "ExpressionAttributeValues", {}
+            )
+
+            parser = create_condition_expression_parser(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values,
+            )
+            parser.parse()
+            expression_attribute_names_used = parser.expr_attr_names_found
+
             if "Put" in item:
+                if item["Put"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
+
             if "Update" in item:
+                if item["Update"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Update"]["Key"]
                 table = self.dynamodb_backend.get_table(item["Update"]["TableName"])
                 validate_put_has_empty_keys(
@@ -1083,8 +1377,22 @@ class DynamoHandler(BaseResponse):
                     table,
                     custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
                 )
+
+                update_expression = item["Update"]["UpdateExpression"]
+                update_expression_ast = UpdateExpressionParser.make(update_expression)
+                attr_name_clauses = update_expression_ast.find_clauses(
+                    [ExpressionAttributeName]
+                )
+                expression_attribute_names_used += [
+                    attr.get_attribute_name_placeholder() for attr in attr_name_clauses
+                ]
+
+            validate_attributes_used(
+                expression_attribute_names, expression_attribute_names_used
+            )
+
         self.dynamodb_backend.transact_write_items(transact_items)
-        response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
+        response: dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
 
     def describe_continuous_backups(self) -> str:
@@ -1168,3 +1476,105 @@ class DynamoHandler(BaseResponse):
         stmts = self.body.get("Statements", [])
         items = self.dynamodb_backend.batch_execute_statement(stmts)
         return dynamo_json_dump({"Responses": items})
+
+    def import_table(self) -> str:
+        params = self.body
+        s3_source = params.get("S3BucketSource")
+        input_format = params.get("InputFormat") or "DYNAMODB_JSON"
+        compression_type = params.get("InputCompressionType") or "NONE"
+        table_parameters = params.get("TableCreationParameters")
+        table_name = table_parameters["TableName"]
+        table_attrs = table_parameters["AttributeDefinitions"]
+        table_schema = table_parameters["KeySchema"]
+        table_billing = table_parameters.get("BillingMode")
+        table_throughput = table_parameters.get("ProvisionedThroughput")
+        global_indexes = table_parameters.get("GlobalSecondaryIndexes")
+
+        self._validate_table_creation(
+            billing_mode=table_billing,
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            local_secondary_indexes=None,
+            attr=table_attrs,
+            warm_throughput=None,
+        )
+
+        import_table = self.dynamodb_backend.import_table(
+            s3_source=s3_source,
+            input_format=input_format,
+            compression_type=compression_type,
+            table_name=table_name,
+            billing_mode=table_billing or "PROVISIONED",
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            attrs=table_attrs,
+        )
+        return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def describe_import(self) -> str:
+        import_arn = self.body["ImportArn"]
+        import_table = self.dynamodb_backend.describe_import(import_arn)
+        return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def export_table_to_point_in_time(self) -> str:
+        table_arn = self.body["TableArn"]
+        s3_bucket = self.body["S3Bucket"]
+        s3_prefix = self.body["S3Prefix"]
+        export_type = self.body.get("ExportType", "FULL_EXPORT")
+        export_format = self.body.get("ExportFormat", "DYNAMO_JSON")
+        s3_bucket_owner = self.body.get("S3BucketOwner")
+
+        export_table = self.dynamodb_backend.export_table(
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            table_arn=table_arn,
+            export_type=export_type,
+            export_format=export_format,
+            s3_bucket_owner=s3_bucket_owner,
+        )
+
+        return dynamo_json_dump({"ExportDescription": export_table.response()})
+
+    def describe_export(self) -> str:
+        export_arn = self.body["ExportArn"]
+        export_table = self.dynamodb_backend.describe_export(export_arn)
+        return json.dumps({"ExportDescription": export_table.response()})
+
+    def list_exports(self) -> str:
+        table_arn = self.body["TableArn"]
+        exports = self.dynamodb_backend.list_exports(table_arn)
+        response = []
+        for export_table in exports:
+            response.append(
+                {
+                    "ExportArn": export_table.arn,
+                    "ExportStatus": export_table.status,
+                    "ExportType": export_table.export_type,
+                }
+            )
+        return json.dumps({"ExportSummaries": response})
+
+    def put_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.put_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            policy_doc=self.body.get("Policy"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return json.dumps({"RevisionId": policy.revision_id})
+
+    def get_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.get_resource_policy(
+            resource_arn=self.body.get("ResourceArn")
+        )
+        return json.dumps(
+            {"Policy": policy.policy_doc, "RevisionId": policy.revision_id}
+        )
+
+    def delete_resource_policy(self) -> str:
+        self.dynamodb_backend.delete_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return "{}"

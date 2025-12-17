@@ -14,6 +14,7 @@ iot-data
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] delete_connection
 - [X] delete_thing_shadow
 - [ ] get_retained_message
 - [X] get_thing_shadow

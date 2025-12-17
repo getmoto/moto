@@ -1,6 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
+from moto.timestreamquery.models import TimestreamQueryBackend, timestreamquery_backends
 
 from .models import TimestreamWriteBackend, timestreamwrite_backends
 
@@ -8,6 +9,10 @@ from .models import TimestreamWriteBackend, timestreamwrite_backends
 class TimestreamWriteResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="timestream-write")
+
+    @property
+    def timestreamquery_backend(self) -> TimestreamQueryBackend:
+        return timestreamquery_backends[self.current_account][self.region]
 
     @property
     def timestreamwrite_backend(self) -> TimestreamWriteBackend:
@@ -21,7 +26,7 @@ class TimestreamWriteResponse(BaseResponse):
         database = self.timestreamwrite_backend.create_database(
             database_name=database_name, kms_key_id=kms_key_id, tags=tags
         )
-        return json.dumps(dict(Database=database.description()))
+        return json.dumps({"Database": database.description()})
 
     def delete_database(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -33,7 +38,7 @@ class TimestreamWriteResponse(BaseResponse):
         database = self.timestreamwrite_backend.describe_database(
             database_name=database_name
         )
-        return json.dumps(dict(Database=database.description()))
+        return json.dumps({"Database": database.description()})
 
     def update_database(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -41,11 +46,11 @@ class TimestreamWriteResponse(BaseResponse):
         database = self.timestreamwrite_backend.update_database(
             database_name, kms_key_id
         )
-        return json.dumps(dict(Database=database.description()))
+        return json.dumps({"Database": database.description()})
 
     def list_databases(self) -> str:
         all_dbs = self.timestreamwrite_backend.list_databases()
-        return json.dumps(dict(Databases=[db.description() for db in all_dbs]))
+        return json.dumps({"Databases": [db.description() for db in all_dbs]})
 
     def create_table(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -64,7 +69,7 @@ class TimestreamWriteResponse(BaseResponse):
             magnetic_store_write_properties,
             schema=schema,
         )
-        return json.dumps(dict(Table=table.description()))
+        return json.dumps({"Table": table.description()})
 
     def delete_table(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -76,12 +81,12 @@ class TimestreamWriteResponse(BaseResponse):
         database_name = self._get_param("DatabaseName")
         table_name = self._get_param("TableName")
         table = self.timestreamwrite_backend.describe_table(database_name, table_name)
-        return json.dumps(dict(Table=table.description()))
+        return json.dumps({"Table": table.description()})
 
     def list_tables(self) -> str:
         database_name = self._get_param("DatabaseName")
         tables = self.timestreamwrite_backend.list_tables(database_name)
-        return json.dumps(dict(Tables=[t.description() for t in tables]))
+        return json.dumps({"Tables": [t.description() for t in tables]})
 
     def update_table(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -98,7 +103,7 @@ class TimestreamWriteResponse(BaseResponse):
             magnetic_store_write_properties,
             schema=schema,
         )
-        return json.dumps(dict(Table=table.description()))
+        return json.dumps({"Table": table.description()})
 
     def write_records(self) -> str:
         database_name = self._get_param("DatabaseName")
@@ -134,3 +139,61 @@ class TimestreamWriteResponse(BaseResponse):
         tag_keys = self._get_param("TagKeys")
         self.timestreamwrite_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
+
+    # AWS uses the same path/headers for TimestreamWrite and TimestreamQuery
+    # The only difference is the host, but we don't have access to that in ServerMode
+    # Keep the `Query`-responses here
+    # So we don't have to jump through all kinds of hoops to explain the difference between Query and Write to MotoServer
+
+    def create_scheduled_query(self) -> str:
+        name = self._get_param("Name")
+        query_string = self._get_param("QueryString")
+        schedule_configuration = self._get_param("ScheduleConfiguration")
+        notification_configuration = self._get_param("NotificationConfiguration")
+        target_configuration = self._get_param("TargetConfiguration")
+        scheduled_query_execution_role_arn = self._get_param(
+            "ScheduledQueryExecutionRoleArn"
+        )
+        tags = self._get_param("Tags")
+        kms_key_id = self._get_param("KmsKeyId")
+        error_report_configuration = self._get_param("ErrorReportConfiguration")
+        scheduled_query = self.timestreamquery_backend.create_scheduled_query(
+            name=name,
+            query_string=query_string,
+            schedule_configuration=schedule_configuration,
+            notification_configuration=notification_configuration,
+            target_configuration=target_configuration,
+            scheduled_query_execution_role_arn=scheduled_query_execution_role_arn,
+            tags=tags,
+            kms_key_id=kms_key_id,
+            error_report_configuration=error_report_configuration,
+        )
+        return json.dumps({"Arn": scheduled_query.arn})
+
+    def delete_scheduled_query(self) -> str:
+        scheduled_query_arn = self._get_param("ScheduledQueryArn")
+        self.timestreamquery_backend.delete_scheduled_query(
+            scheduled_query_arn=scheduled_query_arn,
+        )
+        return "{}"
+
+    def update_scheduled_query(self) -> str:
+        scheduled_query_arn = self._get_param("ScheduledQueryArn")
+        state = self._get_param("State")
+        self.timestreamquery_backend.update_scheduled_query(
+            scheduled_query_arn=scheduled_query_arn,
+            state=state,
+        )
+        return "{}"
+
+    def query(self) -> str:
+        query_string = self._get_param("QueryString")
+        result = self.timestreamquery_backend.query(query_string=query_string)
+        return json.dumps(result)
+
+    def describe_scheduled_query(self) -> str:
+        scheduled_query_arn = self._get_param("ScheduledQueryArn")
+        scheduled_query = self.timestreamquery_backend.describe_scheduled_query(
+            scheduled_query_arn=scheduled_query_arn,
+        )
+        return json.dumps({"ScheduledQuery": scheduled_query.description()})

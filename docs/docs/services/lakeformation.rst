@@ -24,10 +24,12 @@ lakeformation
 - [ ] create_lake_formation_identity_center_configuration
 - [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
+- [ ] create_lf_tag_expression
 - [ ] delete_data_cells_filter
 - [ ] delete_lake_formation_identity_center_configuration
 - [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
+- [ ] delete_lf_tag_expression
 - [ ] delete_objects_on_cancel
 - [X] deregister_resource
 - [ ] describe_lake_formation_identity_center_configuration
@@ -35,9 +37,11 @@ lakeformation
 - [ ] describe_transaction
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
+- [ ] get_data_lake_principal
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag
+- [ ] get_lf_tag_expression
 - [ ] get_query_state
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
@@ -53,6 +57,7 @@ lakeformation
         
 
 - [ ] list_lake_formation_opt_ins
+- [ ] list_lf_tag_expressions
 - [X] list_lf_tags
 - [X] list_permissions
   
@@ -73,6 +78,7 @@ lakeformation
 - [ ] update_data_cells_filter
 - [ ] update_lake_formation_identity_center_configuration
 - [X] update_lf_tag
+- [ ] update_lf_tag_expression
 - [ ] update_resource
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer

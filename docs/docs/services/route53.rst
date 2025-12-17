@@ -96,7 +96,7 @@ route53
         
 
 - [X] list_tags_for_resource
-- [ ] list_tags_for_resources
+- [X] list_tags_for_resources
 - [ ] list_traffic_policies
 - [ ] list_traffic_policy_instances
 - [ ] list_traffic_policy_instances_by_hosted_zone
@@ -106,6 +106,7 @@ route53
 - [ ] test_dns_answer
 - [X] update_health_check
 - [X] update_hosted_zone_comment
+- [ ] update_hosted_zone_features
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 

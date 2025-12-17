@@ -1,10 +1,10 @@
 from typing import Final
 
-from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison import (
-    Comparison,
-)
 from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_func import (
     ComparisonFunc,
+)
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_type import (
+    Comparison,
 )
 from moto.stepfunctions.parser.asl.component.state.choice.comparison.variable import (
     Variable,

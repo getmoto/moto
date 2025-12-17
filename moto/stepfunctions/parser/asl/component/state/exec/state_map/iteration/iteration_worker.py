@@ -14,7 +14,6 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.job 
     Job,
     JobPool,
 )
-from moto.stepfunctions.parser.asl.eval.contextobject.contex_object import Item, Map
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.eval.program_state import (
@@ -22,6 +21,7 @@ from moto.stepfunctions.parser.asl.eval.program_state import (
     ProgramState,
     ProgramStopped,
 )
+from moto.stepfunctions.parser.asl.eval.states import ItemData, MapData
 
 LOG = logging.getLogger(__name__)
 
@@ -57,10 +57,10 @@ class IterationWorker(abc.ABC):
             name=self._work_name, index=job.job_index
         )
 
-        env.event_history.add_event(
+        env.event_manager.add_event(
             context=env.event_history_context,
-            hist_type_event=HistoryEventType.MapIterationStarted,
-            event_detail=EventDetails(
+            event_type=HistoryEventType.MapIterationStarted,
+            event_details=EventDetails(
                 mapIterationStartedEventDetails=map_iteration_event_details
             ),
         )
@@ -69,11 +69,11 @@ class IterationWorker(abc.ABC):
             f"Unexpected Runtime Error in ItemProcessor worker for input '{job.job_index}'."
         )
         try:
-            env.context_object_manager.context_object["Map"] = Map(
-                Item=Item(Index=job.job_index, Value=job.job_input)
+            env.states.context_object.context_object_data["Map"] = MapData(
+                Item=ItemData(Index=job.job_index, Value=job.job_input)
             )
 
-            env.inp = job.job_input
+            env.states.reset(input_value=job.job_input)
             self._eval_input(env_frame=env)
 
             job.job_program.eval(env)
@@ -91,6 +91,7 @@ class IterationWorker(abc.ABC):
                     error_name = CustomErrorName(error_name=error_name)
                 raise FailureEventException(
                     failure_event=FailureEvent(
+                        env=env,
                         error_name=error_name,
                         event_type=HistoryEventType.MapIterationFailed,
                         event_details=EventDetails(
@@ -102,6 +103,7 @@ class IterationWorker(abc.ABC):
             elif isinstance(end_program_state, ProgramStopped):
                 raise FailureEventException(
                     failure_event=FailureEvent(
+                        env=env,
                         error_name=CustomErrorName(
                             error_name=HistoryEventType.MapIterationAborted
                         ),
@@ -113,16 +115,16 @@ class IterationWorker(abc.ABC):
                 )
 
             # Otherwise, execution succeeded and the output of this operation is available.
-            env.event_history.add_event(
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.MapIterationSucceeded,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.MapIterationSucceeded,
+                event_details=EventDetails(
                     mapIterationSucceededEventDetails=map_iteration_event_details
                 ),
                 update_source_event_id=False,
             )
             # Extract the output otherwise.
-            job_output = env.inp
+            job_output = env.states.get_input()
 
         except FailureEventException as failure_event_ex:
             # Extract the output to be this exception: this will trigger a failure workflow in the jobs pool.
@@ -134,19 +136,19 @@ class IterationWorker(abc.ABC):
                 failure_event_ex.failure_event.event_type
                 == HistoryEventType.MapIterationAborted
             ):
-                env.event_history.add_event(
+                env.event_manager.add_event(
                     context=env.event_history_context,
-                    hist_type_event=HistoryEventType.MapIterationAborted,
-                    event_detail=EventDetails(
+                    event_type=HistoryEventType.MapIterationAborted,
+                    event_details=EventDetails(
                         mapIterationAbortedEventDetails=map_iteration_event_details
                     ),
                     update_source_event_id=False,
                 )
             else:
-                env.event_history.add_event(
+                env.event_manager.add_event(
                     context=env.event_history_context,
-                    hist_type_event=HistoryEventType.MapIterationFailed,
-                    event_detail=EventDetails(
+                    event_type=HistoryEventType.MapIterationFailed,
+                    event_details=EventDetails(
                         mapIterationFailedEventDetails=map_iteration_event_details
                     ),
                     update_source_event_id=False,
@@ -155,16 +157,17 @@ class IterationWorker(abc.ABC):
         except Exception as ex:
             # Error case.
             LOG.warning(
-                f"Unhandled termination error in item processor worker for job '{job.job_index}'."
+                "Unhandled termination error in item processor worker for job '%s'.",
+                job.job_index,
             )
 
             # Pass the exception upstream leading to evaluation halt.
             job_output = ex
 
-            env.event_history.add_event(
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.MapIterationFailed,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.MapIterationFailed,
+                event_details=EventDetails(
                     mapIterationFailedEventDetails=map_iteration_event_details
                 ),
                 update_source_event_id=False,
@@ -181,18 +184,12 @@ class IterationWorker(abc.ABC):
             return
 
         # Evaluate the job.
-        job_frame = worker_frame.open_frame()
+        job_frame = worker_frame.open_inner_frame()
         self._eval_job(env=job_frame, job=job)
         worker_frame.close_frame(job_frame)
 
-        # Evaluation terminates here due to exception in job.
-        if isinstance(job.job_output, Exception):
-            self._env.close_frame(worker_frame)
-            self._job_pool.close_job(job)
-            return
-
-        # Worker was stopped.
-        if self.stopped():
+        # Evaluation terminates here due to exception in job, or worker was stopped.
+        if isinstance(job.job_output, Exception) or self.stopped():
             self._env.close_frame(worker_frame)
             self._job_pool.close_job(job)
             return

@@ -1,5 +1,3 @@
-from typing import List
-
 from moto.core.base_backend import BackendDict, BaseBackend
 
 from ..exceptions import (
@@ -36,6 +34,7 @@ from .launch_templates import LaunchTemplateBackend
 from .managed_prefixes import ManagedPrefixListBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
+from .reserved_instances import ReservedInstancesBackend
 from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
 from .spot_requests import SpotRequestBackend
@@ -52,7 +51,7 @@ from .vpn_gateway import VpnGatewayBackend
 from .windows import WindowsBackend
 
 
-def validate_resource_ids(resource_ids: List[str]) -> bool:
+def validate_resource_ids(resource_ids: list[str]) -> bool:
     if not resource_ids:
         raise MissingParameterError(parameter="resourceIdSet")
     for resource_id in resource_ids:
@@ -117,6 +116,7 @@ class EC2Backend(
     FleetsBackend,
     WindowsBackend,
     HostsBackend,
+    ReservedInstancesBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.
@@ -152,17 +152,6 @@ class EC2Backend(
 
         self.default_vpc = vpc
 
-        # Create default subnet for each availability zone
-        ip, _ = vpc.cidr_block.split("/")
-        ip = ip.split(".")  # type: ignore
-        ip[2] = 0  # type: ignore
-
-        for zone in self.describe_availability_zones():
-            az_name = zone.name
-            cidr_block = ".".join(str(i) for i in ip) + "/20"
-            self.create_subnet(vpc.id, cidr_block, availability_zone=az_name)
-            ip[2] += 16  # type: ignore
-
     # Use this to generate a proper error template response when in a response
     # handler.
     def raise_error(self, code: str, message: str) -> None:
@@ -171,7 +160,7 @@ class EC2Backend(
     def raise_not_implemented_error(self, blurb: str) -> None:
         raise MotoNotImplementedError(blurb)
 
-    def do_resources_exist(self, resource_ids: List[str]) -> bool:
+    def do_resources_exist(self, resource_ids: list[str]) -> bool:
         for resource_id in resource_ids:
             resource_prefix = get_prefix(resource_id)
             if resource_prefix == EC2_RESOURCE_TO_PREFIX["customer-gateway"]:

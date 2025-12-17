@@ -1,13 +1,15 @@
 import json
 import re
 from collections import OrderedDict
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     GreengrassClientError,
@@ -25,12 +27,12 @@ class FakeCoreDefinition(BaseModel):
         self.region_name = region_name
         self.name = name
         self.id = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.id}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.id}"
         self.created_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -52,17 +54,17 @@ class FakeCoreDefinitionVersion(BaseModel):
         account_id: str,
         region_name: str,
         core_definition_id: str,
-        definition: Dict[str, Any],
+        definition: dict[str, Any],
     ):
         self.region_name = region_name
         self.core_definition_id = core_definition_id
         self.definition = definition
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.core_definition_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.core_definition_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
 
-    def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
-        obj: Dict[str, Any] = {
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
@@ -83,11 +85,11 @@ class FakeDeviceDefinition(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        initial_version: Dict[str, Any],
+        initial_version: dict[str, Any],
     ):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.id}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.id}"
         self.created_at_datetime = utcnow()
         self.update_at_datetime = utcnow()
         self.latest_version = ""
@@ -95,7 +97,7 @@ class FakeDeviceDefinition(BaseModel):
         self.name = name
         self.initial_version = initial_version
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         res = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -119,17 +121,17 @@ class FakeDeviceDefinitionVersion(BaseModel):
         account_id: str,
         region_name: str,
         device_definition_id: str,
-        devices: List[Dict[str, Any]],
+        devices: list[dict[str, Any]],
     ):
         self.region_name = region_name
         self.device_definition_id = device_definition_id
         self.devices = devices
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
 
-    def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
-        obj: Dict[str, Any] = {
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
@@ -150,11 +152,11 @@ class FakeResourceDefinition(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        initial_version: Dict[str, Any],
+        initial_version: dict[str, Any],
     ):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.id}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.id}"
         self.created_at_datetime = utcnow()
         self.update_at_datetime = utcnow()
         self.latest_version = ""
@@ -162,7 +164,7 @@ class FakeResourceDefinition(BaseModel):
         self.name = name
         self.initial_version = initial_version
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -184,16 +186,16 @@ class FakeResourceDefinitionVersion(BaseModel):
         account_id: str,
         region_name: str,
         resource_definition_id: str,
-        resources: List[Dict[str, Any]],
+        resources: list[dict[str, Any]],
     ):
         self.region_name = region_name
         self.resource_definition_id = resource_definition_id
         self.resources = resources
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -211,11 +213,11 @@ class FakeFunctionDefinition(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        initial_version: Dict[str, Any],
+        initial_version: dict[str, Any],
     ):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.id}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.id}"
         self.created_at_datetime = utcnow()
         self.update_at_datetime = utcnow()
         self.latest_version = ""
@@ -223,7 +225,7 @@ class FakeFunctionDefinition(BaseModel):
         self.name = name
         self.initial_version = initial_version
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         res = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -247,18 +249,18 @@ class FakeFunctionDefinitionVersion(BaseModel):
         account_id: str,
         region_name: str,
         function_definition_id: str,
-        functions: List[Dict[str, Any]],
-        default_config: Dict[str, Any],
+        functions: list[dict[str, Any]],
+        default_config: dict[str, Any],
     ):
         self.region_name = region_name
         self.function_definition_id = function_definition_id
         self.functions = functions
         self.default_config = default_config
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -276,11 +278,11 @@ class FakeSubscriptionDefinition(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        initial_version: Dict[str, Any],
+        initial_version: dict[str, Any],
     ):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.id}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.id}"
         self.created_at_datetime = utcnow()
         self.update_at_datetime = utcnow()
         self.latest_version = ""
@@ -288,7 +290,7 @@ class FakeSubscriptionDefinition(BaseModel):
         self.name = name
         self.initial_version = initial_version
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -310,16 +312,16 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         account_id: str,
         region_name: str,
         subscription_definition_id: str,
-        subscriptions: List[Dict[str, Any]],
+        subscriptions: list[dict[str, Any]],
     ):
         self.region_name = region_name
         self.subscription_definition_id = subscription_definition_id
         self.subscriptions = subscriptions
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -336,13 +338,13 @@ class FakeGroup(BaseModel):
         self.region_name = region_name
         self.group_id = str(mock_random.uuid4())
         self.name = name
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}"
         self.created_at_datetime = utcnow()
         self.last_updated_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         obj = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
@@ -374,7 +376,7 @@ class FakeGroupVersion(BaseModel):
         self.region_name = region_name
         self.group_id = group_id
         self.version = str(mock_random.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}/versions/{self.version}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}/versions/{self.version}"
         self.created_at_datetime = utcnow()
         self.core_definition_version_arn = core_definition_version_arn
         self.device_definition_version_arn = device_definition_version_arn
@@ -382,7 +384,7 @@ class FakeGroupVersion(BaseModel):
         self.resource_definition_version_arn = resource_definition_version_arn
         self.subscription_definition_version_arn = subscription_definition_version_arn
 
-    def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
         definition = {}
         if self.core_definition_version_arn:
             definition["CoreDefinitionVersionArn"] = self.core_definition_version_arn
@@ -407,7 +409,7 @@ class FakeGroupVersion(BaseModel):
                 self.subscription_definition_version_arn
             )
 
-        obj: Dict[str, Any] = {
+        obj: dict[str, Any] = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
@@ -439,9 +441,9 @@ class FakeDeployment(BaseModel):
         self.update_at_datetime = utcnow()
         self.deployment_status = "InProgress"
         self.deployment_type = deployment_type
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
+        self.arn = f"arn:{get_partition(self.region_name)}:greengrass:{self.region_name}:{account_id}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
 
-    def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
         obj = {"DeploymentId": self.id, "DeploymentArn": self.arn}
 
         if include_detail:
@@ -459,7 +461,7 @@ class FakeAssociatedRole(BaseModel):
         self.role_arn = role_arn
         self.associated_at = utcnow()
 
-    def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
         obj = {"AssociatedAt": iso_8601_datetime_with_milliseconds(self.associated_at)}
         if include_detail:
             obj["RoleArn"] = self.role_arn
@@ -478,7 +480,7 @@ class FakeDeploymentStatus(BaseModel):
         self.update_at_datetime = updated_at
         self.deployment_status = deployment_status
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "DeploymentStatus": self.deployment_status,
             "DeploymentType": self.deployment_type,
@@ -489,35 +491,35 @@ class FakeDeploymentStatus(BaseModel):
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.groups: Dict[str, FakeGroup] = OrderedDict()
-        self.group_role_associations: Dict[str, FakeAssociatedRole] = OrderedDict()
-        self.group_versions: Dict[str, Dict[str, FakeGroupVersion]] = OrderedDict()
-        self.core_definitions: Dict[str, FakeCoreDefinition] = OrderedDict()
-        self.core_definition_versions: Dict[
-            str, Dict[str, FakeCoreDefinitionVersion]
+        self.groups: dict[str, FakeGroup] = OrderedDict()
+        self.group_role_associations: dict[str, FakeAssociatedRole] = OrderedDict()
+        self.group_versions: dict[str, dict[str, FakeGroupVersion]] = OrderedDict()
+        self.core_definitions: dict[str, FakeCoreDefinition] = OrderedDict()
+        self.core_definition_versions: dict[
+            str, dict[str, FakeCoreDefinitionVersion]
         ] = OrderedDict()
-        self.device_definitions: Dict[str, FakeDeviceDefinition] = OrderedDict()
-        self.device_definition_versions: Dict[
-            str, Dict[str, FakeDeviceDefinitionVersion]
+        self.device_definitions: dict[str, FakeDeviceDefinition] = OrderedDict()
+        self.device_definition_versions: dict[
+            str, dict[str, FakeDeviceDefinitionVersion]
         ] = OrderedDict()
-        self.function_definitions: Dict[str, FakeFunctionDefinition] = OrderedDict()
-        self.function_definition_versions: Dict[
-            str, Dict[str, FakeFunctionDefinitionVersion]
+        self.function_definitions: dict[str, FakeFunctionDefinition] = OrderedDict()
+        self.function_definition_versions: dict[
+            str, dict[str, FakeFunctionDefinitionVersion]
         ] = OrderedDict()
-        self.resource_definitions: Dict[str, FakeResourceDefinition] = OrderedDict()
-        self.resource_definition_versions: Dict[
-            str, Dict[str, FakeResourceDefinitionVersion]
+        self.resource_definitions: dict[str, FakeResourceDefinition] = OrderedDict()
+        self.resource_definition_versions: dict[
+            str, dict[str, FakeResourceDefinitionVersion]
         ] = OrderedDict()
-        self.subscription_definitions: Dict[str, FakeSubscriptionDefinition] = (
+        self.subscription_definitions: dict[str, FakeSubscriptionDefinition] = (
             OrderedDict()
         )
-        self.subscription_definition_versions: Dict[
-            str, Dict[str, FakeSubscriptionDefinitionVersion]
+        self.subscription_definition_versions: dict[
+            str, dict[str, FakeSubscriptionDefinitionVersion]
         ] = OrderedDict()
-        self.deployments: Dict[str, FakeDeployment] = OrderedDict()
+        self.deployments: dict[str, FakeDeployment] = OrderedDict()
 
     def create_core_definition(
-        self, name: str, initial_version: Dict[str, Any]
+        self, name: str, initial_version: dict[str, Any]
     ) -> FakeCoreDefinition:
         core_definition = FakeCoreDefinition(self.account_id, self.region_name, name)
         self.core_definitions[core_definition.id] = core_definition
@@ -550,7 +552,7 @@ class GreengrassBackend(BaseBackend):
         self.core_definitions[core_definition_id].name = name
 
     def create_core_definition_version(
-        self, core_definition_id: str, cores: List[Dict[str, Any]]
+        self, core_definition_id: str, cores: list[dict[str, Any]]
     ) -> FakeCoreDefinitionVersion:
         definition = {"Cores": cores}
         core_def_ver = FakeCoreDefinitionVersion(
@@ -593,7 +595,7 @@ class GreengrassBackend(BaseBackend):
         ]
 
     def create_device_definition(
-        self, name: str, initial_version: Dict[str, Any]
+        self, name: str, initial_version: dict[str, Any]
     ) -> FakeDeviceDefinition:
         device_def = FakeDeviceDefinition(
             self.account_id, self.region_name, name, initial_version
@@ -609,7 +611,7 @@ class GreengrassBackend(BaseBackend):
         return self.device_definitions.values()
 
     def create_device_definition_version(
-        self, device_definition_id: str, devices: List[Dict[str, Any]]
+        self, device_definition_id: str, devices: list[dict[str, Any]]
     ) -> FakeDeviceDefinitionVersion:
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That devices definition does not exist.")
@@ -677,7 +679,7 @@ class GreengrassBackend(BaseBackend):
         ]
 
     def create_resource_definition(
-        self, name: str, initial_version: Dict[str, Any]
+        self, name: str, initial_version: dict[str, Any]
     ) -> FakeResourceDefinition:
         resources = initial_version.get("Resources", [])
         GreengrassBackend._validate_resources(resources)
@@ -718,7 +720,7 @@ class GreengrassBackend(BaseBackend):
         self.resource_definitions[resource_definition_id].name = name
 
     def create_resource_definition_version(
-        self, resource_definition_id: str, resources: List[Dict[str, Any]]
+        self, resource_definition_id: str, resources: list[dict[str, Any]]
     ) -> FakeResourceDefinitionVersion:
         if resource_definition_id not in self.resource_definitions:
             raise IdNotFoundException("That resource definition does not exist.")
@@ -774,7 +776,7 @@ class GreengrassBackend(BaseBackend):
         ]
 
     @staticmethod
-    def _validate_resources(resources: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
+    def _validate_resources(resources: list[dict[str, Any]]) -> None:  # type: ignore[misc]
         for resource in resources:
             volume_source_path = (
                 resource.get("ResourceDataContainer", {})
@@ -801,7 +803,7 @@ class GreengrassBackend(BaseBackend):
                     )
 
     def create_function_definition(
-        self, name: str, initial_version: Dict[str, Any]
+        self, name: str, initial_version: dict[str, Any]
     ) -> FakeFunctionDefinition:
         func_def = FakeFunctionDefinition(
             self.account_id, self.region_name, name, initial_version
@@ -814,7 +816,7 @@ class GreengrassBackend(BaseBackend):
 
         return func_def
 
-    def list_function_definitions(self) -> List[FakeFunctionDefinition]:
+    def list_function_definitions(self) -> list[FakeFunctionDefinition]:
         return list(self.function_definitions.values())
 
     def get_function_definition(
@@ -844,8 +846,8 @@ class GreengrassBackend(BaseBackend):
     def create_function_definition_version(
         self,
         function_definition_id: str,
-        functions: List[Dict[str, Any]],
-        default_config: Dict[str, Any],
+        functions: list[dict[str, Any]],
+        default_config: dict[str, Any],
     ) -> FakeFunctionDefinitionVersion:
         if function_definition_id not in self.function_definitions:
             raise IdNotFoundException("That lambdas does not exist.")
@@ -873,7 +875,7 @@ class GreengrassBackend(BaseBackend):
 
     def list_function_definition_versions(
         self, function_definition_id: str
-    ) -> Dict[str, FakeFunctionDefinitionVersion]:
+    ) -> dict[str, FakeFunctionDefinitionVersion]:
         if function_definition_id not in self.function_definition_versions:
             raise IdNotFoundException("That lambdas definition does not exist.")
         return self.function_definition_versions[function_definition_id]
@@ -917,10 +919,10 @@ class GreengrassBackend(BaseBackend):
 
     @staticmethod
     def _validate_subscription_target_or_source(  # type: ignore[misc]
-        subscriptions: List[Dict[str, Any]],
+        subscriptions: list[dict[str, Any]],
     ) -> None:
-        target_errors: List[str] = []
-        source_errors: List[str] = []
+        target_errors: list[str] = []
+        source_errors: list[str] = []
 
         for subscription in subscriptions:
             subscription_id = subscription["Id"]
@@ -952,7 +954,7 @@ class GreengrassBackend(BaseBackend):
             )
 
     def create_subscription_definition(
-        self, name: str, initial_version: Dict[str, Any]
+        self, name: str, initial_version: dict[str, Any]
     ) -> FakeSubscriptionDefinition:
         GreengrassBackend._validate_subscription_target_or_source(
             initial_version["Subscriptions"]
@@ -972,7 +974,7 @@ class GreengrassBackend(BaseBackend):
         sub_def.latest_version_arn = sub_def_ver.arn
         return sub_def
 
-    def list_subscription_definitions(self) -> List[FakeSubscriptionDefinition]:
+    def list_subscription_definitions(self) -> list[FakeSubscriptionDefinition]:
         return list(self.subscription_definitions.values())
 
     def get_subscription_definition(
@@ -1002,7 +1004,7 @@ class GreengrassBackend(BaseBackend):
         self.subscription_definitions[subscription_definition_id].name = name
 
     def create_subscription_definition_version(
-        self, subscription_definition_id: str, subscriptions: List[Dict[str, Any]]
+        self, subscription_definition_id: str, subscriptions: list[dict[str, Any]]
     ) -> FakeSubscriptionDefinitionVersion:
         GreengrassBackend._validate_subscription_target_or_source(subscriptions)
 
@@ -1023,7 +1025,7 @@ class GreengrassBackend(BaseBackend):
 
     def list_subscription_definition_versions(
         self, subscription_definition_id: str
-    ) -> Dict[str, FakeSubscriptionDefinitionVersion]:
+    ) -> dict[str, FakeSubscriptionDefinitionVersion]:
         if subscription_definition_id not in self.subscription_definition_versions:
             raise IdNotFoundException("That subscriptions definition does not exist.")
         return self.subscription_definition_versions[subscription_definition_id]
@@ -1046,7 +1048,7 @@ class GreengrassBackend(BaseBackend):
             subscription_definition_version_id
         ]
 
-    def create_group(self, name: str, initial_version: Dict[str, Any]) -> FakeGroup:
+    def create_group(self, name: str, initial_version: dict[str, Any]) -> FakeGroup:
         group = FakeGroup(self.account_id, self.region_name, name)
         self.groups[group.group_id] = group
 
@@ -1074,7 +1076,7 @@ class GreengrassBackend(BaseBackend):
 
         return group
 
-    def list_groups(self) -> List[FakeGroup]:
+    def list_groups(self) -> list[FakeGroup]:
         return list(self.groups.values())
 
     def get_group(self, group_id: str) -> Optional[FakeGroup]:
@@ -1214,7 +1216,7 @@ class GreengrassBackend(BaseBackend):
                 f"The group is invalid or corrupted. (ErrorDetails: [{error_details}])",
             )
 
-    def list_group_versions(self, group_id: str) -> List[FakeGroupVersion]:
+    def list_group_versions(self, group_id: str) -> list[FakeGroupVersion]:
         if group_id not in self.group_versions:
             raise IdNotFoundException("That group definition does not exist.")
         return list(self.group_versions[group_id].values())
@@ -1292,7 +1294,7 @@ class GreengrassBackend(BaseBackend):
         self.deployments[deployment.id] = deployment
         return deployment
 
-    def list_deployments(self, group_id: str) -> List[FakeDeployment]:
+    def list_deployments(self, group_id: str) -> list[FakeDeployment]:
         # ListDeployments API does not check specified group is exists
         return [
             deployment

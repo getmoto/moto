@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.common_models import ConfigQueryModel
 from moto.core.exceptions import InvalidNextTokenException
@@ -11,14 +11,15 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
     def list_config_service_resources(
         self,
         account_id: str,
-        resource_ids: Optional[List[str]],
+        partition: str,
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # The resource_region only matters for aggregated queries as you can filter on bucket regions for them.
         # For other resource types, you would need to iterate appropriately for the backend_region.
 
@@ -31,14 +32,14 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
 
         # If no filter was passed in for resource names/ids then return them all:
         if not resource_ids and not resource_name:
-            bucket_list = list(self.backends[account_id]["global"].buckets.keys())
+            bucket_list = list(self.backends[account_id][partition].buckets.keys())
 
         else:
             # Match the resource name / ID:
             bucket_list = []
             filter_buckets = [resource_name] if resource_name else resource_ids
 
-            for bucket in self.backends[account_id]["global"].buckets.keys():
+            for bucket in self.backends[account_id][partition].buckets.keys():
                 if bucket in filter_buckets:  # type: ignore
                     bucket_list.append(bucket)
 
@@ -49,7 +50,7 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
 
             for bucket in bucket_list:
                 if (
-                    self.backends[account_id]["global"].buckets[bucket].region_name
+                    self.backends[account_id][partition].buckets[bucket].region_name
                     == region_filter
                 ):
                     region_buckets.append(bucket)
@@ -86,7 +87,7 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
                     "type": "AWS::S3::Bucket",
                     "id": bucket,
                     "name": bucket,
-                    "region": self.backends[account_id]["global"]
+                    "region": self.backends[account_id][partition]
                     .buckets[bucket]
                     .region_name,
                 }
@@ -98,13 +99,14 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         # Get the bucket:
-        bucket = self.backends[account_id]["global"].buckets.get(resource_id)
+        bucket = self.backends[account_id][partition].buckets.get(resource_id)
 
         if not bucket:
             return None

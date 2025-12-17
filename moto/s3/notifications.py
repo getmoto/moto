@@ -2,9 +2,13 @@ import copy
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any
+from urllib.parse import quote_plus
 
 from moto.core.utils import unix_time
+
+if TYPE_CHECKING:
+    from moto.s3.models import FakeBucket
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -38,7 +42,7 @@ class S3NotificationEvent(str, Enum):
     OBJECT_RESTORE_DELETE_EVENT = "s3:ObjectRestore:Delete"
     LIFECYCLE_TRANSITION_EVENT = "s3:LifecycleTransition"
     INTELLIGENT_TIERING_EVENT = "s3:IntelligentTiering"
-    OBJECT_ACL_EVENT = "s3:ObjectAcl:Put"
+    OBJECT_ACL_UPDATE_EVENT = "s3:ObjectAcl:Put"
     LIFECYCLE_EXPIRATION_EVENT = "s3:LifecycleExpiration:*"
     LIFECYCLEEXPIRATION_DELETE_EVENT = "s3:LifecycleExpiration:Delete"
     LIFECYCLE_EXPIRATION_DELETE_MARKER_CREATED_EVENT = (
@@ -49,7 +53,7 @@ class S3NotificationEvent(str, Enum):
     OBJECT_TAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
 
     @classmethod
-    def events(self) -> List[str]:
+    def events(self) -> list[str]:
         return sorted([item.value for item in S3NotificationEvent])
 
     @classmethod
@@ -64,12 +68,14 @@ class S3NotificationEvent(str, Enum):
 
 
 def _get_s3_event(
-    event_name: str, bucket: Any, key: Any, notification_id: str
-) -> Dict[str, List[Dict[str, Any]]]:
+    event_name: str, bucket: "FakeBucket", key: Any, notification_id: str
+) -> dict[str, list[dict[str, Any]]]:
     etag = key.etag.replace('"', "")
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
+    # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-content-structure.html
+    key_name = quote_plus(key.name)
     return {
         "Records": [
             {
@@ -83,9 +89,9 @@ def _get_s3_event(
                     "configurationId": notification_id,
                     "bucket": {
                         "name": bucket.name,
-                        "arn": f"arn:aws:s3:::{bucket.name}",
+                        "arn": bucket.arn,
                     },
-                    "object": {"key": key.name, "size": key.size, "eTag": etag},
+                    "object": {"key": key_name, "size": key.size, "eTag": etag},
                 },
             }
         ]
@@ -165,7 +171,7 @@ def _send_sns_message(
 
 def _send_event_bridge_message(
     account_id: str,
-    bucket: Any,
+    bucket: "FakeBucket",
     event_name: str,
     key: Any,
 ) -> None:
@@ -179,7 +185,7 @@ def _send_event_bridge_message(
         event["account"] = account_id
         event["time"] = unix_time()
         event["region"] = bucket.region_name
-        event["resources"] = [f"arn:aws:s3:::{bucket.name}"]
+        event["resources"] = [bucket.arn]
         event["detail"] = {
             "version": "0",
             "bucket": {"name": bucket.name},
@@ -200,7 +206,7 @@ def _send_event_bridge_message(
         events_backend = events_backends[account_id][bucket.region_name]
         for event_bus in events_backend.event_buses.values():
             for rule in event_bus.rules.values():
-                rule.send_to_targets(event)
+                rule.send_to_targets(event, transform_input=False)
 
     except:  # noqa
         # This is an async action in AWS.
@@ -263,7 +269,7 @@ def _invoke_awslambda(
 
         lambda_backend = get_backend(account_id, region_name)
         func = lambda_backend.get_function(fn_arn)
-        func.invoke(json.dumps(event_body), dict(), dict())
+        func.invoke(json.dumps(event_body), {}, {})
     except:  # noqa
         # This is an async action in AWS.
         # Even if this part fails, the calling function should pass, so catch all errors
@@ -272,7 +278,7 @@ def _invoke_awslambda(
         pass
 
 
-def _get_test_event(bucket_name: str) -> Dict[str, Any]:
+def _get_test_event(bucket_name: str) -> dict[str, Any]:
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
     return {
         "Service": "Amazon S3",

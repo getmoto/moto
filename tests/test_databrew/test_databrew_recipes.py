@@ -374,6 +374,12 @@ def test_publish_recipe(recipe_name):
     assert recipe["PublishedDate"] > dt_before_publish
     first_published_date = recipe["PublishedDate"]
 
+    # Latest Working should have created date == publish date
+    working_response = client.describe_recipe(
+        Name=recipe_name, RecipeVersion="LATEST_WORKING"
+    )
+    assert working_response["CreateDate"] == first_published_date
+
     # Publish the recipe a 2nd time
     publish_response = client.publish_recipe(Name=recipe_name, Description="2nd desc")
     assert publish_response["Name"] == recipe_name
@@ -382,6 +388,12 @@ def test_publish_recipe(recipe_name):
     assert recipe["Description"] == "2nd desc"
     assert recipe["RecipeVersion"] == "2.0"
     assert recipe["PublishedDate"] >= first_published_date
+
+    # Check working Created Date
+    working_response = client.describe_recipe(
+        Name=recipe_name, RecipeVersion="LATEST_WORKING"
+    )
+    assert recipe["PublishedDate"] == working_response["CreateDate"]
 
 
 @mock_aws

@@ -26,15 +26,16 @@ dynamodb
 - [X] create_table
 - [X] delete_backup
 - [X] delete_item
+- [X] delete_resource_policy
 - [X] delete_table
 - [X] describe_backup
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [X] describe_endpoints
-- [ ] describe_export
+- [X] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
-- [ ] describe_import
+- [X] describe_import
 - [ ] describe_kinesis_streaming_destination
 - [ ] describe_limits
 - [X] describe_table
@@ -56,15 +57,23 @@ dynamodb
 
 - [ ] export_table_to_point_in_time
 - [X] get_item
-- [ ] import_table
+- [X] get_resource_policy
+- [X] import_table
+  
+        Only InputFormat=DYNAMODB_JSON is supported so far.
+        InputCompressionType=ZSTD is not supported.
+        Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
+        
+
 - [X] list_backups
 - [ ] list_contributor_insights
-- [ ] list_exports
+- [X] list_exports
 - [ ] list_global_tables
 - [ ] list_imports
 - [X] list_tables
 - [X] list_tags_of_resource
 - [X] put_item
+- [X] put_resource_policy
 - [X] query
 - [X] restore_table_from_backup
 - [X] restore_table_to_point_in_time

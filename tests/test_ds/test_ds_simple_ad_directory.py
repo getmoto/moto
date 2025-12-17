@@ -196,8 +196,7 @@ def test_ds_create_directory_bad_subnets():
     err = exc.value.response["Error"]
     assert err["Code"] == "ClientException"
     assert (
-        "Invalid subnet ID(s). The two subnets must be in different "
-        "Availability Zones."
+        "Invalid subnet ID(s). The two subnets must be in different Availability Zones."
     ) in err["Message"]
     ec2_client.delete_subnet(SubnetId=subnets_same_region[0])
     ec2_client.delete_subnet(SubnetId=subnets_same_region[1])

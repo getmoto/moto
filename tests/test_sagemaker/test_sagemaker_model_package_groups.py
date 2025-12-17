@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -191,7 +190,7 @@ def test_describe_model_package_group():
         == "arn:aws:sagemaker:eu-west-1:123456789012:model-package-group/test-model-package-group"
     )
     assert resp["ModelPackageGroupStatus"] == "Completed"
-    assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())
+    assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @mock_aws
@@ -267,3 +266,35 @@ def test_delete_tags_model_package_group():
     for response in response_iterator:
         remaining_tags.extend(response["Tags"])
     assert remaining_tags == tags[20:]
+
+
+@mock_aws
+def test_search_model_package_groups():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    group1 = "test-model-package-group-1"
+    desc1 = "test-model-package-group-description-1"
+    arn1 = client.create_model_package_group(
+        ModelPackageGroupName=group1, ModelPackageGroupDescription=desc1
+    )["ModelPackageGroupArn"]
+    client.add_tags(ResourceArn=arn1, Tags=[{"Key": "k1", "Value": "v1"}])
+
+    group2 = "test-model-package-group-2"
+    desc2 = "test-model-package-group-description-2"
+    client.create_model_package_group(
+        ModelPackageGroupName=group2,
+        ModelPackageGroupDescription=desc2,
+    )
+
+    summary = client.search(Resource="ModelPackageGroup")["Results"]
+    assert len(summary) == 2
+
+    assert (
+        summary[0]["ModelPackageGroup"]["ModelPackageGroupName"]
+        == "test-model-package-group-1"
+    )
+    assert summary[0]["ModelPackageGroup"]["Tags"] == [{"Key": "k1", "Value": "v1"}]
+
+    assert (
+        summary[1]["ModelPackageGroup"]["ModelPackageGroupName"]
+        == "test-model-package-group-2"
+    )

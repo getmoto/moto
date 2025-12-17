@@ -1,7 +1,7 @@
 import boto3
 import pytest
 from botocore.config import Config
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -69,8 +69,17 @@ def test_create_another_member():
     assert helpers.member_id_exist_in_list(members, member_id2) is True
 
     # Get member 2 details
-    response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    assert response["Member"]["Name"] == "testmember2"
+    member = conn.get_member(NetworkId=network_id, MemberId=member_id2)["Member"]
+    assert member["Name"] == "testmember2"
+    assert member["FrameworkAttributes"] == {
+        "Fabric": {
+            "AdminUsername": "admin",
+            "CaEndpoint": f"ca.{member_id2.lower()}.{network_id.lower()}.managedblockchain.us-east-1.amazonaws.com:30002",
+        }
+    }
+    assert member["LogPublishingConfiguration"] == {
+        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": False}}}
+    }
 
     # Update member
     logconfignewenabled = not helpers.default_memberconfiguration[
@@ -86,11 +95,10 @@ def test_create_another_member():
     )
 
     # Get member 2 details
-    response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    cloudwatch = response["Member"]["LogPublishingConfiguration"]["Fabric"]["CaLogs"][
-        "Cloudwatch"
-    ]
-    assert cloudwatch["Enabled"] == logconfignewenabled
+    member2 = conn.get_member(NetworkId=network_id, MemberId=member_id2)
+    assert member2["Member"]["LogPublishingConfiguration"] == {
+        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": True}}}
+    }
 
 
 @mock_aws
@@ -301,7 +309,7 @@ def test_create_too_many_members():
     member_id = response["MemberId"]
 
     # Create 4 more members - create invitations for 5
-    for counter in range(2, 7):
+    for _ in range(2, 7):
         # Create proposal
         proposal_id = conn.create_proposal(
             NetworkId=network_id,
@@ -502,22 +510,6 @@ def test_create_another_member_adminpassword():
 
     badadminpassmemberconf = helpers.create_member_configuration(
         "testmember2", "admin", "Admin12345", False
-    )
-
-    # Too short
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
-        "badap"
-    )
-    with pytest.raises(ParamValidationError) as ex:
-        conn.create_member(
-            NetworkId=network_id,
-            InvitationId=invitation_id,
-            MemberConfiguration=badadminpassmemberconf,
-        )
-    err = ex.value
-    assert (
-        "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword"
-        in str(err)
     )
 
     # No uppercase or numbers

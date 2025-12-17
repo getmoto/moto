@@ -1,10 +1,8 @@
 """Handles incoming scheduler requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import EventBridgeSchedulerBackend, scheduler_backends
@@ -33,6 +31,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
         start_date = self._get_param("StartDate")
         state = self._get_param("State")
         target = self._get_param("Target")
+        action_after_completion = self._get_param("ActionAfterCompletion")
         schedule = self.scheduler_backend.create_schedule(
             description=description,
             end_date=end_date,
@@ -45,8 +44,9 @@ class EventBridgeSchedulerResponse(BaseResponse):
             start_date=start_date,
             state=state,
             target=target,
+            action_after_completion=action_after_completion,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def get_schedule(self) -> str:
         group_name = self._get_param("groupName")
@@ -86,13 +86,26 @@ class EventBridgeSchedulerResponse(BaseResponse):
             state=state,
             target=target,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def list_schedules(self) -> str:
         group_names = self.querystring.get("ScheduleGroup")
         state = self._get_param("State")
-        schedules = self.scheduler_backend.list_schedules(group_names, state)
-        return json.dumps({"Schedules": [sch.to_dict(short=True) for sch in schedules]})
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedules, next_token = self.scheduler_backend.list_schedules(
+            group_names,
+            state,
+            name_prefix,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        result = {
+            "Schedules": [sch.to_dict(short=True) for sch in schedules],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
     def create_schedule_group(self) -> str:
         name = self._get_param("Name")
@@ -101,7 +114,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             name=name,
             tags=tags,
         )
-        return json.dumps(dict(ScheduleGroupArn=schedule_group.arn))
+        return json.dumps({"ScheduleGroupArn": schedule_group.arn})
 
     def get_schedule_group(self) -> str:
         group_name = self.uri.split("?")[0].split("/")[-1]
@@ -114,31 +127,31 @@ class EventBridgeSchedulerResponse(BaseResponse):
         return "{}"
 
     def list_schedule_groups(self) -> str:
-        schedule_groups = self.scheduler_backend.list_schedule_groups()
-        return json.dumps(dict(ScheduleGroups=[sg.to_dict() for sg in schedule_groups]))
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedule_groups, next_token = self.scheduler_backend.list_schedule_groups(
+            name_prefix, max_results=max_results, next_token=next_token
+        )
+        result = {
+            "ScheduleGroups": [sg.to_dict() for sg in schedule_groups],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
         tags = self.scheduler_backend.list_tags_for_resource(resource_arn)
-        return 200, {}, json.dumps(tags)
+        return json.dumps(tags)
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
         tags = json.loads(self.body)["Tags"]
         self.scheduler_backend.tag_resource(resource_arn, tags)
-        return 200, {}, "{}"
+        return "{}"
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> str:
         resource_arn = unquote(self.uri.split("?")[0].split("/tags/")[-1])
         tag_keys = self.querystring.get("TagKeys")
         self.scheduler_backend.untag_resource(resource_arn, tag_keys)  # type: ignore
-        return 200, {}, "{}"
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        super().setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.tag_resource()
-        elif request.method == "DELETE":
-            return self.untag_resource()
-        else:
-            return self.list_tags_for_resource()
+        return "{}"

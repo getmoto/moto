@@ -26,6 +26,7 @@ import os
 import re
 import subprocess
 import sys
+
 from packaging.version import Version
 
 
@@ -59,7 +60,7 @@ def migrate_version(new_version):
     )
     migrate_source_attribute(
         "version =",
-        to_this=f'version = {new_version}\n',
+        to_this=f"version = {new_version}\n",
         target_file=setupcfg,
     )
 

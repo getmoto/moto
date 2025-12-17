@@ -1,7 +1,7 @@
 import random
 import time
 from threading import Thread
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -10,6 +10,7 @@ from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import AccountSpecificBackend, BackendDict, BaseBackend
 from moto.ec2.models import EC2Backend
 from moto.elbv2.models import ELBv2Backend
+from moto.utilities.utils import PARTITION_NAMES
 
 
 class ExampleBackend(BaseBackend):
@@ -35,7 +36,7 @@ def test_backend_dict_does_not_contain_unknown_regions() -> None:
 def test_backend_dict_fails_when_retrieving_unknown_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
     with pytest.raises(KeyError):
-        backend_dict["account"]["mars-south-1"]  # pylint: disable=pointless-statement
+        backend_dict["account"]["mars-south-1"]
 
 
 def test_backend_dict_can_retrieve_for_specific_account() -> None:
@@ -63,7 +64,7 @@ def test_backend_dict_can_ignore_boto3_regions() -> None:
 
 def test_backend_dict_can_specify_additional_regions() -> None:
     backend_dict = BackendDict(
-        ExampleBackend, "ec2", additional_regions=["region1", "global"]
+        ExampleBackend, "ec2", additional_regions=["region1", "global", "aws"]
     )["123456"]
     assert isinstance(backend_dict["us-east-1"], ExampleBackend)
     assert isinstance(backend_dict["region1"], ExampleBackend)
@@ -78,7 +79,7 @@ class TestMultiThreadedAccess:
         def __init__(self, region_name: str, account_id: str):
             super().__init__(region_name, account_id)
             time.sleep(0.1)
-            self.data: List[int] = []
+            self.data: list[int] = []
 
     def setup_method(self) -> None:
         self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
@@ -142,7 +143,7 @@ def _create_asb(
     account_id: str,
     backend: Any = None,
     use_boto3_regions: bool = False,
-    regions: Optional[List[str]] = None,
+    regions: Optional[list[str]] = None,
 ) -> Any:
     return AccountSpecificBackend(
         service_name="ec2",
@@ -156,23 +157,56 @@ def _create_asb(
 def test_multiple_backends_cache_behaviour() -> None:
     ec2 = BackendDict(EC2Backend, "ec2")
     ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(ec2_useast1) == EC2Backend
+    assert type(ec2_useast1) is EC2Backend
 
     autoscaling = BackendDict(AutoScalingBackend, "autoscaling")
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(as_1) == AutoScalingBackend
+    assert type(as_1) is AutoScalingBackend
 
     from moto.elbv2 import elbv2_backends
 
     elbv2_useast = elbv2_backends["00000000"]["us-east-1"]
-    assert type(elbv2_useast) == ELBv2Backend
+    assert type(elbv2_useast) is ELBv2Backend
     elbv2_useast2 = elbv2_backends[DEFAULT_ACCOUNT_ID]["us-east-2"]
-    assert type(elbv2_useast2) == ELBv2Backend
+    assert type(elbv2_useast2) is ELBv2Backend
 
     ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(ec2_useast1) == EC2Backend
+    assert type(ec2_useast1) is EC2Backend
     ec2_useast2 = ec2[DEFAULT_ACCOUNT_ID]["us-east-2"]
-    assert type(ec2_useast2) == EC2Backend
+    assert type(ec2_useast2) is EC2Backend
 
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(as_1) == AutoScalingBackend
+    assert type(as_1) is AutoScalingBackend
+
+
+def test_global_region_defaults_to_aws() -> None:
+    s3 = BackendDict(ExampleBackend, "s3", additional_regions=PARTITION_NAMES)
+
+    # Internally we use 'aws' as the S3 region
+    s3_aws = s3[DEFAULT_ACCOUNT_ID]["aws"]
+    assert isinstance(s3_aws, ExampleBackend)
+
+    # But users may still call this 'global'
+    # Ensure that we're getting the backend
+    s3_global = s3[DEFAULT_ACCOUNT_ID]["global"]
+    assert s3_global == s3_aws
+
+    # Changes to S3AWS should show up in global
+    s3_aws.var = "test"  # type: ignore[attr-defined]
+    assert s3_global.var == "test"  # type: ignore[attr-defined]
+
+    assert "aws" in s3[DEFAULT_ACCOUNT_ID]
+    assert "global" in s3[DEFAULT_ACCOUNT_ID]
+
+
+def test_iterate_backend_dict() -> None:
+    ec2 = BackendDict(EC2Backend, "ec2")
+    _ = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    _ = ec2[DEFAULT_ACCOUNT_ID]["us-east-2"]
+
+    regions = {"us-east-1", "us-east-2"}
+    for account, region, backend in ec2.iter_backends():
+        assert isinstance(backend, EC2Backend)
+        assert region in regions
+        regions.remove(region)
+        assert account == DEFAULT_ACCOUNT_ID

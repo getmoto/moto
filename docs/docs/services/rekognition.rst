@@ -39,7 +39,7 @@ rekognition
 - [ ] describe_project_versions
 - [ ] describe_projects
 - [ ] describe_stream_processor
-- [ ] detect_custom_labels
+- [X] detect_custom_labels
 - [ ] detect_faces
 - [X] detect_labels
 - [ ] detect_moderation_labels

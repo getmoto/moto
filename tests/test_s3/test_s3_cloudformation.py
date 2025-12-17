@@ -1,5 +1,6 @@
 import json
 import re
+from uuid import uuid4
 
 import boto3
 
@@ -10,6 +11,7 @@ from moto import mock_aws
 def test_s3_bucket_cloudformation_basic():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = str(uuid4())
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -17,8 +19,8 @@ def test_s3_bucket_cloudformation_basic():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
 
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
@@ -27,8 +29,9 @@ def test_s3_bucket_cloudformation_basic():
 def test_s3_bucket_cloudformation_with_properties():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = str(uuid4())
 
-    bucket_name = "MyBucket"
+    bucket_name = str(uuid4())
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -51,8 +54,8 @@ def test_s3_bucket_cloudformation_with_properties():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
-    cf_client.describe_stacks(StackName="test_stack")
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template_json)
+    cf_client.describe_stacks(StackName=stack_name)
     s3_client.head_bucket(Bucket=bucket_name)
 
     encryption = s3_client.get_bucket_encryption(Bucket=bucket_name)
@@ -68,6 +71,7 @@ def test_s3_bucket_cloudformation_with_properties():
 def test_s3_bucket_cloudformation_update_no_interruption():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = str(uuid4())
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -75,8 +79,8 @@ def test_s3_bucket_cloudformation_update_no_interruption():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
     template = {
@@ -100,7 +104,7 @@ def test_s3_bucket_cloudformation_update_no_interruption():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.update_stack(StackName="test_stack", TemplateBody=template_json)
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template_json)
     encryption = s3_client.get_bucket_encryption(
         Bucket=stack_description["Outputs"][0]["OutputValue"]
     )
@@ -116,6 +120,7 @@ def test_s3_bucket_cloudformation_update_no_interruption():
 def test_s3_bucket_cloudformation_update_replacement():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = str(uuid4())
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -123,8 +128,8 @@ def test_s3_bucket_cloudformation_update_replacement():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
     template = {
@@ -138,8 +143,8 @@ def test_s3_bucket_cloudformation_update_replacement():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf_client.update_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
 
@@ -148,8 +153,8 @@ def test_s3_bucket_cloudformation_outputs():
     region_name = "us-east-1"
     s3_client = boto3.client("s3", region_name=region_name)
     cf_client = boto3.resource("cloudformation", region_name=region_name)
-    stack_name = "test-stack"
-    bucket_name = "test-bucket"
+    stack_name = str(uuid4())
+    bucket_name = str(uuid4())
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {

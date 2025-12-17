@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -12,7 +12,7 @@ class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
 
-    def get_endpoint_name(self, headers: Dict[str, str]) -> Optional[str]:  # type: ignore[return]
+    def get_endpoint_name(self, headers: dict[str, str]) -> Optional[str]:  # type: ignore[return]
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
 
@@ -44,7 +44,7 @@ class DynamoHandler(BaseResponse):
 
     @property
     def backend(self) -> DynamoDBBackend:
-        return dynamodb_backends[self.current_account]["global"]
+        return dynamodb_backends[self.current_account][self.partition]
 
     def list_tables(self) -> str:
         body = self.body
@@ -59,7 +59,7 @@ class DynamoHandler(BaseResponse):
             tables = all_tables[start : start + limit]
         else:
             tables = all_tables[start:]
-        response: Dict[str, Any] = {"TableNames": tables}
+        response: dict[str, Any] = {"TableNames": tables}
         if limit and len(all_tables) > start + limit:
             response["LastEvaluatedTableName"] = tables[-1]
         return dynamo_json_dump(response)
@@ -182,7 +182,7 @@ class DynamoHandler(BaseResponse):
     def batch_get_item(self) -> str:
         table_batches = self.body["RequestItems"]
 
-        results: Dict[str, Any] = {"Responses": {"UnprocessedKeys": {}}}
+        results: dict[str, Any] = {"Responses": {"UnprocessedKeys": {}}}
 
         for table_name, table_request in table_batches.items():
             items = []

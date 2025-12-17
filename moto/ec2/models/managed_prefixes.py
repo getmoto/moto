@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from moto.utilities.utils import filter_resources
+from moto.utilities.utils import filter_resources, get_partition
 
 from ..utils import describe_tag_filter, random_managed_prefix_list_id
 from .core import TaggedEC2Resource
@@ -12,10 +12,10 @@ class ManagedPrefixList(TaggedEC2Resource):
         backend: Any,
         region: str,
         address_family: Optional[str] = None,
-        entry: Optional[List[Dict[str, str]]] = None,
+        entry: Optional[list[dict[str, str]]] = None,
         max_entries: Optional[str] = None,
         prefix_list_name: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         owner_id: Optional[str] = None,
     ):
         self.ec2_backend = backend
@@ -24,7 +24,7 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.id = random_managed_prefix_list_id()
         self.prefix_list_name = prefix_list_name
         self.state = "create-complete"
-        self.state_message = "create complete"
+        self.state_message = None
         self.add_tags(tags or {})
         self.version: Optional[int] = 1
         self.entries = {self.version: entry} if entry else {}
@@ -33,25 +33,31 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.delete_counter = 1
 
     def arn(self, region: str, owner_id: str) -> str:
-        return f"arn:aws:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        return (
+            f"arn:{get_partition(region)}:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        )
 
     @property
     def owner_id(self) -> str:
         return self.resource_owner_id or self.ec2_backend.account_id
 
+    @property
+    def prefix_list_id(self) -> str:
+        return self.id
+
 
 class ManagedPrefixListBackend:
     def __init__(self) -> None:
-        self.managed_prefix_lists: Dict[str, ManagedPrefixList] = {}
+        self.managed_prefix_lists: dict[str, ManagedPrefixList] = {}
         self.create_default_pls()
 
     def create_managed_prefix_list(
         self,
         address_family: Optional[str] = None,
-        entry: Optional[List[Dict[str, str]]] = None,
+        entry: Optional[list[dict[str, str]]] = None,
         max_entries: Optional[str] = None,
         prefix_list_name: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         owner_id: Optional[str] = None,
     ) -> ManagedPrefixList:
         managed_prefix_list = ManagedPrefixList(
@@ -68,8 +74,8 @@ class ManagedPrefixListBackend:
         return managed_prefix_list
 
     def describe_managed_prefix_lists(
-        self, prefix_list_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[ManagedPrefixList]:
+        self, prefix_list_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[ManagedPrefixList]:
         managed_prefix_lists = list(self.managed_prefix_lists.values())
         attr_pairs = (
             ("owner-id", "owner_id"),
@@ -111,8 +117,8 @@ class ManagedPrefixListBackend:
 
     def modify_managed_prefix_list(
         self,
-        add_entry: List[Dict[str, str]],
-        remove_entry: List[Dict[str, str]],
+        add_entry: list[dict[str, str]],
+        remove_entry: list[dict[str, str]],
         prefix_list_id: Optional[str] = None,
         current_version: Optional[str] = None,
         prefix_list_name: Optional[str] = None,
@@ -127,7 +133,7 @@ class ManagedPrefixListBackend:
                 else []
             )
             for item in entries.copy():
-                if item.get("Cidr", "") in remove_entry:
+                if item.get("Cidr", "") in [entry["Cidr"] for entry in remove_entry]:
                     entries.remove(item)
 
             for item in add_entry:
@@ -139,13 +145,13 @@ class ManagedPrefixListBackend:
         return managed_pl
 
     def _create_aws_managed_prefix_list(
-        self, name: str, address_family: str, entries: List[Dict[str, str]]
+        self, name: str, address_family: str, entries: list[dict[str, str]]
     ) -> None:
         managed_prefix_list = self.create_managed_prefix_list(
             address_family=address_family,
             entry=entries,
             prefix_list_name=name,
-            owner_id="aws",
+            owner_id="AWS",
         )
         managed_prefix_list.version = None
         managed_prefix_list.max_entries = None

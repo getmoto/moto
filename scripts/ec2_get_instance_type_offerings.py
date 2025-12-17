@@ -27,6 +27,8 @@ def main():
     regions.extend(Session().get_available_regions("ec2"))
     regions.extend(Session().get_available_regions("ec2", partition_name="aws-us-gov"))
     regions.extend(Session().get_available_regions("ec2", partition_name="aws-cn"))
+    # Malaysia is a new region, and not yet exposed by get_available_regions
+    regions.append("ap-southeast-5")
     print("Found " + str(len(regions)) + " regions")
 
     root_dir = (
@@ -54,19 +56,27 @@ def main():
                     instances.extend(offerings["InstanceTypeOfferings"])
                     next_token = offerings.get("NextToken", None)
                 for i in instances:
-                    del i["LocationType"]  # This can be reproduced, no need to persist it
-                instances = sorted(instances, key=lambda i: (i['Location'], i["InstanceType"]))
+                    del i[
+                        "LocationType"
+                    ]  # This can be reproduced, no need to persist it
+                instances = sorted(
+                    instances, key=lambda i: (i["Location"], i["InstanceType"])
+                )
 
                 # Ensure we use the correct US-west availability zones
-                # There are only two - for some accounts they are called us-west-1b and us-west-1c
-                # As our EC2-module assumes us-west-1a and us-west-1b, we may have to rename the zones coming from AWS
+                # There are three, but accounts only have access to two
+                # Because of this, some accounts have access to (us-west-1a or us-west-1b) and us-west-1c
+                # As our EC2-module assumes us-west-1a and us-west-1b, we have to rename the zones accordingly
                 # https://github.com/getmoto/moto/issues/5494
                 if region == "us-west-1" and location_type == "availability-zone":
                     zones = set([i["Location"] for i in instances])
+                    # If AWS returns b and c, we have to convert b --> a
                     if zones == {"us-west-1b", "us-west-1c"}:
                         for i in instances:
                             if i["Location"] == "us-west-1b":
                                 i["Location"] = "us-west-1a"
+                    # If AWS returns c, we always have to convert c --> b (the other location will always be a at this point)
+                    if "us-west-1c" in zones:
                         for i in instances:
                             if i["Location"] == "us-west-1c":
                                 i["Location"] = "us-west-1b"

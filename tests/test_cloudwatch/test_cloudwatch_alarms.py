@@ -1,12 +1,15 @@
 import boto3
+import pytest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_aws
-def test_create_alarm():
-    region = "eu-west-1"
+@pytest.mark.parametrize(
+    "region,partition", [("eu-west-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_alarm(region, partition):
     cloudwatch = boto3.client("cloudwatch", region)
 
     name = "tester"
@@ -44,7 +47,10 @@ def test_create_alarm():
     assert alarm["OKActions"] == ["arn:ok"]
     assert alarm["InsufficientDataActions"] == ["arn:insufficient"]
     assert alarm["Unit"] == "Seconds"
-    assert alarm["AlarmArn"] == f"arn:aws:cloudwatch:{region}:{ACCOUNT_ID}:alarm:{name}"
+    assert (
+        alarm["AlarmArn"]
+        == f"arn:{partition}:cloudwatch:{region}:{ACCOUNT_ID}:alarm:{name}"
+    )
     # default value should be True
     assert alarm["ActionsEnabled"] is True
 

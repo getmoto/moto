@@ -1,8 +1,9 @@
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClientError
 
@@ -14,7 +15,7 @@ class Channel(BaseModel):
         self.description = kwargs.get("description")
         self.tags = kwargs.get("tags")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "arn": self.arn,
             "id": self.channel_id,
@@ -42,7 +43,7 @@ class OriginEndpoint(BaseModel):
         self.url = kwargs.get("url")
         self.whitelist = kwargs.get("whitelist")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "arn": self.arn,
             "authorization": self.authorization,
@@ -66,13 +67,13 @@ class OriginEndpoint(BaseModel):
 class MediaPackageBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._channels: Dict[str, Channel] = OrderedDict()
-        self._origin_endpoints: Dict[str, OriginEndpoint] = OrderedDict()
+        self._channels: dict[str, Channel] = OrderedDict()
+        self._origin_endpoints: dict[str, OriginEndpoint] = OrderedDict()
 
     def create_channel(
-        self, description: str, channel_id: str, tags: Dict[str, str]
+        self, description: str, channel_id: str, tags: dict[str, str]
     ) -> Channel:
-        arn = f"arn:aws:mediapackage:channel:{channel_id}"
+        arn = f"arn:{get_partition(self.region_name)}:mediapackage:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             description=description,
@@ -82,7 +83,7 @@ class MediaPackageBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    def list_channels(self) -> List[Dict[str, Any]]:
+    def list_channels(self) -> list[dict[str, Any]]:
         return [c.to_dict() for c in self._channels.values()]
 
     def describe_channel(self, channel_id: str) -> Channel:
@@ -102,22 +103,22 @@ class MediaPackageBackend(BaseBackend):
 
     def create_origin_endpoint(
         self,
-        authorization: Dict[str, str],
+        authorization: dict[str, str],
         channel_id: str,
-        cmaf_package: Dict[str, Any],
-        dash_package: Dict[str, Any],
+        cmaf_package: dict[str, Any],
+        dash_package: dict[str, Any],
         description: str,
-        hls_package: Dict[str, Any],
+        hls_package: dict[str, Any],
         endpoint_id: str,
         manifest_name: str,
-        mss_package: Dict[str, Any],
+        mss_package: dict[str, Any],
         origination: str,
         startover_window_seconds: int,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         time_delay_seconds: int,
-        whitelist: List[str],
+        whitelist: list[str],
     ) -> OriginEndpoint:
-        arn = f"arn:aws:mediapackage:origin_endpoint:{endpoint_id}"
+        arn = f"arn:{get_partition(self.region_name)}:mediapackage:origin_endpoint:{endpoint_id}"
         url = f"https://origin-endpoint.mediapackage.{self.region_name}.amazonaws.com/{endpoint_id}"
         origin_endpoint = OriginEndpoint(
             arn=arn,
@@ -148,7 +149,7 @@ class MediaPackageBackend(BaseBackend):
                 "NotFoundException", f"origin endpoint with id={endpoint_id} not found"
             )
 
-    def list_origin_endpoints(self) -> List[Dict[str, Any]]:
+    def list_origin_endpoints(self) -> list[dict[str, Any]]:
         return [o.to_dict() for o in self._origin_endpoints.values()]
 
     def delete_origin_endpoint(self, endpoint_id: str) -> OriginEndpoint:
@@ -160,18 +161,18 @@ class MediaPackageBackend(BaseBackend):
 
     def update_origin_endpoint(
         self,
-        authorization: Dict[str, str],
-        cmaf_package: Dict[str, Any],
-        dash_package: Dict[str, Any],
+        authorization: dict[str, str],
+        cmaf_package: dict[str, Any],
+        dash_package: dict[str, Any],
         description: str,
-        hls_package: Dict[str, Any],
+        hls_package: dict[str, Any],
         endpoint_id: str,
         manifest_name: str,
-        mss_package: Dict[str, Any],
+        mss_package: dict[str, Any],
         origination: str,
         startover_window_seconds: int,
         time_delay_seconds: int,
-        whitelist: List[str],
+        whitelist: list[str],
     ) -> OriginEndpoint:
         try:
             origin_endpoint = self._origin_endpoints[endpoint_id]

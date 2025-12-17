@@ -1,4 +1,4 @@
-from typing import Any, Dict, Final, Optional, Set
+from typing import Any, Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -9,7 +9,11 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -20,33 +24,39 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
+    ResourceCondition.WaitForTaskToken,
+}
+_ERROR_NAME_CLIENT: Final[str] = "SQS.SdkClientException"
+_ERROR_NAME_AWS: Final[str] = "SQS.AmazonSQSException"
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
+    "sendmessage": {
+        "DelaySeconds",
+        "MessageAttributes",
+        "MessageBody",
+        "MessageDeduplicationId",
+        "MessageGroupId",
+        "QueueUrl",
+    }
+}
+
 
 class StateTaskServiceSqs(StateTaskServiceCallback):
-    _ERROR_NAME_CLIENT: Final[str] = "SQS.SdkClientException"
-    _ERROR_NAME_AWS: Final[str] = "SQS.AmazonSQSException"
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
-        "sendmessage": {
-            "DelaySeconds",
-            "MessageAttribute",
-            "MessageBody",
-            "MessageDeduplicationId",
-            "MessageGroupId",
-            "QueueUrl",
-        }
-    }
-
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
-        return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
+    def _get_supported_parameters(self) -> Optional[set[str]]:
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, ClientError):
             return FailureEvent(
-                error_name=CustomErrorName(self._ERROR_NAME_CLIENT),
+                env=env,
+                error_name=CustomErrorName(_ERROR_NAME_CLIENT),
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
                     taskFailedEventDetails=TaskFailedEventDetails(
-                        error=self._ERROR_NAME_CLIENT,
+                        error=_ERROR_NAME_CLIENT,
                         cause=ex.response["Error"][
                             "Message"
                         ],  # TODO: update to report expected cause.
@@ -68,16 +78,21 @@ class StateTaskServiceSqs(StateTaskServiceCallback):
             boto_service_name=boto_service_name,
             service_action_name=service_action_name,
         )
-        # Normalise output value key to SFN standard for Md5OfMessageBody.
+        # Normalise output value keys to SFN standard for Md5OfMessageBody and Md5OfMessageAttributes
         if response and "Md5OfMessageBody" in response:
             md5_message_body = response.pop("Md5OfMessageBody")
             response["MD5OfMessageBody"] = md5_message_body
+
+        if response and "Md5OfMessageAttributes" in response:
+            md5_message_attributes = response.pop("Md5OfMessageAttributes")
+            response["MD5OfMessageAttributes"] = md5_message_attributes
 
     def _eval_service_task(
         self,
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        state_credentials: StateCredentials,
     ):
         # TODO: Stepfunctions automatically dumps to json MessageBody's definitions.
         #  Are these other similar scenarios?
@@ -89,9 +104,9 @@ class StateTaskServiceSqs(StateTaskServiceCallback):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         sqs_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         response = getattr(sqs_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

@@ -9,6 +9,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 
+from . import ec2_aws_verified
+from .helpers import assert_dryrun_error
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
@@ -23,6 +25,11 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create vpc
     client.create_vpc(CidrBlock="10.0.0.0/16")
@@ -40,6 +47,11 @@ def test_create_default_vpc():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create default vpc
     client.create_default_vpc()
@@ -150,12 +162,12 @@ def test_vpc_state_available_filter():
     assert vpc2.id in [v["VpcId"] for v in available]
 
 
-def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
-    resp = client.describe_vpcs(Filters=filters)
+def retrieve_all_vpcs(client, filters=None):
+    resp = client.describe_vpcs(Filters=filters or [])
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpcs(Filters=filters, NextToken=token)
+        resp = client.describe_vpcs(Filters=filters or [], NextToken=token)
         all_vpcs.extend(resp["Vpcs"])
         token = resp.get("NextToken")
     return all_vpcs
@@ -189,7 +201,7 @@ def test_vpc_get_by_id():
 
     vpcs = client.describe_vpcs(VpcIds=[vpc1.id, vpc2.id])["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -213,7 +225,7 @@ def test_vpc_get_by_cidr_block():
     vpcs = client.describe_vpcs(Filters=[{"Name": "cidr", "Values": [random_cidr]}])[
         "Vpcs"
     ]
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -237,7 +249,7 @@ def test_vpc_get_by_dhcp_options_id():
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp_options.id]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -259,7 +271,7 @@ def test_vpc_get_by_tag():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -281,7 +293,7 @@ def test_vpc_get_by_tag_key_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -304,7 +316,7 @@ def test_vpc_get_by_tag_key_subset():
         Filters=[{"Name": "tag-key", "Values": [tag_key1, tag_key2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -326,7 +338,7 @@ def test_vpc_get_by_tag_value_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -348,7 +360,7 @@ def test_vpc_get_by_tag_value_subset():
         Filters=[{"Name": "tag-value", "Values": [value1, value2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -534,37 +546,44 @@ def test_vpc_associate_dhcp_options():
     assert dhcp_options.id == vpc.dhcp_options_id
 
 
-@mock_aws
-def test_associate_vpc_ipv4_cidr_block():
-    ec2 = boto3.resource("ec2", region_name="us-west-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.10.42.0/24")
-
+@ec2_aws_verified(create_vpc=True, create_sg=False)
+@pytest.mark.aws_verified
+def test_associate_vpc_ipv4_cidr_block(ec2_client=None, vpc_id=None):
     # Associate/Extend vpc CIDR range up to 5 ciders
     for i in range(43, 47):
-        response = ec2.meta.client.associate_vpc_cidr_block(
-            VpcId=vpc.id, CidrBlock=f"10.10.{i}.0/24"
+        response = ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, CidrBlock=f"10.10.{i}.0/24"
         )
         assert (
             response["CidrBlockAssociation"]["CidrBlockState"]["State"] == "associating"
+        )
+        assert (
+            response["CidrBlockAssociation"]["CidrBlockState"].get("StatusMessage")
+            is None
         )
         assert response["CidrBlockAssociation"]["CidrBlock"] == f"10.10.{i}.0/24"
         assert "vpc-cidr-assoc" in response["CidrBlockAssociation"]["AssociationId"]
 
     # Check all associations exist
-    vpc = ec2.Vpc(vpc.id)
-    assert len(vpc.cidr_block_association_set) == 5
-    assert vpc.cidr_block_association_set[2]["CidrBlockState"]["State"] == "associated"
-    assert vpc.cidr_block_association_set[4]["CidrBlockState"]["State"] == "associated"
+    cidr_block_association_set = ec2_client.describe_vpcs(VpcIds=[vpc_id])["Vpcs"][0][
+        "CidrBlockAssociationSet"
+    ]
+    assert len(cidr_block_association_set) == 5
+    assert not any(
+        item["CidrBlockState"].get("StatusMessage")
+        for item in cidr_block_association_set
+    )
+    assert cidr_block_association_set[2]["CidrBlockState"]["State"] == "associated"
+    assert cidr_block_association_set[4]["CidrBlockState"]["State"] == "associated"
 
     # Check error on adding 6th association.
     with pytest.raises(ClientError) as ex:
-        response = ec2.meta.client.associate_vpc_cidr_block(
-            VpcId=vpc.id, CidrBlock="10.10.50.0/22"
+        response = ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, CidrBlock="10.10.50.0/22"
         )
     assert (
         str(ex.value)
-        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 5"
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network {vpc_id} has met its maximum number of allowed CIDRs: 5"
     )
 
 
@@ -706,7 +725,7 @@ def test_vpc_associate_ipv6_cidr_block():
         )
     assert (
         str(ex.value)
-        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network {vpc.id} has met its maximum number of allowed CIDRs: 1"
     )
 
     # Test associate ipv6 cidr block after vpc created
@@ -1070,13 +1089,16 @@ def test_describe_vpc_interface_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
     subnet = ec2.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
-
+    sgroup = ec2.create_security_group(
+        GroupName="test_sg", Description="test security group", VpcId=vpc["VpcId"]
+    )
     route_table = ec2.create_route_table(VpcId=vpc["VpcId"])["RouteTable"]
     vpc_end_point = ec2.create_vpc_endpoint(
         VpcId=vpc["VpcId"],
         ServiceName="com.tester.my-test-endpoint",
         VpcEndpointType="interface",
         SubnetIds=[subnet["SubnetId"]],
+        SecurityGroupIds=[sgroup["GroupId"]],
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
@@ -1089,12 +1111,12 @@ def test_describe_vpc_interface_end_points():
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
     assert vpc_end_point["PrivateDnsEnabled"] is True
     assert our_endpoint["PrivateDnsEnabled"] is True
-
+    assert our_endpoint["SubnetIds"] == [subnet["SubnetId"]]
     assert our_endpoint["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in our_endpoint
-
+    assert our_endpoint["RouteTableIds"] == []
+    assert [g["GroupId"] for g in our_endpoint["Groups"]] == [sgroup["GroupId"]]
     assert our_endpoint["DnsEntries"] == vpc_end_point["DnsEntries"]
-
+    assert "CreationTimestamp" in our_endpoint
     assert our_endpoint["VpcEndpointType"] == "interface"
     assert our_endpoint["ServiceName"] == "com.tester.my-test-endpoint"
     assert our_endpoint["State"] == "available"
@@ -1104,7 +1126,7 @@ def test_describe_vpc_interface_end_points():
     ][0]
     assert endpoint_by_id["VpcEndpointId"] == our_id
     assert endpoint_by_id["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in endpoint_by_id
+    assert endpoint_by_id["RouteTableIds"] == []
     assert endpoint_by_id["VpcEndpointType"] == "interface"
     assert endpoint_by_id["ServiceName"] == "com.tester.my-test-endpoint"
     assert endpoint_by_id["State"] == "available"
@@ -1128,7 +1150,7 @@ def retrieve_all_endpoints(ec2):
 
 
 @mock_aws
-def test_modify_vpc_endpoint():
+def test_modify_vpc_endpoint_add_subnet():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
     subnet_id1 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
@@ -1161,7 +1183,7 @@ def test_modify_vpc_endpoint():
 
     ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    assert "RouteTableIds" not in endpoint
+    assert endpoint["RouteTableIds"] == []
 
     ec2.modify_vpc_endpoint(
         VpcEndpointId=vpc_id,
@@ -1169,6 +1191,212 @@ def test_modify_vpc_endpoint():
     )
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
     assert endpoint["PolicyDocument"] == "doc"
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_duplicate_subnet():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id1 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet_id1, subnet_id2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        AddSubnetIds=[subnet_id2],
+    )
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["SubnetIds"] == [subnet_id1, subnet_id2]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_remove_subnet():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id1 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet_id1, subnet_id2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        RemoveSubnetIds=[subnet_id1],
+    )
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["SubnetIds"] == [subnet_id2]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_route_table():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    rt_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet_id],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddRouteTableIds=[rt_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["RouteTableIds"] == [rt_id]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_duplicate_route_table():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    rt_id_1 = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    rt_id_2 = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        RouteTableIds=[rt_id_1, rt_id_2],
+        SubnetIds=[subnet_id],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddRouteTableIds=[rt_id_2])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["RouteTableIds"] == [rt_id_1, rt_id_2]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_remove_route_table():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    rt_id_1 = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    rt_id_2 = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        RouteTableIds=[rt_id_1, rt_id_2],
+        SubnetIds=[subnet_id],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        RemoveRouteTableIds=[rt_id_2],
+    )
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["RouteTableIds"] == [rt_id_1]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_security_group():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddSecurityGroupIds=[sg_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [{"GroupId": sg_id, "GroupName": "test_sg"}]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_security_group_duplicate():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id_1 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_1", Description="test security group"
+    )["GroupId"]
+    sg_id_2 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_2", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SecurityGroupIds=[sg_id_1, sg_id_2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddSecurityGroupIds=[sg_id_2])
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [
+        {"GroupId": sg_id_1, "GroupName": "test_sg_1"},
+        {"GroupId": sg_id_2, "GroupName": "test_sg_2"},
+    ]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_remove_security_group():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id_1 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_1", Description="test security group"
+    )["GroupId"]
+    sg_id_2 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_2", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SecurityGroupIds=[sg_id_1, sg_id_2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveSecurityGroupIds=[sg_id_1])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [{"GroupId": sg_id_2, "GroupName": "test_sg_2"}]
 
 
 @mock_aws
@@ -1207,6 +1435,16 @@ def test_delete_vpc_end_points():
     ][0]
     assert ep1["State"] == "deleted"
 
+    deleted_endpoints = ec2.describe_vpc_endpoints(
+        Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleted"]}]
+    )["VpcEndpoints"]
+    assert vpc_end_point1["VpcEndpointId"] in [
+        e["VpcEndpointId"] for e in deleted_endpoints
+    ]
+    assert vpc_end_point2["VpcEndpointId"] not in [
+        e["VpcEndpointId"] for e in deleted_endpoints
+    ]
+
     ep2 = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_end_point2["VpcEndpointId"]])[
         "VpcEndpoints"
     ][0]
@@ -1219,12 +1457,7 @@ def test_describe_vpcs_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_vpcs(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -1238,3 +1471,21 @@ def test_describe_prefix_lists():
         ]
     )
     assert len(result_filtered["PrefixLists"]) == 1
+
+
+@mock_aws
+def test_delete_vpc_with_subnet_dependency():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    assert exc.value.response["Error"]["Code"] == "DependencyViolation"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"The vpc '{vpc['VpcId']}' has dependencies and cannot be deleted."
+    )
+
+    client.delete_subnet(SubnetId=subnet["SubnetId"])
+    client.delete_vpc(VpcId=vpc["VpcId"])

@@ -1,7 +1,7 @@
 import copy
 from typing import Final, Optional
 
-from moto.stepfunctions.parser.asl.component.common.parameters import Parameters
+from moto.stepfunctions.parser.asl.component.common.parargs import Parargs
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.eval.resource_eval import (
     ResourceEval,
@@ -26,18 +26,18 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 class ItemReader(EvalComponent):
     resource_eval: Final[ResourceEval]
-    parameters: Final[Optional[Parameters]]
+    parargs: Final[Optional[Parargs]]
     reader_config: Final[Optional[ReaderConfig]]
     resource_output_transformer: Optional[ResourceOutputTransformer]
 
     def __init__(
         self,
         resource: Resource,
-        parameters: Optional[Parameters],
+        parargs: Optional[Parargs],
         reader_config: Optional[ReaderConfig],
     ):
         self.resource_eval = resource_eval_for(resource=resource)
-        self.parameters = parameters
+        self.parargs = parargs
         self.reader_config = reader_config
 
         self.resource_output_transformer = None
@@ -57,13 +57,18 @@ class ItemReader(EvalComponent):
         return f"({self.__class__.__name__}| {class_dict})"
 
     def _eval_body(self, env: Environment) -> None:
-        if self.parameters:
-            self.parameters.eval(env=env)
+        resource_config = None
+        if self.reader_config:
+            self.reader_config.eval(env=env)
+            resource_config = env.stack.pop()
+
+        if self.parargs:
+            self.parargs.eval(env=env)
         else:
-            env.stack.append(dict())
+            env.stack.append({})
 
         self.resource_eval.eval_resource(env=env)
 
         if self.reader_config:
-            self.reader_config.eval(env=env)
+            env.stack.append(resource_config)
             self.resource_output_transformer.eval(env=env)

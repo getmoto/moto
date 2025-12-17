@@ -107,7 +107,7 @@ class LogsResponse(BaseResponse):
             "metricNamespace",
             "Maximum length of 255.",
             lambda x: x is None or len(x) <= 255,
-            pattern="[^:*$]*",
+            pattern="[0-9A-Za-z\\.\\-_/#:]*",
         )
         next_token = self._get_validated_param(
             "nextToken", "Minimum length of 1.", lambda x: x is None or 1 <= len(x)
@@ -115,15 +115,15 @@ class LogsResponse(BaseResponse):
 
         if metric_name and not metric_namespace:
             raise InvalidParameterException(
-                constraint=f'{"If you include the metricName parameter in your request, "}'
-                f'{"you must also include the metricNamespace parameter."}',
+                constraint=f"{'If you include the metricName parameter in your request, '}"
+                f"{'you must also include the metricNamespace parameter.'}",
                 parameter="metricNamespace",
                 value=metric_namespace,
             )
         if metric_namespace and not metric_name:
             raise InvalidParameterException(
-                constraint=f'{"If you include the metricNamespace parameter in your request, "}'
-                f'{"you must also include the metricName parameter."}',
+                constraint=f"{'If you include the metricNamespace parameter in your request, '}"
+                f"{'you must also include the metricName parameter.'}",
                 parameter="metricName",
                 value=metric_name,
             )
@@ -178,9 +178,10 @@ class LogsResponse(BaseResponse):
             log_group_name_prefix=log_group_name_prefix,
             next_token=next_token,
         )
-        result = {"logGroups": groups}
-        if next_token:
-            result["nextToken"] = next_token
+        result = {
+            "logGroups": [g.to_describe_dict() for g in groups],
+            "nextToken": next_token,
+        }
         return json.dumps(result)
 
     def put_destination(self) -> str:
@@ -236,6 +237,7 @@ class LogsResponse(BaseResponse):
 
     def describe_log_streams(self) -> str:
         log_group_name = self._get_param("logGroupName")
+        log_group_id = self._get_param("logGroupIdentifier")
         log_stream_name_prefix = self._get_param("logStreamNamePrefix", "")
         descending = self._get_param("descending", False)
         limit = self._get_param("limit", 50)
@@ -243,12 +245,13 @@ class LogsResponse(BaseResponse):
         order_by = self._get_param("orderBy", "LogStreamName")
 
         streams, next_token = self.logs_backend.describe_log_streams(
-            descending,
-            limit,
-            log_group_name,
-            log_stream_name_prefix,
-            next_token,
-            order_by,
+            descending=descending,
+            limit=limit,
+            log_group_name=log_group_name,
+            log_group_id=log_group_id,
+            log_stream_name_prefix=log_stream_name_prefix,
+            next_token=next_token,
+            order_by=order_by,
         )
         return json.dumps({"logStreams": streams, "nextToken": next_token})
 
@@ -272,6 +275,7 @@ class LogsResponse(BaseResponse):
 
     def get_log_events(self) -> str:
         log_group_name = self._get_param("logGroupName")
+        log_group_id = self._get_param("logGroupIdentifier")
         log_stream_name = self._get_param("logStreamName")
         start_time = self._get_param("startTime")
         end_time = self._get_param("endTime")
@@ -284,13 +288,14 @@ class LogsResponse(BaseResponse):
             next_backward_token,
             next_forward_token,
         ) = self.logs_backend.get_log_events(
-            log_group_name,
-            log_stream_name,
-            start_time,
-            end_time,
-            limit,
-            next_token,
-            start_from_head,
+            log_group_name=log_group_name,
+            log_group_id=log_group_id,
+            log_stream_name=log_stream_name,
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit,
+            next_token=next_token,
+            start_from_head=start_from_head,
         )
         return json.dumps(
             {
@@ -432,6 +437,11 @@ class LogsResponse(BaseResponse):
         query = self.logs_backend.get_query_results(query_id)
         return json.dumps(query.to_result_json())
 
+    def cancel_export_task(self) -> str:
+        task_id = self._get_param("taskId")
+        self.logs_backend.cancel_export_task(task_id)
+        return "{}"
+
     def create_export_task(self) -> str:
         task_id = self.logs_backend.create_export_task(
             logGroupName=self._get_param("logGroupName"),
@@ -441,7 +451,7 @@ class LogsResponse(BaseResponse):
             destinationPrefix=self._get_param("destinationPrefix", "exportedlogs"),
             taskName=self._get_param("taskName"),
         )
-        return json.dumps(dict(taskId=str(task_id)))
+        return json.dumps({"taskId": str(task_id)})
 
     def describe_export_tasks(self) -> str:
         task_id = self._get_param("taskId")
@@ -465,3 +475,129 @@ class LogsResponse(BaseResponse):
         tag_keys = self._get_param("tagKeys")
         self.logs_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
+
+    def put_delivery_destination(self) -> str:
+        name = self._get_param("name")
+        output_format = self._get_param("outputFormat")
+        delivery_destination_configuration = self._get_param(
+            "deliveryDestinationConfiguration"
+        )
+        tags = self._get_param("tags")
+        delivery_destination = self.logs_backend.put_delivery_destination(
+            name=name,
+            output_format=output_format,
+            delivery_destination_configuration=delivery_destination_configuration,
+            tags=tags,
+        )
+        return json.dumps({"deliveryDestination": delivery_destination.to_dict()})
+
+    def get_delivery_destination(self) -> str:
+        name = self._get_param("name")
+        delivery_destination = self.logs_backend.get_delivery_destination(
+            name=name,
+        )
+        return json.dumps({"deliveryDestination": delivery_destination.to_dict()})
+
+    def describe_delivery_destinations(self) -> str:
+        delivery_destinations = self.logs_backend.describe_delivery_destinations()
+        return json.dumps(
+            {"deliveryDestinations": [dd.to_dict() for dd in delivery_destinations]}
+        )
+
+    def put_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        delivery_destination_policy = self._get_param("deliveryDestinationPolicy")
+        policy = self.logs_backend.put_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+            delivery_destination_policy=delivery_destination_policy,
+        )
+        return json.dumps({"policy": policy})
+
+    def get_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        policy = self.logs_backend.get_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+        )
+        return json.dumps({"policy": policy})
+
+    def put_delivery_source(self) -> str:
+        name = self._get_param("name")
+        resource_arn = self._get_param("resourceArn")
+        log_type = self._get_param("logType")
+        tags = self._get_param("tags")
+        delivery_source = self.logs_backend.put_delivery_source(
+            name=name,
+            resource_arn=resource_arn,
+            log_type=log_type,
+            tags=tags,
+        )
+        return json.dumps({"deliverySource": delivery_source.to_dict()})
+
+    def describe_delivery_sources(self) -> str:
+        delivery_sources = self.logs_backend.describe_delivery_sources()
+        return json.dumps(
+            {"deliverySources": [ds.to_dict() for ds in delivery_sources]}
+        )
+
+    def get_delivery_source(self) -> str:
+        name = self._get_param("name")
+        delivery_source = self.logs_backend.get_delivery_source(
+            name=name,
+        )
+        return json.dumps({"deliverySource": delivery_source.to_dict()})
+
+    def create_delivery(self) -> str:
+        delivery_source_name = self._get_param("deliverySourceName")
+        delivery_destination_arn = self._get_param("deliveryDestinationArn")
+        record_fields = self._get_param("recordFields")
+        field_delimiter = self._get_param("fieldDelimiter")
+        s3_delivery_configuration = self._get_param("s3DeliveryConfiguration")
+        tags = self._get_param("tags")
+        delivery = self.logs_backend.create_delivery(
+            delivery_source_name=delivery_source_name,
+            delivery_destination_arn=delivery_destination_arn,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+            tags=tags,
+        )
+        return json.dumps({"delivery": delivery.to_dict()})
+
+    def describe_deliveries(self) -> str:
+        deliveries = self.logs_backend.describe_deliveries()
+        return json.dumps({"deliveries": [d.to_dict() for d in deliveries]})
+
+    def get_delivery(self) -> str:
+        id = self._get_param("id")
+        delivery = self.logs_backend.get_delivery(
+            id=id,
+        )
+        return json.dumps({"delivery": delivery.to_dict()})
+
+    def delete_delivery(self) -> str:
+        id = self._get_param("id")
+        self.logs_backend.delete_delivery(
+            id=id,
+        )
+        return ""
+
+    def delete_delivery_destination(self) -> str:
+        name = self._get_param("name")
+        self.logs_backend.delete_delivery_destination(
+            name=name,
+        )
+        return ""
+
+    def delete_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        self.logs_backend.delete_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+        )
+        return ""
+
+    def delete_delivery_source(self) -> str:
+        name = self._get_param("name")
+        self.logs_backend.delete_delivery_source(
+            name=name,
+        )
+        return ""

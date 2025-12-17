@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -28,7 +28,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         log_destination: str,
         log_group_name: str,
         deliver_logs_permission_arn: str,
-        max_aggregation_interval: str,
+        max_aggregation_interval: int,
         log_destination_type: str,
         log_format: str,
         deliver_logs_status: str = "SUCCESS",
@@ -139,14 +139,14 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
 
 class FlowLogsBackend:
     def __init__(self) -> None:
-        self.flow_logs: Dict[str, FlowLogs] = {}
+        self.flow_logs: dict[str, FlowLogs] = {}
 
     def _validate_request(
         self,
         log_group_name: str,
         log_destination: str,
         log_destination_type: str,
-        max_aggregation_interval: str,
+        max_aggregation_interval: int,
         deliver_logs_permission_arn: str,
     ) -> None:
         if log_group_name is None and log_destination is None:
@@ -165,7 +165,7 @@ class FlowLogsBackend:
                     "DeliverLogsPermissionArn", "LogDestinationType", "cloud-watch-logs"
                 )
 
-        if max_aggregation_interval not in ["60", "600"]:
+        if max_aggregation_interval not in [60, 600]:
             raise InvalidAggregationIntervalParameterError(
                 "Flow Log Max Aggregation Interval"
             )
@@ -173,19 +173,19 @@ class FlowLogsBackend:
     def create_flow_logs(
         self,
         resource_type: str,
-        resource_ids: List[str],
+        resource_ids: list[str],
         traffic_type: str,
         deliver_logs_permission_arn: str,
         log_destination_type: str,
         log_destination: str,
         log_group_name: str,
         log_format: str,
-        max_aggregation_interval: str,
-    ) -> Tuple[List[FlowLogs], List[Any]]:
+        max_aggregation_interval: int,
+    ) -> tuple[list[FlowLogs], list[Any]]:
         # Guess it's best to put it here due to possible
         # lack of them in the CloudFormation template
         max_aggregation_interval = (
-            "600" if max_aggregation_interval is None else max_aggregation_interval
+            600 if max_aggregation_interval is None else max_aggregation_interval
         )
         log_destination_type = (
             "cloud-watch-logs" if log_destination_type is None else log_destination_type
@@ -228,7 +228,7 @@ class FlowLogsBackend:
 
                 arn = log_destination.split(":", 5)[5]
                 try:
-                    s3_backends[self.account_id]["global"].get_bucket(arn)  # type: ignore[attr-defined]
+                    s3_backends[self.account_id][self.partition].get_bucket(arn)  # type: ignore[attr-defined]
                 except MissingBucket:
                     # Instead of creating FlowLog report
                     # the unsuccessful status for the
@@ -280,16 +280,16 @@ class FlowLogsBackend:
         return flow_logs_set, unsuccessful
 
     def describe_flow_logs(
-        self, flow_log_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[FlowLogs]:
-        matches = list(itertools.chain([i for i in self.flow_logs.values()]))
+        self, flow_log_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[FlowLogs]:
+        matches = list(itertools.chain(list(self.flow_logs.values())))
         if flow_log_ids:
             matches = [flow_log for flow_log in matches if flow_log.id in flow_log_ids]
         if filters:
             matches = generic_filter(filters, matches)
         return matches
 
-    def delete_flow_logs(self, flow_log_ids: List[str]) -> None:
+    def delete_flow_logs(self, flow_log_ids: list[str]) -> None:
         non_existing = []
         for flow_log in flow_log_ids:
             if flow_log in self.flow_logs:

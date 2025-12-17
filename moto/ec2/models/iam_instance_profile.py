@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.instances import Instance
@@ -24,8 +24,9 @@ class IamInstanceProfileAssociation(CloudFormationModel):
         iam_instance_profile: InstanceProfile,
     ):
         self.ec2_backend = ec2_backend
-        self.id = association_id
+        self.association_id = association_id
         self.instance = instance
+        self.instance_id = instance.id
         self.iam_instance_profile = iam_instance_profile
         self.state = "associated"
         ec2_backend.modify_instance_attribute(
@@ -37,7 +38,7 @@ class IamInstanceProfileAssociation(CloudFormationModel):
 
 class IamInstanceProfileAssociationBackend:
     def __init__(self) -> None:
-        self.iam_instance_profile_associations: Dict[
+        self.iam_instance_profile_associations: dict[
             str, IamInstanceProfileAssociation
         ] = {}
 
@@ -51,8 +52,9 @@ class IamInstanceProfileAssociationBackend:
 
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -61,7 +63,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_association = IamInstanceProfileAssociation(
             self,
             iam_association_id,
-            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined]
+            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined, arg-type]
             instance_profile,
         )
         # Regarding to AWS there can be only one association with ec2.
@@ -72,15 +74,15 @@ class IamInstanceProfileAssociationBackend:
 
     def describe_iam_instance_profile_associations(
         self,
-        association_ids: List[str],
+        association_ids: list[str],
         filters: Any = None,
         max_results: int = 100,
         next_token: Optional[str] = None,
-    ) -> Tuple[List[IamInstanceProfileAssociation], Optional[str]]:
-        associations_list: List[IamInstanceProfileAssociation] = []
+    ) -> tuple[list[IamInstanceProfileAssociation], Optional[str]]:
+        associations_list: list[IamInstanceProfileAssociation] = []
         if association_ids:
             for association in self.iam_instance_profile_associations.values():
-                if association.id in association_ids:
+                if association.association_id in association_ids:
                     associations_list.append(association)
         else:
             # That's mean that no association id were given. Showing all.
@@ -105,7 +107,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_association = None
         for association_key in self.iam_instance_profile_associations.keys():
             if (
-                self.iam_instance_profile_associations[association_key].id
+                self.iam_instance_profile_associations[association_key].association_id
                 == association_id
             ):
                 iam_instance_profile_association = (
@@ -113,6 +115,11 @@ class IamInstanceProfileAssociationBackend:
                 )
                 del self.iam_instance_profile_associations[association_key]
                 # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
+
+                iam_instance_profile_association.ec2_backend.modify_instance_attribute(
+                    association_key, "iam_instance_profile", None
+                )
+
                 break
 
         if not iam_instance_profile_association:
@@ -128,14 +135,15 @@ class IamInstanceProfileAssociationBackend:
     ) -> IamInstanceProfileAssociation:
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         iam_instance_profile_association = None
         for association_key in self.iam_instance_profile_associations.keys():
             if (
-                self.iam_instance_profile_associations[association_key].id
+                self.iam_instance_profile_associations[association_key].association_id
                 == association_id
             ):
                 self.iam_instance_profile_associations[

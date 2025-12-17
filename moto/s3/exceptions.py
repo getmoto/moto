@@ -16,6 +16,14 @@ ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<Key>{{ key }}</Key>{% endblock %}
 """
 
+ERROR_WITH_KEY_AND_VERSION = """{% extends 'single_error' %}
+{% block extra %}<Key>{{ key }}</Key><VersionId>{{ version_id }}</VersionId>{% endblock %}
+"""
+
+ERROR_WITH_METHOD_AND_RESOURCE = """{% extends 'single_error' %}
+{% block extra %}{% if method %}<Method>{{ method }}</Method>{% endif %}{% if resource_type %}<ResourceType>{{ resource_type }}</ResourceType>{% endif %}{% endblock %}
+"""
+
 ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
 {% block extra %}<ArgumentName>{{ name }}</ArgumentName>
 <ArgumentValue>{{ value }}</ArgumentValue>{% endblock %}
@@ -46,6 +54,8 @@ class S3ClientError(RESTError):
     extended_templates = {
         "bucket_error": ERROR_WITH_BUCKET_NAME,
         "key_error": ERROR_WITH_KEY_NAME,
+        "key_version_error": ERROR_WITH_KEY_AND_VERSION,
+        "method_resource_error": ERROR_WITH_METHOD_AND_RESOURCE,
         "argument_error": ERROR_WITH_ARGUMENT,
         "error_uploadid": ERROR_WITH_UPLOADID,
         "condition_error": ERROR_WITH_CONDITION_NAME,
@@ -126,8 +136,21 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = 404
 
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("template", "key_version_error")
+        super().__init__(
+            "NoSuchVersion", "The specified version does not exist.", **kwargs
+        )
+
+
+class MissingInventoryConfig(S3ClientError):
+    code = 404
+
     def __init__(self) -> None:
-        super().__init__("NoSuchVersion", "The specified version does not exist.")
+        super().__init__(
+            "NoSuchInventoryConfig",
+            "The specified inventory configuration does not exist.",
+        )
 
 
 class InvalidVersion(S3ClientError):
@@ -200,6 +223,26 @@ class IllegalLocationConstraintException(S3ClientError):
         super().__init__(
             "IllegalLocationConstraintException",
             "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to.",
+        )
+
+
+class IncompatibleLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self, location: str) -> None:
+        super().__init__(
+            "IllegalLocationConstraintException",
+            f"The {location} location constraint is incompatible for the region specific endpoint this request was sent to.",
+        )
+
+
+class InvalidLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidLocationConstraint",
+            "The specified location-constraint is not valid",
         )
 
 
@@ -481,6 +524,13 @@ class InvalidRange(S3ClientError):
         )
 
 
+class RangeNotSatisfiable(S3ClientError):
+    code = 416
+
+    def __init__(self) -> None:
+        super().__init__(RangeNotSatisfiable.code, "Requested Range Not Satisfiable")
+
+
 class InvalidContinuationToken(S3ClientError):
     code = 400
 
@@ -488,6 +538,13 @@ class InvalidContinuationToken(S3ClientError):
         super().__init__(
             "InvalidArgument", "The continuation token provided is incorrect"
         )
+
+
+class InvalidBucketState(S3ClientError):
+    code = 400
+
+    def __init__(self, msg: str):
+        super().__init__("InvalidBucketState", msg)
 
 
 class InvalidObjectState(BucketError):
@@ -510,6 +567,13 @@ class LockNotEnabled(S3ClientError):
         super().__init__("InvalidRequest", "Bucket is missing ObjectLockConfiguration")
 
 
+class MissingRequestBody(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__("MissingRequestBodyError", "Request Body is empty")
+
+
 class AccessDeniedByLock(S3ClientError):
     code = 400
 
@@ -517,11 +581,14 @@ class AccessDeniedByLock(S3ClientError):
         super().__init__("AccessDenied", "Access Denied")
 
 
-class InvalidContentMD5(S3ClientError):
+class MissingUploadObjectWithObjectLockHeaders(S3ClientError):
     code = 400
 
     def __init__(self) -> None:
-        super().__init__("InvalidContentMD5", "Content MD5 header is invalid")
+        super().__init__(
+            "MissingUploadObjectWithObjectLockHeaders",
+            "Content-MD5 or x-amz-sdk-checksum-algorithm header required to upload an object with a retention period configured using Object Lock",
+        )
 
 
 class BucketNeedsToBeNew(S3ClientError):
@@ -529,16 +596,6 @@ class BucketNeedsToBeNew(S3ClientError):
 
     def __init__(self) -> None:
         super().__init__("InvalidBucket", "Bucket needs to be empty")
-
-
-class BucketMustHaveLockeEnabled(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "InvalidBucketState",
-            "Object Lock configuration cannot be enabled on existing buckets",
-        )
 
 
 class CopyObjectMustChangeSomething(S3ClientError):
@@ -586,21 +643,13 @@ class HeadOnDeleteMarker(Exception):
         self.marker = marker
 
 
-class DaysMustNotProvidedForSelectRequest(S3ClientError):
-    code = 400
+class MethodNotAllowed(S3ClientError):
+    code = 405
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs: Any):
+        kwargs.setdefault("template", "method_resource_error")
         super().__init__(
-            "DaysMustNotProvidedForSelectRequest",
-            "`Days` must not be provided for select requests",
-        )
-
-
-class DaysMustProvidedExceptForSelectRequest(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "DaysMustProvidedExceptForSelectRequest",
-            "`Days` must be provided except for select requests",
+            "MethodNotAllowed",
+            "The specified method is not allowed against this resource.",
+            **kwargs,
         )

@@ -6,28 +6,38 @@ name: Terraform Examples
 on: [workflow_call]
 
 jobs:
+  find-jobs:
+    runs-on: ubuntu-latest
+    name: Find Jobs
+    outputs:
+      folders: ${{ steps.set-folders.outputs.folders }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: set-folders
+        name: Get Services
+        shell: bash
+        run: |
+          cd other_langs/terraform/
+          folders=$(tree -J -d -L 1 | jq -c '.[0].contents | map(.name)')
+          echo $folders
+          echo "folders=$folders" >> $GITHUB_OUTPUT
+
   test:
     runs-on: ubuntu-latest
+    needs: find-jobs
     strategy:
       fail-fast: false
       matrix:
-        service: ["acm", "awslambda", "cloudfront", "elb", "route53", "sqs"]
+        service: ${{ fromJson(needs.find-jobs.outputs.folders )}}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.8"
+    - uses: actions/checkout@v6
     - name: Start MotoServer
-      run: |
-        pip install build
-        python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.10-slim /moto/scripts/ci_moto_server.sh &
-        python scripts/ci_wait_for_server.py
+      uses: ./.github/actions/run_moto_server
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
     - name: Run tests
+      if: ${{ matrix.service != 'rds' }}
       run: |
         mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
         cd other_langs/terraform/${{ matrix.service }}
@@ -39,31 +49,11 @@ jobs:
         sleep 30
         terraform plan -detailed-exitcode
         terraform apply -destroy --auto-approve
-
-  test_create_only:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ["ec2"]
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.8"
-    - name: Start MotoServer
-      run: |
-        pip install build
-        python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.10-slim /moto/scripts/ci_moto_server.sh &
-        python scripts/ci_wait_for_server.py
     - name: Run tests
+      if: ${{ matrix.service == 'rds' }}
       run: |
         mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
         cd other_langs/terraform/${{ matrix.service }}
         terraform init
         terraform apply --auto-approve
+        terraform apply -destroy --auto-approve

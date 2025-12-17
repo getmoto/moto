@@ -1,6 +1,8 @@
 from collections import namedtuple
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Union
+
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 if TYPE_CHECKING:
     from .models import LambdaBackend
@@ -10,15 +12,18 @@ LAYER_ARN = namedtuple("LAYER_ARN", ["region", "account", "layer_name", "version
 
 
 def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
-    return f"arn:aws:lambda:{region}:{account}:{resource_type}:{name}"
+    return (
+        f"arn:{get_partition(region)}:lambda:{region}:{account}:{resource_type}:{name}"
+    )
 
 
+make_event_source_mapping_arn = partial(make_arn, "event-source-mapping")
 make_function_arn = partial(make_arn, "function")
 make_layer_arn = partial(make_arn, "layer")
 
 
 def make_ver_arn(
-    resource_type: str, region: str, account: str, name: str, version: str = "1"
+    resource_type: str, region: str, account: str, name: str, version: Any = "1"
 ) -> str:
     arn = make_arn(resource_type, region, account, name)
     return f"{arn}:{version}"
@@ -28,8 +33,9 @@ make_function_ver_arn = partial(make_ver_arn, "function")
 make_layer_ver_arn = partial(make_ver_arn, "layer")
 
 
-def split_arn(arn_type: Callable[[str, str, str, str], str], arn: str) -> Any:
-    arn = arn.replace("arn:aws:lambda:", "")
+def split_arn(arn_type: Union[type[ARN], type[LAYER_ARN]], arn: str) -> Any:
+    for partition in PARTITION_NAMES:
+        arn = arn.replace(f"arn:{partition}:lambda:", "")
 
     region, account, _, name, version = arn.split(":")
 

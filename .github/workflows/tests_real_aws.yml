@@ -7,15 +7,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: "Test Against AWS"
+    if: ${{ github.repository == 'getmoto/moto' }}
     permissions:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.11"
     - name: Get pip cache dir
@@ -23,7 +25,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-3.11-${{ hashFiles('**/setup.cfg') }}
@@ -34,12 +36,13 @@ jobs:
       run: |
         pip install -r requirements-dev.txt
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v5
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
+        role-duration-seconds: 7200
     - name: Test with pytest
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
       run: |
-        pytest -sv tests/test_cloudformation/ tests/test_dynamodb/ tests/test_ec2/ tests/test_iam/ tests/test_lakeformation/ tests/test_logs/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_sns/ -m aws_verified
+        pytest -sv -n auto --dist loadfile tests -m aws_verified --durations 100

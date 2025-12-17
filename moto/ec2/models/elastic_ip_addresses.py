@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -24,7 +24,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         ec2_backend: Any,
         domain: str,
         address: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         if address:
@@ -124,13 +124,13 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
 
 class ElasticAddressBackend:
     def __init__(self) -> None:
-        self.addresses: List[ElasticAddress] = []
+        self.addresses: list[ElasticAddress] = []
 
     def allocate_address(
         self,
         domain: str,
         address: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> ElasticAddress:
         if domain not in ["standard", "vpc"]:
             domain = "vpc"
@@ -142,8 +142,8 @@ class ElasticAddressBackend:
         return ea
 
     def address_by_ip(
-        self, ips: List[str], fail_if_not_found: bool = True
-    ) -> List[ElasticAddress]:
+        self, ips: list[str], fail_if_not_found: bool = True
+    ) -> list[ElasticAddress]:
         eips = [
             address for address in self.addresses.copy() if address.public_ip in ips
         ]
@@ -154,7 +154,7 @@ class ElasticAddressBackend:
 
         return eips
 
-    def address_by_allocation(self, allocation_ids: List[str]) -> List[ElasticAddress]:
+    def address_by_allocation(self, allocation_ids: list[str]) -> list[ElasticAddress]:
         eips = [
             address
             for address in self.addresses
@@ -168,8 +168,8 @@ class ElasticAddressBackend:
         return eips
 
     def address_by_association(
-        self, association_ids: List[str]
-    ) -> List[ElasticAddress]:
+        self, association_ids: list[str]
+    ) -> list[ElasticAddress]:
         eips = [
             address
             for address in self.addresses
@@ -219,10 +219,10 @@ class ElasticAddressBackend:
 
     def describe_addresses(
         self,
-        allocation_ids: Optional[List[str]] = None,
-        public_ips: Optional[List[str]] = None,
+        allocation_ids: Optional[list[str]] = None,
+        public_ips: Optional[list[str]] = None,
         filters: Any = None,
-    ) -> List[ElasticAddress]:
+    ) -> list[ElasticAddress]:
         matches = self.addresses.copy()
         if allocation_ids:
             matches = [addr for addr in matches if addr.allocation_id in allocation_ids]
@@ -238,6 +238,11 @@ class ElasticAddressBackend:
             matches = generic_filter(filters, matches)
 
         return matches
+
+    def describe_addresses_attribute(
+        self, allocation_ids: Optional[list[str]] = None
+    ) -> list[ElasticAddress]:
+        return self.describe_addresses(allocation_ids)
 
     def disassociate_address(
         self, address: Optional[str] = None, association_id: Optional[str] = None

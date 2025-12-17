@@ -23,9 +23,7 @@ def main():
     rds = boto3.client("rds", region_name="us-east-1")
     for engine in engines:
         print(f"Engine {engine}...")
-        dest = os.path.join(
-            root_dir, "{0}/{1}.json".format(PATH, engine)
-        )
+        dest = os.path.join(root_dir, "{0}/{1}.json".format(PATH, engine))
         try:
             options = []
             response = rds.describe_orderable_db_instance_options(Engine=engine)

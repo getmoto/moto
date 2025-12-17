@@ -19,11 +19,14 @@ def retrieve_by_path(client, path):
     parameters = response["Parameters"]
     next_token = response["NextToken"]
     while next_token:
-        response = client.get_parameters_by_path(Path=path, Recursive=True, NextToken=next_token)
+        response = client.get_parameters_by_path(
+            Path=path, Recursive=True, NextToken=next_token
+        )
         parameters.extend(response["Parameters"])
         next_token = response.get("NextToken")
 
     return parameters
+
 
 def save_to_file(destination_path: str, params: dict):
     print("Attempting to save data to {}", destination_path)
@@ -48,14 +51,17 @@ def main():
      - Download from AWS
      - Store this in the dedicated moto/ssm/resources-folder
     """
-    for region in session.get_available_regions("ssm"):
-        ssm_client = session.client('ssm', region_name=region)
+    regions = session.get_available_regions("ssm")
+    # Malaysia is a new region, and not yet exposed by get_available_regions
+    regions.append("ap-southeast-5")
+    for region in regions:
+        ssm_client = session.client("ssm", region_name=region)
 
         default_param_path = "/aws/service/ecs/optimized-ami"
 
         # Retrieve default AMI values
         try:
-            print("Retrieving data for {}" , region)
+            print("Retrieving data for {}", region)
 
             parameters = retrieve_by_path(ssm_client, default_param_path)
 
@@ -65,7 +71,11 @@ def main():
             image_ids = []
 
             for param in parameters:
-                param["LastModifiedDate"] = unix_time(param["LastModifiedDate"].astimezone(timezone.utc).replace(tzinfo=None))
+                param["LastModifiedDate"] = unix_time(
+                    param["LastModifiedDate"]
+                    .astimezone(timezone.utc)
+                    .replace(tzinfo=None)
+                )
 
                 if isinstance(param["Value"], str) and param["Value"][0] == "{":
                     param["Value"] = json.loads(param["Value"])

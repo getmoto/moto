@@ -1,9 +1,10 @@
 import json
 import re
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .models import ElasticTranscoderBackend, elastictranscoder_backends
 
@@ -16,26 +17,6 @@ class ElasticTranscoderResponse(BaseResponse):
     def elastictranscoder_backend(self) -> ElasticTranscoderBackend:
         return elastictranscoder_backends[self.current_account][self.region]
 
-    def pipelines(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_pipeline()
-        elif request.method == "GET":
-            return self.list_pipelines()
-        else:
-            return self.update_pipeline()
-
-    def individual_pipeline(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.read_pipeline()
-        elif request.method == "DELETE":
-            return self.delete_pipeline()
-        else:
-            return self.update_pipeline()
-
     def create_pipeline(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
         input_bucket = self._get_param("InputBucket")
@@ -45,7 +26,7 @@ class ElasticTranscoderResponse(BaseResponse):
         thumbnail_config = self._get_param("ThumbnailConfig")
         if not role:
             return self.err("Role cannot be blank")
-        if not re.match("^arn:aws:iam::[0-9]+:role/.+", role):
+        if not re.match(f"{ARN_PARTITION_REGEX}:iam::[0-9]+:role/.+", role):
             return self.err(f"Role ARN is invalid: {role}")
         if not output_bucket and not content_config:
             return self.err(
@@ -120,10 +101,10 @@ class ElasticTranscoderResponse(BaseResponse):
             json.dumps({"Pipeline": pipeline.to_dict(), "Warnings": warnings}),
         )
 
-    def delete_pipeline(self) -> TYPE_RESPONSE:
+    def delete_pipeline(self) -> str:
         _id = self.path.rsplit("/", 1)[-1]
         self.elastictranscoder_backend.delete_pipeline(pipeline_id=_id)
-        return 200, {}, "{}"
+        return "{}"
 
     def err(self, msg: str) -> TYPE_RESPONSE:
         return (

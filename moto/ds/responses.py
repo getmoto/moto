@@ -107,9 +107,10 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"DirectoryDescriptions": [x.to_dict() for x in directories]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "DirectoryDescriptions": [x.to_dict() for x in directories],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def disable_sso(self) -> str:
@@ -161,7 +162,138 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"Tags": tags}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": tags, "NextToken": next_token}
         return json.dumps(response)
+
+    def create_trust(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        remote_domain_name = self._get_param("RemoteDomainName")
+        trust_password = self._get_param("TrustPassword")
+        trust_direction = self._get_param("TrustDirection")
+        trust_type = self._get_param("TrustType")
+        conditional_forwarder_ip_addrs = self._get_param("ConditionalForwarderIpAddrs")
+        selective_auth = self._get_param("SelectiveAuth")
+        trust_id = self.ds_backend.create_trust(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            trust_password=trust_password,
+            trust_direction=trust_direction,
+            trust_type=trust_type,
+            conditional_forwarder_ip_addrs=conditional_forwarder_ip_addrs,
+            selective_auth=selective_auth,
+        )
+        return json.dumps({"TrustId": trust_id})
+
+    def describe_trusts(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        trust_ids = self._get_param("TrustIds")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        trusts, next_token = self.ds_backend.describe_trusts(
+            directory_id=directory_id,
+            trust_ids=trust_ids,
+            next_token=next_token,
+            limit=limit,
+        )
+        trust_list = [trust.to_dict() for trust in trusts]
+        return json.dumps({"Trusts": trust_list, "nextToken": next_token})
+
+    def delete_trust(self) -> str:
+        trust_id = self._get_param("TrustId")
+        delete_associated_conditional_forwarder = self._get_param(
+            "DeleteAssociatedConditionalForwarder"
+        )
+        trust_id = self.ds_backend.delete_trust(
+            trust_id=trust_id,
+            delete_associated_conditional_forwarder=delete_associated_conditional_forwarder,
+        )
+        return json.dumps({"TrustId": trust_id})
+
+    def describe_ldaps_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        ldaps_settings_info, next_token = self.ds_backend.describe_ldaps_settings(
+            directory_id=directory_id,
+            type=type,
+            next_token=next_token,
+            limit=limit,
+        )
+        ldaps = [ldap.to_dict() for ldap in ldaps_settings_info]
+        return json.dumps({"LDAPSSettingsInfo": ldaps, "nextToken": next_token})
+
+    def enable_ldaps(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
+        self.ds_backend.enable_ldaps(
+            directory_id=directory_id,
+            type=type,
+        )
+        return ""
+
+    def disable_ldaps(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
+        self.ds_backend.disable_ldaps(
+            directory_id=directory_id,
+            type=type,
+        )
+        return ""
+
+    def describe_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        status = self._get_param("Status")
+        next_token = self._get_param("NextToken")
+        setting_entries, next_token = self.ds_backend.describe_settings(
+            directory_id=directory_id,
+            status=status,
+            next_token=next_token,
+        )
+
+        return json.dumps(
+            {
+                "DirectoryId": directory_id,
+                "SettingEntries": setting_entries,
+                "NextToken": next_token,
+            }
+        )
+
+    def update_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        settings = self._get_param("Settings")
+        directory_id = self.ds_backend.update_settings(
+            directory_id=directory_id,
+            settings=settings,
+        )
+        return json.dumps({"DirectoryId": directory_id})
+
+    def create_log_subscription(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        log_group_name = self._get_param("LogGroupName")
+        self.ds_backend.create_log_subscription(
+            directory_id=directory_id,
+            log_group_name=log_group_name,
+        )
+        return json.dumps({})
+
+    def list_log_subscriptions(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        log_subscriptions, next_token = self.ds_backend.list_log_subscriptions(
+            directory_id=directory_id,
+            next_token=next_token,
+            limit=limit,
+        )
+        list_subscriptions = [sub.to_dict() for sub in log_subscriptions]
+        return json.dumps(
+            {"LogSubscriptions": list_subscriptions, "NextToken": next_token}
+        )
+
+    def delete_log_subscription(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.delete_log_subscription(
+            directory_id=directory_id,
+        )
+        return json.dumps({})
