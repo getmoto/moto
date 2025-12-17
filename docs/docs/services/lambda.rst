@@ -16,7 +16,7 @@ lambda
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_layer_version_permission
+- [X] add_layer_version_permission
 - [X] add_permission
 - [X] create_alias
 - [ ] create_code_signing_config
@@ -55,6 +55,7 @@ lambda
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [X] get_function_event_invoke_config
+- [ ] get_function_recursion_config
 - [X] get_function_url_config
   
         The Qualifier-parameter is not yet implemented
@@ -62,7 +63,7 @@ lambda
 
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
-- [ ] get_layer_version_policy
+- [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [ ] get_runtime_management_config
@@ -70,7 +71,7 @@ lambda
   
         Invoking a Function with PackageType=Image is not yet supported.
 
-        Invoking a Funcation against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        Invoking a Function against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
         You can use a dedicated API to override this, by configuring a queue of expected results.
 
         A request to `invoke` will take the first result from that queue.
@@ -123,9 +124,10 @@ lambda
         
 
 - [X] put_function_event_invoke_config
+- [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
-- [ ] remove_layer_version_permission
+- [X] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource

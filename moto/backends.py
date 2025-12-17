@@ -1,6 +1,7 @@
 import importlib
 import os
-from typing import TYPE_CHECKING, Iterable, Optional, Union, overload
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import moto
 
@@ -25,17 +26,20 @@ if TYPE_CHECKING:
     from moto.bedrockagent.models import AgentsforBedrockBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
+    from moto.clouddirectory.models import CloudDirectoryBackend
     from moto.cloudformation.models import CloudFormationBackend
     from moto.cloudfront.models import CloudFrontBackend
     from moto.cloudtrail.models import CloudTrailBackend
     from moto.cloudwatch.models import CloudWatchBackend
     from moto.codebuild.models import CodeBuildBackend
     from moto.codecommit.models import CodeCommitBackend
+    from moto.codedeploy.models import CodeDeployBackend
     from moto.codepipeline.models import CodePipelineBackend
     from moto.cognitoidentity.models import CognitoIdentityBackend
     from moto.cognitoidp.models import CognitoIdpBackend
     from moto.comprehend.models import ComprehendBackend
     from moto.config.models import ConfigBackend
+    from moto.connectcampaigns.models import ConnectCampaignServiceBackend
     from moto.core.base_backend import SERVICE_BACKEND, BackendDict
     from moto.databrew.models import DataBrewBackend
     from moto.datapipeline.models import DataPipelineBackend
@@ -44,6 +48,7 @@ if TYPE_CHECKING:
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
+    from moto.dsql.models import AuroraDSQLBackend
     from moto.dynamodb.models import DynamoDBBackend
     from moto.dynamodb_v20111205.models import (
         DynamoDBBackend as DynamoDBBackend_v20111205,
@@ -80,30 +85,35 @@ if TYPE_CHECKING:
     from moto.iot.models import IoTBackend
     from moto.iotdata.models import IoTDataPlaneBackend
     from moto.ivs.models import IVSBackend
+    from moto.kafka.models import KafkaBackend
     from moto.kinesis.models import KinesisBackend
+    from moto.kinesisanalyticsv2.models import KinesisAnalyticsV2Backend
     from moto.kinesisvideo.models import KinesisVideoBackend
     from moto.kinesisvideoarchivedmedia.models import KinesisVideoArchivedMediaBackend
     from moto.kms.models import KmsBackend
     from moto.lakeformation.models import LakeFormationBackend
+    from moto.lexv2models.models import LexModelsV2Backend
     from moto.logs.models import LogsBackend
+    from moto.macie2.models import MacieBackend
     from moto.managedblockchain.models import ManagedBlockchainBackend
     from moto.mediaconnect.models import MediaConnectBackend
     from moto.medialive.models import MediaLiveBackend
     from moto.mediapackage.models import MediaPackageBackend
     from moto.mediastore.models import MediaStoreBackend
     from moto.mediastoredata.models import MediaStoreDataBackend
+    from moto.memorydb.models import MemoryDBBackend
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
+    from moto.networkfirewall.models import NetworkFirewallBackend
     from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
-    from moto.opsworks.models import OpsWorksBackend
     from moto.organizations.models import OrganizationsBackend
+    from moto.osis.models import OpenSearchIngestionBackend
     from moto.personalize.models import PersonalizeBackend
     from moto.pinpoint.models import PinpointBackend
     from moto.polly.models import PollyBackend
-    from moto.qldb.models import QLDBBackend
     from moto.quicksight.models import QuickSightBackend
     from moto.ram.models import ResourceAccessManagerBackend
     from moto.rds.models import RDSBackend
@@ -114,18 +124,20 @@ if TYPE_CHECKING:
     from moto.resiliencehub.models import ResilienceHubBackend
     from moto.resourcegroups.models import ResourceGroupsBackend
     from moto.resourcegroupstaggingapi.models import ResourceGroupsTaggingAPIBackend
-    from moto.robomaker.models import RoboMakerBackend
     from moto.route53.models import Route53Backend
     from moto.route53domains.models import Route53DomainsBackend
     from moto.route53resolver.models import Route53ResolverBackend
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
+    from moto.s3tables.models import S3TablesBackend
+    from moto.s3vectors.models import S3VectorsBackend
     from moto.sagemaker.models import SageMakerModelBackend
     from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
     from moto.scheduler.models import EventBridgeSchedulerBackend
     from moto.sdb.models import SimpleDBBackend
     from moto.secretsmanager.models import SecretsManagerBackend
+    from moto.servicecatalogappregistry.models import AppRegistryBackend
     from moto.servicediscovery.models import ServiceDiscoveryBackend
     from moto.servicequotas.models import ServiceQuotasBackend
     from moto.ses.models import SESBackend
@@ -140,13 +152,17 @@ if TYPE_CHECKING:
     from moto.sts.models import STSBackend
     from moto.support.models import SupportBackend
     from moto.swf.models import SWFBackend
+    from moto.synthetics.models import SyntheticsBackend
     from moto.textract.models import TextractBackend
+    from moto.timestreaminfluxdb.models import TimestreamInfluxDBBackend
     from moto.timestreamquery.models import TimestreamQueryBackend
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
     from moto.transfer.models import TransferBackend
+    from moto.vpclattice.models import VPCLatticeBackend
     from moto.wafv2.models import WAFV2Backend
     from moto.workspaces.models import WorkSpacesBackend
+    from moto.workspacesweb.models import WorkSpacesWebBackend
     from moto.xray.models import XRayBackend
 
 
@@ -203,16 +219,19 @@ SERVICE_NAMES = Union[
     "Literal['bedrock-agent']",
     "Literal['budgets']",
     "Literal['ce']",
+    "Literal['clouddirectory']",
     "Literal['cloudformation']",
     "Literal['cloudfront']",
     "Literal['cloudtrail']",
     "Literal['cloudwatch']",
     "Literal['codebuild']",
     "Literal['codecommit']",
+    "Literal['codedeploy']",
     "Literal['codepipeline']",
     "Literal['cognito-identity']",
     "Literal['cognito-idp']",
     "Literal['comprehend']",
+    "Literal['connectcampaigns']",
     "Literal['config']",
     "Literal['databrew']",
     "Literal['datapipeline']",
@@ -221,6 +240,7 @@ SERVICE_NAMES = Union[
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
+    "Literal['dsql']",
     "Literal['dynamodb']",
     "Literal['dynamodb_v20111205']",
     "Literal['dynamodbstreams']",
@@ -255,32 +275,37 @@ SERVICE_NAMES = Union[
     "Literal['iot']",
     "Literal['iot-data']",
     "Literal['ivs']",
+    "Literal['kafka']",
     "Literal['kinesis']",
+    "Literal['kinesisanalyticsv2']",
     "Literal['kinesisvideo']",
     "Literal['kinesis-video-archived-media']",
     "Literal['kms']",
     "Literal['lakeformation']",
     "Literal['lambda']",
+    "Literal['lexv2models']",
     "Literal['logs']",
+    "Literal['macie2']",
     "Literal['managedblockchain']",
     "Literal['mediaconnect']",
     "Literal['medialive']",
     "Literal['mediapackage']",
     "Literal['mediastore']",
+    "Literal['memorydb']",
     "Literal['mediastore-data']",
     "Literal['meteringmarketplace']",
     "Literal['moto_api']",
     "Literal['mq']",
     "Literal['neptune']",
+    "Literal['networkfirewall']",
     "Literal['networkmanager']",
     "Literal['opensearch']",
     "Literal['opensearchserverless']",
-    "Literal['opsworks']",
     "Literal['organizations']",
+    "Literal['osis']",
     "Literal['personalize']",
     "Literal['pinpoint']",
     "Literal['polly']",
-    "Literal['qldb']",
     "Literal['quicksight']",
     "Literal['ram']",
     "Literal['rds']",
@@ -291,19 +316,21 @@ SERVICE_NAMES = Union[
     "Literal['resiliencehub']",
     "Literal['resource-groups']",
     "Literal['resourcegroupstaggingapi']",
-    "Literal['robomaker']",
     "Literal['route53']",
     "Literal['route53resolver']",
     "Literal['route53domains']",
     "Literal['s3']",
     "Literal['s3bucket_path']",
     "Literal['s3control']",
+    "Literal['s3tables']",
+    "Literal['s3vectors']",
     "Literal['sagemaker']",
     "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
     "Literal['scheduler']",
     "Literal['sdb']",
     "Literal['secretsmanager']",
+    "Literal['servicecatalogappregistry']",
     "Literal['servicediscovery']",
     "Literal['service-quotas']",
     "Literal['ses']",
@@ -317,14 +344,18 @@ SERVICE_NAMES = Union[
     "Literal['stepfunctions']",
     "Literal['sts']",
     "Literal['support']",
+    "Literal['synthetics']",
     "Literal['swf']",
     "Literal['textract']",
+    "Literal['timestream-influxdb']",
     "Literal['timestream-query']",
     "Literal['timestream-write']",
     "Literal['transcribe']",
     "Literal['transfer']",
+    "Literal['vpc-lattice']",
     "Literal['wafv2']",
     "Literal['workspaces']",
+    "Literal['workspaces-web']",
     "Literal['xray']",
 ]
 
@@ -385,6 +416,10 @@ def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ..
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
 @overload
 def get_backend(
+    name: "Literal['clouddirectory']",
+) -> "BackendDict[CloudDirectoryBackend]": ...
+@overload
+def get_backend(
     name: "Literal['cloudformation']",
 ) -> "BackendDict[CloudFormationBackend]": ...
 @overload
@@ -402,6 +437,8 @@ def get_backend(
     name: "Literal['codepipeline']",
 ) -> "BackendDict[CodePipelineBackend]": ...
 @overload
+def get_backend(name: "Literal['codedeploy']") -> "BackendDict[CodeDeployBackend]": ...
+@overload
 def get_backend(
     name: "Literal['cognito-identity']",
 ) -> "BackendDict[CognitoIdentityBackend]": ...
@@ -409,6 +446,10 @@ def get_backend(
 def get_backend(name: "Literal['cognito-idp']") -> "BackendDict[CognitoIdpBackend]": ...
 @overload
 def get_backend(name: "Literal['comprehend']") -> "BackendDict[ComprehendBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['connectcampaigns']",
+) -> "BackendDict[ConnectCampaignServiceBackend]": ...
 @overload
 def get_backend(name: "Literal['config']") -> "BackendDict[ConfigBackend]": ...
 @overload
@@ -431,6 +472,8 @@ def get_backend(
 ) -> "BackendDict[DirectConnectBackend]": ...
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
+@overload
+def get_backend(name: "Literal['dsql']") -> "BackendDict[AuroraDSQLBackend]": ...
 @overload
 def get_backend(name: "Literal['dynamodb']") -> "BackendDict[DynamoDBBackend]": ...
 @overload
@@ -522,11 +565,17 @@ def get_backend(name: "Literal['iot-data']") -> "BackendDict[IoTDataPlaneBackend
 @overload
 def get_backend(name: "Literal['ivs']") -> "BackendDict[IVSBackend]": ...
 @overload
+def get_backend(name: "Literal['kafka']") -> "BackendDict[KafkaBackend]": ...
+@overload
 def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ...
 @overload
 def get_backend(
     name: "Literal['kinesisvideo']",
 ) -> "BackendDict[KinesisVideoBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['kinesisanalyticsv2']",
+) -> "BackendDict[KinesisAnalyticsV2Backend]": ...
 @overload
 def get_backend(
     name: "Literal['kinesis-video-archived-media']",
@@ -540,7 +589,13 @@ def get_backend(
 @overload
 def get_backend(name: "Literal['lambda']") -> "BackendDict[LambdaBackend]": ...
 @overload
+def get_backend(
+    name: "Literal['lexv2models']",
+) -> "BackendDict[LexModelsV2Backend]": ...
+@overload
 def get_backend(name: "Literal['logs']") -> "BackendDict[LogsBackend]": ...
+@overload
+def get_backend(name: "Literal['macie2']") -> "BackendDict[MacieBackend]": ...
 @overload
 def get_backend(
     name: "Literal['managedblockchain']",
@@ -562,6 +617,8 @@ def get_backend(
     name: "Literal['mediastore-data']",
 ) -> "BackendDict[MediaStoreDataBackend]": ...
 @overload
+def get_backend(name: "Literal['memorydb']") -> "BackendDict[MemoryDBBackend]": ...
+@overload
 def get_backend(
     name: "Literal['meteringmarketplace']",
 ) -> "BackendDict[MeteringMarketplaceBackend]": ...
@@ -571,6 +628,10 @@ def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": .
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
 def get_backend(name: "Literal['neptune']") -> "BackendDict[RDSBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['networkfirewall']",
+) -> "BackendDict[NetworkFirewallBackend]": ...
 @overload
 def get_backend(
     name: "Literal['networkmanager']",
@@ -584,7 +645,9 @@ def get_backend(
     name: "Literal['opensearchserverless']",
 ) -> "BackendDict[OpenSearchServiceServerlessBackend]": ...
 @overload
-def get_backend(name: "Literal['opsworks']") -> "BackendDict[OpsWorksBackend]": ...
+def get_backend(
+    name: "Literal['osis']",
+) -> "BackendDict[OpenSearchIngestionBackend]": ...
 @overload
 def get_backend(
     name: "Literal['organizations']",
@@ -597,8 +660,6 @@ def get_backend(
 def get_backend(name: "Literal['pinpoint']") -> "BackendDict[PinpointBackend]": ...
 @overload
 def get_backend(name: "Literal['polly']") -> "BackendDict[PollyBackend]": ...
-@overload
-def get_backend(name: "Literal['qldb']") -> "BackendDict[QLDBBackend]": ...
 @overload
 def get_backend(name: "Literal['quicksight']") -> "BackendDict[QuickSightBackend]": ...
 @overload
@@ -634,8 +695,6 @@ def get_backend(
     name: "Literal['resourcegroupstaggingapi']",
 ) -> "BackendDict[ResourceGroupsTaggingAPIBackend]": ...
 @overload
-def get_backend(name: "Literal['robomaker']") -> "BackendDict[RoboMakerBackend]": ...
-@overload
 def get_backend(name: "Literal['route53']") -> "BackendDict[Route53Backend]": ...
 @overload
 def get_backend(
@@ -651,6 +710,8 @@ def get_backend(name: "Literal['s3']") -> "BackendDict[S3Backend]": ...
 def get_backend(name: "Literal['s3bucket_path']") -> "BackendDict[S3Backend]": ...
 @overload
 def get_backend(name: "Literal['s3control']") -> "BackendDict[S3ControlBackend]": ...
+@overload
+def get_backend(name: "Literal['s3vectors']") -> "BackendDict[S3VectorsBackend]": ...
 @overload
 def get_backend(
     name: "Literal['sagemaker']",
@@ -673,6 +734,10 @@ def get_backend(name: "Literal['sdb']") -> "BackendDict[SimpleDBBackend]": ...
 def get_backend(
     name: "Literal['secretsmanager']",
 ) -> "BackendDict[SecretsManagerBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['servicecatalogappregistry']",
+) -> "BackendDict[AppRegistryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['servicediscovery']",
@@ -708,9 +773,15 @@ def get_backend(name: "Literal['sts']") -> "BackendDict[STSBackend]": ...
 @overload
 def get_backend(name: "Literal['support']") -> "BackendDict[SupportBackend]": ...
 @overload
+def get_backend(name: "Literal['synthetics']") -> "BackendDict[SyntheticsBackend]": ...
+@overload
 def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
 @overload
 def get_backend(name: "Literal['textract']") -> "BackendDict[TextractBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['timestream-influxdb']",
+) -> "BackendDict[TimestreamInfluxDBBackend]": ...
 @overload
 def get_backend(
     name: "Literal['timestream-query']",
@@ -724,11 +795,21 @@ def get_backend(name: "Literal['transcribe']") -> "BackendDict[TranscribeBackend
 @overload
 def get_backend(name: "Literal['transfer']") -> "BackendDict[TransferBackend]": ...
 @overload
+def get_backend(
+    name: "Literal['vpc-lattice']",
+) -> "BackendDict[VPCLatticeBackend]": ...
+@overload
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
 @overload
 def get_backend(name: "Literal['workspaces']") -> "BackendDict[WorkSpacesBackend]": ...
 @overload
+def get_backend(
+    name: "Literal['workspaces-web']",
+) -> "BackendDict[WorkSpacesWebBackend]": ...
+@overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
+@overload
+def get_backend(name: "Literal['s3tables']") -> "BackendDict[S3TablesBackend]": ...
 
 
 def get_backend(name: SERVICE_NAMES) -> "BackendDict[SERVICE_BACKEND]":

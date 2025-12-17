@@ -25,35 +25,39 @@ comprehend
 - [ ] classify_document
 - [ ] contains_pii_entities
 - [ ] create_dataset
-- [ ] create_document_classifier
-- [ ] create_endpoint
+- [X] create_document_classifier
+- [X] create_endpoint
 - [X] create_entity_recognizer
   
         The ClientRequestToken-parameter is not yet implemented
         
 
-- [ ] create_flywheel
-- [ ] delete_document_classifier
-- [ ] delete_endpoint
+- [X] create_flywheel
+- [X] delete_document_classifier
+- [X] delete_endpoint
 - [X] delete_entity_recognizer
-- [ ] delete_flywheel
-- [ ] delete_resource_policy
+- [X] delete_flywheel
+- [X] delete_resource_policy
+  
+        The PolicyRevisionId-parameter for conditional deletion is not yet implemented.
+        
+
 - [ ] describe_dataset
-- [ ] describe_document_classification_job
-- [ ] describe_document_classifier
-- [ ] describe_dominant_language_detection_job
-- [ ] describe_endpoint
-- [ ] describe_entities_detection_job
+- [X] describe_document_classification_job
+- [X] describe_document_classifier
+- [X] describe_dominant_language_detection_job
+- [X] describe_endpoint
+- [X] describe_entities_detection_job
 - [X] describe_entity_recognizer
-- [ ] describe_events_detection_job
-- [ ] describe_flywheel
+- [X] describe_events_detection_job
+- [X] describe_flywheel
 - [ ] describe_flywheel_iteration
-- [ ] describe_key_phrases_detection_job
-- [ ] describe_pii_entities_detection_job
-- [ ] describe_resource_policy
-- [ ] describe_sentiment_detection_job
-- [ ] describe_targeted_sentiment_detection_job
-- [ ] describe_topics_detection_job
+- [X] describe_key_phrases_detection_job
+- [X] describe_pii_entities_detection_job
+- [X] describe_resource_policy
+- [X] describe_sentiment_detection_job
+- [X] describe_targeted_sentiment_detection_job
+- [X] describe_topics_detection_job
 - [ ] detect_dominant_language
 - [ ] detect_entities
 - [X] detect_key_phrases
@@ -64,12 +68,22 @@ comprehend
 - [ ] detect_toxic_content
 - [ ] import_model
 - [ ] list_datasets
-- [ ] list_document_classification_jobs
+- [X] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
-- [ ] list_document_classifiers
-- [ ] list_dominant_language_detection_jobs
-- [ ] list_endpoints
-- [ ] list_entities_detection_jobs
+- [X] list_document_classifiers
+  
+        List document classifiers with optional filtering.
+        Pagination is not yet implemented.
+        
+
+- [X] list_dominant_language_detection_jobs
+- [X] list_endpoints
+  
+        List endpoints with optional filtering.
+        Pagination is not yet implemented.
+        
+
+- [X] list_entities_detection_jobs
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
   
@@ -77,37 +91,47 @@ comprehend
         The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
         
 
-- [ ] list_events_detection_jobs
+- [X] list_events_detection_jobs
 - [ ] list_flywheel_iteration_history
-- [ ] list_flywheels
-- [ ] list_key_phrases_detection_jobs
-- [ ] list_pii_entities_detection_jobs
-- [ ] list_sentiment_detection_jobs
+- [X] list_flywheels
+  
+        List flywheels with optional filtering.
+        Pagination is not yet implemented.
+        
+
+- [X] list_key_phrases_detection_jobs
+- [X] list_pii_entities_detection_jobs
+- [X] list_sentiment_detection_jobs
 - [X] list_tags_for_resource
-- [ ] list_targeted_sentiment_detection_jobs
-- [ ] list_topics_detection_jobs
-- [ ] put_resource_policy
-- [ ] start_document_classification_job
-- [ ] start_dominant_language_detection_job
-- [ ] start_entities_detection_job
-- [ ] start_events_detection_job
-- [ ] start_flywheel_iteration
-- [ ] start_key_phrases_detection_job
-- [ ] start_pii_entities_detection_job
-- [ ] start_sentiment_detection_job
-- [ ] start_targeted_sentiment_detection_job
-- [ ] start_topics_detection_job
-- [ ] stop_dominant_language_detection_job
-- [ ] stop_entities_detection_job
-- [ ] stop_events_detection_job
-- [ ] stop_key_phrases_detection_job
-- [ ] stop_pii_entities_detection_job
-- [ ] stop_sentiment_detection_job
-- [ ] stop_targeted_sentiment_detection_job
-- [ ] stop_training_document_classifier
+- [X] list_targeted_sentiment_detection_jobs
+- [X] list_topics_detection_jobs
+- [X] put_resource_policy
+  
+        The PolicyRevisionId-parameter for conditional updates is not yet implemented.
+        A check for whether the resource itself exists is also not yet implemented.
+        
+
+- [X] start_document_classification_job
+- [X] start_dominant_language_detection_job
+- [X] start_entities_detection_job
+- [X] start_events_detection_job
+- [X] start_flywheel_iteration
+- [X] start_key_phrases_detection_job
+- [X] start_pii_entities_detection_job
+- [X] start_sentiment_detection_job
+- [X] start_targeted_sentiment_detection_job
+- [X] start_topics_detection_job
+- [X] stop_dominant_language_detection_job
+- [X] stop_entities_detection_job
+- [X] stop_events_detection_job
+- [X] stop_key_phrases_detection_job
+- [X] stop_pii_entities_detection_job
+- [X] stop_sentiment_detection_job
+- [X] stop_targeted_sentiment_detection_job
+- [X] stop_training_document_classifier
 - [X] stop_training_entity_recognizer
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_endpoint
+- [X] update_endpoint
 - [ ] update_flywheel
 

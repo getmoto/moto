@@ -1,0 +1,373 @@
+{
+  "version": 1.0,
+  "merge": {
+    "metadata": {
+      "errorNamespace": "com.amazonaws.sqs",
+      "protocols": [
+        "json",
+        "query"
+      ],
+      "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
+    },
+    "operations": {
+      "ChangeMessageVisibilityBatch": {
+        "output": {
+          "resultWrapper": "ChangeMessageVisibilityBatchResult"
+        }
+      },
+      "CreateQueue": {
+        "output": {
+          "resultWrapper": "CreateQueueResult"
+        }
+      },
+      "DeleteMessageBatch": {
+        "output": {
+          "resultWrapper": "DeleteMessageBatchResult"
+        }
+      },
+      "GetQueueAttributes": {
+        "output": {
+          "resultWrapper": "GetQueueAttributesResult"
+        }
+      },
+      "GetQueueUrl": {
+        "output": {
+          "resultWrapper": "GetQueueUrlResult"
+        }
+      },
+      "ListDeadLetterSourceQueues": {
+        "output": {
+          "resultWrapper": "ListDeadLetterSourceQueuesResult"
+        }
+      },
+      "ListQueueTags": {
+        "output": {
+          "resultWrapper": "ListQueueTagsResult"
+        }
+      },
+      "ListQueues": {
+        "output": {
+          "resultWrapper": "ListQueuesResult"
+        }
+      },
+      "ReceiveMessage": {
+        "output": {
+          "resultWrapper": "ReceiveMessageResult"
+        }
+      },
+      "SendMessage": {
+        "output": {
+          "resultWrapper": "SendMessageResult"
+        }
+      },
+      "SendMessageBatch": {
+        "output": {
+          "resultWrapper": "SendMessageBatchResult"
+        }
+      }
+    },
+    "shapes": {
+      "AWSAccountIdList": {
+        "member": {
+          "locationNameForQueryCompatibility": "AWSAccountId"
+        }
+      },
+      "ActionNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ActionName"
+        }
+      },
+      "AttributeNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "AttributeName"
+        }
+      },
+      "BatchResultErrorEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "BatchResultErrorEntry"
+        }
+      },
+      "BinaryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "BinaryListValue"
+        }
+      },
+      "ChangeMessageVisibilityBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ChangeMessageVisibilityBatchRequestEntry"
+        }
+      },
+      "ChangeMessageVisibilityBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ChangeMessageVisibilityBatchResultEntry"
+        }
+      },
+      "CreateQueueRequest": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          },
+          "tags": {
+            "locationNameForQueryCompatibility": "Tag"
+          }
+        }
+      },
+      "DeleteMessageBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "DeleteMessageBatchRequestEntry"
+        }
+      },
+      "DeleteMessageBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "DeleteMessageBatchResultEntry"
+        }
+      },
+      "GetQueueAttributesResult": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          }
+        }
+      },
+      "ListQueueTagsResult": {
+        "members": {
+          "Tags": {
+            "locationNameForQueryCompatibility": "Tag"
+          }
+        }
+      },
+      "Message": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          },
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          }
+        }
+      },
+      "MessageAttributeNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "MessageAttributeName"
+        }
+      },
+      "MessageAttributeValue": {
+        "members": {
+          "StringListValues": {
+            "locationNameForQueryCompatibility": "StringListValue"
+          },
+          "BinaryListValues": {
+            "locationNameForQueryCompatibility": "BinaryListValue"
+          }
+        }
+      },
+      "MessageBodyAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        }
+      },
+      "MessageBodySystemAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        }
+      },
+      "MessageList": {
+        "member": {
+          "locationNameForQueryCompatibility": "Message"
+        }
+      },
+      "MessageSystemAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Attribute"
+      },
+      "MessageSystemAttributeValue": {
+        "members": {
+          "StringListValues": {
+            "locationNameForQueryCompatibility": "StringListValue"
+          },
+          "BinaryListValues": {
+            "locationNameForQueryCompatibility": "BinaryListValue"
+          }
+        }
+      },
+      "QueueAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Attribute"
+      },
+      "QueueUrlList": {
+        "member": {
+          "locationNameForQueryCompatibility": "QueueUrl"
+        }
+      },
+      "SendMessageBatchRequestEntry": {
+        "members": {
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          },
+          "MessageSystemAttributes": {
+            "locationNameForQueryCompatibility": "MessageSystemAttribute"
+          }
+        }
+      },
+      "SendMessageBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "SendMessageBatchRequestEntry"
+        }
+      },
+      "SendMessageBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "SendMessageBatchResultEntry"
+        }
+      },
+      "SendMessageRequest": {
+        "members": {
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          },
+          "MessageSystemAttributes": {
+            "locationNameForQueryCompatibility": "MessageSystemAttribute"
+          }
+        }
+      },
+      "SetQueueAttributesRequest": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          }
+        }
+      },
+      "StringList": {
+        "member": {
+          "locationNameForQueryCompatibility": "StringListValue"
+        }
+      },
+      "TagKeyList": {
+        "member": {
+          "locationNameForQueryCompatibility": "TagKey"
+        }
+      },
+      "TagMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Key"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Tag"
+      },
+      "BatchEntryIdsNotDistinct": {
+        "error": {
+          "code": "AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "BatchRequestTooLong": {
+        "error": {
+          "code": "AWS.SimpleQueueService.BatchRequestTooLong",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "EmptyBatchRequest": {
+        "error": {
+          "code": "AWS.SimpleQueueService.EmptyBatchRequest",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "InvalidBatchEntryId": {
+        "error": {
+          "code": "AWS.SimpleQueueService.InvalidBatchEntryId",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "MessageNotInflight": {
+        "error": {
+          "code": "AWS.SimpleQueueService.MessageNotInflight",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "MissingRequiredParameterException": {
+        "type": "structure",
+        "members": {},
+        "documentation": "<p>A required parameter for the specified action is not supplied. A <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/CommonErrors.html\">common error</a> not normally included with the AWS service model.</p>",
+        "error": {
+          "code": "MissingParameter",
+          "httpStatusCode": 400,
+          "namespace": "com.amazon.coral.service",
+          "senderFault": true
+        },
+        "exception": true
+      },
+      "OverLimit": {
+        "error": {
+          "code": "OverLimit",
+          "httpStatusCode": 403,
+          "senderFault": true
+        }
+      },
+      "PurgeQueueInProgress": {
+        "error": {
+          "code": "AWS.SimpleQueueService.PurgeQueueInProgress",
+          "httpStatusCode": 403,
+          "senderFault": true
+        }
+      },
+      "QueueDeletedRecently": {
+        "error": {
+          "code": "AWS.SimpleQueueService.QueueDeletedRecently",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "QueueDoesNotExist": {
+        "error": {
+          "code": "AWS.SimpleQueueService.NonExistentQueue",
+          "messageForQueryCompatibility": "The specified queue does not exist for this wsdl version.",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "QueueNameExists": {
+        "error": {
+          "code": "QueueAlreadyExists",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "TooManyEntriesInBatchRequest": {
+        "error": {
+          "code": "AWS.SimpleQueueService.TooManyEntriesInBatchRequest",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "UnsupportedOperation": {
+        "error": {
+          "code": "AWS.SimpleQueueService.UnsupportedOperation",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      }
+    }
+  }
+}

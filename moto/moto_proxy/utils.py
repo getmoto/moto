@@ -1,17 +1,17 @@
 import io
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 import multipart
 
 
 def get_body_from_form_data(
     body: bytes, boundary: str
-) -> Tuple[Optional[bytes], Dict[str, str]]:
+) -> tuple[Optional[bytes], dict[str, str]]:
     body_stream = io.BytesIO(body)
     parser = multipart.MultipartParser(body_stream, boundary=boundary)
 
     data = None
-    headers: Dict[str, str] = {}
+    headers: dict[str, str] = {}
     for prt in parser.parts():
         if prt.name == "upload_file":
             headers["key"] = prt.name

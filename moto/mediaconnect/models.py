@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -27,12 +27,13 @@ class Flow(BaseModel):
         self.description = "A Moto test flow"
         self.flow_arn = f"arn:{get_partition(region_name)}:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
         self.egress_ip = "127.0.0.1"
+        self.maintenance = kwargs.get("maintenance", {})
         if self.source and not self.sources:
             self.sources = [
                 self.source,
             ]
 
-    def to_dict(self, include: Optional[List[str]] = None) -> Dict[str, Any]:
+    def to_dict(self, include: Optional[list[str]] = None) -> dict[str, Any]:
         data = {
             "availabilityZone": self.availability_zone,
             "description": self.description,
@@ -47,6 +48,10 @@ class Flow(BaseModel):
             "status": self.status,
             "vpcInterfaces": self.vpc_interfaces,
         }
+
+        if self.maintenance:
+            data["maintenance"] = self.maintenance
+
         if include:
             new_data = {k: v for k, v in data.items() if k in include}
             if "sourceType" in include:
@@ -67,12 +72,12 @@ class Flow(BaseModel):
 class MediaConnectBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._flows: Dict[str, Flow] = OrderedDict()
+        self._flows: dict[str, Flow] = OrderedDict()
         self.tagger = TaggingService()
 
     def _add_source_details(
         self,
-        source: Optional[Dict[str, Any]],
+        source: Optional[dict[str, Any]],
         flow_id: str,
         ingest_ip: str = "127.0.0.1",
     ) -> None:
@@ -85,7 +90,7 @@ class MediaConnectBackend(BaseBackend):
                 source["ingestIp"] = ingest_ip
 
     def _add_entitlement_details(
-        self, entitlement: Optional[Dict[str, Any]], entitlement_id: str
+        self, entitlement: Optional[dict[str, Any]], entitlement_id: str
     ) -> None:
         if entitlement:
             entitlement["entitlementArn"] = (
@@ -115,13 +120,14 @@ class MediaConnectBackend(BaseBackend):
     def create_flow(
         self,
         availability_zone: str,
-        entitlements: List[Dict[str, Any]],
+        entitlements: list[dict[str, Any]],
         name: str,
-        outputs: List[Dict[str, Any]],
-        source: Dict[str, Any],
-        source_failover_config: Dict[str, Any],
-        sources: List[Dict[str, Any]],
-        vpc_interfaces: List[Dict[str, Any]],
+        outputs: list[dict[str, Any]],
+        source: dict[str, Any],
+        source_failover_config: dict[str, Any],
+        sources: list[dict[str, Any]],
+        vpc_interfaces: list[dict[str, Any]],
+        maintenance: Optional[list[dict[str, Any]]] = None,
     ) -> Flow:
         flow = Flow(
             account_id=self.account_id,
@@ -134,12 +140,13 @@ class MediaConnectBackend(BaseBackend):
             source_failover_config=source_failover_config,
             sources=sources,
             vpc_interfaces=vpc_interfaces,
+            maintenance=maintenance,
         )
         self._create_flow_add_details(flow)
         self._flows[flow.flow_arn] = flow
         return flow
 
-    def list_flows(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
+    def list_flows(self, max_results: Optional[int]) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -186,17 +193,17 @@ class MediaConnectBackend(BaseBackend):
             return flow
         raise NotFoundException(message="Flow not found.")
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, Any]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, Any]) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags)
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         if self.tagger.has_tags(resource_arn):
             return self.tagger.get_tag_dict_for_resource(resource_arn)
         raise NotFoundException(message="Resource not found.")
 
     def add_flow_vpc_interfaces(
-        self, flow_arn: str, vpc_interfaces: List[Dict[str, Any]]
+        self, flow_arn: str, vpc_interfaces: list[dict[str, Any]]
     ) -> Flow:
         if flow_arn in self._flows:
             flow = self._flows[flow_arn]
@@ -204,7 +211,7 @@ class MediaConnectBackend(BaseBackend):
             return flow
         raise NotFoundException(message=f"flow with arn={flow_arn} not found")
 
-    def add_flow_outputs(self, flow_arn: str, outputs: List[Dict[str, Any]]) -> Flow:
+    def add_flow_outputs(self, flow_arn: str, outputs: list[dict[str, Any]]) -> Flow:
         if flow_arn in self._flows:
             flow = self._flows[flow_arn]
             flow.outputs = outputs
@@ -237,12 +244,12 @@ class MediaConnectBackend(BaseBackend):
         self,
         flow_arn: str,
         output_arn: str,
-        cidr_allow_list: List[str],
+        cidr_allow_list: list[str],
         description: str,
         destination: str,
-        encryption: Dict[str, str],
+        encryption: dict[str, str],
         max_latency: int,
-        media_stream_output_configuration: List[Dict[str, Any]],
+        media_stream_output_configuration: list[dict[str, Any]],
         min_latency: int,
         port: int,
         protocol: str,
@@ -251,8 +258,8 @@ class MediaConnectBackend(BaseBackend):
         sender_ip_address: str,
         smoothing_latency: int,
         stream_id: str,
-        vpc_interface_attachment: Dict[str, str],
-    ) -> Dict[str, Any]:
+        vpc_interface_attachment: dict[str, str],
+    ) -> dict[str, Any]:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]
@@ -279,8 +286,8 @@ class MediaConnectBackend(BaseBackend):
         raise NotFoundException(message=f"output with arn={output_arn} not found")
 
     def add_flow_sources(
-        self, flow_arn: str, sources: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, flow_arn: str, sources: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]
@@ -303,7 +310,7 @@ class MediaConnectBackend(BaseBackend):
         max_bitrate: int,
         max_latency: int,
         max_sync_buffer: int,
-        media_stream_source_configurations: List[Dict[str, Any]],
+        media_stream_source_configurations: list[dict[str, Any]],
         min_latency: int,
         protocol: str,
         sender_control_port: int,
@@ -311,11 +318,11 @@ class MediaConnectBackend(BaseBackend):
         stream_id: str,
         vpc_interface_name: str,
         whitelist_cidr: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]
-        source: Optional[Dict[str, Any]] = next(
+        source: Optional[dict[str, Any]] = next(
             iter(
                 [source for source in flow.sources if source["sourceArn"] == source_arn]
             ),
@@ -344,8 +351,8 @@ class MediaConnectBackend(BaseBackend):
     def grant_flow_entitlements(
         self,
         flow_arn: str,
-        entitlements: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        entitlements: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]
@@ -375,11 +382,11 @@ class MediaConnectBackend(BaseBackend):
         flow_arn: str,
         entitlement_arn: str,
         description: str,
-        encryption: Dict[str, str],
+        encryption: dict[str, str],
         entitlement_status: str,
         name: str,
-        subscribers: List[str],
-    ) -> Dict[str, Any]:
+        subscribers: list[str],
+    ) -> dict[str, Any]:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]

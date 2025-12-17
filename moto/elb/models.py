@@ -1,7 +1,8 @@
 import datetime
 import re
 from collections import OrderedDict
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -60,7 +61,11 @@ class FakeListener(BaseModel):
         self.instance_port = instance_port
         self.protocol = protocol.upper()
         self.ssl_certificate_id = ssl_certificate_id
-        self.policy_names: List[str] = []
+        self.policy_names: list[str] = []
+
+    @property
+    def instance_protocol(self) -> str:
+        return self.protocol
 
     def __repr__(self) -> str:
         return f"FakeListener(lbp: {self.load_balancer_port}, inp: {self.instance_port}, pro: {self.protocol}, cid: {self.ssl_certificate_id}, policies: {self.policy_names})"
@@ -69,39 +74,40 @@ class FakeListener(BaseModel):
 class FakeBackend(BaseModel):
     def __init__(self, instance_port: str):
         self.instance_port = instance_port
-        self.policy_names: List[str] = []
+        self.policy_names: list[str] = []
 
     def __repr__(self) -> str:
         return f"FakeBackend(inp: {self.instance_port}, policies: {self.policy_names})"
 
 
-class FakeLoadBalancer(CloudFormationModel):
+class LoadBalancer(CloudFormationModel):
     def __init__(
         self,
+        account_id: str,
         name: str,
-        zones: List[str],
-        ports: List[Dict[str, Any]],
+        zones: list[str],
+        ports: list[dict[str, Any]],
         scheme: Optional[str],
         vpc_id: Optional[str],
-        subnets: Optional[List[str]],
-        security_groups: Optional[List[str]],
-        elb_backend: "ELBBackend",
+        subnets: Optional[list[str]],
+        security_groups: Optional[list[str]],
     ):
+        self.account_id = account_id
         self.name = name
         self.health_check: Optional[FakeHealthCheck] = None
-        self.instance_sparse_ids: List[str] = []
-        self.instance_autoscaling_ids: List[str] = []
-        self.zones = zones
+        self.instance_sparse_ids: list[str] = []
+        self.instance_autoscaling_ids: list[str] = []
+        self.availability_zones = zones
         self.listeners = []
         self.backends = []
         self.created_time = datetime.datetime.now(datetime.timezone.utc)
         self.scheme = scheme or "internet-facing"
-        self.attributes = FakeLoadBalancer.get_default_attributes()
-        self.policies: List[Policy] = []
+        self.attributes = LoadBalancer.get_default_attributes()
+        self.policies: list[Policy] = []
         self.security_groups = security_groups or []
         self.subnets = subnets or []
         self.vpc_id = vpc_id
-        self.tags: Dict[str, str] = {}
+        self.tags: dict[str, str] = {}
         self.dns_name = f"{name}.us-east-1.elb.amazonaws.com"
 
         for port in ports:
@@ -115,13 +121,6 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
-            if listener.ssl_certificate_id and not re.search(
-                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
-            ):
-                elb_backend._register_certificate(
-                    listener.ssl_certificate_id, self.dns_name
-                )
-
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -132,7 +131,34 @@ class FakeLoadBalancer(CloudFormationModel):
             self.backends.append(backend)
 
     @property
-    def instance_ids(self) -> List[str]:
+    def source_security_group(self) -> dict[str, str]:
+        return {"OwnerAlias": self.account_id, "GroupName": "default"}
+
+    @property
+    def instances(self) -> list[dict[str, str]]:
+        return [{"InstanceId": id_} for id_ in self.instance_ids]
+
+    @property
+    def backend_server_descriptions(self) -> list[FakeBackend]:
+        return [backend for backend in self.backends if backend.policy_names]
+
+    @property
+    def canonical_hosted_zone_name(self) -> str:
+        return self.dns_name
+
+    @property
+    def listener_descriptions(self) -> list[dict[str, Any]]:
+        descriptions = [
+            {
+                "PolicyNames": listener.policy_names,
+                "Listener": listener,
+            }
+            for listener in self.listeners
+        ]
+        return descriptions
+
+    @property
+    def instance_ids(self) -> list[str]:
         """Return all the instances attached to the ELB"""
         return self.instance_sparse_ids + self.instance_autoscaling_ids
 
@@ -153,7 +179,7 @@ class FakeLoadBalancer(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeLoadBalancer":
+    ) -> "LoadBalancer":
         properties = cloudformation_json["Properties"]
 
         elb_backend = elb_backends[account_id][region_name]
@@ -169,7 +195,7 @@ class FakeLoadBalancer(CloudFormationModel):
             elb_backend.register_instances(new_elb.name, [instance_id])
 
         policies = properties.get("Policies", [])
-        port_policies: Dict[str, Any] = {}
+        port_policies: dict[str, Any] = {}
         for policy in policies:
             policy_name = policy["PolicyName"]
             policy_type_name = policy["PolicyType"]
@@ -211,7 +237,7 @@ class FakeLoadBalancer(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeLoadBalancer":
+    ) -> "LoadBalancer":
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, account_id, region_name
         )
@@ -271,12 +297,13 @@ class FakeLoadBalancer(CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
     @classmethod
-    def get_default_attributes(cls) -> Dict[str, Any]:  # type: ignore[misc]
-        attributes: Dict[str, Any] = dict()
+    def get_default_attributes(cls) -> dict[str, Any]:  # type: ignore[misc]
+        attributes: dict[str, Any] = {}
         attributes["cross_zone_load_balancing"] = {"enabled": False}
         attributes["connection_draining"] = {"enabled": False}
         attributes["access_log"] = {"enabled": False}
         attributes["connection_settings"] = {"idle_timeout": 60}
+        attributes["additional_attributes"] = []
 
         return attributes
 
@@ -285,7 +312,7 @@ class FakeLoadBalancer(CloudFormationModel):
             raise TooManyTagsError()
         self.tags[key] = value
 
-    def list_tags(self) -> Dict[str, str]:
+    def list_tags(self) -> dict[str, str]:
         return self.tags
 
     def remove_tag(self, key: str) -> None:
@@ -300,27 +327,25 @@ class FakeLoadBalancer(CloudFormationModel):
 class ELBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.load_balancers: Dict[str, FakeLoadBalancer] = OrderedDict()
+        self.load_balancers: dict[str, LoadBalancer] = OrderedDict()
 
     def create_load_balancer(
         self,
         name: str,
-        zones: List[str],
-        ports: List[Dict[str, Any]],
+        zones: list[str],
+        ports: list[dict[str, Any]],
         scheme: str = "internet-facing",
-        subnets: Optional[List[str]] = None,
-        security_groups: Optional[List[str]] = None,
-    ) -> FakeLoadBalancer:
+        subnets: Optional[list[str]] = None,
+        security_groups: Optional[list[str]] = None,
+    ) -> LoadBalancer:
         vpc_id = None
         ec2_backend = ec2_backends[self.account_id][self.region_name]
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
         elif zones:
-            subnets = [
-                ec2_backend.get_default_subnet(availability_zone=zone).id
-                for zone in zones
-            ]
+            default_subnets = ec2_backend.get_default_subnets()
+            subnets = [default_subnets[zone].id for zone in zones]
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
         if name in self.load_balancers:
@@ -337,7 +362,8 @@ class ELBBackend(BaseBackend):
         for security_group in security_groups:
             if ec2_backend.get_security_group_from_id(security_group) is None:
                 raise InvalidSecurityGroupError()
-        new_load_balancer = FakeLoadBalancer(
+        new_load_balancer = LoadBalancer(
+            account_id=self.account_id,
             name=name,
             zones=zones,
             ports=ports,
@@ -345,21 +371,30 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
-            elb_backend=self,
         )
+        for listener in new_load_balancer.listeners:
+            if listener.ssl_certificate_id and not re.search(
+                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
+            ):
+                register_certificate(
+                    self.account_id,
+                    self.region_name,
+                    listener.ssl_certificate_id,
+                    new_load_balancer.dns_name,
+                )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
     def create_load_balancer_listeners(
-        self, name: str, ports: List[Dict[str, Any]]
-    ) -> Optional[FakeLoadBalancer]:
+        self, name: str, ports: list[dict[str, Any]]
+    ) -> Optional[LoadBalancer]:
         balancer = self.load_balancers.get(name, None)
         if balancer:
             for port in ports:
-                protocol = port["protocol"]
-                instance_port = port["instance_port"]
-                lb_port = port["load_balancer_port"]
-                ssl_certificate_id = port.get("ssl_certificate_id")
+                protocol = port["Protocol"]
+                instance_port = port["InstancePort"]
+                lb_port = port["LoadBalancerPort"]
+                ssl_certificate_id = port.get("SSLCertificateId")
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
                         if protocol.lower() != listener.protocol.lower():
@@ -373,8 +408,11 @@ class ELBBackend(BaseBackend):
                     if ssl_certificate_id and not re.search(
                         f"{ARN_PARTITION_REGEX}:iam::", ssl_certificate_id
                     ):
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
                     balancer.listeners.append(
                         FakeListener(
@@ -384,7 +422,7 @@ class ELBBackend(BaseBackend):
 
         return balancer
 
-    def describe_load_balancers(self, names: List[str]) -> List[FakeLoadBalancer]:
+    def describe_load_balancers(self, names: list[str]) -> list[LoadBalancer]:
         balancers = list(self.load_balancers.values())
         if names:
             matched_balancers = [
@@ -398,8 +436,8 @@ class ELBBackend(BaseBackend):
             return balancers
 
     def describe_load_balancer_policies(
-        self, lb_name: str, policy_names: List[str]
-    ) -> List[Policy]:
+        self, lb_name: str, policy_names: list[str]
+    ) -> list[Policy]:
         lb = self.describe_load_balancers([lb_name])[0]
         policies = lb.policies
         if policy_names:
@@ -409,8 +447,8 @@ class ELBBackend(BaseBackend):
         return policies
 
     def describe_instance_health(
-        self, lb_name: str, instances: List[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
+        self, lb_name: str, instances: list[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         elb = self.get_load_balancer(lb_name)
         if elb is None:
             raise NoActiveLoadBalancerFoundError(name=lb_name)
@@ -434,8 +472,8 @@ class ELBBackend(BaseBackend):
         return instances
 
     def delete_load_balancer_listeners(
-        self, name: str, ports: List[str]
-    ) -> Optional[FakeLoadBalancer]:
+        self, name: str, ports: list[str]
+    ) -> Optional[LoadBalancer]:
         balancer = self.get_load_balancer(name)
         listeners = []
         if balancer:
@@ -455,11 +493,11 @@ class ELBBackend(BaseBackend):
         lb = self.get_load_balancer(lb_name)
         lb.policies = [p for p in lb.policies if p.policy_name != policy_name]
 
-    def get_load_balancer(self, load_balancer_name: str) -> FakeLoadBalancer:
+    def get_load_balancer(self, load_balancer_name: str) -> LoadBalancer:
         return self.load_balancers.get(load_balancer_name)  # type: ignore[return-value]
 
     def apply_security_groups_to_load_balancer(
-        self, load_balancer_name: str, security_group_ids: List[str]
+        self, load_balancer_name: str, security_group_ids: list[str]
     ) -> None:
         load_balancer = self.get_load_balancer(load_balancer_name)
         ec2_backend = ec2_backends[self.account_id][self.region_name]
@@ -486,15 +524,20 @@ class ELBBackend(BaseBackend):
 
     def set_load_balancer_listener_ssl_certificate(
         self, name: str, lb_port: str, ssl_certificate_id: str
-    ) -> Optional[FakeLoadBalancer]:
+    ) -> Optional[LoadBalancer]:
         balancer = self.load_balancers.get(name, None)
         if balancer:
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
-                    if ssl_certificate_id:
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                    if ssl_certificate_id and not re.search(
+                        f"{ARN_PARTITION_REGEX}:iam:", ssl_certificate_id
+                    ):
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
         return balancer
 
@@ -503,7 +546,7 @@ class ELBBackend(BaseBackend):
         load_balancer_name: str,
         instance_ids: Iterable[str],
         from_autoscaling: bool = False,
-    ) -> FakeLoadBalancer:
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"
@@ -520,7 +563,7 @@ class ELBBackend(BaseBackend):
         load_balancer_name: str,
         instance_ids: Iterable[str],
         from_autoscaling: bool = False,
-    ) -> FakeLoadBalancer:
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         attr_name = (
             "instance_sparse_ids"
@@ -542,10 +585,11 @@ class ELBBackend(BaseBackend):
     def modify_load_balancer_attributes(
         self,
         load_balancer_name: str,
-        cross_zone: Optional[Dict[str, Any]] = None,
-        connection_settings: Optional[Dict[str, Any]] = None,
-        connection_draining: Optional[Dict[str, Any]] = None,
-        access_log: Optional[Dict[str, Any]] = None,
+        cross_zone: Optional[dict[str, Any]] = None,
+        connection_settings: Optional[dict[str, Any]] = None,
+        connection_draining: Optional[dict[str, Any]] = None,
+        access_log: Optional[dict[str, Any]] = None,
+        additional_attributes: Optional[list[dict[str, str]]] = None,
     ) -> None:
         load_balancer = self.get_load_balancer(load_balancer_name)
         if cross_zone:
@@ -560,14 +604,24 @@ class ELBBackend(BaseBackend):
                 )
         if access_log:
             load_balancer.attributes["access_log"] = access_log
+        if additional_attributes:
+            load_balancer.attributes["additional_attributes"] = [
+                (attr["Key"], attr["Value"]) for attr in additional_attributes
+            ]
+        else:
+            if not load_balancer.attributes["additional_attributes"]:
+                load_balancer.attributes["additional_attributes"] = []
+            load_balancer.attributes["additional_attributes"].append(
+                ("elb.http.desyncmitigationmode", "defensive")
+            )
 
     def create_load_balancer_policy(
         self,
         load_balancer_name: str,
         policy_name: str,
         policy_type_name: str,
-        policy_attrs: List[Dict[str, str]],
-    ) -> FakeLoadBalancer:
+        policy_attrs: list[dict[str, str]],
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         if policy_name not in [p.policy_name for p in load_balancer.policies]:
             load_balancer.policies.append(
@@ -578,7 +632,7 @@ class ELBBackend(BaseBackend):
 
     def create_app_cookie_stickiness_policy(
         self, load_balancer_name: str, policy_name: str, cookie_name: str
-    ) -> FakeLoadBalancer:
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         policy = AppCookieStickinessPolicy(policy_name, cookie_name)
         load_balancer.policies.append(policy)
@@ -589,15 +643,15 @@ class ELBBackend(BaseBackend):
         load_balancer_name: str,
         policy_name: str,
         cookie_expiration_period: Optional[int],
-    ) -> FakeLoadBalancer:
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         policy = LbCookieStickinessPolicy(policy_name, cookie_expiration_period)
         load_balancer.policies.append(policy)
         return load_balancer
 
     def set_load_balancer_policies_for_backend_server(
-        self, load_balancer_name: str, instance_port: int, policies: List[str]
-    ) -> FakeLoadBalancer:
+        self, load_balancer_name: str, instance_port: int, policies: list[str]
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         backend = [
             b for b in load_balancer.backends if int(b.instance_port) == instance_port
@@ -608,8 +662,8 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def set_load_balancer_policies_of_listener(
-        self, load_balancer_name: str, load_balancer_port: int, policies: List[str]
-    ) -> FakeLoadBalancer:
+        self, load_balancer_name: str, load_balancer_port: int, policies: list[str]
+    ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         listener = [
             l_listener
@@ -621,48 +675,53 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
-    def _register_certificate(self, ssl_certificate_id: str, dns_name: str) -> None:
-        from moto.acm.models import CertificateNotFound, acm_backends
-
-        acm_backend = acm_backends[self.account_id][self.region_name]
-        try:
-            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
-        except CertificateNotFound:
-            raise CertificateNotFoundException()
-
     def enable_availability_zones_for_load_balancer(
-        self, load_balancer_name: str, availability_zones: List[str]
-    ) -> List[str]:
+        self, load_balancer_name: str, availability_zones: list[str]
+    ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.zones = sorted(
-            list(set(load_balancer.zones + availability_zones))
+        load_balancer.availability_zones = sorted(
+            set(load_balancer.availability_zones + availability_zones)
         )
-        return load_balancer.zones
+        return load_balancer.availability_zones
 
     def disable_availability_zones_for_load_balancer(
-        self, load_balancer_name: str, availability_zones: List[str]
-    ) -> List[str]:
+        self, load_balancer_name: str, availability_zones: list[str]
+    ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.zones = sorted(
-            list(
-                set([az for az in load_balancer.zones if az not in availability_zones])
-            )
+        load_balancer.availability_zones = sorted(
+            {
+                az
+                for az in load_balancer.availability_zones
+                if az not in availability_zones
+            }
         )
-        return load_balancer.zones
+        return load_balancer.availability_zones
 
     def attach_load_balancer_to_subnets(
-        self, load_balancer_name: str, subnets: List[str]
-    ) -> List[str]:
+        self, load_balancer_name: str, subnets: list[str]
+    ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = list(set(load_balancer.subnets + subnets))
         return load_balancer.subnets
 
     def detach_load_balancer_from_subnets(
-        self, load_balancer_name: str, subnets: List[str]
-    ) -> List[str]:
+        self, load_balancer_name: str, subnets: list[str]
+    ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
         return load_balancer.subnets
+
+
+def register_certificate(
+    account_id: str, region: str, arn_certificate: str, arn_user: str
+) -> None:
+    from moto.acm.models import CertificateNotFound, acm_backends
+
+    acm_backend = acm_backends[account_id][region]
+    try:
+        acm_backend.set_certificate_in_use_by(arn_certificate, arn_user)
+    except CertificateNotFound:
+        raise CertificateNotFoundException()
 
 
 elb_backends = BackendDict(ELBBackend, "elb")

@@ -1,4 +1,4 @@
-from typing import Dict, Final, Optional, Set
+from typing import Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -9,7 +9,11 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -20,22 +24,30 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
+    ResourceCondition.WaitForTaskToken,
+}
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
+    "publish": {
+        "Message",
+        "MessageAttributes",
+        "MessageStructure",
+        "MessageDeduplicationId",
+        "MessageGroupId",
+        "PhoneNumber",
+        "Subject",
+        "TargetArn",
+        "TopicArn",
+    }
+}
+
 
 class StateTaskServiceSns(StateTaskServiceCallback):
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
-        "publish": {
-            "Message",
-            "MessageAttributes",
-            "MessageStructure",
-            "PhoneNumber",
-            "Subject",
-            "TargetArn",
-            "TopicArn",
-        }
-    }
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
-        return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
+    def _get_supported_parameters(self) -> Optional[set[str]]:
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, ClientError):
@@ -59,6 +71,7 @@ class StateTaskServiceSns(StateTaskServiceCallback):
             )
 
             return FailureEvent(
+                env=env,
                 error_name=CustomErrorName(error_name=error_name),
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
@@ -77,13 +90,14 @@ class StateTaskServiceSns(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        state_credentials: StateCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         sns_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
 
         # Optimised integration automatically stringifies

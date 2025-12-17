@@ -5,12 +5,6 @@ from collections import deque
 
 from moto.dynamodb.models import DynamoType
 
-from ..exceptions import (
-    DuplicateUpdateExpression,
-    MockValidationException,
-    TooManyAddClauses,
-)
-
 
 class Node(metaclass=abc.ABCMeta):
     def __init__(self, children=None):
@@ -26,25 +20,6 @@ class Node(metaclass=abc.ABCMeta):
 
     def set_parent(self, parent_node):
         self.parent = parent_node
-
-    def validate(self, limit_set_actions: bool = False) -> None:
-        if self.type == "UpdateExpression":
-            nr_of_clauses = len(self.find_clauses([UpdateExpressionAddClause]))
-            if nr_of_clauses > 1:
-                raise TooManyAddClauses()
-            set_actions = self.find_clauses([UpdateExpressionSetAction])
-            # set_attributes = ["attr", "map.attr", attr.list[2], ..]
-            set_attributes = [s.children[0].to_str() for s in set_actions]
-            # We currently only check for duplicates
-            # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
-            if len(set_attributes) != len(set(set_attributes)):
-                raise DuplicateUpdateExpression(set_attributes)
-
-            set_clauses = self.find_clauses([UpdateExpressionSetClause])
-            if limit_set_actions and len(set_clauses) > 1:
-                raise MockValidationException(
-                    'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
-                )
 
     def normalize(self):
         """
@@ -155,6 +130,13 @@ class UpdateExpressionSetAction(UpdateExpressionClause):
     """
 
 
+class UpdateExpressionAction(UpdateExpressionClause):
+    def get_value(self):
+        expression_path = self.children[0]
+        expression_selector = expression_path.children[-1]
+        return expression_selector.children[0]
+
+
 class UpdateExpressionRemoveActions(UpdateExpressionClause):
     """
     UpdateExpressionSetClause => REMOVE RemoveActions
@@ -164,20 +146,18 @@ class UpdateExpressionRemoveActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionRemoveAction(UpdateExpressionClause):
+class UpdateExpressionRemoveAction(UpdateExpressionAction):
     """
     RemoveAction => Path
     """
 
-    def _get_value(self):
-        expression_path = self.children[0]
-        expression_selector = expression_path.children[-1]
-        return expression_selector.children[0]
-
     def __lt__(self, other):
-        self_value = self._get_value()
-
-        return self_value < other._get_value()
+        self_value = self.get_value()
+        other_value = other.get_value()
+        if isinstance(self_value, int) and isinstance(other_value, int):
+            return self_value < other_value
+        else:
+            return str(self_value) < str(other_value)
 
 
 class UpdateExpressionAddActions(UpdateExpressionClause):
@@ -189,7 +169,7 @@ class UpdateExpressionAddActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionAddAction(UpdateExpressionClause):
+class UpdateExpressionAddAction(UpdateExpressionAction):
     """
     AddAction => Path Value
     """
@@ -204,7 +184,7 @@ class UpdateExpressionDeleteActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionDeleteAction(UpdateExpressionClause):
+class UpdateExpressionDeleteAction(UpdateExpressionAction):
     """
     DeleteAction => Path Value
     """
@@ -261,9 +241,9 @@ class ExpressionSelector(LeafNode):
         try:
             super().__init__(children=[int(selection_index)])
         except ValueError:
-            assert (
-                False
-            ), "Expression selector must be an int, this is a bug in the moto library."
+            raise AssertionError(
+                "Expression selector must be an int, this is a bug in the moto library."
+            )
 
     def get_index(self):
         return self.children[0]
@@ -359,7 +339,7 @@ class NoneExistingPath(LeafNode):
         return self.children[0]
 
 
-class DepthFirstTraverser(object):
+class DepthFirstTraverser:
     """
     Helper class that allows depth first traversal and to implement custom processing for certain AST nodes. The
     processor of a node must return the new resulting node. This node will be placed in the tree. Processing of a
@@ -416,14 +396,15 @@ class DepthFirstTraverser(object):
             if isinstance(node, self.nodes_to_be_processed()):
                 node = self.process(node)
                 node.parent = parent_node
-                parent_node.children[child_id] = node
+                if parent_node:
+                    parent_node.children[child_id] = node
         return node
 
     def traverse(self, node):
         return self.traverse_node_recursively(node)
 
 
-class NodeDepthLeftTypeFetcher(object):
+class NodeDepthLeftTypeFetcher:
     """Helper class to fetch a node of a specific type. Depth left-first traversal"""
 
     def __init__(self, node_type, root_node):

@@ -1,12 +1,15 @@
+import base64
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if hasattr(o, "to_json"):
             return o.to_json()
+        elif isinstance(o, bytes):
+            return base64.b64encode(o).decode("utf-8")
 
 
 def dynamo_json_dump(dynamo_object: Any) -> str:
@@ -18,11 +21,11 @@ def bytesize(val: str) -> int:
 
 
 def find_nested_key(
-    keys: List[str],
-    dct: Dict[str, Any],
-    processed_keys: Optional[List[str]] = None,
-    result: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    keys: list[str],
+    dct: dict[str, Any],
+    processed_keys: Optional[list[str]] = None,
+    result: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """
     keys   : A list of keys that may be present in the provided dictionary
              ["level1", "level2"]

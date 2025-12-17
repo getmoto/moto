@@ -2,7 +2,7 @@
 
 import re
 from typing import Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, unquote
 
 import xmltodict
 from jinja2 import Template
@@ -10,7 +10,7 @@ from jinja2 import Template
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.route53.exceptions import InvalidChangeBatch
+from moto.route53.exceptions import InvalidChangeBatch, InvalidInput
 from moto.route53.models import Route53Backend, route53_backends
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -346,8 +346,18 @@ class Route53(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
-        id_ = self.parsed_url.path.split("/")[-1]
-        type_ = self.parsed_url.path.split("/")[-2]
+        id_matcher = re.search(r"/tags/([-a-z]+)/(.+)", self.parsed_url.path)
+        assert id_matcher
+        type_ = id_matcher.group(1)
+        id_ = unquote(id_matcher.group(2))
+        if type_ == "hostedzone" and len(id_) > 32:
+            # From testing, it looks like Route53 creates ID's that are either 21 or 22 characters long
+            # In practice, this error will typically appear when passing in the full ID: `/hostedzone/{id}`
+            # Users should pass in {id} instead
+            # NOTE: we don't know (yet) what kind of validation (if any) is in place for type_==healthcheck.
+            raise InvalidInput(
+                f"1 validation error detected: Value '{id_}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32"
+            )
 
         if request.method == "GET":
             tags = self.backend.list_tags_for_resource(id_)
@@ -366,17 +376,24 @@ class Route53(BaseResponse):
             elif "RemoveTagKeys" in tags:
                 tags = tags["RemoveTagKeys"]  # type: ignore
 
-            self.backend.change_tags_for_resource(id_, tags)
+            self.backend.change_tags_for_resource(type_, id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
 
     def list_tags_for_resources(self) -> str:
+        if id_matcher := re.search(r"/tags/(.+)", self.parsed_url.path):
+            resource_type = unquote(id_matcher.group(1))
+        else:
+            resource_type = ""
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
-        ]
+        ]["ResourceId"]
+        # If only one resource id is passed, it is a string, not a list
+        if not isinstance(resource_ids, list):
+            resource_ids = [resource_ids]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
-        return template.render(tag_sets)
+        return template.render(tag_sets=tag_sets, resource_type=resource_type)
 
     def get_change(self) -> str:
         change_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
@@ -389,7 +406,7 @@ class Route53(BaseResponse):
         log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
 
         query_logging_config = self.backend.create_query_logging_config(
-            self.region, hosted_zone_id, log_group_arn
+            hosted_zone_id, log_group_arn
         )
 
         template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
@@ -405,8 +422,6 @@ class Route53(BaseResponse):
         next_token = self._get_param("nexttoken")
         max_results = self._get_int_param("maxresults")
 
-        # The paginator picks up named arguments, returns tuple.
-        # pylint: disable=unbalanced-tuple-unpacking
         all_configs, next_token = self.backend.list_query_logging_configs(
             hosted_zone_id=hosted_zone_id,
             next_token=next_token,
@@ -494,10 +509,10 @@ LIST_TAGS_FOR_RESOURCES_RESPONSE = """
     <ResourceTagSets>
         {% for set in tag_sets %}
         <ResourceTagSet>
-            <ResourceType>{{set.resource_type}}</ResourceType>
-            <ResourceId>{{set.resource_id}}</ResourceId>
+            <ResourceType>{{resource_type}}</ResourceType>
+            <ResourceId>{{set["ResourceId"]}}</ResourceId>
             <Tags>
-                {% for key, value in set.tags.items() %}
+                {% for key, value in set["Tags"].items() %}
                 <Tag>
                     <Key>{{key}}</Key>
                     <Value>{{value}}</Value>

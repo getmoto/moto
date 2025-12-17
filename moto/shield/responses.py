@@ -16,7 +16,7 @@ class ShieldResponse(BaseResponse):
     @property
     def shield_backend(self) -> ShieldBackend:
         """Return backend instance specific for this region."""
-        return shield_backends[self.current_account][self.region]
+        return shield_backends[self.current_account][self.partition]
 
     def create_protection(self) -> str:
         params = json.loads(self.body)
@@ -28,7 +28,7 @@ class ShieldResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict(ProtectionId=protection_id))
+        return json.dumps({"ProtectionId": protection_id})
 
     def describe_protection(self) -> str:
         params = json.loads(self.body)
@@ -38,7 +38,7 @@ class ShieldResponse(BaseResponse):
             protection_id=protection_id,
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(Protection=protection.to_dict()))
+        return json.dumps({"Protection": protection.to_dict()})
 
     def list_protections(self) -> str:
         params = json.loads(self.body)
@@ -47,7 +47,7 @@ class ShieldResponse(BaseResponse):
             inclusion_filters=inclusion_filters,
         )
         return json.dumps(
-            dict(Protections=list(protection.to_dict() for protection in protections))
+            {"Protections": [protection.to_dict() for protection in protections]}
         )
 
     def delete_protection(self) -> str:
@@ -64,7 +64,7 @@ class ShieldResponse(BaseResponse):
         tags = self.shield_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(Tags=tags))
+        return json.dumps({"Tags": tags})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -85,3 +85,11 @@ class ShieldResponse(BaseResponse):
             tag_keys=tag_keys,
         )
         return "{}"
+
+    def create_subscription(self) -> str:
+        self.shield_backend.create_subscription()
+        return "{}"
+
+    def describe_subscription(self) -> str:
+        subscription = self.shield_backend.describe_subscription()
+        return json.dumps({"Subscription": subscription.to_dict()})

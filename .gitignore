@@ -41,3 +41,5 @@ other_langs/terraform/*/.terraform*
 other_langs/terraform/*/terraform*
 other_langs/terraform/awslambda/lambda_function_payload.zip
 other_langs/tests_dotnet/ebs/obj/Debug/*
+other_langs/tests_js/node_modules
+other_langs/tests_js/package-lock.json

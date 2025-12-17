@@ -3,51 +3,46 @@ from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError, WaiterError
+
+from tests import allow_aws_request
+from tests.test_ec2 import ec2_aws_verified
 
 from . import elbv2_aws_verified
 
 
-@elbv2_aws_verified()
+@ec2_aws_verified(create_vpc=True, create_subnet=True, create_sg=True)
 @pytest.mark.aws_verified
-def test_register_targets(target_is_aws=False):
+def test_register_targets(ec2_client=None, vpc_id=None, subnet_id=None, sg_id=None):
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
 
     lb_name = f"lb-{str(uuid4())[0:6]}"
-    sg_name = f"sg{str(uuid4())[0:6]}"
     target_name = f"target-{str(uuid4())[0:6]}"
 
     ssm = boto3.client("ssm", "us-east-1")
     resp = ssm.get_parameters(
-        Names=["/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"]
+        Names=["/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-x86_64"]
     )
     ami = resp["Parameters"][0]["Value"]
 
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    vpc = ec2.Vpc(vpc_id)
     igw_id = ec2_client.create_internet_gateway()["InternetGateway"][
         "InternetGatewayId"
     ]
     vpc.attach_internet_gateway(InternetGatewayId=igw_id)
     route_table = vpc.create_route_table()
     route_table.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=igw_id)
-    security_group = ec2.create_security_group(
-        GroupName=sg_name, Description="a", VpcId=vpc.id
-    )
 
     ec2_client.authorize_security_group_ingress(
-        GroupId=security_group.id,
+        GroupId=sg_id,
         IpPermissions=[{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
     )
-    subnet1 = vpc.create_subnet(
-        CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = vpc.create_subnet(
-        CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
+    # LoadBalancer requires two distinct subnets, so we have to 'manually' create another one
+    subnet2 = vpc.create_subnet(CidrBlock="10.0.1.1/24", AvailabilityZone="us-east-1b")
 
-    route_table.associate_with_subnet(SubnetId=subnet1.id)
-    route_table.associate_with_subnet(SubnetId=subnet2.id)
+    assoc1 = route_table.associate_with_subnet(SubnetId=subnet_id)
+    assoc2 = route_table.associate_with_subnet(SubnetId=subnet2.id)
 
     load_balancer_arn = listener_arn = target_group_arn = instance_id1 = (
         instance_id2
@@ -64,42 +59,39 @@ sudo systemctl enable httpd"""
         # Start EC2 instances first, to give them time to get ready
         instance_id1 = ec2.create_instances(
             ImageId=ami,
+            InstanceType="t3a.small",
             MinCount=1,
             MaxCount=1,
-            KeyName="test2",
             NetworkInterfaces=[
                 {
                     "DeviceIndex": 0,
-                    "SubnetId": subnet1.id,
+                    "SubnetId": subnet_id,
                     "AssociatePublicIpAddress": True,
-                    "Groups": [security_group.id],
+                    "Groups": [sg_id],
                 }
             ],
             UserData=init_script,
         )[0].id
         instance_id2 = ec2.create_instances(
             ImageId=ami,
+            InstanceType="t3a.small",
             MinCount=1,
             MaxCount=1,
-            KeyName="test2",
             NetworkInterfaces=[
                 {
                     "DeviceIndex": 0,
                     "SubnetId": subnet2.id,
                     "AssociatePublicIpAddress": True,
-                    "Groups": [security_group.id],
+                    "Groups": [sg_id],
                 }
             ],
             UserData=init_script,
         )[0].id
 
-        waiter = ec2_client.get_waiter("instance_running")
-        waiter.wait(InstanceIds=[instance_id1, instance_id2])
-
         load_balancer_arn = conn.create_load_balancer(
             Name=lb_name,
-            Subnets=[subnet1.id, subnet2.id],
-            SecurityGroups=[security_group.id],
+            Subnets=[subnet_id, subnet2.id],
+            SecurityGroups=[sg_id],
             Scheme="internal",
             Tags=[{"Key": "key_name", "Value": "a_value"}],
         )["LoadBalancers"][0]["LoadBalancerArn"]
@@ -123,9 +115,7 @@ sudo systemctl enable httpd"""
         )["TargetGroups"][0]["TargetGroupArn"]
 
         # No targets registered yet
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert len(healths) == 0
 
         listener_arn = conn.create_listener(
@@ -140,6 +130,11 @@ sudo systemctl enable httpd"""
             ],
         )["Listeners"][0]["ListenerArn"]
 
+        # Instances were started a while ago
+        # Make sure they are ready before trying to register them
+        waiter = ec2_client.get_waiter("instance_running")
+        waiter.wait(InstanceIds=[instance_id1, instance_id2])
+
         # Register target
         # Verify that they are healthy
         conn.register_targets(
@@ -149,9 +144,8 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_in_service")
         waiter.wait(TargetGroupArn=target_group_arn)
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
+
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
             "HealthCheckPort": "80",
@@ -172,9 +166,7 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_deregistered")
         waiter.wait(TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1}])
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert len(healths) == 1
         assert {
             "Target": {"Id": instance_id2, "Port": 80},
@@ -182,10 +174,13 @@ sudo systemctl enable httpd"""
             "TargetHealth": {"State": "healthy"},
         } in healths
 
-        # We can explicitly request it's health though
+        # We can explicitly request its health though
         healths = conn.describe_target_health(
             TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1, "Port": 80}]
         )["TargetHealthDescriptions"]
+        for h in healths:
+            # Skip attributes not implemented in Moto
+            h.pop("AdministrativeOverride", None)
         assert len(healths) == 1
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
@@ -205,9 +200,7 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_in_service")
         waiter.wait(TargetGroupArn=target_group_arn)
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
             "HealthCheckPort": "80",
@@ -223,15 +216,27 @@ sudo systemctl enable httpd"""
         waiter = ec2_client.get_waiter("instance_stopped")
         waiter.wait(InstanceIds=[instance_id1])
 
+        # Verify we can't register an instance that has been stopped
+        with pytest.raises(ClientError) as exc:
+            conn.register_targets(
+                TargetGroupArn=target_group_arn,
+                Targets=[{"Id": instance_id1}],
+            )
+        err = exc.value.response
+        assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert err["Error"]["Code"] == "InvalidTarget"
+        assert (
+            err["Error"]["Message"]
+            == f"The following targets are not in a running state and cannot be registered: '{instance_id1}'"
+        )
+
         # Instance is marked as 'unused' when stopped
         states = set()
         while states != {"healthy", "unused"}:
-            healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-                "TargetHealthDescriptions"
-            ]
-            states = set([h["TargetHealth"]["State"] for h in healths])
+            healths = describe_healths(target_group_arn)
+            states = {h["TargetHealth"]["State"] for h in healths}
 
-            if target_is_aws:
+            if allow_aws_request():
                 sleep(5)
         assert {
             "Target": {"Id": instance_id2, "Port": 80},
@@ -253,15 +258,11 @@ sudo systemctl enable httpd"""
         waiter.wait(InstanceIds=[instance_id1])
 
         # Instance is removed when terminated
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         while len(healths) != 1:
-            healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-                "TargetHealthDescriptions"
-            ]
+            healths = describe_healths(target_group_arn)
 
-            if target_is_aws:
+            if allow_aws_request():
                 sleep(5)
 
         assert {
@@ -274,6 +275,9 @@ sudo systemctl enable httpd"""
         healths = conn.describe_target_health(
             TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1, "Port": 80}]
         )["TargetHealthDescriptions"]
+        for h in healths:
+            # Skip attributes not implemented in Moto
+            h.pop("AdministrativeOverride", None)
         assert healths == [
             {
                 "Target": {"Id": instance_id1, "Port": 80},
@@ -316,18 +320,31 @@ sudo systemctl enable httpd"""
             waiter = conn.get_waiter("load_balancers_deleted")
             waiter.wait(LoadBalancerArns=[load_balancer_arn])
 
-    if target_is_aws:
-        # Resources take a while to deregister
-        # Wait, so we don't get DependencyViolations when deleting the SG
-        sleep(30)
+        if allow_aws_request():
+            # Resources take a while to deregister
+            # Wait, so we don't get DependencyViolations when deleting the SG
+            sleep(30)
 
-        security_group.delete()
-        subnet1.delete()
         subnet2.delete()
+        ec2_client.disassociate_route_table(AssociationId=assoc1.id)
+        if not allow_aws_request():
+            # AWS seems to automatically disassociate 'assoc2' when deleting subnet2
+            # Moto does not do this automatically though - at least not yet
+            ec2_client.disassociate_route_table(AssociationId=assoc2.id)
         route_table.delete()
-        ec2_client.detach_internet_gateway(InternetGatewayId=igw_id, VpcId=vpc.id)
-        vpc.delete()
+        ec2_client.detach_internet_gateway(InternetGatewayId=igw_id, VpcId=vpc_id)
         ec2_client.delete_internet_gateway(InternetGatewayId=igw_id)
+
+
+def describe_healths(target_group_arn):
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
+        "TargetHealthDescriptions"
+    ]
+    for h in healths:
+        # Skip attributes not implemented in Moto
+        h.pop("AdministrativeOverride", None)
+    return healths
 
 
 @elbv2_aws_verified()
@@ -423,8 +440,13 @@ def test_describe_unknown_targets(target_is_aws=False):
 
         if load_balancer_arn:
             conn.delete_load_balancer(LoadBalancerArn=load_balancer_arn)
-            waiter = conn.get_waiter("load_balancers_deleted")
-            waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            try:
+                waiter = conn.get_waiter("load_balancers_deleted")
+                waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            except WaiterError:
+                # This operations fails against botocore 1.35.15 and up
+                # https://github.com/boto/botocore/issues/3252
+                pass
 
     if target_is_aws:
         # Resources take a while to deregister

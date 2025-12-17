@@ -1,4 +1,6 @@
+from decimal import Decimal
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import botocore
@@ -7,8 +9,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
-
-from .. import dynamodb_aws_verified
+from tests import allow_aws_request
+from tests.test_dynamodb import dynamodb_aws_verified
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -30,6 +32,51 @@ table_schema = {
 }
 
 
+class BaseTest:
+    @classmethod
+    def setup_class(cls, add_range=False):
+        if not allow_aws_request():
+            cls.mock = mock_aws()
+            cls.mock.start()
+        cls.client = boto3.client("dynamodb", region_name="us-east-1")
+        cls.table_name = "T" + str(uuid4())
+        cls.has_range_key = add_range
+
+        dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+        # Create the DynamoDB table.
+        schema = [{"AttributeName": "pk", "KeyType": "HASH"}]
+        defs = [{"AttributeName": "pk", "AttributeType": "S"}]
+        if add_range:
+            schema.append({"AttributeName": "rk", "KeyType": "RANGE"})
+            defs.append({"AttributeName": "rk", "AttributeType": "S"})
+        dynamodb.create_table(
+            TableName=cls.table_name,
+            KeySchema=schema,
+            AttributeDefinitions=defs,
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+        waiter = cls.client.get_waiter("table_exists")
+        waiter.wait(TableName=cls.table_name)
+        cls.table = dynamodb.Table(cls.table_name)
+
+    @classmethod
+    def empty_table(self):
+        # Empty table between runs
+        items = self.table.scan()["Items"]
+        for item in items:
+            if self.has_range_key:
+                self.table.delete_item(Key={"pk": item["pk"], "rk": item["rk"]})
+            else:
+                self.table.delete_item(Key={"pk": item["pk"]})
+
+    @classmethod
+    def teardown_class(cls):
+        cls.client.delete_table(TableName=cls.table_name)
+        if not allow_aws_request():
+            cls.mock.stop()
+
+
 @mock_aws
 def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     item = {
@@ -40,10 +87,9 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     }
 
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = dynamodb.Table("test-table")
     table.put_item(Item=item)
 
     # check using wrong name for sort key throws exception
@@ -97,40 +143,93 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
 
-@mock_aws
-def test_query_table_with_wrong_key_attribute_names_throws_exception():
-    item = {
-        "partitionKey": "pk-1",
-        "someAttribute": "lore ipsum",
-    }
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi=True)
+def test_query_table_with_wrong_attrs_used_in_key_condition_expression(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = dynamodb.Table("test-table")
-    table.put_item(Item=item)
+    table = dynamodb.Table(table_name)
 
     # check using wrong name for sort key throws exception
     with pytest.raises(ClientError) as exc:
         table.query(
             KeyConditionExpression="wrongName = :pk",
             ExpressionAttributeValues={":pk": "pk"},
-        )["Items"]
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-    assert err["Message"] == "Query condition missed key schema element: partitionKey"
+    assert err["Message"] == "Query condition missed key schema element: pk"
 
-
-@mock_aws
-def test_empty_expressionattributenames():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = ddb.Table("test-table")
+    # Using PK of Index when querying Table is wrong
     with pytest.raises(ClientError) as exc:
-        table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
+        table.query(
+            KeyConditionExpression="gsi_pk = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: pk"
+
+    # Using PK of Table when querying Index is actually correct
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="pk = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: gsi_pk"
+
+    # Using both PK and SK is acceptable
+    items = table.query(
+        KeyConditionExpression="pk = :pk AND sk = :sk",
+        ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+    )["Items"]
+    assert items == []
+
+    # Using PK and SK on the Index is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    # Using GSI PK and SK on the Index is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="gsi_pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    # TODO: AWS returns a different error message - need to change our implementation
+    # "The number of query conditions (2) exceeds the number of key attributes defined in the schema (1)"
+    # assert err["Message"] == "Query key condition not supported"
+
+    # Using GSI PK and SK on the Table is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="gsi_pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: pk"
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_empty_expressionattributenames(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = ddb.Table(table_name)
+    with pytest.raises(ClientError) as exc:
+        # Note: provided key is wrong. Expression doesn't exist either.
+        # Whether we can supply ExpressionAttributeName in the first place, that's what we're validating here
+        table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={"#a": "b"})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -142,10 +241,9 @@ def test_empty_expressionattributenames():
 @mock_aws
 def test_empty_expressionattributenames_with_empty_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    table = ddb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
             Key={"id": "my_id"}, ProjectionExpression="a", ExpressionAttributeNames={}
@@ -158,10 +256,9 @@ def test_empty_expressionattributenames_with_empty_projection():
 @mock_aws
 def test_empty_expressionattributenames_with_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    table = ddb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
             Key={"id": "my_id"}, ProjectionExpression="id", ExpressionAttributeNames={}
@@ -171,38 +268,198 @@ def test_empty_expressionattributenames_with_projection():
     assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
-@mock_aws
-def test_update_item_range_key_set():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"partitionKey": "the-key"},
-            UpdateExpression="ADD x :one SET a = :a ADD y :one",
-            ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+@pytest.mark.aws_verified
+class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
+    def test_multiple_add_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="ADD x :one SET a = :a ADD y :one",
+                ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
         )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
-    )
+
+    def test_multiple_remove_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="REMOVE #ulist[0] SET current_user = :current_user REMOVE some_param",
+                ExpressionAttributeNames={"#ulist": "user_list"},
+                ExpressionAttributeValues={":current_user": {"name": "Jane"}},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
+        )
+
+    def test_multiple_set_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="SET current_user = :current_user SET some_param = :current_user",
+                ExpressionAttributeValues={":current_user": {"name": "Jane"}},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+        )
+
+    def test_delete_and_add_on_same_set(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="ADD #stringSet :addSet DELETE #stringSet :deleteSet",
+                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_remove_and_add_on_same_set(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="ADD #stringSet :addSet REMOVE #stringSet",
+                ExpressionAttributeNames={"#stringSet": "string_set.nested"},
+                ExpressionAttributeValues={":addSet": {"c"}},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_set_and_remove_on_overlapping_paths(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="REMOVE string_set SET string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_set_path_overlap(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET string_set = :h, string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_path_overlap_error_uses_expression_attribute_name(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET #stringSet = :h, #stringSet = :h",
+                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set]"
+        )
+
+    def test_path_overlap_error_splits_paths(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET string_set.nested = :h, string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set, nested], path two: [string_set, nested]"
+        )
+
+    # pretty weird AWS behavior with the next two tests, seems like a bug
+    def test_no_overlapping_paths_error_if_one_of_the_overlapping_paths_is_an_expression_attribute_name(
+        self,
+    ):
+        self.table.update_item(
+            Key={"pk": "foo"},
+            UpdateExpression="SET string_set = :h, #nested = :h",
+            ExpressionAttributeNames={"#nested": "string_set.nested"},
+            ExpressionAttributeValues={":h": "H"},
+        )
+
+    def test_overlapping_paths_error_if_identical_paths_are_expression_attribute_names(
+        self,
+    ):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET #stringSet = :h, #nested = :h",
+                ExpressionAttributeNames={
+                    "#stringSet": "string_set",
+                    "#nested": "string_set",
+                },
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_update_item_with_shared_root_but_different_overall(self):
+        # Can update an item where the first part of the expressions is duplicate but not the rest
+        nested = {"key1": "value1", "key2": "value2", "key3": "value3"}
+        item = {"pk": "1", "name": "test", "nested": nested}
+        self.table.put_item(Item=item)
+        self.table.update_item(
+            Key={"pk": "1"},
+            UpdateExpression="SET #root.#child1=:key1,#root.#child2=:key2",
+            ExpressionAttributeNames={
+                "#root": "nested",
+                "#child1": "key1",
+                "#child2": "key2",
+            },
+            ExpressionAttributeValues={":key1": "new value1", ":key2": "new value2"},
+        )
+        item = self.table.get_item(Key={"pk": "1"})["Item"]
+        assert item["nested"] == {
+            "key1": "new value1",
+            "key2": "new value2",
+            "key3": "value3",
+        }
+
+    def test_delete_and_add_on_different_set(self):
+        self.table.update_item(
+            Key={"pk": "the-key"},
+            UpdateExpression="ADD #stringSet1 :addSet DELETE #stringSet2 :deleteSet",
+            ExpressionAttributeNames={"#stringSet1": "ss1", "#stringSet2": "ss2"},
+            ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+        )
 
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_update_item_unused_attribute_name(table_name=None):
+def test_update_item_unused_attributes(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
     table = ddb.Table(table_name)
-    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0})
+    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0, "test": "text"})
 
+    # Unused Name (count), in addition to Used Name (limit)
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
@@ -217,12 +474,321 @@ def test_update_item_unused_attribute_name(table_name=None):
         == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
+    # Unused Name (count) only
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
             UpdateExpression="ADD am :limit",
             ExpressionAttributeNames={"#count": "count"},
             ExpressionAttributeValues={":limit": 2},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+    # Unused Value (countChange)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET spec.#limit = :limit",
+            ExpressionAttributeNames={"#limit": "limit"},
+            ExpressionAttributeValues={":countChange": 1, ":limit": "limit"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeValues unused in expressions: keys: {:countChange}"
+    )
+
+    # Used value in ConditionExpression
+    table.update_item(
+        Key={"pk": "pk1"},
+        UpdateExpression="SET spec.#limit = :limit",
+        ConditionExpression="begins_with(test, :t)",
+        ExpressionAttributeNames={"#limit": "limit"},
+        ExpressionAttributeValues={":t": "t", ":limit": "limit"},
+    )
+    item = table.get_item(Key={"pk": "pk1"})["Item"]
+    assert item == {
+        "spec": {"limit": "limit"},
+        "pk": "pk1",
+        "am": Decimal("0"),
+        "test": "text",
+    }
+
+    # Used ExpressionAttributeValue, but with invalid value
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET x = :one",
+            ExpressionAttributeValues={":one": set()},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key :one"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_put_item_unused_attributes(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"pk": "pk1", "spec": {}, "am": 0},
+            ConditionExpression="attribute_not_exists(body)",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_get_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.get_item(
+            Key={"pk": "example_id"},
+            ProjectionExpression="pk",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_query_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="(#0 = x)",
+            ExpressionAttributeNames={"#0": "pk", "#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    # Moto will always complain about the fact that #count is unused
+    # AWS will usually complain about that
+    # Sometimes (1 in 10 times, maybe?) it will complain about multiple attribute names are used in one condition
+    # Which is interesting, as there is obviously some async error handling going on. Whichever error is found first, 'wins'
+    assert err["Message"] in [
+        "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}",
+        "Invalid KeyConditionExpression: Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition",
+    ]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_scan_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.scan(
+            TableName=table_name,
+            FilterExpression="#h = :h",
+            ExpressionAttributeNames={"#h": "pk", "#count": "count"},
+            ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_delete_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.delete_item(
+            Key={"pk": "pk1"},
+            ConditionExpression="attribute_not_exists(body)",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_batch_get_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.batch_get_item(
+            RequestItems={
+                "users": {
+                    "Keys": [
+                        {"username": {"S": "user0"}},
+                        {"username": {"S": "user1"}},
+                        {"username": {"S": "user2"}},
+                        {"username": {"S": "user3"}},
+                    ],
+                    "ConsistentRead": True,
+                    "ProjectionExpression": "#rl",
+                    "ExpressionAttributeNames": {"#rl": "username", "#count": "count"},
+                }
+            }
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_put_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {
+                            "pk": {"S": "foo"},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": table_name,
+                        "ConditionExpression": "#i <> foo",
+                        "ExpressionAttributeNames": {"#i": "pk", "#count": "count"},
+                    },
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_update_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": table_name,
+                        "UpdateExpression": "SET #e = test",
+                        "ExpressionAttributeNames": {
+                            "#e": "email_address",
+                            "#count": "count",
+                        },
+                    }
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_delete_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Delete": {
+                        "Key": {
+                            "pk": {"S": "foo"},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": table_name,
+                        "ConditionExpression": "#i <> foo",
+                        "ExpressionAttributeNames": {"#i": "pk", "#count": "count"},
+                    },
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_unused_attribute_name_in_condition_check(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "ConditionCheck": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": table_name,
+                        "ConditionExpression": "attribute_exists(#e)",
+                        "ExpressionAttributeNames": {
+                            "#e": "email_address",
+                            "#count": "count",
+                        },
+                    }
+                },
+                {
+                    "Put": {
+                        "Item": {
+                            "id": {"S": "bar"},
+                            "email_address": {"S": "bar@moto.com"},
+                        },
+                        "TableName": table_name,
+                    }
+                },
+            ]
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -263,7 +829,7 @@ def test_create_table_with_redundant_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
                 {"AttributeName": "created_at", "AttributeType": "N"},
@@ -281,7 +847,7 @@ def test_create_table_with_redundant_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
                 {"AttributeName": "user", "AttributeType": "S"},
@@ -312,7 +878,7 @@ def test_create_table_with_missing_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[
                 {"AttributeName": "id", "KeyType": "HASH"},
@@ -330,7 +896,7 @@ def test_create_table_with_missing_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             GlobalSecondaryIndexes=[
@@ -357,7 +923,7 @@ def test_create_table_with_redundant_and_missing_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "created_at", "AttributeType": "N"}
             ],
@@ -373,7 +939,7 @@ def test_create_table_with_redundant_and_missing_attributes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
                 {"AttributeName": "created_at", "AttributeType": "N"},
@@ -399,9 +965,10 @@ def test_create_table_with_redundant_and_missing_attributes():
 @mock_aws
 def test_put_item_wrong_attribute_type():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     dynamodb.create_table(
-        TableName="test-table",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
             {"AttributeName": "created_at", "AttributeType": "N"},
@@ -420,7 +987,7 @@ def test_put_item_wrong_attribute_type():
     }
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.put_item(TableName="test-table", Item=item)
+        dynamodb.put_item(TableName=table_name, Item=item)
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -435,7 +1002,7 @@ def test_put_item_wrong_attribute_type():
     }
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.put_item(TableName="test-table", Item=item)
+        dynamodb.put_item(TableName=table_name, Item=item)
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -449,7 +1016,7 @@ def test_put_item_wrong_attribute_type():
 def test_hash_key_cannot_use_begins_with_operations():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
-        TableName="test-table",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -465,7 +1032,6 @@ def test_hash_key_cannot_use_begins_with_operations():
         for item in items:
             batch.put_item(Item=item)
 
-    table = dynamodb.Table("test-table")
     with pytest.raises(ClientError) as ex:
         table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
     assert ex.value.response["Error"]["Code"] == "ValidationException"
@@ -477,13 +1043,12 @@ def test_hash_key_cannot_use_begins_with_operations():
 @pytest.mark.parametrize("operator", ["<", "<=", ">", ">="])
 def test_hash_key_can_only_use_equals_operations(operator):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
-    table = dynamodb.Table("test-table")
 
     with pytest.raises(ClientError) as exc:
         table.query(
@@ -501,7 +1066,7 @@ def test_creating_table_with_0_local_indexes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
             ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -521,7 +1086,7 @@ def test_creating_table_with_0_global_indexes():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
-            TableName="test-table",
+            TableName=f"T{uuid4()}",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
             ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -537,22 +1102,21 @@ def test_creating_table_with_0_global_indexes():
 
 @mock_aws
 def test_multiple_transactions_on_same_item():
+    table_name = f"T{uuid4()}"
     schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
 
     def update_email_transact(email):
         return {
             "Update": {
                 "Key": {"id": {"S": "foo"}},
-                "TableName": "test-table",
+                "TableName": table_name,
                 "UpdateExpression": "SET #e = :v",
                 "ExpressionAttributeNames": {"#e": "email_address"},
                 "ExpressionAttributeValues": {":v": {"S": email}},
@@ -576,19 +1140,18 @@ def test_multiple_transactions_on_same_item():
 
 @mock_aws
 def test_transact_write_items__too_many_transactions():
+    table_name = f"T{uuid4()}"
     schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     def update_email_transact(email):
         return {
             "Put": {
-                "TableName": "test-table",
+                "TableName": table_name,
                 "Item": {"pk": {"S": ":v"}},
                 "ExpressionAttributeValues": {":v": {"S": email}},
             }
@@ -624,44 +1187,42 @@ def test_update_item_non_existent_table():
     assert err["Message"] == "Requested resource not found"
 
 
-@mock_aws
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "set example_column = :example_column, example_column = :example_column",
-        "set example_column = :example_column ADD x :y set example_column = :example_column",
-    ],
-)
-def test_update_item_with_duplicate_expressions(expression):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="example_table",
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    record = {
-        "pk": "example_id",
-        "example_column": "example",
-    }
-    table = dynamodb.Table("example_table")
-    table.put_item(Item=record)
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "example_id"},
-            UpdateExpression=expression,
-            ExpressionAttributeValues={":example_column": "test"},
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
-    )
+@pytest.mark.aws_verified
+class TestDuplicateProjectionExpressions(BaseTest):
+    def test_query_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.query(
+                KeyConditionExpression=Key("pk").eq("the-key"),
+                ProjectionExpression="body, subject, body",  # duplicate body
+            )
+        self._validate(exc)
 
-    # The item is not updated
-    item = table.get_item(Key={"pk": "example_id"})["Item"]
-    assert item == {"pk": "example_id", "example_column": "example"}
+    def test_get_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.get_item(
+                Key={"pk": "the-key"},
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
+
+    def test_scan_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.scan(
+                FilterExpression=Key("forum_name").eq("the-key"),
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
+
+    def _validate(self, exc):
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert "Invalid ProjectionExpression: " in err["Message"]
+        assert (
+            "Two document paths overlap with each other; must remove or rewrite one of these paths"
+            in err["Message"]
+        )
 
 
 @mock_aws
@@ -670,15 +1231,16 @@ def test_put_item_wrong_datatype():
         raise SkipTest("Unable to mock a session with Config in ServerMode")
     session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
+    table_name = f"T{uuid4()}"
     client = session.create_client("dynamodb", region_name="us-east-1", config=config)
     client.create_table(
-        TableName="test2",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "mykey", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "mykey", "AttributeType": "N"}],
         BillingMode="PAY_PER_REQUEST",
     )
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
+        client.put_item(TableName=table_name, Item={"mykey": {"N": 123}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
@@ -686,7 +1248,7 @@ def test_put_item_wrong_datatype():
     # Same thing - but with a non-key, and nested
     with pytest.raises(ClientError) as exc:
         client.put_item(
-            TableName="test2",
+            TableName=table_name,
             Item={"mykey": {"N": "123"}, "nested": {"M": {"sth": {"N": 5}}}},
         )
     err = exc.value.response["Error"]
@@ -694,19 +1256,92 @@ def test_put_item_wrong_datatype():
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 
+_error_string_non_numeric = (
+    "The parameter cannot be converted to a numeric value: {value}"
+)
+_error_string_overflow = "Number overflow. Attempting to store a number with magnitude larger than supported range"
+_error_string_underflow = "Number underflow. Attempting to store a number with magnitude smaller than supported range"
+
+
 @mock_aws
-def test_put_item_empty_set():
+@pytest.mark.parametrize(
+    "value, expected_error_template",
+    [
+        # Non-numeric string, definitely invalid
+        ("foo", _error_string_non_numeric),
+        # Extra-quoted string
+        ('"42.0"', _error_string_non_numeric),
+        # Leading and trailing whitespace pass float conversion in Python,
+        # but fail validation on the AWS side
+        (" 1.23", _error_string_non_numeric),
+        ("1.23 ", _error_string_non_numeric),
+        # Valid floats in Python, but not AWS
+        ("inf", _error_string_non_numeric),
+        ("nan", _error_string_non_numeric),
+        ("Infinity", _error_string_non_numeric),
+        # Outside the valid range
+        ("1.7976931348623157e+150", _error_string_overflow),
+        ("2.2250738585072014e-150", _error_string_underflow),
+        ("-1.7976931348623157e+150", _error_string_overflow),
+        ("-2.2250738585072014e-150", _error_string_underflow),
+        # More than 38 digits of precision
+        # ("." + ("1234" * 10), "Attempting to store more than 38 significant digits in a Number") TODO
+    ],
+)
+def test_put_item_invalid_number_types(value, expected_error_template):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
+    )
+
+    # Test putting items with valid values (to make sure we don't break them)
+    valid_values = [
+        "42",
+        "42.0",
+        # Examples from https://docs.python.org/3/library/functions.html#float
+        "1e-003",
+        "+1E6",
+        "+1.23",
+        # 38 digits of precision are allowed - this is longer, but the trailing 0's don't count
+        ("0" * 40) + ".42",
+        # Make sure we don't exclude 0.0 from the range check
+        "0.0",
+        "-0.0",
+    ]
+
+    for valid_value in valid_values:
+        client.put_item(
+            TableName=table_name,
+            Item={"pk": {"S": "good"}, "value": {"N": valid_value}},
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name,
+            Item={"pk": {"S": str(uuid4())}, "value": {"N": value}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == expected_error_template.format(value=value)
+
+
+@dynamodb_aws_verified()
+@pytest.mark.aws_verified
+def test_put_item_empty_set(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    table = dynamodb.Table("test-table")
+
+    table = dynamodb.Table(table_name)
     with pytest.raises(ClientError) as exc:
-        table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
+        table.put_item(Item={"pk": "some-irrelevant_key", "attr2": {"SS": set()}})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -714,54 +1349,23 @@ def test_put_item_empty_set():
         == "One or more parameter values were invalid: An number set  may not be empty"
     )
 
-
-@mock_aws
-def test_put_item_returns_old_item():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name, Item={"pk": {"S": "foo"}, "stringSet": {"SS": []}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: An string set  may not be empty"
     )
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {"pk": {"S": "foo"}, "bar": {"S": "baz"}}
 
 
 @mock_aws
 def test_update_expression_with_trailing_comma():
     resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
     table = resource.create_table(
-        TableName="test-table",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -770,7 +1374,7 @@ def test_update_expression_with_trailing_comma():
 
     with pytest.raises(ClientError) as exc:
         table.update_item(
-            Key={"pk": "key", "sk": "sk"},
+            Key={"pk": "key"},
             # Trailing comma should be invalid
             UpdateExpression="SET #attr1 = :val1, #attr2 = :val2,",
             ExpressionAttributeNames={"#attr1": "attr1", "#attr2": "attr2"},
@@ -786,22 +1390,21 @@ def test_update_expression_with_trailing_comma():
 
 @mock_aws
 def test_batch_items_should_throw_exception_for_duplicate_request(
-    ddb_resource, create_user_table, users_table_name
+    ddb_resource, user_table
 ):
     # Setup
-    table = ddb_resource.Table(users_table_name)
     test_item = {"forum_name": "test_dupe", "subject": "test1"}
 
     # Execute
     with pytest.raises(ClientError) as ex:
-        with table.batch_writer() as batch:
-            for i in range(0, 5):
-                batch.put_item(Item=test_item)
+        with user_table.batch_writer() as batch:
+            batch.put_item(Item=test_item)
+            batch.put_item(Item=test_item)
 
     with pytest.raises(ClientError) as ex2:
-        with table.batch_writer() as batch:
-            for i in range(0, 5):
-                batch.delete_item(Key=test_item)
+        with user_table.batch_writer() as batch:
+            batch.delete_item(Key=test_item)
+            batch.delete_item(Key=test_item)
 
     # Verify
     err = ex.value.response["Error"]
@@ -816,19 +1419,18 @@ def test_batch_items_should_throw_exception_for_duplicate_request(
 @mock_aws
 def test_batch_put_item_with_empty_value():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    table = ddb.create_table(
         AttributeDefinitions=[
             {"AttributeName": "pk", "AttributeType": "S"},
             {"AttributeName": "sk", "AttributeType": "S"},
         ],
-        TableName="test-table",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "pk", "KeyType": "HASH"},
             {"AttributeName": "sk", "KeyType": "RANGE"},
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = ddb.Table("test-table")
 
     # Empty Partition Key throws an error
     with pytest.raises(botocore.exceptions.ClientError) as exc:
@@ -860,8 +1462,9 @@ def test_batch_put_item_with_empty_value():
 @mock_aws
 def test_query_begins_with_without_brackets():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test-table",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "pk", "AttributeType": "S"},
             {"AttributeName": "sk", "AttributeType": "S"},
@@ -874,7 +1477,7 @@ def test_query_begins_with_without_brackets():
     )
     with pytest.raises(ClientError) as exc:
         client.query(
-            TableName="test-table",
+            TableName=table_name,
             KeyConditionExpression="pk=:pk AND begins_with sk, :sk ",
             ExpressionAttributeValues={":pk": {"S": "test1"}, ":sk": {"S": "test2"}},
         )
@@ -891,7 +1494,7 @@ def test_transact_write_items_multiple_operations_fail():
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    table_name = "test-table"
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     # Execute
@@ -922,9 +1525,10 @@ def test_transact_write_items_multiple_operations_fail():
 @mock_aws
 def test_transact_write_items_with_empty_gsi_key():
     client = boto3.client("dynamodb", "us-east-2")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "unique_code", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "unique_code", "AttributeType": "S"},
@@ -944,7 +1548,7 @@ def test_transact_write_items_with_empty_gsi_key():
         {
             "Put": {
                 "Item": {"unique_code": {"S": "some code"}, "unique_id": {"S": ""}},
-                "TableName": "test_table",
+                "TableName": table_name,
             }
         }
     ]
@@ -972,11 +1576,10 @@ def test_update_primary_key_with_sortkey():
             {"AttributeName": "sk", "AttributeType": "S"},
         ],
     }
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **schema
     )
 
-    table = dynamodb.Table("test-table")
     base_item = {"pk": "testchangepk", "sk": "else"}
     table.put_item(Item=base_item)
 
@@ -1005,11 +1608,10 @@ def test_update_primary_key():
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
-    dynamodb.create_table(
-        TableName="without_sk", BillingMode="PAY_PER_REQUEST", **schema
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **schema
     )
 
-    table = dynamodb.Table("without_sk")
     base_item = {"pk": "testchangepk"}
     table.put_item(Item=base_item)
 
@@ -1035,34 +1637,32 @@ def test_update_primary_key():
 def test_put_item__string_as_integer_value():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to mock a session with Config in ServerMode")
-    session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
-    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    client = boto3.client("dynamodb", region_name="us-east-1", config=config)
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="without_sk",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
     )
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="without_sk", Item={"pk": {"S": 123}})
+        client.put_item(TableName=table_name, Item={"pk": {"S": 123}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
     # A primary key cannot be of type S, but then point to a dictionary
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
+        client.put_item(TableName=table_name, Item={"pk": {"S": {"S": "asdf"}}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "Start of structure or map found where not expected"
 
     # Note that a normal attribute name can be an 'S', which follows the same pattern
     # Nested 'S'-s like this are allowed for non-key attributes
-    client.put_item(
-        TableName="without_sk", Item={"pk": {"S": "val"}, "S": {"S": "asdf"}}
-    )
-    item = client.get_item(TableName="without_sk", Key={"pk": {"S": "val"}})["Item"]
+    client.put_item(TableName=table_name, Item={"pk": {"S": "val"}, "S": {"S": "asdf"}})
+    item = client.get_item(TableName=table_name, Key={"pk": {"S": "val"}})["Item"]
     assert item == {"pk": {"S": "val"}, "S": {"S": "asdf"}}
 
 
@@ -1074,7 +1674,7 @@ def test_gsi_key_cannot_be_empty():
         "KeySchema": [{"AttributeName": "hello", "KeyType": "HASH"}],
         "Projection": {"ProjectionType": "ALL"},
     }
-    table_name = "lilja-test"
+    table_name = f"T{uuid4()}"
 
     # Let's create a table with [id: str, hello: str], with an index to hello
     dynamodb.create_table(
@@ -1111,22 +1711,23 @@ def test_gsi_key_cannot_be_empty():
 def test_list_append_errors_for_unknown_attribute_value():
     # Verify whether the list_append operation works as expected
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
-        TableName="table2",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
     client.put_item(
-        TableName="table2",
+        TableName=table_name,
         Item={"key": {"S": "sha-of-file"}, "crontab": {"L": [{"S": "bar1"}]}},
     )
 
     # append to unknown list directly
     with pytest.raises(ClientError) as exc:
         client.update_item(
-            TableName="table2",
+            TableName=table_name,
             Key={"key": {"S": "sha-of-file"}},
             UpdateExpression="SET uk = list_append(uk, :i)",
             ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
@@ -1142,7 +1743,7 @@ def test_list_append_errors_for_unknown_attribute_value():
     # append to unknown list via ExpressionAttributeNames
     with pytest.raises(ClientError) as exc:
         client.update_item(
-            TableName="table2",
+            TableName=table_name,
             Key={"key": {"S": "sha-of-file"}},
             UpdateExpression="SET #0 = list_append(#0, :i)",
             ExpressionAttributeNames={"#0": "uk"},
@@ -1159,7 +1760,7 @@ def test_list_append_errors_for_unknown_attribute_value():
     # append to unknown list, even though end result is known
     with pytest.raises(ClientError) as exc:
         client.update_item(
-            TableName="table2",
+            TableName=table_name,
             Key={"key": {"S": "sha-of-file"}},
             UpdateExpression="SET crontab = list_append(uk, :i)",
             ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
@@ -1174,7 +1775,7 @@ def test_list_append_errors_for_unknown_attribute_value():
 
     # We can append to a known list, into an unknown/new list
     client.update_item(
-        TableName="table2",
+        TableName=table_name,
         Key={"key": {"S": "sha-of-file"}},
         UpdateExpression="SET uk = list_append(crontab, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
@@ -1185,10 +1786,9 @@ def test_list_append_errors_for_unknown_attribute_value():
 @mock_aws
 def test_query_with_empty_filter_expression():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    table = ddb.create_table(
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.query(
             KeyConditionExpression="partitionKey = sth", ProjectionExpression=""
@@ -1212,11 +1812,14 @@ def test_query_with_empty_filter_expression():
 @mock_aws
 def test_query_with_missing_expression_attribute():
     ddb = boto3.resource("dynamodb", region_name="us-west-2")
-    ddb.create_table(TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema)
+    table_name = f"T{uuid4()}"
+    ddb.create_table(
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
+    )
     client = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
         client.query(
-            TableName="test",
+            TableName=table_name,
             KeyConditionExpression="#part_key=some_value",
             ExpressionAttributeNames={"#part_key": "partitionKey"},
         )
@@ -1229,53 +1832,100 @@ def test_query_with_missing_expression_attribute():
 
 
 @pytest.mark.aws_verified
+class TestReturnValuesOnConditionCheckFailure(BaseTest):
+    def setup_method(self):
+        self.table.put_item(
+            Item={"pk": "the-key", "subject": "123", "body": "some test msg"}
+        )
+
+    def test_put_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_put_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_with_return_values(exc)
+
+    def test_update_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_update_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def test_delete_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_delete_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def _assert_without_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert resp["message"] == "The conditional request failed"
+        assert "Item" not in resp
+
+    def _assert_with_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert "message" not in resp
+        assert resp["Item"] == {
+            "pk": {"S": "the-key"},
+            "body": {"S": "some test msg"},
+            "subject": {"S": "123"},
+        }
+
+
+@pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_update_item_returns_old_item(table_name=None):
+def test_delete_item_returns_old_item(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
     table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 124}},
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 123}},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {
-        "lock": {"M": {"acquired_at": {"N": "123"}}},
-        "pk": {"S": "mark"},
-    }
 
 
 @pytest.mark.aws_verified
@@ -1345,8 +1995,9 @@ def test_too_many_key_schema_attributes():
 @mock_aws
 def test_cannot_query_gsi_with_consistent_read():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -1372,7 +2023,7 @@ def test_cannot_query_gsi_with_consistent_read():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.query(
-            TableName="test",
+            TableName=table_name,
             IndexName="test_gsi",
             KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
             ExpressionAttributeValues={
@@ -1391,8 +2042,9 @@ def test_cannot_query_gsi_with_consistent_read():
 @mock_aws
 def test_cannot_scan_gsi_with_consistent_read():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -1418,7 +2070,7 @@ def test_cannot_scan_gsi_with_consistent_read():
 
     with pytest.raises(ClientError) as exc:
         dynamodb.scan(
-            TableName="test",
+            TableName=table_name,
             IndexName="test_gsi",
             ConsistentRead=True,
         )
@@ -1432,10 +2084,11 @@ def test_cannot_scan_gsi_with_consistent_read():
 @mock_aws
 def test_delete_table():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     # Create the DynamoDB table.
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -1449,9 +2102,44 @@ def test_delete_table():
     )
 
     with pytest.raises(ClientError) as err:
-        client.delete_table(TableName="test1")
+        client.delete_table(TableName=table_name)
     assert err.value.response["Error"]["Code"] == "ValidationException"
     assert (
         err.value.response["Error"]["Message"]
-        == "1 validation error detected: Table 'test1' can't be deleted while DeletionProtectionEnabled is set to True"
+        == f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=False)
+def test_provide_range_key_against_table_without_range_key(table_name=None):
+    ddb_client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        ddb_client.get_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.delete_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.update_item(
+            TableName=table_name,
+            Key={
+                "pk": {"S": "x"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+            UpdateExpression="set body=:New",
+            ExpressionAttributeValues={":New": {"S": "hello"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"

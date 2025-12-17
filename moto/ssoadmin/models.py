@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -41,8 +41,8 @@ class AccountAssignment(BaseModel):
 
     def to_json(
         self, include_creation_date: bool = False, include_request_id: bool = False
-    ) -> Dict[str, Any]:
-        summary: Dict[str, Any] = {
+    ) -> dict[str, Any]:
+        summary: dict[str, Any] = {
             "TargetId": self.target_id,
             "TargetType": self.target_type,
             "PermissionSetArn": self.permission_set_arn,
@@ -64,7 +64,7 @@ class PermissionSet(BaseModel):
         instance_arn: str,
         session_duration: str,
         relay_state: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ):
         self.name = name
         self.description = description
@@ -75,14 +75,14 @@ class PermissionSet(BaseModel):
         self.tags = tags
         self.created_date = unix_time()
         self.inline_policy = ""
-        self.managed_policies: List[ManagedPolicy] = list()
-        self.customer_managed_policies: List[CustomerManagedPolicy] = list()
+        self.managed_policies: list[ManagedPolicy] = []
+        self.customer_managed_policies: list[CustomerManagedPolicy] = []
         self.total_managed_policies_attached = (
             0  # this will also include customer managed policies
         )
 
-    def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
-        summary: Dict[str, Any] = {
+    def to_json(self, include_creation_date: bool = False) -> dict[str, Any]:
+        summary: dict[str, Any] = {
             "Name": self.name,
             "Description": self.description,
             "PermissionSetArn": self.permission_set_arn,
@@ -131,9 +131,9 @@ class Instance:
         self.status = "ACTIVE"
         self.name: Optional[str] = None
 
-        self.provisioned_permission_sets: List[PermissionSet] = []
+        self.provisioned_permission_sets: list[PermissionSet] = []
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "CreatedDate": self.created_date,
             "IdentityStoreId": self.identity_store_id,
@@ -149,11 +149,11 @@ class SSOAdminBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account_assignments: List[AccountAssignment] = list()
-        self.deleted_account_assignments: List[AccountAssignment] = list()
-        self.permission_sets: List[PermissionSet] = list()
-        self.aws_managed_policies: Optional[Dict[str, Any]] = None
-        self.instances: List[Instance] = []
+        self.account_assignments: list[AccountAssignment] = []
+        self.deleted_account_assignments: list[AccountAssignment] = []
+        self.permission_sets: list[PermissionSet] = []
+        self.aws_managed_policies: Optional[dict[str, Any]] = None
+        self.instances: list[Instance] = []
 
         self.instances.append(Instance(self.account_id, self.region_name))
 
@@ -165,7 +165,7 @@ class SSOAdminBackend(BaseBackend):
         permission_set_arn: str,
         principal_type: str,
         principal_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         assignment = AccountAssignment(
             instance_arn,
             target_id,
@@ -185,7 +185,7 @@ class SSOAdminBackend(BaseBackend):
         permission_set_arn: str,
         principal_type: str,
         principal_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         account = self._find_account(
             instance_arn,
             target_id,
@@ -246,10 +246,10 @@ class SSOAdminBackend(BaseBackend):
             f"Policy does not exist with ARN: {managed_policy_arn}"
         )
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(PAGINATION_MODEL)
     def list_account_assignments(
         self, instance_arn: str, account_id: str, permission_set_arn: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, str]]:
         account_assignments = []
         for assignment in self.account_assignments:
             if (
@@ -267,14 +267,14 @@ class SSOAdminBackend(BaseBackend):
                 )
         return account_assignments
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(PAGINATION_MODEL)
     def list_account_assignments_for_principal(
         self,
-        filter_: Dict[str, Any],
+        filter_: dict[str, Any],
         instance_arn: str,
         principal_id: str,
         principal_type: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, str]]:
         return [
             {
                 "AccountId": account_assignment.target_id,
@@ -301,8 +301,8 @@ class SSOAdminBackend(BaseBackend):
         instance_arn: str,
         session_duration: str,
         relay_state: str,
-        tags: List[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        tags: list[dict[str, str]],
+    ) -> dict[str, Any]:
         permission_set = PermissionSet(
             name,
             description,
@@ -321,7 +321,7 @@ class SSOAdminBackend(BaseBackend):
         description: str,
         session_duration: str,
         relay_state: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -335,7 +335,7 @@ class SSOAdminBackend(BaseBackend):
 
     def describe_permission_set(
         self, instance_arn: str, permission_set_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -344,7 +344,7 @@ class SSOAdminBackend(BaseBackend):
 
     def delete_permission_set(
         self, instance_arn: str, permission_set_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         permission_set = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -375,7 +375,7 @@ class SSOAdminBackend(BaseBackend):
         )
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:
+    def list_permission_sets(self, instance_arn: str) -> list[PermissionSet]:
         permission_sets = []
         for permission_set in self.permission_sets:
             if permission_set.instance_arn == instance_arn:
@@ -441,7 +441,7 @@ class SSOAdminBackend(BaseBackend):
         self,
         instance_arn: str,
         permission_set_arn: str,
-    ) -> List[ManagedPolicy]:
+    ) -> list[ManagedPolicy]:
         permissionset = self._find_permission_set(
             instance_arn,
             permission_set_arn,
@@ -478,7 +478,7 @@ class SSOAdminBackend(BaseBackend):
         self,
         instance_arn: str,
         permission_set_arn: str,
-        customer_managed_policy_reference: Dict[str, str],
+        customer_managed_policy_reference: dict[str, str],
     ) -> None:
         permissionset = self._find_permission_set(
             permission_set_arn=permission_set_arn, instance_arn=instance_arn
@@ -507,7 +507,7 @@ class SSOAdminBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_customer_managed_policy_references_in_permission_set(
         self, instance_arn: str, permission_set_arn: str
-    ) -> List[CustomerManagedPolicy]:
+    ) -> list[CustomerManagedPolicy]:
         permissionset = self._find_permission_set(
             permission_set_arn=permission_set_arn, instance_arn=instance_arn
         )
@@ -517,7 +517,7 @@ class SSOAdminBackend(BaseBackend):
         self,
         instance_arn: str,
         permission_set_arn: str,
-        customer_managed_policy_reference: Dict[str, str],
+        customer_managed_policy_reference: dict[str, str],
     ) -> None:
         permissionset = self._find_permission_set(
             permission_set_arn=permission_set_arn, instance_arn=instance_arn
@@ -542,7 +542,7 @@ class SSOAdminBackend(BaseBackend):
         self,
         instance_arn: str,
         permission_set_arn: str,
-        customer_managed_policy_reference: Dict[str, str],
+        customer_managed_policy_reference: dict[str, str],
     ) -> None:
         self._detach_customer_managed_policy_from_permissionset(
             instance_arn=instance_arn,
@@ -552,7 +552,7 @@ class SSOAdminBackend(BaseBackend):
 
     def describe_account_assignment_creation_status(
         self, account_assignment_creation_request_id: str, instance_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         for account in self.account_assignments:
             if account.request_id == account_assignment_creation_request_id:
                 return account.to_json(
@@ -563,7 +563,7 @@ class SSOAdminBackend(BaseBackend):
 
     def describe_account_assignment_deletion_status(
         self, account_assignment_deletion_request_id: str, instance_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         for account in self.deleted_account_assignments:
             if account.request_id == account_assignment_deletion_request_id:
                 return account.to_json(
@@ -572,7 +572,7 @@ class SSOAdminBackend(BaseBackend):
 
         raise ResourceNotFoundException
 
-    def list_instances(self) -> List[Instance]:
+    def list_instances(self) -> list[Instance]:
         return self.instances
 
     def update_instance(self, instance_arn: str, name: str) -> None:
@@ -592,7 +592,7 @@ class SSOAdminBackend(BaseBackend):
 
     def list_permission_sets_provisioned_to_account(
         self, instance_arn: str
-    ) -> List[PermissionSet]:
+    ) -> list[PermissionSet]:
         """
         The following parameters are not yet implemented: AccountId, ProvisioningStatus, MaxResults, NextToken
         """
@@ -603,7 +603,7 @@ class SSOAdminBackend(BaseBackend):
 
     def list_accounts_for_provisioned_permission_set(
         self, instance_arn: str, permission_set_arn: str
-    ) -> List[str]:
+    ) -> list[str]:
         """
         The following parameters are not yet implemented: MaxResults, NextToken, ProvisioningStatus
         """

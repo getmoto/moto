@@ -16,17 +16,18 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 class StateChoice(CommonStateField):
     choices_decl: ChoicesDecl
+    default_state: Optional[DefaultDecl]
 
     def __init__(self):
-        super(StateChoice, self).__init__(
+        super().__init__(
             state_entered_event_type=HistoryEventType.ChoiceStateEntered,
             state_exited_event_type=HistoryEventType.ChoiceStateExited,
         )
-        self.default_state: Optional[DefaultDecl] = None
-        self._next_state_name: Optional[str] = None
+        self.default_state = None
+        self._next_state_name = None
 
     def from_state_props(self, state_props: StateProps) -> None:
-        super(StateChoice, self).from_state_props(state_props)
+        super().from_state_props(state_props)
         self.choices_decl = state_props.get(ChoicesDecl)
         self.default_state = state_props.get(DefaultDecl)
 
@@ -38,15 +39,9 @@ class StateChoice(CommonStateField):
             )
 
     def _set_next(self, env: Environment) -> None:
-        if self._next_state_name is None:
-            raise RuntimeError(f"No Next option from state: '{self}'.")
-        env.next_state_name = self._next_state_name
+        pass
 
     def _eval_state(self, env: Environment) -> None:
-        if self.default_state:
-            self._next_state_name = self.default_state.state_name
-
-        # TODO: Lazy evaluation?
         for rule in self.choices_decl.rules:
             rule.eval(env)
             res = env.stack.pop()
@@ -55,5 +50,29 @@ class StateChoice(CommonStateField):
                     raise RuntimeError(
                         f"Missing Next definition for state_choice rule '{rule}' in choices '{self}'."
                     )
-                self._next_state_name = rule.next_stmt.name
-                break
+                env.stack.append(rule.next_stmt.name)
+                return
+
+        if self.default_state is None:
+            raise RuntimeError("No branching option reached in state %s", self.name)
+        env.stack.append(self.default_state.state_name)
+
+    def _eval_state_output(self, env: Environment) -> None:
+        next_state_name: str = env.stack.pop()
+
+        # No choice rule matched: the default state is evaluated.
+        if self.default_state and self.default_state.state_name == next_state_name:
+            if self.assign_decl:
+                self.assign_decl.eval(env=env)
+            if self.output:
+                self.output.eval(env=env)
+
+        # Handle legacy output sequences if in JsonPath mode.
+        if self._is_language_query_jsonpath():
+            if self.output_path:
+                self.output_path.eval(env=env)
+            else:
+                current_output = env.stack.pop()
+                env.states.reset(input_value=current_output)
+
+        env.next_state_name = next_state_name

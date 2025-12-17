@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -172,7 +174,7 @@ def test_get_query_execution(location):
     # Start Query
     exex_id = client.start_query_execution(
         QueryString=query,
-        QueryExecutionContext={"Database": database},
+        QueryExecutionContext={"Database": database, "Catalog": "awsdatacatalog"},
         ResultConfiguration={"OutputLocation": location},
     )["QueryExecutionId"]
     #
@@ -186,15 +188,24 @@ def test_get_query_execution(location):
         assert result_config["OutputLocation"] == f"{location}{exex_id}.csv"
     else:
         assert result_config["OutputLocation"] == f"{location}/{exex_id}.csv"
+    assert (
+        details["ResultReuseConfiguration"]["ResultReuseByAgeConfiguration"]["Enabled"]
+        is False
+    )
     assert details["QueryExecutionContext"]["Database"] == database
+    assert details["QueryExecutionContext"]["Catalog"] == "awsdatacatalog"
     assert details["Status"]["State"] == "SUCCEEDED"
+    assert isinstance(details["Status"]["SubmissionDateTime"], datetime)
+    assert isinstance(details["Status"]["CompletionDateTime"], datetime)
     assert details["Statistics"] == {
         "EngineExecutionTimeInMillis": 0,
         "DataScannedInBytes": 0,
         "TotalExecutionTimeInMillis": 0,
         "QueryQueueTimeInMillis": 0,
+        "ServicePreProcessingTimeInMillis": 0,
         "QueryPlanningTimeInMillis": 0,
         "ServiceProcessingTimeInMillis": 0,
+        "ResultReuseInformation": {"ReusedPreviousResult": False},
     }
     assert "WorkGroup" not in details
 
@@ -235,6 +246,29 @@ def test_stop_query_execution():
     #
     assert details["QueryExecutionId"] == exex_id
     assert details["Status"]["State"] == "CANCELLED"
+
+
+@mock_aws
+def test_start_execution_with_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    client.create_work_group(
+        Name="myworkgroup",
+        Description="Test work group",
+        Configuration={
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/"}
+        },
+    )
+
+    exec_id = client.start_query_execution(
+        QueryString="SELECT stuff",
+        QueryExecutionContext={"Database": "database"},
+        ResultConfiguration={"OutputLocation": "s3://bucket-name/prefix/"},
+        WorkGroup="myworkgroup",
+    )["QueryExecutionId"]
+
+    execution = client.get_query_execution(QueryExecutionId=exec_id)["QueryExecution"]
+    assert execution["WorkGroup"] == "myworkgroup"
 
 
 @mock_aws
@@ -337,6 +371,39 @@ def test_create_data_catalog():
     data_catalog = response["DataCatalogsSummary"][0]
     assert data_catalog["CatalogName"] == "athena_datacatalog"
     assert data_catalog["Type"] == "GLUE"
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    resource_name = "athena_datacatalog"
+    client.create_data_catalog(
+        Name=resource_name,
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=tags,
+    )
+    resource_arn = (
+        "arn:aws:athena:us-east-1:123456789012:datacatalog/athena_datacatalog"
+    )
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
+def test_list_tags_for_resource_not_found():
+    client = boto3.client("athena", region_name="us-east-1")
+    nonexistent_resource_arn = "NONEXISTENTRESOURCEARN"
+    with pytest.raises(ClientError) as exc:
+        client.list_tags_for_resource(ResourceARN=nonexistent_resource_arn)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        err["Message"] == f"Athena Resource, {nonexistent_resource_arn} Does Not Exist"
+    )
 
 
 @mock_aws
@@ -461,6 +528,50 @@ def test_list_query_executions():
 
 
 @mock_aws
+def test_list_query_executions_by_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    exec_result = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup_1",
+    )
+    exec_id = exec_result["QueryExecutionId"]
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 1
+    assert executions["QueryExecutionIds"][0] == exec_id
+
+
+@mock_aws
+def test_list_query_executions_by_workgroup_when_none_match():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 0
+
+
+@mock_aws
 def test_list_named_queries():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")
@@ -503,3 +614,35 @@ def test_get_prepared_statement():
         StatementName="stmt-name", WorkGroup="athena_workgroup"
     )
     assert "PreparedStatement" in resp
+
+
+@mock_aws
+def test_get_query_runtime_statistics_no_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_query_runtime_statistics(QueryExecutionId="1")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert err["Message"] == "QueryExecution 1 was not found"
+
+
+@mock_aws
+def test_get_query_runtime_statistics_with_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    response = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    assert "QueryExecutionId" in response
+
+    statistics = client.get_query_runtime_statistics(
+        QueryExecutionId=response["QueryExecutionId"]
+    )
+
+    assert "QueryRuntimeStatistics" in statistics

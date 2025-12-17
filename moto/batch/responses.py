@@ -30,6 +30,7 @@ class BatchResponse(BaseResponse):
         service_role = self._get_param("serviceRole")
         state = self._get_param("state")
         _type = self._get_param("type")
+        tags = self._get_param("tags")
 
         env = self.batch_backend.create_compute_environment(
             compute_environment_name=compute_env_name,
@@ -37,6 +38,7 @@ class BatchResponse(BaseResponse):
             state=state,
             compute_resources=compute_resource,
             service_role=service_role,
+            tags=tags,
         )
 
         result = {"computeEnvironmentArn": env.arn, "computeEnvironmentName": env.name}
@@ -190,6 +192,7 @@ class BatchResponse(BaseResponse):
         timeout = self._get_param("timeout")
         array_properties = self._get_param("arrayProperties", {})
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
 
         name, job_id, job_arn = self.batch_backend.submit_job(
             job_name,
@@ -200,6 +203,7 @@ class BatchResponse(BaseResponse):
             timeout=timeout,
             array_properties=array_properties,
             parameters=parameters,
+            tags=tags,
         )
 
         result = {"jobId": job_id, "jobName": name, "jobArn": job_arn}
@@ -215,8 +219,14 @@ class BatchResponse(BaseResponse):
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
         filters = self._get_param("filters")
+        array_job_id = self._get_param("arrayJobId")
 
-        jobs = self.batch_backend.list_jobs(job_queue, job_status, filters)
+        jobs = self.batch_backend.list_jobs(
+            job_queue_name=job_queue,
+            array_job_id=array_job_id,
+            job_status=job_status,
+            filters=filters,
+        )
 
         result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)

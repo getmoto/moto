@@ -10,7 +10,10 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import aws_verified
 
 
-@pytest.mark.aws_verified
+# @pytest.mark.aws_verified
+# This works in some accounts, but in other accounts there is a KMS error:
+#    The KMS key [.. arn of AWS-managed key..] doesn't exist, is disabled or you don't have sufficient permission to use it
+# Need to figure out what's going on
 @aws_verified
 def test_create_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
@@ -186,6 +189,39 @@ def test_create_multiple_tables():
     assert database["TableCount"] == 5
 
     tables = ts.list_tables(DatabaseName="mydatabase")["Tables"]
+    assert len(tables) == 5
+    assert {t["DatabaseName"] for t in tables} == {"mydatabase"}
+    assert {t["TableName"] for t in tables} == {
+        "mytable_0",
+        "mytable_1",
+        "mytable_2",
+        "mytable_3",
+        "mytable_4",
+    }
+    assert {t["TableStatus"] for t in tables} == {"ACTIVE"}
+
+
+@mock_aws
+def test_list_tables_without_database():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    for idx in range(0, 5):
+        ts.create_table(
+            DatabaseName="mydatabase",
+            TableName=f"mytable_{idx}",
+            RetentionProperties={
+                "MemoryStoreRetentionPeriodInHours": 7,
+                "MagneticStoreRetentionPeriodInDays": 42,
+            },
+        )
+
+    database = ts.describe_database(DatabaseName="mydatabase")["Database"]
+
+    assert database["TableCount"] == 5
+
+    # database_name is optional in api call
+    tables = ts.list_tables()["Tables"]
     assert len(tables) == 5
     assert {t["DatabaseName"] for t in tables} == {"mydatabase"}
     assert {t["TableName"] for t in tables} == {

@@ -7,7 +7,10 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
-from tests import EXAMPLE_AMI_ID
+from tests import DEFAULT_ACCOUNT_ID, EXAMPLE_AMI_ID
+from tests.test_ec2 import ec2_aws_verified, wait_for_ipv6_cidr_block_associations
+
+from .helpers import assert_dryrun_error
 
 
 @mock_aws
@@ -32,6 +35,98 @@ def test_subnets():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert "RequestId" in ex.value.response["ResponseMetadata"]
     assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
+
+
+@mock_aws
+def test_create_default_subnet():
+    client = boto3.client("ec2", region_name="ap-northeast-1")
+
+    default_vpc = client.describe_vpcs(
+        Filters=[{"Name": "is-default", "Values": ["true"]}]
+    )["Vpcs"][0]
+
+    zones = [
+        z["ZoneName"] for z in client.describe_availability_zones()["AvailabilityZones"]
+    ]
+
+    # Ensure moto has default subnets by default
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "default-for-az", "Values": ["true"]}]
+    )["Subnets"]
+    assert len(subnets) == len(zones)
+
+    default_subnets: dict[str, str] = {
+        subnet["AvailabilityZone"]: subnet["SubnetId"] for subnet in subnets
+    }
+
+    # Ensure that attempting to create a default subnet when it already exists raises
+    for zone in zones:
+        with pytest.raises(ClientError) as exc:
+            client.create_default_subnet(AvailabilityZone=zone)
+        assert (
+            exc.value.response["Error"]["Code"]
+            == "DefaultSubnetAlreadyExistsInAvailabilityZone"
+        )
+        assert (
+            exc.value.response["Error"]["Message"]
+            == f"'{default_subnets[zone]}' is already the default subnet in {zone}."
+        )
+
+    # Delete default subnets
+    for subnet in subnets:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+    default_subnets.clear()
+
+    expected_cidr_blocks = [
+        "172.31.0.0/20",
+        "172.31.16.0/20",
+        "172.31.32.0/20",
+        "172.31.48.0/20",
+        "172.31.64.0/20",
+        "172.31.80.0/20",
+    ]
+
+    # Ensure default subnets can be created
+    for idx, zone in enumerate(zones):
+        response = client.create_default_subnet(AvailabilityZone=zone)["Subnet"]
+        assert response["OwnerId"] == DEFAULT_ACCOUNT_ID
+        assert response["VpcId"] == default_vpc["VpcId"]
+        assert response["State"] == "available"
+        assert response["CidrBlock"] == expected_cidr_blocks[idx]
+        assert response["AvailabilityZone"] == zone
+        assert response["DefaultForAz"] is True
+        subnet_id = default_subnets[zone] = response["SubnetId"]
+
+        response = client.describe_subnets(SubnetIds=[subnet_id])
+        assert len(response["Subnets"]) == 1
+        assert response["Subnets"][0]["SubnetId"] == subnet_id
+        assert response["Subnets"][0]["VpcId"] == default_vpc["VpcId"]
+        assert response["Subnets"][0]["DefaultForAz"] is True
+        assert response["Subnets"][0]["CidrBlock"] == expected_cidr_blocks[idx]
+        assert response["Subnets"][0]["AvailabilityZone"] == zone
+
+    # Delete default subnets and VPCs
+    for subnet_id in default_subnets.values():
+        client.delete_subnet(SubnetId=subnet_id)
+    client.delete_vpc(VpcId=default_vpc["VpcId"])
+
+    # Ensure attempting to create default subnet when there's no default VPC raises
+    for zone in zones:
+        with pytest.raises(ClientError) as exc:
+            client.create_default_subnet(AvailabilityZone=zone)
+
+        assert exc.value.response["Error"]["Code"] == "DefaultVpcDoesNotExist"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "No default VPC exists for this account in this region."
+        )
+
+    # Ensure creating a default VPC also creates default subnets
+    client.create_default_vpc()
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "default-for-az", "Values": ["true"]}]
+    )["Subnets"]
+    assert len(subnets) == len(zones)
 
 
 @mock_aws
@@ -218,7 +313,7 @@ def test_subnet_get_by_id():
         "Subnets"
     ]
     assert len(subnets_by_id) == 2
-    subnets_by_id = tuple(map(lambda s: s["SubnetId"], subnets_by_id))
+    subnets_by_id = tuple(s["SubnetId"] for s in subnets_by_id)
     assert subnetA.id in subnets_by_id
     assert subnetB1.id in subnets_by_id
 
@@ -261,7 +356,7 @@ def test_get_subnets_filtering():
         Filters=[{"Name": "vpc-id", "Values": [vpcB.id]}]
     )["Subnets"]
     assert len(subnets_by_vpc) == 2
-    assert set([subnet["SubnetId"] for subnet in subnets_by_vpc]) == {
+    assert {subnet["SubnetId"] for subnet in subnets_by_vpc} == {
         subnetB1.id,
         subnetB2.id,
     }
@@ -330,6 +425,16 @@ def test_get_subnets_filtering():
         with pytest.raises(NotImplementedError):
             client.describe_subnets(Filters=filters)
 
+    # Filter without a Value.
+    subnets_with_invalid_filter = client.describe_subnets(Filters=[{"Name": "vpc-id"}])[
+        "Subnets"
+    ]
+    assert len(subnets_with_invalid_filter) == 0
+    subnets_with_invalid_filter = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": []}]
+    )["Subnets"]
+    assert len(subnets_with_invalid_filter) == 0
+
 
 @mock_aws
 def test_create_subnet_response_fields():
@@ -381,7 +486,7 @@ def test_describe_subnet_response_fields():
     assert "State" in subnet
     assert "SubnetId" in subnet
     assert "VpcId" in subnet
-    assert "Tags" not in subnet
+    assert subnet["Tags"] == []
     assert subnet["DefaultForAz"] is False
     assert subnet["MapPublicIpOnLaunch"] is False
     assert "OwnerId" in subnet
@@ -498,7 +603,7 @@ def test_create_subnets_with_multiple_vpc_cidr_blocks():
         assert "State" in subnet
         assert "SubnetId" in subnet
         assert "VpcId" in subnet
-        assert "Tags" not in subnet
+        assert subnet["Tags"] == []
         assert subnet["DefaultForAz"] is False
         assert subnet["MapPublicIpOnLaunch"] is False
         assert "OwnerId" in subnet
@@ -824,9 +929,79 @@ def test_describe_subnets_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_subnets(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert_dryrun_error(ex)
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_without_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(VpcId=vpc_id, Ipv6Native=True)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
     assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeSubnets operation: Request would have succeeded, but DryRun flag is set"
+        err["Message"]
+        == "Either 'ipv6CidrBlock' or 'ipv6IpamPoolId' should be provided."
     )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_with_ipv4_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(VpcId=vpc_id, Ipv6Native=True, CidrBlock="10.0.0.0/24")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert (
+        err["Message"]
+        == "Either 'ipv6CidrBlock' or 'ipv6IpamPoolId' should be provided."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_with_ipv4_and_ipv6_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(
+            VpcId=vpc_id,
+            Ipv6Native=True,
+            CidrBlock="10.0.0.0/24",
+            Ipv6CidrBlock="1080::1:200C:417A/112",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "When specifying ipv4 parameters, cidrBlock or ipv4IpamPoolId, you cannot set ipv6Native to true."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
+    subnet = None
+    try:
+        ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, AmazonProvidedIpv6CidrBlock=True
+        )["Ipv6CidrBlockAssociation"]
+        assoc = wait_for_ipv6_cidr_block_associations(ec2_client, vpc_id=vpc_id)
+
+        subnet = ec2_client.create_subnet(
+            VpcId=vpc_id, Ipv6Native=True, Ipv6CidrBlock=assoc["Ipv6CidrBlock"]
+        )["Subnet"]
+        assert subnet["AssignIpv6AddressOnCreation"] is True
+        assert subnet["Ipv6Native"] is True
+        assert subnet["State"] == "available"
+        assert (
+            subnet["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
+            == assoc["Ipv6CidrBlock"]
+        )
+    finally:
+        if subnet:
+            ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])

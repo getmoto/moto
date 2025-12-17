@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, Final
+from typing import Final
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
 
 
 class StatesErrorNameType(Enum):
     StatesALL = ASLLexer.ERRORNAMEStatesALL
+    StatesStatesDataLimitExceeded = ASLLexer.ERRORNAMEStatesDataLimitExceeded
     StatesHeartbeatTimeout = ASLLexer.ERRORNAMEStatesHeartbeatTimeout
     StatesTimeout = ASLLexer.ERRORNAMEStatesTimeout
     StatesTaskFailed = ASLLexer.ERRORNAMEStatesTaskFailed
@@ -23,6 +24,7 @@ class StatesErrorNameType(Enum):
     StatesItemReaderFailed = ASLLexer.ERRORNAMEStatesItemReaderFailed
     StatesResultWriterFailed = ASLLexer.ERRORNAMEStatesResultWriterFailed
     StatesRuntime = ASLLexer.ERRORNAMEStatesRuntime
+    StatesQueryEvaluationError = ASLLexer.ERRORNAMEStatesQueryEvaluationError
 
     def to_name(self) -> str:
         return _error_name(self)
@@ -39,14 +41,14 @@ def _error_name(error_name: StatesErrorNameType) -> str:
     return ASLLexer.literalNames[error_name.value][2:-2]
 
 
-def _reverse_error_name_lookup() -> Dict[str, StatesErrorNameType]:
-    lookup: Dict[str, StatesErrorNameType] = dict()
+def _reverse_error_name_lookup() -> dict[str, StatesErrorNameType]:
+    lookup: dict[str, StatesErrorNameType] = {}
     for error_name in StatesErrorNameType:
         error_text: str = _error_name(error_name)
         lookup[error_text] = error_name
     return lookup
 
 
-_REVERSE_NAME_LOOKUP: Final[Dict[str, StatesErrorNameType]] = (
+_REVERSE_NAME_LOOKUP: Final[dict[str, StatesErrorNameType]] = (
     _reverse_error_name_lookup()
 )

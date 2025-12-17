@@ -34,44 +34,62 @@ ds
 - [X] create_directory
   Create a fake Simple Ad Directory.
 
-- [ ] create_log_subscription
+- [ ] create_hybrid_ad
+- [X] create_log_subscription
 - [X] create_microsoft_ad
   Create a fake Microsoft Ad Directory.
 
 - [ ] create_snapshot
-- [ ] create_trust
+- [X] create_trust
+- [ ] delete_ad_assessment
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
   Delete directory with the matching ID.
 
-- [ ] delete_log_subscription
+- [X] delete_log_subscription
 - [ ] delete_snapshot
-- [ ] delete_trust
+- [X] delete_trust
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
+- [ ] describe_ad_assessment
+- [ ] describe_ca_enrollment_policy
 - [ ] describe_certificate
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
 - [X] describe_directories
   Return info on all directories or directories with matching IDs.
 
+- [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
-- [ ] describe_ldaps_settings
+- [ ] describe_hybrid_ad_update
+- [X] describe_ldaps_settings
+  Describe LDAPS settings for a Directory
+
 - [ ] describe_regions
-- [ ] describe_settings
+- [X] describe_settings
+  Describe settings for a Directory
+
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
-- [ ] describe_trusts
+- [X] describe_trusts
 - [ ] describe_update_directory
+- [ ] disable_ca_enrollment_policy
 - [ ] disable_client_authentication
-- [ ] disable_ldaps
+- [ ] disable_directory_data_access
+- [X] disable_ldaps
+  Disable LDAPS for a Directory
+
 - [ ] disable_radius
 - [X] disable_sso
   Disable single-sign on for a directory.
 
+- [ ] enable_ca_enrollment_policy
 - [ ] enable_client_authentication
-- [ ] enable_ldaps
+- [ ] enable_directory_data_access
+- [X] enable_ldaps
+  Enable LDAPS for a Directory
+
 - [ ] enable_radius
 - [X] enable_sso
   Enable single-sign on for a directory.
@@ -80,9 +98,10 @@ ds
   Return hard-coded limits for the directories.
 
 - [ ] get_snapshot_limits
+- [ ] list_ad_assessments
 - [ ] list_certificates
 - [ ] list_ip_routes
-- [ ] list_log_subscriptions
+- [X] list_log_subscriptions
 - [ ] list_schema_extensions
 - [X] list_tags_for_resource
   List all tags on a directory.
@@ -98,13 +117,15 @@ ds
 - [ ] reset_user_password
 - [ ] restore_from_snapshot
 - [ ] share_directory
+- [ ] start_ad_assessment
 - [ ] start_schema_extension
 - [ ] unshare_directory
 - [ ] update_conditional_forwarder
 - [ ] update_directory_setup
+- [ ] update_hybrid_ad
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
-- [ ] update_settings
+- [X] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 

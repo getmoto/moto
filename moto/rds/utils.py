@@ -1,24 +1,28 @@
+from __future__ import annotations
+
 import copy
 import datetime
 import re
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
-FilterDef = namedtuple(
-    "FilterDef",
-    [
-        # A list of object attributes to check against the filter values.
-        # Set to None if filter is not yet implemented in `moto`.
-        "attrs_to_check",
-        # Description of the filter, e.g. 'Object Identifiers'.
-        # Used in filter error messaging.
-        "description",
-    ],
-)
+
+
+@dataclass
+class FilterDef:
+    # A list of object attributes to check against the filter values.
+    # Set to None if filter is not yet implemented in `moto`.
+    attrs_to_check: list[str] | None
+    # Description of the filter, e.g. 'Object Identifiers'.
+    # Used in filter error messaging.
+    description: str
+    # Make comparison case-insensitive.
+    case_insensitive: bool = False
 
 
 class DbInstanceEngine(str, Enum):
@@ -33,6 +37,7 @@ class DbInstanceEngine(str, Enum):
     CUSTOM_SQLSERVER_WEB = "custom-sqlserver-web"
     MARIADB = "mariadb"
     MYSQL = "mysql"
+    NEPTUNE = "neptune"
     ORACLE_EE = "oracle-ee"
     ORACLE_EE_CDB = "oracle-ee-cdb"
     ORACLE_SE2 = "oracle-se2"
@@ -44,7 +49,7 @@ class DbInstanceEngine(str, Enum):
     SQLSERVER_WEB = "sqlserver-web"
 
     @classmethod
-    def valid_db_instance_engine(self) -> List[str]:
+    def valid_db_instance_engine(self) -> list[str]:
         return sorted([item.value for item in DbInstanceEngine])
 
 
@@ -56,11 +61,11 @@ class ClusterEngine(str, Enum):
     RDS_MYSQL = "mysql"
 
     @classmethod
-    def list_cluster_engines(self) -> List[str]:
+    def list_cluster_engines(self) -> list[str]:
         return sorted([item.value for item in ClusterEngine])
 
     @classmethod
-    def serverless_engines(self) -> List[str]:
+    def serverless_engines(self) -> list[str]:
         return [ClusterEngine.AURORA_MYSQL, ClusterEngine.AURORA_POSTGRESQL]
 
 
@@ -90,8 +95,8 @@ def get_object_value(obj: Any, attr: str) -> Any:
 
 
 def merge_filters(
-    filters_to_update: Optional[Dict[str, Any]], filters_to_merge: Dict[str, Any]
-) -> Dict[str, Any]:
+    filters_to_update: Optional[dict[str, Any]], filters_to_merge: dict[str, Any]
+) -> dict[str, Any]:
     """Given two groups of filters, merge the second into the first.
 
     List values are appended instead of overwritten:
@@ -121,7 +126,7 @@ def merge_filters(
 
 
 def validate_filters(
-    filters: Dict[str, Any], filter_defs: Dict[str, FilterDef]
+    filters: dict[str, Any], filter_defs: dict[str, FilterDef]
 ) -> None:
     """Validates filters against a set of filter definitions.
 
@@ -154,7 +159,9 @@ def validate_filters(
             )
 
 
-def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
+def apply_filter(
+    resources: Any, filters: Any, filter_defs: dict[str, FilterDef]
+) -> Any:
     """Apply an arbitrary filter to a group of resources.
 
     :param dict[str, object] resources:
@@ -173,7 +180,11 @@ def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
         matches_filter = False
         for filter_name, filter_values in filters.items():
             filter_def = filter_defs.get(filter_name)
+            if filter_def is None or filter_def.attrs_to_check is None:
+                continue
             for attr in filter_def.attrs_to_check:
+                if filter_def.case_insensitive:
+                    filter_values = [x.lower() for x in filter_values]
                 if get_object_value(obj, attr) in filter_values:
                     matches_filter = True
                     break
@@ -188,7 +199,7 @@ def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
 
 def get_start_date_end_date(
     base_date: str, window: str
-) -> Tuple[datetime.datetime, datetime.datetime]:
+) -> tuple[datetime.datetime, datetime.datetime]:
     """Gets the start date and end date given DDD:HH24:MM-DDD:HH24:MM.
 
     :param base_date:
@@ -212,7 +223,7 @@ def get_start_date_end_date(
 
 def get_start_date_end_date_from_time(
     base_date: str, window: str
-) -> Tuple[datetime.datetime, datetime.datetime, bool]:
+) -> tuple[datetime.datetime, datetime.datetime, bool]:
     """Gets the start date and end date given HH24:MM-HH24:MM.
 
     :param window:
@@ -362,7 +373,7 @@ ORDERABLE_DB_INSTANCE_DECODING = {
 }
 
 
-def encode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+def encode_orderable_db_instance(db: dict[str, Any]) -> dict[str, Any]:
     encoded = copy.deepcopy(db)
     if "AvailabilityZones" in encoded:
         encoded["AvailabilityZones"] = [
@@ -374,7 +385,7 @@ def encode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+def decode_orderable_db_instance(db: dict[str, Any]) -> dict[str, Any]:
     decoded = copy.deepcopy(db)
     decoded_az = ORDERABLE_DB_INSTANCE_ENCODING.get(
         "AvailabilityZones", "AvailabilityZones"

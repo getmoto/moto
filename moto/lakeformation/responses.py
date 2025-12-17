@@ -1,7 +1,7 @@
 """Handles incoming lakeformation requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -236,7 +236,7 @@ class LakeFormationResponse(BaseResponse):
         db, table, columns = self.lakeformation_backend.get_resource_lf_tags(
             catalog_id, resource
         )
-        resp: Dict[str, Any] = {}
+        resp: dict[str, Any] = {}
         if db:
             resp["LFTagOnDatabase"] = db
         if table:

@@ -1,4 +1,4 @@
-from typing import Final, List
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.common.error_name.error_name import (
     ErrorName,
@@ -17,8 +17,8 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class RetryDecl(EvalComponent):
-    def __init__(self, retriers: List[RetrierDecl]):
-        self.retriers: Final[List[RetrierDecl]] = retriers
+    def __init__(self, retriers: list[RetrierDecl]):
+        self.retriers: Final[list[RetrierDecl]] = retriers
 
     def _eval_body(self, env: Environment) -> None:
         error_name: ErrorName = env.stack.pop()

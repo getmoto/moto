@@ -1,6 +1,6 @@
 """AgentsforBedrockBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.bedrockagent.exceptions import (
     ConflictException,
@@ -29,7 +29,7 @@ class Agent(BaseModel):
         description: Optional[str],
         idle_session_ttl_in_seconds: Optional[int],
         customer_encryption_key_arn: Optional[str],
-        prompt_override_configuration: Optional[Dict[str, Any]],
+        prompt_override_configuration: Optional[dict[str, Any]],
     ):
         self.agent_name = agent_name
         self.client_token = client_token
@@ -49,10 +49,10 @@ class Agent(BaseModel):
         self.agent_id = self.agent_name + str(mock_random.uuid4())[:8]
         self.agent_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:agent/{self.agent_id}"
         self.agent_version = "1.0"
-        self.failure_reasons: List[str] = []
+        self.failure_reasons: list[str] = []
         self.recommended_actions = ["action"]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "agentId": self.agent_id,
             "agentName": self.agent_name,
@@ -75,7 +75,7 @@ class Agent(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def dict_summary(self) -> Dict[str, Any]:
+    def dict_summary(self) -> dict[str, Any]:
         dct = {
             "agentId": self.agent_id,
             "agentName": self.agent_name,
@@ -94,8 +94,8 @@ class KnowledgeBase(BaseModel):
         role_arn: str,
         region_name: str,
         account_id: str,
-        knowledge_base_configuration: Dict[str, Any],
-        storage_configuration: Dict[str, Any],
+        knowledge_base_configuration: dict[str, Any],
+        storage_configuration: dict[str, Any],
         client_token: Optional[str],
         description: Optional[str],
     ):
@@ -129,9 +129,9 @@ class KnowledgeBase(BaseModel):
         self.created_at = unix_time()
         self.updated_at = unix_time()
         self.status = "Active"
-        self.failure_reasons: List[str] = []
+        self.failure_reasons: list[str] = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "knowledgeBaseId": self.knowledge_base_id,
             "name": self.name,
@@ -147,7 +147,7 @@ class KnowledgeBase(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def dict_summary(self) -> Dict[str, Any]:
+    def dict_summary(self) -> dict[str, Any]:
         dct = {
             "knowledgeBaseId": self.knowledge_base_id,
             "name": self.name,
@@ -166,23 +166,23 @@ class AgentsforBedrockBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "agentId",
+            "unique_attribute": "agent_id",
         },
         "list_knowledge_bases": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "knowledgeBaseId",
+            "unique_attribute": "knowledge_base_id",
         },
     }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.agents: Dict[str, Agent] = {}
-        self.knowledge_bases: Dict[str, KnowledgeBase] = {}
+        self.agents: dict[str, Agent] = {}
+        self.knowledge_bases: dict[str, KnowledgeBase] = {}
         self.tagger = TaggingService()
 
-    def _list_arns(self) -> List[str]:
+    def _list_arns(self) -> list[str]:
         return [agent.agent_arn for agent in self.agents.values()] + [
             knowledge_base.knowledge_base_arn
             for knowledge_base in self.knowledge_bases.values()
@@ -198,8 +198,8 @@ class AgentsforBedrockBackend(BaseBackend):
         description: Optional[str],
         idle_session_ttl_in_seconds: Optional[int],
         customer_encryption_key_arn: Optional[str],
-        tags: Optional[Dict[str, str]],
-        prompt_override_configuration: Optional[Dict[str, Any]],
+        tags: Optional[dict[str, str]],
+        prompt_override_configuration: Optional[dict[str, Any]],
     ) -> Agent:
         agent = Agent(
             agent_name,
@@ -224,16 +224,13 @@ class AgentsforBedrockBackend(BaseBackend):
             raise ResourceNotFoundException(f"Agent {agent_id} not found")
         return self.agents[agent_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_agents(
-        self, max_results: Optional[int], next_token: Optional[str]
-    ) -> List[Any]:
-        agent_summaries = [agent.dict_summary() for agent in self.agents.values()]
-        return agent_summaries
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_agents(self) -> list[Agent]:
+        return list(self.agents.values())
 
     def delete_agent(
         self, agent_id: str, skip_resource_in_use_check: Optional[bool]
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         if agent_id in self.agents:
             if (
                 skip_resource_in_use_check
@@ -252,11 +249,11 @@ class AgentsforBedrockBackend(BaseBackend):
         self,
         name: str,
         role_arn: str,
-        knowledge_base_configuration: Dict[str, Any],
-        storage_configuration: Dict[str, Any],
+        knowledge_base_configuration: dict[str, Any],
+        storage_configuration: dict[str, Any],
         client_token: Optional[str],
         description: Optional[str],
-        tags: Optional[Dict[str, str]],
+        tags: Optional[dict[str, str]],
     ) -> KnowledgeBase:
         knowledge_base = KnowledgeBase(
             name,
@@ -273,17 +270,11 @@ class AgentsforBedrockBackend(BaseBackend):
             self.tag_resource(knowledge_base.knowledge_base_arn, tags)
         return knowledge_base
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_knowledge_bases(
-        self, max_results: Optional[int], next_token: Optional[str]
-    ) -> List[Any]:
-        knowledge_base_summaries = [
-            knowledge_base.dict_summary()
-            for knowledge_base in self.knowledge_bases.values()
-        ]
-        return knowledge_base_summaries
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_knowledge_bases(self) -> list[KnowledgeBase]:
+        return list(self.knowledge_bases.values())
 
-    def delete_knowledge_base(self, knowledge_base_id: str) -> Tuple[str, str]:
+    def delete_knowledge_base(self, knowledge_base_id: str) -> tuple[str, str]:
         if knowledge_base_id in self.knowledge_bases:
             self.knowledge_bases[knowledge_base_id].status = "DELETING"
             knowledge_base_status = self.knowledge_bases[knowledge_base_id].status
@@ -301,20 +292,20 @@ class AgentsforBedrockBackend(BaseBackend):
             )
         return self.knowledge_bases[knowledge_base_id]
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tags_input)
         return
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         return self.tagger.get_tag_dict_for_resource(resource_arn)

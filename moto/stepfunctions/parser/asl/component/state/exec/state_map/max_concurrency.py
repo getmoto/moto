@@ -1,7 +1,7 @@
 import abc
 from typing import Final
 
-from moto.stepfunctions.parser.api import HistoryEventType
+from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, HistoryEventType
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
     FailureEventException,
@@ -12,11 +12,14 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
     StatesErrorNameType,
 )
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringJSONata,
+    StringSampler,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
 
 DEFAULT_MAX_CONCURRENCY_VALUE: Final[int] = 0  # No limit.
 
@@ -41,18 +44,37 @@ class MaxConcurrency(MaxConcurrencyDecl):
         return self.max_concurrency_value
 
 
-class MaxConcurrencyPath(MaxConcurrency):
-    max_concurrency_path: Final[str]
+class MaxConcurrencyJSONata(MaxConcurrencyDecl):
+    string_jsonata: Final[StringJSONata]
 
-    def __init__(self, max_concurrency_path: str):
+    def __init__(self, string_jsonata: StringJSONata):
         super().__init__()
-        self.max_concurrency_path = max_concurrency_path
+        self.string_jsonata = string_jsonata
 
     def _eval_max_concurrency(self, env: Environment) -> int:
-        inp = env.stack[-1]
-        max_concurrency_value = JSONPathUtils.extract_json(
-            self.max_concurrency_path, inp
-        )
+        self.string_jsonata.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        seconds = int(env.stack.pop())
+        return seconds
+
+
+class MaxConcurrencyPath(MaxConcurrency):
+    string_sampler: Final[StringSampler]
+
+    def __init__(self, string_sampler: StringSampler):
+        super().__init__()
+        self.string_sampler = string_sampler
+
+    def _eval_max_concurrency(self, env: Environment) -> int:
+        self.string_sampler.eval(env=env)
+        max_concurrency_value = env.stack.pop()
+
+        if not isinstance(max_concurrency_value, int):
+            try:
+                max_concurrency_value = int(max_concurrency_value)
+            except Exception:
+                # Pass the wrong type forward.
+                pass
 
         error_cause = None
         if not isinstance(max_concurrency_value, int):
@@ -61,7 +83,7 @@ class MaxConcurrencyPath(MaxConcurrency):
                 if not isinstance(max_concurrency_value, str)
                 else max_concurrency_value
             )
-            error_cause = f'The MaxConcurrencyPath field refers to value "{value_str}" which is not a valid integer: {self.max_concurrency_path}'
+            error_cause = f'The MaxConcurrencyPath field refers to value "{value_str}" which is not a valid integer: {self.string_sampler.literal_value}'
         elif max_concurrency_value < 0:
             error_cause = f"Expected non-negative integer for MaxConcurrency, got '{max_concurrency_value}' instead."
 
@@ -72,7 +94,10 @@ class MaxConcurrencyPath(MaxConcurrency):
                     error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
                     event_type=HistoryEventType.ExecutionFailed,
                     event_details=EventDetails(
-                        executionFailedEventDetails=error_cause,
+                        executionFailedEventDetails=ExecutionFailedEventDetails(
+                            error=StatesErrorNameType.StatesRuntime.to_name(),
+                            cause=error_cause,
+                        )
                     ),
                 )
             )

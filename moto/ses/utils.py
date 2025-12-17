@@ -1,8 +1,13 @@
 import string
 from email.utils import parseaddr
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from moto.moto_api._internal import mock_random as random
+
+if TYPE_CHECKING:
+    from sesv2.models import SESV2Backend
+
+    from .models import SESBackend
 
 
 def random_hex(length: int) -> str:
@@ -19,3 +24,11 @@ def is_valid_address(addr: str) -> Optional[str]:
     if len(address_parts) != 2 or not address_parts[1]:
         return "Missing domain"
     return None
+
+
+def get_arn(
+    backend: Union["SESBackend", "SESV2Backend"],
+    service: str,
+    resource: str,
+) -> str:
+    return f"arn:{backend.partition}:{service}:{backend.region_name}:{backend.account_id}:{resource}"

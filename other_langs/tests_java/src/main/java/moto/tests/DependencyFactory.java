@@ -5,6 +5,7 @@ import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -22,9 +23,14 @@ public class DependencyFactory {
 
     private DependencyFactory() {}
 
-    /**
-     * @return an instance of S3Client
-     */
+    public static CognitoIdentityProviderClient cognitoIdpClient() {
+        return CognitoIdentityProviderClient.builder()
+                .region(Region.US_EAST_1)
+                .httpClientBuilder(ApacheHttpClient.builder())
+                .endpointOverride(MOTO_URI)
+                .build();
+    }
+
     public static S3Client s3Client() {
         return S3Client.builder()
                 .region(Region.US_EAST_1)

@@ -216,7 +216,7 @@ class TestAutoScalingELB(TestCase):
         )
         group = resp["AutoScalingGroups"][0]
         assert group["AutoScalingGroupName"] == self.asg_name
-        assert set(group["AvailabilityZones"]) == set(["us-east-1a", "us-east-1b"])
+        assert set(group["AvailabilityZones"]) == {"us-east-1a", "us-east-1b"}
         assert group["DesiredCapacity"] == 2
         assert group["MaxSize"] == INSTANCE_COUNT_GROUP
         assert group["MinSize"] == INSTANCE_COUNT_GROUP
@@ -329,6 +329,8 @@ class TestAutoScalingInstances(TestCase):
             ShouldDecrementDesiredCapacity=True,
         )
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert response["Activities"][0]["AutoScalingGroupName"] == self.asg_name
+        assert instance_to_detach in response["Activities"][0]["Description"]
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
@@ -550,6 +552,8 @@ class TestAutoScalingInstances(TestCase):
             ShouldDecrementDesiredCapacity=True,
         )
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert response["Activity"]["StatusCode"] == "InProgress"
+        assert response["Activity"]["AutoScalingGroupName"] == self.asg_name
 
         # AWS still decrements desired capacity ASG if requested, even if the terminated instance is in standby
         response = self.as_client.describe_auto_scaling_groups(
@@ -650,6 +654,8 @@ class TestAutoScalingInstances(TestCase):
             ShouldDecrementDesiredCapacity=False,
         )
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert response["Activities"][0]["StatusCode"] == "InProgress"
+        assert response["Activities"][0]["AutoScalingGroupName"] == self.asg_name
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]
@@ -779,6 +785,7 @@ class TestAutoScalingInstances(TestCase):
             InstanceIds=[instance_to_standby_exit_standby],
         )
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert response["Activities"][0]["StatusCode"] == "PreInService"
 
         response = self.as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[self.asg_name]

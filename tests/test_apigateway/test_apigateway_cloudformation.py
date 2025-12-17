@@ -1,6 +1,7 @@
 import json
 
 import boto3
+import pytest
 
 from moto import mock_aws
 
@@ -372,6 +373,7 @@ def test_simple_apigateway_with_lambda_proxy():
 
 
 @mock_aws
+@pytest.mark.filterwarnings("ignore:Tried to parse")
 def test_apigateway_with_unknown_description():
     region = "us-east-1"
     apigw = boto3.client("apigateway", region_name=region)

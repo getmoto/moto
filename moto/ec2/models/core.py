@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 
@@ -6,16 +6,24 @@ from ..exceptions import FilterNotImplementedError
 
 
 class TaggedEC2Resource(BaseModel):
-    def get_tags(self) -> List[Dict[str, str]]:
+    def get_tags(self) -> list[dict[str, str]]:
         tags = []
         if self.id:  # type: ignore[attr-defined]
             tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})  # type: ignore[attr-defined]
         return tags
 
+    @property
+    def tag_list(self) -> list[dict[str, str]]:
+        return self.tag_set
+
+    @property
+    def tag_set(self) -> list[dict[str, str]]:
+        return self.get_tags()
+
     def add_tag(self, key: str, value: str) -> None:
         self.ec2_backend.create_tags([self.id], {key: value})  # type: ignore[attr-defined]
 
-    def add_tags(self, tag_map: Dict[str, str]) -> None:
+    def add_tags(self, tag_map: dict[str, str]) -> None:
         for key, value in tag_map.items():
             self.ec2_backend.create_tags([self.id], {key: value})  # type: ignore[attr-defined]
 
@@ -42,7 +50,7 @@ class TaggedEC2Resource(BaseModel):
 
         raise FilterNotImplementedError(filter_name, method_name)
 
-    def match_tags(self, filters: Dict[str, str]) -> bool:
+    def match_tags(self, filters: dict[str, str]) -> bool:
         for tag_name in filters.keys():
             tag_value = self.get_filter_value(tag_name)
             if tag_value == filters[tag_name][0]:

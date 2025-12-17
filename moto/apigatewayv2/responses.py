@@ -626,7 +626,7 @@ class ApiGatewayV2Response(BaseResponse):
     def get_domain_names(self) -> TYPE_RESPONSE:
         domain_names = self.apigatewayv2_backend.get_domain_names()
         list_of_dict = [domain_name.to_json() for domain_name in domain_names]
-        return 200, {}, json.dumps(dict(items=list_of_dict))
+        return 200, {}, json.dumps({"items": list_of_dict})
 
     def create_api_mapping(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-2]
@@ -655,7 +655,7 @@ class ApiGatewayV2Response(BaseResponse):
         domain_name = self.path.split("/")[-2]
         mappings = self.apigatewayv2_backend.get_api_mappings(domain_name=domain_name)
         list_of_dict = [mapping.to_json() for mapping in mappings]
-        return 200, {}, json.dumps(dict(items=list_of_dict))
+        return 200, {}, json.dumps({"items": list_of_dict})
 
     def delete_domain_name(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[-1]
@@ -681,13 +681,13 @@ class ApiGatewayV2Response(BaseResponse):
 
     def get_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         stage = self.apigatewayv2_backend.get_stage(api_id, stage_name)
         return 200, {}, json.dumps(stage.to_json())
 
     def delete_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         self.apigatewayv2_backend.delete_stage(api_id, stage_name)
         return 200, {}, "{}"
 

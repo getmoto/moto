@@ -1,23 +1,19 @@
 from typing import Optional
 
 from moto.stepfunctions.parser.api import (
-    HistoryEventExecutionDataDetails,
     HistoryEventType,
-    StateEnteredEventDetails,
-    StateExitedEventDetails,
 )
-from moto.stepfunctions.parser.asl.component.common.parameters import Parameters
+from moto.stepfunctions.parser.asl.component.common.parargs import Parameters, Parargs
 from moto.stepfunctions.parser.asl.component.common.path.result_path import ResultPath
 from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
 from moto.stepfunctions.parser.asl.component.state.state_pass.result import Result
 from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
 from moto.stepfunctions.parser.asl.eval.environment import Environment
-from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
 
 class StatePass(CommonStateField):
     def __init__(self):
-        super(StatePass, self).__init__(
+        super().__init__(
             state_entered_event_type=HistoryEventType.PassStateEntered,
             state_exited_event_type=HistoryEventType.PassStateExited,
         )
@@ -38,41 +34,26 @@ class StatePass(CommonStateField):
         self.parameters: Optional[Parameters] = None
 
     def from_state_props(self, state_props: StateProps) -> None:
-        super(StatePass, self).from_state_props(state_props)
+        super().from_state_props(state_props)
         self.result = state_props.get(Result)
         self.result_path = state_props.get(ResultPath) or ResultPath(
             result_path_src=ResultPath.DEFAULT_PATH
         )
-        self.parameters = state_props.get(Parameters)
-
-    def _get_state_entered_event_details(
-        self, env: Environment
-    ) -> StateEnteredEventDetails:
-        return StateEnteredEventDetails(
-            name=self.name,
-            input=to_json_str(env.inp, separators=(",", ":")),
-            inputDetails=HistoryEventExecutionDataDetails(
-                truncated=False  # Always False for api calls.
-            ),
-        )
-
-    def _get_state_exited_event_details(
-        self, env: Environment
-    ) -> StateExitedEventDetails:
-        return StateExitedEventDetails(
-            name=self.name,
-            output=to_json_str(env.inp, separators=(",", ":")),
-            outputDetails=HistoryEventExecutionDataDetails(
-                truncated=False  # Always False for api calls.
-            ),
-        )
+        self.parameters = state_props.get(Parargs)
 
     def _eval_state(self, env: Environment) -> None:
         if self.parameters:
             self.parameters.eval(env=env)
 
         if self.result:
-            env.stack.append(self.result.result_obj)
+            self.result.eval(env=env)
+
+        if not self._is_language_query_jsonpath():
+            output_value = env.stack[-1]
+            env.states.set_result(output_value)
+
+        if self.assign_decl:
+            self.assign_decl.eval(env=env)
 
         if self.result_path:
             self.result_path.eval(env)

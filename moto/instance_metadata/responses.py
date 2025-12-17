@@ -17,7 +17,7 @@ class InstanceMetadataResponse(BaseResponse):
 
     @staticmethod
     def metadata_response(  # type: ignore
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
@@ -29,12 +29,12 @@ class InstanceMetadataResponse(BaseResponse):
 
         parsed_url = urlparse(full_url)
         tomorrow = utcnow() + datetime.timedelta(days=1)
-        credentials = dict(
-            AccessKeyId="test-key",
-            SecretAccessKey="test-secret-key",
-            Token="test-session-token",
-            Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        )
+        credentials = {
+            "AccessKeyId": "test-key",
+            "SecretAccessKey": "test-secret-key",
+            "Token": "test-session-token",
+            "Expiration": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
 
         path = parsed_url.path
 
@@ -55,4 +55,12 @@ class InstanceMetadataResponse(BaseResponse):
             raise NotImplementedError(
                 f"The {path} metadata path has not been implemented"
             )
+        try:
+            from werkzeug.datastructures.headers import EnvironHeaders
+
+            if isinstance(headers, EnvironHeaders):
+                # We should be returning a generic dict here, not werkzeug-specific classes
+                headers = dict(headers)
+        except ImportError:
+            pass
         return 200, headers, result

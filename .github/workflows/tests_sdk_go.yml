@@ -1,0 +1,25 @@
+name: Go SDK test
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Setup Go
+      uses: actions/setup-go@v6
+      with:
+          go-version: '1.24.x'
+    - name: Start MotoServer
+      uses: ./.github/actions/run_moto_server
+    - name: Install Dependencies
+      run: cd other_langs/tests_go && go get -t .
+    - name: Run Tests
+      run: |
+        mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
+        cd other_langs/tests_go
+        go test

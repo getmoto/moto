@@ -14,13 +14,13 @@ neptune
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_role_to_db_cluster
+- [X] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -54,7 +54,7 @@ neptune
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_global_clusters
 - [X] describe_orderable_db_instance_options
   
@@ -63,12 +63,12 @@ neptune
 
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_valid_db_instance_modifications
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
-- [ ] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_parameter_group
 - [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
@@ -84,7 +84,8 @@ neptune
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] start_db_cluster
 - [X] stop_db_cluster
+- [ ] switchover_global_cluster
 

@@ -2,7 +2,7 @@ import re
 import time
 from collections import OrderedDict
 from enum import Enum, unique
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,7 +13,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 from .exceptions import AWSValidationException
 
 if TYPE_CHECKING:
-    from moto.cloudwatch.models import FakeAlarm
+    from moto.cloudwatch.models import Alarm
 
 
 @unique
@@ -74,13 +74,13 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.ecs_backend = ecs_backends[account_id][region_name]
-        self.targets: Dict[str, Dict[str, FakeScalableTarget]] = OrderedDict()
-        self.policies: Dict[str, FakeApplicationAutoscalingPolicy] = {}
-        self.scheduled_actions: List[FakeScheduledAction] = list()
+        self.targets: dict[str, dict[str, FakeScalableTarget]] = OrderedDict()
+        self.policies: dict[str, FakeApplicationAutoscalingPolicy] = {}
+        self.scheduled_actions: list[FakeScheduledAction] = []
 
     def describe_scalable_targets(
-        self, namespace: str, r_ids: Union[None, List[str]], dimension: Union[None, str]
-    ) -> List["FakeScalableTarget"]:
+        self, namespace: str, r_ids: Union[None, list[str]], dimension: Union[None, str]
+    ) -> list["FakeScalableTarget"]:
         if r_ids is None:
             r_ids = []
         targets = self._flatten_scalable_targets(namespace)
@@ -90,7 +90,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             targets = [t for t in targets if t.resource_id in r_ids]
         return targets
 
-    def _flatten_scalable_targets(self, namespace: str) -> List["FakeScalableTarget"]:
+    def _flatten_scalable_targets(self, namespace: str) -> list["FakeScalableTarget"]:
         """Flatten scalable targets for a given service namespace down to a list."""
         targets = []
         for dimension in self.targets.keys():
@@ -167,7 +167,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-        policy_body: Dict[str, Any],
+        policy_body: dict[str, Any],
         policy_type: Optional[None],
     ) -> "FakeApplicationAutoscalingPolicy":
         policy_key = FakeApplicationAutoscalingPolicy.formulate_key(
@@ -206,7 +206,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         scalable_dimension: str,
         max_results: Optional[int],
         next_token: str,
-    ) -> Tuple[Optional[str], List["FakeApplicationAutoscalingPolicy"]]:
+    ) -> tuple[Optional[str], list["FakeApplicationAutoscalingPolicy"]]:
         max_results = max_results or 100
         policies = [
             policy
@@ -272,7 +272,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-    ) -> List["FakeScheduledAction"]:
+    ) -> list["FakeScheduledAction"]:
         """
         Pagination is not yet implemented
         """
@@ -418,6 +418,7 @@ class FakeScalableTarget(BaseModel):
         self.role_arn = role_arn
         self.suspended_state = suspended_state
         self.creation_time = time.time()
+        self.arn = f"arn:{get_partition(backend.region_name)}:application-autoscaling:{backend.region_name}:{backend.account_id}:scalable-target/{mock_random.get_random_string(length=36, lower_case=True)}"
 
     def update(
         self,
@@ -443,7 +444,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         resource_id: str,
         scalable_dimension: str,
         policy_type: Optional[str],
-        policy_body: Dict[str, Any],
+        policy_body: dict[str, Any],
     ) -> None:
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
@@ -468,7 +469,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self._guid = mock_random.uuid4()
         self.policy_arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
-        self.alarms: List["FakeAlarm"] = []
+        self.alarms: list[Alarm] = []
 
         self.account_id = account_id
         self.region_name = region_name
@@ -482,7 +483,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             if self.service_namespace == "ecs":
                 self.alarms.extend(self._generate_ecs_alarms())
 
-    def _generate_dynamodb_alarms(self) -> List["FakeAlarm"]:
+    def _generate_dynamodb_alarms(self) -> list["Alarm"]:
         from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 
         cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
@@ -502,7 +503,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=42.0,
             statistic="Sum",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm1)
@@ -517,7 +518,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=30.0,
             statistic="Sum",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm2)
@@ -532,7 +533,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=1.0,
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm3)
@@ -547,19 +548,19 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=1.0,
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm4)
         return alarms
 
-    def _generate_ecs_alarms(self) -> List["FakeAlarm"]:
+    def _generate_ecs_alarms(self) -> list["Alarm"]:
         from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 
         cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
             self.region_name
         ]
-        alarms: List["FakeAlarm"] = []
+        alarms: list[Alarm] = []
         alarm_action = f"{self.policy_arn}:createdBy/{mock_random.uuid4()}"
         config = self.target_tracking_scaling_policy_configuration or {}
         metric_spec = config.get("PredefinedMetricSpecification", {})
@@ -581,8 +582,8 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
             dimensions=[
-                {"name": "ClusterName", "value": cluster_name},
-                {"name": "ServiceName", "value": service_name},
+                {"Name": "ClusterName", "Value": cluster_name},
+                {"Name": "ServiceName", "Value": service_name},
             ],
             alarm_actions=[alarm_action],
         )
@@ -600,8 +601,8 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
             dimensions=[
-                {"name": "ClusterName", "value": cluster_name},
-                {"name": "ServiceName", "value": service_name},
+                {"Name": "ClusterName", "Value": cluster_name},
+                {"Name": "ServiceName", "Value": service_name},
             ],
             alarm_actions=[alarm_action],
         )

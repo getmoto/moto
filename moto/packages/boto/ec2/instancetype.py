@@ -35,7 +35,7 @@ class InstanceType(EC2Object):
     """
 
     def __init__(self, connection=None, name=None, cores=None, memory=None, disk=None):
-        super(InstanceType, self).__init__(connection)
+        super().__init__(connection)
         self.connection = connection
         self.name = name
         self.cores = cores
@@ -43,9 +43,4 @@ class InstanceType(EC2Object):
         self.disk = disk
 
     def __repr__(self):
-        return "InstanceType:%s-%s,%s,%s" % (
-            self.name,
-            self.cores,
-            self.memory,
-            self.disk,
-        )
+        return f"InstanceType:{self.name}-{self.cores},{self.memory},{self.disk}"

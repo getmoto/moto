@@ -1,0 +1,25 @@
+name: run_moto_server
+author: bblommers
+description: run_moto_server
+runs:
+  using: "composite"
+  steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: localimage
+        path: /tmp
+    - name: Load Docker image
+      shell: bash
+      run: |
+        docker load --input /tmp/localimage.tar
+        docker image ls -a
+    - name: Run MotoServer
+      shell: bash
+      env:
+        TEST_SERVER_MODE: true
+        MOTO_EC2_LOAD_DEFAULT_AMIS: false
+        AWS_SECRET_ACCESS_KEY: server_secret
+        AWS_ACCESS_KEY_ID: server_key
+      run: |
+        docker run --rm -t --name motoserver -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock motoserver/moto:local &

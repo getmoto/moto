@@ -1,9 +1,10 @@
+import hashlib
 import json
 import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -15,6 +16,7 @@ from moto.utilities.utils import get_partition
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
 from .exceptions import (
+    AlreadyExistsException,
     ConcurrentRunsExceededException,
     CrawlerAlreadyExistsException,
     CrawlerNotFoundException,
@@ -22,10 +24,12 @@ from .exceptions import (
     CrawlerRunningException,
     DatabaseAlreadyExistsException,
     DatabaseNotFoundException,
+    EntityNotFoundException,
     IllegalSessionStateException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
+    NoCrawlsEntryForCrawler,
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     SchemaNotFoundException,
@@ -58,11 +62,105 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import PartitionFilter
+from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
+
+
+class FakeDevEndpoint(BaseModel):
+    def __init__(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: list[str],
+        subnet_id: str,
+        worker_type: str = "Standard",
+        glue_version: str = "1.0",
+        number_of_workers: int = 5,
+        number_of_nodes: int = 5,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        arguments: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        pubkey = """ssh-rsa
+        AAAAB3NzaC1yc2EAAAADAQABAAABAQDV5+voluw2zmzqpqCAqtsyoP01TQ8Ydx1eS1yD6wUsHcPqMIqpo57YxiC8XPwrdeKQ6GG6MC3bHsgXoPypGP0LyixbiuLTU31DnnqorcHt4bWs6rQa7dK2pCCflz2fhYRt5ZjqSNsAKivIbqkH66JozN0SySIka3kEV79GdB0BicioKeEJlCwM9vvxafyzjWf/z8E0lh4ni3vkLpIVJ0t5l+Qd9QMJrT6Is0SCQPVagTYZoi8+fWDoGsBa8vyRwDjEzBl28ZplKh9tSyDkRIYszWTpmK8qHiqjLYZBfAxXjGJbEYL1iig4ZxvbYzKEiKSBi1ZMW9iWjHfZDZuxXAmB
+        example
+        """
+
+        self.endpoint_name = endpoint_name
+        self.role_arn = role_arn
+        self.security_group_ids = security_group_ids
+        self.subnet_id = subnet_id
+        self.worker_type = worker_type
+        self.glue_version = glue_version
+        self.number_of_workers = number_of_workers
+        self.number_of_nodes = number_of_nodes
+        self.extra_python_libs_s3_path = extra_python_libs_s3_path
+        self.extra_jars_s3_path = extra_jars_s3_path
+        self.security_configuration = security_configuration
+        self.arguments = arguments or {}
+        self.tags = tags or {}
+
+        # AWS Generated Fields
+        self.created_timestamp = utcnow()
+        self.last_modified_timestamp = self.created_timestamp
+        self.status = "READY"
+        self.availability_zone = "us-east-1a"
+        self.private_address = "10.0.0.1"
+        # TODO: Get the vpc id from the subnet using the subnet_id
+        self.vpc_id = "vpc-12345678" if subnet_id != "subnet-default" else None
+        self.yarn_endpoint_address = (
+            f"yarn-{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.public_address = (
+            f"{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.zeppelin_remote_spark_interpreter_port = 9007
+        self.public_key = pubkey
+        self.public_keys = [self.public_key]
+
+    def as_dict(self) -> dict[str, Any]:
+        response = {
+            "EndpointName": self.endpoint_name,
+            "RoleArn": self.role_arn,
+            "SecurityGroupIds": self.security_group_ids,
+            "SubnetId": self.subnet_id,
+            "YarnEndpointAddress": self.yarn_endpoint_address,
+            "PrivateAddress": self.private_address,
+            "ZeppelinRemoteSparkInterpreterPort": self.zeppelin_remote_spark_interpreter_port,
+            "Status": self.status,
+            "WorkerType": self.worker_type,
+            "GlueVersion": self.glue_version,
+            "NumberOfWorkers": self.number_of_workers,
+            "NumberOfNodes": self.number_of_nodes,
+            "AvailabilityZone": self.availability_zone,
+            "VpcId": self.vpc_id,
+            "ExtraPythonLibsS3Path": self.extra_python_libs_s3_path,
+            "ExtraJarsS3Path": self.extra_jars_s3_path,
+            "CreatedTimestamp": self.created_timestamp.isoformat(),
+            "LastModifiedTimestamp": self.last_modified_timestamp.isoformat(),
+            "PublicKey": self.public_key,
+            "PublicKeys": self.public_keys,
+            "SecurityConfiguration": self.security_configuration,
+            "Arguments": self.arguments,
+        }
+        if self.public_address:
+            response["PublicAddress"] = self.public_address
+        return response
 
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "get_connections": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "get_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -99,26 +197,67 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "get_dev_endpoints": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "endpoint_name",
+        },
+        "get_job_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "job_run_id",
+        },
+        "list_crawls": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "crawl_id",
+        },
+        "list_workflows": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "name",
+        },
+        "get_workflow_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "workflow_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.databases: Dict[str, FakeDatabase] = OrderedDict()
-        self.crawlers: Dict[str, FakeCrawler] = OrderedDict()
-        self.jobs: Dict[str, FakeJob] = OrderedDict()
-        self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
-        self.sessions: Dict[str, FakeSession] = OrderedDict()
+        self.region_name = region_name
+        self.account_id = account_id
+        self.databases: dict[str, FakeDatabase] = OrderedDict()
+        self.crawlers: dict[str, FakeCrawler] = OrderedDict()
+        self.connections: dict[str, FakeConnection] = OrderedDict()
+        self.jobs: dict[str, FakeJob] = OrderedDict()
+        self.job_runs: dict[str, FakeJobRun] = OrderedDict()
+        self.sessions: dict[str, FakeSession] = OrderedDict()
         self.tagger = TaggingService()
-        self.triggers: Dict[str, FakeTrigger] = OrderedDict()
-        self.registries: Dict[str, FakeRegistry] = OrderedDict()
+        self.triggers: dict[str, FakeTrigger] = OrderedDict()
+        self.registries: dict[str, FakeRegistry] = OrderedDict()
+        self.workflows: dict[str, FakeWorkflow] = OrderedDict()
+        self.security_configurations: dict[str, FakeSecurityConfiguration] = (
+            OrderedDict()
+        )
         self.num_schemas = 0
         self.num_schema_versions = 0
+        self.dev_endpoints: dict[str, FakeDevEndpoint] = OrderedDict()
+        self.data_catalog_encryption_settings: dict[str, dict[str, Any]] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
+        self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
 
     def create_database(
         self,
         database_name: str,
-        database_input: Dict[str, Any],
-        tags: Optional[Dict[str, str]] = None,
+        database_input: dict[str, Any],
+        tags: Optional[dict[str, str]] = None,
     ) -> "FakeDatabase":
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
@@ -138,14 +277,14 @@ class GlueBackend(BaseBackend):
             raise DatabaseNotFoundException(database_name)
 
     def update_database(
-        self, database_name: str, database_input: Dict[str, Any]
+        self, database_name: str, database_input: dict[str, Any]
     ) -> None:
         if database_name not in self.databases:
             raise DatabaseNotFoundException(database_name)
 
         self.databases[database_name].input = database_input
 
-    def get_databases(self) -> List["FakeDatabase"]:
+    def get_databases(self) -> list["FakeDatabase"]:
         return [self.databases[key] for key in self.databases] if self.databases else []
 
     def delete_database(self, database_name: str) -> None:
@@ -154,7 +293,7 @@ class GlueBackend(BaseBackend):
         del self.databases[database_name]
 
     def create_table(
-        self, database_name: str, table_name: str, table_input: Dict[str, Any]
+        self, database_name: str, table_name: str, table_input: dict[str, Any]
     ) -> "FakeTable":
         database = self.get_database(database_name)
 
@@ -176,7 +315,7 @@ class GlueBackend(BaseBackend):
 
     def get_tables(
         self, database_name: str, expression: Optional[str]
-    ) -> List["FakeTable"]:
+    ) -> list["FakeTable"]:
         database = self.get_database(database_name)
         if expression:
             # sanitise expression, * is treated as a glob-like wildcard
@@ -204,7 +343,7 @@ class GlueBackend(BaseBackend):
             raise TableNotFoundException(table_name)
 
     def update_table(
-        self, database_name: str, table_name: str, table_input: Dict[str, Any]
+        self, database_name: str, table_name: str, table_input: dict[str, Any]
     ) -> None:
         table = self.get_table(database_name, table_name)
         table.update(table_input)
@@ -225,7 +364,7 @@ class GlueBackend(BaseBackend):
 
     def get_table_versions(
         self, database_name: str, table_name: str
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         table = self.get_table(database_name, table_name)
         return {version: table.as_dict(version) for version in table.versions.keys()}
 
@@ -236,7 +375,7 @@ class GlueBackend(BaseBackend):
         table.delete_version(version_id)
 
     def create_partition(
-        self, database_name: str, table_name: str, part_input: Dict[str, Any]
+        self, database_name: str, table_name: str, part_input: dict[str, Any]
     ) -> None:
         table = self.get_table(database_name, table_name)
         table.create_partition(part_input)
@@ -249,7 +388,7 @@ class GlueBackend(BaseBackend):
 
     def get_partitions(
         self, database_name: str, table_name: str, expression: str
-    ) -> List["FakePartition"]:
+    ) -> list["FakePartition"]:
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
         for supported expressions.
@@ -268,7 +407,7 @@ class GlueBackend(BaseBackend):
         self,
         database_name: str,
         table_name: str,
-        part_input: Dict[str, Any],
+        part_input: dict[str, Any],
         part_to_update: str,
     ) -> None:
         table = self.get_table(database_name, table_name)
@@ -286,16 +425,16 @@ class GlueBackend(BaseBackend):
         role: str,
         database_name: str,
         description: str,
-        targets: Dict[str, Any],
+        targets: dict[str, Any],
         schedule: str,
-        classifiers: List[str],
+        classifiers: list[str],
         table_prefix: str,
-        schema_change_policy: Dict[str, str],
-        recrawl_policy: Dict[str, str],
-        lineage_configuration: Dict[str, str],
+        schema_change_policy: dict[str, str],
+        recrawl_policy: dict[str, str],
+        lineage_configuration: dict[str, str],
         configuration: str,
         crawler_security_configuration: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> None:
         if name in self.crawlers:
             raise CrawlerAlreadyExistsException()
@@ -325,11 +464,11 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise CrawlerNotFoundException(name)
 
-    def get_crawlers(self) -> List["FakeCrawler"]:
+    def get_crawlers(self) -> list["FakeCrawler"]:
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_crawlers(self) -> List["FakeCrawler"]:
+    def list_crawlers(self) -> list["FakeCrawler"]:
         return [crawler for _, crawler in self.crawlers.items()]
 
     def start_crawler(self, name: str) -> None:
@@ -346,6 +485,77 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise CrawlerNotFoundException(name)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawls(
+        self, crawler_name: str, filters: list[CrawlFilter]
+    ) -> list["FakeCrawl"]:
+        filter_functions = []
+        for filter in filters:
+            if filter.field_name == FilterField.CRAWL_ID:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.crawl_id
+
+            elif filter.field_name == FilterField.STATE:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.status
+
+            elif filter.field_name == FilterField.START_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.start_time.isoformat()
+
+            elif filter.field_name == FilterField.END_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.end_time.isoformat() if crawl.end_time else None
+
+            if filter.operator == FilterOperator.GT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value > field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.GE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value >= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value < field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value <= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.EQ:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value == field_value
+
+            elif filter.operator == FilterOperator.NE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value != field_value
+
+            def filter_function(crawl: FakeCrawl) -> bool:
+                return compare(get_field(crawl), filter.field_value)  # noqa: B023
+
+            filter_functions.append(filter_function)
+
+        if crawler := self.crawlers.get(crawler_name):
+            crawlers = []
+            for crawl in crawler.crawls:
+                if all(f(crawl) for f in filter_functions):
+                    crawl.advance()
+                    crawlers.append(crawl)
+            return crawlers
+        else:
+            raise NoCrawlsEntryForCrawler(crawler_name)
+
     def create_job(
         self,
         name: str,
@@ -353,23 +563,23 @@ class GlueBackend(BaseBackend):
         command: str,
         description: str,
         log_uri: str,
-        execution_property: Dict[str, int],
-        default_arguments: Dict[str, str],
-        non_overridable_arguments: Dict[str, str],
-        connections: Dict[str, List[str]],
+        execution_property: dict[str, int],
+        default_arguments: dict[str, str],
+        non_overridable_arguments: dict[str, str],
+        connections: dict[str, list[str]],
         max_retries: int,
         allocated_capacity: int,
         timeout: int,
         max_capacity: float,
         security_configuration: str,
-        tags: Dict[str, str],
-        notification_property: Dict[str, int],
+        tags: dict[str, str],
+        notification_property: dict[str, int],
         glue_version: str,
         number_of_workers: int,
         worker_type: str,
-        code_gen_configuration_nodes: Dict[str, Any],
+        code_gen_configuration_nodes: dict[str, Any],
         execution_class: str,
-        source_control_details: Dict[str, str],
+        source_control_details: dict[str, str],
     ) -> None:
         self.jobs[name] = FakeJob(
             name,
@@ -404,41 +614,68 @@ class GlueBackend(BaseBackend):
             raise JobNotFoundException(name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def get_jobs(self) -> List["FakeJob"]:
+    def get_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
-    def start_job_run(self, name: str) -> str:
+    def start_job_run(
+        self,
+        name: str,
+        arguments: Optional[dict[str, str]],
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[dict[str, int]],
+        previous_run_id: Optional[str],
+    ) -> str:
         job = self.get_job(name)
-        return job.start_job_run()
+        return job.start_job_run(
+            arguments=arguments,
+            allocated_capacity=allocated_capacity,
+            max_capacity=max_capacity,
+            timeout=timeout,
+            worker_type=worker_type,
+            security_configuration=security_configuration,
+            number_of_workers=number_of_workers,
+            notification_property=notification_property,
+            previous_run_id=previous_run_id,
+        )
 
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_jobs(self) -> List["FakeJob"]:
+    def get_job_runs(self, job_name: str) -> list["FakeJobRun"]:
+        job = self.get_job(job_name)
+        return job.get_job_runs()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
     def delete_job(self, name: str) -> None:
         if name in self.jobs:
             del self.jobs[name]
 
-    def get_tags(self, resource_id: str) -> Dict[str, str]:
+    def get_tags(self, resource_id: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 
-    def tag_resource(self, resource_arn: str, tags: Optional[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: Optional[dict[str, str]]) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_registry(
         self,
         registry_name: str,
         description: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
         # If registry name id default-registry, create default-registry
         if registry_name == DEFAULT_REGISTRY_NAME:
             registry = FakeRegistry(self, registry_name, description, tags)
@@ -452,27 +689,27 @@ class GlueBackend(BaseBackend):
         self.registries[registry_name] = registry
         return registry.as_dict()
 
-    def delete_registry(self, registry_id: Dict[str, Any]) -> Dict[str, Any]:
+    def delete_registry(self, registry_id: dict[str, Any]) -> dict[str, Any]:
         registry_name = validate_registry_id(registry_id, self.registries)
         return self.registries.pop(registry_name).as_dict()
 
-    def get_registry(self, registry_id: Dict[str, Any]) -> Dict[str, Any]:
+    def get_registry(self, registry_id: dict[str, Any]) -> dict[str, Any]:
         registry_name = validate_registry_id(registry_id, self.registries)
         return self.registries[registry_name].as_dict()
 
-    def list_registries(self) -> List[Dict[str, Any]]:
+    def list_registries(self) -> list[dict[str, Any]]:
         return [reg.as_dict() for reg in self.registries.values()]
 
     def create_schema(
         self,
-        registry_id: Dict[str, Any],
+        registry_id: dict[str, Any],
         schema_name: str,
         data_format: str,
         compatibility: str,
         schema_definition: str,
         description: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
         """
         The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
         """
@@ -531,8 +768,8 @@ class GlueBackend(BaseBackend):
         return resp
 
     def register_schema_version(
-        self, schema_id: Dict[str, Any], schema_definition: str
-    ) -> Dict[str, Any]:
+        self, schema_id: dict[str, Any], schema_definition: str
+    ) -> dict[str, Any]:
         # Validate Schema Id
         registry_name, schema_name, schema_arn = validate_schema_id(
             schema_id, self.registries
@@ -592,10 +829,10 @@ class GlueBackend(BaseBackend):
 
     def get_schema_version(
         self,
-        schema_id: Optional[Dict[str, str]] = None,
+        schema_id: Optional[dict[str, str]] = None,
         schema_version_id: Optional[str] = None,
-        schema_version_number: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        schema_version_number: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         # Validate Schema Parameters
         (
             schema_version_id,
@@ -641,8 +878,8 @@ class GlueBackend(BaseBackend):
         )
 
     def get_schema_by_definition(
-        self, schema_id: Dict[str, str], schema_definition: str
-    ) -> Dict[str, Any]:
+        self, schema_id: dict[str, str], schema_definition: str
+    ) -> dict[str, Any]:
         # Validate SchemaId
         validate_schema_definition_length(schema_definition)
         registry_name, schema_name, schema_arn = validate_schema_id(
@@ -665,11 +902,11 @@ class GlueBackend(BaseBackend):
 
     def put_schema_version_metadata(
         self,
-        schema_id: Dict[str, Any],
-        schema_version_number: Dict[str, str],
+        schema_id: dict[str, Any],
+        schema_version_number: dict[str, str],
         schema_version_id: str,
-        metadata_key_value: Dict[str, str],
-    ) -> Dict[str, Any]:
+        metadata_key_value: dict[str, str],
+    ) -> dict[str, Any]:
         # Validate metadata_key_value and schema version params
         (
             metadata_key,
@@ -739,12 +976,12 @@ class GlueBackend(BaseBackend):
             registry_name, schema_name, schema_arn, version_number, latest_version
         )
 
-    def get_schema(self, schema_id: Dict[str, str]) -> Dict[str, Any]:
+    def get_schema(self, schema_id: dict[str, str]) -> dict[str, Any]:
         registry_name, schema_name, _ = validate_schema_id(schema_id, self.registries)
         schema = self.registries[registry_name].schemas[schema_name]
         return schema.as_dict()
 
-    def delete_schema(self, schema_id: Dict[str, str]) -> Dict[str, Any]:
+    def delete_schema(self, schema_id: dict[str, str]) -> dict[str, Any]:
         # Validate schema_id
         registry_name, schema_name, _ = validate_schema_id(schema_id, self.registries)
 
@@ -764,8 +1001,8 @@ class GlueBackend(BaseBackend):
         return response
 
     def update_schema(
-        self, schema_id: Dict[str, str], compatibility: str, description: str
-    ) -> Dict[str, Any]:
+        self, schema_id: dict[str, str], compatibility: str, description: str
+    ) -> dict[str, Any]:
         """
         The SchemaVersionNumber-argument is not yet implemented
         """
@@ -784,17 +1021,17 @@ class GlueBackend(BaseBackend):
         session_id: str,
         description: str,
         role: str,
-        command: Dict[str, str],
+        command: dict[str, str],
         timeout: int,
         idle_timeout: int,
-        default_arguments: Dict[str, str],
-        connections: Dict[str, List[str]],
+        default_arguments: dict[str, str],
+        connections: dict[str, list[str]],
         max_capacity: float,
         number_of_workers: int,
         worker_type: str,
         security_configuration: str,
         glue_version: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         request_origin: str,
     ) -> None:
         if session_id in self.sessions:
@@ -827,7 +1064,7 @@ class GlueBackend(BaseBackend):
             raise SessionNotFoundException(session_id)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_sessions(self) -> List["FakeSession"]:
+    def list_sessions(self) -> list["FakeSession"]:
         return [session for _, session in self.sessions.items()]
 
     def stop_session(self, session_id: str) -> None:
@@ -846,12 +1083,12 @@ class GlueBackend(BaseBackend):
         workflow_name: str,
         trigger_type: str,
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: list[Action],
         description: str,
         start_on_creation: bool,
-        tags: Dict[str, str],
-        event_batching_condition: Dict[str, Any],
+        tags: dict[str, str],
+        event_batching_condition: dict[str, Any],
     ) -> None:
         self.triggers[name] = FakeTrigger(
             name=name,
@@ -882,28 +1119,24 @@ class GlueBackend(BaseBackend):
         trigger.stop_trigger()
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:
+    def get_triggers(self, dependent_job_name: str) -> list["FakeTrigger"]:
         if dependent_job_name:
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
         return list(self.triggers.values())
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:
+    def list_triggers(self, dependent_job_name: str) -> list["FakeTrigger"]:
         if dependent_job_name:
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
@@ -914,8 +1147,8 @@ class GlueBackend(BaseBackend):
             del self.triggers[name]
 
     def batch_delete_table(
-        self, database_name: str, tables: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, database_name: str, tables: list[str]
+    ) -> list[dict[str, Any]]:
         errors = []
         for table_name in tables:
             try:
@@ -936,8 +1169,8 @@ class GlueBackend(BaseBackend):
         self,
         database_name: str,
         table_name: str,
-        partitions_to_get: List[Dict[str, str]],
-    ) -> List[Dict[str, Any]]:
+        partitions_to_get: list[dict[str, str]],
+    ) -> list[dict[str, Any]]:
         table = self.get_table(database_name, table_name)
 
         partitions = []
@@ -950,8 +1183,8 @@ class GlueBackend(BaseBackend):
         return partitions
 
     def batch_create_partition(
-        self, database_name: str, table_name: str, partition_input: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, database_name: str, table_name: str, partition_input: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         table = self.get_table(database_name, table_name)
 
         errors_output = []
@@ -971,8 +1204,8 @@ class GlueBackend(BaseBackend):
         return errors_output
 
     def batch_update_partition(
-        self, database_name: str, table_name: str, entries: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, database_name: str, table_name: str, entries: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         table = self.get_table(database_name, table_name)
 
         errors_output = []
@@ -995,8 +1228,8 @@ class GlueBackend(BaseBackend):
         return errors_output
 
     def batch_delete_partition(
-        self, database_name: str, table_name: str, parts: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, database_name: str, table_name: str, parts: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         table = self.get_table(database_name, table_name)
 
         errors_output = []
@@ -1016,39 +1249,434 @@ class GlueBackend(BaseBackend):
                 )
         return errors_output
 
-    def batch_get_crawlers(self, crawler_names: List[str]) -> List[Dict[str, Any]]:
+    def batch_get_crawlers(self, crawler_names: list[str]) -> list[dict[str, Any]]:
         crawlers = []
         for crawler in self.get_crawlers():
             if crawler.as_dict()["Name"] in crawler_names:
                 crawlers.append(crawler.as_dict())
         return crawlers
 
-    def batch_get_jobs(self, job_names: List[str]) -> List[Dict[str, Any]]:
+    def batch_get_jobs(self, job_names: list[str]) -> list[dict[str, Any]]:
         jobs = []
         for job_name in job_names:
             if job_name in self.jobs:
                 jobs.append(self.jobs[job_name].as_dict())
         return jobs
 
-    def batch_get_triggers(self, trigger_names: List[str]) -> List[Dict[str, Any]]:
+    def batch_get_triggers(self, trigger_names: list[str]) -> list[dict[str, Any]]:
         triggers = []
         for trigger_name in trigger_names:
             if trigger_name in self.triggers:
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_dev_endpoints(self) -> list["FakeDevEndpoint"]:
+        return list(self.dev_endpoints.values())
+
+    def create_dev_endpoint(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: Optional[list[str]] = None,
+        subnet_id: Optional[str] = None,
+        public_key: Optional[str] = None,
+        public_keys: Optional[list[str]] = None,
+        number_of_nodes: Optional[int] = None,
+        worker_type: str = "Standard",
+        glue_version: str = "5.0",
+        number_of_workers: Optional[int] = None,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        arguments: Optional[dict[str, str]] = None,
+    ) -> FakeDevEndpoint:
+        if endpoint_name in self.dev_endpoints:
+            raise AlreadyExistsException(f"DevEndpoint {endpoint_name} already exists")
+
+        dev_endpoint = FakeDevEndpoint(
+            endpoint_name=endpoint_name,
+            role_arn=role_arn,
+            security_group_ids=security_group_ids or [],
+            subnet_id=subnet_id or "subnet-default",
+            worker_type=worker_type,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers or 1,
+            number_of_nodes=number_of_nodes or 1,
+            extra_python_libs_s3_path=extra_python_libs_s3_path,
+            extra_jars_s3_path=extra_jars_s3_path,
+            security_configuration=security_configuration,
+            arguments=arguments,
+            tags=tags,
+        )
+
+        if public_key:
+            dev_endpoint.public_key = public_key
+
+        if public_keys:
+            dev_endpoint.public_keys = public_keys
+
+        self.dev_endpoints[endpoint_name] = dev_endpoint
+        return dev_endpoint
+
+    def get_dev_endpoint(self, endpoint_name: str) -> FakeDevEndpoint:
+        try:
+            return self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def delete_dev_endpoint(self, endpoint_name: str) -> None:
+        try:
+            del self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def create_connection(
+        self,
+        catalog_id: str,
+        connection_input: dict[str, Any],
+        tags: dict[str, str],
+    ) -> str:
+        name = connection_input.get("Name", "")
+        if name in self.connections:
+            raise AlreadyExistsException(f"Connection {name} already exists")
+        connection = FakeConnection(self, catalog_id, connection_input, tags)
+        self.connections[name] = connection
+        return connection.status
+
+    def get_connection(
+        self,
+        catalog_id: str,
+        name: str,
+        hide_password: bool,
+        apply_override_for_compute_environment: str,
+    ) -> "FakeConnection":
+        # TODO: Implement filtering
+        connection = self.connections.get(name)
+        if not connection:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        return connection
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_connections(
+        self, catalog_id: str, filter: dict[str, Any], hide_password: bool
+    ) -> list["FakeConnection"]:
+        # TODO: Implement filtering
+        return list(self.connections.values())
+
+    def put_data_catalog_encryption_settings(
+        self,
+        catalog_id: Optional[str],
+        data_catalog_encryption_settings: dict[str, Any],
+    ) -> dict[str, Any]:
+        if catalog_id is None:
+            catalog_id = self.account_id
+
+        self.data_catalog_encryption_settings[catalog_id] = (
+            data_catalog_encryption_settings
+        )
+        return {}
+
+    def get_data_catalog_encryption_settings(
+        self, catalog_id: Optional[str]
+    ) -> dict[str, Any]:
+        if catalog_id is None or catalog_id == "":
+            catalog_id = self.account_id
+
+        settings = self.data_catalog_encryption_settings.get(catalog_id, {})
+
+        if not isinstance(settings, dict):
+            settings = {}
+
+        response: dict[str, Any] = {
+            "DataCatalogEncryptionSettings": {
+                "EncryptionAtRest": settings.get(
+                    "EncryptionAtRest", {"CatalogEncryptionMode": "DISABLED"}
+                ),
+                "ConnectionPasswordEncryption": settings.get(
+                    "ConnectionPasswordEncryption",
+                    {"ReturnConnectionPasswordEncrypted": False},
+                ),
+            }
+        }
+
+        return response
+
+    def put_resource_policy(
+        self,
+        policy_in_json: str,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+        policy_exists_condition: Optional[str] = None,
+        enable_hybrid: Optional[str] = None,
+    ) -> dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if policy_exists_condition and policy_exists_condition != "NONE":
+            if policy_exists_condition == "MUST_EXIST" and not policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy does not exist"
+                )
+            elif policy_exists_condition == "NOT_EXIST" and policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy already exists"
+                )
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        policy_hash = hashlib.md5(policy_in_json.encode()).hexdigest()
+
+        if not policy_dict:
+            policy_dict = {
+                "PolicyInJson": policy_in_json,
+                "PolicyHash": policy_hash,
+                "CreateTime": utcnow(),
+                "UpdateTime": utcnow(),
+            }
+        else:
+            policy_dict.update(
+                {
+                    "PolicyInJson": policy_in_json,
+                    "PolicyHash": policy_hash,
+                    "UpdateTime": utcnow(),
+                }
+            )
+
+        if enable_hybrid in ("TRUE", "FALSE"):
+            policy_dict["EnableHybrid"] = enable_hybrid
+
+        self.resource_policies[resource_arn] = policy_dict
+
+        return {"PolicyHash": policy_hash}
+
+    def get_resource_policy(self, resource_arn: Optional[str] = None) -> dict[str, Any]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            return {}
+
+        policy = self.resource_policies[resource_arn]
+
+        response = {
+            "PolicyInJson": policy["PolicyInJson"],
+            "PolicyHash": policy["PolicyHash"],
+            "CreateTime": (
+                policy["CreateTime"].isoformat()
+                if isinstance(policy["CreateTime"], datetime)
+                else policy["CreateTime"]
+            ),
+            "UpdateTime": (
+                policy["UpdateTime"].isoformat()
+                if isinstance(policy["UpdateTime"], datetime)
+                else policy["UpdateTime"]
+            ),
+        }
+
+        return response
+
+    def delete_resource_policy(
+        self,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+    ) -> dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            raise EntityNotFoundException(
+                "Policy does not exist",
+            )
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        del self.resource_policies[resource_arn]
+        return {}
+
+    def create_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[dict[str, str]],
+    ) -> str:
+        self.workflows[name] = FakeWorkflow(
+            name, default_run_properties, description, max_concurrent_runs, tags
+        )
+        return name
+
+    def get_workflow(
+        self,
+        name: str,
+    ) -> dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if workflow:
+            return workflow.as_dict()
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_workflows(self) -> list[str]:
+        return [workflow.name for workflow in self.workflows.values()]
+
+    def update_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+    ) -> str:
+        workflow = self.workflows.get(name)
+        if workflow:
+            if default_run_properties:
+                workflow.default_run_properties = default_run_properties
+            if description:
+                workflow.description = description
+            if max_concurrent_runs:
+                workflow.max_concurrent_runs = max_concurrent_runs
+            workflow.last_modified_on = utcnow()
+            return name
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    def delete_workflow(
+        self,
+        name: str,
+    ) -> str:
+        if self.workflows.get(name):
+            del self.workflows[name]
+        return name
+
+    def get_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> dict[str, Any]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).as_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_workflow_runs(
+        self,
+        workflow_name: str,
+    ) -> list[dict[str, Union[str, dict[str, str]]]]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return [run.as_dict() for run in workflow.runs.values()]
+
+    def start_workflow_run(
+        self, workflow_name: str, properties: Optional[dict[str, str]]
+    ) -> str:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.start_run(properties=properties)
+
+    def stop_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.stop_run(run_id)
+
+    def get_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> dict[str, str]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).properties
+
+    def put_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+        properties: dict[str, str],
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.get_run(run_id).properties.update(properties)
+
+    def create_security_configuration(
+        self, name: str, configuration: dict[str, Any]
+    ) -> "FakeSecurityConfiguration":
+        if name in self.security_configurations:
+            raise AlreadyExistsException(f"SecurityConfiguration {name} already exists")
+        security_configuration = FakeSecurityConfiguration(name, configuration)
+        self.security_configurations[name] = security_configuration
+        return security_configuration
+
+    def get_security_configuration(self, name: str) -> "FakeSecurityConfiguration":
+        try:
+            return self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def delete_security_configuration(self, name: str) -> None:
+        try:
+            del self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
+        """Pagination is not yet implemented"""
+        return list(self.security_configurations.values())
+
+
+class FakeSecurityConfiguration(BaseModel):
+    def __init__(self, name: str, configuration: dict[str, Any]):
+        self.name = name
+        self.configuration = configuration
+        self.created_time = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "CreatedTime": unix_time(self.created_time),
+            "EncryptionConfiguration": self.configuration,
+        }
+
 
 class FakeDatabase(BaseModel):
     def __init__(
-        self, database_name: str, database_input: Dict[str, Any], catalog_id: str
+        self, database_name: str, database_input: dict[str, Any], catalog_id: str
     ):
         self.name = database_name
         self.input = database_input
         self.catalog_id = catalog_id
         self.created_time = utcnow()
-        self.tables: Dict[str, FakeTable] = OrderedDict()
+        self.tables: dict[str, FakeTable] = OrderedDict()
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Description": self.input.get("Description"),
@@ -1068,26 +1696,26 @@ class FakeTable(BaseModel):
         self,
         database_name: str,
         table_name: str,
-        table_input: Dict[str, Any],
+        table_input: dict[str, Any],
         catalog_id: str,
     ):
         self.database_name = database_name
         self.name = table_name
         self.catalog_id = catalog_id
-        self.partitions: Dict[str, FakePartition] = OrderedDict()
+        self.partitions: dict[str, FakePartition] = OrderedDict()
         self.created_time = utcnow()
         self.updated_time: Optional[datetime] = None
         self._current_version = 1
-        self.versions: Dict[str, Dict[str, Any]] = {
+        self.versions: dict[str, dict[str, Any]] = {
             str(self._current_version): table_input
         }
 
-    def update(self, table_input: Dict[str, Any]) -> None:
+    def update(self, table_input: dict[str, Any]) -> None:
         self.versions[str(self._current_version + 1)] = table_input
         self._current_version += 1
         self.updated_time = utcnow()
 
-    def get_version(self, ver: str) -> Dict[str, Any]:
+    def get_version(self, ver: str) -> dict[str, Any]:
         try:
             int(ver)
         except ValueError as e:
@@ -1101,7 +1729,7 @@ class FakeTable(BaseModel):
     def delete_version(self, version_id: str) -> None:
         self.versions.pop(version_id)
 
-    def as_dict(self, version: Optional[str] = None) -> Dict[str, Any]:
+    def as_dict(self, version: Optional[str] = None) -> dict[str, Any]:
         version = version or self._current_version  # type: ignore
         obj = {
             "DatabaseName": self.database_name,
@@ -1116,14 +1744,17 @@ class FakeTable(BaseModel):
             obj["UpdateTime"] = unix_time(self.updated_time)
         return obj
 
-    def create_partition(self, partiton_input: Dict[str, Any]) -> None:
+    def create_partition(self, partiton_input: dict[str, Any]) -> None:
         partition = FakePartition(self.database_name, self.name, partiton_input)
         key = str(partition.values)
         if key in self.partitions:
             raise PartitionAlreadyExistsException()
         self.partitions[str(partition.values)] = partition
 
-    def get_partitions(self, expression: str) -> List["FakePartition"]:
+    def get_partitions(self, expression: str) -> list["FakePartition"]:
+        # Only load pyparsing when necessary
+        from .utils import PartitionFilter
+
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values: str) -> "FakePartition":
@@ -1132,7 +1763,7 @@ class FakeTable(BaseModel):
         except KeyError:
             raise PartitionNotFoundException()
 
-    def update_partition(self, old_values: str, partiton_input: Dict[str, Any]) -> None:
+    def update_partition(self, old_values: str, partiton_input: dict[str, Any]) -> None:
         partition = FakePartition(self.database_name, self.name, partiton_input)
         key = str(partition.values)
         if old_values == partiton_input["Values"]:
@@ -1158,7 +1789,7 @@ class FakeTable(BaseModel):
 
 class FakePartition(BaseModel):
     def __init__(
-        self, database_name: str, table_name: str, partiton_input: Dict[str, Any]
+        self, database_name: str, table_name: str, partiton_input: dict[str, Any]
     ):
         self.creation_time = time.time()
         self.database_name = database_name
@@ -1166,7 +1797,7 @@ class FakePartition(BaseModel):
         self.partition_input = partiton_input
         self.values = self.partition_input.get("Values", [])
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         obj = {
             "DatabaseName": self.database_name,
             "TableName": self.table_name,
@@ -1183,19 +1814,19 @@ class FakeCrawler(BaseModel):
         role: str,
         database_name: str,
         description: str,
-        targets: Dict[str, Any],
+        targets: dict[str, Any],
         schedule: str,
-        classifiers: List[str],
+        classifiers: list[str],
         table_prefix: str,
-        schema_change_policy: Dict[str, str],
-        recrawl_policy: Dict[str, str],
-        lineage_configuration: Dict[str, str],
+        schema_change_policy: dict[str, str],
+        recrawl_policy: dict[str, str],
+        lineage_configuration: dict[str, str],
         configuration: str,
         crawler_security_configuration: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         backend: GlueBackend,
     ):
-        self.name = name
+        self.name: str = name
         self.role = role
         self.database_name = database_name
         self.description = description
@@ -1208,7 +1839,6 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.state = "READY"
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.version = 1
@@ -1217,12 +1847,12 @@ class FakeCrawler(BaseModel):
         self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+        self.crawls: list[FakeCrawl] = []
 
     def get_name(self) -> str:
         return self.name
 
-    def as_dict(self) -> Dict[str, Any]:
-        last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None  # type: ignore
+    def as_dict(self) -> dict[str, Any]:
         data = {
             "Name": self.name,
             "Role": self.role,
@@ -1233,12 +1863,11 @@ class FakeCrawler(BaseModel):
             "RecrawlPolicy": self.recrawl_policy,
             "SchemaChangePolicy": self.schema_change_policy,
             "LineageConfiguration": self.lineage_configuration,
-            "State": self.state,
+            "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
             "CreationTime": self.creation_time.isoformat(),
             "LastUpdated": self.last_updated.isoformat(),
-            "LastCrawl": last_crawl,
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1250,52 +1879,97 @@ class FakeCrawler(BaseModel):
                 "State": "SCHEDULED",
             }
 
-        if self.last_crawl_info:
-            data["LastCrawl"] = self.last_crawl_info.as_dict()
+        if self.crawls:
+            last_crawl = self.crawls[-1]
+            data["LastCrawl"] = {
+                "LogGroup": last_crawl.log_group,
+                "LogStream": last_crawl.log_stream,
+                "MessagePrefix": last_crawl.message_prefix,
+                "StartTime": last_crawl.start_time.isoformat(),
+                "Status": last_crawl.status,
+            }
 
         return data
 
     def start_crawler(self) -> None:
-        if self.state == "RUNNING":
+        if self.crawls and self.crawls[-1].status == "RUNNING":
             raise CrawlerRunningException(
                 f"Crawler with name {self.name} has already started"
             )
-        self.state = "RUNNING"
+        else:
+            self.crawls.append(FakeCrawl(self.name))
 
     def stop_crawler(self) -> None:
-        if self.state != "RUNNING":
+        if not self.crawls:
             raise CrawlerNotRunningException(
                 f"Crawler with name {self.name} isn't running"
             )
-        self.state = "STOPPING"
+        elif self.crawls[-1].status != "RUNNING":
+            raise CrawlerNotRunningException(
+                f"Crawler with name {self.name} isn't running"
+            )
+        else:
+            self.crawls[-1].status = "STOPPING"
+
+    @property
+    def status(self) -> str:
+        if not self.crawls:
+            return "READY"
+        else:
+            if self.crawls[-1].status == "RUNNING":
+                return "RUNNING"
+            elif self.crawls[-1].status in ["COMPLETED", "STOPPED", "FAILED"]:
+                return "READY"
+            elif self.crawls[-1].status == "STOPPING":
+                return "STOPPING"
+            else:
+                raise RuntimeError(
+                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                )
 
 
-class LastCrawlInfo(BaseModel):
-    def __init__(
-        self,
-        error_message: str,
-        log_group: str,
-        log_stream: str,
-        message_prefix: str,
-        start_time: str,
-        status: str,
-    ):
-        self.error_message = error_message
-        self.log_group = log_group
-        self.log_stream = log_stream
-        self.message_prefix = message_prefix
-        self.start_time = start_time
-        self.status = status
+class FakeCrawl(ManagedState):
+    def __init__(self, crawler_name: str) -> None:
+        ManagedState.__init__(
+            self,
+            model_name="glue::crawl",
+            transitions=[("RUNNING", "COMPLETED"), ("STOPPING", "STOPPED")],
+        )
+        self.crawl_id = str(mock_random.uuid4())
+        self.dpu_hour = 100
+        self.end_time: Optional[datetime] = None
+        self.log_group = "/aws-glue/crawlers"
+        self.log_stream = crawler_name
+        self.message_prefix = self.crawl_id
+        self.start_time = utcnow()
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ErrorMessage": self.error_message,
+    def as_dict(self) -> dict[str, Union[str, int]]:
+        response_dict: dict[str, Union[str, int]] = {
+            "CrawlId": self.crawl_id,
+            "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time,
-            "Status": self.status,
+            "StartTime": self.start_time.isoformat(),
         }
+        if self.status:
+            # "STOPPING" isn't a real status for crawl, but we need to introduce
+            # a second state transition to simulate the crawler issuing an async stop
+            # command to the crawl
+            response_dict["State"] = (
+                "RUNNING" if self.status == "STOPPING" else self.status
+            )
+        if self.end_time:
+            response_dict["EndTime"] = self.end_time.isoformat()
+        return response_dict
+
+    def advance(self) -> None:
+        previous_state = self.status
+        ManagedState.advance(self)
+        if (previous_state == "RUNNING" and self.status == "COMPLETED") or (
+            previous_state == "STOPPING" and self.status == "STOPPED"
+        ):
+            self.end_time = utcnow()
 
 
 class FakeJob:
@@ -1306,23 +1980,23 @@ class FakeJob:
         command: str,
         description: str,
         log_uri: str,
-        execution_property: Dict[str, int],
-        default_arguments: Dict[str, str],
-        non_overridable_arguments: Dict[str, str],
-        connections: Dict[str, List[str]],
+        execution_property: dict[str, int],
+        default_arguments: dict[str, str],
+        non_overridable_arguments: dict[str, str],
+        connections: dict[str, list[str]],
         max_retries: int,
         allocated_capacity: int,
         timeout: int,
         max_capacity: float,
         security_configuration: str,
-        tags: Dict[str, str],
-        notification_property: Dict[str, int],
+        tags: dict[str, str],
+        notification_property: dict[str, int],
         glue_version: str,
         number_of_workers: int,
         worker_type: str,
-        code_gen_configuration_nodes: Dict[str, Any],
+        code_gen_configuration_nodes: dict[str, Any],
         execution_class: str,
-        source_control_details: Dict[str, str],
+        source_control_details: dict[str, str],
         backend: GlueBackend,
     ):
         self.name = name
@@ -1331,7 +2005,7 @@ class FakeJob:
         self.role = role
         self.execution_property = execution_property or {}
         self.command = command
-        self.default_arguments = default_arguments
+        self.default_arguments = default_arguments or {}
         self.non_overridable_arguments = non_overridable_arguments
         self.connections = connections
         self.max_retries = max_retries
@@ -1352,12 +2026,12 @@ class FakeJob:
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
-        self.job_runs: List[FakeJobRun] = []
+        self.job_runs: list[FakeJobRun] = []
 
     def get_name(self) -> str:
         return self.name
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Description": self.description,
@@ -1384,7 +2058,18 @@ class FakeJob:
             "SourceControlDetails": self.source_control_details,
         }
 
-    def start_job_run(self) -> str:
+    def start_job_run(
+        self,
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[dict[str, int]],
+        previous_run_id: Optional[str],
+        arguments: Optional[dict[str, str]],
+    ) -> str:
         running_jobs = len(
             [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
         )
@@ -1392,7 +2077,24 @@ class FakeJob:
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
-        fake_job_run = FakeJobRun(job_name=self.name)
+        job_run_arguments = self.default_arguments.copy()
+        job_run_arguments.update(arguments or {})
+        # this has to be last to ensure it can't be overridden
+        job_run_arguments.update(self.non_overridable_arguments or {})
+
+        fake_job_run = FakeJobRun(
+            job_name=self.name,
+            arguments=job_run_arguments,
+            allocated_capacity=allocated_capacity or self.allocated_capacity,
+            max_capacity=max_capacity or self.max_capacity,
+            timeout=timeout or self.timeout,
+            worker_type=worker_type or self.worker_type,
+            security_configuration=security_configuration
+            or self.security_configuration,
+            number_of_workers=number_of_workers or self.number_of_workers,
+            notification_property=notification_property or self.notification_property,
+            job_run_id=previous_run_id,
+        )
         self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
@@ -1403,16 +2105,25 @@ class FakeJob:
                 return job_run
         raise JobRunNotFoundException(run_id)
 
+    def get_job_runs(self) -> list["FakeJobRun"]:
+        for job_run in self.job_runs:
+            job_run.advance()
+        return self.job_runs
+
 
 class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: str,
-        job_run_id: str = "01",
-        arguments: Optional[Dict[str, Any]] = None,
-        allocated_capacity: Optional[int] = None,
+        job_run_id: Optional[str] = None,
+        arguments: Optional[dict[str, Any]] = None,
+        allocated_capacity: Optional[int] = 10,
+        max_capacity: Optional[float] = 10.0,
         timeout: Optional[int] = None,
-        worker_type: str = "Standard",
+        worker_type: Optional[str] = "Standard",
+        notification_property: Optional[dict[str, int]] = None,
+        security_configuration: Optional[str] = None,
+        number_of_workers: Optional[int] = 10,
     ):
         ManagedState.__init__(
             self,
@@ -1420,45 +2131,52 @@ class FakeJobRun(ManagedState):
             transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
         )
         self.job_name = job_name
-        self.job_run_id = job_run_id
+        self.job_run_id = f"jr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = job_run_id
         self.arguments = arguments
         self.allocated_capacity = allocated_capacity
+        self.max_capacity = max_capacity
         self.timeout = timeout
         self.worker_type = worker_type
         self.started_on = utcnow()
         self.modified_on = utcnow()
         self.completed_on = utcnow()
+        self.notification_property = notification_property
+        self.security_configuration = security_configuration
+        self.number_of_workers = number_of_workers
 
     def get_name(self) -> str:
         return self.job_name
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
+    def as_dict(self) -> dict[str, Any]:
+        return_dict = {
             "Id": self.job_run_id,
-            "Attempt": 1,
-            "PreviousRunId": "01",
-            "TriggerName": "test_trigger",
+            "Attempt": 0,
             "JobName": self.job_name,
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
             "JobRunState": self.status,
-            "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
-            "ErrorMessage": "",
-            "PredecessorRuns": [
-                {"JobName": "string", "RunId": "string"},
-            ],
-            "AllocatedCapacity": self.allocated_capacity or 123,
+            "PredecessorRuns": [],
             "ExecutionTime": 123,
-            "Timeout": self.timeout or 123,
-            "MaxCapacity": 123.0,
             "WorkerType": self.worker_type,
-            "NumberOfWorkers": 123,
-            "SecurityConfiguration": "string",
             "LogGroupName": "test/log",
-            "NotificationProperty": {"NotifyDelayAfter": 123},
             "GlueVersion": "0.9",
+            "AllocatedCapacity": self.allocated_capacity,
+            "MaxCapacity": self.max_capacity,
+            "NumberOfWorkers": self.number_of_workers,
         }
+        if self.arguments:
+            return_dict["Arguments"] = self.arguments
+        if self.notification_property:
+            return_dict["NotificationProperty"] = self.notification_property
+        if self.security_configuration:
+            return_dict["SecurityConfiguration"] = self.security_configuration
+        if self.timeout:
+            return_dict["Timeout"] = self.timeout
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        return return_dict
 
 
 class FakeRegistry(BaseModel):
@@ -1467,7 +2185,7 @@ class FakeRegistry(BaseModel):
         backend: GlueBackend,
         registry_name: str,
         description: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.name = registry_name
         self.description = description
@@ -1476,9 +2194,9 @@ class FakeRegistry(BaseModel):
         self.updated_time = utcnow()
         self.status = "AVAILABLE"
         self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
-        self.schemas: Dict[str, FakeSchema] = OrderedDict()
+        self.schemas: dict[str, FakeSchema] = OrderedDict()
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "RegistryArn": self.registry_arn,
             "RegistryName": self.name,
@@ -1513,7 +2231,7 @@ class FakeSchema(BaseModel):
         self.schema_version_status = AVAILABLE_STATUS
         self.created_time = utcnow()
         self.updated_time = utcnow()
-        self.schema_versions: Dict[str, FakeSchemaVersion] = OrderedDict()
+        self.schema_versions: dict[str, FakeSchemaVersion] = OrderedDict()
 
     def update_next_schema_version(self) -> None:
         self.next_schema_version += 1
@@ -1524,7 +2242,7 @@ class FakeSchema(BaseModel):
     def get_next_schema_version(self) -> int:
         return self.next_schema_version
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "RegistryArn": self.registry_arn,
             "RegistryName": self.registry_name,
@@ -1560,19 +2278,19 @@ class FakeSchemaVersion(BaseModel):
         self.schema_version_id = str(mock_random.uuid4())
         self.created_time = utcnow()
         self.updated_time = utcnow()
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
     def get_schema_version_id(self) -> str:
         return self.schema_version_id
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "SchemaVersionId": self.schema_version_id,
             "VersionNumber": self.version_number,
             "Status": self.schema_version_status,
         }
 
-    def get_schema_version_as_dict(self) -> Dict[str, Any]:
+    def get_schema_version_as_dict(self) -> dict[str, Any]:
         # add data_format for full return dictionary of get_schema_version
         return {
             "SchemaVersionId": self.schema_version_id,
@@ -1583,7 +2301,7 @@ class FakeSchemaVersion(BaseModel):
             "CreatedTime": str(self.created_time),
         }
 
-    def get_schema_by_definition_as_dict(self) -> Dict[str, Any]:
+    def get_schema_by_definition_as_dict(self) -> dict[str, Any]:
         # add data_format for full return dictionary of get_schema_by_definition
         return {
             "SchemaVersionId": self.schema_version_id,
@@ -1599,17 +2317,17 @@ class FakeSession(BaseModel):
         session_id: str,
         description: str,
         role: str,
-        command: Dict[str, str],
+        command: dict[str, str],
         timeout: int,
         idle_timeout: int,
-        default_arguments: Dict[str, str],
-        connections: Dict[str, List[str]],
+        default_arguments: dict[str, str],
+        connections: dict[str, list[str]],
         max_capacity: float,
         number_of_workers: int,
         worker_type: str,
         security_configuration: str,
         glue_version: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         request_origin: str,
         backend: GlueBackend,
     ):
@@ -1638,7 +2356,7 @@ class FakeSession(BaseModel):
     def get_id(self) -> str:
         return self.session_id
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "Id": self.session_id,
             "CreatedOn": self.creation_time.isoformat(),
@@ -1669,12 +2387,12 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: list[Action],
         description: str,
         start_on_creation: bool,
-        tags: Dict[str, str],
-        event_batching_condition: Dict[str, Any],
+        tags: dict[str, str],
+        event_batching_condition: dict[str, Any],
     ):
         self.name = name
         self.workflow_name = workflow_name
@@ -1701,11 +2419,11 @@ class FakeTrigger(BaseModel):
     def stop_trigger(self) -> None:
         self.state = "DEACTIVATED"
 
-    def as_dict(self) -> Dict[str, Any]:
-        data: Dict[str, Any] = {
+    def as_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
             "Name": self.name,
             "Type": self.trigger_type,
-            "Actions": self.actions,
+            "Actions": [action.as_dict() for action in self.actions],
             "State": self.state,
         }
 
@@ -1716,7 +2434,7 @@ class FakeTrigger(BaseModel):
             data["Schedule"] = self.schedule
 
         if self.predicate:
-            data["Predicate"] = self.predicate
+            data["Predicate"] = self.predicate.as_dict()
 
         if self.description:
             data["Description"] = self.description
@@ -1725,6 +2443,145 @@ class FakeTrigger(BaseModel):
             data["EventBatchingCondition"] = self.event_batching_condition
 
         return data
+
+
+class FakeConnection(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        catalog_id: str,
+        connection_input: dict[str, Any],
+        tags: dict[str, str],
+    ) -> None:
+        self.catalog_id = catalog_id
+        self.connection_input = connection_input
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:connection/{self.connection_input['Name']}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+        self.status = "READY"
+        self.name = self.connection_input.get("Name")
+        self.description = self.connection_input.get("Description")
+        self.connection_properties = self.connection_input.get(
+            "ConnectionProperties", {}
+        )
+        self.spark_properties = self.connection_input.get("SparkProperties", {})
+        self.athena_properties = self.connection_input.get("AthenaProperties", {})
+        self.python_properties = self.connection_input.get("PythonProperties", {})
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "Connection": self.connection_input,
+            "ConnectionProperties": self.connection_properties,
+            "AthenaProperties": self.athena_properties,
+            "SparkProperties": self.spark_properties,
+            "PythonProperties": self.python_properties,
+            "CreationTime": self.created_time.isoformat(),
+            "LastUpdatedTime": self.updated_time.isoformat(),
+            "CatalogId": self.catalog_id,
+            "Status": self.status,
+            "PhysicalConnectionRequirements": self.connection_input.get(
+                "PhysicalConnectionRequirements"
+            ),
+        }
+
+
+class FakeWorkflowRun:
+    def __init__(
+        self,
+        workflow_name: str,
+        previous_run_id: Optional[str] = None,
+        properties: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.workflow_name = workflow_name
+        self.run_id = f"wr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = previous_run_id
+        self.properties = properties or {}
+        self.status = "RUNNING"
+        self.started_on = utcnow()
+        self.completed_on: Optional[datetime] = None
+
+    def as_dict(self) -> dict[str, Union[str, dict[str, str]]]:
+        return_dict: dict[str, Union[str, dict[str, str]]] = {
+            "Name": self.workflow_name,
+            "WorkflowRunId": self.run_id,
+            "StartedOn": self.started_on.isoformat(),
+            "Status": self.status,
+        }
+        if self.completed_on:
+            return_dict["CompletedOn"] = self.completed_on.isoformat()
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        if self.properties:
+            return_dict["WorkflowRunProperties"] = self.properties
+        return return_dict
+
+
+class FakeWorkflow:
+    def __init__(
+        self,
+        name: str,
+        default_run_properties: Optional[dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[dict[str, str]],
+    ) -> None:
+        self.name = name
+        self.default_run_properties = default_run_properties
+        self.description = description
+        self.max_concurrent_runs = max_concurrent_runs
+        self.tags = tags
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
+        self.runs: OrderedDict[str, FakeWorkflowRun] = OrderedDict()
+
+    def as_dict(self) -> dict[str, Any]:
+        return_dict: dict[str, Any] = {
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "Name": self.name,
+        }
+        if self.default_run_properties:
+            return_dict["DefaultRunProperties"] = self.default_run_properties
+        if self.description:
+            return_dict["Description"] = self.description
+        if self.max_concurrent_runs:
+            return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        if self.runs:
+            return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
+        return return_dict
+
+    def start_run(self, properties: Optional[dict[str, str]]) -> str:
+        run_properties = (
+            self.default_run_properties.copy() if self.default_run_properties else {}
+        )
+        if properties:
+            run_properties.update(properties)
+        if self.runs:
+            previous_run_id = self.runs[next(reversed(self.runs))].run_id
+        else:
+            previous_run_id = None
+        workflow_run = FakeWorkflowRun(
+            workflow_name=self.name,
+            properties=run_properties,
+            previous_run_id=previous_run_id,
+        )
+        self.runs[workflow_run.run_id] = workflow_run
+        return workflow_run.run_id
+
+    def get_run(self, run_id: str) -> FakeWorkflowRun:
+        run = self.runs.get(run_id)
+        if not run:
+            raise EntityNotFoundException("Entity not found")
+        else:
+            return run
+
+    def stop_run(self, run_id: str) -> None:
+        if not self.runs.get(run_id):
+            raise EntityNotFoundException("Entity not found")
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

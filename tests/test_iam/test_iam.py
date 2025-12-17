@@ -67,6 +67,84 @@ MOCK_POLICY_3 = """
 }
 """
 
+MOCK_SAML_SAMPLE_METADATA = """<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="urn:amazon:webservices" validUntil="2025-08-30T00:00:00Z">
+  <SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol" WantAssertionsSigned="true">
+    <KeyDescriptor use="signing">
+      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+          <ds:X509Certificate>MIIDcTCCAlmgAwIBAgIIGPlChvWsb9QwDQYJKoZIhvcNAQELBQAwZzEfMB0GA1UE AxMWdXJuOmFtYXpvbjp3ZWJzZXJ2aWNlczEiMCAGA1UEChMZQW1hem9uIFdlYiBT ZXJ2aWNlcywgSW5jLjETMBEGA1UECBMKV2FzaGluZ3RvbjELMAkGA1UEBhMCVVMw HhcNMjQwODMwMDAwMDAwWhcNMjUwODMwMDAwMDAwWjBnMR8wHQYDVQQDExZ1cm46 YW1hem9uOndlYnNlcnZpY2VzMSIwIAYDVQQKExlBbWF6b24gV2ViIFNlcnZpY2Vz LCBJbmMuMRMwEQYDVQQIEwpXYXNoaW5ndG9uMQswCQYDVQQGEwJVUzCCASIwDQYJ KoZIhvcNAQEBBQADggEPADCCAQoCggEBAK2IcN8WBhWhmwR5AOHJ7LIyl+f7ZiYM OjzsNZeOhvD6t8fIPqXg2Kyt2ixCCB16AQsif/bxYAoqqwrVkuBwG8V9CrDDuvXX 3WL7+hvn/JzmjyTeZxy34ySMppSvR3JNtps1C/stTs90KKAKfP56wg1RIEfA6dWX S/Ebd05Jx1miZb2j2+rX1C8Oc6RhOhBCHbbR/4fzFXxdocs4Krq6r+So2XQ8JChC 6E/c092/hCTBXtBj0D8Lk1DJWI1avMzRbrm53wH+1qTzoZMZu66gsuvWhbeH7B/Q kixxpb2IUNYNIT5A4g8tzzQLeGaMUHpvY8fuzRkX/8Zrd8CQjveOdPUCAwEAAaMh MB8wHQYDVR0OBBYEFCM8vneP4Ut+aXPdeCYsbFkUVMpeMA0GCSqGSIb3DQEBCwUA A4IBAQBCz1qeNzA4R/iXrqswc98bZXT7oj1lzkwRaDy0jsfsgyGwHIJ5VOMxnvFH 564zGlbljCOxrZG9FtdrutYGLHaLJLZdHKH2XQy2stxcP6pnZ29LyAMoIP6fq08M 1tzW0u0fMdC2Hpgi8QHGgguKW1AFFK3vj/sW1PWuMzTwB7ur5BpgMo4Wk074HIRT Z8B1RkY13EnFy7IIEIdreKLY3xwrpUZYnW0Em705T3gt0UrFKfzxrTjMPL3yXzgk wkAvGzGJZtdZ0FNc6ecGVuWkbJ7wvbYh2j557gbk9s0F+24103bfRyyM2jj7cgnK ij1wVZYobnMgnQI+ikrd7ksym6QN</ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </KeyDescriptor>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:entity</NameIDFormat>
+    <AssertionConsumerService index="1" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="2" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-north-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="3" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://me-south-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="4" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-south-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="5" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-west-3.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="6" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-southeast-3.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="7" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://us-east-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="8" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://af-south-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="9" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-west-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="10" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-central-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="11" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://sa-east-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="12" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-east-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="13" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-northeast-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="14" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-northeast-3.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="15" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-west-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="16" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-south-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="17" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-northeast-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="18" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://us-west-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="19" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://us-west-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="20" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-southeast-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="21" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-southeast-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="22" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ca-central-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="23" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://me-central-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="24" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-central-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="25" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://eu-south-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="26" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-south-2.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="27" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-southeast-4.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="28" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://il-central-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="29" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ca-west-1.signin.aws.amazon.com/saml"/>
+    <AssertionConsumerService index="30" isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://ap-southeast-5.signin.aws.amazon.com/saml"/>
+    <AttributeConsumingService index="1">
+      <ServiceName xml:lang="en">AWS Management Console Single Sign-On</ServiceName>
+      <RequestedAttribute isRequired="true" Name="https://aws.amazon.com/SAML/Attributes/Role" FriendlyName="RoleEntitlement"/>
+      <RequestedAttribute isRequired="true" Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName" FriendlyName="RoleSessionName"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.1" FriendlyName="eduPersonAffiliation"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.2" FriendlyName="eduPersonNickname"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.3" FriendlyName="eduPersonOrgDN"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.4" FriendlyName="eduPersonOrgUnitDN"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.5" FriendlyName="eduPersonPrimaryAffiliation"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.6" FriendlyName="eduPersonPrincipalName"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.7" FriendlyName="eduPersonEntitlement"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.8" FriendlyName="eduPersonPrimaryOrgUnitDN"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.9" FriendlyName="eduPersonScopedAffiliation"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.10" FriendlyName="eduPersonTargetedID"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.11" FriendlyName="eduPersonAssurance"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.2.1.2" FriendlyName="eduOrgHomePageURI"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.2.1.3" FriendlyName="eduOrgIdentityAuthNPolicyURI"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.2.1.4" FriendlyName="eduOrgLegalName"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.2.1.5" FriendlyName="eduOrgSuperiorURI"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:1.3.6.1.4.1.5923.1.2.1.6" FriendlyName="eduOrgWhitePagesURI"/>
+      <RequestedAttribute isRequired="false" Name="urn:oid:2.5.4.3" FriendlyName="cn"/>
+    </AttributeConsumingService>
+  </SPSSODescriptor>
+  <Organization>
+    <OrganizationName xml:lang="en">Amazon Web Services, Inc.</OrganizationName>
+    <OrganizationDisplayName xml:lang="en">AWS</OrganizationDisplayName>
+    <OrganizationURL xml:lang="en">https://aws.amazon.com</OrganizationURL>
+  </Organization>
+</EntityDescriptor>
+"""
+
 MOCK_STS_EC2_POLICY_DOCUMENT = """{
       "Version": "2012-10-17",
       "Statement": [
@@ -131,8 +209,11 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
 def test_create_role_and_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    assume_role_policy_document = {"value": "some policy"}
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument=json.dumps(assume_role_policy_document),
+        Path="/my-path/",
     )
 
     conn.add_role_to_instance_profile(
@@ -141,7 +222,7 @@ def test_create_role_and_instance_profile():
 
     role = conn.get_role(RoleName="my-role")["Role"]
     assert role["Path"] == "/my-path/"
-    assert role["AssumeRolePolicyDocument"] == "some policy"
+    assert role["AssumeRolePolicyDocument"] == assume_role_policy_document
 
     profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
         "InstanceProfile"
@@ -259,7 +340,7 @@ def test_update_login_profile():
     conn.create_user(UserName="my-user")
     conn.create_login_profile(UserName="my-user", Password="my-pass")
     response = conn.get_login_profile(UserName="my-user")
-    assert response["LoginProfile"].get("PasswordResetRequired") is None
+    assert response["LoginProfile"].get("PasswordResetRequired") is False
 
     conn.update_login_profile(
         UserName="my-user", Password="new-pass", PasswordResetRequired=True
@@ -770,7 +851,7 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
-def test_get_aws_managed_policy_v6_version():
+def test_get_aws_managed_policy_v8_version():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
@@ -779,7 +860,7 @@ def test_get_aws_managed_policy_v6_version():
         conn.get_policy_version(
             PolicyArn=managed_policy_arn, VersionId="v2-does-not-exist"
         )
-    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v6")
+    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v8")
     assert isinstance(
         retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None), datetime
     )
@@ -903,9 +984,7 @@ def test_create_policy_with_too_many_tags():
 
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.create_policy(
             PolicyName="TestCreatePolicyWithTags3",
             PolicyDocument=MOCK_POLICY,
@@ -1161,9 +1240,7 @@ def test_updating_existing_tagged_policy_with_too_many_tags():
 
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.tag_policy(
             PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=too_many_tags,
@@ -1388,7 +1465,7 @@ def test_untag_policy():
 
 
 @mock_aws
-def test_create_user_boto():
+def test_create_user():
     conn = boto3.client("iam", region_name="us-east-1")
     u = conn.create_user(UserName="my-user")["User"]
     assert u["Path"] == "/"
@@ -1740,10 +1817,8 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices()
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
@@ -1753,15 +1828,13 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Any", MaxItems=1)
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_1}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
     assert response["IsTruncated"] is True
     assert response["Marker"] == "1"
 
@@ -1769,7 +1842,7 @@ def test_list_virtual_mfa_devices():
         AssignmentStatus="Any", Marker=response["Marker"]
     )
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_2}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
 
@@ -1825,7 +1898,7 @@ def test_enable_virtual_mfa_device():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number
     assert response["IsTruncated"] is False
 
 
@@ -1981,12 +2054,12 @@ def test_managed_policy():
             aws_policies.append(policy)
         marker = response.get("Marker")
     aws_managed_policies = iam_backends[ACCOUNT_ID]["global"].aws_managed_policies
-    assert set(p.name for p in aws_managed_policies) == set(
+    assert {p.name for p in aws_managed_policies} == {
         p["PolicyName"] for p in aws_policies
-    )
+    }
 
     user_policies = conn.list_policies(Scope="Local")["Policies"]
-    assert set(["UserManagedPolicy"]) == set(p["PolicyName"] for p in user_policies)
+    assert {"UserManagedPolicy"} == {p["PolicyName"] for p in user_policies}
 
     marker = "0"
     all_policies = []
@@ -1995,9 +2068,9 @@ def test_managed_policy():
         for policy in response["Policies"]:
             all_policies.append(policy)
         marker = response.get("Marker")
-    assert set(p["PolicyName"] for p in aws_policies + user_policies) == set(
+    assert {p["PolicyName"] for p in aws_policies + user_policies} == {
         p["PolicyName"] for p in all_policies
-    )
+    }
 
     role_name = "my-new-role"
     conn.create_role(
@@ -2063,8 +2136,8 @@ def test_create_login_profile__duplicate():
     with pytest.raises(ClientError) as exc:
         conn.create_login_profile(UserName="my-user", Password="my-pass")
     err = exc.value.response["Error"]
-    assert err["Code"] == "User my-user already has password"
-    assert err["Message"] is None
+    assert err["Code"] == "EntityAlreadyExists"
+    assert err["Message"] == "User my-user already has password"
 
 
 @mock_aws()
@@ -2542,74 +2615,6 @@ def test_get_account_authorization_details():
     assert len(result["Policies"]) > 1
 
 
-@mock_aws
-def test_signing_certs():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    # Create the IAM user first:
-    client.create_user(UserName="testing")
-
-    # Upload the cert:
-    resp = client.upload_signing_certificate(
-        UserName="testing", CertificateBody=MOCK_CERT
-    )["Certificate"]
-    cert_id = resp["CertificateId"]
-
-    assert resp["UserName"] == "testing"
-    assert resp["Status"] == "Active"
-    assert resp["CertificateBody"] == MOCK_CERT
-    assert resp["CertificateId"]
-
-    # Upload a the cert with an invalid body:
-    with pytest.raises(ClientError) as ce:
-        client.upload_signing_certificate(
-            UserName="testing", CertificateBody="notacert"
-        )
-    assert ce.value.response["Error"]["Code"] == "MalformedCertificate"
-
-    # Upload with an invalid user:
-    with pytest.raises(ClientError):
-        client.upload_signing_certificate(
-            UserName="notauser", CertificateBody=MOCK_CERT
-        )
-
-    # Update:
-    client.update_signing_certificate(
-        UserName="testing", CertificateId=cert_id, Status="Inactive"
-    )
-
-    with pytest.raises(ClientError):
-        client.update_signing_certificate(
-            UserName="notauser", CertificateId=cert_id, Status="Inactive"
-        )
-
-    fake_id_name = "x" * 32
-    with pytest.raises(ClientError) as ce:
-        client.update_signing_certificate(
-            UserName="testing", CertificateId=fake_id_name, Status="Inactive"
-        )
-
-    assert (
-        ce.value.response["Error"]["Message"]
-        == f"The Certificate with id {fake_id_name} cannot be found."
-    )
-
-    # List the certs:
-    resp = client.list_signing_certificates(UserName="testing")["Certificates"]
-    assert len(resp) == 1
-    assert resp[0]["CertificateBody"] == MOCK_CERT
-    assert resp[0]["Status"] == "Inactive"  # Changed with the update call above.
-
-    with pytest.raises(ClientError):
-        client.list_signing_certificates(UserName="notauser")
-
-    # Delete:
-    client.delete_signing_certificate(UserName="testing", CertificateId=cert_id)
-
-    with pytest.raises(ClientError):
-        client.delete_signing_certificate(UserName="notauser", CertificateId=cert_id)
-
-
 @mock_aws()
 def test_create_saml_provider():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -2623,6 +2628,34 @@ def test_create_saml_provider():
 
 
 @mock_aws()
+def test_create_saml_provider_with_samlmetadatadocument():
+    conn = boto3.client("iam", region_name="us-east-1")
+    response = conn.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument=MOCK_SAML_SAMPLE_METADATA
+    )
+    assert (
+        response["SAMLProviderArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:saml-provider/TestSAMLProvider"
+    )
+
+
+@mock_aws()
+def test_update_saml_provider_with_samlmetadatadocument():
+    conn = boto3.client("iam", region_name="us-east-1")
+    sam_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
+    )
+    saml_provider_update = conn.update_saml_provider(
+        SAMLMetadataDocument=MOCK_SAML_SAMPLE_METADATA,
+        SAMLProviderArn=sam_provider_create["SAMLProviderArn"],
+    )
+    response = conn.get_saml_provider(
+        SAMLProviderArn=saml_provider_update["SAMLProviderArn"]
+    )
+    assert response["SAMLMetadataDocument"] == MOCK_SAML_SAMPLE_METADATA
+
+
+@mock_aws()
 def test_get_saml_provider():
     conn = boto3.client("iam", region_name="us-east-1")
     saml_provider_create = conn.create_saml_provider(
@@ -2632,6 +2665,18 @@ def test_get_saml_provider():
         SAMLProviderArn=saml_provider_create["SAMLProviderArn"]
     )
     assert response["SAMLMetadataDocument"] == "a" * 1024
+
+
+@mock_aws()
+def test_get_saml_provider_with_samlmetadatadocument():
+    conn = boto3.client("iam", region_name="us-east-1")
+    saml_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument=MOCK_SAML_SAMPLE_METADATA
+    )
+    response = conn.get_saml_provider(
+        SAMLProviderArn=saml_provider_create["SAMLProviderArn"]
+    )
+    assert response["SAMLMetadataDocument"] == MOCK_SAML_SAMPLE_METADATA
 
 
 @mock_aws()
@@ -2722,9 +2767,7 @@ def test_create_role_with_tags():
     # Test creating tags with invalid values:
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.create_role(
             RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=too_many_tags
         )
@@ -2865,9 +2908,7 @@ def test_tag_role():
     # Test creating tags with invalid values:
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.tag_role(RoleName="my-role", Tags=too_many_tags)
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
@@ -3160,6 +3201,100 @@ def test_create_role_no_path():
 
 
 @mock_aws()
+def test_role_policy_encoding():
+    role_name = "my-role"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    assume_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Effect": "Allow",
+                "Condition": {
+                    "StringEquals": {"aws:SourceArn": "arn:aws:test%3Aencoded%3Astring"}
+                },
+            }
+        ],
+    }
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    resp = conn.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
+    )
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    resp = conn.get_role(RoleName=role_name)
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    conn.put_role_policy(
+        RoleName=role_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_role_policy(RoleName=role_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_user_policy_encoding():
+    user_name = "my-user"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_user(UserName=user_name)
+    conn.put_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_user_policy(UserName=user_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_group_policy_encoding():
+    group_name = "my-group"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_group(GroupName=group_name)
+    conn.put_group_policy(
+        GroupName=group_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_group_policy(GroupName=group_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
 @pytest.mark.parametrize(
     "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
 )
@@ -3204,9 +3339,6 @@ def test_create_role_with_permissions_boundary(region, partition):
             Description="test",
             PermissionsBoundary=invalid_boundary_arn,
         )
-
-    # Ensure the PermissionsBoundary is included in role listing as well
-    assert conn.list_roles()["Roles"][0].get("PermissionsBoundary") == expected
 
 
 @mock_aws
@@ -3256,6 +3388,7 @@ def test_update_account_password_policy():
         "AllowUsersToChangePassword": False,
         "ExpirePasswords": False,
         "MinimumPasswordLength": 6,
+        "MaxPasswordAge": 0,
         "RequireLowercaseCharacters": False,
         "RequireNumbers": False,
         "RequireSymbols": False,
@@ -3558,8 +3691,8 @@ def test_role_list_config_discovered_resources():
     # The roles gets a random ID, so we can't directly test it
     role = result[0]
     assert role["type"] == "AWS::IAM::Role"
-    assert role["id"] in list(map(lambda p: p["id"], roles))
-    assert role["name"] in list(map(lambda p: p["name"], roles))
+    assert role["id"] in [p["id"] for p in roles]
+    assert role["name"] in [p["name"] for p in roles]
     assert role["region"] == "global"
 
     # test passing list of resource ids
@@ -3795,7 +3928,7 @@ def test_role_config_dict():
     assert plain_role_config["awsRegion"] == "global"
     assert plain_role_config["availabilityZone"] == "Not Applicable"
     assert plain_role_config["resourceCreationTime"] is not None
-    assert plain_role_config["tags"] == {"foo": {"Key": "foo", "Value": "bar"}}
+    assert plain_role_config["tags"] == [{"Key": "foo", "Value": "bar"}]
     assert plain_role_config["configuration"]["path"] == "/"
     assert plain_role_config["configuration"]["roleName"] == "plain_role"
     assert plain_role_config["configuration"]["roleId"] == plain_role["id"]
@@ -4175,8 +4308,8 @@ def test_policy_list_config_discovered_resources():
 
     policy = result[0]
     assert policy["type"] == "AWS::IAM::Policy"
-    assert policy["id"] in list(map(lambda p: p["id"], policies))
-    assert policy["name"] in list(map(lambda p: p["name"], policies))
+    assert policy["id"] in [p["id"] for p in policies]
+    assert policy["name"] in [p["name"] for p in policies]
     assert policy["region"] == "global"
 
     # test passing list of resource ids
@@ -4652,8 +4785,8 @@ def test_list_roles():
     assert role2["Description"] == "desc"
     assert "Description" not in role3
 
-    assert all([role["CreateDate"] for role in all_roles])
-    assert all([role["MaxSessionDuration"] for role in all_roles])
+    assert all(role["CreateDate"] for role in all_roles)
+    assert all(role["MaxSessionDuration"] for role in all_roles)
 
 
 @mock_aws()

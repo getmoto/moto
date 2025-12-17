@@ -39,6 +39,7 @@ ce
 - [ ] get_anomaly_monitors
 - [ ] get_anomaly_subscriptions
 - [ ] get_approximate_usage_records
+- [ ] get_commitment_purchase_analysis
 - [X] get_cost_and_usage
   
         There is no validation yet on any of the input parameters.
@@ -83,8 +84,10 @@ ce
             resp = ce.get_cost_and_usage(...)
         
 
+- [ ] get_cost_and_usage_comparisons
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
+- [ ] get_cost_comparison_drivers
 - [ ] get_cost_forecast
 - [ ] get_dimension_values
 - [ ] get_reservation_coverage
@@ -98,12 +101,14 @@ ce
 - [ ] get_savings_plans_utilization_details
 - [ ] get_tags
 - [ ] get_usage_forecast
+- [ ] list_commitment_purchase_analyses
 - [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
+- [ ] start_commitment_purchase_analysis
 - [ ] start_cost_allocation_tag_backfill
 - [ ] start_savings_plans_purchase_recommendation_generation
 - [X] tag_resource

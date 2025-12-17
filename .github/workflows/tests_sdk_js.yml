@@ -1,0 +1,28 @@
+name: JS SDK test
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.11"
+    - name: Start MotoServer
+      uses: ./.github/actions/run_moto_server
+    - uses: actions/setup-node@v6
+    - name: Install dependencies
+      run: |
+        pwd
+        ls -la
+        cd other_langs/tests_js && npm install
+    - name: Run tests
+      run: |
+        pwd
+        ls -la
+        cd other_langs/tests_js && npm test

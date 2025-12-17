@@ -1,6 +1,7 @@
 import re
 import string
-from typing import Pattern, Union
+from re import Pattern
+from typing import Union
 
 from moto.moto_api._internal import mock_random as random
 
@@ -15,6 +16,7 @@ SCP_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/service_control_policy/{
 AI_POLICY_ARN_FORMAT = (
     "arn:{0}:organizations::{1}:policy/{2}/aiservices_opt_out_policy/{3}"
 )
+TAG_POLICY_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/tag_policy/{3}"
 
 CHARSET = string.ascii_lowercase + string.digits
 ORG_ID_SIZE = 10
@@ -45,14 +47,14 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 20,
         "result_key": "Accounts",
-        "unique_attribute": "JoinedTimestamp",
+        "unique_attribute": "id",
     },
     "list_organizational_units_for_parent": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 20,
         "result_key": "OrganizationalUnits",
-        "unique_attribute": "Id",
+        "unique_attribute": "id",
     },
 }
 

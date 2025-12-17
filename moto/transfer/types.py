@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from moto.core.common_models import BaseModel
 
@@ -24,22 +24,20 @@ class User(BaseModel):
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: List[Dict[str, Optional[str]]] = field(
+    home_directory_mappings: list[dict[str, Optional[str]]] = field(
         default_factory=list
     )
-    posix_profile: Dict[str, Optional[Union[str, List[str]]]] = field(
+    posix_profile: dict[str, Optional[Union[str, list[str]]]] = field(
         default_factory=dict
     )
-    ssh_public_keys: List[Dict[str, str]] = field(default_factory=list)
-    tags: List[Dict[str, str]] = field(default_factory=list)
+    ssh_public_keys: list[dict[str, str]] = field(default_factory=list)
+    tags: list[dict[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(
-        self,
-    ) -> Dict[str, Any]:  # type: ignore[misc]
+    def to_dict(self) -> dict[str, Any]:
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -115,7 +113,7 @@ class ServerState(str, Enum):
     STOP_FAILED = "STOP_FAILED"
 
 
-AS2_TRANSPORTS_TYPE = List[Literal["HTTP"]]
+AS2_TRANSPORTS_TYPE = list[Literal["HTTP"]]
 
 
 @dataclass
@@ -128,21 +126,21 @@ class Server(BaseModel):
     logging_role: Optional[str]
     post_authentication_login_banner: Optional[str]
     pre_authentication_login_banner: Optional[str]
-    protocols: Optional[List[ServerProtocols]]
+    protocols: Optional[list[ServerProtocols]]
     security_policy_name: Optional[str]
-    structured_log_destinations: Optional[List[str]]
+    structured_log_destinations: Optional[list[str]]
     arn: str = field(default="", init=False)
-    as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
-    endpoint_details: Dict[str, str] = field(default_factory=dict)
-    identity_provider_details: Dict[str, str] = field(default_factory=dict)
-    protocol_details: Dict[str, str] = field(default_factory=dict)
-    s3_storage_options: Dict[str, Optional[str]] = field(default_factory=dict)
+    as2_service_managed_egress_ip_addresses: list[str] = field(default_factory=list)
+    endpoint_details: dict[str, str] = field(default_factory=dict)
+    identity_provider_details: dict[str, str] = field(default_factory=dict)
+    protocol_details: dict[str, str] = field(default_factory=dict)
+    s3_storage_options: dict[str, Optional[str]] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
-    tags: List[Dict[str, str]] = field(default_factory=list)
+    tags: list[dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
-    workflow_details: Dict[str, List[Dict[str, str]]] = field(default_factory=dict)
-    _users: List[User] = field(default_factory=list, repr=False)
+    workflow_details: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    _users: list[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
         if self.arn == "":
@@ -152,7 +150,7 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def to_dict(self) -> dict[str, Any]:
         on_upload = []
         on_partial_upload = []
         if self.workflow_details is not None:

@@ -4,6 +4,7 @@ import boto3
 import pytest
 
 from moto import mock_aws
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from . import ec2_aws_verified
@@ -59,8 +60,8 @@ class launch_template_context:
 
 
 @pytest.mark.aws_verified
-@ec2_aws_verified
-def test_launch_template_is_created_properly():
+@ec2_aws_verified()
+def test_launch_template_is_created_properly(ec2_client=None):
     with launch_template_context() as ctxt:
         template = ctxt.ec2.describe_launch_templates()["LaunchTemplates"][0]
         assert template["DefaultVersionNumber"] == 1
@@ -209,8 +210,8 @@ def test_create_diversified_spot_fleet():
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 2
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.small", "t2.large"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.small", "t2.large"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -266,8 +267,8 @@ def test_request_fleet_using_launch_template_config__name(
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 3
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.medium"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.medium"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -329,6 +330,143 @@ def test_create_fleet_request_with_tags():
 
 
 @mock_aws
+def test_create_fleet_request_with_instance_tags_and_fleet_type_instant():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    launch_template_id, _ = get_launch_template(conn)
+    tags = [
+        {"Key": "Name", "Value": "test-fleet"},
+        {"Key": "Another", "Value": "tag"},
+    ]
+    fleet_res = conn.create_fleet(
+        DryRun=False,
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        Type="instant",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": tags,
+            },
+        ],
+    )
+    fleet_id = fleet_res["FleetId"]
+
+    instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
+    instances = conn.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in instance_res["ActiveInstances"]]
+    )
+    for instance in instances["Reservations"][0]["Instances"]:
+        for tag in tags:
+            assert tag in instance["Tags"]
+
+
+@mock_aws
+def test_create_fleet_request_rejects_instance_tags_when_type_request():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    launch_template_id, _ = get_launch_template(conn)
+    tags = [
+        {"Key": "Name", "Value": "test-fleet"},
+        {"Key": "Another", "Value": "tag"},
+    ]
+    tags_instance = [
+        {"Key": "test", "Value": "value"},
+        {"Key": "Name", "Value": "test"},
+    ]
+    fleet_res = conn.create_fleet(
+        DryRun=False,
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        Type="request",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": tags,
+            },
+        ],
+    )
+    fleet_id = fleet_res["FleetId"]
+
+    instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
+    instances = conn.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in instance_res["ActiveInstances"]]
+    )
+    for instance in instances["Reservations"][0]["Instances"]:
+        for tag in tags_instance:
+            assert tag in instance["Tags"]
+        for tag in tags:
+            # When fleet_type="request", TagSpecifications with ResourceType="instance" are ignored
+            # according to the AWS spec. So we assert that these tags are not applied to instances.
+            assert tag not in instance["Tags"]
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "overrides", [{"InstanceType": "t2.nano"}, {"AvailabilityZone": "us-west-1"}]
+)
+def test_create_fleet_using_launch_template_config__overrides_single(overrides):
+    conn = boto3.client("ec2", region_name="us-east-2")
+
+    template_id, _ = get_launch_template(conn, instance_type="t2.medium")
+
+    fleet_id = conn.create_fleet(
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {"LaunchTemplateId": template_id},
+                # Verify we parse the incoming parameters correctly,
+                # even when only supplying a dictionary with a single key
+                "Overrides": [overrides],
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "TotalTargetCapacity": 1,
+        },
+    )["FleetId"]
+
+    fleet = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"][0]
+    lt_config = fleet["LaunchTemplateConfigs"][0]
+    assert lt_config["Overrides"] == [overrides]
+
+
+@mock_aws
 def test_create_fleet_using_launch_template_config__overrides():
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)
@@ -382,8 +520,8 @@ def test_create_fleet_using_launch_template_config__overrides():
 
 
 @pytest.mark.aws_verified
-@ec2_aws_verified
-def test_delete_fleet():
+@ec2_aws_verified()
+def test_delete_fleet(ec2_client=None):
     with launch_template_context() as ctxt:
         fleet_res = ctxt.ec2.create_fleet(
             LaunchTemplateConfigs=[
@@ -573,8 +711,8 @@ def test_create_fleet_api_response():
                     "LocalStorage": "included",
                     "LocalStorageTypes": ["ssd"],
                     "MemoryGiBPerVCpu": {
-                        "Min": 1,
-                        "Max": 160,
+                        "Min": 1.0,
+                        "Max": 160.0,
                     },
                     "MemoryMiB": {
                         "Min": 2048,
@@ -588,8 +726,8 @@ def test_create_fleet_api_response():
                     "RequireHibernateSupport": True,
                     "SpotMaxPricePercentageOverLowestPrice": 99999,
                     "TotalLocalStorageGB": {
-                        "Min": 100,
-                        "Max": 10000,
+                        "Min": 100.0,
+                        "Max": 10000.0,
                     },
                     "VCpuCount": {
                         "Min": 2,
@@ -597,9 +735,9 @@ def test_create_fleet_api_response():
                     },
                 },
                 "MaxPrice": "0.5",
-                "Priority": 2,
+                "Priority": 2.0,
                 "SubnetId": subnet_id,
-                "WeightedCapacity": 1,
+                "WeightedCapacity": 1.0,
             },
         ],
     }
@@ -683,3 +821,43 @@ def test_create_fleet_api_response():
     assert fleet_res[0]["ValidFrom"].isoformat() == "2020-01-01T00:00:00+00:00"
     assert "ValidUntil" in fleet_res[0]
     assert fleet_res[0]["ValidUntil"].isoformat() == "2020-12-31T00:00:00+00:00"
+
+
+@mock_aws
+def test_user_data():
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    user_data = Base64EncodedString.from_raw_string("test user data")
+    template_args = {
+        "LaunchTemplateName": "test-template",
+        "LaunchTemplateData": {
+            "ImageId": "ami-0157ed312f9c59a91",
+            "InstanceType": "t3.nano",
+            "UserData": str(user_data),
+        },
+    }
+    ec2_client.create_launch_template(**template_args)
+    fleet_args = {
+        "OnDemandOptions": {
+            "AllocationStrategy": "lowest-price",
+        },
+        "TargetCapacitySpecification": {
+            "TotalTargetCapacity": 1,
+            "DefaultTargetCapacityType": "on-demand",
+        },
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "test-template",
+                    "Version": "$Latest",
+                },
+            },
+        ],
+        "Type": "instant",
+    }
+    fleet = ec2_client.create_fleet(**fleet_args)
+    instance = fleet["Instances"][0]
+    attrs = ec2_client.describe_instance_attribute(
+        InstanceId=instance["InstanceIds"][0],
+        Attribute="userData",
+    )
+    assert attrs["UserData"]["Value"] == str(user_data)

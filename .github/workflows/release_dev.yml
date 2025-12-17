@@ -1,0 +1,57 @@
+name: Release Dev
+
+on: [workflow_dispatch]
+
+jobs:
+
+  release:
+    name: Dev Release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      pull-requests: write
+    if: ${{ github.repository == 'getmoto/moto' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Update & Build
+        run: |
+          pip install build
+          python update_version_from_git.py
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Build Docker release
+        run: |
+          docker build -t motoserver/moto . --tag moto:latest
+      # Required to get the correct Digest
+      # See https://github.com/docker/build-push-action/issues/461
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to DockerHub and GHCR
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            motoserver/moto:latest
+            ghcr.io/getmoto/motoserver:latest

@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.bedrock.exceptions import (
     ResourceInUseException,
@@ -24,18 +24,18 @@ class ModelCustomizationJob(BaseModel):
         custom_model_name: str,
         role_arn: str,
         base_model_identifier: str,
-        training_data_config: Dict[str, str],
-        output_data_config: Dict[str, str],
-        hyper_parameters: Dict[str, str],
+        training_data_config: dict[str, str],
+        output_data_config: dict[str, str],
+        hyper_parameters: dict[str, str],
         region_name: str,
         account_id: str,
         client_request_token: Optional[str],
         customization_type: Optional[str],
         custom_model_kms_key_id: Optional[str],
-        job_tags: Optional[List[Dict[str, str]]],
-        custom_model_tags: Optional[List[Dict[str, str]]],
-        validation_data_config: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
+        job_tags: Optional[list[dict[str, str]]],
+        custom_model_tags: Optional[list[dict[str, str]]],
+        validation_data_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
     ):
         self.job_name = job_name
         self.custom_model_name = custom_model_name
@@ -94,7 +94,7 @@ class ModelCustomizationJob(BaseModel):
         self.training_metrics = {"trainingLoss": 0.0}  # hard coded
         self.validation_metrics = [{"validationLoss": 0.0}]  # hard coded
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "baseModelArn": self.base_model_arn,
             "clientRequestToken": self.client_request_token,
@@ -128,17 +128,17 @@ class CustomModel(BaseModel):
         job_name: str,
         job_arn: str,
         base_model_arn: str,
-        hyper_parameters: Dict[str, str],
-        output_data_config: Dict[str, str],
-        training_data_config: Dict[str, str],
-        training_metrics: Dict[str, float],
+        hyper_parameters: dict[str, str],
+        output_data_config: dict[str, str],
+        training_data_config: dict[str, str],
+        training_metrics: dict[str, float],
         base_model_name: str,
         region_name: str,
         account_id: str,
         customization_type: Optional[str],
         model_kms_key_arn: Optional[str],
-        validation_data_config: Optional[Dict[str, Any]],
-        validation_metrics: Optional[List[Dict[str, float]]],
+        validation_data_config: Optional[dict[str, Any]],
+        validation_metrics: Optional[list[dict[str, float]]],
     ):
         self.model_name = model_name
         self.job_name = job_name
@@ -158,7 +158,7 @@ class CustomModel(BaseModel):
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.base_model_name = base_model_name
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "baseModelArn": self.base_model_arn,
             "creationTime": self.creation_time,
@@ -179,7 +179,7 @@ class CustomModel(BaseModel):
 
 
 class model_invocation_logging_configuration(BaseModel):
-    def __init__(self, logging_config: Dict[str, Any]) -> None:
+    def __init__(self, logging_config: dict[str, Any]) -> None:
         self.logging_config = logging_config
 
 
@@ -191,26 +191,26 @@ class BedrockBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "jobArn",
+            "unique_attribute": "job_arn",
         },
         "list_custom_models": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "modelArn",
+            "unique_attribute": "model_arn",
         },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.model_customization_jobs: Dict[str, ModelCustomizationJob] = {}
-        self.custom_models: Dict[str, CustomModel] = {}
+        self.model_customization_jobs: dict[str, ModelCustomizationJob] = {}
+        self.custom_models: dict[str, CustomModel] = {}
         self.model_invocation_logging_configuration: Optional[
             model_invocation_logging_configuration
         ] = None
         self.tagger = TaggingService()
 
-    def _list_arns(self) -> List[str]:
+    def _list_arns(self) -> list[str]:
         return [job.job_arn for job in self.model_customization_jobs.values()] + [
             model.model_arn for model in self.custom_models.values()
         ]
@@ -221,16 +221,16 @@ class BedrockBackend(BaseBackend):
         custom_model_name: str,
         role_arn: str,
         base_model_identifier: str,
-        training_data_config: Dict[str, Any],
-        output_data_config: Dict[str, str],
-        hyper_parameters: Dict[str, str],
+        training_data_config: dict[str, Any],
+        output_data_config: dict[str, str],
+        hyper_parameters: dict[str, str],
         client_request_token: Optional[str],
         customization_type: Optional[str],
         custom_model_kms_key_id: Optional[str],
-        job_tags: Optional[List[Dict[str, str]]],
-        custom_model_tags: Optional[List[Dict[str, str]]],
-        validation_data_config: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
+        job_tags: Optional[list[dict[str, str]]],
+        custom_model_tags: Optional[list[dict[str, str]]],
+        validation_data_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
     ) -> str:
         if job_name in self.model_customization_jobs.keys():
             raise ResourceInUseException(
@@ -301,18 +301,16 @@ class BedrockBackend(BaseBackend):
             )
         return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_customization_jobs(
         self,
         creation_time_after: Optional[datetime],
         creation_time_before: Optional[datetime],
         status_equals: Optional[str],
         name_contains: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[Any]:
+    ) -> list[ModelCustomizationJob]:
         customization_jobs_fetched = list(self.model_customization_jobs.values())
 
         if name_contains is not None:
@@ -363,32 +361,16 @@ class BedrockBackend(BaseBackend):
             else:
                 raise ValidationException(f"Invalid sort by field: {sort_by}")
 
-        model_customization_job_summaries = []
-        for model in customization_jobs_fetched:
-            model_customization_job_summaries.append(
-                {
-                    "jobArn": model.job_arn,
-                    "baseModelArn": model.base_model_arn,
-                    "jobName": model.job_name,
-                    "status": model.status,
-                    "lastModifiedTime": model.last_modified_time,
-                    "creationTime": model.creation_time,
-                    "endTime": model.end_time,
-                    "customModelArn": model.output_model_arn,
-                    "customModelName": model.custom_model_name,
-                    "customizationType": model.customization_type,
-                }
-            )
-        return model_customization_job_summaries
+        return customization_jobs_fetched
 
-    def get_model_invocation_logging_configuration(self) -> Optional[Dict[str, Any]]:
+    def get_model_invocation_logging_configuration(self) -> Optional[dict[str, Any]]:
         if self.model_invocation_logging_configuration:
             return self.model_invocation_logging_configuration.logging_config
         else:
             return {}
 
     def put_model_invocation_logging_configuration(
-        self, logging_config: Dict[str, Any]
+        self, logging_config: dict[str, Any]
     ) -> None:
         invocation_logging = model_invocation_logging_configuration(logging_config)
         self.model_invocation_logging_configuration = invocation_logging
@@ -418,7 +400,7 @@ class BedrockBackend(BaseBackend):
             )
         return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_custom_models(
         self,
         creation_time_before: Optional[datetime],
@@ -426,11 +408,9 @@ class BedrockBackend(BaseBackend):
         name_contains: Optional[str],
         base_model_arn_equals: Optional[str],
         foundation_model_arn_equals: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[Any]:
+    ) -> list[CustomModel]:
         """
         The foundation_model_arn_equals-argument is not yet supported
         """
@@ -483,22 +463,9 @@ class BedrockBackend(BaseBackend):
                     raise ValidationException(f"Invalid sort order: {sort_order}")
             else:
                 raise ValidationException(f"Invalid sort by field: {sort_by}")
-        model_summaries = []
-        for model in custom_models_fetched:
-            model_summaries.append(
-                {
-                    "modelArn": model.model_arn,
-                    "modelName": model.model_name,
-                    "creationTime": model.creation_time,
-                    "baseModelArn": model.base_model_arn,
-                    "baseModelName": model.base_model_name,
-                    "jobArn": model.job_arn,
-                    "customizationType": model.customization_type,
-                }
-            )
-        return model_summaries
+        return custom_models_fetched
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         fixed_tags = []
@@ -511,13 +478,13 @@ class BedrockBackend(BaseBackend):
         self.tagger.tag_resource(resource_arn, fixed_tags)
         return
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         if resource_arn not in self._list_arns():
             raise ResourceNotFoundException(f"Resource {resource_arn} not found")
         tags = self.tagger.list_tags_for_resource(resource_arn)

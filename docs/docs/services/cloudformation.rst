@@ -33,6 +33,7 @@ cloudformation
         The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
         
 
+- [ ] create_stack_refactor
 - [X] create_stack_set
   
         The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
@@ -53,6 +54,7 @@ cloudformation
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_change_set_hooks
+- [ ] describe_events
 - [ ] describe_generated_template
 - [ ] describe_organizations_access
 - [ ] describe_publisher
@@ -60,6 +62,7 @@ cloudformation
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
+- [ ] describe_stack_refactor
 - [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [X] describe_stack_resources
@@ -73,7 +76,9 @@ cloudformation
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
+- [ ] execute_stack_refactor
 - [ ] get_generated_template
+- [ ] get_hook_result
 - [X] get_stack_policy
 - [X] get_template
 - [ ] get_template_summary
@@ -81,6 +86,7 @@ cloudformation
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_generated_templates
+- [ ] list_hook_results
 - [ ] list_imports
 - [ ] list_resource_scan_related_resources
 - [ ] list_resource_scan_resources
@@ -92,6 +98,8 @@ cloudformation
         The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
         
 
+- [ ] list_stack_refactor_actions
+- [ ] list_stack_refactors
 - [X] list_stack_resources
 - [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results

@@ -15,7 +15,6 @@ from .hosts import HostsResponse
 from .iam_instance_profiles import IamInstanceProfiles
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
-from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
 from .launch_templates import LaunchTemplates
 from .monitoring import Monitoring
@@ -55,7 +54,6 @@ class EC2Response(
     InstanceResponse,
     InternetGateways,
     EgressOnlyInternetGateway,
-    IPAddresses,
     KeyPairs,
     LaunchTemplates,
     Monitoring,
@@ -84,6 +82,7 @@ class EC2Response(
 ):
     def __init__(self) -> None:
         super().__init__(service_name="ec2")
+        self.automated_parameter_parsing = True
 
     @property
     def should_autoescape(self) -> bool:

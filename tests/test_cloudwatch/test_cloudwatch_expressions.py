@@ -129,4 +129,4 @@ def test_get_metric_data_with_expressive_expression():
             return
         else:
             sleep(5)
-    assert False, "Should have found metrics within 5 minutes"
+    raise AssertionError("Should have found metrics within 5 minutes")

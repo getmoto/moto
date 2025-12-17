@@ -1,4 +1,7 @@
 import datetime
+import json
+import pickle
+from unittest import SkipTest
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -9,7 +12,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import DNSName, NameOID
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -388,11 +391,21 @@ def test_import_certificate_authority_certificate():
         CertificateAuthorityType="SUBORDINATE",
     )["CertificateAuthorityArn"]
 
-    cert = create_cert()
+    with pytest.raises(ClientError) as exc:
+        client.import_certificate_authority_certificate(
+            CertificateAuthorityArn=ca_arn,
+            Certificate="invalid certificate pem",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MalformedCertificateAuthorityException"
+    assert err["Message"] == "Malformed certificate."
 
+    cert = create_cert()
+    chain = create_cert()
     client.import_certificate_authority_certificate(
         CertificateAuthorityArn=ca_arn,
         Certificate=cert,
+        CertificateChain=chain,
     )
 
     ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
@@ -403,7 +416,13 @@ def test_import_certificate_authority_certificate():
     assert "NotAfter" in ca
 
     resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
+    # Verify certificate format
     assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
+    assert "-----END CERTIFICATE-----" in resp["Certificate"]
+
+    # Verify certificate chain format
+    assert "-----BEGIN CERTIFICATE-----" in resp["CertificateChain"]
+    assert "-----END CERTIFICATE-----" in resp["CertificateChain"]
 
 
 @mock_aws
@@ -461,10 +480,24 @@ def test_end_entity_certificate_issuance():
     )
     builder = cryptography.x509.verification.PolicyBuilder().store(store)
     verifier = builder.build_server_verifier(DNSName("bezoscorp.com"))
-    chain = verifier.verify(
-        cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8")), []
-    )
+    ee_x509 = cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8"))
+    chain = verifier.verify(ee_x509, [])
     assert len(chain) == 2
+
+    # Ensure extensions are passed through
+    san_extension = ee_x509.extensions.get_extension_for_oid(
+        cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+    )
+    assert san_extension.value.get_values_for_type(cryptography.x509.OtherName)
+    assert san_extension.value.get_values_for_type(cryptography.x509.RFC822Name) == [
+        "hello@moto.com"
+    ]
+    assert san_extension.value.get_values_for_type(cryptography.x509.DNSName) == [
+        "bezoscorp.com"
+    ]
+    assert san_extension.value.get_values_for_type(
+        cryptography.x509.UniformResourceIdentifier
+    ) == ["https://github.com/getmoto/moto"]
 
 
 @mock_aws
@@ -513,6 +546,46 @@ def test_untag_certificate_authority():
     assert resp["Tags"] == [{"Key": "t2", "Value": "v2"}]
 
 
+@mock_aws
+def test_acmpca_backend_is_serialisable():
+    # This test ensures that the backend does not store any non-picklable objects (e.g. native OpenSSL objects)
+    # This is important for downstream projects like LocalStack
+
+    client = boto3.client("acm-pca", region_name="eu-west-1")
+
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "yscb41lw.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+    )["CertificateAuthorityArn"]
+
+    cert = create_cert()
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+    client.update_certificate_authority(
+        CertificateAuthorityArn=ca_arn,
+        Status="DISABLED",
+    )
+
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA512WITHRSA",
+        Validity={"Type": "YEARS", "Value": 10},
+    )
+    client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)
+
+    from moto.acmpca import acmpca_backends
+
+    assert pickle.dumps(acmpca_backends)
+
+
 def create_csr(private_key, country, state, org, cn):
     csr = (
         cryptography.x509.CertificateSigningRequestBuilder()
@@ -537,6 +610,22 @@ def create_csr(private_key, country, state, org, cn):
         .add_extension(
             cryptography.x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
+        )
+        .add_extension(
+            cryptography.x509.SubjectAlternativeName(
+                [
+                    cryptography.x509.DNSName(cn),
+                    cryptography.x509.RFC822Name("hello@moto.com"),
+                    cryptography.x509.OtherName(
+                        type_id=cryptography.x509.ObjectIdentifier("2.5.4.3"),
+                        value=b"\x13\x02mo",
+                    ),
+                    cryptography.x509.UniformResourceIdentifier(
+                        "https://github.com/getmoto/moto"
+                    ),
+                ]
+            ),
+            critical=False,
         )
         .sign(private_key, hashes.SHA256())
     )
@@ -579,3 +668,285 @@ def create_cert():
     )
 
     return cert.public_bytes(serialization.Encoding.PEM)
+
+
+@mock_aws
+def test_policy_operations():
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create and activate a CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "test.example.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Get CSR and issue certificate to activate the CA
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+    cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )["Certificate"]
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+
+    # Test policy operations
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": "012345678901"},
+                "Action": ["acm-pca:IssueCertificate"],
+                "Resource": ca_arn,
+            }
+        ],
+    }
+
+    # Put policy
+    client.put_policy(ResourceArn=ca_arn, Policy=json.dumps(policy))
+
+    # Get and verify policy
+    response = client.get_policy(ResourceArn=ca_arn)
+    assert json.loads(response["Policy"]) == policy
+
+    # Delete policy
+    client.delete_policy(ResourceArn=ca_arn)
+
+    # Get policy should now fail
+    with pytest.raises(ClientError) as exc:
+        client.get_policy(ResourceArn=ca_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_certificate_authorities():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot verify backend state in server mode")
+
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create first CA
+    ca1_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca1.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+        IdempotencyToken="token1",
+    )["CertificateAuthorityArn"]
+
+    # Create second CA
+    ca2_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca2.test"},
+        },
+        CertificateAuthorityType="ROOT",
+        IdempotencyToken="token2",
+    )["CertificateAuthorityArn"]
+
+    # List all CAs
+    response = client.list_certificate_authorities()
+
+    # Verify response structure and content
+    assert "CertificateAuthorities" in response
+    cas = response["CertificateAuthorities"]
+    assert len(cas) == 2
+
+    # Verify CAs are returned with correct information
+    ca_arns = [ca["Arn"] for ca in cas]
+    assert ca1_arn in ca_arns
+    assert ca2_arn in ca_arns
+
+    # Verify CA details
+    for ca in cas:
+        assert "Arn" in ca
+        assert "CreatedAt" in ca
+        assert "Status" in ca
+        assert "Type" in ca
+        if ca["Arn"] == ca1_arn:
+            assert ca["Type"] == "SUBORDINATE"
+            assert ca["Status"] == "PENDING_CERTIFICATE"
+            assert (
+                ca["CertificateAuthorityConfiguration"]["Subject"]["CommonName"]
+                == "ca1.test"
+            )
+        else:
+            assert ca["Type"] == "ROOT"
+            assert ca["Status"] == "PENDING_CERTIFICATE"
+            assert (
+                ca["CertificateAuthorityConfiguration"]["Subject"]["CommonName"]
+                == "ca2.test"
+            )
+
+    # Test with MaxResults parameter
+    response = client.list_certificate_authorities(MaxResults=1)
+    assert len(response["CertificateAuthorities"]) == 1
+    assert "NextToken" in response
+
+
+@mock_aws
+def test_root_certificate_has_no_chain():
+    """Root CA certificates should not include CertificateChain in response"""
+    client = boto3.client("acm-pca", region_name="us-east-2")
+
+    # Create Root CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "root.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Issue root certificate
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    # Get certificate and verify no chain
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )
+
+    assert "Certificate" in resp
+    assert "CertificateChain" not in resp
+    assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
+
+
+@mock_aws
+def test_end_entity_certificate_includes_chain():
+    """End-entity certificates should include the issuing CA certificate as chain"""
+    client = boto3.client("acm-pca", region_name="us-east-2")
+
+    # Create and activate Root CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Activate CA
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    ca_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    ca_cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ca_cert_arn
+    )["Certificate"]
+
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=ca_cert,
+    )
+
+    # Issue end-entity certificate
+    private_key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
+        public_exponent=65537, key_size=2048
+    )
+    ee_csr = create_csr(private_key, "US", "WA", "TestOrg", "app.test.com")
+
+    ee_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=ee_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "DAYS", "Value": 365},
+    )["CertificateArn"]
+
+    # Get end-entity certificate and verify chain
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ee_cert_arn
+    )
+
+    assert "Certificate" in resp
+    assert "CertificateChain" in resp
+    assert resp["Certificate"] != resp["CertificateChain"]
+    assert resp["CertificateChain"] == ca_cert
+
+
+@mock_aws
+def test_certificate_chain_is_valid_pem():
+    """Certificate chain should be valid PEM format"""
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create and activate CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "issuer.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    ca_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    ca_cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ca_cert_arn
+    )["Certificate"]
+
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=ca_cert,
+    )
+
+    # Issue certificate
+    private_key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
+        public_exponent=65537, key_size=2048
+    )
+    ee_csr = create_csr(private_key, "US", "NY", "Company", "service.test.com")
+
+    cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=ee_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "MONTHS", "Value": 12},
+    )["CertificateArn"]
+
+    # Verify chain format
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=cert_arn
+    )
+
+    chain = resp["CertificateChain"]
+    assert chain.startswith("-----BEGIN CERTIFICATE-----")
+    assert chain.endswith("-----END CERTIFICATE-----")
+
+    # Verify chain is loadable as X.509
+    chain_x509 = cryptography.x509.load_pem_x509_certificate(chain.encode("utf-8"))
+    assert chain_x509 is not None

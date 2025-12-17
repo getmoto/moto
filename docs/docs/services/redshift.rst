@@ -36,6 +36,7 @@ redshift
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
+- [ ] create_integration
 - [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
@@ -54,6 +55,7 @@ redshift
 - [ ] delete_event_subscription
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
+- [ ] delete_integration
 - [ ] delete_partner
 - [ ] delete_redshift_idc_application
 - [ ] delete_resource_policy
@@ -62,11 +64,12 @@ redshift
 - [ ] delete_snapshot_schedule
 - [X] delete_tags
 - [ ] delete_usage_limit
+- [ ] deregister_namespace
 - [ ] describe_account_attributes
 - [ ] describe_authentication_profiles
 - [ ] describe_cluster_db_revisions
 - [X] describe_cluster_parameter_groups
-- [ ] describe_cluster_parameters
+- [X] describe_cluster_parameters
 - [X] describe_cluster_security_groups
 - [X] describe_cluster_snapshots
 - [X] describe_cluster_subnet_groups
@@ -77,7 +80,7 @@ redshift
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
-- [ ] describe_default_cluster_parameters
+- [X] describe_default_cluster_parameters
 - [ ] describe_endpoint_access
 - [ ] describe_endpoint_authorization
 - [ ] describe_event_categories
@@ -86,7 +89,8 @@ redshift
 - [ ] describe_hsm_client_certificates
 - [ ] describe_hsm_configurations
 - [ ] describe_inbound_integrations
-- [ ] describe_logging_status
+- [ ] describe_integrations
+- [X] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
@@ -102,14 +106,15 @@ redshift
 - [ ] describe_table_restore_status
 - [X] describe_tags
 - [ ] describe_usage_limits
-- [ ] disable_logging
+- [X] disable_logging
 - [X] disable_snapshot_copy
 - [ ] disassociate_data_share_consumer
-- [ ] enable_logging
+- [X] enable_logging
 - [X] enable_snapshot_copy
 - [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
+- [ ] get_identity_center_auth_token
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
@@ -127,6 +132,8 @@ redshift
 - [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
+- [ ] modify_integration
+- [ ] modify_lakehouse_configuration
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
@@ -136,6 +143,7 @@ redshift
 - [ ] purchase_reserved_node_offering
 - [ ] put_resource_policy
 - [ ] reboot_cluster
+- [ ] register_namespace
 - [ ] reject_data_share
 - [ ] reset_cluster_parameter_group
 - [ ] resize_cluster

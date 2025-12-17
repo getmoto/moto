@@ -135,7 +135,7 @@ def test_delete_stack_with_subnet():
 
 
 @mock_aws
-def test_elastic_network_interfaces_cloudformation_boto3():
+def test_elastic_network_interfaces_cloudformation():
     template = vpc_eni.template
     template_json = json.dumps(template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -301,7 +301,7 @@ def get_resource_id(resource_type, stack_resources):
 
 
 @mock_aws
-def test_subnet_tags_through_cloudformation_boto3():
+def test_subnet_tags_through_cloudformation():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2_res = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2_res.create_vpc(CidrBlock="10.0.0.0/16")

@@ -1,7 +1,7 @@
 import copy
 import logging
 import threading
-from typing import Any, Final, List, Optional, Set
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.program.program import Program
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
@@ -40,21 +40,17 @@ class JobPool:
     _worker_exception: Optional[Exception]
 
     _jobs_number: Final[int]
-    _open_jobs: Final[List[Job]]
-    _closed_jobs: Final[Set[JobClosed]]
+    _open_jobs: Final[list[Job]]
+    _closed_jobs: Final[set[JobClosed]]
 
-    def __init__(self, job_program: Program, job_inputs: List[Any]):
+    def __init__(self, job_program: Program, job_inputs: list[Any]):
         self._mutex = threading.Lock()
         self._termination_event = threading.Event()
         self._worker_exception = None
 
         self._jobs_number = len(job_inputs)
         self._open_jobs = [
-            Job(
-                job_index=job_index,
-                job_program=copy.deepcopy(job_program),
-                job_input=job_input,
-            )
+            Job(job_index=job_index, job_program=job_program, job_input=job_input)
             for job_index, job_input in enumerate(job_inputs)
         ]
         self._open_jobs.reverse()
@@ -89,7 +85,9 @@ class JobPool:
 
             if job in self._closed_jobs:
                 LOG.warning(
-                    f"Duplicate execution of Job with index '{job.job_index}' and input '{to_json_str(job.job_input)}'"
+                    "Duplicate execution of Job with index '%s' and input '%s'",
+                    job.job_index,
+                    to_json_str(job.job_input),
                 )
 
             if isinstance(job.job_output, Exception):
@@ -101,7 +99,7 @@ class JobPool:
 
             self._notify_on_termination()
 
-    def get_closed_jobs(self) -> List[JobClosed]:
+    def get_closed_jobs(self) -> list[JobClosed]:
         with self._mutex:
             closed_jobs = copy.deepcopy(self._closed_jobs)
         return sorted(closed_jobs, key=lambda closed_job: closed_job.job_index)

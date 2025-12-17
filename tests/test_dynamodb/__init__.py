@@ -13,7 +13,9 @@ def dynamodb_aws_verified(
     numeric_range: bool = False,
     add_gsi: bool = False,
     add_gsi_range: bool = False,
+    gsi_projection_type: str = "ALL",
     add_lsi: bool = False,
+    lsi_projection_type: str = "ALL",
     numeric_gsi_range: bool = False,
     numeric_lsi_range: bool = False,
 ):
@@ -33,7 +35,7 @@ def dynamodb_aws_verified(
     def inner(func):
         @wraps(func)
         def pagination_wrapper(**kwargs):
-            table_name = "t" + str(uuid4())[0:6]
+            table_name = "T" + str(uuid4())[0:6]
             if create_table:
                 kwargs["table_name"] = table_name
 
@@ -64,7 +66,7 @@ def dynamodb_aws_verified(
                             "KeySchema": [
                                 {"AttributeName": "gsi_pk", "KeyType": "HASH"},
                             ],
-                            "Projection": {"ProjectionType": "ALL"},
+                            "Projection": {"ProjectionType": gsi_projection_type},
                             "ProvisionedThroughput": {
                                 "ReadCapacityUnits": 1,
                                 "WriteCapacityUnits": 1,
@@ -82,7 +84,7 @@ def dynamodb_aws_verified(
                                 {"AttributeName": "gsi_pk", "KeyType": "HASH"},
                                 {"AttributeName": "gsi_sk", "KeyType": "RANGE"},
                             ],
-                            "Projection": {"ProjectionType": "ALL"},
+                            "Projection": {"ProjectionType": gsi_projection_type},
                             "ProvisionedThroughput": {
                                 "ReadCapacityUnits": 1,
                                 "WriteCapacityUnits": 1,
@@ -103,7 +105,7 @@ def dynamodb_aws_verified(
                                 {"AttributeName": "pk", "KeyType": "HASH"},
                                 {"AttributeName": "lsi_sk", "KeyType": "RANGE"},
                             ],
-                            "Projection": {"ProjectionType": "ALL"},
+                            "Projection": {"ProjectionType": lsi_projection_type},
                         }
                     ]
                     db_kwargs["AttributeDefinitions"].append(

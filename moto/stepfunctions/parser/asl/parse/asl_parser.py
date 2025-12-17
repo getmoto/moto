@@ -1,36 +1,38 @@
 import abc
-from typing import Final, List
+from typing import Final
 
-from antlr4 import CommonTokenStream, InputStream
+from antlr4 import CommonTokenStream, InputStream, ParserRuleContext
 from antlr4.error.ErrorListener import ErrorListener
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLParser import ASLParser
-from moto.stepfunctions.parser.asl.component.program.program import Program
+from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.parse.preprocessor import Preprocessor
 
 
 class SyntaxErrorListener(ErrorListener):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
     def __init__(self):
         super().__init__()
-        self.errors = list()
+        self.errors = []
 
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+    def syntaxError(
+        self, recognizer, offending_symbol, line, column, message, exception
+    ):
         log_parts = [f"line {line}:{column}"]
-        if offendingSymbol is not None and offendingSymbol.text:
-            log_parts.append(f"at {offendingSymbol.text}")
-        if msg:
-            log_parts.append(msg)
+        if offending_symbol is not None and offending_symbol.text:
+            log_parts.append(f"at {offending_symbol.text}")
+        if message:
+            log_parts.append(message)
         error_log = ", ".join(log_parts)
         self.errors.append(error_log)
 
 
 class ASLParserException(Exception):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
-    def __init__(self, errors: List[str]):
+    def __init__(self, errors: list[str]):
         self.errors = errors
 
     def __str__(self):
@@ -48,11 +50,11 @@ class ASLParserException(Exception):
 
 class AmazonStateLanguageParser(abc.ABC):
     @staticmethod
-    def parse(src: str) -> Program:
+    def parse(definition: str) -> tuple[EvalComponent, ParserRuleContext]:
         # Attempt to build the AST and look out for syntax errors.
         syntax_error_listener = SyntaxErrorListener()
 
-        input_stream = InputStream(src)
+        input_stream = InputStream(definition)
         lexer = ASLLexer(input_stream)
         stream = CommonTokenStream(lexer)
         parser = ASLParser(stream)
@@ -68,4 +70,4 @@ class AmazonStateLanguageParser(abc.ABC):
         preprocessor = Preprocessor()
         program = preprocessor.visit(tree)
 
-        return program
+        return program, tree

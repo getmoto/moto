@@ -1,13 +1,10 @@
 from typing import Any
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class ELBClientError(RESTError):
-    code = 400
-
-    def __init__(self, error_type: str, message: str):
-        super().__init__(error_type, message, template="wrapped_single_error")
+class ELBClientError(ServiceException):
+    pass
 
 
 class DuplicateTagKeysError(ELBClientError):

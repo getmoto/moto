@@ -46,7 +46,7 @@ class SignerResponse(BaseResponse):
 
     def list_signing_platforms(self) -> str:
         platforms = self.signer_backend.list_signing_platforms()
-        return json.dumps(dict(platforms=platforms))
+        return json.dumps({"platforms": platforms})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])

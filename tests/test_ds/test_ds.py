@@ -325,3 +325,226 @@ def test_ds_disable_sso():
     result = client.describe_directories()
     directory = result["DirectoryDescriptions"][0]
     assert not directory["SsoEnabled"]
+
+
+@mock_aws
+def test_create_trust():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Create a trust
+    trust_id = client.create_trust(
+        DirectoryId=directory_id,
+        RemoteDomainName="example.com",
+        TrustPassword="password",
+        TrustDirection="One-Way: Outgoing",
+        TrustType="External",
+    )["TrustId"]
+
+    assert trust_id is not None
+
+    # Describe the trust
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 1
+    assert trusts[0]["TrustId"] == trust_id
+    assert trusts[0]["DirectoryId"] == directory_id
+
+
+@mock_aws
+def test_describe_trusts():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Create several trusts
+    trust_ids = []
+    for x in range(5):
+        trust_id = client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        trust_ids.append(trust_id)
+
+    # Describe the trusts
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 5
+    for idx, trust in enumerate(trusts):
+        assert trust["TrustId"] == trust_ids[idx]
+        assert trust["DirectoryId"] == directory_id
+
+    # Describe a single trust
+    trust = client.describe_trusts(DirectoryId=directory_id, TrustIds=[trust_ids[2]])[
+        "Trusts"
+    ][0]
+    assert trust["TrustId"] == trust_ids[2]
+
+    # Describe multiple trusts
+    trusts = client.describe_trusts(DirectoryId=directory_id, TrustIds=trust_ids[1:3])[
+        "Trusts"
+    ]
+    assert len(trusts) == 2
+    assert trusts[0]["TrustId"] == trust_ids[1]
+    assert trusts[1]["TrustId"] == trust_ids[2]
+
+    # Describe all the trusts in the account
+    trusts = client.describe_trusts()["Trusts"]
+    assert len(trusts) == 5
+
+
+@mock_aws
+def test_delete_trust():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Create several trusts
+    trust_ids = []
+    for x in range(2):
+        trust_id = client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        trust_ids.append(trust_id)
+
+    # Verify the expected trusts exist
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 2
+
+    # Delete a trust
+    resp = client.delete_trust(TrustId=trust_ids[0])
+    assert resp["TrustId"] == trust_ids[0]
+
+    # Verify the trust was deleted
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 1
+    assert trusts[0]["TrustId"] != trust_ids[0]
+
+    # Test deleting a trust that doesn't exist
+    with pytest.raises(ClientError) as exc:
+        client.delete_trust(TrustId="t-1234567890")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+
+
+@mock_aws
+def test_ldaps_exceptions_non_microsoftad():
+    """Test LDAPS operations on non-Microsoft AD directories."""
+
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Test enabling LDAPS on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.enable_ldaps(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
+
+    # Test describe_ldaps_settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_ldaps_settings(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
+
+    # Test disable_ldaps on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.disable_ldaps(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
+
+
+@mock_aws
+def test_settings_exception_non_microsoftad():
+    """Test Settings operations on non-Microsoft AD directories."""
+
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+    # Test describing Settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_settings(DirectoryId=directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+
+
+@mock_aws
+def test_create_log_subscription():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    log_group_name = "my-test-log-group"
+
+    directory_id = create_test_directory(client, ec2_client)
+    client.create_log_subscription(
+        DirectoryId=directory_id, LogGroupName=log_group_name
+    )
+
+    # Test creating log subscription invalid directory
+    with pytest.raises(ClientError) as exc:
+        client.create_log_subscription(
+            DirectoryId="d-1234567890", LogGroupName=log_group_name
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+
+    # Test creating another log subscription directory
+    with pytest.raises(ClientError) as exc:
+        client.create_log_subscription(
+            DirectoryId=directory_id, LogGroupName="another_log-group"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityAlreadyExistsException"
+
+
+@mock_aws
+def test_list_log_subscriptions():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+    directory_id2 = create_test_directory(client, ec2_client)
+
+    client.create_log_subscription(DirectoryId=directory_id, LogGroupName="test-1")
+    client.create_log_subscription(DirectoryId=directory_id2, LogGroupName="test-2")
+
+    # Test listing all log subscriptions
+    result = client.list_log_subscriptions()
+    assert len(result["LogSubscriptions"]) == 2
+
+    # Test listing log subscriptions for a specific directory
+    result = client.list_log_subscriptions(DirectoryId=directory_id)
+    assert len(result["LogSubscriptions"]) == 1
+    assert result["LogSubscriptions"][0]["LogGroupName"] == "test-1"
+
+
+@mock_aws
+def test_delete_log_subscription():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+    directory_id2 = create_test_directory(client, ec2_client)
+
+    client.create_log_subscription(DirectoryId=directory_id, LogGroupName="test-1")
+    client.create_log_subscription(DirectoryId=directory_id2, LogGroupName="test-2")
+
+    # Test listing all log subscriptions
+    result = client.list_log_subscriptions()
+    assert len(result["LogSubscriptions"]) == 2
+
+    # Delete log subscription and verify it was deleted
+    client.delete_log_subscription(DirectoryId=directory_id)
+    result = client.list_log_subscriptions(DirectoryId=directory_id)
+    assert len(result["LogSubscriptions"]) == 0
+
+    result = client.list_log_subscriptions()
+    assert len(result["LogSubscriptions"]) == 1
+    assert result["LogSubscriptions"][0]["LogGroupName"] == "test-2"

@@ -20,6 +20,8 @@ s3
 - [X] complete_multipart_upload
 - [X] copy_object
 - [X] create_bucket
+- [ ] create_bucket_metadata_configuration
+- [ ] create_bucket_metadata_table_configuration
 - [X] create_multipart_upload
 - [ ] create_session
 - [X] delete_bucket
@@ -29,6 +31,8 @@ s3
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metadata_configuration
+- [ ] delete_bucket_metadata_table_configuration
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
@@ -39,17 +43,20 @@ s3
 - [X] delete_object_tagging
 - [X] delete_objects
 - [X] delete_public_access_block
+- [ ] get_bucket_abac
 - [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [X] get_bucket_cors
 - [X] get_bucket_encryption
 - [ ] get_bucket_intelligent_tiering_configuration
-- [ ] get_bucket_inventory_configuration
+- [X] get_bucket_inventory_configuration
 - [X] get_bucket_lifecycle
-- [ ] get_bucket_lifecycle_configuration
+- [X] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
+- [ ] get_bucket_metadata_configuration
+- [ ] get_bucket_metadata_table_configuration
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [X] get_bucket_notification_configuration
@@ -78,7 +85,7 @@ s3
 - [X] head_object
 - [ ] list_bucket_analytics_configurations
 - [ ] list_bucket_intelligent_tiering_configurations
-- [ ] list_bucket_inventory_configurations
+- [X] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
 - [ ] list_directory_buckets
@@ -109,15 +116,22 @@ s3
         
 
 - [X] list_parts
+- [ ] put_bucket_abac
 - [X] put_bucket_accelerate_configuration
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
+  
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        
+
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
-- [ ] put_bucket_inventory_configuration
+- [X] put_bucket_inventory_configuration
 - [X] put_bucket_lifecycle
-- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
@@ -161,6 +175,7 @@ s3
 - [X] put_object_retention
 - [X] put_object_tagging
 - [X] put_public_access_block
+- [ ] rename_object
 - [X] restore_object
 - [X] select_object_content
   
@@ -173,6 +188,8 @@ s3
          - FieldDelimiters are ignored
         
 
+- [ ] update_bucket_metadata_inventory_table_configuration
+- [ ] update_bucket_metadata_journal_table_configuration
 - [X] upload_file
 - [X] upload_fileobj
 - [X] upload_part

@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -15,7 +15,7 @@ class OrganizationsResponse(BaseResponse):
         return organizations_backends[self.current_account][self.partition]
 
     @property
-    def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def request_params(self) -> dict[str, Any]:  # type: ignore[misc]
         try:
             return json.loads(self.body)
         except ValueError:
@@ -72,9 +72,12 @@ class OrganizationsResponse(BaseResponse):
         ) = self.organizations_backend.list_organizational_units_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"OrganizationalUnits": ous}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "OrganizationalUnits": [
+                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name} for ou in ous
+            ],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def list_parents(self) -> str:
@@ -114,9 +117,7 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts(
             max_results=max_results, next_token=next_token
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Accounts": accounts, "NextToken": next_token}
         return json.dumps(response)
 
     def list_accounts_for_parent(self) -> str:
@@ -126,9 +127,10 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "Accounts": [a.describe() for a in accounts],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def move_account(self) -> str:

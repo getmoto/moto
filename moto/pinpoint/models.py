@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -14,7 +15,7 @@ from .exceptions import ApplicationNotFound, EventStreamNotFound
 class App(BaseModel):
     def __init__(self, account_id: str, region_name: str, name: str):
         self.application_id = str(mock_random.uuid4()).replace("-", "")
-        self.arn = f"arn:{get_partition(region_name)}:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
+        self.arn = f"arn:{get_partition(region_name)}:mobiletargeting:{region_name}:{account_id}:apps/{self.application_id}"
         self.name = name
         self.created = unix_time()
         self.settings = AppSettings()
@@ -23,7 +24,7 @@ class App(BaseModel):
     def get_settings(self) -> "AppSettings":
         return self.settings
 
-    def update_settings(self, settings: Dict[str, Any]) -> "AppSettings":
+    def update_settings(self, settings: dict[str, Any]) -> "AppSettings":
         self.settings.update(settings)
         return self.settings
 
@@ -41,7 +42,7 @@ class App(BaseModel):
         self.event_stream = EventStream(stream_arn, role_arn)
         return self.event_stream
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "Id": self.application_id,
@@ -52,14 +53,14 @@ class App(BaseModel):
 
 class AppSettings(BaseModel):
     def __init__(self) -> None:
-        self.settings: Dict[str, Any] = dict()
+        self.settings: dict[str, Any] = {}
         self.last_modified = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    def update(self, settings: Dict[str, Any]) -> None:
+    def update(self, settings: dict[str, Any]) -> None:
         self.settings = settings
         self.last_modified = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "CampaignHook": self.settings.get("CampaignHook", {}),
             "CloudWatchMetricsEnabled": self.settings.get(
@@ -77,7 +78,7 @@ class EventStream(BaseModel):
         self.role_arn = role_arn
         self.last_modified = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "DestinationStreamArn": self.stream_arn,
             "RoleArn": self.role_arn,
@@ -90,10 +91,10 @@ class PinpointBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.apps: Dict[str, App] = {}
+        self.apps: dict[str, App] = {}
         self.tagger = TaggingService()
 
-    def create_app(self, name: str, tags: Dict[str, str]) -> App:
+    def create_app(self, name: str, tags: dict[str, str]) -> App:
         app = App(self.account_id, self.region_name, name)
         self.apps[app.application_id] = app
         tag_list = self.tagger.convert_dict_to_tags_input(tags)
@@ -116,7 +117,7 @@ class PinpointBackend(BaseBackend):
         return self.apps.values()
 
     def update_application_settings(
-        self, application_id: str, settings: Dict[str, Any]
+        self, application_id: str, settings: dict[str, Any]
     ) -> AppSettings:
         app = self.get_app(application_id)
         return app.update_settings(settings)
@@ -125,15 +126,15 @@ class PinpointBackend(BaseBackend):
         app = self.get_app(application_id)
         return app.get_settings()
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, dict[str, str]]:
         tags = self.tagger.get_tag_dict_for_resource(resource_arn)
         return {"tags": tags}
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags)
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def put_event_stream(

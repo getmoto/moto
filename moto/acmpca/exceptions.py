@@ -26,3 +26,37 @@ class InvalidStateException(JsonRESTError):
             "InvalidStateException",
             f"The certificate authority {arn} is not in the correct state to have a certificate signing request.",
         )
+
+
+class MalformedCertificateAuthorityException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "MalformedCertificateAuthorityException",
+            "Malformed certificate.",
+        )
+
+
+class InvalidPolicyException(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidPolicyException",
+            "The resource policy is invalid or is missing a required statement.",
+        )
+
+
+class LockoutPreventedException(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "LockoutPreventedException",
+            "The current action was prevented because it would lock the caller out from performing subsequent actions.",
+        )
+
+
+class ConcurrentModificationException(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ConcurrentModificationException",
+            "A previous update to your private CA is still ongoing.",
+        )

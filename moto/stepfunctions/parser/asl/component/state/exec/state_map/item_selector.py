@@ -1,15 +1,17 @@
 from typing import Final
 
-from moto.stepfunctions.parser.asl.component.common.payload.payloadvalue.payloadtmpl.payload_tmpl import (
-    PayloadTmpl,
+from moto.stepfunctions.parser.asl.component.common.assign.assign_template_value_object import (
+    AssignTemplateValueObject,
 )
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class ItemSelector(EvalComponent):
-    def __init__(self, payload_tmpl: PayloadTmpl):
-        self.payload_tmpl: Final[PayloadTmpl] = payload_tmpl
+    template_value_object: Final[AssignTemplateValueObject]
+
+    def __init__(self, template_value_object: AssignTemplateValueObject):
+        self.template_value_object = template_value_object
 
     def _eval_body(self, env: Environment) -> None:
-        self.payload_tmpl.eval(env=env)
+        self.template_value_object.eval(env=env)

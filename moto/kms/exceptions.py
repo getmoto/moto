@@ -47,3 +47,21 @@ class InvalidCiphertextException(JsonRESTError):
         super().__init__("InvalidCiphertextException", "")
 
         self.description = '{"__type":"InvalidCiphertextException"}'
+
+
+class InvalidKeyUsageException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__("InvalidKeyUsageException", "")
+
+        self.description = '{"__type":"InvalidKeyUsageException"}'
+
+
+class KMSInvalidMacException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__("KMSInvalidMacException", "")
+
+        self.description = '{"__type":"KMSInvalidMacException"}'

@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Dict, Optional
+from typing import Optional
 from unittest import SkipTest
 
 import boto3
@@ -196,6 +196,7 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
 @pytest.mark.parametrize(
     "desired,initial_delta,reported,delta_after_report",
     [
+        # Boolean flip
         (
             {"desired": {"online": True}},
             {"desired": {"online": True}, "delta": {"online": True}},
@@ -215,7 +216,9 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
                 "reported": {"online": False, "enabled": True},
             },
         ),
+        # No data
         ({}, {}, {"reported": {"online": False}}, {"reported": {"online": False}}),
+        # Missing data
         ({}, {}, {"reported": {"online": None}}, {}),
         (
             {"desired": {}},
@@ -223,13 +226,106 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
             {"reported": {"online": False}},
             {"reported": {"online": False}},
         ),
+        # Missing key
+        (
+            {"desired": {"enabled": True}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+            {"reported": {}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+        ),
+        # Changed key
+        (
+            {"desired": {"enabled": True}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+            {"reported": {"online": True}},
+            {
+                "desired": {"enabled": True},
+                "reported": {"online": True},
+                "delta": {"enabled": True},
+            },
+        ),
+        # Remove from list
+        (
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"desired": {"list": ["value_1"]}},
+            {
+                "desired": {"list": ["value_1"]},
+                "reported": {"list": ["value_1", "value_2"]},
+                "delta": {"list": ["value_1"]},
+            },
+        ),
+        # Remove And Update from list
+        (
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"desired": {"list": ["value_1", "value_3"]}},
+            {
+                "desired": {"list": ["value_1", "value_3"]},
+                "reported": {"list": ["value_1", "value_2"]},
+                "delta": {"list": ["value_1", "value_3"]},
+            },
+        ),
+        # Remove from nested lists
+        (
+            {"reported": {"list": [["value_1"], ["value_2"]]}},
+            {"reported": {"list": [["value_1"], ["value_2"]]}},
+            {"desired": {"list": [["value_1"]]}},
+            {
+                "desired": {"list": [["value_1"]]},
+                "reported": {"list": [["value_1"], ["value_2"]]},
+                "delta": {"list": [["value_1"]]},
+            },
+        ),
+        # Append to nested list
+        (
+            {"reported": {"a": {"b": ["d"]}}},
+            {"reported": {"a": {"b": ["d"]}}},
+            {"desired": {"a": {"b": ["c", "d"]}}},
+            {
+                "delta": {"a": {"b": ["c", "d"]}},
+                "desired": {"a": {"b": ["c", "d"]}},
+                "reported": {"a": {"b": ["d"]}},
+            },
+        ),
+        # Update nested dict
+        (
+            {"reported": {"a": {"b": {"c": "d", "e": "f"}}}},
+            {"reported": {"a": {"b": {"c": "d", "e": "f"}}}},
+            {"desired": {"a": {"b": {"c": "d2"}}}},
+            {
+                "delta": {"a": {"b": {"c": "d2"}}},
+                "desired": {"a": {"b": {"c": "d2"}}},
+                "reported": {"a": {"b": {"c": "d", "e": "f"}}},
+            },
+        ),
+        (
+            {"reported": {"a1": {"b1": {"c": "d"}}}},
+            {"reported": {"a1": {"b1": {"c": "d"}}}},
+            {"desired": {"a1": {"b1": {"c": "d"}}, "a2": {"b2": "sth"}}},
+            {
+                "delta": {"a2": {"b2": "sth"}},
+                "desired": {"a1": {"b1": {"c": "d"}}, "a2": {"b2": "sth"}},
+                "reported": {"a1": {"b1": {"c": "d"}}},
+            },
+        ),
+        (
+            {"reported": {"a": {"b1": {"c": "d"}}}},
+            {"reported": {"a": {"b1": {"c": "d"}}}},
+            {"desired": {"a": {"b1": {"c": "d"}, "b2": "sth"}}},
+            {
+                "delta": {"a": {"b2": "sth"}},
+                "desired": {"a": {"b1": {"c": "d"}, "b2": "sth"}},
+                "reported": {"a": {"b1": {"c": "d"}}},
+            },
+        ),
     ],
 )
 def test_delta_calculation(
-    desired: Dict[str, Dict[str, Optional[bool]]],
-    initial_delta: Dict[str, Dict[str, Optional[bool]]],
-    reported: Dict[str, Dict[str, Optional[bool]]],
-    delta_after_report: Dict[str, Dict[str, Optional[bool]]],
+    desired: dict[str, dict[str, Optional[bool]]],
+    initial_delta: dict[str, dict[str, Optional[bool]]],
+    reported: dict[str, dict[str, Optional[bool]]],
+    delta_after_report: dict[str, dict[str, Optional[bool]]],
     name: Optional[str] = None,
 ) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
@@ -246,3 +342,94 @@ def test_delta_calculation(
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     assert payload["state"] == delta_after_report
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "initial_state,updated_state",
+    [
+        # Insert new dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": 3}, "d": {}},
+        ),
+        # Update existing value with new dicts
+        (
+            {"a": 1, "b": {"c": 3}, "d": {}},
+            {"a": 1, "b": {"c": {}}, "d": {}},
+        ),
+        # Update existing value with full dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": {"d": 3}}},
+        ),
+    ],
+)
+def test_update_desired(
+    initial_state: dict[str, str],
+    updated_state: dict[str, str],
+    name: Optional[str] = None,
+) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    payload = json.dumps({"state": {"desired": initial_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": updated_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+
+    assert result_payload["state"]["delta"] == updated_state
+    assert result_payload["state"]["desired"] == updated_state
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_update_empty_state(name: Optional[str] = None) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    none_payload = json.dumps({"state": None}).encode()
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 1
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as a dict
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 1
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": {"a": "b"}}}).encode()
+    second_update = client.update_thing_shadow(thingName=name, payload=payload)
+    result_payload = json.loads(second_update["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}, "delta": {"a": "b"}}
+
+    # REVERT TO NONE
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 3
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 3

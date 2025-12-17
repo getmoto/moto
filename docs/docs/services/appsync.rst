@@ -19,16 +19,20 @@ appsync
 - [ ] associate_api
 - [ ] associate_merged_graphql_api
 - [ ] associate_source_graphql_api
-- [ ] create_api_cache
+- [X] create_api
+- [X] create_api_cache
 - [X] create_api_key
+- [X] create_channel_namespace
 - [ ] create_data_source
 - [ ] create_domain_name
 - [ ] create_function
 - [X] create_graphql_api
 - [ ] create_resolver
 - [ ] create_type
-- [ ] delete_api_cache
+- [X] delete_api
+- [X] delete_api_cache
 - [X] delete_api_key
+- [X] delete_channel_namespace
 - [ ] delete_data_source
 - [ ] delete_domain_name
 - [ ] delete_function
@@ -40,9 +44,11 @@ appsync
 - [ ] disassociate_source_graphql_api
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
-- [ ] flush_api_cache
+- [X] flush_api_cache
+- [X] get_api
 - [ ] get_api_association
-- [ ] get_api_cache
+- [X] get_api_cache
+- [ ] get_channel_namespace
 - [ ] get_data_source
 - [ ] get_data_source_introspection
 - [ ] get_domain_name
@@ -59,6 +65,12 @@ appsync
         Pagination or the maxResults-parameter have not yet been implemented.
         
 
+- [X] list_apis
+  
+        Pagination or the maxResults-parameter have not yet been implemented.
+        
+
+- [X] list_channel_namespaces
 - [ ] list_data_sources
 - [ ] list_domain_names
 - [ ] list_functions
@@ -79,8 +91,10 @@ appsync
 - [ ] start_schema_merge
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_api_cache
+- [ ] update_api
+- [X] update_api_cache
 - [X] update_api_key
+- [ ] update_channel_namespace
 - [ ] update_data_source
 - [ ] update_domain_name
 - [ ] update_function

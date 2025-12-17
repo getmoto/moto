@@ -11,7 +11,7 @@ from . import helpers
 def test_create_network():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_network(
+    create = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
@@ -19,8 +19,8 @@ def test_create_network():
         VotingPolicy=helpers.default_votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
     )
-    network_id = response["NetworkId"]
-    member_id = response["MemberId"]
+    network_id = create["NetworkId"]
+    member_id = create["MemberId"]
     assert network_id.startswith("n-")
     assert len(network_id) == 28
     assert member_id.startswith("m-")
@@ -32,8 +32,17 @@ def test_create_network():
     assert mbcnetworks[0]["Name"] == "testnetwork1"
 
     # Get network details
-    response = conn.get_network(NetworkId=network_id)
-    assert response["Network"]["Name"] == "testnetwork1"
+    get_network = conn.get_network(NetworkId=network_id)["Network"]
+    assert get_network["Name"] == "testnetwork1"
+    assert get_network["Framework"] == "HYPERLEDGER_FABRIC"
+    assert get_network["FrameworkVersion"] == "1.2"
+    assert get_network["FrameworkAttributes"] == {
+        "Fabric": {
+            "Edition": "STARTER",
+            "OrderingServiceEndpoint": f"orderer.{network_id.lower()}.managedblockchain.us-east-1.amazonaws.com:30001",
+        }
+    }
+    assert get_network["VotingPolicy"] == helpers.default_votingpolicy
 
 
 @mock_aws

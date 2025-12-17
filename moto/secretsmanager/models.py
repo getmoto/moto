@@ -1,7 +1,7 @@
 import datetime
 import json
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -23,15 +23,22 @@ from .list_secrets.filters import (
     description_filter,
     filter_all,
     name_filter,
+    owning_service_filter,
     tag_key,
     tag_value,
 )
-from .utils import get_secret_name_from_partial_arn, random_password, secret_arn
+from .utils import (
+    SecretsManagerSecretIdentifier,
+    get_secret_name_from_partial_arn,
+    random_password,
+)
 
 MAX_RESULTS_DEFAULT = 100
 
 
-def filter_primary_region(secret: "FakeSecret", values: List[str]) -> bool:
+def filter_primary_region(
+    secret: Union["FakeSecret", "ReplicaSecret"], values: list[str]
+) -> bool:
     if isinstance(secret, FakeSecret):
         return len(secret.replicas) > 0 and secret.region in values
     elif isinstance(secret, ReplicaSecret):
@@ -45,18 +52,16 @@ _filter_functions = {
     "tag-key": tag_key,
     "tag-value": tag_value,
     "primary-region": filter_primary_region,
-    # Other services do not create secrets in Moto (yet)
-    # So if you're looking for any Secrets owned by a Service, you'll never get any results
-    "owning-service": lambda x, y: False,
+    "owning-service": owning_service_filter,
 }
 
 
-def filter_keys() -> List[str]:
+def filter_keys() -> list[str]:
     return list(_filter_functions.keys())
 
 
 def _matches(
-    secret: Union["FakeSecret", "ReplicaSecret"], filters: List[Dict[str, Any]]
+    secret: Union["FakeSecret", "ReplicaSecret"], filters: list[dict[str, Any]]
 ) -> bool:
     is_match = True
 
@@ -68,33 +73,30 @@ def _matches(
     return is_match
 
 
-class SecretsManager(BaseModel):
-    def __init__(self, region_name: str):
-        self.region = region_name
-
-
-class FakeSecret:
+class FakeSecret(BaseModel):
     def __init__(
         self,
         account_id: str,
         region_name: str,
         secret_id: str,
-        secret_version: Dict[str, Any],
+        secret_version: dict[str, Any],
         version_id: str,
         secret_string: Optional[str] = None,
         secret_binary: Optional[str] = None,
         description: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
-        version_stages: Optional[List[str]] = None,
+        version_stages: Optional[list[str]] = None,
         last_changed_date: Optional[int] = None,
         created_date: Optional[int] = None,
-        replica_regions: Optional[List[Dict[str, str]]] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
         force_overwrite: bool = False,
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(account_id, region_name, secret_id)
+        self.arn = SecretsManagerSecretIdentifier(
+            account_id, region_name, secret_id
+        ).generate(tags=tags)
         self.account_id = account_id
         self.region = region_name
         self.secret_string = secret_string
@@ -115,7 +117,7 @@ class FakeSecret:
         self.next_rotation_date: Optional[int] = None
         self.last_rotation_date: Optional[int] = None
 
-        self.versions: Dict[str, Dict[str, Any]] = {}
+        self.versions: dict[str, dict[str, Any]] = {}
         if secret_string or secret_binary:
             self.versions = {version_id: secret_version}
             self.set_default_version_id(version_id)
@@ -126,15 +128,22 @@ class FakeSecret:
             replica_regions or [], force_overwrite=force_overwrite
         )
 
+    @property
+    def owning_service(self) -> Optional[str]:
+        for tag in self.tags or []:
+            if tag["Key"] == "aws:secretsmanager:owningService":
+                return tag["Value"]
+        return None
+
     def create_replicas(
-        self, replica_regions: List[Dict[str, str]], force_overwrite: bool
-    ) -> List["ReplicaSecret"]:
+        self, replica_regions: list[dict[str, str]], force_overwrite: bool
+    ) -> list["ReplicaSecret"]:
         # Validate first, before we create anything
         for replica_config in replica_regions or []:
             if replica_config["Region"] == self.region:
                 raise InvalidParameterException("Invalid replica region.")
 
-        replicas: List[ReplicaSecret] = []
+        replicas: list[ReplicaSecret] = []
         for replica_config in replica_regions or []:
             replica_region = replica_config["Region"]
             backend = secretsmanager_backends[self.account_id][replica_region]
@@ -155,7 +164,7 @@ class FakeSecret:
     def update(
         self,
         description: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
         last_changed_date: Optional[int] = None,
     ) -> None:
@@ -171,7 +180,7 @@ class FakeSecret:
         self.default_version_id = version_id
 
     def reset_default_version(
-        self, secret_version: Dict[str, Any], version_id: str
+        self, secret_version: dict[str, Any], version_id: str
     ) -> None:
         # remove all old AWSPREVIOUS stages
         for old_version in self.versions.values():
@@ -189,7 +198,7 @@ class FakeSecret:
         self.default_version_id = version_id
 
     def remove_version_stages_from_old_versions(
-        self, version_stages: List[str]
+        self, version_stages: list[str]
     ) -> None:
         for version_stage in version_stages:
             for old_version in self.versions.values():
@@ -213,7 +222,7 @@ class FakeSecret:
     ) -> str:
         if not version_id:
             version_id = self.default_version_id
-        dct: Dict[str, Any] = {
+        dct: dict[str, Any] = {
             "ARN": self.arn,
             "Name": self.name,
         }
@@ -225,19 +234,22 @@ class FakeSecret:
             dct["ReplicationStatus"] = [replica.config for replica in self.replicas]
         return json.dumps(dct)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         version_id_to_stages = self._form_version_ids_to_stages()
 
-        dct: Dict[str, Any] = {
+        dct: dict[str, Any] = {
             "ARN": self.arn,
             "Name": self.name,
-            "KmsKeyId": self.kms_key_id,
             "LastChangedDate": self.last_changed_date,
             "LastAccessedDate": None,
             "NextRotationDate": self.next_rotation_date,
             "DeletedDate": self.deleted_date,
             "CreatedDate": self.created_date,
         }
+        if self.kms_key_id != SecretsManagerBackend.DEFAULT_KMS_KEY_ALIAS:
+            dct["KmsKeyId"] = self.kms_key_id
+        if self.owning_service is not None:
+            dct["OwningService"] = self.owning_service
         if self.tags is not None:
             dct["Tags"] = self.tags
         if self.description:
@@ -266,7 +278,7 @@ class FakeSecret:
             dct["ReplicationStatus"] = [replica.config for replica in self.replicas]
         return dct
 
-    def _form_version_ids_to_stages(self) -> Dict[str, str]:
+    def _form_version_ids_to_stages(self) -> dict[str, str]:
         version_id_to_stages = {}
         for key, value in self.versions.items():
             version_id_to_stages[key] = value["version_stages"]
@@ -290,7 +302,7 @@ class ReplicaSecret:
         self.has_replica = status is None
         self.config = {
             "Region": self.region,
-            "KmsKeyId": "alias/aws/secretsmanager",
+            "KmsKeyId": SecretsManagerBackend.DEFAULT_KMS_KEY_ALIAS,
             "Status": self.status,
             "StatusMessage": self.message,
         }
@@ -298,7 +310,7 @@ class ReplicaSecret:
     def is_deleted(self) -> bool:
         return False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = self.source.to_dict()
         dct["ARN"] = self.arn
         dct["PrimaryRegion"] = self.source.region
@@ -309,7 +321,7 @@ class ReplicaSecret:
         return self.source.default_version_id
 
     @property
-    def versions(self) -> Dict[str, Dict[str, Any]]:  # type: ignore[misc]
+    def versions(self) -> dict[str, dict[str, Any]]:  # type: ignore[misc]
         return self.source.versions
 
     @property
@@ -320,8 +332,20 @@ class ReplicaSecret:
     def secret_id(self) -> str:
         return self.source.secret_id
 
+    @property
+    def description(self) -> Optional[str]:
+        return self.source.description
 
-class SecretsStore(Dict[str, Union[FakeSecret, ReplicaSecret]]):
+    @property
+    def tags(self) -> Optional[list[dict[str, str]]]:
+        return self.source.tags
+
+    @property
+    def owning_service(self) -> Optional[str]:
+        return self.source.owning_service
+
+
+class SecretsStore(dict[str, Union[FakeSecret, ReplicaSecret]]):
     # Parameters to this dictionary can be three possible values:
     # names, full ARNs, and partial ARNs
     # Every retrieval method should check which type of input it receives
@@ -359,6 +383,8 @@ class SecretsStore(Dict[str, Union[FakeSecret, ReplicaSecret]]):
 
 
 class SecretsManagerBackend(BaseBackend):
+    DEFAULT_KMS_KEY_ALIAS = "alias/aws/secretsmanager"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
@@ -399,10 +425,8 @@ class SecretsManagerBackend(BaseBackend):
             # This response doesn't make much sense for  `CancelRotateSecret`, but this is what AWS has documented ...
             # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_CancelRotateSecret.html
             raise InvalidRequestException(
-                (
-                    "You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured"
-                    "and you didn't include such an ARN as a parameter in this call."
-                )
+                "You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured"
+                "and you didn't include such an ARN as a parameter in this call."
             )
 
         secret.rotation_enabled = False
@@ -410,7 +434,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def get_secret_value(
         self, secret_id: str, version_id: str, version_stage: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -474,13 +498,13 @@ class SecretsManagerBackend(BaseBackend):
 
     def batch_get_secret_value(
         self,
-        secret_id_list: Optional[List[str]] = None,
-        filters: Optional[List[Dict[str, Any]]] = None,
+        secret_id_list: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> Tuple[List[Dict[str, Any]], List[Any], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], list[Any], Optional[str]]:
         secret_list = []
-        errors: List[Any] = []
+        errors: list[Any] = []
         if secret_id_list and filters:
             raise InvalidParameterException(
                 "Either 'SecretIdList' or 'Filters' must be provided, but not both."
@@ -496,11 +520,15 @@ class SecretsManagerBackend(BaseBackend):
                 # TODO perhaps there should be a check if the secret id is valid identifier
                 # and add an error to the list if not
                 try:
-                    # TODO investigate the behaviour when the secret doesn't exist or has been deleted,
-                    # might need to add an error to the list
                     secret_list.append(self.get_secret_value(secret_id, "", ""))
-                except (SecretNotFoundException, InvalidRequestException):
-                    pass
+                except (SecretNotFoundException, InvalidRequestException) as e:
+                    errors.append(
+                        {
+                            "SecretId": secret_id,
+                            "ErrorCode": e.error_type,
+                            "Message": e.message,
+                        }
+                    )
 
         if filters:
             for secret in self.secrets.values():
@@ -532,10 +560,13 @@ class SecretsManagerBackend(BaseBackend):
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
-        secret = self.secrets[secret_id]
-        if isinstance(secret, ReplicaSecret):
-            raise OperationNotPermittedOnReplica
+        existing_secret_info = self._check_with_existing_secrets_and_versions(
+            secret_id, client_request_token, secret_string, secret_binary
+        )
+        if existing_secret_info:
+            return existing_secret_info
 
+        secret = self.secrets[secret_id]
         if secret.is_deleted():
             raise InvalidRequestException(
                 "An error occurred (InvalidRequestException) when calling the UpdateSecret operation: "
@@ -563,16 +594,17 @@ class SecretsManagerBackend(BaseBackend):
         secret_string: Optional[str],
         secret_binary: Optional[str],
         description: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         kms_key_id: Optional[str],
         client_request_token: Optional[str],
-        replica_regions: List[Dict[str, str]],
+        replica_regions: list[dict[str, str]],
         force_overwrite: bool,
     ) -> str:
-        if name in self.secrets.keys():
-            raise ResourceExistsException(
-                "A resource with the ID you requested already exists."
-            )
+        existing_secret = self._check_with_existing_secrets_and_versions(
+            name, client_request_token, secret_string, secret_binary
+        )
+        if existing_secret:
+            return existing_secret
 
         secret, new_version = self._add_secret(
             name,
@@ -588,19 +620,66 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret.to_short_dict(include_version_id=new_version)
 
+    def _check_with_existing_secrets_and_versions(
+        self,
+        secret_name: str,
+        client_request_token: Optional[str],
+        secret_string: Optional[str],
+        secret_binary: Optional[str],
+    ) -> Optional[str]:
+        """
+        Check if a secret with the given name and version ID already exists.
+        If they do and the original operation is intending to modify it, that will be flagged.
+        Since we can only add new versions of secrets, not modify existing ones
+        """
+        if secret_name not in self.secrets.keys():
+            # Nothing to validate here
+            return None
+        existing_secret = self.secrets[secret_name]
+        if isinstance(existing_secret, ReplicaSecret):
+            raise OperationNotPermittedOnReplica
+        # If the secret already exists, and a client request token is provided,
+        # we need to check if it matches the existing secret's version ID.
+        if not client_request_token:
+            # No version identifier was provided to compare with
+            raise ResourceExistsException(
+                "A resource with the ID you requested already exists."
+            )
+        # Check if client_request_token is part of any version of this secret
+        if client_request_token not in existing_secret.versions:
+            return None
+        # Check if the secret_string/secret_binary values corresponding to this version matches that of the current request
+        matching_secret_version = existing_secret.versions[client_request_token]
+        # If this version stage label is AWSPENDING, it means this version was created as part of rotation
+        if "AWSPENDING" in matching_secret_version.get("version_stages", []):
+            return None
+        if (
+            matching_secret_version.get("secret_string") == secret_string
+            and matching_secret_version.get("secret_binary") == secret_binary
+        ):
+            # If they match, we can return the existing secret without error
+            return existing_secret.to_short_dict(
+                include_version_id=True, version_id=client_request_token
+            )
+        # If they do not match, though, then the request fails since we cannot modify
+        # an existing version
+        raise ResourceExistsException(
+            f"You can't use ClientRequestToken {client_request_token} because that value is already in use for a version of secret {existing_secret.arn}"
+        )
+
     def _add_secret(
         self,
         secret_id: str,
         secret_string: Optional[str] = None,
         secret_binary: Optional[str] = None,
         description: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
         version_id: Optional[str] = None,
-        version_stages: Optional[List[str]] = None,
-        replica_regions: Optional[List[Dict[str, str]]] = None,
+        version_stages: Optional[list[str]] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
         force_overwrite: bool = False,
-    ) -> Tuple[FakeSecret, bool]:
+    ) -> tuple[FakeSecret, bool]:
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
@@ -654,13 +733,50 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret, new_version
 
+    def create_managed_secret(
+        self,
+        service_name: str,
+        secret_id: str,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        version_id: Optional[str] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
+        force_overwrite: bool = False,
+    ) -> FakeSecret:
+        """Create an AWS managed secret for the specified service name."""
+        if kms_key_id is None:
+            kms_key_id = self.DEFAULT_KMS_KEY_ALIAS
+        managed_tag = {
+            "Key": "aws:secretsmanager:owningService",
+            "Value": service_name,
+        }
+        if tags is None:
+            tags = [managed_tag]
+        else:
+            tags.append(managed_tag)
+        secret, _ = self._add_secret(
+            secret_id,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
+            kms_key_id=kms_key_id,
+            version_id=version_id,
+            replica_regions=replica_regions,
+            force_overwrite=force_overwrite,
+        )
+        return secret
+
     def put_secret_value(
         self,
         secret_id: str,
         secret_string: str,
         secret_binary: str,
         client_request_token: str,
-        version_stages: List[str],
+        version_stages: list[str],
     ) -> str:
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -672,6 +788,16 @@ class SecretsManagerBackend(BaseBackend):
             description = secret.description
 
         version_id = self._from_client_request_token(client_request_token)
+        existing_secret = self._check_with_existing_secrets_and_versions(
+            secret.name, version_id, secret_string, secret_binary
+        )
+        # If it exists, then return the existing secret
+        if existing_secret:
+            return existing_secret
+
+        # If it is the first version add AWSCURRENT to the versions
+        if not secret.versions and "AWSCURRENT" not in version_stages:
+            version_stages.append("AWSCURRENT")
 
         secret, _ = self._add_secret(
             secret_id,
@@ -696,7 +822,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_id: str,
         client_request_token: Optional[str] = None,
         rotation_lambda_arn: Optional[str] = None,
-        rotation_rules: Optional[Dict[str, Any]] = None,
+        rotation_rules: Optional[dict[str, Any]] = None,
         rotate_immediately: bool = True,
     ) -> str:
         rotation_days = "AutomaticallyAfterDays"
@@ -715,7 +841,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
-                msg = "RotationLambdaARN " "must <= 2048 characters long."
+                msg = "RotationLambdaARN must <= 2048 characters long."
                 raise InvalidParameterException(msg)
 
         if rotation_rules:
@@ -754,30 +880,27 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         if secret.versions:
-            old_secret_version = secret.versions[secret.default_version_id]  # type: ignore
-
             if client_request_token:
                 self._client_request_token_validator(client_request_token)
                 new_version_id = client_request_token
             else:
                 new_version_id = str(mock_random.uuid4())
 
-            # We add the new secret version as "pending". The previous version remains
-            # as "current" for now. Once we've passed the new secret through the lambda
-            # rotation function (if provided) we can then update the status to "current".
-            old_secret_version_secret_string = (
-                old_secret_version["secret_string"]
-                if "secret_string" in old_secret_version
-                else None
-            )
-            self._add_secret(
-                secret_id,
-                old_secret_version_secret_string,
-                description=secret.description,
-                tags=secret.tags,
-                version_id=new_version_id,
-                version_stages=["AWSPENDING"],
-            )
+            # We add a "pending" stage. The previous version remains as "current" for now.
+            # Caller is responsible for creating the new secret in the Lambda
+            secret_version = {
+                "createdate": int(time.time()),
+                "version_id": new_version_id,
+                "version_stages": ["AWSPENDING"],
+            }
+            if not rotate_immediately:
+                if secret.secret_string is not None:
+                    secret_version["secret_string"] = secret.secret_string
+                if secret.secret_binary is not None:
+                    secret_version["secret_binary"] = secret.secret_binary
+
+            secret.remove_version_stages_from_old_versions(["AWSPENDING"])
+            secret.versions[new_version_id] = secret_version
 
         secret.rotation_requested = True
         secret.rotation_lambda_arn = rotation_lambda_arn or ""
@@ -792,8 +915,8 @@ class SecretsManagerBackend(BaseBackend):
 
             lambda_backend = get_backend(self.account_id, self.region_name)
 
-            request_headers: Dict[str, Any] = {}
-            response_headers: Dict[str, Any] = {}
+            request_headers: dict[str, Any] = {}
+            response_headers: dict[str, Any] = {}
 
             try:
                 lambda_backend.get_function(secret.rotation_lambda_arn)
@@ -820,7 +943,10 @@ class SecretsManagerBackend(BaseBackend):
                     headers=request_headers,
                     response_headers=response_headers,
                 )
-            secret.set_default_version_id(new_version_id)
+            if rotate_immediately:
+                # If we don't rotate, we only invoke the testSecret step
+                # This should be done with the existing (old) version ID
+                secret.set_default_version_id(new_version_id)
 
         elif secret.versions:
             # AWS will always require a Lambda ARN
@@ -898,12 +1024,16 @@ class SecretsManagerBackend(BaseBackend):
 
     def list_secrets(
         self,
-        filters: List[Dict[str, Any]],
+        filters: list[dict[str, Any]],
         max_results: int = MAX_RESULTS_DEFAULT,
         next_token: Optional[str] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        secret_list: List[Dict[str, Any]] = []
+        include_planned_deletion: bool = False,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        secret_list: list[dict[str, Any]] = []
         for secret in self.secrets.values():
+            if hasattr(secret, "deleted_date"):
+                if secret.deleted_date and not include_planned_deletion:
+                    continue
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 
@@ -916,7 +1046,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_id: str,
         recovery_window_in_days: Optional[int],
         force_delete_without_recovery: bool,
-    ) -> Tuple[str, str, float]:
+    ) -> tuple[str, str, float]:
         if recovery_window_in_days is not None and (
             recovery_window_in_days < 7 or recovery_window_in_days > 30
         ):
@@ -935,7 +1065,9 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
+                arn = SecretsManagerSecretIdentifier(
+                    self.account_id, self.region_name, secret_id=secret_id
+                ).generate()
                 name = secret_id
                 deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
@@ -948,7 +1080,7 @@ class SecretsManagerBackend(BaseBackend):
                 msg = f"You can't delete secret {secret_id} that still has replica regions [{replica_regions}]"
                 raise InvalidParameterException(msg)
 
-            if secret.is_deleted():
+            if secret.is_deleted() and not force_delete_without_recovery:
                 raise InvalidRequestException(
                     "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
                     perform the operation on a secret that's currently marked deleted."
@@ -970,7 +1102,7 @@ class SecretsManagerBackend(BaseBackend):
 
             return arn, name, self._unix_time_secs(deletion_date)
 
-    def restore_secret(self, secret_id: str) -> Tuple[str, str]:
+    def restore_secret(self, secret_id: str) -> tuple[str, str]:
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -981,7 +1113,7 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret.arn, secret.name
 
-    def tag_resource(self, secret_id: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, secret_id: str, tags: list[dict[str, str]]) -> None:
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
@@ -996,7 +1128,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret.tags = list(old_tags.values())
 
-    def untag_resource(self, secret_id: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, secret_id: str, tag_keys: list[str]) -> None:
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
@@ -1015,7 +1147,7 @@ class SecretsManagerBackend(BaseBackend):
         version_stage: str,
         remove_from_version_id: str,
         move_to_version_id: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
@@ -1071,7 +1203,7 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret.arn, secret.name
 
-    def put_resource_policy(self, secret_id: str, policy: str) -> Tuple[str, str]:
+    def put_resource_policy(self, secret_id: str, policy: str) -> tuple[str, str]:
         """
         The BlockPublicPolicy-parameter is not yet implemented
         """
@@ -1099,7 +1231,7 @@ class SecretsManagerBackend(BaseBackend):
             resp["ResourcePolicy"] = secret.policy
         return json.dumps(resp)
 
-    def delete_resource_policy(self, secret_id: str) -> Tuple[str, str]:
+    def delete_resource_policy(self, secret_id: str) -> tuple[str, str]:
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -1112,9 +1244,9 @@ class SecretsManagerBackend(BaseBackend):
     def replicate_secret_to_regions(
         self,
         secret_id: str,
-        replica_regions: List[Dict[str, str]],
+        replica_regions: list[dict[str, str]],
         force_overwrite: bool,
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> tuple[str, list[dict[str, Any]]]:
         secret = self.describe_secret(secret_id)
         if isinstance(secret, ReplicaSecret):
             raise OperationNotPermittedOnReplica
@@ -1125,8 +1257,8 @@ class SecretsManagerBackend(BaseBackend):
         return secret_id, statuses
 
     def remove_regions_from_replication(
-        self, secret_id: str, replica_regions: List[str]
-    ) -> Tuple[str, List[Dict[str, str]]]:
+        self, secret_id: str, replica_regions: list[str]
+    ) -> tuple[str, list[dict[str, str]]]:
         secret = self.describe_secret(secret_id)
         if isinstance(secret, ReplicaSecret):
             raise OperationNotPermittedOnReplica
@@ -1142,10 +1274,10 @@ class SecretsManagerBackend(BaseBackend):
 
     def _get_secret_values_page_and_next_token(
         self,
-        secret_list: List[Dict[str, Any]],
+        secret_list: list[dict[str, Any]],
         max_results: Optional[int],
         next_token: Optional[str],
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         starting_point = int(next_token or 0)
         ending_point = starting_point + int(max_results or MAX_RESULTS_DEFAULT)
         secret_page = secret_list[starting_point:ending_point]

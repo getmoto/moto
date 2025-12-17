@@ -1,15 +1,19 @@
+import re
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
+    ConflictException,
     InvalidParameterException,
     LimitExceededException,
     ResourceAlreadyExistsException,
     ResourceNotFoundException,
+    ValidationException,
 )
 from moto.logs.logs_query import execute_query
 from moto.logs.metric_filters import MetricFilters
@@ -41,7 +45,7 @@ class Destination(BaseModel):
         self.role_arn = role_arn
         self.target_arn = target_arn
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "accessPolicy": self.access_policy,
             "arn": self.arn,
@@ -59,7 +63,7 @@ class LogQuery(BaseModel):
         start_time: int,
         end_time: int,
         query: str,
-        log_groups: List["LogGroup"],
+        log_groups: list["LogGroup"],
     ):
         self.query_id = query_id
         self.start_time = start_time
@@ -73,7 +77,7 @@ class LogQuery(BaseModel):
         )
         self.status = "Complete"
 
-    def to_json(self, log_group_name: str) -> Dict[str, Any]:
+    def to_json(self, log_group_name: str) -> dict[str, Any]:
         return {
             "queryId": self.query_id,
             "queryString": self.query,
@@ -82,10 +86,10 @@ class LogQuery(BaseModel):
             "logGroupName": log_group_name,
         }
 
-    def to_result_json(self) -> Dict[str, Any]:
+    def to_result_json(self) -> dict[str, Any]:
         return {
             "results": [
-                [{"field": key, "value": val} for key, val in result.items()]
+                [{"field": key, "value": str(val)} for key, val in result.items()]
                 for result in self.results
             ],
             "status": self.status,
@@ -95,7 +99,7 @@ class LogQuery(BaseModel):
 class LogEvent(BaseModel):
     _event_id = 0
 
-    def __init__(self, ingestion_time: int, log_event: Dict[str, Any]):
+    def __init__(self, ingestion_time: int, log_event: dict[str, Any]):
         self.ingestion_time = ingestion_time
         self.timestamp = log_event["timestamp"]
         self.message = log_event["message"]
@@ -103,7 +107,7 @@ class LogEvent(BaseModel):
         self.__class__._event_id += 1
         ""
 
-    def to_filter_dict(self) -> Dict[str, Any]:
+    def to_filter_dict(self) -> dict[str, Any]:
         return {
             "eventId": str(self.event_id),
             "ingestionTime": self.ingestion_time,
@@ -112,7 +116,7 @@ class LogEvent(BaseModel):
             "timestamp": self.timestamp,
         }
 
-    def to_response_dict(self) -> Dict[str, Any]:
+    def to_response_dict(self) -> dict[str, Any]:
         return {
             "ingestionTime": self.ingestion_time,
             "message": self.message,
@@ -136,7 +140,7 @@ class LogStream(BaseModel):
         self.stored_bytes = 0
         # I'm  guessing this is token needed for sequenceToken by put_events
         self.upload_sequence_token = 0
-        self.events: List[LogEvent] = []
+        self.events: list[LogEvent] = []
 
         self.__class__._log_ids += 1
 
@@ -149,7 +153,7 @@ class LogStream(BaseModel):
             max([x.timestamp for x in self.events]) if self.events else None
         )
 
-    def to_describe_dict(self) -> Dict[str, Any]:
+    def to_describe_dict(self) -> dict[str, Any]:
         # Compute start and end times
         self._update()
 
@@ -169,7 +173,7 @@ class LogStream(BaseModel):
             res.update(rest)
         return res
 
-    def put_log_events(self, log_events: List[Dict[str, Any]]) -> str:
+    def put_log_events(self, log_events: list[dict[str, Any]]) -> str:
         # TODO: ensure sequence_token
         # TODO: to be thread safe this would need a lock
         self.last_ingestion_time = int(unix_time_millis())
@@ -206,7 +210,7 @@ class LogStream(BaseModel):
         service: str,
         destination_arn: str,
         filter_name: str,
-        log_events: List[Dict[str, Any]],
+        log_events: list[dict[str, Any]],
     ) -> None:
         if service == "lambda":
             from moto.awslambda.utils import get_backend
@@ -247,7 +251,7 @@ class LogStream(BaseModel):
         limit: int,
         next_token: Optional[str],
         start_from_head: str,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
         if limit is None:
             limit = 10000
 
@@ -262,7 +266,7 @@ class LogStream(BaseModel):
 
         def get_index_and_direction_from_token(
             token: Optional[str],
-        ) -> Tuple[Optional[str], int]:
+        ) -> tuple[Optional[str], int]:
             if token is not None:
                 try:
                     return token[0], int(token[2:])
@@ -314,7 +318,7 @@ class LogStream(BaseModel):
 
     def filter_log_events(
         self, start_time: int, end_time: int, filter_pattern: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         def filter_func(event: LogEvent) -> bool:
             if start_time and event.timestamp < start_time:
                 return False
@@ -327,7 +331,7 @@ class LogStream(BaseModel):
 
             return True
 
-        events: List[Dict[str, Any]] = []
+        events: list[dict[str, Any]] = []
         for event in sorted(
             filter(filter_func, self.events), key=lambda x: x.timestamp
         ):
@@ -358,7 +362,7 @@ class SubscriptionFilter(BaseModel):
         self.destination_arn = destination_arn
         self.role_arn = role_arn
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "filterName": self.name,
             "logGroupName": self.log_group_name,
@@ -385,10 +389,10 @@ class LogGroup(CloudFormationModel):
             f"arn:{get_partition(region)}:logs:{region}:{account_id}:log-group:{name}"
         )
         self.creation_time = int(unix_time_millis())
-        self.streams: Dict[str, LogStream] = dict()  # {name: LogStream}
+        self.streams: dict[str, LogStream] = {}  # {name: LogStream}
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
-        self.subscription_filters: Dict[str, SubscriptionFilter] = {}
+        self.subscription_filters: dict[str, SubscriptionFilter] = {}
 
         # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
         # Docs:
@@ -460,7 +464,7 @@ class LogGroup(CloudFormationModel):
         order_by: str,
         limit: int,
         next_token: Optional[str] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # responses only log_stream_name, creation_time, arn, stored_bytes when no events are stored.
 
         log_streams = [
@@ -508,7 +512,7 @@ class LogGroup(CloudFormationModel):
     def put_log_events(
         self,
         log_stream_name: str,
-        log_events: List[Dict[str, Any]],
+        log_events: list[dict[str, Any]],
     ) -> str:
         if log_stream_name not in self.streams:
             raise ResourceNotFoundException("The specified log stream does not exist.")
@@ -523,7 +527,7 @@ class LogGroup(CloudFormationModel):
         limit: int,
         next_token: Optional[str],
         start_from_head: str,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
         if log_stream_name not in self.streams:
             raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
@@ -538,14 +542,14 @@ class LogGroup(CloudFormationModel):
     def filter_log_events(
         self,
         log_group_name: str,
-        log_stream_names: List[str],
+        log_stream_names: list[str],
         start_time: int,
         end_time: int,
         limit: Optional[int],
         next_token: Optional[str],
         filter_pattern: str,
         interleaved: bool,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], List[Dict[str, Any]]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str], list[dict[str, Any]]]:
         if not limit:
             limit = 10000
         streams = [
@@ -596,9 +600,10 @@ class LogGroup(CloudFormationModel):
         ]
         return events_page, next_token, searched_streams
 
-    def to_describe_dict(self) -> Dict[str, Any]:
+    def to_describe_dict(self) -> dict[str, Any]:
         log_group = {
-            "arn": self.arn,
+            "arn": f"{self.arn}:*",
+            "logGroupArn": self.arn,
             "creationTime": self.creation_time,
             "logGroupName": self.name,
             "metricFilterCount": 0,
@@ -658,7 +663,7 @@ class LogResourcePolicy(CloudFormationModel):
         self.policy_document = policy_document
         self.last_updated_time = int(unix_time_millis())
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "policyName": self.policy_name,
             "policyDocument": self.policy_document,
@@ -745,7 +750,7 @@ class ExportTask(BaseModel):
         self.to = to
         self.status = {"code": "active", "message": "Task is active"}
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "taskId": self.task_id,
             "taskName": self.task_name,
@@ -758,19 +763,178 @@ class ExportTask(BaseModel):
         }
 
 
+class DeliveryDestination(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        output_format: Optional[str],
+        delivery_destination_configuration: dict[str, str],
+        tags: Optional[dict[str, str]],
+        policy: Optional[str] = None,
+    ):
+        self.name = name
+        self.output_format = output_format
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery-destination:{name}"
+        destination_type = delivery_destination_configuration[
+            "destinationResourceArn"
+        ].split(":")[2]
+        if destination_type == "s3":
+            self.delivery_destination_type = "S3"
+        elif destination_type == "logs":
+            self.delivery_destination_type = "CWL"
+        elif destination_type == "firehose":
+            self.delivery_destination_type = "FH"
+        self.delivery_destination_configuration = delivery_destination_configuration
+        self.tags = tags
+        self.policy = policy
+
+    def to_dict(self) -> dict[str, Any]:
+        dct = {
+            "name": self.name,
+            "arn": self.arn,
+            "deliveryDestinationType": self.delivery_destination_type,
+            "outputFormat": self.output_format,
+            "deliveryDestinationConfiguration": self.delivery_destination_configuration,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
+class DeliverySource(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        resource_arn: str,
+        log_type: str,
+        tags: Optional[dict[str, str]],
+    ):
+        res_arns = []
+        res_arns.append(resource_arn)
+        self.name = name
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery-source:{name}"
+        self.resource_arns = res_arns
+        self.service = resource_arn.split(":")[2]
+        self.log_type = log_type
+        self.tags = tags
+
+    def to_dict(self) -> dict[str, Any]:
+        dct = {
+            "name": self.name,
+            "arn": self.arn,
+            "resourceArns": self.resource_arns,
+            "service": self.service,
+            "logType": self.log_type,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
+class Delivery(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        delivery_source_name: str,
+        delivery_destination_arn: str,
+        destination_type: str,
+        record_fields: Optional[list[str]],
+        field_delimiter: Optional[str],
+        s3_delivery_configuration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, str]],
+    ):
+        self.id = mock_random.get_random_string(length=16)
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery:{self.id}"
+        self.delivery_source_name = delivery_source_name
+        self.delivery_destination_arn = delivery_destination_arn
+        self.destination_type = destination_type
+        # Default record fields
+        default_record_fields = [
+            "date",
+            "time",
+            "x-edge-location",
+            "sc-bytes",
+            "c-ip",
+            "cs-method",
+            "cs(Host)",
+            "cs-uri-stem",
+            "sc-status",
+            "cs(Referer)",
+            "cs(User-Agent)",
+            "cs-uri-query",
+            "cs(Cookie)",
+            "x-edge-result-type",
+            "x-edge-request-id",
+            "x-host-header",
+            "cs-protocol",
+            "cs-bytes",
+            "time-taken",
+            "x-forwarded-for",
+            "ssl-protocol",
+            "ssl-cipher",
+            "x-edge-response-result-type",
+            "cs-protocol-version",
+            "fle-status",
+            "fle-encrypted-fields",
+            "c-port",
+            "time-to-first-byte",
+            "x-edge-detailed-result-type",
+            "sc-content-type",
+            "sc-content-len",
+            "sc-range-start",
+            "sc-range-end",
+        ]
+        self.record_fields = record_fields or default_record_fields
+        self.field_delimiter = field_delimiter
+        default_s3_configuration = {}
+        if destination_type == "S3":
+            # Default s3 configuration
+            default_s3_configuration = {
+                "suffixPath": "AWSLogs/{account-id}/CloudFront/",
+                "enableHiveCompatiblePath": False,
+            }
+        self.s3_delivery_configuration = (
+            s3_delivery_configuration or default_s3_configuration
+        )
+        self.tags = tags
+
+    def to_dict(self) -> dict[str, Any]:
+        dct = {
+            "id": self.id,
+            "arn": self.arn,
+            "deliverySourceName": self.delivery_source_name,
+            "deliveryDestinationArn": self.delivery_destination_arn,
+            "deliveryDestinationType": self.destination_type,
+            "recordFields": self.record_fields,
+            "fieldDelimiter": self.field_delimiter,
+            "s3DeliveryConfiguration": self.s3_delivery_configuration,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.groups: Dict[str, LogGroup] = dict()
+        self.groups: dict[str, LogGroup] = {}
         self.filters = MetricFilters()
-        self.queries: Dict[str, LogQuery] = dict()
-        self.resource_policies: Dict[str, LogResourcePolicy] = dict()
-        self.destinations: Dict[str, Destination] = dict()
+        self.queries: dict[str, LogQuery] = {}
+        self.resource_policies: dict[str, LogResourcePolicy] = {}
+        self.destinations: dict[str, Destination] = {}
         self.tagger = TaggingService()
-        self.export_tasks: Dict[str, ExportTask] = dict()
+        self.export_tasks: dict[str, ExportTask] = {}
+        self.delivery_destinations: dict[str, DeliveryDestination] = {}
+        self.delivery_sources: dict[str, DeliverySource] = {}
+        self.deliveries: dict[str, Delivery] = {}
 
     def create_log_group(
-        self, log_group_name: str, tags: Dict[str, str], **kwargs: Any
+        self, log_group_name: str, tags: dict[str, str], **kwargs: Any
     ) -> LogGroup:
         if log_group_name in self.groups:
             raise ResourceAlreadyExistsException()
@@ -800,18 +964,16 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.groups[log_group_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_log_groups(
         self, log_group_name_prefix: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[LogGroup]:
         groups = [
-            group.to_describe_dict()
+            group
             for name, group in self.groups.items()
             if name.startswith(log_group_name_prefix or "")
         ]
-        groups = sorted(groups, key=lambda x: x["logGroupName"])
-
-        return groups
+        return sorted(groups, key=lambda x: x.name)
 
     def get_destination(self, destination_name: str) -> Destination:
         for destination in self.destinations:
@@ -824,7 +986,7 @@ class LogsBackend(BaseBackend):
         destination_name: str,
         role_arn: str,
         target_arn: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> Destination:
         for _, destination in self.destinations.items():
             if destination.destination_name == destination_name:
@@ -847,7 +1009,7 @@ class LogsBackend(BaseBackend):
 
     def describe_destinations(
         self, destination_name_prefix: str, limit: int, next_token: Optional[int] = None
-    ) -> Tuple[List[Dict[str, Any]], Optional[int]]:
+    ) -> tuple[list[dict[str, Any]], Optional[int]]:
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -860,11 +1022,14 @@ class LogsBackend(BaseBackend):
             result.append(self.destinations[destination].to_dict())
         if next_token:
             result = result[: int(next_token)]
-        result = [
-            destination
-            for destination in result
-            if destination["destinationName"].startswith(destination_name_prefix)
-        ]
+
+        if destination_name_prefix:
+            result = [
+                destination
+                for destination in result
+                if destination["destinationName"].startswith(destination_name_prefix)
+            ]
+
         return result, next_token
 
     def put_destination_policy(self, destination_name: str, access_policy: str) -> None:
@@ -898,12 +1063,12 @@ class LogsBackend(BaseBackend):
         descending: bool,
         limit: int,
         log_group_name: str,
+        log_group_id: str,
         log_stream_name_prefix: str,
         next_token: Optional[str],
         order_by: str,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        if log_group_name not in self.groups:
-            raise ResourceNotFoundException()
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        log_group = self._find_log_group(log_group_id, log_group_name)
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -920,7 +1085,6 @@ class LogsBackend(BaseBackend):
             raise InvalidParameterException(
                 msg="Cannot order by LastEventTime with a logStreamNamePrefix."
             )
-        log_group = self.groups[log_group_name]
         return log_group.describe_log_streams(
             descending=descending,
             limit=limit,
@@ -934,8 +1098,8 @@ class LogsBackend(BaseBackend):
         self,
         log_group_name: str,
         log_stream_name: str,
-        log_events: List[Dict[str, Any]],
-    ) -> Tuple[str, Dict[str, Any]]:
+        log_events: list[dict[str, Any]],
+    ) -> tuple[str, dict[str, Any]]:
         """
         The SequenceToken-parameter is not yet implemented
         """
@@ -968,22 +1132,23 @@ class LogsBackend(BaseBackend):
     def get_log_events(
         self,
         log_group_name: str,
+        log_group_id: str,
         log_stream_name: str,
         start_time: str,
         end_time: str,
         limit: int,
         next_token: Optional[str],
         start_from_head: str,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], Optional[str]]:
-        if log_group_name not in self.groups:
-            raise ResourceNotFoundException()
+    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
+        log_group = self._find_log_group(
+            log_group_id=log_group_id, log_group_name=log_group_name
+        )
         if limit and limit > 10000:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 10000",
                 parameter="limit",
                 value=limit,
             )
-        log_group = self.groups[log_group_name]
         return log_group.get_log_events(
             log_stream_name, start_time, end_time, limit, next_token, start_from_head
         )
@@ -991,14 +1156,14 @@ class LogsBackend(BaseBackend):
     def filter_log_events(
         self,
         log_group_name: str,
-        log_stream_names: List[str],
+        log_stream_names: list[str],
         start_time: int,
         end_time: int,
         limit: Optional[int],
         next_token: Optional[str],
         filter_pattern: str,
         interleaved: bool,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], List[Dict[str, Any]]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str], list[dict[str, Any]]]:
         """
         The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
         If the pattern is not supported, all events are returned.
@@ -1033,7 +1198,7 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         self.groups[log_group_name].set_retention_policy(None)
 
-    def describe_resource_policies(self) -> List[LogResourcePolicy]:
+    def describe_resource_policies(self) -> list[LogResourcePolicy]:
         """
         Return list of resource policies.
 
@@ -1070,19 +1235,19 @@ class LogsBackend(BaseBackend):
             )
         del self.resource_policies[policy_name]
 
-    def list_tags_log_group(self, log_group_name: str) -> Dict[str, str]:
+    def list_tags_log_group(self, log_group_name: str) -> dict[str, str]:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return self.list_tags_for_resource(log_group.arn)
 
-    def tag_log_group(self, log_group_name: str, tags: Dict[str, str]) -> None:
+    def tag_log_group(self, log_group_name: str, tags: dict[str, str]) -> None:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         self.tag_resource(log_group.arn, tags)
 
-    def untag_log_group(self, log_group_name: str, tags: List[str]) -> None:
+    def untag_log_group(self, log_group_name: str, tags: list[str]) -> None:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
@@ -1105,7 +1270,7 @@ class LogsBackend(BaseBackend):
         log_group_name: Optional[str] = None,
         metric_name: Optional[str] = None,
         metric_namespace: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         filters = self.filters.get_matching_filters(
             prefix, log_group_name, metric_name, metric_namespace
         )
@@ -1179,8 +1344,7 @@ class LogsBackend(BaseBackend):
         else:
             # TODO: support Kinesis stream destinations
             raise InvalidParameterException(
-                f"Service '{service}' has not implemented for "
-                f"put_subscription_filter()"
+                f"Service '{service}' has not implemented for put_subscription_filter()"
             )
 
         log_group.put_subscription_filter(
@@ -1197,7 +1361,7 @@ class LogsBackend(BaseBackend):
 
     def start_query(
         self,
-        log_group_names: List[str],
+        log_group_names: list[str],
         start_time: int,
         end_time: int,
         query_string: str,
@@ -1215,11 +1379,11 @@ class LogsBackend(BaseBackend):
 
     def describe_queries(
         self, log_stream_name: str, status: Optional[str]
-    ) -> List[LogQuery]:
+    ) -> list[LogQuery]:
         """
         Pagination is not yet implemented
         """
-        queries: List[LogQuery] = []
+        queries: list[LogQuery] = []
         for query in self.queries.values():
             if log_stream_name in query.log_group_names and (
                 not status or status == query.status
@@ -1232,6 +1396,16 @@ class LogsBackend(BaseBackend):
         Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
         """
         return self.queries[query_id]
+
+    def cancel_export_task(self, task_id: str) -> None:
+        task = self.export_tasks.get(task_id)
+        if not task:
+            raise ResourceNotFoundException("The specified export task does not exist.")
+        # If the task has already finished, AWS throws an InvalidOperationException
+        #     'The specified export task has already finished'
+        # However, the export task is currently syncronous, meaning it finishes immediately
+        # When we make the Task async, we can also implement the error behaviour
+        task.status = {"code": "CANCELLED", "message": "Cancelled by user"}
 
     def create_export_task(
         self,
@@ -1281,7 +1455,7 @@ class LogsBackend(BaseBackend):
                 )
                 raw_logs = "\n".join(
                     [
-                        f"{datetime.fromtimestamp(log['timestamp']/1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
+                        f"{datetime.fromtimestamp(log['timestamp'] / 1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
                         for log in logs
                     ]
                 )
@@ -1297,7 +1471,7 @@ class LogsBackend(BaseBackend):
 
         return task_id
 
-    def describe_export_tasks(self, task_id: str) -> List[ExportTask]:
+    def describe_export_tasks(self, task_id: str) -> list[ExportTask]:
         """
         Pagination is not yet implemented
         """
@@ -1308,14 +1482,282 @@ class LogsBackend(BaseBackend):
         else:
             return list(self.export_tasks.values())
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def _find_log_group(self, log_group_id: str, log_group_name: str) -> LogGroup:
+        log_group: Optional[LogGroup] = None
+        if log_group_name:
+            log_group = self.groups.get(log_group_name)
+        elif log_group_id:
+            if not re.fullmatch(r"[\w#+=/:,.@-]*", log_group_id):
+                raise InvalidParameterException(
+                    msg=f"1 validation error detected: Value '{log_group_id}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+                )
+            for log_group in self.groups.values():
+                if log_group.arn == log_group_id:
+                    log_group = log_group
+        else:
+            raise InvalidParameterException(
+                "Should provider either name or id, but not both"
+            )
+        if not log_group:
+            raise ResourceNotFoundException()
+        return log_group
+
+    def put_delivery_destination(
+        self,
+        name: str,
+        output_format: Optional[str],
+        delivery_destination_configuration: dict[str, str],
+        tags: Optional[dict[str, str]],
+    ) -> DeliveryDestination:
+        if output_format and output_format not in [
+            "w3c",
+            "raw",
+            "json",
+            "plain",
+            "parquet",
+        ]:
+            msg = f"1 validation error detected: Value '{output_format}' at 'outputFormat' failed to satisfy constraint: Member must satisfy enum value set: [w3c, raw, json, plain, parquet]"
+            raise ValidationException(msg)
+        if name in self.delivery_destinations:
+            if tags:
+                raise ConflictException(
+                    msg="Tags can only be provided when a resource is being created, not updated."
+                )
+            if (
+                output_format
+                and self.delivery_destinations[name].output_format != output_format
+            ):
+                msg = "Update to existing Delivery Destination with new Output Format is not allowed. Please create a new Delivery Destination instead."
+                raise ValidationException(msg)
+        delivery_destination = DeliveryDestination(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            output_format=output_format,
+            delivery_destination_configuration=delivery_destination_configuration,
+            tags=tags,
+            policy=None,
+        )
+        self.delivery_destinations[name] = delivery_destination
+        if tags:
+            self.tag_resource(delivery_destination.arn, tags)
+        return delivery_destination
+
+    def get_delivery_destination(self, name: str) -> DeliveryDestination:
+        if name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        delivery_destination = self.delivery_destinations[name]
+        return delivery_destination
+
+    def describe_delivery_destinations(self) -> list[DeliveryDestination]:
+        # Pagination not yet implemented
+        delivery_destinations = list(self.delivery_destinations.values())
+        return delivery_destinations
+
+    def put_delivery_destination_policy(
+        self, delivery_destination_name: str, delivery_destination_policy: str
+    ) -> dict[str, str]:
+        if delivery_destination_name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        dd = self.delivery_destinations[delivery_destination_name]
+        dd.policy = delivery_destination_policy
+        return {"deliveryDestinationPolicy": delivery_destination_policy}
+
+    def get_delivery_destination_policy(
+        self, delivery_destination_name: str
+    ) -> dict[str, Any]:
+        if delivery_destination_name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        policy = self.delivery_destinations[delivery_destination_name].policy
+        return {"deliveryDestinationPolicy": policy}
+
+    def put_delivery_source(
+        self, name: str, resource_arn: str, log_type: str, tags: dict[str, str]
+    ) -> DeliverySource:
+        log_types = {
+            "cloudfront": "ACCESS_LOGS",
+            "bedrock": "APPLICATION_LOGS",
+            "codewhisperer": "EVENT_LOGS",
+            "mediapackage": ["EGRESS_ACCESS_LOGS", "INGRESS_ACCESS_LOGS"],
+            "mediatailor": [
+                "AD_DECISION_SERVER_LOGS",
+                "MANIFEST_SERVICE_LOGS",
+                "TRANSCODE_LOGS",
+            ],
+            "sso": "ERROR_LOGS",
+            "qdeveloper": "EVENT_LOGS",
+            "ses": "APPLICATION_LOG",
+            "workmail": [
+                "ACCESS_CONTROL_LOGS",
+                "AUTHENTICATION_LOGS",
+                "WORKMAIL_AVAILABILITY_PROVIDER_LOGS",
+                "WORKMAIL_MAILBOX_ACCESS_LOGS",
+                "WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS",
+            ],
+        }
+        resource_type = resource_arn.split(":")[2]
+
+        if resource_type not in log_types:
+            raise ResourceNotFoundException(msg="Cannot access provided service.")
+
+        if log_type not in log_types[resource_type]:
+            raise ValidationException(
+                msg=" This service is not allowed for this LogSource."
+            )
+
+        if name in self.delivery_sources:
+            if tags:
+                raise ConflictException(
+                    msg="Tags can only be provided when a resource is being created, not updated."
+                )
+            if resource_arn not in self.delivery_sources[name].resource_arns:
+                raise ConflictException(
+                    msg="Update to existing Delivery Source with new ResourceId is not allowed. Please create a new Delivery Source instead."
+                )
+        delivery_source = DeliverySource(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            resource_arn=resource_arn,
+            log_type=log_type,
+            tags=tags,
+        )
+        self.delivery_sources[name] = delivery_source
+        if tags:
+            self.tag_resource(delivery_source.arn, tags)
+        return delivery_source
+
+    def describe_delivery_sources(self) -> list[DeliverySource]:
+        # Pagination not yet implemented
+        delivery_sources = list(self.delivery_sources.values())
+        return delivery_sources
+
+    def get_delivery_source(self, name: str) -> DeliverySource:
+        if name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account.."
+            )
+        delivery_source = self.delivery_sources[name]
+        return delivery_source
+
+    def create_delivery(
+        self,
+        delivery_source_name: str,
+        delivery_destination_arn: str,
+        record_fields: Optional[list[str]],
+        field_delimiter: Optional[str],
+        s3_delivery_configuration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, str]],
+    ) -> Delivery:
+        if delivery_source_name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account."
+            )
+        if delivery_destination_arn not in [
+            dd.arn for dd in self.delivery_destinations.values()
+        ]:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+
+        for delivery in self.deliveries.values():
+            if (
+                delivery.delivery_source_name == delivery_source_name
+                and delivery.delivery_destination_arn == delivery_destination_arn
+            ):
+                raise ConflictException(msg="The specified Delivery already exists")
+            if delivery.delivery_source_name == delivery_source_name:
+                for dd in self.delivery_destinations.values():
+                    if (
+                        dd.arn == delivery_destination_arn
+                        and delivery.destination_type == dd.delivery_destination_type
+                    ):
+                        raise ConflictException(
+                            msg="Delivery already exists for this Delivery Source with the same Delivery Destination Type."
+                        )
+
+        for dd in list(self.delivery_destinations.values()):
+            if dd.arn == delivery_destination_arn:
+                destination_type = dd.delivery_destination_type
+
+        delivery = Delivery(
+            account_id=self.account_id,
+            region=self.region_name,
+            delivery_source_name=delivery_source_name,
+            delivery_destination_arn=delivery_destination_arn,
+            destination_type=destination_type,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+            tags=tags,
+        )
+        self.deliveries[delivery.id] = delivery
+        if tags:
+            self.tag_resource(delivery.arn, tags)
+        return delivery
+
+    def describe_deliveries(self) -> list[Delivery]:
+        # Pagination not yet implemented
+        deliveries = list(self.deliveries.values())
+        return deliveries
+
+    def get_delivery(self, id: str) -> Delivery:
+        if id not in self.deliveries:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery does not exist in this account."
+            )
+        delivery = self.deliveries[id]
+        return delivery
+
+    def delete_delivery(self, id: str) -> None:
+        if id not in self.deliveries:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery does not exist in this account."
+            )
+        self.deliveries.pop(id)
+        return
+
+    def delete_delivery_destination(self, name: str) -> None:
+        if name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        self.delivery_destinations.pop(name)
+        return
+
+    def delete_delivery_destination_policy(
+        self, delivery_destination_name: str
+    ) -> None:
+        delivery_destination = self.delivery_destinations.get(delivery_destination_name)
+        if not delivery_destination:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        delivery_destination.policy = None
+        return
+
+    def delete_delivery_source(self, name: str) -> None:
+        if name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account."
+            )
+        self.delivery_sources.pop(name)
+        return
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

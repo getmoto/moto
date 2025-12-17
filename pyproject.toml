@@ -4,13 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes"
+filterwarnings = [
+    # https://github.com/boto/boto3/issues/3889#issuecomment-2578155761
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"
+]
 markers = [
     "network: requires network connection",
     "requires_docker: requires running docker",
     "aws_verified: Verified against AWS, and should be able to run against AWS",
+    "requires_clean_slate: requires a clean slate, so no parallel testing",
 ]
 
 [tool.ruff.lint]
-ignore = ["E501"]
-extend-select = ["I", "T201", "T203"]
+ignore = [
+    "B019",  # Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks
+    "B024",  # `ContinueWith` is an abstract base class, but it has no abstract methods or properties
+    "B027",  # `ResourceEval.eval_resource` is an empty method in an abstract base class, but has no abstract decorator
+    "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+    "E501",  # Line length
+    "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
+]
+extend-select = ["B", "C4", "E", "F", "G", "I", "T", "UP", "W"]
 

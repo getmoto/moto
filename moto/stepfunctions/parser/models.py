@@ -1,11 +1,13 @@
 import copy
+import datetime
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
+    EncryptionConfiguration,
     ExecutionStatus,
     GetExecutionHistoryOutput,
     InvalidDefinition,
@@ -14,7 +16,6 @@ from moto.stepfunctions.parser.api import (
     LoggingConfiguration,
     MissingRequiredParameter,
     Name,
-    Publish,
     ResourceNotFound,
     SendTaskFailureOutput,
     SendTaskHeartbeatOutput,
@@ -27,7 +28,6 @@ from moto.stepfunctions.parser.api import (
     TaskToken,
     TraceHeader,
     TracingConfiguration,
-    VersionDescription,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
     MapRunRecord,
@@ -80,12 +80,25 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        publish: Optional[bool] = None,
+        loggingConfiguration: Optional[LoggingConfiguration] = None,
+        tracingConfiguration: Optional[TracingConfiguration] = None,
+        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
         return super().create_state_machine(
-            name=name, definition=definition, roleArn=roleArn, tags=tags
+            name=name,
+            definition=definition,
+            roleArn=roleArn,
+            tags=tags,
+            publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
+            version_description=version_description,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
@@ -151,15 +164,24 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         trace_header: TraceHeader = None,
     ) -> Execution:
         state_machine = self.describe_state_machine(state_machine_arn)
+        existing_execution = state_machine._handle_name_input_idempotency(
+            name, execution_input
+        )
+        if existing_execution is not None:
+            # If we found a match for the name and input, return the existing execution.
+            return existing_execution
 
         # Update event change parameters about the state machine and should not affect those about this execution.
         state_machine_clone = copy.deepcopy(state_machine)
 
         if execution_input is None:
-            input_data = dict()
+            input_data = "{}"
         else:
+            input_data = execution_input
             try:
-                input_data = json.loads(execution_input)
+                # Make sure input is valid json
+                json.loads(execution_input)
+
             except Exception as ex:
                 raise InvalidExecutionInput(
                     str(ex)
@@ -167,14 +189,28 @@ class StepFunctionsParserBackend(StepFunctionBackend):
 
         exec_name = name  # TODO: validate name format
 
+        execution_arn = "arn:{}:states:{}:{}:execution:{}:{}"
+        execution_arn = execution_arn.format(
+            self.partition,
+            self.region_name,
+            self.account_id,
+            state_machine.name,
+            name,
+        )
+
         execution = Execution(
             name=exec_name,
+            sm_type=state_machine_clone.sm_type,
             role_arn=state_machine_clone.roleArn,
+            exec_arn=execution_arn,
             account_id=self.account_id,
             region_name=self.region_name,
             state_machine=state_machine_clone,
+            start_date=datetime.datetime.now(tz=datetime.timezone.utc),
+            cloud_watch_logging_session=None,
             input_data=input_data,
             trace_header=trace_header,
+            activity_store={},
         )
         state_machine.executions.append(execution)
 
@@ -188,22 +224,38 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         role_arn: str = None,
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
-        publish: Publish = None,
-        version_description: VersionDescription = None,
+        encryption_configuration: EncryptionConfiguration = None,
+        publish: Optional[bool] = None,
+        version_description: str = None,
     ) -> StateMachine:
         if not any(
-            [definition, role_arn, logging_configuration, tracing_configuration]
+            [
+                definition,
+                role_arn,
+                logging_configuration,
+                tracing_configuration,
+                encryption_configuration,
+            ]
         ):
             raise MissingRequiredParameter(
-                "Either the definition, the role ARN, the LoggingConfiguration, or the TracingConfiguration must be specified"
+                "Either the definition, the role ARN, the LoggingConfiguration, the EncryptionConfiguration or the TracingConfiguration must be specified"
             )
 
         if definition is not None:
             self._validate_definition(definition=definition)
 
-        return super().update_state_machine(arn, definition, role_arn)
+        return super().update_state_machine(
+            arn,
+            definition,
+            role_arn,
+            logging_configuration=logging_configuration,
+            tracing_configuration=tracing_configuration,
+            encryption_configuration=encryption_configuration,
+            publish=publish,
+            version_description=version_description,
+        )
 
-    def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
+    def describe_map_run(self, map_run_arn: str) -> dict[str, Any]:
         for execution in self._get_executions():
             map_run_record: Optional[MapRunRecord] = (
                 execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
@@ -212,17 +264,19 @@ class StepFunctionsParserBackend(StepFunctionBackend):
                 return map_run_record.describe()
         raise ResourceNotFound()
 
-    def list_map_runs(self, execution_arn: str) -> Dict[str, Any]:
+    def list_map_runs(self, execution_arn: str) -> dict[str, Any]:
         """
         Pagination is not yet implemented
         """
         execution = self.describe_execution(execution_arn=execution_arn)
-        map_run_records: List[MapRunRecord] = (
+        map_run_records: list[MapRunRecord] = (
             execution.exec_worker.env.map_run_record_pool_manager.get_all()
         )
-        return dict(
-            mapRuns=[map_run_record.to_json() for map_run_record in map_run_records]
-        )
+        return {
+            "mapRuns": [
+                map_run_record.list_item() for map_run_record in map_run_records
+            ]
+        }
 
     def update_map_run(
         self,

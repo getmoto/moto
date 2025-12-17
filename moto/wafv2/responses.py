@@ -3,7 +3,6 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from ..moto_api._internal import mock_random
 from .models import GLOBAL_REGION, WAFV2Backend, wafv2_backends
 
 
@@ -47,6 +46,11 @@ class WAFV2Response(BaseResponse):
         description = body.get("Description")
         tags = body.get("Tags", [])
         rules = body.get("Rules", [])
+        association_config = body.get("AssociationConfig")
+        captcha_config = body.get("CaptchaConfig")
+        challenge_config = body.get("ChallengeConfig")
+        custom_response_bodies = body.get("CustomResponseBodies")
+        token_domains = body.get("TokenDomains")
         web_acl = self.wafv2_backend.create_web_acl(
             name,
             body["VisibilityConfig"],
@@ -55,8 +59,13 @@ class WAFV2Response(BaseResponse):
             description,
             tags,
             rules,
+            association_config,
+            captcha_config,
+            challenge_config,
+            custom_response_bodies,
+            token_domains,
         )
-        response = {"Summary": web_acl.to_dict()}
+        response = {"Summary": web_acl.to_short_dict()}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -66,7 +75,8 @@ class WAFV2Response(BaseResponse):
             self.region = GLOBAL_REGION
         name = self._get_param("Name")
         _id = self._get_param("Id")
-        self.wafv2_backend.delete_web_acl(name, _id)
+        lock_token = self._get_param("LockToken")
+        self.wafv2_backend.delete_web_acl(name, scope, _id, lock_token)
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, "{}"
 
@@ -87,8 +97,15 @@ class WAFV2Response(BaseResponse):
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        all_web_acls = self.wafv2_backend.list_web_acls()
-        response = {"NextMarker": "Not Implemented", "WebACLs": all_web_acls}
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        web_acls, next_marker = self.wafv2_backend.list_web_acls(
+            limit=limit, next_marker=next_marker
+        )
+        response = {
+            "NextMarker": next_marker,
+            "WebACLs": [web.to_short_dict() for web in web_acls],
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -96,23 +113,45 @@ class WAFV2Response(BaseResponse):
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        rule_groups = self.wafv2_backend.list_rule_groups()
-        response = {"RuleGroups": [rg.to_dict() for rg in rule_groups]}
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        rule_groups, next_marker = self.wafv2_backend.list_rule_groups(
+            scope, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "RuleGroups": [rg.to_short_dict() for rg in rule_groups],
+            "NextMarker": next_marker,
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceARN")
-        self.region = arn.split(":")[3]
-        tags = self.wafv2_backend.list_tags_for_resource(arn)
-        response = {"TagInfoForResource": {"ResourceARN": arn, "TagList": tags}}
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        tags, next_marker = self.wafv2_backend.list_tags_for_resource(
+            arn, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "TagInfoForResource": {"ResourceARN": arn, "TagList": tags},
+            "NextMarker": next_marker,
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
     def tag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
-        self.region = arn.split(":")[3]
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
         tags = body.get("Tags")
         self.wafv2_backend.tag_resource(arn, tags)
         return 200, {}, "{}"
@@ -120,7 +159,11 @@ class WAFV2Response(BaseResponse):
     def untag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
-        self.region = arn.split(":")[3]
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
         tag_keys = body.get("TagKeys")
         self.wafv2_backend.untag_resource(arn, tag_keys)
         return 200, {}, "{}"
@@ -136,10 +179,27 @@ class WAFV2Response(BaseResponse):
         rules = body.get("Rules")
         description = body.get("Description")
         visibility_config = body.get("VisibilityConfig")
-        lock_token = self.wafv2_backend.update_web_acl(
-            name, _id, default_action, rules, description, visibility_config
+        lock_token = body.get("LockToken")
+        custom_response_bodies = body.get("CustomResponseBodies")
+        captcha_config = body.get("CaptchaConfig")
+        challenge_config = body.get("ChallengeConfig")
+        token_domains = body.get("TokenDomains")
+        association_config = body.get("AssociationConfig")
+        new_lock_token = self.wafv2_backend.update_web_acl(
+            name,
+            _id,
+            default_action,
+            rules,
+            description,
+            visibility_config,
+            lock_token,
+            custom_response_bodies,
+            captcha_config,
+            challenge_config,
+            token_domains,
+            association_config,
         )
-        return 200, {}, json.dumps({"NextLockToken": lock_token})
+        return 200, {}, json.dumps({"NextLockToken": new_lock_token})
 
     def create_ip_set(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
@@ -189,11 +249,15 @@ class WAFV2Response(BaseResponse):
 
         return 200, {}, "{}"
 
-    def list_ip_sets(self) -> TYPE_RESPONSE:
+    def list_ip_sets(self) -> str:
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        ip_sets = self.wafv2_backend.list_ip_sets(scope)
+        next_marker = self._get_param("NextMarker")
+        limit = self._get_int_param("Limit")
+        ip_sets, next_token = self.wafv2_backend.list_ip_sets(
+            scope, next_marker=next_marker, limit=limit
+        )
 
         formatted_ip_sets = [
             {
@@ -206,13 +270,7 @@ class WAFV2Response(BaseResponse):
             for ip_set in ip_sets
         ]
 
-        return (
-            200,
-            {},
-            json.dumps(
-                {"NextMarker": str(mock_random.uuid4()), "IPSets": formatted_ip_sets}
-            ),
-        )
+        return json.dumps({"NextMarker": next_token, "IPSets": formatted_ip_sets})
 
     def get_ip_set(self) -> TYPE_RESPONSE:
         scope = self._get_param("Scope")
@@ -299,22 +357,216 @@ class WAFV2Response(BaseResponse):
             ),
         )
 
-    def list_logging_configurations(self) -> TYPE_RESPONSE:
+    def list_logging_configurations(self) -> str:
         body = json.loads(self.body)
         scope = body.get("Scope")
-        log_configs = self.wafv2_backend.list_logging_configurations(scope)
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        log_configs, next_marker = self.wafv2_backend.list_logging_configurations(
+            scope, limit=limit, next_marker=next_marker
+        )
 
         formatted = [
             {k: v for k, v in config.to_dict().items() if v is not None}
             for config in log_configs
         ]
-        return 200, {}, json.dumps({"LoggingConfigurations": formatted})
+        return json.dumps(
+            {"LoggingConfigurations": formatted, "NextMarker": next_marker}
+        )
 
     def delete_logging_configuration(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         resource_arn = body["ResourceArn"]
         self.wafv2_backend.delete_logging_configuration(resource_arn)
         return 200, {}, "{}"
+
+    def create_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        capacity = self._get_param("Capacity")
+        description = self._get_param("Description")
+        rules = self._get_param("Rules", [])
+        visibility_config = self._get_param("VisibilityConfig")
+        tags = self._get_param("Tags")
+        custom_response_bodies = self._get_param("CustomResponseBodies")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        group = self.wafv2_backend.create_rule_group(
+            name=name,
+            scope=scope,
+            capacity=capacity,
+            description=description,
+            rules=rules,
+            visibility_config=visibility_config,
+            tags=tags,
+            custom_response_bodies=custom_response_bodies,
+        )
+        return 200, {}, json.dumps({"Summary": group.to_short_dict()})
+
+    def update_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        description = self._get_param("Description")
+        rules = self._get_param("Rules")
+        visibility_config = self._get_param("VisibilityConfig")
+        lock_token = self._get_param("LockToken")
+        custom_response_bodies = self._get_param("CustomResponseBodies")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        updated_group = self.wafv2_backend.update_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            description=description,
+            rules=rules,
+            visibility_config=visibility_config,
+            lock_token=lock_token,
+            custom_response_bodies=custom_response_bodies,
+        )
+        return 200, {}, json.dumps({"NextLockToken": updated_group.lock_token})
+
+    def delete_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        lock_token = self._get_param("LockToken")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        self.wafv2_backend.delete_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            lock_token=lock_token,
+        )
+        return 200, {}, json.dumps({})
+
+    def get_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        arn = self._get_param("ARN")
+        if scope == "CLOUDFRONT" or (
+            isinstance(arn, str) and arn.split(":")[3] == GLOBAL_REGION
+        ):
+            self.region = GLOBAL_REGION
+        rule_group = self.wafv2_backend.get_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            arn=arn,
+        )
+        group_dict = rule_group.to_dict()
+        lock_token = group_dict.pop("LockToken")
+        return 200, {}, json.dumps({"RuleGroup": group_dict, "LockToken": lock_token})
+
+    def create_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        description = body.get("Description", "")
+        regular_expressions = body.get("RegularExpressionList", [])
+        tags = body.get("Tags", [])
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        regex_pattern_set = self.wafv2_backend.create_regex_pattern_set(
+            name=name,
+            scope=scope,
+            description=description,
+            regular_expressions=regular_expressions,
+            tags=tags,
+        )
+        response = {"Summary": regex_pattern_set.to_short_dict()}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def get_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        regex_pattern_set = self.wafv2_backend.get_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+        )
+        pattern_set_dict = regex_pattern_set.to_dict()
+        lock_token = pattern_set_dict.pop("LockToken")
+        response = {
+            "RegexPatternSet": pattern_set_dict,
+            "LockToken": lock_token,
+        }
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def update_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+        description = body.get("Description")
+        regular_expressions = body.get("RegularExpressionList")
+        lock_token = body.get("LockToken")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        updated_pattern_set = self.wafv2_backend.update_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+            description=description,
+            regular_expressions=regular_expressions,
+            lock_token=lock_token,
+        )
+        response = {"NextLockToken": updated_pattern_set.lock_token}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def delete_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+        lock_token = body.get("LockToken")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        self.wafv2_backend.delete_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+            lock_token=lock_token,
+        )
+        return 200, {}, "{}"
+
+    def list_regex_pattern_sets(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope")
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        pattern_sets, next_marker = self.wafv2_backend.list_regex_pattern_sets(
+            scope, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "RegexPatternSets": [
+                pattern_set.to_short_dict() for pattern_set in pattern_sets
+            ],
+            "NextMarker": next_marker,
+        }
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
 
 
 # notes about region and scope

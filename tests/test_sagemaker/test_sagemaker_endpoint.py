@@ -40,6 +40,10 @@ TEST_SERVERLESS_PRODUCTION_VARIANTS = [
         },
     },
 ]
+TEST_ASYNC_INFERENCE_CONFIG = {
+    "ClientConfig": {"MaxConcurrentInvocationsPerInstance": 3},
+    "OutputConfig": {"S3OutputPath": "s3://output-bucket", "NotificationConfig": {}},
+}
 
 
 @pytest.fixture(name="sagemaker_client")
@@ -48,12 +52,25 @@ def fixture_sagemaker_client():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-def create_endpoint_config_helper(sagemaker_client, production_variants):
+def create_endpoint_config_helper(
+    sagemaker_client, production_variants, async_inference_config=None
+):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
+
+    additional_configuration_parameters = {
+        "AsyncInferenceConfig": async_inference_config
+    }
+
+    additional_configuration_parameters = {
+        k: v
+        for k, v in additional_configuration_parameters.items()
+        if v is not None and v != {}
+    }
 
     resp = sagemaker_client.create_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         ProductionVariants=production_variants,
+        **additional_configuration_parameters,
     )
     assert re.match(
         rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
@@ -69,6 +86,9 @@ def create_endpoint_config_helper(sagemaker_client, production_variants):
     )
     assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
     assert resp["ProductionVariants"] == production_variants
+
+    for key in additional_configuration_parameters:
+        assert resp[key] == additional_configuration_parameters[key]
 
 
 def test_create_endpoint_config(sagemaker_client):
@@ -93,6 +113,23 @@ def test_create_endpoint_config_serverless(sagemaker_client):
 
     # Testing serverless endpoint configuration
     create_endpoint_config_helper(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
+
+
+def test_create_endpoint_config_async(sagemaker_client):
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_PRODUCTION_VARIANTS,
+            AsyncInferenceConfig=TEST_ASYNC_INFERENCE_CONFIG,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing async inference endpoint configuration
+    create_endpoint_config_helper(
+        sagemaker_client,
+        TEST_SERVERLESS_PRODUCTION_VARIANTS,
+        TEST_ASYNC_INFERENCE_CONFIG,
+    )
 
 
 def test_delete_endpoint_config(sagemaker_client):

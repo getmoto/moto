@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
@@ -51,21 +51,21 @@ class Route53DomainsBackend(BaseBackend):
         self.__route53_backend: Route53Backend = route53_backends[account_id][
             self.partition
         ]
-        self.__domains: Dict[str, Route53Domain] = {}
-        self.__operations: Dict[str, Route53DomainsOperation] = {}
+        self.__domains: dict[str, Route53Domain] = {}
+        self.__operations: dict[str, Route53DomainsOperation] = {}
 
     def register_domain(
         self,
         domain_name: str,
         duration_in_years: int,
         auto_renew: bool,
-        admin_contact: Dict[str, Any],
-        registrant_contact: Dict[str, Any],
-        tech_contact: Dict[str, Any],
+        admin_contact: dict[str, Any],
+        registrant_contact: dict[str, Any],
+        tech_contact: dict[str, Any],
         private_protect_admin_contact: bool,
         private_protect_registrant_contact: bool,
         private_protect_tech_contact: bool,
-        extra_params: List[Dict[str, Any]],
+        extra_params: list[dict[str, Any]],
     ) -> Route53DomainsOperation:
         """Register a domain"""
 
@@ -115,7 +115,7 @@ class Route53DomainsBackend(BaseBackend):
         )
         self.__validate_duplicate_operations(requested_operation)
 
-        input_errors: List[str] = []
+        input_errors: list[str] = []
         Route53Domain.validate_domain_name(domain_name, input_errors)
 
         if input_errors:
@@ -141,7 +141,7 @@ class Route53DomainsBackend(BaseBackend):
                 raise DuplicateRequestException()
 
     def get_domain(self, domain_name: str) -> Route53Domain:
-        input_errors: List[str] = []
+        input_errors: list[str] = []
         Route53Domain.validate_domain_name(domain_name, input_errors)
         if input_errors:
             raise InvalidInputException(input_errors)
@@ -151,14 +151,14 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__domains[domain_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_domains(
         self,
-        filter_conditions: Optional[List[Dict[str, Any]]] = None,
-        sort_condition: Optional[Dict[str, Any]] = None,
-    ) -> List[Route53Domain]:
+        filter_conditions: Optional[list[dict[str, Any]]] = None,
+        sort_condition: Optional[dict[str, Any]] = None,
+    ) -> list[Route53Domain]:
         try:
-            filters: List[DomainsFilter] = (
+            filters: list[DomainsFilter] = (
                 [DomainsFilter.validate_dict(f) for f in filter_conditions]
                 if filter_conditions
                 else []
@@ -177,10 +177,10 @@ class Route53DomainsBackend(BaseBackend):
                 ["Sort condition must be the same as the filter condition"]
             )
 
-        domains_to_return: List[Route53Domain] = []
+        domains_to_return: list[Route53Domain] = []
 
         for domain in self.__domains.values():
-            if all([f.filter(domain) for f in filters]):
+            if all(f.filter(domain) for f in filters):
                 domains_to_return.append(domain)
 
         if sort:
@@ -197,16 +197,16 @@ class Route53DomainsBackend(BaseBackend):
 
         return domains_to_return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
-        statuses: Optional[List[str]] = None,
-        types: Optional[List[str]] = None,
+        statuses: Optional[list[str]] = None,
+        types: Optional[list[str]] = None,
         sort_by: Optional[str] = None,
         sort_order: Optional[str] = None,
-    ) -> List[Route53DomainsOperation]:
-        input_errors: List[str] = []
+    ) -> list[Route53DomainsOperation]:
+        input_errors: list[str] = []
         statuses = statuses or []
         types = types or []
 
@@ -224,7 +224,7 @@ class Route53DomainsBackend(BaseBackend):
             else None
         )
 
-        operations_to_return: List[Route53DomainsOperation] = []
+        operations_to_return: list[Route53DomainsOperation] = []
 
         for operation in self.__operations.values():
             if statuses and operation.status not in statuses:
@@ -255,14 +255,14 @@ class Route53DomainsBackend(BaseBackend):
         return self.__operations[operation_id]
 
     def update_domain_nameservers(
-        self, domain_name: str, nameservers: List[Dict[str, Any]]
+        self, domain_name: str, nameservers: list[dict[str, Any]]
     ) -> Route53DomainsOperation:
-        input_errors: List[str] = []
+        input_errors: list[str] = []
         Route53Domain.validate_domain_name(domain_name, input_errors)
         if len(nameservers) < 1:
             input_errors.append("Must supply nameservers")
 
-        servers: List[NameServer] = []
+        servers: list[NameServer] = []
         try:
             servers = [NameServer.validate_dict(obj) for obj in nameservers]
         except ValidationException as e:

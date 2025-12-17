@@ -14,6 +14,7 @@ config
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_resource_types
 - [X] batch_get_aggregate_resource_config
   Returns configuration of resource for current regional backend.
 
@@ -50,10 +51,11 @@ config
 - [ ] delete_pending_aggregation_request
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
-- [ ] delete_resource_config
+- [X] delete_resource_config
 - [X] delete_retention_configuration
   This will delete the retention configuration if one is present with the provided name.
 
+- [ ] delete_service_linked_configuration_recorder
 - [ ] delete_stored_query
 - [ ] deliver_config_snapshot
 - [ ] describe_aggregate_compliance_by_config_rules
@@ -89,6 +91,7 @@ config
         This should only receive at most 1 name in. It will raise a ValidationException if more than 1 is supplied.
         
 
+- [ ] disassociate_resource_types
 - [ ] get_aggregate_compliance_details_by_config_rule
 - [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_aggregate_conformance_pack_compliance_summary
@@ -136,6 +139,7 @@ config
         :return:
         
 
+- [ ] list_configuration_recorders
 - [ ] list_conformance_pack_compliance_scores
 - [X] list_discovered_resources
   Queries against AWS Config (non-aggregated) listing function.
@@ -175,13 +179,20 @@ config
 - [X] put_organization_conformance_pack
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
-- [ ] put_resource_config
+- [X] put_resource_config
 - [X] put_retention_configuration
   Creates a Retention Configuration.
 
+- [ ] put_service_linked_configuration_recorder
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
-- [ ] select_resource_config
+- [X] select_resource_config
+  
+        This method doesn't actually execute SQL but uses predefined results
+        that can be configured through the moto API. Modeled after AWS Athena's approach.
+        Also need to implement pagination.
+        
+
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution

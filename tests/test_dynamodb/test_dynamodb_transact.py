@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -10,13 +12,12 @@ from . import dynamodb_aws_verified
 @mock_aws
 def test_invalid_transact_get_items():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test1",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = dynamodb.Table("test1")
     table.put_item(Item={"id": "1", "val": "1"})
     table.put_item(Item={"id": "1", "val": "2"})
 
@@ -25,7 +26,7 @@ def test_invalid_transact_get_items():
     with pytest.raises(ClientError) as ex:
         client.transact_get_items(
             TransactItems=[
-                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": "test1"}}
+                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": table.name}}
                 for i in range(26)
             ]
         )
@@ -39,8 +40,8 @@ def test_invalid_transact_get_items():
     with pytest.raises(ClientError) as ex:
         client.transact_get_items(
             TransactItems=[
-                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": "test1"}},
-                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": "non_exists_table"}},
+                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": table.name}},
+                {"Get": {"Key": {"id": {"S": "1"}}, "TableName": f"T{uuid4()}"}},
             ]
         )
 
@@ -52,7 +53,7 @@ def test_invalid_transact_get_items():
 @mock_aws
 def test_transact_get_items_should_return_empty_map_for_non_existent_item():
     client = boto3.client("dynamodb", region_name="us-west-2")
-    table_name = "test-table"
+    table_name = f"T{uuid4()}"
     key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
     attribute_definitions = [{"AttributeName": "id", "AttributeType": "S"}]
     client.create_table(
@@ -77,8 +78,8 @@ def test_transact_get_items_should_return_empty_map_for_non_existent_item():
 @mock_aws
 def test_valid_transact_get_items():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test1",
+    table1 = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "sort_key", "KeyType": "RANGE"},
@@ -89,12 +90,11 @@ def test_valid_transact_get_items():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table1 = dynamodb.Table("test1")
     table1.put_item(Item={"id": "1", "sort_key": "1"})
     table1.put_item(Item={"id": "1", "sort_key": "2"})
 
-    dynamodb.create_table(
-        TableName="test2",
+    table2 = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "sort_key", "KeyType": "RANGE"},
@@ -105,7 +105,6 @@ def test_valid_transact_get_items():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table2 = dynamodb.Table("test2")
     table2.put_item(Item={"id": "1", "sort_key": "1"})
 
     client = boto3.client("dynamodb", region_name="us-east-1")
@@ -114,13 +113,13 @@ def test_valid_transact_get_items():
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "non_exists_key"}, "sort_key": {"S": "2"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
         ]
@@ -134,28 +133,26 @@ def test_valid_transact_get_items():
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "2"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test2",
+                    "TableName": table2.name,
                 }
             },
         ]
     )
 
     assert res["Responses"][0]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "1"}}
-
     assert res["Responses"][1]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "2"}}
-
     assert res["Responses"][2]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "1"}}
 
     res = client.transact_get_items(
@@ -163,19 +160,19 @@ def test_valid_transact_get_items():
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "2"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test2",
+                    "TableName": table2.name,
                 }
             },
         ],
@@ -183,13 +180,13 @@ def test_valid_transact_get_items():
     )
 
     assert res["ConsumedCapacity"][0] == {
-        "TableName": "test1",
+        "TableName": table1.name,
         "CapacityUnits": 4.0,
         "ReadCapacityUnits": 4.0,
     }
 
     assert res["ConsumedCapacity"][1] == {
-        "TableName": "test2",
+        "TableName": table2.name,
         "CapacityUnits": 2.0,
         "ReadCapacityUnits": 2.0,
     }
@@ -199,19 +196,19 @@ def test_valid_transact_get_items():
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "2"}},
-                    "TableName": "test1",
+                    "TableName": table1.name,
                 }
             },
             {
                 "Get": {
                     "Key": {"id": {"S": "1"}, "sort_key": {"S": "1"}},
-                    "TableName": "test2",
+                    "TableName": table2.name,
                 }
             },
         ],
@@ -219,14 +216,14 @@ def test_valid_transact_get_items():
     )
 
     assert res["ConsumedCapacity"][0] == {
-        "TableName": "test1",
+        "TableName": table1.name,
         "CapacityUnits": 4.0,
         "ReadCapacityUnits": 4.0,
         "Table": {"CapacityUnits": 4.0, "ReadCapacityUnits": 4.0},
     }
 
     assert res["ConsumedCapacity"][1] == {
-        "TableName": "test2",
+        "TableName": table2.name,
         "CapacityUnits": 2.0,
         "ReadCapacityUnits": 2.0,
         "Table": {"CapacityUnits": 2.0, "ReadCapacityUnits": 2.0},
@@ -235,13 +232,14 @@ def test_valid_transact_get_items():
 
 @mock_aws
 def test_transact_write_items_put():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Put multiple items
     dynamodb.transact_write_items(
@@ -249,14 +247,14 @@ def test_transact_write_items_put():
             {
                 "Put": {
                     "Item": {"id": {"S": f"foo{str(i)}"}, "foo": {"S": "bar"}},
-                    "TableName": "test-table",
+                    "TableName": table_name,
                 }
             }
             for i in range(0, 5)
         ]
     )
     # Assert all are present
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 5
 
 
@@ -307,34 +305,38 @@ def test_transact_write_items_put_conditional_expressions(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_transact_write_items_failure__return_item(table_name=None):
+@pytest.mark.parametrize("operation", ["ConditionCheck", "Put", "Delete", "Update"])
+def test_transact_write_items_failure__return_item(operation: str, table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo2"}})
-    # Put multiple items
+
+    transact_items = []
+    for i in range(0, 5):
+        item = {
+            operation: {
+                "Key": {"pk": {"S": f"foo{i}"}},
+                "TableName": table_name,
+                "ConditionExpression": "#i <> :i",
+                "ExpressionAttributeNames": {"#i": "pk"},
+                # This man right here - should return item as part of error message
+                "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
+                "ExpressionAttributeValues": {
+                    ":i": {"S": "foo2"},
+                },  # This item already exist, so the ConditionExpression should fail
+            }
+        }
+        if operation == "Update":
+            item[operation]["UpdateExpression"] = "SET foo = :i"
+        elif operation == "Put":
+            del item[operation]["Key"]
+            item[operation]["Item"] = {
+                "pk": {"S": f"foo{i}"},
+                "foo": {"S": "bar"},
+            }
+        transact_items.append(item)
+
     with pytest.raises(ClientError) as ex:
-        dynamodb.transact_write_items(
-            TransactItems=[
-                {
-                    "Put": {
-                        "Item": {
-                            "pk": {"S": f"foo{i}"},
-                            "foo": {"S": "bar"},
-                        },
-                        "TableName": table_name,
-                        "ConditionExpression": "#i <> :i",
-                        "ExpressionAttributeNames": {"#i": "pk"},
-                        # This man right here - should return item as part of error message
-                        "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
-                        "ExpressionAttributeValues": {
-                            ":i": {
-                                "S": "foo2"
-                            }  # This item already exist, so the ConditionExpression should fail
-                        },
-                    }
-                }
-                for i in range(0, 5)
-            ]
-        )
+        dynamodb.transact_write_items(TransactItems=transact_items)
     # Assert the exception is correct
     assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     reasons = ex.value.response["CancellationReasons"]
@@ -354,17 +356,18 @@ def test_transact_write_items_failure__return_item(table_name=None):
 
 @mock_aws
 def test_transact_write_items_conditioncheck_passes():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item with email address
     dynamodb.put_item(
-        TableName="test-table",
+        TableName=table_name,
         Item={"id": {"S": "foo"}, "email_address": {"S": "foo@moto.com"}},
     )
     # Put a new item, after verifying the exising item also has email address
@@ -373,7 +376,7 @@ def test_transact_write_items_conditioncheck_passes():
             {
                 "ConditionCheck": {
                     "Key": {"id": {"S": "foo"}},
-                    "TableName": "test-table",
+                    "TableName": table_name,
                     "ConditionExpression": "attribute_exists(#e)",
                     "ExpressionAttributeNames": {"#e": "email_address"},
                 }
@@ -384,13 +387,13 @@ def test_transact_write_items_conditioncheck_passes():
                         "id": {"S": "bar"},
                         "email_address": {"S": "bar@moto.com"},
                     },
-                    "TableName": "test-table",
+                    "TableName": table_name,
                 }
             },
         ]
     )
     # Assert all are present
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 2
     assert {"email_address": {"S": "foo@moto.com"}, "id": {"S": "foo"}} in items
     assert {"email_address": {"S": "bar@moto.com"}, "id": {"S": "bar"}} in items
@@ -398,19 +401,17 @@ def test_transact_write_items_conditioncheck_passes():
 
 @mock_aws
 def test_transact_write_items_conditioncheck_fails():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item without email address
-    dynamodb.put_item(
-        TableName="test-table",
-        Item={"id": {"S": "foo"}},
-    )
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
     # Try putting a new item, after verifying the exising item also has email address
     # ConditionCheck should fail
     with pytest.raises(ClientError) as ex:
@@ -419,7 +420,7 @@ def test_transact_write_items_conditioncheck_fails():
                 {
                     "ConditionCheck": {
                         "Key": {"id": {"S": "foo"}},
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "ConditionExpression": "attribute_exists(#e)",
                         "ExpressionAttributeNames": {"#e": "email_address"},
                     }
@@ -430,7 +431,7 @@ def test_transact_write_items_conditioncheck_fails():
                             "id": {"S": "bar"},
                             "email_address": {"S": "bar@moto.com"},
                         },
-                        "TableName": "test-table",
+                        "TableName": table_name,
                     }
                 },
             ]
@@ -440,53 +441,55 @@ def test_transact_write_items_conditioncheck_fails():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Assert the original item is still present
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 1
     assert items[0] == {"id": {"S": "foo"}}
 
 
 @mock_aws
 def test_transact_write_items_delete():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
     # Delete the item
     dynamodb.transact_write_items(
         TransactItems=[
-            {"Delete": {"Key": {"id": {"S": "foo"}}, "TableName": "test-table"}}
+            {"Delete": {"Key": {"id": {"S": "foo"}}, "TableName": table_name}}
         ]
     )
     # Assert the item is deleted
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 0
 
 
 @mock_aws
 def test_transact_write_items_delete_with_successful_condition_expression():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item without email address
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
     # ConditionExpression will pass - no email address has been specified yet
     dynamodb.transact_write_items(
         TransactItems=[
             {
                 "Delete": {
                     "Key": {"id": {"S": "foo"}},
-                    "TableName": "test-table",
+                    "TableName": table_name,
                     "ConditionExpression": "attribute_not_exists(#e)",
                     "ExpressionAttributeNames": {"#e": "email_address"},
                 }
@@ -494,23 +497,24 @@ def test_transact_write_items_delete_with_successful_condition_expression():
         ]
     )
     # Assert the item is deleted
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 0
 
 
 @mock_aws
 def test_transact_write_items_delete_with_failed_condition_expression():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item with email address
     dynamodb.put_item(
-        TableName="test-table",
+        TableName=table_name,
         Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
     )
     # Try to delete an item that does not have an email address
@@ -521,7 +525,7 @@ def test_transact_write_items_delete_with_failed_condition_expression():
                 {
                     "Delete": {
                         "Key": {"id": {"S": "foo"}},
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "ConditionExpression": "attribute_not_exists(#e)",
                         "ExpressionAttributeNames": {"#e": "email_address"},
                     }
@@ -532,30 +536,31 @@ def test_transact_write_items_delete_with_failed_condition_expression():
     assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert the original item is still present
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 1
     assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_aws
 def test_transact_write_items_update():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
     # Update the item
     dynamodb.transact_write_items(
         TransactItems=[
             {
                 "Update": {
                     "Key": {"id": {"S": "foo"}},
-                    "TableName": "test-table",
+                    "TableName": table_name,
                     "UpdateExpression": "SET #e = :v",
                     "ExpressionAttributeNames": {"#e": "email_address"},
                     "ExpressionAttributeValues": {":v": {"S": "test@moto.com"}},
@@ -564,24 +569,25 @@ def test_transact_write_items_update():
         ]
     )
     # Assert the item is updated
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 1
     assert items[0] == {"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}}
 
 
 @mock_aws
 def test_transact_write_items_update_with_failed_condition_expression():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item with email address
     dynamodb.put_item(
-        TableName="test-table",
+        TableName=table_name,
         Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
     )
     # Try to update an item that does not have an email address
@@ -592,7 +598,7 @@ def test_transact_write_items_update_with_failed_condition_expression():
                 {
                     "Update": {
                         "Key": {"id": {"S": "foo"}},
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "UpdateExpression": "SET #e = :v",
                         "ConditionExpression": "attribute_not_exists(#e)",
                         "ExpressionAttributeNames": {"#e": "email_address"},
@@ -605,23 +611,24 @@ def test_transact_write_items_update_with_failed_condition_expression():
     assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert the original item is still present
-    items = dynamodb.scan(TableName="test-table")["Items"]
+    items = dynamodb.scan(TableName=table_name)["Items"]
     assert len(items) == 1
     assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_aws
 def test_transact_write_items_fails_with_transaction_canceled_exception():
+    table_name = f"T{uuid4()}"
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=table_name, BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert one item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
     # Update two items, the one that exists and another that doesn't
     with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
@@ -629,7 +636,7 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
                 {
                     "Update": {
                         "Key": {"id": {"S": "foo"}},
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "UpdateExpression": "SET #k = :v",
                         "ConditionExpression": "attribute_exists(id)",
                         "ExpressionAttributeNames": {"#k": "key"},
@@ -639,7 +646,7 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
                 {
                     "Update": {
                         "Key": {"id": {"S": "doesnotexist"}},
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "UpdateExpression": "SET #e = :v",
                         "ConditionExpression": "attribute_exists(id)",
                         "ExpressionAttributeNames": {"#e": "key"},
@@ -664,7 +671,7 @@ def test_transact_using_arns():
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_arn = dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )["TableDescription"]["TableArn"]
 
     dynamodb.transact_write_items(

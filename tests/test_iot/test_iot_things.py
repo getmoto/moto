@@ -42,6 +42,19 @@ def test_create_thing_with_type():
 
 
 @mock_aws
+def test_create_thing_with_billing_group():
+    client = boto3.client("iot", region_name="us-east-1")
+    billing_group_name = "test-billing-group"
+    thing_name = "test-thing"
+
+    client.create_billing_group(billingGroupName=billing_group_name)
+    client.create_thing(thingName=thing_name, billingGroupName=billing_group_name)
+
+    response = client.describe_thing(thingName=thing_name)
+    assert response["billingGroupName"] == billing_group_name
+
+
+@mock_aws
 def test_update_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"

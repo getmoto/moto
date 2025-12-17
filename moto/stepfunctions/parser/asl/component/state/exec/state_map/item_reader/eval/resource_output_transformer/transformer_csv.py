@@ -47,6 +47,7 @@ class ResourceOutputTransformerCSV(ResourceOutputTransformer):
         if len(set(headers)) < len(headers):
             error_name = StatesErrorName(typ=StatesErrorNameType.StatesItemReaderFailed)
             failure_event = FailureEvent(
+                env=env,
                 error_name=error_name,
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
@@ -58,9 +59,9 @@ class ResourceOutputTransformerCSV(ResourceOutputTransformer):
             )
             raise FailureEventException(failure_event=failure_event)
 
-        transformed_outputs = list()
+        transformed_outputs = []
         for row in csv_reader_slice:
-            transformed_output = dict()
+            transformed_output = {}
             for i, header in enumerate(headers):
                 transformed_output[header] = row[i] if i < len(row) else ""
             transformed_outputs.append(

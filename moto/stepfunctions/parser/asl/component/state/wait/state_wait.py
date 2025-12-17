@@ -19,7 +19,7 @@ class StateWait(CommonStateField):
         )
 
     def from_state_props(self, state_props: StateProps) -> None:
-        super(StateWait, self).from_state_props(state_props)
+        super().from_state_props(state_props)
         self.wait_function = state_props.get(
             typ=WaitFunction,
             raise_on_missing=ValueError(
@@ -29,3 +29,5 @@ class StateWait(CommonStateField):
 
     def _eval_state(self, env: Environment) -> None:
         self.wait_function.eval(env)
+        if self.assign_decl:
+            self.assign_decl.eval(env=env)

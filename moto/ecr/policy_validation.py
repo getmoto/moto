@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.ecr.exceptions import InvalidParameterException
 
@@ -13,6 +13,7 @@ VALID_ACTION_TYPE_VALUES = {"expire"}
 
 REQUIRED_SELECTION_PROPERTIES = {"tagStatus", "countType", "countNumber"}
 VALID_SELECTION_PROPERTIES = {
+    "tagPatternList",
     "tagPrefixList",
     "countUnit",
     *REQUIRED_SELECTION_PROPERTIES,
@@ -31,8 +32,8 @@ class EcrLifecyclePolicyValidator:
 
     def __init__(self, policy_text: str):
         self._policy_text = policy_text
-        self._policy_json: Dict[str, Any] = {}
-        self._rules: List[Any] = []
+        self._policy_json: dict[str, Any] = {}
+        self._rules: list[Any] = []
 
     def validate(self) -> None:
         try:

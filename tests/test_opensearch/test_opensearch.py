@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -62,6 +65,8 @@ def test_get_compatible_versions():
     client = boto3.client("opensearch", region_name="us-east-2")
     client.create_domain(DomainName="testdn")
 
+    versions = client.get_compatible_versions()["CompatibleVersions"]
+    assert len(versions) == 22
     versions = client.get_compatible_versions(DomainName="testdn")["CompatibleVersions"]
     assert len(versions) == 22
 
@@ -90,21 +95,58 @@ def test_describe_unknown_domain():
 
 @mock_aws
 def test_describe_domain():
+    # Setup
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
 
+    # Execute
     status = client.describe_domain(DomainName="testdn")["DomainStatus"]
+
+    # Verify
     assert "DomainId" in status
     assert "DomainName" in status
     assert status["DomainName"] == "testdn"
+    assert status["EngineVersion"] == "OpenSearch_2.5"
+
+
+@mock_aws
+@freeze_time("2015-01-01 12:00:00")
+def test_describe_domain_config():
+    # Setup
+    client = boto3.client("opensearch", region_name="eu-west-1")
+    client.create_domain(DomainName="testdn")
+
+    # Execute
+    config = client.describe_domain_config(DomainName="testdn")["DomainConfig"]
+    ev_status = config["EngineVersion"]["Status"]
+
+    # Verify
+    assert config["EngineVersion"]["Options"] == "OpenSearch_2.5"
+    assert ev_status["State"] == "Active"
+    assert ev_status["PendingDeletion"] is False
+
+    if not settings.TEST_SERVER_MODE:
+        assert ev_status["CreationDate"] == datetime(
+            2015, 1, 1, 12, tzinfo=timezone.utc
+        )
+        assert ev_status["UpdateDate"] == datetime(2015, 1, 1, 12, tzinfo=timezone.utc)
 
 
 @mock_aws
 def test_delete_domain():
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
-    client.delete_domain(DomainName="testdn")
+    resp = client.delete_domain(DomainName="testdn")
+    status = resp["DomainStatus"]
+    assert "DomainId" in status
+    assert "DomainName" in status
+    assert status["Deleted"]  # assume deleted completion
+    assert status["DomainName"] == "testdn"
 
+
+@mock_aws
+def test_delete_invalid_domain():
+    client = boto3.client("opensearch", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_domain(DomainName="testdn")
     err = exc.value.response["Error"]
@@ -202,4 +244,24 @@ def test_list_unknown_domain_names_engine_type():
         client.list_domain_names(EngineType="unknown")
     err = exc.value.response["Error"]
     assert err["Code"] == "EngineTypeNotFoundException"
-    assert err["Message"] == "Engine Type not found: testdn"
+    assert err["Message"] == "Engine Type not found: unknown"
+
+
+@mock_aws
+def test_describe_domains():
+    client = boto3.client("opensearch", region_name="us-east-1")
+    domain_names = [f"env{i}" for i in range(1, 5)]
+    opensearch_engine_version = "OpenSearch_1.0"
+    for name in domain_names:
+        client.create_domain(DomainName=name, EngineVersion=opensearch_engine_version)
+    resp = client.describe_domains(DomainNames=domain_names)
+
+    assert len(resp["DomainStatusList"]) == 4
+    for domain in resp["DomainStatusList"]:
+        assert domain["DomainName"] in domain_names
+        assert "AdvancedSecurityOptions" in domain.keys()
+        assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0

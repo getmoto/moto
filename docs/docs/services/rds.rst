@@ -14,8 +14,8 @@ rds
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_role_to_db_cluster
-- [ ] add_role_to_db_instance
+- [X] add_role_to_db_cluster
+- [X] add_role_to_db_instance
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -24,10 +24,10 @@ rds
 - [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] copy_db_snapshot
 - [ ] copy_option_group
-- [ ] create_blue_green_deployment
+- [X] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
@@ -39,7 +39,7 @@ rds
 - [X] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
-- [ ] create_db_shard_group
+- [X] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -47,7 +47,7 @@ rds
 - [ ] create_integration
 - [X] create_option_group
 - [ ] create_tenant_database
-- [ ] delete_blue_green_deployment
+- [X] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_automated_backup
@@ -57,7 +57,7 @@ rds
 - [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
-- [ ] delete_db_proxy
+- [X] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
 - [ ] delete_db_shard_group
@@ -68,9 +68,9 @@ rds
 - [ ] delete_integration
 - [X] delete_option_group
 - [ ] delete_tenant_database
-- [ ] deregister_db_proxy_targets
+- [X] deregister_db_proxy_targets
 - [ ] describe_account_attributes
-- [ ] describe_blue_green_deployments
+- [X] describe_blue_green_deployments
 - [ ] describe_certificates
 - [ ] describe_db_cluster_automated_backups
 - [ ] describe_db_cluster_backtracks
@@ -81,9 +81,10 @@ rds
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
-- [ ] describe_db_instance_automated_backups
+- [X] describe_db_instance_automated_backups
 - [X] describe_db_instances
-- [ ] describe_db_log_files
+- [X] describe_db_log_files
+- [ ] describe_db_major_engine_versions
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
 - [X] describe_db_proxies
@@ -92,11 +93,11 @@ rds
         
 
 - [ ] describe_db_proxy_endpoints
-- [ ] describe_db_proxy_target_groups
-- [ ] describe_db_proxy_targets
+- [X] describe_db_proxy_target_groups
+- [X] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_shard_groups
+- [X] describe_db_shard_groups
 - [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
@@ -105,7 +106,7 @@ rds
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
 - [ ] describe_integrations
@@ -125,7 +126,7 @@ rds
 - [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
 - [ ] enable_http_endpoint
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [ ] modify_activity_stream
@@ -134,13 +135,13 @@ rds
 - [ ] modify_custom_db_engine_version
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
-- [ ] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_parameter_group
 - [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
-- [ ] modify_db_proxy_target_group
+- [X] modify_db_proxy_target_group
 - [ ] modify_db_recommendation
 - [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
@@ -157,7 +158,7 @@ rds
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] reboot_db_shard_group
-- [ ] register_db_proxy_targets
+- [X] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
 - [ ] remove_role_from_db_instance
@@ -167,7 +168,7 @@ rds
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
 - [X] restore_db_instance_to_point_in_time
@@ -181,7 +182,7 @@ rds
 - [X] stop_db_cluster
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
-- [ ] switchover_blue_green_deployment
+- [X] switchover_blue_green_deployment
 - [ ] switchover_global_cluster
 - [ ] switchover_read_replica
 

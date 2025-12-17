@@ -1,9 +1,10 @@
 """Unit tests for fsx-supported APIs."""
 
-import time
+import re
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -32,7 +33,7 @@ def test_create_filesystem(client):
 
     file_system = resp["FileSystem"]
 
-    assert file_system["FileSystemId"].startswith("fs-moto")
+    assert re.match(r"^fs-[0-9a-f]{8,}$", file_system["FileSystemId"])
     assert file_system["FileSystemType"] == "LUSTRE"
 
 
@@ -48,8 +49,6 @@ def test_describe_filesystems():
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
-    time.sleep(1)
-
     # Create another WINDOWS file system
     client.create_file_system(
         FileSystemType="WINDOWS",
@@ -58,8 +57,6 @@ def test_describe_filesystems():
         SubnetIds=[FAKE_SUBNET_ID],
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
-
-    time.sleep(1)
 
     resp = client.describe_file_systems()
     file_systems = resp["FileSystems"]
@@ -90,12 +87,81 @@ def test_delete_file_system():
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
-    assert fs["FileSystem"]["FileSystemId"].startswith("fs-moto")
     file_system_id = fs["FileSystem"]["FileSystemId"]
     resp = client.delete_file_system(FileSystemId=file_system_id)
     assert resp["FileSystemId"] == file_system_id
     assert resp["Lifecycle"] == "DELETING"
     assert resp["LustreResponse"] is not None
+
+
+@mock_aws
+def test_create_backup():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    resp = client.create_backup(
+        FileSystemId=fs["FileSystem"]["FileSystemId"], Tags=tags
+    )
+
+    backup = resp["Backup"]
+    assert backup["BackupId"].startswith("backup-")
+    assert backup["ResourceARN"].startswith("arn:aws:fsx:")
+    assert backup["Tags"] == tags
+
+
+@mock_aws
+def test_nonexistent_file_system():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+
+    with pytest.raises(ClientError) as exc:
+        client.create_backup(
+            FileSystemId="NONEXISTENTFILESYSTEMID",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "FSx resource, NONEXISTENTFILESYSTEMID does not exist"
+
+
+@mock_aws
+def test_delete_backup():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    resp = client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+
+    backup = resp["Backup"]
+    assert backup["BackupId"].startswith("backup-")
+    assert backup["ResourceARN"].startswith("arn:aws:fsx:")
+
+    resp = client.delete_backup(BackupId=backup["BackupId"])
+    assert resp["BackupId"] == backup["BackupId"]
+    assert resp["Lifecycle"] == "DELETED"
+
+
+@mock_aws
+def test_backup_not_found():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    with pytest.raises(ClientError) as exc:
+        client.delete_backup(BackupId="NONEXISTENTBACKUPID")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "FSx resource, NONEXISTENTBACKUPID does not exist"
 
 
 @mock_aws
@@ -149,3 +215,25 @@ def test_untag_resource():
     resp = client.describe_file_systems(FileSystemIds=[file_system_id])
     assert len(resp["FileSystems"][0]["Tags"]) == 1
     assert resp["FileSystems"][0]["Tags"] == [{"Key": "Environment", "Value": "Dev"}]
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+    resource_arn = fs["FileSystem"]["ResourceARN"]
+    client.tag_resource(ResourceARN=resource_arn, Tags=tags)
+    resp = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert len(resp["Tags"]) == 2
+    assert resp["Tags"] == tags

@@ -17,7 +17,12 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] attach_cluster_node_volume
+- [ ] batch_add_cluster_nodes
+- [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
+- [ ] batch_reboot_cluster_nodes
+- [ ] batch_replace_cluster_nodes
 - [ ] create_action
 - [ ] create_algorithm
 - [ ] create_app
@@ -26,8 +31,10 @@ sagemaker
 - [ ] create_auto_ml_job
 - [X] create_auto_ml_job_v2
 - [X] create_cluster
+- [ ] create_cluster_scheduler_config
 - [ ] create_code_repository
 - [X] create_compilation_job
+- [ ] create_compute_quota
 - [ ] create_context
 - [X] create_data_quality_job_definition
 - [ ] create_device_fleet
@@ -41,6 +48,7 @@ sagemaker
 - [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
+- [ ] create_hub_content_presigned_urls
 - [ ] create_hub_content_reference
 - [ ] create_human_task_ui
 - [X] create_hyper_parameter_tuning_job
@@ -63,6 +71,8 @@ sagemaker
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
 - [ ] create_optimization_job
+- [ ] create_partner_app
+- [ ] create_partner_app_presigned_url
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_mlflow_tracking_server_url
@@ -72,6 +82,7 @@ sagemaker
 - [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
+- [ ] create_training_plan
 - [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
@@ -85,8 +96,10 @@ sagemaker
 - [ ] delete_artifact
 - [ ] delete_association
 - [X] delete_cluster
+- [ ] delete_cluster_scheduler_config
 - [ ] delete_code_repository
 - [X] delete_compilation_job
+- [ ] delete_compute_quota
 - [ ] delete_context
 - [X] delete_data_quality_job_definition
 - [ ] delete_device_fleet
@@ -120,11 +133,14 @@ sagemaker
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_optimization_job
+- [ ] delete_partner_app
 - [X] delete_pipeline
+- [ ] delete_processing_job
 - [ ] delete_project
 - [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
+- [ ] delete_training_job
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -139,9 +155,12 @@ sagemaker
 - [ ] describe_auto_ml_job
 - [X] describe_auto_ml_job_v2
 - [X] describe_cluster
+- [ ] describe_cluster_event
 - [X] describe_cluster_node
+- [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
 - [X] describe_compilation_job
+- [ ] describe_compute_quota
 - [ ] describe_context
 - [X] describe_data_quality_job_definition
 - [ ] describe_device
@@ -179,21 +198,25 @@ sagemaker
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
 - [ ] describe_optimization_job
+- [ ] describe_partner_app
 - [X] describe_pipeline
 - [X] describe_pipeline_definition_for_execution
 - [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_reserved_capacity
 - [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
+- [ ] describe_training_plan
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
 - [ ] describe_user_profile
 - [ ] describe_workforce
 - [ ] describe_workteam
+- [ ] detach_cluster_node_volume
 - [ ] disable_sagemaker_servicecatalog_portfolio
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
@@ -213,10 +236,13 @@ sagemaker
 - [ ] list_associations
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_cluster_events
 - [X] list_cluster_nodes
+- [ ] list_cluster_scheduler_configs
 - [X] list_clusters
 - [ ] list_code_repositories
 - [X] list_compilation_jobs
+- [ ] list_compute_quotas
 - [ ] list_contexts
 - [X] list_data_quality_job_definitions
 - [ ] list_device_fleets
@@ -266,9 +292,11 @@ sagemaker
         
 
 - [ ] list_optimization_jobs
+- [ ] list_partner_apps
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
+- [ ] list_pipeline_versions
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -280,9 +308,11 @@ sagemaker
 - [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
+- [ ] list_training_plans
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
+- [ ] list_ultra_servers_by_reserved_capacity
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams
@@ -292,6 +322,11 @@ sagemaker
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
 - [X] search
+  
+        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+        
+
+- [ ] search_training_plan_offerings
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
@@ -300,6 +335,7 @@ sagemaker
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
+- [ ] start_session
 - [X] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage
@@ -320,8 +356,10 @@ sagemaker
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_scheduler_config
 - [ ] update_cluster_software
 - [ ] update_code_repository
+- [ ] update_compute_quota
 - [ ] update_context
 - [ ] update_device_fleet
 - [ ] update_devices
@@ -332,6 +370,8 @@ sagemaker
 - [ ] update_feature_group
 - [ ] update_feature_metadata
 - [ ] update_hub
+- [ ] update_hub_content
+- [ ] update_hub_content_reference
 - [ ] update_image
 - [ ] update_image_version
 - [ ] update_inference_component
@@ -344,8 +384,10 @@ sagemaker
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
+- [ ] update_partner_app
 - [X] update_pipeline
 - [ ] update_pipeline_execution
+- [ ] update_pipeline_version
 - [ ] update_project
 - [ ] update_space
 - [ ] update_training_job

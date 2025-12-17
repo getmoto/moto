@@ -60,3 +60,18 @@ class NameTooLongException(ValidationException):
             f"1 validation error detected: Value '{name}' at 'name' "
             "failed to satisfy constraint: Member must have length less than or equal to 80"
         )
+
+
+class InvalidEncryptionConfiguration(AWSError):
+    TYPE = "InvalidEncryptionConfiguration"
+    STATUS = 400
+
+
+class ActivityDoesNotExist(AWSError):
+    TYPE = "ActivityDoesNotExist"
+    STATUS = 400
+
+
+class ActivityAlreadyExists(AWSError):
+    TYPE = "ActivityAlreadyExists"
+    STATUS = 400

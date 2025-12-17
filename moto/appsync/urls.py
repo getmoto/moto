@@ -4,6 +4,7 @@ from .responses import AppSyncResponse
 
 url_bases = [
     r"https?://appsync\.(.+)\.amazonaws\.com",
+    r"https?://([a-zA-Z0-9\-_]+)\.appsync-api\.(.+)\.amazonaws\.com",
 ]
 
 
@@ -17,4 +18,12 @@ url_paths = {
     "{0}/v1/tags/(?P<resource_arn>.+)$": AppSyncResponse.dispatch,
     "{0}/v1/tags/(?P<resource_arn_pt1>.+)/(?P<resource_arn_pt2>.+)$": AppSyncResponse.dispatch,
     "{0}/v1/apis/(?P<api_id>[^/]+)/types/(?P<type_name>.+)$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/ApiCaches$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/ApiCaches/update$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/FlushCache$": AppSyncResponse.dispatch,
+    "{0}/v2/apis$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces/(?P<name>[^/]+)$": AppSyncResponse.dispatch,
+    "{0}/event$": AppSyncResponse.dns_event_response,
 }

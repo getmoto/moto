@@ -1,6 +1,6 @@
 import os
 import string
-from typing import Any, List
+from typing import Any
 from urllib.parse import urlparse
 
 import yaml
@@ -46,7 +46,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
             if isinstance(node.value, list):
                 return node.value
             return node.value.split(".")
-        elif type(node) == yaml.SequenceNode:
+        elif type(node) is yaml.SequenceNode:
             return loader.construct_sequence(node)
         else:
             return node.value
@@ -59,7 +59,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
     return {key: _f(loader, tag, node)}
 
 
-def validate_template_cfn_lint(template: str) -> List[Any]:
+def validate_template_cfn_lint(template: str) -> list[Any]:
     # Importing cfnlint adds a significant overhead, so we keep it local
 
     try:

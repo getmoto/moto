@@ -2,7 +2,11 @@ import gzip
 import hashlib
 import json
 import pkgutil
-from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
+from collections.abc import Iterator, MutableMapping
+from typing import Any, Optional, TypeVar
+from uuid import UUID
+
+from requests.structures import CaseInsensitiveDict as _CaseInsensitiveDict
 
 DEFAULT_PARTITION = "aws"
 REGION_PREFIX_TO_PARTITION = {
@@ -60,21 +64,29 @@ def load_resource_as_bytes(package: str, resource: str) -> bytes:
     return pkgutil.get_data(package, resource)  # type: ignore
 
 
-def merge_multiple_dicts(*args: Any) -> Dict[str, Any]:
+def merge_multiple_dicts(*args: Any) -> dict[str, Any]:
     result = {}
     for d in args:
         result.update(d)
     return result
 
 
+def is_valid_uuid(uuid: str, version: int = 4) -> bool:
+    try:
+        UUID(uuid, version=version)
+        return True
+    except ValueError:
+        return False
+
+
 RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
 
 
 def filter_resources(
-    resources: List[RESOURCE_TYPE],
+    resources: list[RESOURCE_TYPE],
     filters: Any,
-    attr_pairs: Tuple[Tuple[str, ...], ...],
-) -> List[RESOURCE_TYPE]:
+    attr_pairs: tuple[tuple[str, ...], ...],
+) -> list[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.
     """
@@ -89,6 +101,10 @@ def filter_resources(
                 ):
                     result.remove(resource)
                     break
+            elif attrs[0] in filters:
+                # In case the filter exists but the value of the filter is empty, the filter shouldn't match
+                result.remove(resource)
+                break
     return result
 
 
@@ -98,18 +114,14 @@ def md5_hash(data: Any = None) -> Any:
     Required for Moto to work in FIPS-enabled systems
     """
     args = (data,) if data else ()
-    try:
-        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
-    except TypeError:
-        # The usedforsecurity-parameter is only available as of Python 3.9
-        return hashlib.md5(*args)
+    return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
 
 
 class LowercaseDict(MutableMapping[str, Any]):
     """A dictionary that lowercases all keys"""
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.store: Dict[str, Any] = dict()
+        self.store: dict[str, Any] = {}
         self.update(dict(*args, **kwargs))  # use the free update to set keys
 
     def __getitem__(self, key: str) -> Any:
@@ -147,7 +159,7 @@ class CamelToUnderscoresWalker:
             return CamelToUnderscoresWalker.parse_scalar(x)
 
     @staticmethod
-    def parse_dict(x: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    def parse_dict(x: dict[str, Any]) -> dict[str, Any]:  # type: ignore[misc]
         from moto.core.utils import camelcase_to_underscores
 
         temp = {}
@@ -165,3 +177,9 @@ class CamelToUnderscoresWalker:
     @staticmethod
     def parse_scalar(x: Any) -> Any:  # type: ignore[misc]
         return x
+
+
+class CaseInsensitiveDict(_CaseInsensitiveDict):  # type: ignore[type-arg]
+    """Proxy for requests.structures.CaseInsensitiveDict"""
+
+    pass

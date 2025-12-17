@@ -8,6 +8,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.core import set_initial_no_auth_action_count
 
 from ..markers import requires_docker
 from .test_lambda import LooseVersion, boto3_version
@@ -123,7 +124,7 @@ class TestLambdaInvocations:
         )
 
         if "FunctionError" in success_result:
-            assert False, success_result["Payload"].read().decode("utf-8")
+            raise AssertionError(success_result["Payload"].read().decode("utf-8"))
 
         assert success_result["StatusCode"] == 200
         assert (
@@ -418,3 +419,36 @@ def test_invoke_lambda_with_entrypoint():
     payload = result["Payload"].read().decode("utf-8")
 
     assert json.loads(payload) == in_data
+
+
+@set_initial_no_auth_action_count(4)
+@mock_aws
+def test_lambda_request_unauthorized_user():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Auth decorator does not work in server mode")
+    iam = boto3.client("iam", region_name="us-west-2")
+    user_name = "test-user"
+    iam.create_user(UserName=user_name)
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Deny",
+            "Action": ["s3:*", "secretsmanager:*", "lambda:*"],
+            "Resource": "*",
+        },
+    }
+    policy_arn = iam.create_policy(
+        PolicyName="policy2", PolicyDocument=json.dumps(policy_document)
+    )["Policy"]["Arn"]
+    iam.attach_user_policy(UserName=user_name, PolicyArn=policy_arn)
+    access_key = iam.create_access_key(UserName=user_name)["AccessKey"]
+
+    _lambda = boto3.session.Session(
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+        region_name="us-west-2",
+    ).client(service_name="lambda")
+
+    with pytest.raises(ClientError) as exc:
+        _lambda.invoke(FunctionName="n/a", Payload="{}")
+    assert "not authorized to perform: lambda:Invoke" in str(exc.value)

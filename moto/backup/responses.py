@@ -51,12 +51,12 @@ class BackupResponse(BaseResponse):
             backup_plan_id=backup_plan_id,
         )
         return json.dumps(
-            dict(
-                BackupPlanId=backup_plan_id,
-                BackupPlanArn=backup_plan_arn,
-                DeletionDate=deletion_date,
-                VersionId=version_id,
-            )
+            {
+                "BackupPlanId": backup_plan_id,
+                "BackupPlanArn": backup_plan_arn,
+                "DeletionDate": deletion_date,
+                "VersionId": version_id,
+            }
         )
 
     def list_backup_plans(self) -> str:
@@ -66,7 +66,7 @@ class BackupResponse(BaseResponse):
             include_deleted=include_deleted
         )
         return json.dumps(
-            dict(BackupPlansList=[p.to_list_dict() for p in backup_plans_list])
+            {"BackupPlansList": [p.to_list_dict() for p in backup_plans_list]}
         )
 
     def create_backup_vault(self) -> str:
@@ -86,7 +86,7 @@ class BackupResponse(BaseResponse):
     def list_backup_vaults(self) -> str:
         backup_vault_list = self.backup_backend.list_backup_vaults()
         return json.dumps(
-            dict(BackupVaultList=[v.to_list_dict() for v in backup_vault_list])
+            {"BackupVaultList": [v.to_list_dict() for v in backup_vault_list]}
         )
 
     def list_tags(self) -> str:
@@ -94,7 +94,7 @@ class BackupResponse(BaseResponse):
         tags = self.backup_backend.list_tags(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(Tags=tags))
+        return json.dumps({"Tags": tags})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)

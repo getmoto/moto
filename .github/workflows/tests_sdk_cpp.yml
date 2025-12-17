@@ -1,0 +1,35 @@
+name: C++ SDK test
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - name: Start MotoServer
+      uses: ./.github/actions/run_moto_server
+
+    - name: Check build cache
+      id: build-cache
+      uses: actions/cache@v5
+      with:
+        path: other_langs/tests_cpp/build/hello_s3
+        key: cpp-build-${{ hashFiles('other_langs/tests_cpp/hello_s3.cpp') }}
+
+    - name: Build Project
+      if: steps.build-cache.outputs.cache-hit != 'true'
+      working-directory: other_langs/tests_cpp
+      run: |
+        make build
+
+    - name: Run tests
+      working-directory: other_langs/tests_cpp
+      run: |
+        make test

@@ -2,7 +2,7 @@ import io
 import os
 import os.path
 from threading import Lock
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 try:
     from flask import Flask
@@ -11,7 +11,8 @@ except ImportError:
     import warnings
 
     warnings.warn(
-        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n"
+        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n",
+        stacklevel=2,
     )
     raise
 
@@ -20,8 +21,9 @@ import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
+from moto.settings import DISABLE_GLOBAL_CORS, MAX_FORM_MEMORY_SIZE
 
-from .utilities import AWSTestHelper, RegexConverter
+from .utilities import AWSTestHelper, RegexConverter, decompress_request_body
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
@@ -60,7 +62,7 @@ class DomainDispatcherApplication:
     def __init__(self, create_app: Callable[[backends.SERVICE_NAMES], Flask]):
         self.create_app = create_app
         self.lock = Lock()
-        self.app_instances: Dict[str, Flask] = {}
+        self.app_instances: dict[str, Flask] = {}
         self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host: Optional[str]) -> Any:
@@ -84,7 +86,7 @@ class DomainDispatcherApplication:
             )
 
     def infer_service_region_host(
-        self, environ: Dict[str, Any], path: str
+        self, environ: dict[str, Any], path: str
     ) -> Optional[str]:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
@@ -136,6 +138,8 @@ class DomainDispatcherApplication:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = f"data.{service}.{region}.amazonaws.com"
+        elif service == "dsql":
+            host = f"{service}.{region}.api.aws"
         elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -161,14 +165,18 @@ class DomainDispatcherApplication:
             path.startswith("/v20180820/") or "s3-control" in environ["HTTP_HOST"]
         ):
             host = "s3control"
+        elif service == "s3vectors":
+            host = f"{service}.{region}.api.aws"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
+        elif service == "memorydb":
+            host = f"memory-db.{region}.amazonaws.com"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
         return host
 
-    def get_application(self, environ: Dict[str, Any]) -> Flask:
+    def get_application(self, environ: dict[str, Any]) -> Flask:
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
@@ -198,7 +206,7 @@ class DomainDispatcherApplication:
                 self.app_instances[backend] = app
             return app
 
-    def _get_body(self, environ: Dict[str, Any]) -> Optional[str]:
+    def _get_body(self, environ: dict[str, Any]) -> Optional[str]:
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -217,8 +225,8 @@ class DomainDispatcherApplication:
         return body
 
     def get_service_from_body(
-        self, body: Optional[str], environ: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+        self, body: Optional[str], environ: dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         # Some services have the SDK Version in the body
         # If the version is unique, we can derive the service from it
         version = self.get_version_from_body(body)
@@ -245,7 +253,7 @@ class DomainDispatcherApplication:
 
     def get_service_from_path(
         self, path_info: str
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[Optional[str], Optional[str]]:
         # Moto sometimes needs to send a HTTP request to itself
         # In which case it will send a request to 'http://localhost/service_region/whatever'
         try:
@@ -254,7 +262,7 @@ class DomainDispatcherApplication:
         except (AttributeError, KeyError, ValueError):
             return None, None
 
-    def __call__(self, environ: Dict[str, Any], start_response: Any) -> Any:
+    def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:
         backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
 
@@ -270,7 +278,11 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     backend_app = Flask("moto", template_folder=template_dir)
     backend_app.debug = True
     backend_app.service = service  # type: ignore[attr-defined]
-    CORS(backend_app)
+    backend_app.before_request(decompress_request_body)
+    backend_app.config["MAX_FORM_MEMORY_SIZE"] = MAX_FORM_MEMORY_SIZE
+
+    if not DISABLE_GLOBAL_CORS:
+        CORS(backend_app)
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}

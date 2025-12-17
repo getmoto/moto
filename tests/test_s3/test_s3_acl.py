@@ -48,17 +48,17 @@ def test_put_object_acl_using_grant(readwrite, type_key, value, has_quotes):
 
 
 @mock_aws
-def test_acl_switching_boto3():
+def test_acl_switching():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create()
     keyname = "test.txt"
 
     bucket.put_object(Key=keyname, Body=b"asdf", ACL="public-read")
-    client.put_object_acl(ACL="private", Bucket="foobar", Key=keyname)
+    client.put_object_acl(ACL="private", Bucket=bucket.name, Key=keyname)
 
-    grants = client.get_object_acl(Bucket="foobar", Key=keyname)["Grants"]
+    grants = client.get_object_acl(Bucket=bucket.name, Key=keyname)["Grants"]
     assert {
         "Grantee": {
             "Type": "Group",
@@ -71,10 +71,11 @@ def test_acl_switching_boto3():
 @mock_aws
 def test_acl_switching_nonexistent_key():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
 
     with pytest.raises(ClientError) as exc:
-        s3_client.put_object_acl(Bucket="mybucket", Key="nonexistent", ACL="private")
+        s3_client.put_object_acl(Bucket=bucket_name, Key="nonexistent", ACL="private")
 
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
@@ -82,7 +83,7 @@ def test_acl_switching_nonexistent_key():
 @mock_aws
 def test_s3_object_in_public_bucket():
     s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("test-bucket")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create(ACL="public-read")
     bucket.put_object(Body=b"ABCD", Key="file.txt")
 
@@ -90,7 +91,7 @@ def test_s3_object_in_public_bucket():
     s3_anonymous.meta.client.meta.events.register("choose-signer.s3.*", disable_signing)
 
     contents = (
-        s3_anonymous.Object(key="file.txt", bucket_name="test-bucket")
+        s3_anonymous.Object(key="file.txt", bucket_name=bucket.name)
         .get()["Body"]
         .read()
     )
@@ -99,18 +100,18 @@ def test_s3_object_in_public_bucket():
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
     with pytest.raises(ClientError) as exc:
-        s3_anonymous.Object(key="file.txt", bucket_name="test-bucket").get()
+        s3_anonymous.Object(key="file.txt", bucket_name=bucket.name).get()
     assert exc.value.response["Error"]["Code"] == "403"
 
 
 @mock_aws
 def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
     s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("test-bucket")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create(ACL="public-read")
     bucket.put_object(Body=b"ABCD", Key="file.txt")
 
-    params = {"Bucket": "test-bucket", "Key": "file.txt"}
+    params = {"Bucket": bucket.name, "Key": "file.txt"}
     presigned_url = boto3.client("s3").generate_presigned_url(
         "get_object", params, ExpiresIn=900
     )
@@ -125,7 +126,7 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
 @mock_aws
 def test_s3_object_in_private_bucket():
     s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("test-bucket")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create(ACL="private")
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
@@ -133,12 +134,12 @@ def test_s3_object_in_private_bucket():
     s3_anonymous.meta.client.meta.events.register("choose-signer.s3.*", disable_signing)
 
     with pytest.raises(ClientError) as exc:
-        s3_anonymous.Object(key="file.txt", bucket_name="test-bucket").get()
+        s3_anonymous.Object(key="file.txt", bucket_name=bucket.name).get()
     assert exc.value.response["Error"]["Code"] == "403"
 
     bucket.put_object(ACL="public-read", Body=b"ABCD", Key="file.txt")
     contents = (
-        s3_anonymous.Object(key="file.txt", bucket_name="test-bucket")
+        s3_anonymous.Object(key="file.txt", bucket_name=bucket.name)
         .get()["Body"]
         .read()
     )
@@ -148,10 +149,11 @@ def test_s3_object_in_private_bucket():
 @mock_aws
 def test_put_bucket_acl_body():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
-    bucket_owner = s3_client.get_bucket_acl(Bucket="bucket")["Owner"]
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    bucket_owner = s3_client.get_bucket_acl(Bucket=bucket_name)["Owner"]
     s3_client.put_bucket_acl(
-        Bucket="bucket",
+        Bucket=bucket_name,
         AccessControlPolicy={
             "Grants": [
                 {
@@ -173,7 +175,7 @@ def test_put_bucket_acl_body():
         },
     )
 
-    result = s3_client.get_bucket_acl(Bucket="bucket")
+    result = s3_client.get_bucket_acl(Bucket=bucket_name)
     assert len(result["Grants"]) == 2
     for grant in result["Grants"]:
         assert (
@@ -184,7 +186,7 @@ def test_put_bucket_acl_body():
 
     # With one:
     s3_client.put_bucket_acl(
-        Bucket="bucket",
+        Bucket=bucket_name,
         AccessControlPolicy={
             "Grants": [
                 {
@@ -198,13 +200,13 @@ def test_put_bucket_acl_body():
             "Owner": bucket_owner,
         },
     )
-    result = s3_client.get_bucket_acl(Bucket="bucket")
+    result = s3_client.get_bucket_acl(Bucket=bucket_name)
     assert len(result["Grants"]) == 1
 
     # With no owner:
     with pytest.raises(ClientError) as err:
         s3_client.put_bucket_acl(
-            Bucket="bucket",
+            Bucket=bucket_name,
             AccessControlPolicy={
                 "Grants": [
                     {
@@ -222,7 +224,7 @@ def test_put_bucket_acl_body():
     # With incorrect permission:
     with pytest.raises(ClientError) as err:
         s3_client.put_bucket_acl(
-            Bucket="bucket",
+            Bucket=bucket_name,
             AccessControlPolicy={
                 "Grants": [
                     {
@@ -240,7 +242,7 @@ def test_put_bucket_acl_body():
 
     # Clear the ACLs:
     result = s3_client.put_bucket_acl(
-        Bucket="bucket", AccessControlPolicy={"Grants": [], "Owner": bucket_owner}
+        Bucket=bucket_name, AccessControlPolicy={"Grants": [], "Owner": bucket_owner}
     )
     assert not result.get("Grants")
 
@@ -249,10 +251,10 @@ def test_put_bucket_acl_body():
 def test_object_acl_with_presigned_post():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    bucket_name = "imageS3Bucket"
+    bucket_name = str(uuid4())
     object_name = "text.txt"
     fields = {"acl": "public-read"}
-    file = open("text.txt", "w", encoding="utf-8")
+    file = open(object_name, "w", encoding="utf-8")
     file.write("test")
     file.close()
 
@@ -281,10 +283,10 @@ def test_object_acl_with_presigned_post():
 
 
 @mock_aws
-def test_acl_setting_boto3():
+def test_acl_setting():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create()
 
     content = b"imafile"
@@ -293,7 +295,7 @@ def test_acl_setting_boto3():
         Key=keyname, Body=content, ContentType="text/plain", ACL="public-read"
     )
 
-    grants = client.get_object_acl(Bucket="foobar", Key=keyname)["Grants"]
+    grants = client.get_object_acl(Bucket=bucket.name, Key=keyname)["Grants"]
     assert {
         "Grantee": {
             "Type": "Group",
@@ -304,18 +306,18 @@ def test_acl_setting_boto3():
 
 
 @mock_aws
-def test_acl_setting_via_headers_boto3():
+def test_acl_setting_via_headers():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create()
 
     keyname = "test.txt"
 
     bucket.put_object(Key=keyname, Body=b"imafile")
-    client.put_object_acl(ACL="public-read", Bucket="foobar", Key=keyname)
+    client.put_object_acl(ACL="public-read", Bucket=bucket.name, Key=keyname)
 
-    grants = client.get_object_acl(Bucket="foobar", Key=keyname)["Grants"]
+    grants = client.get_object_acl(Bucket=bucket.name, Key=keyname)["Grants"]
     assert {
         "Grantee": {
             "Type": "Group",
@@ -329,7 +331,7 @@ def test_acl_setting_via_headers_boto3():
 def test_raise_exception_for_grant_and_acl():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "bucketname"
+    bucket_name = str(uuid4())
     client.create_bucket(Bucket=bucket_name)
     bucket = s3_resource.Bucket(bucket_name)
     acl = client.get_bucket_acl(Bucket=bucket_name)

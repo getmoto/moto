@@ -126,5 +126,22 @@ def test_delete_db_cluster_fails_if_cluster_contains_db_instances():
     cluster = client.delete_db_cluster(
         DBClusterIdentifier=cluster_identifier,
         SkipFinalSnapshot=True,
-    ).get("DBCluster")
+    )["DBCluster"]
     assert cluster["DBClusterIdentifier"] == cluster_identifier
+
+
+@mock_aws
+def test_create_instance_with_non_existent_cluster_raises_error():
+    client = boto3.client("rds", "us-east-1")
+    cluster_identifier = "non-existent-cluster-id"
+    with pytest.raises(ClientError) as exc:
+        client.create_db_instance(
+            DBClusterIdentifier=cluster_identifier,
+            Engine="aurora-postgresql",
+            DBInstanceIdentifier="test-instance",
+            DBInstanceClass="db.t4g.medium",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert cluster_identifier in err["Message"]
+    assert "could not be found" in err["Message"]

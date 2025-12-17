@@ -2,7 +2,7 @@ import datetime
 import json
 import re
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -54,8 +54,8 @@ class CognitoIdentityPool(BaseModel):
 class CognitoIdentityBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.identity_pools: Dict[str, CognitoIdentityPool] = OrderedDict()
-        self.pools_identities: Dict[str, Dict[str, Any]] = {}
+        self.identity_pools: dict[str, CognitoIdentityPool] = OrderedDict()
+        self.pools_identities: dict[str, dict[str, Any]] = {}
 
     def describe_identity_pool(self, identity_pool_id: str) -> str:
         identity_pool = self.identity_pools.get(identity_pool_id, None)
@@ -69,12 +69,12 @@ class CognitoIdentityBackend(BaseBackend):
         self,
         identity_pool_name: str,
         allow_unauthenticated_identities: bool,
-        supported_login_providers: Dict[str, str],
+        supported_login_providers: dict[str, str],
         developer_provider_name: str,
-        open_id_connect_provider_arns: List[str],
-        cognito_identity_providers: List[Dict[str, Any]],
-        saml_provider_arns: List[str],
-        tags: Dict[str, str],
+        open_id_connect_provider_arns: list[str],
+        cognito_identity_providers: list[dict[str, Any]],
+        saml_provider_arns: list[str],
+        tags: dict[str, str],
     ) -> str:
         new_identity = CognitoIdentityPool(
             self.region_name,
@@ -103,12 +103,12 @@ class CognitoIdentityBackend(BaseBackend):
         identity_pool_id: str,
         identity_pool_name: str,
         allow_unauthenticated: Optional[bool],
-        login_providers: Optional[Dict[str, str]],
+        login_providers: Optional[dict[str, str]],
         provider_name: Optional[str],
-        provider_arns: Optional[List[str]],
-        identity_providers: Optional[List[Dict[str, Any]]],
-        saml_providers: Optional[List[str]],
-        tags: Optional[Dict[str, str]],
+        provider_arns: Optional[list[str]],
+        identity_providers: Optional[list[dict[str, Any]]],
+        saml_providers: Optional[list[str]],
+        tags: Optional[dict[str, str]],
     ) -> str:
         """
         The AllowClassic-parameter has not yet been implemented
@@ -133,8 +133,20 @@ class CognitoIdentityBackend(BaseBackend):
         return pool.to_json()
 
     def get_id(self, identity_pool_id: str) -> str:
+        # This call does not have to be authenticated, which means we do not know to which region it was sent originally
+        # But the identity_pool_id is always prefixed with the region, so we just that to determine the right region
+        #
+        # Note that this does mean that we lose a potential error scenario,
+        # where the user requests an ID for identity pool `us-west-1:...` in us-west-2
+        # But because we don't always know that the request was sent to us-west-2, there's nothing we can do
+        #
+        region = identity_pool_id.split(":")[0]
+        backend: CognitoIdentityBackend = cognitoidentity_backends[self.account_id][
+            region
+        ]
+
         identity_id = {"IdentityId": get_random_identity_id(self.region_name)}
-        self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
+        backend.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
     def get_credentials_for_identity(self, identity_id: str) -> str:
@@ -186,6 +198,11 @@ class CognitoIdentityBackend(BaseBackend):
                 ]
             }
         )
+
+    def delete_identity_pool(self, identity_pool_id: str) -> None:
+        self.describe_identity_pool(identity_pool_id)
+
+        del self.identity_pools[identity_pool_id]
 
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

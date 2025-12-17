@@ -1,13 +1,15 @@
+from moto.core.responses import ActionResult, EmptyResult
+
 from ..exceptions import AuthFailureRestricted, InvalidRequest
 from ._base_response import EC2BaseResponse
 
 
 class AmisResponse(EC2BaseResponse):
-    def create_image(self) -> str:
-        name = self.querystring.get("Name")[0]  # type: ignore[index]
-        description = self._get_param("Description", if_none="")
+    def create_image(self) -> ActionResult:
+        name = self._get_param("Name")
+        description = self._get_param("Description", "")
         instance_id = self._get_param("InstanceId")
-        tag_specifications = self._get_multi_param("TagSpecification")
+        tag_specifications = self._get_param("TagSpecifications", [])
 
         self.error_on_dryrun()
 
@@ -17,10 +19,10 @@ class AmisResponse(EC2BaseResponse):
             description,
             tag_specifications=tag_specifications,
         )
-        template = self.response_template(CREATE_IMAGE_RESPONSE)
-        return template.render(image=image)
+        result = {"ImageId": image.id}
+        return ActionResult(result)
 
-    def copy_image(self) -> str:
+    def copy_image(self) -> ActionResult:
         source_image_id = self._get_param("SourceImageId")
         source_region = self._get_param("SourceRegion")
         name = self._get_param("Name")
@@ -31,31 +33,31 @@ class AmisResponse(EC2BaseResponse):
         image = self.ec2_backend.copy_image(
             source_image_id, source_region, name, description
         )
-        template = self.response_template(COPY_IMAGE_RESPONSE)
-        return template.render(image=image)
+        result = {"ImageId": image.id}
+        return ActionResult(result)
 
-    def deregister_image(self) -> str:
+    def deregister_image(self) -> ActionResult:
         ami_id = self._get_param("ImageId")
 
         self.error_on_dryrun()
 
         self.ec2_backend.deregister_image(ami_id)
-        template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
-        return template.render(success="true")
+        result = {"Return": True}
+        return ActionResult(result)
 
-    def describe_images(self) -> str:
+    def describe_images(self) -> ActionResult:
         self.error_on_dryrun()
-        ami_ids = self._get_multi_param("ImageId")
+        ami_ids = self._get_param("ImageIds", [])
         filters = self._filters_from_querystring()
-        owners = self._get_multi_param("Owner")
-        exec_users = self._get_multi_param("ExecutableBy")
+        owners = self._get_param("Owners", [])
+        exec_users = self._get_param("ExecutableUsers", [])
         images = self.ec2_backend.describe_images(
             ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners
         )
-        template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
-        return template.render(images=images)
+        result = {"Images": images}
+        return ActionResult(result)
 
-    def describe_image_attribute(self) -> str:
+    def describe_image_attribute(self) -> ActionResult:
         ami_id = self._get_param("ImageId")
         attribute_name = self._get_param("Attribute")
 
@@ -93,44 +95,49 @@ class AmisResponse(EC2BaseResponse):
                 ami_id, valid_attributes_list[attribute_name]
             )
 
-        template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
-        return template.render(
-            ami_id=ami_id,
-            launch_permissions=launch_permissions,
-            attribute_name=attribute_name,
-            attribute_value=attribute_value,
-        )
+        result = {"ImageId": ami_id}
+        if attribute_name == "productCodes":
+            result["ProductCodes"] = [
+                {"ProductCodeId": code, "ProductCodeType": "marketplace"}
+                for code in attribute_value  # type: ignore[union-attr]
+            ]
+        elif attribute_name == "launchPermission":
+            result["LaunchPermissions"] = launch_permissions
+        else:
+            result[attribute_name] = {"Value": attribute_value}
 
-    def modify_image_attribute(self) -> str:
+        return ActionResult(result)
+
+    def modify_image_attribute(self) -> ActionResult:
         ami_id = self._get_param("ImageId")
-        launch_permissions_to_add = list(
-            self._get_params().get("LaunchPermission", {}).get("Add", {}).values()
+        launch_permissions_to_add = self._get_param("LaunchPermission", {}).get(
+            "Add", []
         )
-        launch_permissions_to_remove = list(
-            self._get_params().get("LaunchPermission", {}).get("Remove", {}).values()
+        launch_permissions_to_remove = self._get_param("LaunchPermission", {}).get(
+            "Remove", []
         )
         # If only one OperationType is added, the other attributes are submitted as different variables
         operation_type = self._get_param("OperationType")
         if operation_type in ["add", "remove"]:
-            group = self._get_param("UserGroup.1")
+            group = self._get_param("UserGroups", [])
             lp = (
                 launch_permissions_to_add
                 if operation_type == "add"
                 else launch_permissions_to_remove
             )
             if group:
-                lp.append({"Group": group})
+                lp.append({"Group": group[0]})
 
-            for user_id in self._get_multi_param("UserId"):
+            for user_id in self._get_param("UserIds", []):
                 lp.append({"UserId": user_id})
 
-            org_arn = self._get_param("OrganizationArn.1")
+            org_arn = self._get_param("OrganizationArns", [])
             if org_arn:
-                lp.append({"OrganizationArn": org_arn})
+                lp.append({"OrganizationArn": org_arn[0]})
 
-            ou_arn = self._get_param("OrganizationalUnitArn.1")
+            ou_arn = self._get_param("OrganizationalUnitArns", [])
             if ou_arn:
-                lp.append({"OrganizationalUnitArn": ou_arn})
+                lp.append({"OrganizationalUnitArn": ou_arn[0]})
 
         self.error_on_dryrun()
 
@@ -139,138 +146,19 @@ class AmisResponse(EC2BaseResponse):
             launch_permissions_to_add=launch_permissions_to_add,
             launch_permissions_to_remove=launch_permissions_to_remove,
         )
-        return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
+        return EmptyResult()
 
-    def register_image(self) -> str:
-        name = self.querystring.get("Name")[0]  # type: ignore[index]
-        description = self._get_param("Description", if_none="")
+    def register_image(self) -> ActionResult:
+        name = self._get_param("Name")
+        description = self._get_param("Description", "")
 
         self.error_on_dryrun()
 
         image = self.ec2_backend.register_image(name, description)
-        template = self.response_template(REGISTER_IMAGE_RESPONSE)
-        return template.render(image=image)
+        result = {"ImageId": image.id}
+        return ActionResult(result)
 
     def reset_image_attribute(self) -> str:
         self.error_on_dryrun()
 
         raise NotImplementedError("AMIs.reset_image_attribute is not yet implemented")
-
-
-CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <imageId>{{ image.id }}</imageId>
-</CreateImageResponse>"""
-
-COPY_IMAGE_RESPONSE = """<CopyImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>60bc441d-fa2c-494d-b155-5d6a3EXAMPLE</requestId>
-   <imageId>{{ image.id }}</imageId>
-</CopyImageResponse>"""
-
-# TODO almost all of these params should actually be templated based on
-# the ec2 image
-DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <imagesSet>
-    {% for image in images %}
-        <item>
-          <imageId>{{ image.id }}</imageId>
-          <imageLocation>{{ image.image_location }}</imageLocation>
-          <imageState>{{ image.state }}</imageState>
-          <imageOwnerId>{{ image.owner_id }}</imageOwnerId>
-          <isPublic>{{ image.is_public_string }}</isPublic>
-          <architecture>{{ image.architecture }}</architecture>
-          <imageType>{{ image.image_type }}</imageType>
-          <kernelId>{{ image.kernel_id }}</kernelId>
-          <ramdiskId>ari-1a2b3c4d</ramdiskId>
-          <imageOwnerAlias>amazon</imageOwnerAlias>
-          <creationDate>{{ image.creation_date }}</creationDate>
-          <name>{{ image.name }}</name>
-          {% if image.platform %}
-             <platform>{{ image.platform }}</platform>
-          {% endif %}
-          <description>{{ image.description }}</description>
-          <rootDeviceType>{{ image.root_device_type }}</rootDeviceType>
-          <rootDeviceName>{{ image.root_device_name }}</rootDeviceName>
-          <blockDeviceMapping>
-            <item>
-              <deviceName>{{ image.root_device_name }}</deviceName>
-              <ebs>
-                <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
-                <volumeSize>15</volumeSize>
-                <deleteOnTermination>false</deleteOnTermination>
-                <volumeType>standard</volumeType>
-              </ebs>
-            </item>
-          </blockDeviceMapping>
-          <virtualizationType>{{ image.virtualization_type }}</virtualizationType>
-          <tagSet>
-            {% for tag in image.get_tags() %}
-              <item>
-                <resourceId>{{ tag.resource_id }}</resourceId>
-                <resourceType>{{ tag.resource_type }}</resourceType>
-                <key>{{ tag.key }}</key>
-                <value>{{ tag.value }}</value>
-              </item>
-            {% endfor %}
-          </tagSet>
-          <hypervisor>xen</hypervisor>
-        </item>
-    {% endfor %}
-  </imagesSet>
-</DescribeImagesResponse>"""
-
-DESCRIBE_IMAGE_RESPONSE = """<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <imageId>{{ image.id }}</imageId>
-   <{{ key }}>
-     <value>{{ value }}</value>
-   </{{key }}>
-</DescribeImageAttributeResponse>"""
-
-DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>{{ success }}</return>
-</DeregisterImageResponse>"""
-
-DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
-<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <imageId>{{ ami_id }}</imageId>
-    <{{ attribute_name }}>
-    {% if attribute_name == 'productCodes' %}
-        {% for value in attribute_value %}
-        <item>
-            <productCode>{{ value }}</productCode>
-            <type>marketplace</type>
-        </item>
-        {% endfor %}
-    {% endif %}
-    {% if attribute_name == 'launchPermission' %}
-         {% if launch_permissions %}
-            {% for lp in launch_permissions %}
-               <item>
-                  {% if lp['UserId'] %}<userId>{{ lp['UserId'] }}</userId>{% endif %}
-                  {% if lp['Group'] %}<group>{{ lp['Group'] }}</group>{% endif %}
-                  {% if lp['OrganizationArn'] %}<organizationArn>{{ lp['OrganizationArn'] }}</organizationArn>{% endif %}
-                  {% if lp['OrganizationalUnitArn'] %}<organizationalUnitArn>{{ lp['OrganizationalUnitArn'] }}</organizationalUnitArn>{% endif %}
-               </item>
-            {% endfor %}
-         {% endif %}
-    {% endif %}
-    {% if attribute_name not in ['launchPermission', 'productCodes'] %}
-            <value>{{ attribute_value }}</value>
-    {% endif %}
-    </{{ attribute_name }}>
-</DescribeImageAttributeResponse>"""
-
-MODIFY_IMAGE_ATTRIBUTE_RESPONSE = """
-<ModifyImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <return>true</return>
-</ModifyImageAttributeResponse>
-"""
-
-REGISTER_IMAGE_RESPONSE = """<RegisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <imageId>{{ image.id }}</imageId>
-</RegisterImageResponse>"""

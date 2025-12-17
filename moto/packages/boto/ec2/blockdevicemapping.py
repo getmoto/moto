@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 
-class BlockDeviceType(object):
+class BlockDeviceType:
     """
     Represents parameters for a block device.
     """
@@ -63,7 +63,7 @@ class BlockDeviceType(object):
 EBSBlockDeviceType = BlockDeviceType
 
 
-class BlockDeviceMapping(Dict[Any, Any]):
+class BlockDeviceMapping(dict[Any, Any]):
     """
     Represents a collection of BlockDeviceTypes when creating ec2 instances.
 
@@ -75,7 +75,7 @@ class BlockDeviceMapping(Dict[Any, Any]):
     reservation = image.run(..., block_device_map=bdm, ...)
     """
 
-    def to_source_dict(self) -> List[Dict[str, Any]]:
+    def to_source_dict(self) -> list[dict[str, Any]]:
         return [
             {
                 "DeviceName": device_name,
