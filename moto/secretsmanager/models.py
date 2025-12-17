@@ -522,11 +522,13 @@ class SecretsManagerBackend(BaseBackend):
                 try:
                     secret_list.append(self.get_secret_value(secret_id, "", ""))
                 except (SecretNotFoundException, InvalidRequestException) as e:
-                    errors.append({
-                        "SecretId": secret_id,
-                        "ErrorCode": e.error_type,
-                        "Message": e.message
-                    })
+                    errors.append(
+                        {
+                            "SecretId": secret_id,
+                            "ErrorCode": e.error_type,
+                            "Message": e.message,
+                        }
+                    )
 
         if filters:
             for secret in self.secrets.values():

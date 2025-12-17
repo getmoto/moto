@@ -968,10 +968,16 @@ def test_batch_get_secret_value_for_secret_id_list_with_no_matches():
     assert len(json_data["Errors"]) == 2
     assert json_data["Errors"][0]["SecretId"] == "db/username"
     assert json_data["Errors"][0]["ErrorCode"] == "ResourceNotFoundException"
-    assert json_data["Errors"][0]["Message"] == "Secrets Manager can't find the specified secret."
+    assert (
+        json_data["Errors"][0]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
     assert json_data["Errors"][1]["SecretId"] == "db/password"
     assert json_data["Errors"][1]["ErrorCode"] == "ResourceNotFoundException"
-    assert json_data["Errors"][1]["Message"] == "Secrets Manager can't find the specified secret."
+    assert (
+        json_data["Errors"][1]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
 
 
 @mock_aws

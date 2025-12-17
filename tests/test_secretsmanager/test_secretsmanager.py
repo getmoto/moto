@@ -221,10 +221,17 @@ def test_batch_get_secret_value_for_secret_id_list_without_matches():
     assert len(secrets_batch["Errors"]) == 2
     assert secrets_batch["Errors"][0]["SecretId"] == "test-secret-b"
     assert secrets_batch["Errors"][0]["ErrorCode"] == "ResourceNotFoundException"
-    assert secrets_batch["Errors"][0]["Message"] == "Secrets Manager can't find the specified secret."
+    assert (
+        secrets_batch["Errors"][0]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
     assert secrets_batch["Errors"][1]["SecretId"] == "test-secret-c"
     assert secrets_batch["Errors"][1]["ErrorCode"] == "ResourceNotFoundException"
-    assert secrets_batch["Errors"][1]["Message"] == "Secrets Manager can't find the specified secret."
+    assert (
+        secrets_batch["Errors"][1]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
+
 
 @mock_aws
 def test_batch_get_secret_value_for_secret_id_list_with_deleted_secret():
@@ -248,8 +255,6 @@ def test_batch_get_secret_value_for_secret_id_list_with_deleted_secret():
     assert len(secrets_batch["SecretValues"]) == 1
     assert secrets_batch["SecretValues"][0]["SecretString"] == "foosecret2"
     assert secrets_batch["SecretValues"][0]["Name"] == "test-secret2"
-
-
 
 
 @mock_aws
