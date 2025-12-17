@@ -17,7 +17,7 @@ class AthenaResponse(BaseResponse):
     def create_work_group(self) -> Union[Tuple[str, Dict[str, int]], str]:
         name = self._get_param("Name")
         description = self._get_param("Description")
-        configuration = self._get_param("Configuration")
+        configuration = self._get_param("Configuration", {})
         tags = self._get_param("Tags")
         work_group = self.athena_backend.create_work_group(
             name, configuration, description, tags
