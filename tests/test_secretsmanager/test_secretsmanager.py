@@ -218,6 +218,43 @@ def test_batch_get_secret_value_for_secret_id_list_without_matches():
         SecretIdList=["test-secret-b", "test-secret-c"]
     )
     assert len(secrets_batch["SecretValues"]) == 0
+    assert len(secrets_batch["Errors"]) == 2
+    assert secrets_batch["Errors"][0]["SecretId"] == "test-secret-b"
+    assert secrets_batch["Errors"][0]["ErrorCode"] == "ResourceNotFoundException"
+    assert (
+        secrets_batch["Errors"][0]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
+    assert secrets_batch["Errors"][1]["SecretId"] == "test-secret-c"
+    assert secrets_batch["Errors"][1]["ErrorCode"] == "ResourceNotFoundException"
+    assert (
+        secrets_batch["Errors"][1]["Message"]
+        == "Secrets Manager can't find the specified secret."
+    )
+
+
+@mock_aws
+def test_batch_get_secret_value_for_secret_id_list_with_deleted_secret():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret1", SecretString="foosecret1")
+    conn.create_secret(Name="test-secret2", SecretString="foosecret2")
+    conn.delete_secret(SecretId="test-secret1")
+
+    secrets_batch = conn.batch_get_secret_value(
+        SecretIdList=["test-secret1", "test-secret2"]
+    )
+
+    # test-secret1 has been marked as deleted and should be in the errors list
+    assert len(secrets_batch["Errors"]) == 1
+    assert secrets_batch["Errors"][0]["SecretId"] == "test-secret1"
+    assert secrets_batch["Errors"][0]["ErrorCode"] == "InvalidRequestException"
+    assert "currently marked deleted" in secrets_batch["Errors"][0]["Message"]
+
+    # test-secret2 is valid
+    assert len(secrets_batch["SecretValues"]) == 1
+    assert secrets_batch["SecretValues"][0]["SecretString"] == "foosecret2"
+    assert secrets_batch["SecretValues"][0]["Name"] == "test-secret2"
 
 
 @mock_aws
@@ -258,8 +295,6 @@ def test_batch_get_secret_value_with_both_secret_id_list_and_filters():
 
 @mock_aws
 def test_batch_get_secret_value_with_max_results_and_no_filters():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
         conn.batch_get_secret_value(MaxResults=10, SecretIdList=["foo", "bar"])

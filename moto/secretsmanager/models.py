@@ -520,11 +520,15 @@ class SecretsManagerBackend(BaseBackend):
                 # TODO perhaps there should be a check if the secret id is valid identifier
                 # and add an error to the list if not
                 try:
-                    # TODO investigate the behaviour when the secret doesn't exist or has been deleted,
-                    # might need to add an error to the list
                     secret_list.append(self.get_secret_value(secret_id, "", ""))
-                except (SecretNotFoundException, InvalidRequestException):
-                    pass
+                except (SecretNotFoundException, InvalidRequestException) as e:
+                    errors.append(
+                        {
+                            "SecretId": secret_id,
+                            "ErrorCode": e.error_type,
+                            "Message": e.message,
+                        }
+                    )
 
         if filters:
             for secret in self.secrets.values():
