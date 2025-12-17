@@ -286,10 +286,10 @@ class FSxBackend(BaseBackend):
             ("file-cache-type", "file_cache_type"),
         )
 
-        result = backups
         if filters:
-            backups = filter_resources(backups, filters, attr_pairs)
-        return result
+            filter_dict = {f["Name"]: f["Values"] for f in filters}
+            backups = filter_resources(backups, filter_dict, attr_pairs)
+        return backups
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)

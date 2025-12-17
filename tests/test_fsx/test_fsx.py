@@ -218,13 +218,15 @@ def test_describe_backups_filters():
         SubnetIds=[FAKE_SUBNET_ID],
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
+    fs_id = fs["FileSystem"]["FileSystemId"]
+
     resp = client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
     backup_id = resp["Backup"]["BackupId"]
 
     filters = [
         {
-            "Name": "file-system-type",
-            "Values": ["LUSTRE"],
+            "Name": "file-system-id",
+            "Values": [fs_id],
         }
     ]
 

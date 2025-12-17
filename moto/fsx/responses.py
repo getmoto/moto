@@ -123,10 +123,12 @@ class FSxResponse(BaseResponse):
     def describe_backups(self) -> str:
         params = json.loads(self.body)
         backup_ids = params.get("BackupIds")
+        filters = params.get("Filters")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
         backups, next_token = self.fsx_backend.describe_backups(
             backup_ids=backup_ids,
+            filters=filters,
             max_results=max_results,
             next_token=next_token,
         )
