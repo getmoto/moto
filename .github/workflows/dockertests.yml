@@ -22,7 +22,7 @@ jobs:
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -62,7 +62,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -86,7 +86,7 @@ jobs:
         docker stop motoserver
     - name: Archive Logs
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: custom_port
         path: |
@@ -120,7 +120,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -142,7 +142,7 @@ jobs:
         cp server_output.log serverlogs2/server_output.log
     - name: Archive logs
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: custom_name
         path: |
@@ -175,7 +175,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -199,7 +199,7 @@ jobs:
         cp server_output.log serverlogs3/server_output.log
     - name: Archive Logs
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: custom_mode
         path: |

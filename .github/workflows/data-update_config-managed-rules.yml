@@ -37,7 +37,7 @@ jobs:
         cd scripts
         ./pull_down_aws_managed_rules.py
     - name: Create PR
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         branch: 'chore-update-config-managed-rules-${{ github.run_number }}'
         title: 'chore: update Config Managed Rules'

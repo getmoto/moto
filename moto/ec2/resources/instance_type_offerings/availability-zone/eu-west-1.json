@@ -6448,6 +6448,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eu-west-1b"
  },

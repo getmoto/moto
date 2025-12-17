@@ -220,6 +220,46 @@
   "Location": "mec1-az1"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "mec1-az1"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "mec1-az1"
+ },
+ {
   "InstanceType": "g5.12xlarge",
   "Location": "mec1-az1"
  },
@@ -1233,6 +1273,46 @@
  },
  {
   "InstanceType": "c7i.xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "mec1-az2"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "mec1-az2"
  },
  {
@@ -2273,6 +2353,46 @@
  },
  {
   "InstanceType": "c7i.xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "mec1-az3"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "mec1-az3"
  },
  {
