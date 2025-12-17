@@ -20,10 +20,6 @@ jobs:
       matrix:
         protocol: [ "json", "query" ]
         test-server-mode: [ "true", "false" ]
-        # TODO: Remove this exclusion when JSON protocol support is released.
-        exclude:
-          - protocol: "json"
-            test-server-mode: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -49,15 +45,11 @@ jobs:
       - name: Install AWS Client SDK for JSON Protocol
         if: ${{ matrix.protocol == 'json' }}
         run: |
-          curl -L -o Boto3CliV1Artifacts.zip "https://d1l1rpjfz23h36.cloudfront.net/pr2qwos6sy8mfx2/Python_Boto_v3/Boto3CliV1Artifacts.zip"
-          unzip Boto3CliV1Artifacts.zip
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-          pip install botocore-1.39.7-py3-none-any.whl
+          pip install --upgrade boto3 botocore
       - name: Install AWS Client SDK for Query Protocol
         if: ${{ matrix.protocol == 'query' }}
         run: |
-          pip install botocore==1.40.16
+          pip install botocore==1.42.6 boto3==1.42.6
       - name: Run tests
         run: |
           pytest -sv tests/test_cloudwatch
