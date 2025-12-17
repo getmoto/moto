@@ -120,6 +120,19 @@ class FSxResponse(BaseResponse):
         )
         return json.dumps(resp)
 
+    def describe_backups(self) -> str:
+        params = json.loads(self.body)
+        backup_ids = params.get("BackupIds")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        backups, next_token = self.fsx_backend.describe_backups(
+            backup_ids=backup_ids,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_backups = [backup.to_dict() for backup in backups]
+        return json.dumps({"Backups": list_backups, "NextToken": next_token})
+
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
