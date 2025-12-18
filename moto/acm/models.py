@@ -1,4 +1,5 @@
 import base64
+import calendar
 import datetime
 import ipaddress
 import re
@@ -14,6 +15,7 @@ from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.serialize import parse_to_aware_datetime
 from moto.core.utils import utcnow
 
 from .exceptions import (
@@ -57,7 +59,8 @@ IPV4_REGEX = re.compile(
 
 
 def datetime_to_epoch(date: datetime.datetime) -> float:
-    return date.timestamp()
+    aware_dt = parse_to_aware_datetime(date)  # type: ignore
+    return float(calendar.timegm(aware_dt.timetuple()))
 
 
 class TagHolder(dict[str, Optional[str]]):
