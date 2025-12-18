@@ -1886,13 +1886,11 @@ def test_create_hosted_zone_with_custom_id(
 
 @mock_aws
 def test_delete_non_existent_tag_no_crash():
-
     client = boto3.client("route53", region_name="us-east-1")
 
     zone_name = "example.com."
     zone = client.create_hosted_zone(
-        Name=zone_name,
-        CallerReference="test-delete-tag-crash-repro"
+        Name=zone_name, CallerReference="test-delete-tag-crash-repro"
     )
     zone_id = zone["HostedZone"]["Id"]
 
@@ -1902,13 +1900,12 @@ def test_delete_non_existent_tag_no_crash():
         client.change_tags_for_resource(
             ResourceType="hostedzone",
             ResourceId=resource_id,
-            RemoveTagKeys=["initial-tag-key"]
+            RemoveTagKeys=["initial-tag-key"],
         )
     except ClientError as e:
         pytest.fail(f"Server crashed with error: {e}")
 
     tags = client.list_tags_for_resource(
-        ResourceType="hostedzone",
-        ResourceId=resource_id
+        ResourceType="hostedzone", ResourceId=resource_id
     )
     assert len(tags["ResourceTagSet"]["Tags"]) == 0
