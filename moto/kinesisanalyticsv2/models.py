@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -21,8 +21,8 @@ class Application(BaseModel):
         application_description: Optional[str],
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[Dict[str, Any]],
-        cloud_watch_logging_options: Optional[List[Dict[str, str]]],
+        application_configuration: Optional[dict[str, Any]],
+        cloud_watch_logging_options: Optional[list[dict[str, str]]],
         application_mode: Optional[str],
     ):
         self.account_id = account_id
@@ -53,10 +53,10 @@ class Application(BaseModel):
         return f"arn:aws:kinesisanalytics:{self.region_name}:{self.account_id}:application/{self.application_name}"
 
     def _generate_logging_options(
-        self, cloud_watch_logging_options: Optional[List[Dict[str, str]]]
-    ) -> List[Dict[str, str]] | None:
+        self, cloud_watch_logging_options: Optional[list[dict[str, str]]]
+    ) -> list[dict[str, str]] | None:
         cloud_watch_logging_option_descriptions = []
-        option_id = f"{str(random.randint(1,100))}.1"
+        option_id = f"{str(random.randint(1, 100))}.1"
 
         # Leaving out RoleARN since it is provided only sometimes for backwards
         # compatibility. Current API versions do not have the resource-level
@@ -77,8 +77,8 @@ class Application(BaseModel):
     # - "SqlApplicationConfigurationDescription" (discontinued)
     # - "RunConfigurationDescription" (which requires start_application)
     def _generate_app_config_description(
-        self, app_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, app_config: dict[str, Any]
+    ) -> dict[str, Any]:
         # Keys that do not have extra values in the description besides renamed keys
         UPDATABLE_APP_CONFIG_TOP_LEVEL_KEYS = {
             "EnvironmentProperties": "EnvironmentPropertyDescriptions",
@@ -148,8 +148,8 @@ class Application(BaseModel):
         return app_config_description
 
     def __generate_flink_app_description(
-        self, app_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, app_config: dict[str, Any]
+    ) -> dict[str, Any]:
         flink_config_description = {}
         flink_config = app_config.get("FlinkApplicationConfiguration")
         if flink_config and isinstance(flink_config, dict):
@@ -216,7 +216,7 @@ class Application(BaseModel):
                     }
         return flink_config_description
 
-    def __update_keys(self, old_dict: Any, key_map: Dict[str, str]) -> Any:
+    def __update_keys(self, old_dict: Any, key_map: dict[str, str]) -> Any:
         if not isinstance(old_dict, dict):
             return old_dict
 
@@ -241,7 +241,7 @@ class KinesisAnalyticsV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.applications: Dict[str, Application] = {}
+        self.applications: dict[str, Application] = {}
         self.tagger = TaggingService(
             tag_name="Tags", key_name="Key", value_name="Value"
         )
@@ -252,11 +252,11 @@ class KinesisAnalyticsV2Backend(BaseBackend):
         application_description: Optional[str],
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[Dict[str, Any]],
-        cloud_watch_logging_options: Optional[List[Dict[str, str]]],
-        tags: Optional[List[Dict[str, str]]],
+        application_configuration: Optional[dict[str, Any]],
+        cloud_watch_logging_options: Optional[list[dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         application_mode: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         app = Application(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -293,16 +293,16 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             "ApplicationMode": app.application_mode,
         }
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
     def describe_application(
         self,
         application_name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         app = self.applications[application_name]
         return {
             "ApplicationARN": app.application_arn,
@@ -324,7 +324,7 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             "ApplicationMode": app.application_mode,
         }
 
-    def list_applications(self) -> List[Dict[str, Any]]:
+    def list_applications(self) -> list[dict[str, Any]]:
         application_summaries = [
             {
                 "ApplicationName": app.application_name,

@@ -38,9 +38,8 @@ def test_policy():
     policy.add_statement(json.dumps(statement))
     assert expected == policy.statements[0]
 
-    sid = statement.get("StatementId", None)
-    if sid is None:
-        raise "TestCase.statement does not contain StatementId"
+    sid = statement.get("StatementId")
+    assert sid is not None
 
     policy.del_statement(sid)
     assert [] == policy.statements

@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 
 from tests.test_efs.junk_drawer import has_status_code
 
-from . import fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_efs  # noqa
 
 ARN_PATT = r"^arn:(?P<Partition>[^:\n]*):(?P<Service>[^:\n]*):(?P<Region>[^:\n]*):(?P<AccountID>[^:\n]*):(?P<Ignore>(?P<ResourceType>[^:\/\n]*)[:\/])?(?P<Resource>.*)$"
 STRICT_ARN_PATT = r"^arn:aws:[a-z]+:[a-z]{2}-[a-z]+-[0-9]:[0-9]+:[a-z-]+\/[a-z0-9-]+$"

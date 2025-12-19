@@ -20,7 +20,7 @@ def fixture_aws_credentials(monkeypatch):
 
 
 @pytest.fixture(scope="function", name="efs_client")
-def fixture_efs_client(aws_credentials):  # pylint: disable=unused-argument
+def fixture_efs_client(aws_credentials):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Using server directly - no point in testing ServerMode")
 
@@ -29,7 +29,7 @@ def fixture_efs_client(aws_credentials):  # pylint: disable=unused-argument
 
 
 @pytest.fixture(scope="function", name="subnet_id")
-def fixture_subnet_id(aws_credentials):  # pylint: disable=unused-argument
+def fixture_subnet_id(aws_credentials):
     with mock_aws():
         ec2_client = server.create_backend_app("ec2").test_client()
         resp = ec2_client.get("/?Action=DescribeSubnets")

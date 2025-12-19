@@ -2,8 +2,9 @@
 
 import re
 from collections import defaultdict
+from collections.abc import Iterable
 from threading import Lock
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,37 +14,37 @@ from .exceptions import InvalidDomainName, UnknownDomainName
 
 class FakeItem(BaseModel):
     def __init__(self) -> None:
-        self.attributes: List[Dict[str, Any]] = []
+        self.attributes: list[dict[str, Any]] = []
         self.lock = Lock()
 
-    def get_attributes(self, names: Optional[List[str]]) -> List[Dict[str, Any]]:
+    def get_attributes(self, names: Optional[list[str]]) -> list[dict[str, Any]]:
         if not names:
             return self.attributes
-        return [attr for attr in self.attributes if attr["name"] in names]
+        return [attr for attr in self.attributes if attr["Name"] in names]
 
-    def put_attributes(self, attributes: List[Dict[str, Any]]) -> None:
+    def put_attributes(self, attributes: list[dict[str, Any]]) -> None:
         # Replacing attributes involves quite a few loops
         # Lock this, so we know noone else touches this list while we're operating on it
         with self.lock:
             for attr in attributes:
-                if attr.get("replace", "false").lower() == "true":
-                    self._remove_attributes(attr["name"])
+                if attr.get("Replace", False):
+                    self._remove_attributes(attr["Name"])
                 self.attributes.append(attr)
 
     def _remove_attributes(self, name: str) -> None:
-        self.attributes = [attr for attr in self.attributes if attr["name"] != name]
+        self.attributes = [attr for attr in self.attributes if attr["Name"] != name]
 
 
 class FakeDomain(BaseModel):
     def __init__(self, name: str):
         self.name = name
-        self.items: Dict[str, FakeItem] = defaultdict(FakeItem)
+        self.items: dict[str, FakeItem] = defaultdict(FakeItem)
 
-    def get(self, item_name: str, attribute_names: List[str]) -> List[Dict[str, Any]]:
+    def get(self, item_name: str, attribute_names: list[str]) -> list[dict[str, Any]]:
         item = self.items[item_name]
         return item.get_attributes(attribute_names)
 
-    def put(self, item_name: str, attributes: List[Dict[str, Any]]) -> None:
+    def put(self, item_name: str, attributes: list[dict[str, Any]]) -> None:
         item = self.items[item_name]
         item.put_attributes(attributes)
 
@@ -51,7 +52,7 @@ class FakeDomain(BaseModel):
 class SimpleDBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.domains: Dict[str, FakeDomain] = dict()
+        self.domains: dict[str, FakeDomain] = {}
 
     def create_domain(self, domain_name: str) -> None:
         self._validate_domain_name(domain_name)
@@ -80,8 +81,8 @@ class SimpleDBBackend(BaseBackend):
         return self.domains[domain_name]
 
     def get_attributes(
-        self, domain_name: str, item_name: str, attribute_names: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, domain_name: str, item_name: str, attribute_names: list[str]
+    ) -> list[dict[str, Any]]:
         """
         Behaviour for the consistent_read-attribute is not yet implemented
         """
@@ -90,7 +91,7 @@ class SimpleDBBackend(BaseBackend):
         return domain.get(item_name, attribute_names)
 
     def put_attributes(
-        self, domain_name: str, item_name: str, attributes: List[Dict[str, Any]]
+        self, domain_name: str, item_name: str, attributes: list[dict[str, Any]]
     ) -> None:
         """
         Behaviour for the expected-attribute is not yet implemented.

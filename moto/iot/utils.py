@@ -25,6 +25,24 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "jobId",
     },
+    "list_things": {
+        "input_token": "token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "thingArn",
+    },
+    "list_billing_groups": {
+        "input_token": "token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "groupName",
+    },
+    "list_things_in_billing_group": {
+        "input_token": "token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "thing_name",
+    },
 }
 
 

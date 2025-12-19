@@ -3,7 +3,7 @@
 import hashlib
 import string
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import yaml
 
@@ -32,7 +32,7 @@ from .exceptions import (
 
 
 class Stage(BaseModel):
-    def __init__(self, api: "Api", config: Dict[str, Any]):
+    def __init__(self, api: "Api", config: dict[str, Any]):
         self.config = config
         self.name = config["stageName"]
         if api.protocol_type == "HTTP":
@@ -57,7 +57,7 @@ class Stage(BaseModel):
         self.tags = config.get("tags", {})
         self.created = self.updated = datetime.now()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         dct = {
             "stageName": self.name,
             "defaultRouteSettings": self.default_route_settings,
@@ -138,7 +138,7 @@ class Authorizer(BaseModel):
         if name is not None:
             self.name = name
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "authorizerId": self.id,
             "authorizerCredentialsArn": self.auth_creds_arn,
@@ -168,12 +168,12 @@ class Integration(BaseModel):
         passthrough_behavior: Optional[str],
         payload_format_version: Optional[str],
         integration_subtype: Optional[str],
-        request_parameters: Optional[Dict[str, str]],
-        request_templates: Optional[Dict[str, str]],
-        response_parameters: Optional[Dict[str, Dict[str, str]]],
+        request_parameters: Optional[dict[str, str]],
+        request_templates: Optional[dict[str, str]],
+        response_parameters: Optional[dict[str, dict[str, str]]],
         template_selection_expression: Optional[str],
         timeout_in_millis: Optional[str],
-        tls_config: Optional[Dict[str, str]],
+        tls_config: Optional[dict[str, str]],
     ):
         self.id = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
         self.connection_id = connection_id
@@ -215,7 +215,7 @@ class Integration(BaseModel):
         else:
             self.timeout_in_millis = self.timeout_in_millis or 30000
 
-        self.responses: Dict[str, IntegrationResponse] = dict()
+        self.responses: dict[str, IntegrationResponse] = {}
 
     def create_response(
         self,
@@ -243,7 +243,7 @@ class Integration(BaseModel):
             raise IntegrationResponseNotFound(integration_response_id)
         return self.responses[integration_response_id]
 
-    def get_responses(self) -> List["IntegrationResponse"]:
+    def get_responses(self) -> list["IntegrationResponse"]:
         return list(self.responses.values())
 
     def update_response(
@@ -278,12 +278,12 @@ class Integration(BaseModel):
         passthrough_behavior: str,
         payload_format_version: str,
         integration_subtype: str,
-        request_parameters: Dict[str, str],
-        request_templates: Dict[str, str],
-        response_parameters: Dict[str, Dict[str, str]],
+        request_parameters: dict[str, str],
+        request_templates: dict[str, str],
+        response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
         timeout_in_millis: Optional[int],
-        tls_config: Dict[str, str],
+        tls_config: dict[str, str],
     ) -> None:
         if connection_id is not None:
             self.connection_id = connection_id
@@ -324,7 +324,7 @@ class Integration(BaseModel):
         if tls_config is not None:
             self.tls_config = tls_config
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "connectionId": self.connection_id,
             "connectionType": self.connection_type,
@@ -383,7 +383,7 @@ class IntegrationResponse(BaseModel):
         if template_selection_expression is not None:
             self.template_selection_expression = template_selection_expression
 
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> dict[str, str]:
         return {
             "integrationResponseId": self.id,
             "integrationResponseKey": self.integration_response_key,
@@ -414,7 +414,7 @@ class Model(BaseModel):
         if schema is not None:
             self.schema = schema
 
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> dict[str, str]:
         return {
             "modelId": self.id,
             "contentType": self.content_type,
@@ -436,7 +436,7 @@ class RouteResponse(BaseModel):
         self.model_selection_expression = model_selection_expression
         self.response_models = response_models
 
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> dict[str, str]:
         return {
             "modelSelectionExpression": self.model_selection_expression,
             "responseModels": self.response_models,
@@ -449,13 +449,13 @@ class Route(BaseModel):
     def __init__(
         self,
         api_key_required: bool,
-        authorization_scopes: List[str],
+        authorization_scopes: list[str],
         authorization_type: Optional[str],
         authorizer_id: Optional[str],
         model_selection_expression: Optional[str],
         operation_name: Optional[str],
-        request_models: Optional[Dict[str, str]],
-        request_parameters: Optional[Dict[str, Dict[str, bool]]],
+        request_models: Optional[dict[str, str]],
+        request_parameters: Optional[dict[str, dict[str, bool]]],
         route_key: str,
         route_response_selection_expression: Optional[str],
         target: str,
@@ -473,7 +473,7 @@ class Route(BaseModel):
         self.route_response_selection_expression = route_response_selection_expression
         self.target = target
 
-        self.route_responses: Dict[str, RouteResponse] = dict()
+        self.route_responses: dict[str, RouteResponse] = {}
 
     def create_route_response(
         self,
@@ -503,13 +503,13 @@ class Route(BaseModel):
     def update(
         self,
         api_key_required: Optional[bool],
-        authorization_scopes: Optional[List[str]],
+        authorization_scopes: Optional[list[str]],
         authorization_type: str,
         authorizer_id: str,
         model_selection_expression: str,
         operation_name: str,
-        request_models: Dict[str, str],
-        request_parameters: Dict[str, Dict[str, bool]],
+        request_models: dict[str, str],
+        request_parameters: dict[str, dict[str, bool]],
         route_key: str,
         route_response_selection_expression: str,
         target: str,
@@ -539,7 +539,7 @@ class Route(BaseModel):
         if target:
             self.target = target
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "apiKeyRequired": self.api_key_required,
             "authorizationScopes": self.authorization_scopes,
@@ -568,7 +568,7 @@ class Api(BaseModel):
         disable_schema_validation: str,
         protocol_type: str,
         route_selection_expression: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         version: str,
         backend: "ApiGatewayV2Backend",
     ):
@@ -590,11 +590,11 @@ class Api(BaseModel):
         )
         self.version = version
 
-        self.authorizers: Dict[str, Authorizer] = dict()
-        self.integrations: Dict[str, Integration] = dict()
-        self.models: Dict[str, Model] = dict()
-        self.routes: Dict[str, Route] = dict()
-        self.stages: Dict[str, Stage] = dict()
+        self.authorizers: dict[str, Authorizer] = {}
+        self.integrations: dict[str, Integration] = {}
+        self.models: dict[str, Model] = {}
+        self.routes: dict[str, Route] = {}
+        self.stages: dict[str, Stage] = {}
 
         self.arn = (
             f"arn:{get_partition(region)}:apigateway:{region}::/apis/{self.api_id}"
@@ -780,12 +780,12 @@ class Api(BaseModel):
         passthrough_behavior: Optional[str] = None,
         payload_format_version: Optional[str] = None,
         integration_subtype: Optional[str] = None,
-        request_parameters: Optional[Dict[str, str]] = None,
-        request_templates: Optional[Dict[str, str]] = None,
-        response_parameters: Optional[Dict[str, Dict[str, str]]] = None,
+        request_parameters: Optional[dict[str, str]] = None,
+        request_templates: Optional[dict[str, str]] = None,
+        response_parameters: Optional[dict[str, dict[str, str]]] = None,
         template_selection_expression: Optional[str] = None,
         timeout_in_millis: Optional[str] = None,
-        tls_config: Optional[Dict[str, str]] = None,
+        tls_config: Optional[dict[str, str]] = None,
     ) -> Integration:
         integration = Integration(
             connection_id=connection_id,
@@ -817,7 +817,7 @@ class Api(BaseModel):
             raise IntegrationNotFound(integration_id)
         return self.integrations[integration_id]
 
-    def get_integrations(self) -> List[Integration]:
+    def get_integrations(self) -> list[Integration]:
         return list(self.integrations.values())
 
     def update_integration(
@@ -834,12 +834,12 @@ class Api(BaseModel):
         passthrough_behavior: str,
         payload_format_version: str,
         integration_subtype: str,
-        request_parameters: Dict[str, str],
-        request_templates: Dict[str, str],
-        response_parameters: Dict[str, Dict[str, str]],
+        request_parameters: dict[str, str],
+        request_templates: dict[str, str],
+        response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
         timeout_in_millis: Optional[int],
-        tls_config: Dict[str, str],
+        tls_config: dict[str, str],
     ) -> Integration:
         integration = self.integrations[integration_id]
         integration.update(
@@ -895,7 +895,7 @@ class Api(BaseModel):
 
     def get_integration_responses(
         self, integration_id: str
-    ) -> List[IntegrationResponse]:
+    ) -> list[IntegrationResponse]:
         integration = self.get_integration(integration_id)
         return integration.get_responses()
 
@@ -922,15 +922,15 @@ class Api(BaseModel):
     def create_route(
         self,
         api_key_required: bool,
-        authorization_scopes: List[str],
+        authorization_scopes: list[str],
         route_key: str,
         target: str,
         authorization_type: Optional[str] = None,
         authorizer_id: Optional[str] = None,
         model_selection_expression: Optional[str] = None,
         operation_name: Optional[str] = None,
-        request_models: Optional[Dict[str, str]] = None,
-        request_parameters: Optional[Dict[str, Dict[str, bool]]] = None,
+        request_models: Optional[dict[str, str]] = None,
+        request_parameters: Optional[dict[str, dict[str, bool]]] = None,
         route_response_selection_expression: Optional[str] = None,
     ) -> Route:
         route = Route(
@@ -961,20 +961,20 @@ class Api(BaseModel):
             raise RouteNotFound(route_id)
         return self.routes[route_id]
 
-    def get_routes(self) -> List[Route]:
+    def get_routes(self) -> list[Route]:
         return list(self.routes.values())
 
     def update_route(
         self,
         route_id: str,
         api_key_required: Optional[bool],
-        authorization_scopes: List[str],
+        authorization_scopes: list[str],
         authorization_type: str,
         authorizer_id: str,
         model_selection_expression: str,
         operation_name: str,
-        request_models: Dict[str, str],
-        request_parameters: Dict[str, Dict[str, bool]],
+        request_models: dict[str, str],
+        request_parameters: dict[str, dict[str, bool]],
         route_key: str,
         route_response_selection_expression: str,
         target: str,
@@ -1019,7 +1019,7 @@ class Api(BaseModel):
         route = self.get_route(route_id)
         return route.get_route_response(route_response_id)
 
-    def create_stage(self, config: Dict[str, Any]) -> Stage:
+    def create_stage(self, config: dict[str, Any]) -> Stage:
         stage = Stage(api=self, config=config)
         self.stages[stage.name] = stage
         return stage
@@ -1032,7 +1032,7 @@ class Api(BaseModel):
     def delete_stage(self, stage_name: str) -> None:
         self.stages.pop(stage_name, None)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "apiId": self.api_id,
             "apiEndpoint": self.api_endpoint,
@@ -1054,9 +1054,9 @@ class VpcLink(BaseModel):
     def __init__(
         self,
         name: str,
-        sg_ids: List[str],
-        subnet_ids: List[str],
-        tags: Dict[str, str],
+        sg_ids: list[str],
+        subnet_ids: list[str],
+        tags: dict[str, str],
         backend: "ApiGatewayV2Backend",
     ):
         self.created = datetime.now()
@@ -1072,7 +1072,7 @@ class VpcLink(BaseModel):
     def update(self, name: str) -> None:
         self.name = name
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "createdDate": iso_8601_datetime_without_milliseconds(self.created),
             "name": self.name,
@@ -1089,20 +1089,23 @@ class DomainName(BaseModel):
     def __init__(
         self,
         domain_name: str,
-        domain_name_configurations: List[Dict[str, str]],
-        mutual_tls_authentication: Dict[str, str],
-        tags: Dict[str, str],
+        domain_name_configurations: list[dict[str, str]],
+        mutual_tls_authentication: dict[str, str],
+        tags: dict[str, str],
+        backend: "ApiGatewayV2Backend",
     ):
         self.api_mapping_selection_expression = "$request.basepath"
         self.domain_name = domain_name
         self.domain_name_configurations = domain_name_configurations
         self.mutual_tls_authentication = mutual_tls_authentication
         self.tags = tags
+        self.domain_name_arn = f"arn:{get_partition(backend.region_name)}:apigateway:{backend.region_name}::/domainnames/{domain_name}"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "apiMappingSelectionExpression": self.api_mapping_selection_expression,
             "domainName": self.domain_name,
+            "domainNameArn": self.domain_name_arn,
             "domainNameConfigurations": self.domain_name_configurations,
             "mutualTlsAuthentication": self.mutual_tls_authentication,
             "tags": self.tags,
@@ -1124,7 +1127,7 @@ class ApiMapping(BaseModel):
         self.domain_name = domain_name
         self.stage = stage
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "apiId": self.api_id,
             "apiMappingId": self.api_mapping_id,
@@ -1139,10 +1142,10 @@ class ApiGatewayV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.apis: Dict[str, Api] = dict()
-        self.vpc_links: Dict[str, VpcLink] = dict()
-        self.domain_names: Dict[str, DomainName] = dict()
-        self.api_mappings: Dict[str, ApiMapping] = dict()
+        self.apis: dict[str, Api] = {}
+        self.vpc_links: dict[str, VpcLink] = {}
+        self.domain_names: dict[str, DomainName] = {}
+        self.api_mappings: dict[str, ApiMapping] = {}
         self.tagger = TaggingService()
 
     def create_api(
@@ -1155,7 +1158,7 @@ class ApiGatewayV2Backend(BaseBackend):
         name: str,
         protocol_type: str,
         route_selection_expression: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         version: str,
     ) -> Api:
         """
@@ -1187,7 +1190,7 @@ class ApiGatewayV2Backend(BaseBackend):
             raise ApiNotFound(api_id)
         return self.apis[api_id]
 
-    def get_apis(self) -> List[Api]:
+    def get_apis(self) -> list[Api]:
         """
         Pagination is not yet implemented
         """
@@ -1341,27 +1344,27 @@ class ApiGatewayV2Backend(BaseBackend):
         api = self.get_api(api_id)
         return api.update_model(model_id, content_type, description, name, schema)
 
-    def get_tags(self, resource_id: str) -> Dict[str, str]:
+    def get_tags(self, resource_id: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tags_input)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_route(
         self,
         api_id: str,
         api_key_required: bool,
-        authorization_scopes: List[str],
+        authorization_scopes: list[str],
         authorization_type: str,
         authorizer_id: str,
         model_selection_expression: str,
         operation_name: str,
-        request_models: Optional[Dict[str, str]],
-        request_parameters: Optional[Dict[str, Dict[str, bool]]],
+        request_models: Optional[dict[str, str]],
+        request_parameters: Optional[dict[str, dict[str, bool]]],
         route_key: str,
         route_response_selection_expression: str,
         target: str,
@@ -1396,7 +1399,7 @@ class ApiGatewayV2Backend(BaseBackend):
         api = self.get_api(api_id)
         return api.get_route(route_id)
 
-    def get_routes(self, api_id: str) -> List[Route]:
+    def get_routes(self, api_id: str) -> list[Route]:
         """
         Pagination is not yet implemented
         """
@@ -1407,13 +1410,13 @@ class ApiGatewayV2Backend(BaseBackend):
         self,
         api_id: str,
         api_key_required: bool,
-        authorization_scopes: List[str],
+        authorization_scopes: list[str],
         authorization_type: str,
         authorizer_id: str,
         model_selection_expression: str,
         operation_name: str,
-        request_models: Dict[str, str],
-        request_parameters: Dict[str, Dict[str, bool]],
+        request_models: dict[str, str],
+        request_parameters: dict[str, dict[str, bool]],
         route_id: str,
         route_key: str,
         route_response_selection_expression: str,
@@ -1481,12 +1484,12 @@ class ApiGatewayV2Backend(BaseBackend):
         integration_uri: str,
         passthrough_behavior: str,
         payload_format_version: str,
-        request_parameters: Optional[Dict[str, str]],
-        request_templates: Optional[Dict[str, str]],
-        response_parameters: Optional[Dict[str, Dict[str, str]]],
+        request_parameters: Optional[dict[str, str]],
+        request_templates: Optional[dict[str, str]],
+        response_parameters: Optional[dict[str, dict[str, str]]],
         template_selection_expression: str,
         timeout_in_millis: str,
-        tls_config: Dict[str, str],
+        tls_config: dict[str, str],
     ) -> Integration:
         api = self.get_api(api_id)
         integration = api.create_integration(
@@ -1515,7 +1518,7 @@ class ApiGatewayV2Backend(BaseBackend):
         integration = api.get_integration(integration_id)
         return integration
 
-    def get_integrations(self, api_id: str) -> List[Integration]:
+    def get_integrations(self, api_id: str) -> list[Integration]:
         """
         Pagination is not yet implemented
         """
@@ -1541,12 +1544,12 @@ class ApiGatewayV2Backend(BaseBackend):
         integration_uri: str,
         passthrough_behavior: str,
         payload_format_version: str,
-        request_parameters: Dict[str, str],
-        request_templates: Dict[str, str],
-        response_parameters: Dict[str, Dict[str, str]],
+        request_parameters: dict[str, str],
+        request_templates: dict[str, str],
+        response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
         timeout_in_millis: Optional[int],
-        tls_config: Dict[str, str],
+        tls_config: dict[str, str],
     ) -> Integration:
         api = self.get_api(api_id)
         integration = api.update_integration(
@@ -1610,7 +1613,7 @@ class ApiGatewayV2Backend(BaseBackend):
 
     def get_integration_responses(
         self, api_id: str, integration_id: str
-    ) -> List[IntegrationResponse]:
+    ) -> list[IntegrationResponse]:
         api = self.get_api(api_id)
         return api.get_integration_responses(integration_id)
 
@@ -1638,7 +1641,7 @@ class ApiGatewayV2Backend(BaseBackend):
         return integration_response
 
     def create_vpc_link(
-        self, name: str, sg_ids: List[str], subnet_ids: List[str], tags: Dict[str, str]
+        self, name: str, sg_ids: list[str], subnet_ids: list[str], tags: dict[str, str]
     ) -> VpcLink:
         vpc_link = VpcLink(
             name, sg_ids=sg_ids, subnet_ids=subnet_ids, tags=tags, backend=self
@@ -1654,7 +1657,7 @@ class ApiGatewayV2Backend(BaseBackend):
     def delete_vpc_link(self, vpc_link_id: str) -> None:
         self.vpc_links.pop(vpc_link_id, None)
 
-    def get_vpc_links(self) -> List[VpcLink]:
+    def get_vpc_links(self) -> list[VpcLink]:
         return list(self.vpc_links.values())
 
     def update_vpc_link(self, vpc_link_id: str, name: str) -> VpcLink:
@@ -1665,9 +1668,9 @@ class ApiGatewayV2Backend(BaseBackend):
     def create_domain_name(
         self,
         domain_name: str,
-        domain_name_configurations: List[Dict[str, str]],
-        mutual_tls_authentication: Dict[str, str],
-        tags: Dict[str, str],
+        domain_name_configurations: list[dict[str, str]],
+        mutual_tls_authentication: dict[str, str],
+        tags: dict[str, str],
     ) -> DomainName:
         if domain_name in self.domain_names.keys():
             raise DomainNameAlreadyExists
@@ -1677,6 +1680,7 @@ class ApiGatewayV2Backend(BaseBackend):
             domain_name_configurations=domain_name_configurations,
             mutual_tls_authentication=mutual_tls_authentication,
             tags=tags,
+            backend=self,
         )
         self.domain_names[domain.domain_name] = domain
         return domain
@@ -1686,7 +1690,7 @@ class ApiGatewayV2Backend(BaseBackend):
             raise DomainNameNotFound
         return self.domain_names[domain_name]
 
-    def get_domain_names(self) -> List[DomainName]:
+    def get_domain_names(self) -> list[DomainName]:
         """
         Pagination is not yet implemented
         """
@@ -1707,7 +1711,7 @@ class ApiGatewayV2Backend(BaseBackend):
     ) -> str:
         return str(
             hashlib.sha256(
-                f"{stage} {domain_name}/{api_mapping_key}".encode("utf-8")
+                f"{stage} {domain_name}/{api_mapping_key}".encode()
             ).hexdigest()
         )[:5]
 
@@ -1752,7 +1756,7 @@ class ApiGatewayV2Backend(BaseBackend):
 
         return self.api_mappings[api_mapping_id]
 
-    def get_api_mappings(self, domain_name: str) -> List[ApiMapping]:
+    def get_api_mappings(self, domain_name: str) -> list[ApiMapping]:
         domain_mappings = []
         for mapping in self.api_mappings.values():
             if mapping.domain_name == domain_name:
@@ -1770,7 +1774,7 @@ class ApiGatewayV2Backend(BaseBackend):
 
         del self.api_mappings[api_mapping_id]
 
-    def create_stage(self, api_id: str, config: Dict[str, Any]) -> Stage:
+    def create_stage(self, api_id: str, config: dict[str, Any]) -> Stage:
         api = self.get_api(api_id)
         return api.create_stage(config)
 
@@ -1782,7 +1786,7 @@ class ApiGatewayV2Backend(BaseBackend):
         api = self.get_api(api_id)
         api.delete_stage(stage_name)
 
-    def get_stages(self, api_id: str) -> List[Stage]:
+    def get_stages(self, api_id: str) -> list[Stage]:
         api = self.get_api(api_id)
         return list(api.stages.values())
 

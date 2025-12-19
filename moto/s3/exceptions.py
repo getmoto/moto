@@ -16,6 +16,14 @@ ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<Key>{{ key }}</Key>{% endblock %}
 """
 
+ERROR_WITH_KEY_AND_VERSION = """{% extends 'single_error' %}
+{% block extra %}<Key>{{ key }}</Key><VersionId>{{ version_id }}</VersionId>{% endblock %}
+"""
+
+ERROR_WITH_METHOD_AND_RESOURCE = """{% extends 'single_error' %}
+{% block extra %}{% if method %}<Method>{{ method }}</Method>{% endif %}{% if resource_type %}<ResourceType>{{ resource_type }}</ResourceType>{% endif %}{% endblock %}
+"""
+
 ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
 {% block extra %}<ArgumentName>{{ name }}</ArgumentName>
 <ArgumentValue>{{ value }}</ArgumentValue>{% endblock %}
@@ -46,6 +54,8 @@ class S3ClientError(RESTError):
     extended_templates = {
         "bucket_error": ERROR_WITH_BUCKET_NAME,
         "key_error": ERROR_WITH_KEY_NAME,
+        "key_version_error": ERROR_WITH_KEY_AND_VERSION,
+        "method_resource_error": ERROR_WITH_METHOD_AND_RESOURCE,
         "argument_error": ERROR_WITH_ARGUMENT,
         "error_uploadid": ERROR_WITH_UPLOADID,
         "condition_error": ERROR_WITH_CONDITION_NAME,
@@ -126,8 +136,21 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = 404
 
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("template", "key_version_error")
+        super().__init__(
+            "NoSuchVersion", "The specified version does not exist.", **kwargs
+        )
+
+
+class MissingInventoryConfig(S3ClientError):
+    code = 404
+
     def __init__(self) -> None:
-        super().__init__("NoSuchVersion", "The specified version does not exist.")
+        super().__init__(
+            "NoSuchInventoryConfig",
+            "The specified inventory configuration does not exist.",
+        )
 
 
 class InvalidVersion(S3ClientError):
@@ -623,8 +646,10 @@ class HeadOnDeleteMarker(Exception):
 class MethodNotAllowed(S3ClientError):
     code = 405
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs: Any):
+        kwargs.setdefault("template", "method_resource_error")
         super().__init__(
             "MethodNotAllowed",
             "The specified method is not allowed against this resource.",
+            **kwargs,
         )

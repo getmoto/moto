@@ -161,13 +161,19 @@ def test_state_machine_calling_dynamodb_put_wait_for_task_token(
     tmpl_name = "services/dynamodb_task_token"
 
     def _verify_result(client, execution, execution_arn):
+        print("_verify_result")  # noqa
+        print(execution)  # noqa
         if execution["status"] == "RUNNING":
             items = dynamodb.scan(TableName=table_name)["Items"]
+            print(items)  # noqa
             if len(items) > 0:
                 assert len(items) == 1
                 assert items[0]["id"] == {"S": "1"}
                 # Some random token
-                assert len(items[0]["StepFunctionTaskToken"]["S"]) > 25
+                if "StepFunctionTaskToken" not in items[0]:
+                    return False
+                assert "StepFunctionTaskToken" in items[0], items
+                assert len(items[0]["StepFunctionTaskToken"]["S"]) > 25, items
                 token = items[0]["StepFunctionTaskToken"]["S"]
                 client.send_task_success(taskToken=token, output=json.dumps(output))
 
@@ -197,13 +203,21 @@ def test_state_machine_calling_dynamodb_put_fail_task_token(
     tmpl_name = "services/dynamodb_task_token"
 
     def _verify_result(client, execution, execution_arn):
+        print(  # noqa
+            "test_state_machine_calling_dynamodb_put_fail_task_token :: _verify_result"
+        )
+        print(execution)  # noqa
         if execution["status"] == "RUNNING":
             items = dynamodb.scan(TableName=table_name)["Items"]
+            print(items)  # noqa
             if len(items) > 0:
                 assert len(items) == 1
                 assert items[0]["id"] == {"S": "1"}
                 # Some random token
-                assert len(items[0]["StepFunctionTaskToken"]["S"]) > 25
+                if "StepFunctionTaskToken" not in items[0]:
+                    return False
+                assert "StepFunctionTaskToken" in items[0], items
+                assert len(items[0]["StepFunctionTaskToken"]["S"]) > 25, items
                 token = items[0]["StepFunctionTaskToken"]["S"]
                 client.send_task_failure(taskToken=token, error="test error")
 

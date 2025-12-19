@@ -2,7 +2,6 @@
 
 import base64
 import json
-from typing import List
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -29,7 +28,7 @@ class SESV2Response(BaseResponse):
         destination = params.get("Destination", {})
         content = params.get("Content")
         if "Raw" in content:
-            all_destinations: List[str] = []
+            all_destinations: list[str] = []
             if "ToAddresses" in destination:
                 all_destinations = all_destinations + destination["ToAddresses"]
             if "CcAddresses" in destination:
@@ -70,7 +69,7 @@ class SESV2Response(BaseResponse):
 
     def list_contact_lists(self) -> str:
         contact_lists = self.sesv2_backend.list_contact_lists()
-        return json.dumps(dict(ContactLists=[c.response_object for c in contact_lists]))
+        return json.dumps({"ContactLists": [c.response_object for c in contact_lists]})
 
     def delete_contact_list(self) -> str:
         name = self._get_param("ContactListName")
@@ -92,7 +91,7 @@ class SESV2Response(BaseResponse):
     def list_contacts(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         contacts = self.sesv2_backend.list_contacts(contact_list_name)
-        return json.dumps(dict(Contacts=[c.response_object for c in contacts]))
+        return json.dumps({"Contacts": [c.response_object for c in contacts]})
 
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
@@ -112,12 +111,17 @@ class SESV2Response(BaseResponse):
             configuration_set_name=configuration_set_name,
         )
         return json.dumps(
-            dict(
-                IdentityType=email_identity.identity_type,
-                VerifiedForSendingStatus=email_identity.verified_for_sending_status,
-                DkimAttributes=email_identity.dkim_attributes,
-            )
+            {
+                "IdentityType": email_identity.identity_type,
+                "VerifiedForSendingStatus": email_identity.verified_for_sending_status,
+                "DkimAttributes": email_identity.dkim_attributes,
+            }
         )
+
+    def delete_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        self.sesv2_backend.delete_email_identity(email_identity=email_identity_name)
+        return json.dumps({})
 
     def get_email_identity(self) -> str:
         email_identity_name = self._get_param("EmailIdentity")
@@ -139,10 +143,10 @@ class SESV2Response(BaseResponse):
             response = []
 
         return json.dumps(
-            dict(
-                EmailIdentities=response,
-                NextToken=next_token,
-            )
+            {
+                "EmailIdentities": response,
+                "NextToken": next_token,
+            }
         )
 
     def create_configuration_set(self) -> str:
@@ -189,7 +193,7 @@ class SESV2Response(BaseResponse):
         config_set_names = [c.configuration_set_name for c in configuration_sets]
 
         return json.dumps(
-            dict(ConfigurationSets=config_set_names, NextToken=next_token)
+            {"ConfigurationSets": config_set_names, "NextToken": next_token}
         )
 
     def create_dedicated_ip_pool(self) -> str:
@@ -217,7 +221,7 @@ class SESV2Response(BaseResponse):
             next_token=next_token, page_size=page_size
         )
         return json.dumps(
-            dict(DedicatedIpPools=dedicated_ip_pools, NextToken=next_token)
+            {"DedicatedIpPools": dedicated_ip_pools, "NextToken": next_token}
         )
 
     def get_dedicated_ip_pool(self) -> str:
@@ -225,7 +229,7 @@ class SESV2Response(BaseResponse):
         dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
             pool_name=pool_name,
         )
-        return json.dumps(dict(DedicatedIpPool=dedicated_ip_pool.to_dict()))
+        return json.dumps({"DedicatedIpPool": dedicated_ip_pool.to_dict()})
 
     def create_email_identity_policy(self) -> str:
         email_identity = self._get_param("EmailIdentity")
@@ -264,3 +268,28 @@ class SESV2Response(BaseResponse):
             email_identity=email_identity,
         )
         return json.dumps({"Policies": policies})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        self.sesv2_backend.tag_resource(
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self.__dict__["data"]["TagKeys"]
+        self.sesv2_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self.sesv2_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"Tags": tags})

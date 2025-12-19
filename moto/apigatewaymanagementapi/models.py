@@ -1,7 +1,7 @@
 """ApiGatewayManagementApiBackend class with methods for supported APIs."""
 
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import unix_time
@@ -14,7 +14,7 @@ class Connection:
         self.user_agent = "Moto Mocks"
         self.data = b""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "connectedAt": self.connected_at,
             "lastActiveAt": unix_time(),
@@ -32,7 +32,7 @@ class ApiGatewayManagementApiBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.connections: Dict[str, Connection] = defaultdict(Connection)
+        self.connections: dict[str, Connection] = defaultdict(Connection)
 
     def delete_connection(self, connection_id: str) -> None:
         self.connections.pop(connection_id, None)

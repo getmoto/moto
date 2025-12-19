@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.awslambda.models import LambdaBackend
 from moto.core.base_backend import BackendDict
@@ -12,9 +12,8 @@ class LambdaSimpleBackend(LambdaBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.lambda_simple_results_queue: List[str] = []
+        self.lambda_simple_results_queue: list[str] = []
 
-    # pylint: disable=unused-argument
     def invoke(
         self,
         function_name: str,

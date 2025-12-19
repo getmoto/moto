@@ -1,43 +1,34 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class InvalidFormat(RESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__(InvalidFormat.__name__, message)
+class CloudWatchException(ServiceException):
+    pass
 
 
-class InvalidParameterValue(RESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__(InvalidParameterValue.__name__, message)
+class InvalidFormat(CloudWatchException):
+    code = "InvalidFormat"
 
 
-class InvalidParameterCombination(RESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__(InvalidParameterCombination.__name__, message)
+class InvalidParameterValue(CloudWatchException):
+    code = "InvalidParameterValue"
 
 
-class ResourceNotFound(RESTError):
-    code = 404
-
-    def __init__(self) -> None:
-        super().__init__(ResourceNotFound.__name__, "Unknown")
+class InvalidParameterCombination(CloudWatchException):
+    code = "InvalidParameterCombination"
 
 
-class ResourceNotFoundException(RESTError):
-    code = 404
-
-    def __init__(self) -> None:
-        super().__init__(ResourceNotFoundException.__name__, "Unknown")
+class ResourceNotFound(CloudWatchException):
+    code = "ResourceNotFound"
 
 
-class ValidationError(RESTError):
-    code = 400
+class ResourceNotFoundException(CloudWatchException):
+    code = "ResourceNotFoundException"
+    message = "Unknown"
 
-    def __init__(self, message: str):
-        super().__init__(ValidationError.__name__, message)
+
+class ValidationError(CloudWatchException):
+    code = "ValidationError"
+
+
+class DashboardInvalidInputError(CloudWatchException):
+    code = "InvalidParameterInput"

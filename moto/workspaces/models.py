@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -23,12 +23,12 @@ from moto.workspaces.exceptions import (
 class Workspace(BaseModel):
     def __init__(
         self,
-        workspace: Dict[str, Any],
+        workspace: dict[str, Any],
         running_mode: str,
         error_code: str,
         error_msg: str,
     ):
-        self.workspace_properties: Dict[str, Any]
+        self.workspace_properties: dict[str, Any]
         self.workspace = workspace
         self.workspace_id = f"ws-{mock_random.get_random_hex(9)}"
         # Create_workspaces operation is asynchronous and returns before the WorkSpaces are created.
@@ -56,17 +56,17 @@ class Workspace(BaseModel):
             self.workspace_properties = workspace_properties
 
         self.computer_name = ""  # Workspace Bundle
-        self.modification_states: List[
-            Dict[str, str]
+        self.modification_states: list[
+            dict[str, str]
         ] = []  # modify_workspace_properties
         # create_standy_workspace
-        self.related_workspaces: List[Dict[str, str]] = []
-        self.data_replication_settings: Dict[str, Any] = {}
+        self.related_workspaces: list[dict[str, str]] = []
+        self.data_replication_settings: dict[str, Any] = {}
         # The properties of the standby WorkSpace related to related_workspaces
-        self.standby_workspaces_properties: List[Dict[str, Any]] = []
+        self.standby_workspaces_properties: list[dict[str, Any]] = []
         self.tags = workspace.get("Tags", [])
 
-    def to_dict_pending(self) -> Dict[str, Any]:
+    def to_dict_pending(self) -> dict[str, Any]:
         dct = {
             "WorkspaceId": self.workspace_id,
             "DirectoryId": self.directory_id,
@@ -89,13 +89,13 @@ class Workspace(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def filter_empty_values(self, d: Dict[str, Any]) -> Dict[str, Any]:
+    def filter_empty_values(self, d: dict[str, Any]) -> dict[str, Any]:
         if isinstance(d, Mapping):
-            return dict((k, self.filter_empty_values(v)) for k, v in d.items() if v)
+            return {k: self.filter_empty_values(v) for k, v in d.items() if v}
         else:
             return d
 
-    def to_dict_failed(self) -> Dict[str, Any]:
+    def to_dict_failed(self) -> dict[str, Any]:
         dct = {
             "WorkspaceRequest": {
                 "DirectoryId": self.workspace["DirectoryId"],
@@ -122,11 +122,10 @@ class WorkSpaceDirectory(BaseModel):
         directory: Directory,
         registration_code: str,
         security_group_id: str,
-        subnet_ids: List[str],
-        enable_work_docs: bool,
+        subnet_ids: list[str],
         enable_self_service: bool,
         tenancy: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ):
         self.account_id = account_id
         self.region = region
@@ -156,7 +155,6 @@ class WorkSpaceDirectory(BaseModel):
         self.state = "REGISTERED"
         # Default values for workspace_creation_properties
         workspace_creation_properties = {
-            "EnableWorkDocs": enable_work_docs,
             "EnableInternetAccess": False,
             "DefaultOu": "",
             "CustomSecurityGroupId": "",
@@ -225,7 +223,7 @@ class WorkSpaceDirectory(BaseModel):
             group_id=self.workspace_security_group_id
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "DirectoryId": self.directory_id,
             "Alias": self.alias,
@@ -254,13 +252,13 @@ class WorkspaceImage(BaseModel):
         self,
         name: str,
         description: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         account_id: str,
     ):
         self.image_id = f"wsi-{mock_random.get_random_hex(9)}"
         self.name = name
         self.description = description
-        self.operating_system: Dict[str, str] = {}  # Unknown
+        self.operating_system: dict[str, str] = {}  # Unknown
         # Initially the 'state' is 'PENDING', but here the 'state' will be set as 'AVAILABLE' since
         # this operation is being mocked.
         self.state = "AVAILABLE"
@@ -269,7 +267,7 @@ class WorkspaceImage(BaseModel):
         self.owner_account = account_id
         self.error_code = ""
         self.error_message = ""
-        self.image_permissions: List[Dict[str, str]] = []
+        self.image_permissions: list[dict[str, str]] = []
         self.tags = tags
 
         # Default updates
@@ -277,9 +275,9 @@ class WorkspaceImage(BaseModel):
             "UpdateAvailable": False,
             "Description": "This WorkSpace image does not have updates available",
         }
-        self.error_details: List[Dict[str, str]] = []
+        self.error_details: list[dict[str, str]] = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "ImageId": self.image_id,
             "Name": self.name,
@@ -292,7 +290,7 @@ class WorkspaceImage(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def to_desc_dict(self) -> Dict[str, Any]:
+    def to_desc_dict(self) -> dict[str, Any]:
         dct = self.to_dict()
         dct_options = {
             "ErrorCode": self.error_code,
@@ -314,10 +312,10 @@ class WorkSpacesBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.workspaces: Dict[str, Workspace] = dict()
-        self.workspace_directories: Dict[str, WorkSpaceDirectory] = dict()
-        self.workspace_images: Dict[str, WorkspaceImage] = dict()
-        self.directories: List[Directory]
+        self.workspaces: dict[str, Workspace] = {}
+        self.workspace_directories: dict[str, WorkSpaceDirectory] = {}
+        self.workspace_images: dict[str, WorkspaceImage] = {}
+        self.directories: list[Directory]
 
     def validate_directory_id(self, value: str, msg: str) -> None:
         """Raise exception if the directory id is invalid."""
@@ -343,8 +341,8 @@ class WorkSpacesBackend(BaseBackend):
         return security_group_info.id
 
     def create_workspaces(
-        self, workspaces: List[Dict[str, Any]]
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        self, workspaces: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         failed_requests = []
         pending_requests = []
 
@@ -393,11 +391,11 @@ class WorkSpacesBackend(BaseBackend):
 
     def describe_workspaces(
         self,
-        workspace_ids: List[str],
+        workspace_ids: list[str],
         directory_id: str,
         user_name: str,
         bundle_id: str,
-    ) -> List[Workspace]:
+    ) -> list[Workspace]:
         # Pagination not yet implemented
 
         # Only one of the following are allowed to be specified: BundleId, DirectoryId, WorkSpaceIds.
@@ -430,14 +428,39 @@ class WorkSpacesBackend(BaseBackend):
         # workspaces = [w.to_dict_pending() for w in workspaces]
         return workspaces
 
+    def terminate_workspaces(
+        self, terminate_workspace_requests: list[dict[str, Any]]
+    ) -> dict[str, list[dict[str, Any]]]:
+        failed_requests = []
+        terminated_workspaces = []
+
+        for ws in terminate_workspace_requests:
+            workspace_id = ws["WorkspaceId"]
+            if workspace_id not in self.workspaces:
+                failed_requests.append(
+                    {
+                        "WorkspaceId": workspace_id,
+                        "ErrorCode": "400",
+                        "ErrorMessage": f"WorkSpace {workspace_id} could not be found.",
+                    }
+                )
+                continue
+
+            terminated_workspaces.append({"WorkspaceId": workspace_id})
+
+            self.workspaces.pop(workspace_id)
+
+        return {
+            "FailedRequests": failed_requests,
+        }
+
     def register_workspace_directory(
         self,
         directory_id: str,
-        subnet_ids: List[str],
-        enable_work_docs: bool,
+        subnet_ids: list[str],
         enable_self_service: bool,
         tenancy: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ) -> None:
         ran_str = mock_random.get_random_string(length=6)
         registration_code = f"SLiad+{ran_str.upper()}"
@@ -461,7 +484,6 @@ class WorkSpacesBackend(BaseBackend):
             registration_code=registration_code,
             security_group_id=security_group_id,
             subnet_ids=subnet_ids,
-            enable_work_docs=enable_work_docs,
             enable_self_service=enable_self_service,
             tenancy=tenancy,
             tags=tags,
@@ -471,8 +493,8 @@ class WorkSpacesBackend(BaseBackend):
         )
 
     def describe_workspace_directories(
-        self, directory_ids: Optional[List[str]] = None
-    ) -> List[WorkSpaceDirectory]:
+        self, directory_ids: Optional[list[str]] = None
+    ) -> list[WorkSpaceDirectory]:
         """Return info on all directories or directories with matching IDs."""
         # Pagination not yet implemented
 
@@ -488,7 +510,7 @@ class WorkSpacesBackend(BaseBackend):
         return sorted(workspace_directories, key=lambda x: x.launch_time)
 
     def modify_workspace_creation_properties(
-        self, resource_id: str, workspace_creation_properties: Dict[str, Any]
+        self, resource_id: str, workspace_creation_properties: dict[str, Any]
     ) -> None:
         # Raise Exception if Directory doesnot exist.
         if resource_id not in self.workspace_directories:
@@ -497,7 +519,7 @@ class WorkSpacesBackend(BaseBackend):
         res = self.workspace_directories[resource_id]
         res.workspace_creation_properties = workspace_creation_properties
 
-    def create_tags(self, resource_id: str, tags: List[Dict[str, str]]) -> None:
+    def create_tags(self, resource_id: str, tags: list[dict[str, str]]) -> None:
         if resource_id.startswith("d-"):
             ds = self.workspace_directories[resource_id]
             ds.tags.extend(tags)
@@ -505,7 +527,7 @@ class WorkSpacesBackend(BaseBackend):
             ws = self.workspaces[resource_id]
             ws.tags.extend(tags)
 
-    def describe_tags(self, resource_id: str) -> List[Dict[str, str]]:
+    def describe_tags(self, resource_id: str) -> list[dict[str, str]]:
         if resource_id.startswith("d-"):
             ds = self.workspace_directories[resource_id]
             tag_list = ds.tags
@@ -517,7 +539,7 @@ class WorkSpacesBackend(BaseBackend):
             tag_list = wsi.tags
         return tag_list
 
-    def describe_client_properties(self, resource_ids: str) -> List[Dict[str, Any]]:
+    def describe_client_properties(self, resource_ids: str) -> list[dict[str, Any]]:
         workspace_directories = list(self.workspace_directories.values())
         workspace_directories = [
             x for x in workspace_directories if x.directory_id in resource_ids
@@ -532,14 +554,14 @@ class WorkSpacesBackend(BaseBackend):
         return client_properties_list
 
     def modify_client_properties(
-        self, resource_id: str, client_properties: Dict[str, str]
+        self, resource_id: str, client_properties: dict[str, str]
     ) -> None:
         res = self.workspace_directories[resource_id]
         res.client_properties = client_properties
 
     def create_workspace_image(
-        self, name: str, description: str, workspace_id: str, tags: List[Dict[str, str]]
-    ) -> Dict[str, Any]:
+        self, name: str, description: str, workspace_id: str, tags: list[dict[str, str]]
+    ) -> dict[str, Any]:
         # Check if workspace exists.
         if workspace_id not in self.workspaces:
             raise ResourceNotFoundException(
@@ -561,8 +583,8 @@ class WorkSpacesBackend(BaseBackend):
         return workspace_image.to_dict()
 
     def describe_workspace_images(
-        self, image_ids: Optional[List[str]], image_type: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        self, image_ids: Optional[list[str]], image_type: Optional[str]
+    ) -> list[dict[str, Any]]:
         # Pagination not yet implemented
         workspace_images = list(self.workspace_images.values())
         if image_type == "OWNED":
@@ -594,7 +616,7 @@ class WorkSpacesBackend(BaseBackend):
 
     def describe_workspace_image_permissions(
         self, image_id: str
-    ) -> Tuple[str, List[Dict[str, str]]]:
+    ) -> tuple[str, list[dict[str, str]]]:
         # Pagination not yet implemented
 
         msg = f"The Image ID {image_id} in the request is invalid"
@@ -613,7 +635,7 @@ class WorkSpacesBackend(BaseBackend):
         self.workspace_directories.pop(directory_id)
 
     def modify_selfservice_permissions(
-        self, resource_id: str, selfservice_permissions: Dict[str, str]
+        self, resource_id: str, selfservice_permissions: dict[str, str]
     ) -> None:
         res = self.workspace_directories[resource_id]
         res.self_service_permissions = selfservice_permissions

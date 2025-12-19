@@ -54,6 +54,7 @@ cloudformation
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_change_set_hooks
+- [ ] describe_events
 - [ ] describe_generated_template
 - [ ] describe_organizations_access
 - [ ] describe_publisher
@@ -77,6 +78,7 @@ cloudformation
 - [X] execute_change_set
 - [ ] execute_stack_refactor
 - [ ] get_generated_template
+- [ ] get_hook_result
 - [X] get_stack_policy
 - [X] get_template
 - [ ] get_template_summary

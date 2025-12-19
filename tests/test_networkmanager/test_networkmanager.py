@@ -2,6 +2,7 @@
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
@@ -19,7 +20,7 @@ def create_global_network(client) -> str:
 
 @mock_aws
 def test_create_global_network():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     resp = client.create_global_network(
         Description="Test global network",
         Tags=[
@@ -43,7 +44,7 @@ def test_create_global_network():
 
 @mock_aws
 def test_create_core_network():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     # Create a global network
     global_network_id = client.create_global_network(
         Description="Test global network",
@@ -74,7 +75,7 @@ def test_create_core_network():
 
 @mock_aws
 def test_delete_core_network():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     core_network = client.create_core_network(GlobalNetworkId=gn_id)
     cn_id = core_network["CoreNetwork"]["CoreNetworkId"]
@@ -91,7 +92,7 @@ def test_tag_resource():
         {"Key": "Moto", "Value": "TestTag"},
         {"Key": "Owner", "Value": "Alice"},
     ]
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     cn = client.create_core_network(GlobalNetworkId=gn_id)["CoreNetwork"]
 
@@ -135,7 +136,7 @@ def test_tag_resource():
 
 @mock_aws
 def test_untag_resource():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     cn = client.create_core_network(
         GlobalNetworkId=gn_id,
@@ -158,7 +159,7 @@ def test_untag_resource():
 @mock_aws
 def test_list_core_networks():
     NUM_CORE_NETWORKS = 3
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     for _ in range(NUM_CORE_NETWORKS):
         gn_id = create_global_network(client)
         client.create_core_network(GlobalNetworkId=gn_id)
@@ -181,7 +182,7 @@ def test_list_core_networks():
 
 @mock_aws
 def test_get_core_network():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     cn_id = client.create_core_network(
         GlobalNetworkId=gn_id,
@@ -202,13 +203,13 @@ def test_get_core_network():
 @mock_aws
 def test_describe_global_networks():
     NUM_NETWORKS = 3
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     global_ids = []
-    for i in range(NUM_NETWORKS):
+    for idx in range(NUM_NETWORKS):
         global_id = client.create_global_network(
-            Description=f"Test global network #{i}",
+            Description=f"Test global network #{idx}",
             Tags=[
-                {"Key": "Name", "Value": f"TestNetwork-{i}"},
+                {"Key": "Name", "Value": f"TestNetwork-{idx}"},
             ],
         )["GlobalNetwork"]["GlobalNetworkId"]
         global_ids.append(global_id)
@@ -225,7 +226,7 @@ def test_describe_global_networks():
 
 @mock_aws
 def test_create_site():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     site = client.create_site(
         GlobalNetworkId=gn_id,
@@ -246,7 +247,7 @@ def test_create_site():
 
 @mock_aws
 def test_delete_site():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     site_id = client.create_site(
         GlobalNetworkId=gn_id, Description="Test site to be deleted"
@@ -260,10 +261,10 @@ def test_delete_site():
 def test_get_sites():
     NUM_SITES = 4
     NUM_TO_TEST = 2
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     site_ids = []
-    for i in range(NUM_SITES):
+    for _ in range(NUM_SITES):
         site_id = client.create_site(
             GlobalNetworkId=gn_id,
             Description="Test site #{i}",
@@ -289,7 +290,7 @@ def test_get_sites():
 
 @mock_aws
 def test_create_link():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     link = client.create_link(
         GlobalNetworkId=gn_id,
@@ -314,10 +315,10 @@ def test_create_link():
 def test_get_links():
     NUM_LINKS = 4
     NUM_TO_TEST = 2
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     ids = []
-    for i in range(NUM_LINKS):
+    for _ in range(NUM_LINKS):
         id = client.create_link(
             GlobalNetworkId=gn_id,
             SiteId="site-id",
@@ -325,7 +326,7 @@ def test_get_links():
             Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
         )["Link"]["LinkId"]
         ids.append(id)
-    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resources_to_get = list(ids[0:NUM_TO_TEST])
     resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
     assert len(resp) == NUM_TO_TEST
 
@@ -340,7 +341,7 @@ def test_get_links():
 
 @mock_aws
 def test_delete_link():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     link_id = client.create_link(
         GlobalNetworkId=gn_id,
@@ -356,7 +357,7 @@ def test_delete_link():
 
 @mock_aws
 def test_create_device():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     device = client.create_device(
         GlobalNetworkId=gn_id,
@@ -373,20 +374,20 @@ def test_create_device():
 def test_get_devices():
     NUM_DEVICES = 4
     NUM_TO_TEST = 2
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     ids = []
-    for i in range(NUM_DEVICES):
+    for idx in range(NUM_DEVICES):
         id = client.create_device(
             GlobalNetworkId=gn_id,
             AWSLocation={
                 "Zone": "us-east-1",
                 "SubnetArn": "subnet-arn",
             },
-            Description=f"Test device #{i}",
+            Description=f"Test device #{idx}",
         )["Device"]["DeviceId"]
         ids.append(id)
-    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resources_to_get = list(ids[0:NUM_TO_TEST])
     resp = client.get_devices(GlobalNetworkId=gn_id, DeviceIds=resources_to_get)[
         "Devices"
     ]
@@ -403,7 +404,7 @@ def test_get_devices():
 
 @mock_aws
 def test_delete_device():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     device_id = client.create_device(
         GlobalNetworkId=gn_id,
@@ -428,7 +429,7 @@ def test_list_tags_for_resource():
         {"Key": "Moto", "Value": "TestTag"},
         {"Key": "Owner", "Value": "Alice"},
     ]
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
 
     # Global Network
     g_network = client.create_global_network(
@@ -483,7 +484,7 @@ def test_list_tags_for_resource():
 
 @mock_aws
 def test_device_exceptions():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
     device_id = client.create_device(
         GlobalNetworkId=gn_id,
@@ -495,7 +496,7 @@ def test_device_exceptions():
     )["Device"]["DeviceId"]
 
     # Test invalid global_network_id for create resource
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.create_device(
             GlobalNetworkId="invalid-global-network-id",
             AWSLocation={
@@ -504,46 +505,58 @@ def test_device_exceptions():
             },
             Description="Test device",
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
 
     # Test invalid global_network_id for get
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.get_devices(
             GlobalNetworkId="invalid-global-network-id", DeviceIds=[device_id]
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
 
 @mock_aws
 def test_site_exceptions():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
 
     # Test invalid global_network_id for create resource
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.create_site(
             GlobalNetworkId="invalid-global-network-id", Description="Test site"
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
 
     # Test invalid global_network_id for get
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.get_devices(
-            GlobalNetworkId="invalid-global-network-id", SiteIds=["site-id"]
+            GlobalNetworkId="invalid-global-network-id", SiteId="site-id"
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
 
 @mock_aws
 def test_link_exceptions():
-    client = boto3.client("networkmanager")
+    client = boto3.client("networkmanager", "us-east-1")
 
     # Test invalid global_network_id for create resource
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.create_link(
             GlobalNetworkId="invalid-global-network-id",
             SiteId="site-id",
             Description="Test link",
             Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
 
     # Test invalid global_network_id for get
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.get_links(
             GlobalNetworkId="invalid-global-network-id", LinkIds=["link-id"]
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"

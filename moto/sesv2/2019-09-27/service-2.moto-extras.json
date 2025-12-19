@@ -1,0 +1,14 @@
+{
+  "version": 1.0,
+  "merge": {
+    "shapes": {
+      "NotFoundException": {
+        "error": {
+          "codeAliases": [
+            "ConfigurationSetDoesNotExist"
+          ]
+        }
+      }
+    }
+  }
+}

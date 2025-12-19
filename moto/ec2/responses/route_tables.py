@@ -1,3 +1,5 @@
+from moto.core.responses import ActionResult, EmptyResult
+
 from ._base_response import EC2BaseResponse
 
 
@@ -48,14 +50,14 @@ class RouteTables(EC2BaseResponse):
 
     def create_route_table(self) -> str:
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tags = self._get_param("TagSpecifications", [])
         if tags:
-            tags = tags[0].get("Tag") or []
+            tags = tags[0].get("Tags") or []
         route_table = self.ec2_backend.create_route_table(vpc_id, tags)
         template = self.response_template(CREATE_ROUTE_TABLE_RESPONSE)
         return template.render(route_table=route_table)
 
-    def delete_route(self) -> str:
+    def delete_route(self) -> ActionResult:
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
@@ -66,29 +68,26 @@ class RouteTables(EC2BaseResponse):
             destination_ipv6_cidr_block,
             destination_prefix_list_id,
         )
-        template = self.response_template(DELETE_ROUTE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def delete_route_table(self) -> str:
+    def delete_route_table(self) -> ActionResult:
         route_table_id = self._get_param("RouteTableId")
         self.ec2_backend.delete_route_table(route_table_id)
-        template = self.response_template(DELETE_ROUTE_TABLE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def describe_route_tables(self) -> str:
-        route_table_ids = self._get_multi_param("RouteTableId")
+        route_table_ids = self._get_param("RouteTableIds", [])
         filters = self._filters_from_querystring()
         route_tables = self.ec2_backend.describe_route_tables(route_table_ids, filters)
         template = self.response_template(DESCRIBE_ROUTE_TABLES_RESPONSE)
         return template.render(route_tables=route_tables)
 
-    def disassociate_route_table(self) -> str:
+    def disassociate_route_table(self) -> ActionResult:
         association_id = self._get_param("AssociationId")
         self.ec2_backend.disassociate_route_table(association_id)
-        template = self.response_template(DISASSOCIATE_ROUTE_TABLE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def replace_route(self) -> str:
+    def replace_route(self) -> ActionResult:
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
@@ -115,8 +114,7 @@ class RouteTables(EC2BaseResponse):
             vpc_peering_connection_id=pcx_id,
         )
 
-        template = self.response_template(REPLACE_ROUTE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def replace_route_table_association(self) -> str:
         route_table_id = self._get_param("RouteTableId")
@@ -135,12 +133,6 @@ CREATE_ROUTE_RESPONSE = """
 </CreateRouteResponse>
 """
 
-REPLACE_ROUTE_RESPONSE = """
-<ReplaceRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</ReplaceRouteResponse>
-"""
 
 CREATE_ROUTE_TABLE_RESPONSE = """
 <CreateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -301,19 +293,6 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
 </DescribeRouteTablesResponse>
 """
 
-DELETE_ROUTE_RESPONSE = """
-<DeleteRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteRouteResponse>
-"""
-
-DELETE_ROUTE_TABLE_RESPONSE = """
-<DeleteRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteRouteTableResponse>
-"""
 
 ASSOCIATE_ROUTE_TABLE_RESPONSE = """
 <AssociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -322,12 +301,6 @@ ASSOCIATE_ROUTE_TABLE_RESPONSE = """
 </AssociateRouteTableResponse>
 """
 
-DISASSOCIATE_ROUTE_TABLE_RESPONSE = """
-<DisassociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DisassociateRouteTableResponse>
-"""
 
 REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
 <ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

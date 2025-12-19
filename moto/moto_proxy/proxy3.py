@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 import select
 import socket
@@ -6,7 +5,7 @@ import ssl
 from http.server import BaseHTTPRequestHandler
 from subprocess import CalledProcessError, check_output
 from threading import Lock
-from typing import Any, Dict, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 from botocore.awsrequest import AWSPreparedRequest
@@ -75,7 +74,7 @@ class MotoRequestHandler:
         path: str,
         headers: Any,
         body: bytes,
-        form_data: Dict[str, Any],
+        form_data: dict[str, Any],
     ) -> Any:
         handler = self.get_handler_for_host(host=host, path=path)
         if handler is None:
@@ -121,7 +120,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         certpath = self.cert_creator.create(self.path)
         self.wfile.write(
-            f"{self.protocol_version} 200 Connection Established\r\n".encode("utf-8")
+            f"{self.protocol_version} 200 Connection Established\r\n".encode()
         )
         self.send_header("k", "v")
         self.end_headers()
@@ -151,7 +150,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         if f"{host}{path}" in moto_api_backend.proxy_urls_to_passthrough:
             parsed = urlparse(host)
-            self.passthrough_http((parsed.netloc, 80))
+            target_host, target_port = parsed.netloc, "80"
+            if ":" in target_host:
+                target_host, target_port = target_host.split(":")
+            self.passthrough_http((target_host, int(target_port)))
             return
 
         req_body = b""
@@ -214,7 +216,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             res_headers["Content-Length"] = str(len(res_body))
 
         self.wfile.write(
-            f"{self.protocol_version} {res_status} {res_reason}\r\n".encode("utf-8")
+            f"{self.protocol_version} {res_status} {res_reason}\r\n".encode()
         )
         if res_headers:
             for k, v in res_headers.items():
@@ -227,7 +229,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(res_body)
         self.close_connection = True
 
-    def _get_host_and_path(self, req: Any) -> Tuple[str, str]:
+    def _get_host_and_path(self, req: Any) -> tuple[str, str]:
         if isinstance(self.connection, ssl.SSLSocket):
             host = "https://" + req.headers["Host"]
         else:
@@ -237,11 +239,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             path = path[len(host) :]
         return host, path
 
-    def passthrough_http(self, address: Tuple[str, int]) -> None:
+    def passthrough_http(self, address: tuple[str, int]) -> None:
         s = socket.create_connection(address, timeout=self.timeout)
         s.send(self.raw_requestline)  # type: ignore[attr-defined]
         for key, val in self.headers.items():
-            s.send(f"{key}: {val}\r\n".encode("utf-8"))
+            s.send(f"{key}: {val}\r\n".encode())
         s.send(b"\r\n")
         while True:
             data = s.recv(1024)
@@ -249,7 +251,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 break
             self.wfile.write(data)
 
-    def connect_relay(self, address: Tuple[str, int]) -> None:
+    def connect_relay(self, address: tuple[str, int]) -> None:
         try:
             s = socket.create_connection(address, timeout=self.timeout)
         except Exception:
@@ -289,7 +291,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 break
         return chunked_body
 
-    def decode_request_body(self, headers: Dict[str, str], body: Any) -> Any:
+    def decode_request_body(self, headers: dict[str, str], body: Any) -> Any:
         if body is None:
             return body
         if headers.get("Content-Type", "") in [

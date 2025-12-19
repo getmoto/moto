@@ -46,7 +46,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             target=target,
             action_after_completion=action_after_completion,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def get_schedule(self) -> str:
         group_name = self._get_param("groupName")
@@ -86,13 +86,26 @@ class EventBridgeSchedulerResponse(BaseResponse):
             state=state,
             target=target,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def list_schedules(self) -> str:
         group_names = self.querystring.get("ScheduleGroup")
         state = self._get_param("State")
-        schedules = self.scheduler_backend.list_schedules(group_names, state)
-        return json.dumps({"Schedules": [sch.to_dict(short=True) for sch in schedules]})
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedules, next_token = self.scheduler_backend.list_schedules(
+            group_names,
+            state,
+            name_prefix,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        result = {
+            "Schedules": [sch.to_dict(short=True) for sch in schedules],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
     def create_schedule_group(self) -> str:
         name = self._get_param("Name")
@@ -101,7 +114,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             name=name,
             tags=tags,
         )
-        return json.dumps(dict(ScheduleGroupArn=schedule_group.arn))
+        return json.dumps({"ScheduleGroupArn": schedule_group.arn})
 
     def get_schedule_group(self) -> str:
         group_name = self.uri.split("?")[0].split("/")[-1]
@@ -114,8 +127,17 @@ class EventBridgeSchedulerResponse(BaseResponse):
         return "{}"
 
     def list_schedule_groups(self) -> str:
-        schedule_groups = self.scheduler_backend.list_schedule_groups()
-        return json.dumps(dict(ScheduleGroups=[sg.to_dict() for sg in schedule_groups]))
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedule_groups, next_token = self.scheduler_backend.list_schedule_groups(
+            name_prefix, max_results=max_results, next_token=next_token
+        )
+        result = {
+            "ScheduleGroups": [sg.to_dict() for sg in schedule_groups],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])

@@ -29,10 +29,10 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         )
 
         # Format tag response
-        response = {"ResourceTagMappingList": resource_tag_mapping_list}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {
+            "ResourceTagMappingList": resource_tag_mapping_list,
+            "PaginationToken": pagination_token,
+        }
         return json.dumps(response)
 
     def get_tag_keys(self) -> str:
@@ -41,23 +41,18 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
             pagination_token=pagination_token
         )
 
-        response = {"TagKeys": tag_keys}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {"TagKeys": tag_keys, "PaginationToken": pagination_token}
         return json.dumps(response)
 
     def get_tag_values(self) -> str:
         pagination_token = self._get_param("PaginationToken")
         key = self._get_param("Key")
+
         pagination_token, tag_values = self.backend.get_tag_values(
             pagination_token=pagination_token, key=key
         )
 
-        response = {"TagValues": tag_values}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {"TagValues": tag_values, "PaginationToken": pagination_token}
         return json.dumps(response)
 
     def tag_resources(self) -> str:
@@ -69,13 +64,13 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps({"FailedResourcesMap": failed_resources})
 
-    # def untag_resources(self):
-    #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
-    #     tag_keys = self._get_list_prefix("TagKeys.member")
-    #     failed_resources_map = self.backend.untag_resources(
-    #         resource_arn_list=resource_arn_list,
-    #         tag_keys=tag_keys,
-    #     )
-    #
-    #     # failed_resources_map should be {'resource': {'ErrorCode': str, 'ErrorMessage': str, 'StatusCode': int}}
-    #     return json.dumps({'FailedResourcesMap': failed_resources_map})
+    def untag_resources(self) -> str:
+        resource_arn_list = self._get_param("ResourceARNList")
+        tag_keys = self._get_param("TagKeys")
+
+        failed_resources = self.backend.untag_resources(
+            resource_arn_list=resource_arn_list,
+            tag_keys=tag_keys,
+        )
+
+        return json.dumps({"FailedResourcesMap": failed_resources})

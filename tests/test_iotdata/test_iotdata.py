@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Dict, Optional
+from typing import Optional
 from unittest import SkipTest
 
 import boto3
@@ -322,10 +322,10 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
     ],
 )
 def test_delta_calculation(
-    desired: Dict[str, Dict[str, Optional[bool]]],
-    initial_delta: Dict[str, Dict[str, Optional[bool]]],
-    reported: Dict[str, Dict[str, Optional[bool]]],
-    delta_after_report: Dict[str, Dict[str, Optional[bool]]],
+    desired: dict[str, dict[str, Optional[bool]]],
+    initial_delta: dict[str, dict[str, Optional[bool]]],
+    reported: dict[str, dict[str, Optional[bool]]],
+    delta_after_report: dict[str, dict[str, Optional[bool]]],
     name: Optional[str] = None,
 ) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
@@ -342,3 +342,94 @@ def test_delta_calculation(
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     assert payload["state"] == delta_after_report
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "initial_state,updated_state",
+    [
+        # Insert new dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": 3}, "d": {}},
+        ),
+        # Update existing value with new dicts
+        (
+            {"a": 1, "b": {"c": 3}, "d": {}},
+            {"a": 1, "b": {"c": {}}, "d": {}},
+        ),
+        # Update existing value with full dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": {"d": 3}}},
+        ),
+    ],
+)
+def test_update_desired(
+    initial_state: dict[str, str],
+    updated_state: dict[str, str],
+    name: Optional[str] = None,
+) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    payload = json.dumps({"state": {"desired": initial_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": updated_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+
+    assert result_payload["state"]["delta"] == updated_state
+    assert result_payload["state"]["desired"] == updated_state
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_update_empty_state(name: Optional[str] = None) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    none_payload = json.dumps({"state": None}).encode()
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 1
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as a dict
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 1
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": {"a": "b"}}}).encode()
+    second_update = client.update_thing_shadow(thingName=name, payload=payload)
+    result_payload = json.loads(second_update["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}, "delta": {"a": "b"}}
+
+    # REVERT TO NONE
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 3
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 3

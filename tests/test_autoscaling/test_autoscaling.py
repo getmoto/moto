@@ -7,21 +7,23 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID, aws_verified
 
 from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_aws
-def test_propogate_tags():
+def test_propagate_attributes():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
+    user_data = Base64EncodedString.from_raw_string("test user data")
     conn.create_launch_configuration(
         LaunchConfigurationName="TestLC",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t2.medium",
+        UserData=user_data.decode(),
     )
-
     conn.create_auto_scaling_group(
         AutoScalingGroupName="TestGroup1",
         MinSize=1,
@@ -38,13 +40,16 @@ def test_propogate_tags():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.describe_instances()
-
-    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    instance = instances["Reservations"][0]["Instances"][0]
+    tags = instance["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
+    resp = ec2.describe_instance_attribute(
+        InstanceId=instance["InstanceId"], Attribute="userData"
+    )
+    assert resp["UserData"]["Value"] == str(user_data)
 
 
 @mock_aws
@@ -701,6 +706,37 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
     assert len(group["Instances"]) == 5
 
 
+@mock_aws
+def test_update_autoscaling_group_health_check():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+
+    client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=2,
+        MaxSize=20,
+        DesiredCapacity=3,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "EC2"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 300
+    client.update_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        HealthCheckType="ELB",
+        HealthCheckGracePeriod=500,
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "ELB"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 500
+
+
 @aws_verified
 @pytest.mark.aws_verified
 def test_update_unknown_group():
@@ -862,10 +898,7 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
             "PredefinedMetricType": "ASGAverageNetworkIn",
         },
         "CustomizedMetricSpecification": {
-            "MetricName": "None",
-            "Namespace": "None",
             "Dimensions": [],
-            "Statistic": "None",
             "Metrics": [
                 {
                     "Label": "Get ASGAverageCPUUtilization",
@@ -879,7 +912,6 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                             ],
                         },
                         "Stat": "Average",
-                        "Unit": "None",
                     },
                     "ReturnData": False,
                 },
@@ -1417,3 +1449,11 @@ def test_sets_created_time():
     assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
         "%Y %m %d"
     )
+
+
+@mock_aws
+def test_describe_scaling_activities():
+    conn = boto3.client("autoscaling", region_name="us-east-1")
+    response = conn.describe_scaling_activities()
+    # Not yet implemented.
+    assert response["Activities"] == []

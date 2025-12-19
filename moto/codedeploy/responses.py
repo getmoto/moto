@@ -74,7 +74,7 @@ class CodeDeployResponse(BaseResponse):
             compute_platform=compute_platform,
             tags=tags,
         )
-        return json.dumps(dict(applicationId=application_id))
+        return json.dumps({"applicationId": application_id})
 
     def create_deployment(self) -> str:
         application_name = self._get_param("applicationName")
@@ -103,7 +103,7 @@ class CodeDeployResponse(BaseResponse):
             file_exists_behavior=file_exists_behavior,
             override_alarm_configuration=override_alarm_configuration,
         )
-        return json.dumps(dict(deploymentId=deployment_id))
+        return json.dumps({"deploymentId": deployment_id})
 
     def create_deployment_group(self) -> str:
         application_name = self._get_param("applicationName")
@@ -150,11 +150,11 @@ class CodeDeployResponse(BaseResponse):
             tags=tags,
             termination_hook_enabled=termination_hook_enabled,
         )
-        return json.dumps(dict(deploymentGroupId=deployment_group_id))
+        return json.dumps({"deploymentGroupId": deployment_group_id})
 
     def list_applications(self) -> str:
         applications = self.codedeploy_backend.list_applications()
-        return json.dumps(dict(applications=applications))
+        return json.dumps({"applications": applications})
 
     def list_deployments(self) -> str:
         application_name = self._get_param("applicationName")
@@ -169,7 +169,7 @@ class CodeDeployResponse(BaseResponse):
             include_only_statuses=include_only_statuses,
             create_time_range=create_time_range,
         )
-        return json.dumps(dict(deployments=deployments))
+        return json.dumps({"deployments": deployments})
 
     def list_deployment_groups(self) -> str:
         application_name = self._get_param("applicationName")
@@ -179,9 +179,29 @@ class CodeDeployResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(
-            dict(
-                applicationName=application_name,
-                deploymentGroups=deployment_groups,
-                nextToken=next_token,
-            )
+            {
+                "applicationName": application_name,
+                "deploymentGroups": deployment_groups,
+                "nextToken": next_token,
+            }
         )
+
+    def list_tags_for_resource(self) -> str:
+        """Handler for list_tags_for_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tags_response = self.codedeploy_backend.list_tags_for_resource(resource_arn)
+        return json.dumps(tags_response)
+
+    def tag_resource(self) -> str:
+        """Handler for tag_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        response = self.codedeploy_backend.tag_resource(resource_arn, tags)
+        return json.dumps(response)
+
+    def untag_resource(self) -> str:
+        """Handler for untag_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys")
+        response = self.codedeploy_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps(response)

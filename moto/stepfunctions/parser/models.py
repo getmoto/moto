@@ -1,7 +1,7 @@
 import copy
 import datetime
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
@@ -80,7 +80,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         publish: Optional[bool] = None,
         loggingConfiguration: Optional[LoggingConfiguration] = None,
         tracingConfiguration: Optional[TracingConfiguration] = None,
@@ -164,15 +164,24 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         trace_header: TraceHeader = None,
     ) -> Execution:
         state_machine = self.describe_state_machine(state_machine_arn)
+        existing_execution = state_machine._handle_name_input_idempotency(
+            name, execution_input
+        )
+        if existing_execution is not None:
+            # If we found a match for the name and input, return the existing execution.
+            return existing_execution
 
         # Update event change parameters about the state machine and should not affect those about this execution.
         state_machine_clone = copy.deepcopy(state_machine)
 
         if execution_input is None:
-            input_data = dict()
+            input_data = "{}"
         else:
+            input_data = execution_input
             try:
-                input_data = json.loads(execution_input)
+                # Make sure input is valid json
+                json.loads(execution_input)
+
             except Exception as ex:
                 raise InvalidExecutionInput(
                     str(ex)
@@ -246,7 +255,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             version_description=version_description,
         )
 
-    def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
+    def describe_map_run(self, map_run_arn: str) -> dict[str, Any]:
         for execution in self._get_executions():
             map_run_record: Optional[MapRunRecord] = (
                 execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
@@ -255,17 +264,19 @@ class StepFunctionsParserBackend(StepFunctionBackend):
                 return map_run_record.describe()
         raise ResourceNotFound()
 
-    def list_map_runs(self, execution_arn: str) -> Dict[str, Any]:
+    def list_map_runs(self, execution_arn: str) -> dict[str, Any]:
         """
         Pagination is not yet implemented
         """
         execution = self.describe_execution(execution_arn=execution_arn)
-        map_run_records: List[MapRunRecord] = (
+        map_run_records: list[MapRunRecord] = (
             execution.exec_worker.env.map_run_record_pool_manager.get_all()
         )
-        return dict(
-            mapRuns=[map_run_record.list_item() for map_run_record in map_run_records]
-        )
+        return {
+            "mapRuns": [
+                map_run_record.list_item() for map_run_record in map_run_records
+            ]
+        }
 
     def update_map_run(
         self,

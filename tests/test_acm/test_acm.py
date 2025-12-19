@@ -475,6 +475,84 @@ def test_request_certificate():
 
 @mock_aws
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
+def test_request_exportable_certificate():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only change setting in DecoratorMode")
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.request_certificate(
+        DomainName="example.com",
+        Options={"Export": "ENABLED"},
+    )
+    assert "CertificateArn" in resp
+    arn_1 = resp["CertificateArn"]
+
+    waiter = client.get_waiter("certificate_validated")
+    waiter.wait(CertificateArn=arn_1, WaiterConfig={"Delay": 1})
+
+    cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
+    assert cert["Options"]["Export"] == "ENABLED"
+
+    resp = client.export_certificate(CertificateArn=arn_1, Passphrase="passphrase")
+    assert "CertificateChain" in resp
+    assert "Certificate" in resp
+    assert "PrivateKey" in resp
+
+    # Test that certificates are not exportable by default
+    resp = client.request_certificate(DomainName="example.com")
+    assert "CertificateArn" in resp
+    arn_2 = resp["CertificateArn"]
+
+    waiter = client.get_waiter("certificate_validated")
+    waiter.wait(CertificateArn=arn_2, WaiterConfig={"Delay": 1})
+
+    cert = client.describe_certificate(CertificateArn=arn_2)["Certificate"]
+    assert cert["Options"]["Export"] == "DISABLED"
+
+    with pytest.raises(ClientError) as err:
+        client.export_certificate(CertificateArn=arn_2, Passphrase="passphrase")
+    assert err.value.response["Error"]["Code"] == "ValidationException"
+    assert "is not a private certificate" in err.value.response["Error"]["Message"]
+
+    # Test filtering for exported certs
+    certs = client.list_certificates(Includes={"exportOption": "ENABLED"})[
+        "CertificateSummaryList"
+    ]
+    assert len(certs) == 1
+    assert certs[0]["Exported"]
+
+    # Test filtering for non-exported certs
+    certs = client.list_certificates(Includes={"exportOption": "DISABLED"})[
+        "CertificateSummaryList"
+    ]
+    assert len(certs) == 1
+    assert not certs[0]["Exported"]
+
+    # Test both certs are returned when no filters are applied
+    certs = client.list_certificates()["CertificateSummaryList"]
+    assert len(certs) == 2
+
+
+@mock_aws
+def test_list_certificates_with_key_types_filter():
+    client = boto3.client("acm", region_name="us-east-1")
+    arn = _import_cert(client)
+
+    certs = client.list_certificates(
+        Includes={"keyTypes": ["RSA_2048", "RSA_4096", "EC_prime256v1"]}
+    )["CertificateSummaryList"]
+
+    assert len(certs) == 1
+    assert certs[0]["CertificateArn"] == arn
+
+    certs = client.list_certificates(Includes={"keyTypes": ["RSA_1024"]})[
+        "CertificateSummaryList"
+    ]
+    assert len(certs) == 0
+
+
+@mock_aws
+@mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_certificate_with_optional_arguments():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can only change setting in DecoratorMode")

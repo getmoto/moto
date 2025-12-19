@@ -1,43 +1,40 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
+
+from .constants import MAXIMUM_VISIBILITY_TIMEOUT
 
 
-class ReceiptHandleIsInvalid(RESTError):
-    code = 400
+class SQSException(ServiceException):
+    pass
 
+
+class ReceiptHandleIsInvalid(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "ReceiptHandleIsInvalid", "The input receipt handle is invalid."
         )
 
 
-class MessageAttributesInvalid(RESTError):
-    code = 400
+class MessageAttributesInvalid(SQSException):
+    code = "InvalidParameterValue"
 
     def __init__(self, description: str):
-        super().__init__("MessageAttributesInvalid", description)
+        super().__init__(description)
 
 
-class QueueDoesNotExist(RESTError):
-    code = 404
-
+class QueueDoesNotExist(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "AWS.SimpleQueueService.NonExistentQueue",
-            "The specified queue does not exist for this wsdl version.",
-            template="wrapped_single_error",
+            "The specified queue does not exist.",
         )
 
 
-class QueueAlreadyExists(RESTError):
-    code = 400
-
+class QueueAlreadyExists(SQSException):
     def __init__(self, message: str):
         super().__init__("QueueAlreadyExists", message)
 
 
-class EmptyBatchRequest(RESTError):
-    code = 400
-
+class EmptyBatchRequest(SQSException):
     def __init__(self, action: str = "Send") -> None:
         super().__init__(
             "AWS.SimpleQueueService.EmptyBatchRequest",
@@ -45,9 +42,7 @@ class EmptyBatchRequest(RESTError):
         )
 
 
-class InvalidBatchEntryId(RESTError):
-    code = 400
-
+class InvalidBatchEntryId(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "InvalidBatchEntryId",
@@ -56,27 +51,24 @@ class InvalidBatchEntryId(RESTError):
         )
 
 
-class BatchRequestTooLong(RESTError):
-    code = 400
-
+class BatchRequestTooLong(SQSException):
     def __init__(self, length: int):
+        # local import to avoid circular dependencies
+        from .models import MAXIMUM_MESSAGE_LENGTH
+
         super().__init__(
             "BatchRequestTooLong",
-            "Batch requests cannot be longer than 262144 bytes. "
+            f"Batch requests cannot be longer than {MAXIMUM_MESSAGE_LENGTH} bytes. "
             f"You have sent {length} bytes.",
         )
 
 
-class BatchEntryIdsNotDistinct(RESTError):
-    code = 400
-
+class BatchEntryIdsNotDistinct(SQSException):
     def __init__(self, entry_id: str):
         super().__init__("BatchEntryIdsNotDistinct", f"Id {entry_id} repeated.")
 
 
-class TooManyEntriesInBatchRequest(RESTError):
-    code = 400
-
+class TooManyEntriesInBatchRequest(SQSException):
     def __init__(self, number: int):
         super().__init__(
             "TooManyEntriesInBatchRequest",
@@ -84,16 +76,12 @@ class TooManyEntriesInBatchRequest(RESTError):
         )
 
 
-class InvalidAttributeName(RESTError):
-    code = 400
-
+class InvalidAttributeName(SQSException):
     def __init__(self, attribute_name: str):
         super().__init__("InvalidAttributeName", f"Unknown Attribute {attribute_name}.")
 
 
-class InvalidAttributeValue(RESTError):
-    code = 400
-
+class InvalidAttributeValue(SQSException):
     def __init__(self, attribute_name: str):
         super().__init__(
             "InvalidAttributeValue",
@@ -101,25 +89,26 @@ class InvalidAttributeValue(RESTError):
         )
 
 
-class InvalidParameterValue(RESTError):
-    code = 400
-
+class InvalidParameterValue(SQSException):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)
 
 
-class MissingParameter(RESTError):
-    code = 400
+class MaxVisibilityTimeout(SQSException):
+    code = "InvalidParameterValue"
+    message = (
+        f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILITY_TIMEOUT}"
+    )
 
+
+class MissingParameter(SQSException):
     def __init__(self, parameter: str):
         super().__init__(
             "MissingParameter", f"The request must contain the parameter {parameter}."
         )
 
 
-class OverLimit(RESTError):
-    code = 403
-
+class OverLimit(SQSException):
     def __init__(self, count: int):
         super().__init__(
             "OverLimit", f"{count} Actions were found, maximum allowed is 7."

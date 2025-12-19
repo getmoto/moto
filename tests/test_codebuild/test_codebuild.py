@@ -13,16 +13,16 @@ def test_codebuild_create_project_s3_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
-    artifacts = dict()
+    artifacts = {}
     artifacts["type"] = "S3"
     artifacts["location"] = "bucketname"
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -60,14 +60,14 @@ def test_codebuild_create_project_no_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -134,13 +134,13 @@ def test_codebuild_create_project_when_exists():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -171,16 +171,16 @@ def test_codebuild_create_project_when_exists():
 def test_codebuild_list_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     # output artifacts
-    artifacts = dict()
+    artifacts = {}
     artifacts["type"] = "S3"
     artifacts["location"] = "bucketname"
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -213,13 +213,13 @@ def test_codebuild_list_builds_for_project_no_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -245,13 +245,13 @@ def test_codebuild_list_builds_for_project_with_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -288,13 +288,13 @@ def test_codebuild_start_build_no_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -319,13 +319,13 @@ def test_codebuild_start_build_multiple_times():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -353,13 +353,13 @@ def test_codebuild_start_build_with_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -391,13 +391,13 @@ def test_codebuild_batch_get_builds_1_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -428,13 +428,13 @@ def test_codebuild_batch_get_builds_1_project():
 def test_codebuild_batch_get_builds_2_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -487,13 +487,13 @@ def test_codebuild_delete_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -525,13 +525,13 @@ def test_codebuild_stop_build():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
@@ -577,13 +577,13 @@ def test_codebuild_batch_get_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
-    source = dict()
+    source = {}
     source["type"] = "S3"
     # repository location for S3
     source["location"] = "bucketname/path/file.zip"
     artifacts = {"type": "NO_ARTIFACTS"}
 
-    environment = dict()
+    environment = {}
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"

@@ -108,9 +108,18 @@ def lambda_aws_verified(func):
 
                 return
             except ClientError:
-                sleep(1)
+                sleep(2)
         raise Exception(
             f"Couldn't create test Lambda FN using IAM role {role_name}, probably because it wasn't ready in time"
         )
 
     return pagination_wrapper
+
+
+def delete_all_layer_versions(client, layer_name: str):
+    versions = client.list_layer_versions(LayerName=layer_name)["LayerVersions"]
+    for version in versions:
+        client.delete_layer_version(
+            LayerName=layer_name,
+            VersionNumber=version["Version"],
+        )

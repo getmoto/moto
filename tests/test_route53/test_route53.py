@@ -132,7 +132,7 @@ def test_get_hosted_zone_count_one_zone():
     conn.create_hosted_zone(
         Name=zone_name,
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": f"test {zone} com"},
     )
     zone_count = conn.get_hosted_zone_count()
     assert zone_count["HostedZoneCount"] == 1
@@ -155,7 +155,7 @@ def test_get_hosted_zone_count_many_zones():
         zones[zone] = conn.create_hosted_zone(
             Name=zone_name,
             CallerReference=str(hash("foo")),
-            HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+            HostedZoneConfig={"PrivateZone": False, "Comment": f"test {zone} com"},
         )
     zone_count = conn.get_hosted_zone_count()
     assert zone_count["HostedZoneCount"] == len(zone_indexes)
@@ -397,6 +397,63 @@ def test_deleting_weighted_route():
 
 
 @mock_aws
+def test_create_delete_create():
+    """
+    Validation that we can create and delete a record set multiple times
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    def _build_change_payload(action):
+        return [
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "record.testdns.aws.com",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "192.168.1.1"}],
+                },
+            },
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "cname.testdns.aws.com",
+                    "Type": "CNAME",
+                    "ResourceRecords": [{"Value": "example.com"}],
+                },
+            },
+        ]
+
+    for _ in range(10):
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("create")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 1
+
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("delete")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 0
+
+
+@mock_aws
 def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -478,7 +535,7 @@ def test_list_or_change_tags_for_resource_request():
             "HealthThreshold": 123,
         },
     )
-    healthcheck_id = health_check["HealthCheck"]["Id"]
+    healthcheck_id = health_check["HealthCheck"]["Id"].replace("/hostedzone/", "")
 
     # confirm this works for resources with zero tags
     response = conn.list_tags_for_resource(
@@ -558,11 +615,11 @@ def test_list_tags_for_resources():
     zone1 = conn.create_hosted_zone(
         Name="testdns1.aws.com", CallerReference=str(hash("foo"))
     )
-    zone1_id = zone1["HostedZone"]["Id"]
+    zone1_id = zone1["HostedZone"]["Id"].replace("/hostedzone/", "")
     zone2 = conn.create_hosted_zone(
         Name="testdns2.aws.com", CallerReference=str(hash("bar"))
     )
-    zone2_id = zone2["HostedZone"]["Id"]
+    zone2_id = zone2["HostedZone"]["Id"].replace("/hostedzone/", "")
 
     # Create two healthchecks
     health_check1 = conn.create_health_check(
@@ -691,7 +748,7 @@ def test_list_hosted_zones_by_name():
     zone_b = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "test com"},
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
@@ -719,12 +776,12 @@ def test_list_hosted_zones_by_name():
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org 2"},
     )
 
     # Now makes sure the other zones we created above are NOT private...
@@ -750,22 +807,22 @@ def test_list_hosted_zones_by_dns_name():
     conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test com"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org 2"},
     )
     conn.create_hosted_zone(
         Name="my.test.net.",
         CallerReference=str(hash("baz")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test net"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test net"},
     )
 
     # test lookup
@@ -839,7 +896,7 @@ def test_change_resource_record_sets_crud_valid():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -967,7 +1024,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1304,7 +1361,7 @@ def test_change_resource_record_invalid():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1365,7 +1422,7 @@ def test_change_resource_record_invalid_action_value():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1488,7 +1545,7 @@ def test_list_resource_record_sets_name_type_filters():
     create_hosted_zone_response = conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
     hosted_zone_id = create_hosted_zone_response["HostedZone"]["Id"]
 
@@ -1557,7 +1614,7 @@ def test_change_resource_record_sets_records_limit():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1677,7 +1734,7 @@ def test_list_resource_recordset_pagination():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1825,3 +1882,30 @@ def test_create_hosted_zone_with_custom_id(
     hosted_zone = conn.create_hosted_zone(**payload)
 
     assert hosted_zone["HostedZone"]["Id"] == f"/hostedzone/{static_hosted_zone_id}"
+
+
+@mock_aws
+def test_delete_non_existent_tag_no_crash():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    zone_name = "example.com."
+    zone = client.create_hosted_zone(
+        Name=zone_name, CallerReference="test-delete-tag-crash-repro"
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    resource_id = zone_id.split("/")[-1]
+
+    try:
+        client.change_tags_for_resource(
+            ResourceType="hostedzone",
+            ResourceId=resource_id,
+            RemoveTagKeys=["initial-tag-key"],
+        )
+    except ClientError as e:
+        pytest.fail(f"Server crashed with error: {e}")
+
+    tags = client.list_tags_for_resource(
+        ResourceType="hostedzone", ResourceId=resource_id
+    )
+    assert len(tags["ResourceTagSet"]["Tags"]) == 0

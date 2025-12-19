@@ -47,6 +47,7 @@ glue
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
+- [ ] create_glue_identity_center_configuration
 - [ ] create_integration
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
@@ -61,14 +62,14 @@ glue
         
 
 - [ ] create_script
-- [ ] create_security_configuration
+- [X] create_security_configuration
 - [X] create_session
 - [X] create_table
 - [ ] create_table_optimizer
 - [X] create_trigger
 - [ ] create_usage_profile
 - [ ] create_user_defined_function
-- [ ] create_workflow
+- [X] create_workflow
 - [ ] delete_blueprint
 - [ ] delete_catalog
 - [ ] delete_classifier
@@ -80,18 +81,20 @@ glue
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [ ] delete_dev_endpoint
+- [X] delete_dev_endpoint
+- [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
+- [ ] delete_integration_resource_property
 - [ ] delete_integration_table_properties
 - [X] delete_job
 - [ ] delete_ml_transform
 - [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
-- [ ] delete_security_configuration
+- [X] delete_security_configuration
 - [X] delete_session
 - [X] delete_table
 - [ ] delete_table_optimizer
@@ -99,7 +102,7 @@ glue
 - [X] delete_trigger
 - [ ] delete_usage_profile
 - [ ] delete_user_defined_function
-- [ ] delete_workflow
+- [X] delete_workflow
 - [ ] describe_connection_type
 - [ ] describe_entity
 - [ ] describe_inbound_integrations
@@ -136,6 +139,7 @@ glue
 - [X] get_dev_endpoint
 - [X] get_dev_endpoints
 - [ ] get_entity_records
+- [ ] get_glue_identity_center_configuration
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
 - [X] get_job
@@ -166,13 +170,15 @@ glue
 - [ ] get_plan
 - [X] get_registry
 - [ ] get_resource_policies
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [X] get_schema
 - [X] get_schema_by_definition
 - [X] get_schema_version
 - [ ] get_schema_versions_diff
-- [ ] get_security_configuration
-- [ ] get_security_configurations
+- [X] get_security_configuration
+- [X] get_security_configurations
+  Pagination is not yet implemented
+
 - [X] get_session
 - [ ] get_statement
 - [X] get_table
@@ -189,16 +195,16 @@ glue
 - [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
-- [ ] get_workflow
-- [ ] get_workflow_run
-- [ ] get_workflow_run_properties
-- [ ] get_workflow_runs
+- [X] get_workflow
+- [X] get_workflow_run
+- [X] get_workflow_run_properties
+- [X] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
 - [X] list_crawlers
-- [ ] list_crawls
+- [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
@@ -208,6 +214,7 @@ glue
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
 - [ ] list_entities
+- [ ] list_integration_resource_properties
 - [X] list_jobs
 - [ ] list_ml_transforms
 - [X] list_registries
@@ -218,13 +225,13 @@ glue
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
 - [ ] list_usage_profiles
-- [ ] list_workflows
+- [X] list_workflows
 - [ ] modify_integration
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] put_schema_version_metadata
-- [ ] put_workflow_run_properties
+- [X] put_workflow_run_properties
 - [ ] query_schema_version_metadata
 - [X] register_schema_version
 - [ ] remove_schema_version_metadata
@@ -245,14 +252,14 @@ glue
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
-- [ ] start_workflow_run
+- [X] start_workflow_run
 - [ ] stop_column_statistics_task_run
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
 - [X] stop_trigger
-- [ ] stop_workflow_run
+- [X] stop_workflow_run
 - [X] tag_resource
 - [ ] test_connection
 - [X] untag_resource
@@ -268,6 +275,7 @@ glue
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
+- [ ] update_glue_identity_center_configuration
 - [ ] update_integration_resource_property
 - [ ] update_integration_table_properties
 - [ ] update_job
@@ -286,5 +294,5 @@ glue
 - [ ] update_trigger
 - [ ] update_usage_profile
 - [ ] update_user_defined_function
-- [ ] update_workflow
+- [X] update_workflow
 

@@ -1,17 +1,12 @@
 import json
-from typing import Any, Final, List
+from typing import Any, Final
 
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_json_path import (
-    FunctionArgumentJsonPath,
-)
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_list import (
-    FunctionArgumentList,
-)
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_string import (
-    FunctionArgumentString,
-)
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_var import (
-    FunctionArgumentVar,
+from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
+    ArgumentContextPath,
+    ArgumentJsonPath,
+    ArgumentList,
+    ArgumentLiteral,
+    ArgumentVar,
 )
 from moto.stepfunctions.parser.asl.component.intrinsic.function.statesfunction.states_function import (
     StatesFunction,
@@ -46,30 +41,37 @@ class StringFormat(StatesFunction):
     # Hello, my name is Arnav.
     _DELIMITER: Final[str] = "{}"
 
-    def __init__(self, arg_list: FunctionArgumentList):
+    def __init__(self, argument_list: ArgumentList):
         super().__init__(
             states_name=StatesFunctionName(function_type=StatesFunctionNameType.Format),
-            arg_list=arg_list,
+            argument_list=argument_list,
         )
-        if arg_list.size == 0:
+        if argument_list.size == 0:
             raise ValueError(
-                f"Expected at least 1 argument for function type '{type(self)}', but got: '{arg_list}'."
+                f"Expected at least 1 argument for function type '{type(self)}', but got: '{argument_list}'."
             )
-        if not isinstance(
-            arg_list.arg_list[0],
-            (FunctionArgumentString, FunctionArgumentVar, FunctionArgumentJsonPath),
+        first_argument = argument_list.arguments[0]
+        if isinstance(first_argument, ArgumentLiteral) and not isinstance(
+            first_argument.definition_value, str
         ):
             raise ValueError(
-                f"Expected the first argument for function type '{type(self)}' to be a string, but got: '{arg_list.arg_list[0]}'."
+                f"Expected the first argument for function type '{type(self)}' to be a string, but got: '{first_argument.definition_value}'."
+            )
+        elif not isinstance(
+            first_argument,
+            (ArgumentLiteral, ArgumentVar, ArgumentJsonPath, ArgumentContextPath),
+        ):
+            raise ValueError(
+                f"Expected the first argument for function type '{type(self)}' to be a string, but got: '{first_argument}'."
             )
 
     def _eval_body(self, env: Environment) -> None:
         # TODO: investigate behaviour for incorrect number of arguments in string format.
-        self.arg_list.eval(env=env)
+        self.argument_list.eval(env=env)
         args = env.stack.pop()
 
         string_format: str = args[0]
-        values: List[Any] = args[1:]
+        values: list[Any] = args[1:]
 
         values_str_repr = map(self._to_str_repr, values)
         string_result = string_format.format(*values_str_repr)
@@ -91,10 +93,10 @@ class StringFormat(StatesFunction):
         if isinstance(value, str):
             return value
         elif isinstance(value, list):
-            value_parts: List[str] = list(map(StringFormat._to_str_repr, value))
+            value_parts: list[str] = list(map(StringFormat._to_str_repr, value))
             return f"[{', '.join(value_parts)}]"
         elif isinstance(value, dict):
-            dict_items = list()
+            dict_items = []
             for d_key, d_value in value.items():
                 d_value_lit = StringFormat._to_str_repr(d_value)
                 dict_items.append(f"{d_key}={d_value_lit}")

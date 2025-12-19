@@ -1,6 +1,8 @@
 """Unit tests for route53resolver-supported APIs."""
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -82,15 +84,13 @@ def test_associate_resolver_query_log_config_with_nonexistent_vpc():
     )
     config_id = config_response["ResolverQueryLogConfig"]["Id"]
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.associate_resolver_query_log_config(
             ResolverQueryLogConfigId=config_id, ResourceId="vpc-nonexistent"
         )
-        assert (
-            False
-        ), "Expected an InvalidParameterException but no exception was raised"
-    except client.exceptions.InvalidParameterException as e:
-        assert "vpc ID 'vpc-nonexistent' does not exist" in str(e)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "The vpc ID 'vpc-nonexistent' does not exist"
 
 
 @mock_aws
@@ -103,16 +103,16 @@ def test_associate_resolver_query_log_config_with_nonexistent_config():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
     nonexistent_config_id = "rslvr-qlc-nonexistent"
-    try:
+    with pytest.raises(ClientError) as exc:
         client.associate_resolver_query_log_config(
             ResolverQueryLogConfigId=nonexistent_config_id, ResourceId=vpc_id
         )
-        assert False, "Expected a ResourceNotFoundException but no exception was raised"
-    except client.exceptions.ResourceNotFoundException as e:
-        assert (
-            f"Resolver query log config with ID '{nonexistent_config_id}' does not exist"
-            in str(e)
-        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"Resolver query log config with ID '{nonexistent_config_id}' does not exist"
+    )
 
 
 @mock_aws
@@ -151,13 +151,13 @@ def test_get_nonexistent_resolver_query_log_config():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
     nonexistent_config_id = "rslvr-qlc-nonexistent"
-    try:
+    with pytest.raises(ClientError) as exc:
         client.get_resolver_query_log_config(
             ResolverQueryLogConfigId=nonexistent_config_id
         )
-        assert False, "Expected a ResourceNotFoundException but no exception was raised"
-    except client.exceptions.ResourceNotFoundException as e:
-        assert (
-            f"Resolver query log config with ID '{nonexistent_config_id}' does not exist"
-            in str(e)
-        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"Resolver query log config with ID '{nonexistent_config_id}' does not exist"
+    )

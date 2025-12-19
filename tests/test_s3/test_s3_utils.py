@@ -107,8 +107,6 @@ def test_checksum_crc32():
 
 def test_checksum_crc32c():
     try:
-        import crc32c  # noqa # pylint: disable=unused-import
-
         assert compute_checksum(b"somedata", "CRC32C") == b"dB9qBQ=="
     except:  # noqa: E722 Do not use bare except
         # Optional library Can't be found - just revert to CRC32

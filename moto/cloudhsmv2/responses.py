@@ -53,7 +53,7 @@ class CloudHSMV2Response(BaseResponse):
             resource_id=resource_id,
             tag_list=tag_list,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
@@ -64,7 +64,7 @@ class CloudHSMV2Response(BaseResponse):
             resource_id=resource_id,
             tag_key_list=tag_key_list,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_cluster(self) -> str:
         backup_retention_policy = self._get_param("BackupRetentionPolicy", {})
@@ -107,9 +107,7 @@ class CloudHSMV2Response(BaseResponse):
             max_results=max_results,
         )
 
-        response = {"Clusters": clusters}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Clusters": clusters, "NextToken": next_token}
 
         return json.dumps(response, cls=DateTimeEncoder)
 
@@ -141,9 +139,7 @@ class CloudHSMV2Response(BaseResponse):
             sort_ascending=sort_ascending,
         )
 
-        response = {"Backups": [b.to_dict() for b in backups]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Backups": [b.to_dict() for b in backups], "NextToken": next_token}
 
         return json.dumps(response, cls=DateTimeEncoder)
 

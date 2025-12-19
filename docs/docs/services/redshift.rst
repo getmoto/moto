@@ -69,7 +69,7 @@ redshift
 - [ ] describe_authentication_profiles
 - [ ] describe_cluster_db_revisions
 - [X] describe_cluster_parameter_groups
-- [ ] describe_cluster_parameters
+- [X] describe_cluster_parameters
 - [X] describe_cluster_security_groups
 - [X] describe_cluster_snapshots
 - [X] describe_cluster_subnet_groups
@@ -80,7 +80,7 @@ redshift
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
-- [ ] describe_default_cluster_parameters
+- [X] describe_default_cluster_parameters
 - [ ] describe_endpoint_access
 - [ ] describe_endpoint_authorization
 - [ ] describe_event_categories
@@ -114,6 +114,7 @@ redshift
 - [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
+- [ ] get_identity_center_auth_token
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
@@ -132,6 +133,7 @@ redshift
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
 - [ ] modify_integration
+- [ ] modify_lakehouse_configuration
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period

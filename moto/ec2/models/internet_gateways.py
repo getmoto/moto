@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -21,7 +21,7 @@ from .vpn_gateway import VPCGatewayAttachment
 
 class EgressOnlyInternetGateway(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend: Any, vpc_id: str, tags: Optional[Dict[str, str]] = None
+        self, ec2_backend: Any, vpc_id: str, tags: Optional[dict[str, str]] = None
     ):
         self.id = random_egress_only_internet_gateway_id()
         self.ec2_backend = ec2_backend
@@ -33,13 +33,17 @@ class EgressOnlyInternetGateway(TaggedEC2Resource):
     def physical_resource_id(self) -> str:
         return self.id
 
+    @property
+    def attachments(self) -> list[dict[str, str]]:
+        return [{"State": self.state, "VpcId": self.vpc_id}]
+
 
 class EgressOnlyInternetGatewayBackend:
     def __init__(self) -> None:
-        self.egress_only_internet_gateways: Dict[str, EgressOnlyInternetGateway] = {}
+        self.egress_only_internet_gateways: dict[str, EgressOnlyInternetGateway] = {}
 
     def create_egress_only_internet_gateway(
-        self, vpc_id: str, tags: Optional[Dict[str, str]] = None
+        self, vpc_id: str, tags: Optional[dict[str, str]] = None
     ) -> EgressOnlyInternetGateway:
         vpc = self.get_vpc(vpc_id)  # type: ignore[attr-defined]
         if not vpc:
@@ -49,8 +53,8 @@ class EgressOnlyInternetGatewayBackend:
         return egress_only_igw
 
     def describe_egress_only_internet_gateways(
-        self, ids: Optional[List[str]] = None
-    ) -> List[EgressOnlyInternetGateway]:
+        self, ids: Optional[list[str]] = None
+    ) -> list[EgressOnlyInternetGateway]:
         """
         The Filters-argument is not yet supported
         """
@@ -125,10 +129,10 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
 
 class InternetGatewayBackend:
     def __init__(self) -> None:
-        self.internet_gateways: Dict[str, InternetGateway] = {}
+        self.internet_gateways: dict[str, InternetGateway] = {}
 
     def create_internet_gateway(
-        self, tags: Optional[List[Dict[str, str]]] = None
+        self, tags: Optional[list[dict[str, str]]] = None
     ) -> InternetGateway:
         igw = InternetGateway(self)
         for tag in tags or []:
@@ -137,8 +141,8 @@ class InternetGatewayBackend:
         return igw
 
     def describe_internet_gateways(
-        self, internet_gateway_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[InternetGateway]:
+        self, internet_gateway_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[InternetGateway]:
         igws = []
         if internet_gateway_ids is None:
             igws = list(self.internet_gateways.values())

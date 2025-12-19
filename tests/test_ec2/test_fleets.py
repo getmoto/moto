@@ -4,6 +4,7 @@ import boto3
 import pytest
 
 from moto import mock_aws
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from . import ec2_aws_verified
@@ -209,8 +210,8 @@ def test_create_diversified_spot_fleet():
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 2
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.small", "t2.large"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.small", "t2.large"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -266,8 +267,8 @@ def test_request_fleet_using_launch_template_config__name(
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 3
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.medium"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.medium"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -710,8 +711,8 @@ def test_create_fleet_api_response():
                     "LocalStorage": "included",
                     "LocalStorageTypes": ["ssd"],
                     "MemoryGiBPerVCpu": {
-                        "Min": 1,
-                        "Max": 160,
+                        "Min": 1.0,
+                        "Max": 160.0,
                     },
                     "MemoryMiB": {
                         "Min": 2048,
@@ -725,8 +726,8 @@ def test_create_fleet_api_response():
                     "RequireHibernateSupport": True,
                     "SpotMaxPricePercentageOverLowestPrice": 99999,
                     "TotalLocalStorageGB": {
-                        "Min": 100,
-                        "Max": 10000,
+                        "Min": 100.0,
+                        "Max": 10000.0,
                     },
                     "VCpuCount": {
                         "Min": 2,
@@ -734,9 +735,9 @@ def test_create_fleet_api_response():
                     },
                 },
                 "MaxPrice": "0.5",
-                "Priority": 2,
+                "Priority": 2.0,
                 "SubnetId": subnet_id,
-                "WeightedCapacity": 1,
+                "WeightedCapacity": 1.0,
             },
         ],
     }
@@ -820,3 +821,43 @@ def test_create_fleet_api_response():
     assert fleet_res[0]["ValidFrom"].isoformat() == "2020-01-01T00:00:00+00:00"
     assert "ValidUntil" in fleet_res[0]
     assert fleet_res[0]["ValidUntil"].isoformat() == "2020-12-31T00:00:00+00:00"
+
+
+@mock_aws
+def test_user_data():
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    user_data = Base64EncodedString.from_raw_string("test user data")
+    template_args = {
+        "LaunchTemplateName": "test-template",
+        "LaunchTemplateData": {
+            "ImageId": "ami-0157ed312f9c59a91",
+            "InstanceType": "t3.nano",
+            "UserData": str(user_data),
+        },
+    }
+    ec2_client.create_launch_template(**template_args)
+    fleet_args = {
+        "OnDemandOptions": {
+            "AllocationStrategy": "lowest-price",
+        },
+        "TargetCapacitySpecification": {
+            "TotalTargetCapacity": 1,
+            "DefaultTargetCapacityType": "on-demand",
+        },
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "test-template",
+                    "Version": "$Latest",
+                },
+            },
+        ],
+        "Type": "instant",
+    }
+    fleet = ec2_client.create_fleet(**fleet_args)
+    instance = fleet["Instances"][0]
+    attrs = ec2_client.describe_instance_attribute(
+        InstanceId=instance["InstanceIds"][0],
+        Attribute="userData",
+    )
+    assert attrs["UserData"]["Value"] == str(user_data)

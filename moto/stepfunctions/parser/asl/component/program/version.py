@@ -1,10 +1,10 @@
-from typing import Final, Set
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.component import Component
 
 
 class Version(Component):
-    _SUPPORTED_VERSIONS: Final[Set[str]] = {"1.0"}
+    _SUPPORTED_VERSIONS: Final[set[str]] = {"1.0"}
 
     version: Final[str]
 

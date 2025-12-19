@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 
@@ -147,7 +147,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return "{}"
 
-    def delete_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def delete_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         result = self.ssm_backend.delete_parameter(name)
         if result is None:
@@ -155,14 +155,14 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
         return json.dumps({})
 
     def delete_parameters(self) -> str:
         names = self._get_param("Names")
         result = self.ssm_backend.delete_parameters(names)
 
-        response: Dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
 
         for name in names:
             if name in result:
@@ -171,7 +171,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response["InvalidParameters"].append(name)
         return json.dumps(response)
 
-    def get_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
@@ -190,7 +190,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
 
         response = {"Parameter": result.response_object(with_decryption, self.region)}
         return json.dumps(response)
@@ -201,9 +201,9 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.get_parameters(names)
 
-        response: Dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
 
-        for name, parameter in result.items():
+        for parameter in result.values():
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
@@ -229,7 +229,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             max_results=max_results,
         )
 
-        response: Dict[str, Any] = {"Parameters": [], "NextToken": next_token}
+        response: dict[str, Any] = {"Parameters": [], "NextToken": next_token}
 
         for parameter in result:
             param_data = parameter.response_object(with_decryption, self.region)
@@ -250,7 +250,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.describe_parameters(filters, parameter_filters)
 
-        response: Dict[str, Any] = {"Parameters": []}
+        response: dict[str, Any] = {"Parameters": []}
 
         end = token + page_size
         for parameter in result[token:]:
@@ -263,7 +263,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def put_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def put_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         description = self._get_param("Description")
         value = self._get_param("Value")
@@ -293,7 +293,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Version": param.version}
         return json.dumps(response)
 
-    def get_parameter_history(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter_history(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
         next_token = self._get_param("NextToken")
@@ -308,7 +308,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
 
         response = {
             "Parameters": [
@@ -554,3 +554,42 @@ class SimpleSystemManagerResponse(BaseResponse):
             window_id, window_task_id
         )
         return "{}"
+
+    def get_patch_baseline_for_patch_group(self) -> str:
+        patch_group = self._get_param("PatchGroup")
+        operating_system = self._get_param("OperatingSystem")
+        baseline_id, patch_group, operating_system = (
+            self.ssm_backend.get_patch_baseline_for_patch_group(
+                patch_group=patch_group,
+                operating_system=operating_system,
+            )
+        )
+        return json.dumps(
+            {
+                "BaselineId": baseline_id,
+                "PatchGroup": patch_group,
+                "OperatingSystem": operating_system,
+            }
+        )
+
+    def deregister_patch_baseline_for_patch_group(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.deregister_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return json.dumps({"BaselineId": baseline_id, "PatchGroup": patch_group})
+
+    def register_patch_baseline_for_patch_group(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.register_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return json.dumps({"BaselineId": baseline_id, "PatchGroup": patch_group})

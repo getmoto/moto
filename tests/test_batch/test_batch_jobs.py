@@ -83,6 +83,7 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobId"] == job_id
     assert resp_jobs["jobs"][0]["jobQueue"] == queue_arn
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
+    assert resp_jobs["jobs"][0]["tags"] == {}
 
 
 # SLOW TESTS
@@ -323,6 +324,19 @@ def test_list_jobs():
 
     resp = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")
     assert len(resp["jobSummaryList"]) == 0
+
+    # Test that when filter is provided, jobStatus is ignored
+    filtered_jobs = batch_client.list_jobs(
+        jobQueue=queue_arn,
+        jobStatus="SUCCEEDED",
+        filters=[
+            {
+                "name": "JOB_NAME",
+                "values": ["test*"],
+            }
+        ],
+    )["jobSummaryList"]
+    assert len(filtered_jobs) == 2
 
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
@@ -601,9 +615,9 @@ def test_dependencies():
     while datetime.datetime.now() < future:
         resp = batch_client.describe_jobs(jobs=[job_id1, job_id2, job_id3])
 
-        if any([job["status"] == "FAILED" for job in resp["jobs"]]):
+        if any(job["status"] == "FAILED" for job in resp["jobs"]):
             raise RuntimeError("Batch job failed")
-        if all([job["status"] == "SUCCEEDED" for job in resp["jobs"]]):
+        if all(job["status"] == "SUCCEEDED" for job in resp["jobs"]):
             break
         time.sleep(0.5)
     else:
@@ -726,12 +740,12 @@ def test_failed_dependencies():
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
         if resp["jobs"][1]["status"] == "FAILED":
-            assert (
-                "logStreamName" in resp["jobs"][0]["container"]
-            ), "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
-            assert (
-                "logStreamName" not in resp["jobs"][1]["container"]
-            ), "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            assert "logStreamName" in resp["jobs"][0]["container"], (
+                "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
+            )
+            assert "logStreamName" not in resp["jobs"][1]["container"], (
+                "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            )
 
             break
 
@@ -827,7 +841,7 @@ def test_container_overrides():
     # Getting the log stream to read out env variables inside container
     resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
 
-    env_var = list()
+    env_var = []
     for stream in resp["logStreams"]:
         ls_name = stream["logStreamName"]
 

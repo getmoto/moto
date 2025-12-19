@@ -37,7 +37,7 @@ class KinesisAnalyticsV2Response(BaseResponse):
             tags=tags,
             application_mode=application_mode,
         )
-        return json.dumps(dict(ApplicationDetail=application_detail))
+        return json.dumps({"ApplicationDetail": application_detail})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -45,7 +45,7 @@ class KinesisAnalyticsV2Response(BaseResponse):
         tags = self.kinesisanalyticsv2_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(Tags=tags))
+        return json.dumps({"Tags": tags})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -54,15 +54,15 @@ class KinesisAnalyticsV2Response(BaseResponse):
         self.kinesisanalyticsv2_backend.tag_resource(
             resource_arn=resource_arn, tags=tags
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_application(self) -> str:
         application_name = self._get_param("ApplicationName")
         application_detail = self.kinesisanalyticsv2_backend.describe_application(
             application_name=application_name,
         )
-        return json.dumps(dict(ApplicationDetail=application_detail))
+        return json.dumps({"ApplicationDetail": application_detail})
 
     def list_applications(self) -> str:
         application_summaries = self.kinesisanalyticsv2_backend.list_applications()
-        return json.dumps(dict(ApplicationSummaries=application_summaries))
+        return json.dumps({"ApplicationSummaries": application_summaries})

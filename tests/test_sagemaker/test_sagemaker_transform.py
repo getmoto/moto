@@ -148,11 +148,14 @@ def test_create_transform_job():
         experiment_config=experiment_config,
     )
     resp = job.save()
-    assert re.match(
-        rf"^arn:aws:sagemaker:.*:.*:transform-job/{transform_job_name}$",
-        resp["TransformJobArn"],
+    transform_job_arn = resp["TransformJobArn"]
+    assert (
+        transform_job_arn
+        == f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:transform-job/{transform_job_name}"
     )
+
     resp = sagemaker.describe_transform_job(TransformJobName=transform_job_name)
+    assert resp["TransformJobArn"] == transform_job_arn
     assert resp["TransformJobName"] == transform_job_name
     assert resp["TransformJobStatus"] == "Completed"
     assert resp["ModelName"] == model_name

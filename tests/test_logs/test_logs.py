@@ -86,6 +86,24 @@ def _create_log_group():
 
 
 @mock_aws
+def test_destinations_no_prefix():
+    conn = boto3.client("logs", "us-west-2")
+    destination_name = "test-destination"
+    role_arn = "arn:aws:iam::123456789012:role/my-subscription-role"
+    target_arn = "arn:aws:kinesis:us-east-1:123456789012:stream/my-kinesis-stream"
+
+    response = conn.put_destination(
+        destinationName=destination_name,
+        targetArn=target_arn,
+        roleArn=role_arn,
+        tags={"Name": destination_name},
+    )
+
+    response = conn.describe_destinations()
+    assert len(response["destinations"]) == 1
+
+
+@mock_aws
 def test_destinations():
     conn = boto3.client("logs", "us-west-2")
     destination_name = "test-destination"
@@ -173,7 +191,7 @@ def test_create_log_group(kms_key_id):
     # Given
     conn = boto3.client("logs", TEST_REGION)
 
-    create_logs_params = dict(logGroupName="dummy")
+    create_logs_params = {"logGroupName": "dummy"}
     if kms_key_id:
         create_logs_params["kmsKeyId"] = kms_key_id
 

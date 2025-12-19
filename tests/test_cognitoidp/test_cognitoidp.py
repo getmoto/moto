@@ -980,7 +980,7 @@ def test_update_user_pool_domain():
 
 
 @mock_aws
-def test_create_user_pool_client():
+def test_create_user_pool_client_default_id_strategy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     client_name = str(uuid.uuid4())
@@ -996,6 +996,50 @@ def test_create_user_pool_client():
     assert "ClientSecret" not in result["UserPoolClient"]
     assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
     assert result["UserPoolClient"]["CallbackURLs"][0] == value
+
+
+@mock_aws
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
+def test_create_user_pool_client_hash_id_strategy_with_equal_args():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    client_name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    first = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
+    )
+    second = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
+    )
+
+    assert first["UserPoolClient"]["ClientId"] == second["UserPoolClient"]["ClientId"]
+
+
+@mock_aws
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
+def test_create_user_pool_client_hash_id_strategy_with_different_args():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first = conn.create_user_pool_client(
+        UserPoolId=conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"],
+        ClientName=str(uuid.uuid4()),
+        CallbackURLs=[str(uuid.uuid4())],
+    )
+    second = conn.create_user_pool_client(
+        UserPoolId=conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"],
+        ClientName=str(uuid.uuid4()),
+        CallbackURLs=[str(uuid.uuid4())],
+    )
+
+    assert first["UserPoolClient"]["ClientId"] != second["UserPoolClient"]["ClientId"]
 
 
 @mock_aws
@@ -1545,6 +1589,51 @@ def test_group_in_access_token(user_pool=None, user_pool_client=None):
 
     payload = get_jwt_payload(result["AuthenticationResult"]["AccessToken"])
     assert payload.claims["cognito:groups"] == [group_name]
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(
+    read_attributes=["given_name"], explicit_auth_flows=["ADMIN_NO_SRP_AUTH"]
+)
+def test_scope_in_access_token(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = "P2$Sword"
+    user_pool_id = user_pool["UserPool"]["Id"]
+    user_attribute_value = str(uuid.uuid4())
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": "given_name", "Value": user_attribute_value}],
+    )
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    # A newly created user is forced to set a new password
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
+
+    # This sets a new password and logs the user in (creates tokens)
+    new_password = "P2$Sword"
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
+    )
+
+    payload = get_jwt_payload(result["AuthenticationResult"]["AccessToken"])
+    assert payload.claims["scope"] == "aws.cognito.signin.user.admin"
 
 
 @pytest.mark.aws_verified

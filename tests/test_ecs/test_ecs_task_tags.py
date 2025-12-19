@@ -2,7 +2,7 @@ import boto3
 
 from moto import mock_aws
 
-from .test_ecs_boto3 import setup_ecs_cluster_with_ec2_instance
+from .test_ecs import setup_ecs_cluster_with_ec2_instance
 
 
 @mock_aws
@@ -26,9 +26,9 @@ def test_describe_tasks_include_tags():
     )
 
     assert len(response["tasks"]) == 2
-    assert set(
-        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
-    ) == set(tasks_arns)
+    assert {response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]} == set(
+        tasks_arns
+    )
     assert response["tasks"][0]["tags"] == task_tags
 
     # Test we can pass task ids instead of ARNs

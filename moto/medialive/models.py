@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -42,7 +42,7 @@ class Input(BaseModel):
         self.tags = kwargs.get("tags")
         self.input_type = kwargs.get("input_type")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "arn": self.arn,
             "attachedChannels": self.attached_channels,
@@ -89,7 +89,7 @@ class Channel(BaseModel):
         self.tags = kwargs.get("tags")
         self._previous_state = None
 
-    def to_dict(self, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
+    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
         data = {
             "arn": self.arn,
             "cdiInputSpecification": self.cdi_input_specification,
@@ -132,21 +132,21 @@ class Channel(BaseModel):
 class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._channels: Dict[str, Channel] = OrderedDict()
-        self._inputs: Dict[str, Input] = OrderedDict()
+        self._channels: dict[str, Channel] = OrderedDict()
+        self._inputs: dict[str, Input] = OrderedDict()
 
     def create_channel(
         self,
-        cdi_input_specification: Dict[str, Any],
+        cdi_input_specification: dict[str, Any],
         channel_class: str,
-        destinations: List[Dict[str, Any]],
-        encoder_settings: Dict[str, Any],
-        input_attachments: List[Dict[str, Any]],
-        input_specification: Dict[str, str],
+        destinations: list[dict[str, Any]],
+        encoder_settings: dict[str, Any],
+        input_attachments: list[dict[str, Any]],
+        input_specification: dict[str, str],
         log_level: str,
         name: str,
         role_arn: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> Channel:
         """
         The RequestID and Reserved parameters are not yet implemented
@@ -174,8 +174,8 @@ class MediaLiveBackend(BaseBackend):
         return channel
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_channels(self) -> List[Channel]:
-        return [c for c in self._channels.values()]
+    def list_channels(self) -> list[Channel]:
+        return list(self._channels.values())
 
     def describe_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
@@ -200,11 +200,11 @@ class MediaLiveBackend(BaseBackend):
     def update_channel(
         self,
         channel_id: str,
-        cdi_input_specification: Dict[str, str],
-        destinations: List[Dict[str, Any]],
-        encoder_settings: Dict[str, Any],
-        input_attachments: List[Dict[str, Any]],
-        input_specification: Dict[str, str],
+        cdi_input_specification: dict[str, str],
+        destinations: list[dict[str, Any]],
+        encoder_settings: dict[str, Any],
+        input_attachments: list[dict[str, Any]],
+        input_specification: dict[str, str],
         log_level: str,
         name: str,
         role_arn: str,
@@ -227,14 +227,14 @@ class MediaLiveBackend(BaseBackend):
 
     def create_input(
         self,
-        destinations: List[Dict[str, str]],
-        input_devices: List[Dict[str, str]],
-        input_security_groups: List[str],
-        media_connect_flows: List[Dict[str, str]],
+        destinations: list[dict[str, str]],
+        input_devices: list[dict[str, str]],
+        input_security_groups: list[str],
+        media_connect_flows: list[dict[str, str]],
         name: str,
         role_arn: str,
-        sources: List[Dict[str, str]],
-        tags: Dict[str, str],
+        sources: list[dict[str, str]],
+        tags: dict[str, str],
         input_type: str,
     ) -> Input:
         """
@@ -265,8 +265,8 @@ class MediaLiveBackend(BaseBackend):
         return a_input
 
     @paginate(PAGINATION_MODEL)
-    def list_inputs(self) -> List[Input]:
-        return [i for i in self._inputs.values()]
+    def list_inputs(self) -> list[Input]:
+        return list(self._inputs.values())
 
     def delete_input(self, input_id: str) -> None:
         a_input = self._inputs[input_id]
@@ -274,14 +274,14 @@ class MediaLiveBackend(BaseBackend):
 
     def update_input(
         self,
-        destinations: List[Dict[str, str]],
-        input_devices: List[Dict[str, str]],
+        destinations: list[dict[str, str]],
+        input_devices: list[dict[str, str]],
         input_id: str,
-        input_security_groups: List[str],
-        media_connect_flows: List[Dict[str, str]],
+        input_security_groups: list[str],
+        media_connect_flows: list[dict[str, str]],
         name: str,
         role_arn: str,
-        sources: List[Dict[str, str]],
+        sources: list[dict[str, str]],
     ) -> Input:
         a_input = self._inputs[input_id]
         a_input.destinations = destinations

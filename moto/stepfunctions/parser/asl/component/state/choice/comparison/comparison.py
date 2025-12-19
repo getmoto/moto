@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import abc
 from enum import Enum
-from typing import Any, Final, List
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
-from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value_terminal import (
-    JSONataTemplateValueTerminalExpression,
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringJSONata,
 )
 from moto.stepfunctions.parser.asl.component.state.choice.choice_rule import (
     ChoiceRule,
@@ -30,7 +30,7 @@ class ComparisonCompositeProps(TypedProps):
 
 
 class ConditionJSONataLit(Comparison):
-    literal: bool
+    literal: Final[bool]
 
     def __init__(self, literal: bool):
         self.literal = literal
@@ -39,22 +39,15 @@ class ConditionJSONataLit(Comparison):
         env.stack.append(self.literal)
 
 
-class ConditionJSONataExpression(Comparison):
-    jsonata_template_value_terminal_expression: Final[
-        JSONataTemplateValueTerminalExpression
-    ]
+class ConditionStringJSONata(Comparison):
+    string_jsonata: Final[StringJSONata]
 
-    def __init__(
-        self,
-        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
-    ):
+    def __init__(self, string_jsonata: StringJSONata):
         super().__init__()
-        self.jsonata_template_value_terminal_expression = (
-            jsonata_template_value_terminal_expression
-        )
+        self.string_jsonata = string_jsonata
 
     def _eval_body(self, env: Environment) -> None:
-        self.jsonata_template_value_terminal_expression.eval(env=env)
+        self.string_jsonata.eval(env=env)
         result = env.stack[-1]
         if not isinstance(result, bool):
             # TODO: add snapshot tests to verify AWS's behaviour about non boolean values.
@@ -69,33 +62,31 @@ class ComparisonComposite(Comparison, abc.ABC):
         Or = ASLLexer.OR
         Not = ASLLexer.NOT
 
-    operator: ComparisonComposite.ChoiceOp
+    operator: Final[ComparisonComposite.ChoiceOp]
 
     def __init__(self, operator: ComparisonComposite.ChoiceOp):
         self.operator = operator
 
 
 class ComparisonCompositeSingle(ComparisonComposite, abc.ABC):
-    rule: ChoiceRule
+    rule: Final[ChoiceRule]
 
     def __init__(self, operator: ComparisonComposite.ChoiceOp, rule: ChoiceRule):
-        super(ComparisonCompositeSingle, self).__init__(operator=operator)
+        super().__init__(operator=operator)
         self.rule = rule
 
 
 class ComparisonCompositeMulti(ComparisonComposite, abc.ABC):
-    rules: List[ChoiceRule]
+    rules: Final[list[ChoiceRule]]
 
-    def __init__(self, operator: ComparisonComposite.ChoiceOp, rules: List[ChoiceRule]):
-        super(ComparisonCompositeMulti, self).__init__(operator=operator)
+    def __init__(self, operator: ComparisonComposite.ChoiceOp, rules: list[ChoiceRule]):
+        super().__init__(operator=operator)
         self.rules = rules
 
 
 class ComparisonCompositeNot(ComparisonCompositeSingle):
     def __init__(self, rule: ChoiceRule):
-        super(ComparisonCompositeNot, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.Not, rule=rule
-        )
+        super().__init__(operator=ComparisonComposite.ChoiceOp.Not, rule=rule)
 
     def _eval_body(self, env: Environment) -> None:
         self.rule.eval(env)
@@ -105,10 +96,8 @@ class ComparisonCompositeNot(ComparisonCompositeSingle):
 
 
 class ComparisonCompositeAnd(ComparisonCompositeMulti):
-    def __init__(self, rules: List[ChoiceRule]):
-        super(ComparisonCompositeAnd, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.And, rules=rules
-        )
+    def __init__(self, rules: list[ChoiceRule]):
+        super().__init__(operator=ComparisonComposite.ChoiceOp.And, rules=rules)
 
     def _eval_body(self, env: Environment) -> None:
         res = True
@@ -122,10 +111,8 @@ class ComparisonCompositeAnd(ComparisonCompositeMulti):
 
 
 class ComparisonCompositeOr(ComparisonCompositeMulti):
-    def __init__(self, rules: List[ChoiceRule]):
-        super(ComparisonCompositeOr, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.Or, rules=rules
-        )
+    def __init__(self, rules: list[ChoiceRule]):
+        super().__init__(operator=ComparisonComposite.ChoiceOp.Or, rules=rules)
 
     def _eval_body(self, env: Environment) -> None:
         res = False

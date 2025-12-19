@@ -382,17 +382,17 @@ def test_create_function__with_tracingmode(tracing_mode):
     source, output = tracing_mode
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
-    kwargs = dict(
-        FunctionName=function_name,
-        Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": zip_content},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+    kwargs = {
+        "FunctionName": function_name,
+        "Runtime": PYTHON_VERSION,
+        "Role": get_role_name(),
+        "Handler": "lambda_function.lambda_handler",
+        "Code": {"ZipFile": zip_content},
+        "Description": "test lambda function",
+        "Timeout": 3,
+        "MemorySize": 128,
+        "Publish": True,
+    }
     if source:
         kwargs["TracingConfig"] = {"Mode": source}
     result = conn.create_function(**kwargs)
@@ -454,7 +454,7 @@ def test_create_function_from_stubbed_ecr():
 @mock_aws
 def test_create_function_from_mocked_ecr_image_tag(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
@@ -498,7 +498,7 @@ def test_create_function_from_mocked_ecr_image_tag(
 @mock_aws
 def test_create_function_from_mocked_ecr_image_digest(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
@@ -527,7 +527,7 @@ def test_create_function_from_mocked_ecr_image_digest(
 @mock_aws
 def test_create_function_from_mocked_ecr_missing_image(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
@@ -810,14 +810,13 @@ def test_delete_function():
         Publish=True,
     )
 
-    success_result = conn.delete_function(FunctionName=function_name)
-    # this is hard to match against, so remove it
-    success_result["ResponseMetadata"].pop("HTTPHeaders", None)
-    # Botocore inserts retry attempts not seen in Python27
-    success_result["ResponseMetadata"].pop("RetryAttempts", None)
-    success_result["ResponseMetadata"].pop("RequestId")
-
-    assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
+    result = conn.delete_function(FunctionName=function_name)
+    # There are differences in the modelled response between versions of Botocore,
+    # so we check multiple places for the status code and allow for a success range.
+    status_code = result.get(
+        "StatusCode", result.get("ResponseMetadata", {}).get("HTTPStatusCode")
+    )
+    assert 200 <= status_code < 300
 
     func_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]

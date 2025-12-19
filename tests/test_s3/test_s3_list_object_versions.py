@@ -15,7 +15,7 @@ from . import s3_aws_verified
 def test_list_versions():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
+    bucket = s3_resource.Bucket(str(uuid4()))
     bucket.create()
     bucket.Versioning().enable()
 
@@ -27,29 +27,31 @@ def test_list_versions():
     key_versions.append(key.version_id)
     assert len(key_versions) == 2
 
-    versions = client.list_object_versions(Bucket="foobar")["Versions"]
+    versions = client.list_object_versions(Bucket=bucket.name)["Versions"]
     assert len(versions) == 2
 
     assert versions[0]["Key"] == "the-key"
     assert versions[0]["VersionId"] == key_versions[1]
-    resp = client.get_object(Bucket="foobar", Key="the-key")
+    resp = client.get_object(Bucket=bucket.name, Key="the-key")
     assert resp["Body"].read() == b"Version 2"
     resp = client.get_object(
-        Bucket="foobar", Key="the-key", VersionId=versions[0]["VersionId"]
+        Bucket=bucket.name, Key="the-key", VersionId=versions[0]["VersionId"]
     )
     assert resp["Body"].read() == b"Version 2"
 
     assert versions[1]["Key"] == "the-key"
     assert versions[1]["VersionId"] == key_versions[0]
     resp = client.get_object(
-        Bucket="foobar", Key="the-key", VersionId=versions[1]["VersionId"]
+        Bucket=bucket.name, Key="the-key", VersionId=versions[1]["VersionId"]
     )
     assert resp["Body"].read() == b"Version 1"
 
     bucket.put_object(Key="the2-key", Body=b"Version 1")
 
     assert len(list(bucket.objects.all())) == 2
-    versions = client.list_object_versions(Bucket="foobar", Prefix="the2")["Versions"]
+    versions = client.list_object_versions(Bucket=bucket.name, Prefix="the2")[
+        "Versions"
+    ]
     assert len(versions) == 1
 
 
@@ -86,7 +88,7 @@ def test_list_object_versions_with_delimiter(bucket_name=None):
     enable_versioning(bucket_name, s3_client)
     for key_index in list(range(1, 5)) + list(range(10, 14)):
         for version_index in range(1, 4):
-            body = f"data-{version_index}".encode("UTF-8")
+            body = f"data-{version_index}".encode()
             s3_client.put_object(
                 Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
             )
@@ -206,27 +208,27 @@ def test_list_object_versions_with_delimiter_for_deleted_objects():
     # Create a history of objects
     for pos in range(2):
         client.put_object(
-            Bucket=bucket_name, Key=f"obj_{pos}", Body=f"object {pos}".encode("utf-8")
+            Bucket=bucket_name, Key=f"obj_{pos}", Body=f"object {pos}".encode()
         )
 
     for pos in range(2):
         client.put_object(
             Bucket=bucket_name,
             Key=f"hist_obj_{pos}",
-            Body=f"history object {pos}".encode("utf-8"),
+            Body=f"history object {pos}".encode(),
         )
         for hist_pos in range(2):
             client.put_object(
                 Bucket=bucket_name,
                 Key=f"hist_obj_{pos}",
-                Body=f"object {pos} {hist_pos}".encode("utf-8"),
+                Body=f"object {pos} {hist_pos}".encode(),
             )
 
     for pos in range(2):
         client.put_object(
             Bucket=bucket_name,
             Key=f"del_obj_{pos}",
-            Body=f"deleted object {pos}".encode("utf-8"),
+            Body=f"deleted object {pos}".encode(),
         )
         client.delete_object(Bucket=bucket_name, Key=f"del_obj_{pos}")
 
@@ -244,7 +246,7 @@ def test_list_object_versions_with_delimiter_for_deleted_objects():
 @mock_aws
 def test_list_object_versions_with_versioning_disabled():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-versions"
     s3_client.create_bucket(Bucket=bucket_name)
     items = (b"v1", b"v2")
@@ -268,7 +270,7 @@ def test_list_object_versions_with_versioning_disabled():
 @mock_aws
 def test_list_object_versions_with_versioning_enabled_late():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-versions"
     s3_client.create_bucket(Bucket=bucket_name)
     items = (b"v1", b"v2")
@@ -440,7 +442,7 @@ def test_list_object_versions_with_paging_and_delimiter(bucket_name=None):
     # Copied from test_list_object_versions_with_delimiter.
     for key_index in list(range(1, 5)) + list(range(10, 14)):
         for version_index in range(1, 4):
-            body = f"data-{version_index}".encode("UTF-8")
+            body = f"data-{version_index}".encode()
             s3_client.put_object(
                 Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
             )
@@ -526,7 +528,7 @@ def test_list_object_versions_with_paging_and_delimiter(bucket_name=None):
 @mock_aws
 def test_bad_prefix_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-versions"
     bad_prefix = "key-that-does-not-exist"
     s3_client.create_bucket(Bucket=bucket_name)
@@ -638,7 +640,7 @@ def test_list_object_versions_with_custom_limit():
         raise SkipTest("Can only set env var in DecoratorMode")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "foobar"
+    bucket_name = str(uuid4())
     bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
     bucket.Versioning().enable()
@@ -651,3 +653,35 @@ def test_list_object_versions_with_custom_limit():
     page1 = s3_client.list_object_versions(Bucket=bucket_name)
     assert page1["MaxKeys"] == 5
     assert len(page1["Versions"]) == 5
+
+
+@mock_aws
+def test_list_object_versions_is_latest_flag_is_correct_when_response_is_paginated():
+    bucket_name = "test-bucket"
+    valid = 500
+    deleted = 501
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    for i in range(valid + deleted):
+        key = f"mongodb/object-{i}"
+        s3_client.put_object(Bucket=bucket_name, Key=key, Body=b"content")
+        if i >= valid:
+            s3_client.delete_object(Bucket=bucket_name, Key=key)
+
+    first_page = s3_client.list_object_versions(
+        Bucket=bucket_name, Prefix="mongodb/", MaxKeys=1000
+    )
+    assert first_page["DeleteMarkers"][-1]["Key"] == "mongodb/object-761"
+    assert first_page["DeleteMarkers"][-1]["IsLatest"] is True
+    second_page = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Prefix="mongodb/",
+        MaxKeys=1000,
+        KeyMarker=first_page["NextKeyMarker"],
+        VersionIdMarker=first_page["NextVersionIdMarker"],
+    )
+    assert second_page["Versions"][0]["Key"] == "mongodb/object-761"
+    assert second_page["Versions"][0]["IsLatest"] is False

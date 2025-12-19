@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from collections.abc import Iterable
+from typing import Any, Callable, Optional, Union
 
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
@@ -25,7 +26,9 @@ class FilterPolicyMatcher:
     class CheckException(Exception):
         pass
 
-    def __init__(self, filter_policy: Dict[str, Any], filter_policy_scope: str):
+    def __init__(
+        self, filter_policy: dict[str, Any], filter_policy_scope: Optional[str]
+    ):
         self.filter_policy = filter_policy
         self.filter_policy_scope = (
             filter_policy_scope
@@ -39,7 +42,7 @@ class FilterPolicyMatcher:
             )
 
     def matches(
-        self, message_attributes: Optional[Dict[str, Any]], message: str
+        self, message_attributes: Optional[dict[str, Any]], message: str
     ) -> bool:
         if not self.filter_policy:
             return True
@@ -60,14 +63,14 @@ class FilterPolicyMatcher:
 
     @staticmethod
     def _attributes_based_match(  # type: ignore[misc]
-        message_attributes: Dict[str, Any], source: Dict[str, Any]
+        message_attributes: dict[str, Any], source: dict[str, Any]
     ) -> bool:
         return all(
             FilterPolicyMatcher._field_match(field, rules, message_attributes)
             for field, rules in source.items()
         )
 
-    def _body_based_match(self, message_dict: Dict[str, Any]) -> bool:
+    def _body_based_match(self, message_dict: dict[str, Any]) -> bool:
         try:
             checks = self._compute_body_checks(self.filter_policy, message_dict)
         except FilterPolicyMatcher.CheckException:
@@ -94,9 +97,9 @@ class FilterPolicyMatcher:
 
     def _compute_body_checks(
         self,
-        filter_policy: Dict[str, Union[Dict[str, Any], List[Any]]],
-        message_body: Union[Dict[str, Any], List[Any]],
-    ) -> Tuple[Callable[[Iterable[Any]], bool], Any]:
+        filter_policy: dict[str, Union[dict[str, Any], list[Any]]],
+        message_body: Union[dict[str, Any], list[Any]],
+    ) -> tuple[Callable[[Iterable[Any]], bool], Any]:
         """
         Generate (possibly nested) list of checks to be performed based on the filter policy
         Returned list is of format (any|all, checks), where first elem defines what aggregation should be used in checking
@@ -175,8 +178,8 @@ class FilterPolicyMatcher:
     @staticmethod
     def _field_match(  # type: ignore # decorated function contains type Any
         field: str,
-        rules: List[Any],
-        dict_body: Dict[str, Any],
+        rules: list[Any],
+        dict_body: dict[str, Any],
         attributes_based_check: bool = True,
     ) -> bool:
         # dict_body = MessageAttributes if attributes_based_check is True
@@ -185,7 +188,7 @@ class FilterPolicyMatcher:
         # Iterate over every rule from the list of rules
         # At least one rule has to match the field for the function to return a match
 
-        def _str_exact_match(value: str, rule: Union[str, List[str]]) -> bool:
+        def _str_exact_match(value: str, rule: Union[str, list[str]]) -> bool:
             if value == rule:
                 return True
 
@@ -202,7 +205,7 @@ class FilterPolicyMatcher:
 
             return False
 
-        def _number_match(values: List[float], rule: float) -> bool:
+        def _number_match(values: list[float], rule: float) -> bool:
             for value in values:
                 # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                 # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
@@ -212,7 +215,7 @@ class FilterPolicyMatcher:
             return False
 
         def _exists_match(
-            should_exist: bool, field: str, dict_body: Dict[str, Any]
+            should_exist: bool, field: str, dict_body: dict[str, Any]
         ) -> bool:
             if should_exist and field in dict_body:
                 return True
@@ -228,8 +231,8 @@ class FilterPolicyMatcher:
             return value.endswith(prefix)
 
         def _anything_but_match(
-            filter_value: Union[Dict[str, Any], List[str], str],
-            actual_values: List[str],
+            filter_value: Union[dict[str, Any], list[str], str],
+            actual_values: list[str],
         ) -> bool:
             if isinstance(filter_value, dict):
                 # We can combine anything-but with the prefix-filter
@@ -237,19 +240,19 @@ class FilterPolicyMatcher:
                 anything_but_val = list(filter_value.values())[0]
                 if anything_but_key != "prefix":
                     return False
-                if all([not v.startswith(anything_but_val) for v in actual_values]):
+                if all(not v.startswith(anything_but_val) for v in actual_values):
                     return True
             else:
                 undesired_values = (
                     [filter_value] if isinstance(filter_value, str) else filter_value
                 )
-                if all([v not in undesired_values for v in actual_values]):
+                if all(v not in undesired_values for v in actual_values):
                     return True
 
             return False
 
         def _numeric_match(
-            numeric_ranges: Iterable[Tuple[str, float]], numeric_value: float
+            numeric_ranges: Iterable[tuple[str, float]], numeric_value: float
         ) -> bool:
             # numeric_ranges' format:
             # [(< x), (=, y), (>=, z)]
@@ -257,15 +260,15 @@ class FilterPolicyMatcher:
             matches = []
             for operator, test_value in numeric_ranges:
                 if operator == ">":
-                    matches.append((msg_value > test_value))
+                    matches.append(msg_value > test_value)
                 if operator == ">=":
-                    matches.append((msg_value >= test_value))
+                    matches.append(msg_value >= test_value)
                 if operator == "=":
-                    matches.append((msg_value == test_value))
+                    matches.append(msg_value == test_value)
                 if operator == "<":
-                    matches.append((msg_value < test_value))
+                    matches.append(msg_value < test_value)
                 if operator == "<=":
-                    matches.append((msg_value <= test_value))
+                    matches.append(msg_value <= test_value)
             return all(matches)
 
         for rule in rules:
@@ -371,14 +374,14 @@ class FilterPolicyMatcher:
                             if attr["Type"] == "String":
                                 actual_values = [attr["Value"]]
                             else:
-                                actual_values = [v for v in attr["Value"]]
+                                actual_values = list(attr["Value"])
                         else:
                             if attr["Type"] == "Number":
                                 actual_values = [float(attr["Value"])]
                             elif attr["Type"] == "String":
                                 actual_values = [attr["Value"]]
                             else:
-                                actual_values = [v for v in attr["Value"]]
+                                actual_values = list(attr["Value"])
 
                         if _anything_but_match(value, actual_values):
                             return True
@@ -424,10 +427,8 @@ class FilterPolicyMatcher:
 
             if field == "$or" and isinstance(rules, list):
                 return any(
-                    [
-                        FilterPolicyMatcher._attributes_based_match(dict_body, rule)
-                        for rule in rules
-                    ]
+                    FilterPolicyMatcher._attributes_based_match(dict_body, rule)
+                    for rule in rules
                 )
 
         return False

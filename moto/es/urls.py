@@ -6,6 +6,7 @@ url_bases = [
 
 
 url_paths = {
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/config": OpenSearchServiceResponse.describe_es_domain_config,
     "{0}/2015-01-01/domain$": OpenSearchServiceResponse.list_domains,
     "{0}/2015-01-01/es/domain$": OpenSearchServiceResponse.domains,
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)": OpenSearchServiceResponse.domain,

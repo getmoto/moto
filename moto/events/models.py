@@ -7,7 +7,7 @@ from collections import OrderedDict
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import requests
 
@@ -73,7 +73,7 @@ class Rule(CloudFormationModel):
         event_bus_name: str,
         state: Optional[str],
         managed_by: Optional[str] = None,
-        targets: Optional[List[Dict[str, Any]]] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
     ):
         self.name = name
         self.account_id = account_id
@@ -119,7 +119,7 @@ class Rule(CloudFormationModel):
         self.remove_targets([t["Id"] for t in self.targets])
         event_backend.delete_rule(name=self.name, event_bus_arn=self.event_bus_name)
 
-    def put_targets(self, targets: List[Dict[str, Any]]) -> None:
+    def put_targets(self, targets: list[dict[str, Any]]) -> None:
         # Not testing for valid ARNs.
         for target in targets:
             index = self._check_target_exists(target["Id"])
@@ -128,7 +128,7 @@ class Rule(CloudFormationModel):
             else:
                 self.targets.append(target)
 
-    def remove_targets(self, ids: List[str]) -> None:
+    def remove_targets(self, ids: list[str]) -> None:
         for target_id in ids:
             index = self._check_target_exists(target_id)
             if index is not None:
@@ -198,12 +198,13 @@ class Rule(CloudFormationModel):
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
 
-    def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
+    def _send_to_cw_log_group(self, name: str, event: dict[str, Any]) -> None:
         from moto.logs import logs_backends
 
-        event["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event["time"])  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(event["time"])
+            )
 
         log_stream_name = str(random.uuid4())
         log_events = [{"timestamp": unix_time_millis(), "message": json.dumps(event)}]
@@ -223,12 +224,12 @@ class Rule(CloudFormationModel):
             archive.events.append(event)  # type: ignore[union-attr]
 
     def _find_api_destination(self, resource_id: str) -> "Destination":
-        backend: "EventsBackend" = events_backends[self.account_id][self.region_name]
+        backend: EventsBackend = events_backends[self.account_id][self.region_name]
         destination_name = resource_id.split("/")[0]
         return backend.destinations[destination_name]
 
     def _send_to_sqs_queue(
-        self, resource_id: str, event: Dict[str, Any], group_id: Optional[str] = None
+        self, resource_id: str, event: dict[str, Any], group_id: Optional[str] = None
     ) -> None:
         from moto.sqs import sqs_backends
 
@@ -244,8 +245,8 @@ class Rule(CloudFormationModel):
             )
             if queue_attr["ContentBasedDeduplication"] == "false":
                 warnings.warn(
-                    "To let EventBridge send messages to your SQS FIFO queue, "
-                    "you must enable content-based deduplication."
+                    "To let EventBridge send messages to your SQS FIFO queue, you must enable content-based deduplication.",
+                    stacklevel=2,
                 )
                 return
 
@@ -301,7 +302,7 @@ class Rule(CloudFormationModel):
         event_bus_arn = properties.get("EventBusName")
         tags = properties.get("Tags")
 
-        backend: "EventsBackend" = events_backends[account_id][region_name]
+        backend: EventsBackend = events_backends[account_id][region_name]
         rule = backend.put_rule(
             event_name,
             scheduled_expression=scheduled_expression,
@@ -351,7 +352,7 @@ class Rule(CloudFormationModel):
 
         event_backend.delete_rule(resource_name, event_bus_arn)
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         attributes = {
             "Arn": self.arn,
             "CreatedBy": self.created_by,
@@ -376,7 +377,10 @@ class EventBus(CloudFormationModel):
         account_id: str,
         region_name: str,
         name: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[dict[str, str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.account_id = account_id
         self.region = region_name
@@ -384,8 +388,15 @@ class EventBus(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region)}:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
 
-        self._statements: Dict[str, EventBusPolicyStatement] = {}
-        self.rules: Dict[str, Rule] = OrderedDict()
+        self.description = description
+        self.kms_key_identifier = kms_key_identifier
+        self.dead_letter_config = dead_letter_config
+
+        self.creation_time = unix_time()
+        self.last_modified_time = self.creation_time
+
+        self._statements: dict[str, EventBusPolicyStatement] = {}
+        self.rules: dict[str, Rule] = OrderedDict()
 
     @property
     def policy(self) -> Optional[str]:
@@ -491,8 +502,8 @@ class EventBus(CloudFormationModel):
         self,
         statement_id: str,
         action: str,
-        principal: Dict[str, str],
-        condition: Optional[Dict[str, Any]],
+        principal: dict[str, str],
+        condition: Optional[dict[str, Any]],
     ) -> None:
         self._remove_principals_statements(principal)
         statement = EventBusPolicyStatement(
@@ -504,7 +515,7 @@ class EventBus(CloudFormationModel):
         )
         self._statements[statement_id] = statement
 
-    def add_policy(self, policy: Dict[str, Any]) -> None:
+    def add_policy(self, policy: dict[str, Any]) -> None:
         policy_statements = policy["Statement"]
 
         principals = [stmt["Principal"] for stmt in policy_statements]
@@ -525,11 +536,11 @@ class EventBusPolicyStatement:
     def __init__(
         self,
         sid: str,
-        principal: Dict[str, str],
+        principal: dict[str, str],
         action: str,
         resource: str,
         effect: str = "Allow",
-        condition: Optional[Dict[str, Any]] = None,
+        condition: Optional[dict[str, Any]] = None,
     ):
         self.sid = sid
         self.principal = principal
@@ -538,28 +549,28 @@ class EventBusPolicyStatement:
         self.effect = effect
         self.condition = condition
 
-    def describe(self) -> Dict[str, Any]:
-        statement: Dict[str, Any] = dict(
-            Sid=self.sid,
-            Effect=self.effect,
-            Principal=self.principal,
-            Action=self.action,
-            Resource=self.resource,
-        )
+    def describe(self) -> dict[str, Any]:
+        statement: dict[str, Any] = {
+            "Sid": self.sid,
+            "Effect": self.effect,
+            "Principal": self.principal,
+            "Action": self.action,
+            "Resource": self.resource,
+        }
 
         if self.condition:
             statement["Condition"] = self.condition
         return statement
 
     @classmethod
-    def from_dict(cls, statement_dict: Dict[str, Any]) -> "EventBusPolicyStatement":  # type: ignore[misc]
-        params = dict(
-            sid=statement_dict["Sid"],
-            effect=statement_dict["Effect"],
-            principal=statement_dict["Principal"],
-            action=statement_dict["Action"],
-            resource=statement_dict["Resource"],
-        )
+    def from_dict(cls, statement_dict: dict[str, Any]) -> "EventBusPolicyStatement":  # type: ignore[misc]
+        params = {
+            "sid": statement_dict["Sid"],
+            "effect": statement_dict["Effect"],
+            "principal": statement_dict["Principal"],
+            "action": statement_dict["Action"],
+            "resource": statement_dict["Resource"],
+        }
         condition = statement_dict.get("Condition")
         if condition:
             params["condition"] = condition
@@ -600,11 +611,11 @@ class Archive(CloudFormationModel):
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
 
-        self.events: List[EventMessageType] = []
+        self.events: list[EventMessageType] = []
         self.event_bus_name = source_arn.split("/")[-1]
         self.rule: Optional[Rule] = None
 
-    def describe_short(self) -> Dict[str, Any]:
+    def describe_short(self) -> dict[str, Any]:
         return {
             "ArchiveName": self.name,
             "EventSourceArn": self.source_arn,
@@ -615,7 +626,7 @@ class Archive(CloudFormationModel):
             "CreationTime": self.creation_time,
         }
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         result = {
             "ArchiveArn": self.arn,
             "Description": self.description,
@@ -737,7 +748,7 @@ class Replay(BaseModel):
         source_arn: str,
         start_time: str,
         end_time: str,
-        destination: Dict[str, Any],
+        destination: dict[str, Any],
     ):
         self.account_id = account_id
         self.region = region_name
@@ -753,7 +764,7 @@ class Replay(BaseModel):
         self.start_time = unix_time()
         self.end_time: Optional[float] = None
 
-    def describe_short(self) -> Dict[str, Any]:
+    def describe_short(self) -> dict[str, Any]:
         return {
             "ReplayName": self.name,
             "EventSourceArn": self.source_arn,
@@ -764,7 +775,7 @@ class Replay(BaseModel):
             "ReplayEndTime": self.end_time,
         }
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         result = {
             "ReplayArn": self.arn,
             "Description": self.description,
@@ -802,7 +813,7 @@ class Connection(BaseModel):
         region_name: str,
         description: str,
         authorization_type: str,
-        auth_parameters: Dict[str, Any],
+        auth_parameters: dict[str, Any],
     ):
         self.uuid = random.uuid4()
         self.name = name
@@ -832,7 +843,7 @@ class Connection(BaseModel):
         self.secret_arn = secret.arn
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{connection_id}"
 
-    def describe_short(self) -> Dict[str, Any]:
+    def describe_short(self) -> dict[str, Any]:
         """
         Create the short description for the Connection object.
 
@@ -855,7 +866,7 @@ class Connection(BaseModel):
             "CreationTime": self.creation_time,
         }
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         """
         Create a complete description for the Connection object.
 
@@ -909,7 +920,7 @@ class Destination(BaseModel):
         self.state = "ACTIVE"
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "ApiDestinationArn": self.arn,
             "ApiDestinationState": self.state,
@@ -923,7 +934,7 @@ class Destination(BaseModel):
             "Name": self.name,
         }
 
-    def describe_short(self) -> Dict[str, Any]:
+    def describe_short(self) -> dict[str, Any]:
         return {
             "ApiDestinationArn": self.arn,
             "ApiDestinationState": self.state,
@@ -933,11 +944,11 @@ class Destination(BaseModel):
 
 
 class EventPattern:
-    def __init__(self, raw_pattern: Optional[str], pattern: Dict[str, Any]):
+    def __init__(self, raw_pattern: Optional[str], pattern: dict[str, Any]):
         self._raw_pattern = raw_pattern
         self._pattern = pattern
 
-    def get_pattern(self) -> Dict[str, Any]:
+    def get_pattern(self) -> dict[str, Any]:
         return self._pattern
 
     def matches_event(self, event: EventMessageType) -> bool:
@@ -947,7 +958,7 @@ class EventPattern:
         return self._does_event_match(event, self._pattern)
 
     def _does_event_match(
-        self, event: EventMessageType, pattern: Dict[str, Any]
+        self, event: EventMessageType, pattern: dict[str, Any]
     ) -> bool:
         items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
         nested_filter_matches = [
@@ -994,7 +1005,8 @@ class EventPattern:
             return all(numeric_matches)
         else:
             warnings.warn(
-                f"'{filter_name}' filter logic unimplemented. defaulting to True"
+                f"'{filter_name}' filter logic unimplemented. defaulting to True",
+                stacklevel=2,
             )
             return True
 
@@ -1012,7 +1024,7 @@ class EventPatternParser:
     def __init__(self, pattern: Optional[str]):
         self.pattern = pattern
 
-    def _validate_event_pattern(self, pattern: Dict[str, Any]) -> None:
+    def _validate_event_pattern(self, pattern: dict[str, Any]) -> None:
         # values in the event pattern have to be either a dict or an array
         for attr, value in pattern.items():
             if isinstance(value, dict):
@@ -1027,9 +1039,9 @@ class EventPatternParser:
                     reason=f"'{attr}' must be an object or an array"
                 )
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> dict[str, Any]:
         try:
-            parsed_pattern = json.loads(self.pattern) if self.pattern else dict()
+            parsed_pattern = json.loads(self.pattern) if self.pattern else {}
             self._validate_event_pattern(parsed_pattern)
             return parsed_pattern
         except JSONDecodeError:
@@ -1041,10 +1053,10 @@ class PartnerEventSource(BaseModel):
         self.name = name
         self.arn = f"arn:{get_partition(region)}:events:{region}::event-source/aws.partner/{name}"
         self.created_on = unix_time()
-        self.accounts: List[str] = []
+        self.accounts: list[str] = []
         self.state = "ACTIVE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreatedBy": self.name.split("/")[0],
@@ -1077,18 +1089,18 @@ class EventsBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.next_tokens: Dict[str, int] = {}
-        self.event_buses: Dict[str, EventBus] = {}
-        self.event_sources: Dict[str, PartnerEventSource] = {}
-        self.archives: Dict[str, Archive] = {}
-        self.replays: Dict[str, Replay] = {}
+        self.next_tokens: dict[str, int] = {}
+        self.event_buses: dict[str, EventBus] = {}
+        self.event_sources: dict[str, PartnerEventSource] = {}
+        self.archives: dict[str, Archive] = {}
+        self.replays: dict[str, Replay] = {}
         self.tagger = TaggingService()
 
         self._add_default_event_bus()
-        self.connections: Dict[str, Connection] = {}
-        self.destinations: Dict[str, Destination] = {}
-        self.partner_event_sources: Dict[str, PartnerEventSource] = {}
-        self.approved_parent_event_bus_names: List[str] = []
+        self.connections: dict[str, Connection] = {}
+        self.destinations: dict[str, Destination] = {}
+        self.partner_event_sources: dict[str, PartnerEventSource] = {}
+        self.approved_parent_event_bus_names: list[str] = []
 
     def _add_default_event_bus(self) -> None:
         self.event_buses["default"] = EventBus(
@@ -1123,7 +1135,7 @@ class EventsBackend(BaseBackend):
         scheduled_expression: Optional[str] = None,
         state: Optional[str] = None,
         managed_by: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> Rule:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
 
@@ -1147,7 +1159,7 @@ class EventsBackend(BaseBackend):
 
         event_bus = self._get_event_bus(event_bus_name)
         existing_rule = event_bus.rules.get(name)
-        targets = existing_rule.targets if existing_rule else list()
+        targets = existing_rule.targets if existing_rule else []
         rule = Rule(
             name,
             self.account_id,
@@ -1220,7 +1232,7 @@ class EventsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(
         self, target_arn: str, event_bus_arn: Optional[str]
-    ) -> List[Rule]:
+    ) -> list[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         matching_rules = []
@@ -1235,7 +1247,7 @@ class EventsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(
         self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
-    ) -> List[Rule]:
+    ) -> list[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         match_string = ".*"
@@ -1255,7 +1267,7 @@ class EventsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_targets_by_rule(  # type: ignore[misc]
         self, rule_id: str, event_bus_arn: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         # We'll let a KeyError exception be thrown for response to handle if
         # rule doesn't exist.
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
@@ -1264,7 +1276,7 @@ class EventsBackend(BaseBackend):
         return rule.targets
 
     def put_targets(
-        self, name: str, event_bus_arn: Optional[str], targets: List[Dict[str, Any]]
+        self, name: str, event_bus_arn: Optional[str], targets: list[dict[str, Any]]
     ) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1303,7 +1315,7 @@ class EventsBackend(BaseBackend):
 
         rule.put_targets(targets)
 
-    def put_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def put_events(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         The following targets are supported at the moment:
 
@@ -1351,7 +1363,8 @@ class EventsBackend(BaseBackend):
                     detail = json.loads(event["Detail"])
                     if not isinstance(detail, dict):
                         warnings.warn(
-                            f"EventDetail should be of type dict - types such as {type(detail)} are ignored by AWS"
+                            f"EventDetail should be of type dict - types such as {type(detail)} are ignored by AWS",
+                            stacklevel=2,
                         )
                 except ValueError:  # json.JSONDecodeError exists since Python 3.5
                     entries.append(
@@ -1387,7 +1400,7 @@ class EventsBackend(BaseBackend):
         return entries
 
     def remove_targets(
-        self, name: str, event_bus_arn: Optional[str], ids: List[str]
+        self, name: str, event_bus_arn: Optional[str], ids: list[str]
     ) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1415,8 +1428,8 @@ class EventsBackend(BaseBackend):
 
     @staticmethod
     def _condition_param_to_stmt_condition(  # type: ignore[misc]
-        condition: Optional[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
+        condition: Optional[dict[str, Any]],
+    ) -> Optional[dict[str, Any]]:
         if condition:
             key = condition["Key"]
             value = condition["Value"]
@@ -1430,7 +1443,7 @@ class EventsBackend(BaseBackend):
         action: Optional[str],
         principal: str,
         statement_id: str,
-        condition: Dict[str, str],
+        condition: dict[str, str],
     ) -> None:
         if principal is None:
             raise JsonRESTError(
@@ -1473,7 +1486,7 @@ class EventsBackend(BaseBackend):
         action: str,
         principal: str,
         statement_id: str,
-        condition: Dict[str, str],
+        condition: dict[str, str],
         policy: str,
     ) -> None:
         if not event_bus_name:
@@ -1526,7 +1539,10 @@ class EventsBackend(BaseBackend):
         self,
         name: str,
         event_source_name: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[dict[str, str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> EventBus:
         if name in self.event_buses:
             raise JsonRESTError(
@@ -1544,14 +1560,22 @@ class EventsBackend(BaseBackend):
                 f"Event source {event_source_name} does not exist.",
             )
 
-        event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
+        event_bus = EventBus(
+            self.account_id,
+            self.region_name,
+            name,
+            description=description,
+            kms_key_identifier=kms_key_identifier,
+            dead_letter_config=dead_letter_config,
+            tags=tags,
+        )
         self.event_buses[name] = event_bus
         if tags:
             self.tagger.tag_resource(event_bus.arn, tags)
 
         return self.event_buses[name]
 
-    def list_event_buses(self, name_prefix: Optional[str]) -> List[EventBus]:
+    def list_event_buses(self, name_prefix: Optional[str]) -> list[EventBus]:
         if name_prefix:
             return [
                 event_bus
@@ -1570,7 +1594,7 @@ class EventsBackend(BaseBackend):
         if event_bus:
             self.tagger.delete_all_tags_for_resource(event_bus.arn)
 
-    def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_tags_for_resource(self, arn: str) -> dict[str, list[dict[str, str]]]:
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
@@ -1580,7 +1604,7 @@ class EventsBackend(BaseBackend):
             f"Rule {name} does not exist on EventBus default."
         )
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
@@ -1591,7 +1615,7 @@ class EventsBackend(BaseBackend):
             f"Rule {name} does not exist on EventBus default."
         )
 
-    def untag_resource(self, arn: str, tag_names: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_names: list[str]) -> None:
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
@@ -1663,7 +1687,7 @@ class EventsBackend(BaseBackend):
 
         return archive
 
-    def describe_archive(self, name: str) -> Dict[str, Any]:
+    def describe_archive(self, name: str) -> dict[str, Any]:
         archive = self.archives.get(name)
 
         if not archive:
@@ -1676,7 +1700,7 @@ class EventsBackend(BaseBackend):
         name_prefix: Optional[str],
         source_arn: Optional[str],
         state: Optional[str],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         if [name_prefix, source_arn, state].count(None) < 2:
             raise ValidationException(
                 "At most one filter is allowed for ListArchives. "
@@ -1708,7 +1732,7 @@ class EventsBackend(BaseBackend):
 
     def update_archive(
         self, name: str, description: str, event_pattern: str, retention: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         archive = self.archives.get(name)
 
         if not archive:
@@ -1737,8 +1761,8 @@ class EventsBackend(BaseBackend):
         source_arn: str,
         start_time: str,
         end_time: str,
-        destination: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        destination: dict[str, Any],
+    ) -> dict[str, Any]:
         event_bus_arn = destination["Arn"]
         event_bus_arn_pattern = (
             rf"{ARN_PARTITION_REGEX}:events:[a-zA-Z0-9-]+:\d{{12}}:event-bus/"
@@ -1793,14 +1817,14 @@ class EventsBackend(BaseBackend):
             "State": ReplayState.STARTING.value,  # the replay will be done before returning the response
         }
 
-    def describe_replay(self, name: str) -> Dict[str, Any]:
+    def describe_replay(self, name: str) -> dict[str, Any]:
         replay = self._get_replay(name)
 
         return replay.describe()
 
     def list_replays(
         self, name_prefix: str, source_arn: str, state: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         if [name_prefix, source_arn, state].count(None) < 2:  # type: ignore
             raise ValidationException(
                 "At most one filter is allowed for ListReplays. "
@@ -1829,7 +1853,7 @@ class EventsBackend(BaseBackend):
 
         return result
 
-    def cancel_replay(self, name: str) -> Dict[str, str]:
+    def cancel_replay(self, name: str) -> dict[str, str]:
         replay = self._get_replay(name)
 
         # replays in the state 'COMPLETED' can't be canceled,
@@ -1853,7 +1877,7 @@ class EventsBackend(BaseBackend):
         name: str,
         description: str,
         authorization_type: str,
-        auth_parameters: Dict[str, Any],
+        auth_parameters: dict[str, Any],
     ) -> Connection:
         connection = Connection(
             name,
@@ -1866,7 +1890,7 @@ class EventsBackend(BaseBackend):
         self.connections[name] = connection
         return connection
 
-    def update_connection(self, name: str, **kwargs: Any) -> Dict[str, Any]:
+    def update_connection(self, name: str, **kwargs: Any) -> dict[str, Any]:
         connection = self.connections.get(name)
         if not connection:
             raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
@@ -1876,17 +1900,17 @@ class EventsBackend(BaseBackend):
                 setattr(connection, attr, value)
         return connection.describe_short()
 
-    def list_connections(self) -> List[Connection]:
+    def list_connections(self) -> list[Connection]:
         return list(self.connections.values())
 
-    def describe_connection(self, name: str) -> Dict[str, Any]:
+    def describe_connection(self, name: str) -> dict[str, Any]:
         connection = self.connections.get(name)
         if not connection:
             raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
 
         return connection.describe()
 
-    def delete_connection(self, name: str) -> Dict[str, Any]:
+    def delete_connection(self, name: str) -> dict[str, Any]:
         connection = self.connections.pop(name, None)
         if not connection:
             raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
@@ -1911,7 +1935,7 @@ class EventsBackend(BaseBackend):
         invocation_endpoint: str,
         invocation_rate_limit_per_second: str,
         http_method: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         destination = Destination(
             name=name,
             account_id=self.account_id,
@@ -1926,10 +1950,10 @@ class EventsBackend(BaseBackend):
         self.destinations[name] = destination
         return destination.describe_short()
 
-    def list_api_destinations(self) -> List[Destination]:
+    def list_api_destinations(self) -> list[Destination]:
         return list(self.destinations.values())
 
-    def describe_api_destination(self, name: str) -> Dict[str, Any]:
+    def describe_api_destination(self, name: str) -> dict[str, Any]:
         destination = self.destinations.get(name)
         if not destination:
             raise ResourceNotFoundException(
@@ -1937,7 +1961,7 @@ class EventsBackend(BaseBackend):
             )
         return destination.describe()
 
-    def update_api_destination(self, name: str, **kwargs: Any) -> Dict[str, Any]:
+    def update_api_destination(self, name: str, **kwargs: Any) -> dict[str, Any]:
         destination = self.destinations.get(name)
         if not destination:
             raise ResourceNotFoundException(
@@ -1976,7 +2000,7 @@ class EventsBackend(BaseBackend):
         client_backend = events_backends[account_id][self.region_name]
         client_backend.event_sources[name].state = "DELETED"
 
-    def put_partner_events(self, entries: List[Dict[str, Any]]) -> None:
+    def put_partner_events(self, entries: list[dict[str, Any]]) -> None:
         """
         Validation of the entries is not yet implemented.
         """

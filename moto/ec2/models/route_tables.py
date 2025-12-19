@@ -1,5 +1,5 @@
 import ipaddress
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.carrier_gateways import CarrierGateway
@@ -40,8 +40,8 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main_association_id = random_subnet_association_id() if main else None
-        self.associations: Dict[str, str] = {}
-        self.routes: Dict[str, Route] = {}
+        self.associations: dict[str, str] = {}
+        self.routes: dict[str, Route] = {}
 
     @property
     def owner_id(self) -> str:
@@ -132,7 +132,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 
     @property
-    def all_associations_ids(self) -> Set[str]:
+    def all_associations_ids(self) -> set[str]:
         # NOTE(yoctozepto): Doing an explicit copy to not touch the original.
         all_associations = set(self.associations)
         if self.main_association_id is not None:
@@ -231,12 +231,12 @@ class Route(CloudFormationModel):
 
 class RouteBackend:
     def __init__(self) -> None:
-        self.route_tables: Dict[str, RouteTable] = {}
+        self.route_tables: dict[str, RouteTable] = {}
 
     def create_route_table(
         self,
         vpc_id: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         main: bool = False,
     ) -> RouteTable:
         route_table_id = random_route_table_id()
@@ -270,8 +270,8 @@ class RouteBackend:
         return route_table
 
     def describe_route_tables(
-        self, route_table_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[RouteTable]:
+        self, route_table_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[RouteTable]:
         route_tables = list(self.route_tables.values())
 
         if route_table_ids:
@@ -283,7 +283,7 @@ class RouteBackend:
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(
                     set(route_table_ids).difference(
-                        set([route_table.id for route_table in route_tables])
+                        {route_table.id for route_table in route_tables}
                     )
                 )[0]
                 raise InvalidRouteTableIdError(invalid_id)
@@ -388,7 +388,7 @@ class RouteBackend:
 
         if vpc_endpoint_id:
             vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
-            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+            if not vpce[0].vpc_endpoint_type == "GatewayLoadBalancer":
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
                 # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
                 raise RouteNotSupportedError(vpc_endpoint_id)

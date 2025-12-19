@@ -1,8 +1,10 @@
 import base64
+import calendar
 import datetime
 import ipaddress
 import re
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from collections.abc import Iterable
+from typing import Any, Optional
 
 import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
@@ -13,6 +15,7 @@ from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.serialize import parse_to_aware_datetime
 from moto.core.utils import utcnow
 
 from .exceptions import (
@@ -56,10 +59,11 @@ IPV4_REGEX = re.compile(
 
 
 def datetime_to_epoch(date: datetime.datetime) -> float:
-    return date.timestamp()
+    aware_dt = parse_to_aware_datetime(date)  # type: ignore
+    return float(calendar.timegm(aware_dt.timetuple()))
 
 
-class TagHolder(Dict[str, Optional[str]]):
+class TagHolder(dict[str, Optional[str]]):
     MAX_TAG_COUNT = 50
     MAX_KEY_LENGTH = 128
     MAX_VALUE_LENGTH = 256
@@ -67,21 +71,18 @@ class TagHolder(Dict[str, Optional[str]]):
     def _validate_kv(self, key: str, value: Optional[str], index: int) -> None:
         if len(key) > self.MAX_KEY_LENGTH:
             raise AWSValidationException(
-                "Value '%s' at 'tags.%d.member.key' failed to satisfy constraint: Member must have length less than or equal to %s"
-                % (key, index, self.MAX_KEY_LENGTH)
+                f"Value '{key}' at 'tags.{index}.member.key' failed to satisfy constraint: Member must have length less than or equal to {self.MAX_KEY_LENGTH}"
             )
         if value and len(value) > self.MAX_VALUE_LENGTH:
             raise AWSValidationException(
-                "Value '%s' at 'tags.%d.member.value' failed to satisfy constraint: Member must have length less than or equal to %s"
-                % (value, index, self.MAX_VALUE_LENGTH)
+                f"Value '{value}' at 'tags.{index}.member.value' failed to satisfy constraint: Member must have length less than or equal to {self.MAX_VALUE_LENGTH}"
             )
         if key.startswith("aws:"):
             raise AWSValidationException(
-                'Invalid Tag Key: "%s". AWS internal tags cannot be changed with this API'
-                % key
+                f'Invalid Tag Key: "{key}". AWS internal tags cannot be changed with this API'
             )
 
-    def add(self, tags: List[Dict[str, str]]) -> None:
+    def add(self, tags: list[dict[str, str]]) -> None:
         tags_copy = self.copy()
         for i, tag in enumerate(tags):
             key = tag["Key"]
@@ -90,14 +91,16 @@ class TagHolder(Dict[str, Optional[str]]):
 
             tags_copy[key] = value
         if len(tags_copy) > self.MAX_TAG_COUNT:
+            tags_as_string = ", ".join(
+                k + "=" + str(v or "") for k, v in tags_copy.items()
+            )
             raise AWSTooManyTagsException(
-                "the TagSet: '{%s}' contains too many Tags"
-                % ", ".join(k + "=" + str(v or "") for k, v in tags_copy.items())
+                f"the TagSet: '{{{tags_as_string}}}' contains too many Tags"
             )
 
         self.update(tags_copy)
 
-    def remove(self, tags: List[Dict[str, str]]) -> None:
+    def remove(self, tags: list[dict[str, str]]) -> None:
         for i, tag in enumerate(tags):
             key = tag["Key"]
             value = tag.get("Value")
@@ -112,7 +115,7 @@ class TagHolder(Dict[str, Optional[str]]):
             except KeyError:
                 pass
 
-    def equals(self, tags: List[Dict[str, str]]) -> bool:
+    def equals(self, tags: list[dict[str, str]]) -> bool:
         flat_tags = {t["Key"]: t.get("Value") for t in tags} if tags else {}
         return self == flat_tags
 
@@ -129,6 +132,7 @@ class CertBundle(BaseModel):
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
         cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[dict[str, Any]] = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -139,7 +143,11 @@ class CertBundle(BaseModel):
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
         self.cert_authority_arn = cert_authority_arn
-        self.in_use_by: List[str] = []
+        self.in_use_by: list[str] = []
+        self.cert_options = cert_options or {
+            "CertificateTransparencyLoggingPreference": "ENABLED",
+            "Export": "DISABLED",
+        }
 
         # Takes care of PEM checking
         self._key = self.validate_pk()
@@ -164,10 +172,10 @@ class CertBundle(BaseModel):
         domain_name: str,
         account_id: str,
         region: str,
-        sans: Optional[List[str]] = None,
+        sans: Optional[list[str]] = None,
         cert_authority_arn: Optional[str] = None,
     ) -> "CertBundle":
-        unique_sans: Set[str] = set(sans) if sans else set()
+        unique_sans: set[str] = set(sans) if sans else set()
 
         unique_sans.add(domain_name)
         # SSL treats IP addresses differently from regular host names
@@ -336,7 +344,7 @@ class CertBundle(BaseModel):
         ):
             self.status = "ISSUED"
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         # 'RenewalSummary': {},  # Only when cert is amazon issued
         if self._key.key_size == 1024:
             key_algo = "RSA_1024"
@@ -356,7 +364,7 @@ class CertBundle(BaseModel):
         if san_obj is not None:
             sans = [str(item.value) for item in san_obj.value]
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "Certificate": {
                 "CertificateArn": self.arn,
                 "DomainName": self.common_name,
@@ -377,7 +385,7 @@ class CertBundle(BaseModel):
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],
                 "RenewalEligibility": "INELIGIBLE",
-                "Options": {"CertificateTransparencyLoggingPreference": "ENABLED"},
+                "Options": self.cert_options,
             }
         }
 
@@ -448,8 +456,8 @@ class AWSCertificateManagerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._certificates: Dict[str, CertBundle] = {}
-        self._idempotency_tokens: Dict[str, Any] = {}
+        self._certificates: dict[str, CertBundle] = {}
+        self._idempotency_tokens: dict[str, Any] = {}
         self._account_config = AccountConfiguration()
 
     def set_certificate_in_use_by(self, arn: str, load_balancer_name: str) -> None:
@@ -494,7 +502,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         private_key: bytes,
         chain: Optional[bytes],
         arn: Optional[str],
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ) -> str:
         if arn is not None:
             if arn not in self._certificates:
@@ -526,10 +534,31 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return bundle.arn
 
-    def list_certificates(self, statuses: List[str]) -> Iterable[CertBundle]:
+    def list_certificates(
+        self, statuses: list[str], includes: dict[str, Any]
+    ) -> Iterable[CertBundle]:
         for arn in self._certificates.keys():
             cert = self.get_certificate(arn)
             if not statuses or cert.status in statuses:
+                if not includes:
+                    yield cert
+                    continue
+
+                # Check exportOption filter if present
+                if "exportOption" in includes:
+                    export_option = includes["exportOption"]
+                    if export_option not in cert.cert_options.get("Export", ""):
+                        continue
+
+                # Check keyTypes filter if present
+                if "keyTypes" in includes:
+                    key_types = includes["keyTypes"]
+                    # Get the certificate's key algorithm from describe()
+                    cert_key_algo = cert.describe()["Certificate"]["KeyAlgorithm"]
+                    if cert_key_algo not in key_types:
+                        continue
+
+                # Certificate passed all filters
                 yield cert
 
     def get_certificate(self, arn: str) -> CertBundle:
@@ -553,9 +582,10 @@ class AWSCertificateManagerBackend(BaseBackend):
         self,
         domain_name: str,
         idempotency_token: str,
-        subject_alt_names: List[str],
-        tags: List[Dict[str, str]],
+        subject_alt_names: list[str],
+        tags: list[dict[str, str]],
         cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[dict[str, Any]] = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -576,18 +606,21 @@ class AWSCertificateManagerBackend(BaseBackend):
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
         self._certificates[cert.arn] = cert
 
+        if cert_options:
+            self._certificates[cert.arn].cert_options = cert_options
+
         if tags:
             cert.tags.add(tags)
 
         return cert.arn
 
-    def add_tags_to_certificate(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def add_tags_to_certificate(self, arn: str, tags: list[dict[str, str]]) -> None:
         # get_cert does arn check
         cert_bundle = self.get_certificate(arn)
         cert_bundle.tags.add(tags)
 
     def remove_tags_from_certificate(
-        self, arn: str, tags: List[Dict[str, str]]
+        self, arn: str, tags: list[dict[str, str]]
     ) -> None:
         # get_cert does arn check
         cert_bundle = self.get_certificate(arn)
@@ -595,17 +628,18 @@ class AWSCertificateManagerBackend(BaseBackend):
 
     def export_certificate(
         self, certificate_arn: str, passphrase: str
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         if len(passphrase) < self.MIN_PASSPHRASE_LEN:
             raise AWSValidationException(
-                "Value at 'passphrase' failed to satisfy constraint: Member must have length greater than or equal to %s"
-                % (self.MIN_PASSPHRASE_LEN)
+                f"Value at 'passphrase' failed to satisfy constraint: Member must have length greater than or equal to {self.MIN_PASSPHRASE_LEN}"
             )
         passphrase_bytes = base64.standard_b64decode(passphrase)
         cert_bundle = self.get_certificate(certificate_arn)
-        if cert_bundle.type != "PRIVATE":
+        if (cert_bundle.type != "PRIVATE") and (
+            cert_bundle.cert_options["Export"] != "ENABLED"
+        ):
             raise AWSValidationException(
-                "Certificate ARN: %s is not a private certificate" % (certificate_arn)
+                f"Certificate ARN: {certificate_arn} is not a private certificate"
             )
         certificate = cert_bundle.cert.decode()
         certificate_chain = cert_bundle.chain.decode()
@@ -613,7 +647,7 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return certificate, certificate_chain, private_key
 
-    def get_account_configuration(self) -> Dict[str, Any]:
+    def get_account_configuration(self) -> dict[str, Any]:
         return self._account_config.to_dict()  # type: ignore
 
     def put_account_configuration(

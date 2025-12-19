@@ -21,7 +21,10 @@ class ECRResponse(BaseResponse):
         registry_id = self._get_param("registryId")
         encryption_config = self._get_param("encryptionConfiguration")
         image_scan_config = self._get_param("imageScanningConfiguration")
-        image_tag_mutablility = self._get_param("imageTagMutability")
+        image_tag_mutability = self._get_param("imageTagMutability")
+        image_tag_mutability_exclusion_filters = self._get_param(
+            "imageTagMutabilityExclusionFilters"
+        )
         tags = self._get_param("tags", [])
 
         repository = self.ecr_backend.create_repository(
@@ -29,7 +32,8 @@ class ECRResponse(BaseResponse):
             registry_id=registry_id,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
-            image_tag_mutablility=image_tag_mutablility,
+            image_tag_mutability=image_tag_mutability,
+            image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
             tags=tags,
         )
         return ActionResult({"repository": repository})
@@ -93,7 +97,6 @@ class ECRResponse(BaseResponse):
         return ActionResult({"imageDetails": dto_images})
 
     def batch_check_layer_availability(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.batch_check_layer_availability is not yet implemented"
         )
@@ -138,7 +141,6 @@ class ECRResponse(BaseResponse):
         )
 
     def complete_layer_upload(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
 
     def delete_repository_policy(self) -> ActionResult:
@@ -169,7 +171,6 @@ class ECRResponse(BaseResponse):
         return ActionResult({"authorizationData": auth_data})
 
     def get_download_url_for_layer(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.get_download_url_for_layer is not yet implemented"
         )
@@ -185,7 +186,6 @@ class ECRResponse(BaseResponse):
         )
 
     def initiate_layer_upload(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
 
     def set_repository_policy(self) -> ActionResult:
@@ -205,7 +205,6 @@ class ECRResponse(BaseResponse):
         )
 
     def upload_layer_part(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
 
     def list_tags_for_resource(self) -> ActionResult:
@@ -231,12 +230,16 @@ class ECRResponse(BaseResponse):
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
         image_tag_mutability = self._get_param("imageTagMutability")
+        image_tag_mutability_exclusion_filters = self._get_param(
+            "imageTagMutabilityExclusionFilters"
+        )
 
         return ActionResult(
             self.ecr_backend.put_image_tag_mutability(
                 registry_id=registry_id,
                 repository_name=repository_name,
                 image_tag_mutability=image_tag_mutability,
+                image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
             )
         )
 

@@ -37,6 +37,7 @@ organizations
 - [X] describe_organizational_unit
 - [X] describe_policy
 - [ ] describe_resource_policy
+- [ ] describe_responsibility_transfer
 - [X] detach_policy
 - [X] disable_aws_service_access
 - [X] disable_policy_type
@@ -44,17 +45,22 @@ organizations
 - [X] enable_aws_service_access
 - [X] enable_policy_type
 - [ ] invite_account_to_organization
+- [ ] invite_organization_to_transfer_responsibility
 - [ ] leave_organization
 - [X] list_accounts
 - [X] list_accounts_for_parent
+- [ ] list_accounts_with_invalid_effective_policy
 - [X] list_aws_service_access_for_organization
 - [X] list_children
 - [X] list_create_account_status
 - [X] list_delegated_administrators
 - [X] list_delegated_services_for_account
+- [ ] list_effective_policy_validation_errors
 - [ ] list_handshakes_for_account
 - [ ] list_handshakes_for_organization
+- [ ] list_inbound_responsibility_transfers
 - [X] list_organizational_units_for_parent
+- [ ] list_outbound_responsibility_transfers
 - [X] list_parents
 - [X] list_policies
 - [X] list_policies_for_target
@@ -66,7 +72,9 @@ organizations
 - [X] register_delegated_administrator
 - [X] remove_account_from_organization
 - [X] tag_resource
+- [ ] terminate_responsibility_transfer
 - [X] untag_resource
 - [X] update_organizational_unit
 - [X] update_policy
+- [ ] update_responsibility_transfer
 

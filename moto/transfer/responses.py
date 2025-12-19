@@ -31,7 +31,7 @@ class TransferResponse(BaseResponse):
             tags=params.get("Tags"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict(ServerId=server_id, UserName=user_name))
+        return json.dumps({"ServerId": server_id, "UserName": user_name})
 
     def describe_user(self) -> str:
         params = json.loads(self.body)
@@ -39,7 +39,7 @@ class TransferResponse(BaseResponse):
             server_id=params.get("ServerId"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict(ServerId=server_id, User=user.to_dict()))
+        return json.dumps({"ServerId": server_id, "User": user.to_dict()})
 
     def delete_user(self) -> str:
         params = json.loads(self.body)
@@ -47,7 +47,7 @@ class TransferResponse(BaseResponse):
             server_id=params.get("ServerId"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def import_ssh_public_key(self) -> str:
         params = json.loads(self.body)
@@ -59,9 +59,11 @@ class TransferResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                ServerId=server_id, SshPublicKeyId=ssh_public_key_id, UserName=user_name
-            )
+            {
+                "ServerId": server_id,
+                "SshPublicKeyId": ssh_public_key_id,
+                "UserName": user_name,
+            }
         )
 
     def delete_ssh_public_key(self) -> str:
@@ -71,7 +73,7 @@ class TransferResponse(BaseResponse):
             ssh_public_key_id=params.get("SshPublicKeyId"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_server(self) -> str:
         params = json.loads(self.body)
@@ -96,18 +98,18 @@ class TransferResponse(BaseResponse):
             tags=params.get("Tags"),
             workflow_details=params.get("WorkflowDetails"),
         )
-        return json.dumps(dict(ServerId=server_id))
+        return json.dumps({"ServerId": server_id})
 
     def describe_server(self) -> str:
         params = json.loads(self.body)
         server = self.transfer_backend.describe_server(
             server_id=params.get("ServerId"),
         )
-        return json.dumps(dict(Server=server.to_dict()))
+        return json.dumps({"Server": server.to_dict()})
 
     def delete_server(self) -> str:
         params = json.loads(self.body)
         self.transfer_backend.delete_server(
             server_id=params.get("ServerId"),
         )
-        return json.dumps(dict())
+        return json.dumps({})

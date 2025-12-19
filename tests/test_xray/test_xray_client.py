@@ -7,7 +7,7 @@ import aws_xray_sdk.core.patcher as xray_core_patcher
 import boto3
 import botocore.client
 import botocore.endpoint
-import requests  # noqa # pylint: disable=all
+import requests
 
 from moto import mock_aws
 from moto.utilities.distutils_version import LooseVersion
@@ -60,10 +60,10 @@ def test_xray_dynamo_request_id():
 
     assert id1 != id2
 
-    setattr(botocore.client.BaseClient, "_make_api_call", original_make_api_call)
-    setattr(botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers)
-    setattr(requests.Session, "request", original_session_request)
-    setattr(requests.Session, "prepare_request", original_session_prep_request)
+    botocore.client.BaseClient._make_api_call = original_make_api_call
+    botocore.endpoint.Endpoint._encode_headers = original_encode_headers
+    requests.Session.request = original_session_request
+    requests.Session.prepare_request = original_session_prep_request
 
 
 def test_xray_dynamo_request_id_with_context_mgr():
@@ -90,14 +90,10 @@ def test_xray_dynamo_request_id_with_context_mgr():
 
             assert id1 != id2
 
-            setattr(
-                botocore.client.BaseClient, "_make_api_call", original_make_api_call
-            )
-            setattr(
-                botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers
-            )
-            setattr(requests.Session, "request", original_session_request)
-            setattr(requests.Session, "prepare_request", original_session_prep_request)
+            botocore.client.BaseClient._make_api_call = original_make_api_call
+            botocore.endpoint.Endpoint._encode_headers = original_encode_headers
+            requests.Session.request = original_session_request
+            requests.Session.prepare_request = original_session_prep_request
 
     # Verify we have unmocked the xray recorder
     assert not isinstance(xray_core.xray_recorder._emitter, MockEmitter)
@@ -113,10 +109,10 @@ def test_xray_udp_emitter_patched():
 
     assert isinstance(xray_core.xray_recorder._emitter, MockEmitter)
 
-    setattr(botocore.client.BaseClient, "_make_api_call", original_make_api_call)
-    setattr(botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers)
-    setattr(requests.Session, "request", original_session_request)
-    setattr(requests.Session, "prepare_request", original_session_prep_request)
+    botocore.client.BaseClient._make_api_call = original_make_api_call
+    botocore.endpoint.Endpoint._encode_headers = original_encode_headers
+    requests.Session.request = original_session_request
+    requests.Session.prepare_request = original_session_prep_request
 
 
 @mock_xray_client
@@ -129,7 +125,7 @@ def test_xray_context_patched():
 
     assert xray_core.xray_recorder._context.context_missing == "LOG_ERROR"
 
-    setattr(botocore.client.BaseClient, "_make_api_call", original_make_api_call)
-    setattr(botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers)
-    setattr(requests.Session, "request", original_session_request)
-    setattr(requests.Session, "prepare_request", original_session_prep_request)
+    botocore.client.BaseClient._make_api_call = original_make_api_call
+    botocore.endpoint.Endpoint._encode_headers = original_encode_headers
+    requests.Session.request = original_session_request
+    requests.Session.prepare_request = original_session_prep_request

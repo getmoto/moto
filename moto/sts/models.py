@@ -1,13 +1,13 @@
 import datetime
 import re
 from base64 import b64decode
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import xmltodict
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.iam.models import AccessKey, iam_backends
 from moto.sts.utils import (
     DEFAULT_STS_SESSION_DURATION,
@@ -23,10 +23,6 @@ class Token(BaseModel):
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
         self.policy = None
-
-    @property
-    def expiration_ISO8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.expiration)
 
 
 class AssumedRole(BaseModel):
@@ -56,10 +52,6 @@ class AssumedRole(BaseModel):
         self.partition = get_partition(region_name)
 
     @property
-    def expiration_ISO8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.expiration)
-
-    @property
     def user_id(self) -> str:
         iam_backend = iam_backends[self.account_id][self.partition]
         try:
@@ -77,7 +69,7 @@ class AssumedRole(BaseModel):
 class STSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.assumed_roles: List[AssumedRole] = []
+        self.assumed_roles: list[AssumedRole] = []
 
     def get_session_token(self, duration: int) -> Token:
         return Token(duration=duration)
@@ -175,7 +167,7 @@ class STSBackend(BaseBackend):
 
     def get_caller_identity(
         self, access_key_id: str, region: str
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         assumed_role = self.get_assumed_role_from_access_key(access_key_id)
         if assumed_role:
             return assumed_role.user_id, assumed_role.arn, assumed_role.account_id
@@ -191,7 +183,7 @@ class STSBackend(BaseBackend):
         arn = f"arn:{partition}:sts::{self.account_id}:user/moto"
         return user_id, arn, self.account_id
 
-    def _create_access_key(self, role: str) -> Tuple[str, AccessKey]:
+    def _create_access_key(self, role: str) -> tuple[str, AccessKey]:
         account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)
         if account_id_match:
             account_id = account_id_match.group(2)

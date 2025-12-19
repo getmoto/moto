@@ -4,6 +4,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_describe_regions():
@@ -47,12 +49,13 @@ def test_availability_zones__parameters():
     ]
     assert len(zones) == 1
     assert zones[0]["ZoneId"] == "use1-az1"
+    assert zones[0]["Messages"] == []
 
     zones = us_east.describe_availability_zones(ZoneNames=["us-east-1a", "us-east-1b"])[
         "AvailabilityZones"
     ]
     assert len(zones) == 2
-    assert set([zone["ZoneId"] for zone in zones]) == {"use1-az1", "use1-az6"}
+    assert {zone["ZoneId"] for zone in zones} == {"use1-az1", "use1-az6"}
 
     zones = us_east.describe_availability_zones(ZoneIds=["use1-az1"])[
         "AvailabilityZones"
@@ -95,12 +98,7 @@ def test_describe_availability_zones_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_availability_zones(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeAvailabilityZones operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

@@ -325,7 +325,7 @@ def test_vote_on_proposal_status_check():
     member_id = response["MemberId"]
 
     # Create 2 more members
-    for counter in range(2, 4):
+    for _ in range(2, 4):
         proposal_id = conn.create_proposal(
             NetworkId=network_id,
             MemberId=member_id,

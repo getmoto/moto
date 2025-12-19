@@ -5,11 +5,10 @@ from moto import mock_aws
 
 
 @mock_aws
-def test_batch_items_returns_all(create_user_table):
-    dynamodb = create_user_table
-    returned_items = dynamodb.batch_get_item(
+def test_batch_items_returns_all(ddb_client, user_table):
+    returned_items = ddb_client.batch_get_item(
         RequestItems={
-            "users": {
+            user_table.name: {
                 "Keys": [
                     {"username": {"S": "user0"}},
                     {"username": {"S": "user1"}},
@@ -19,7 +18,7 @@ def test_batch_items_returns_all(create_user_table):
                 "ConsistentRead": True,
             }
         }
-    )["Responses"]["users"]
+    )["Responses"][user_table.name]
     assert len(returned_items) == 3
     assert {"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}} in returned_items
     assert {"username": {"S": "user2"}, "foo": {"S": "bar"}} in returned_items
@@ -28,13 +27,13 @@ def test_batch_items_returns_all(create_user_table):
 
 @mock_aws
 def test_batch_items_throws_exception_when_requesting_100_items_for_single_table(
-    create_user_table,
+    ddb_client,
+    user_table,
 ):
-    dynamodb = create_user_table
     with pytest.raises(ClientError) as ex:
-        dynamodb.batch_get_item(
+        ddb_client.batch_get_item(
             RequestItems={
-                "users": {
+                user_table.name: {
                     "Keys": [
                         {"username": {"S": "user" + str(i)}} for i in range(0, 104)
                     ],
@@ -46,19 +45,18 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
     msg = ex.value.response["Error"]["Message"]
     assert (
         msg
-        == "1 validation error detected: Value at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
+        == f"1 validation error detected: Value at 'requestItems.{user_table.name}.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
     )
 
 
 @mock_aws
 def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables(
-    create_user_table,
+    ddb_client, user_table
 ):
-    dynamodb = create_user_table
     with pytest.raises(ClientError) as ex:
-        dynamodb.batch_get_item(
+        ddb_client.batch_get_item(
             RequestItems={
-                "users": {
+                user_table.name: {
                     "Keys": [
                         {"username": {"S": "user" + str(i)}} for i in range(0, 75)
                     ],
@@ -78,25 +76,24 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
 
 
 @mock_aws
-def test_batch_items_with_basic_projection_expression(create_user_table):
-    dynamodb = create_user_table
-    returned_items = dynamodb.batch_get_item(
+def test_batch_items_with_basic_projection_expression(ddb_resource, user_table):
+    returned_items = ddb_resource.batch_get_item(
         RequestItems={
-            "users": {
+            user_table.name: {
                 "Keys": [
-                    {"username": {"S": "user0"}},
-                    {"username": {"S": "user1"}},
-                    {"username": {"S": "user2"}},
-                    {"username": {"S": "user3"}},
+                    {"username": "user0"},
+                    {"username": "user1"},
+                    {"username": "user2"},
+                    {"username": "user3"},
                 ],
                 "ConsistentRead": True,
                 "ProjectionExpression": "username",
             }
         }
-    )["Responses"]["users"]
+    )["Responses"][user_table.name]
 
     assert len(returned_items) == 3
-    assert [item["username"]["S"] for item in returned_items] == [
+    assert [item["username"] for item in returned_items] == [
         "user1",
         "user2",
         "user3",
@@ -104,34 +101,33 @@ def test_batch_items_with_basic_projection_expression(create_user_table):
     assert [item.get("foo") for item in returned_items] == [None, None, None]
 
     # The projection expression should not remove data from storage
-    returned_items = dynamodb.batch_get_item(
+    returned_items = ddb_resource.batch_get_item(
         RequestItems={
-            "users": {
+            user_table.name: {
                 "Keys": [
-                    {"username": {"S": "user0"}},
-                    {"username": {"S": "user1"}},
-                    {"username": {"S": "user2"}},
-                    {"username": {"S": "user3"}},
+                    {"username": "user0"},
+                    {"username": "user1"},
+                    {"username": "user2"},
+                    {"username": "user3"},
                 ],
                 "ConsistentRead": True,
             }
         }
-    )["Responses"]["users"]
+    )["Responses"][user_table.name]
 
     assert len(returned_items) == 3
-    assert {"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}} in returned_items
-    assert {"username": {"S": "user2"}, "foo": {"S": "bar"}} in returned_items
-    assert {"username": {"S": "user3"}, "foo": {"S": "bar"}} in returned_items
+    assert {"username": "user1", "binaryfoo": b"bar"} in returned_items
+    assert {"username": "user2", "foo": "bar"} in returned_items
+    assert {"username": "user3", "foo": "bar"} in returned_items
 
 
 @mock_aws
 def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
-    create_user_table,
+    ddb_client, user_table
 ):
-    dynamodb = create_user_table
-    returned_items = dynamodb.batch_get_item(
+    returned_items = ddb_client.batch_get_item(
         RequestItems={
-            "users": {
+            user_table.name: {
                 "Keys": [
                     {"username": {"S": "user0"}},
                     {"username": {"S": "user1"}},
@@ -143,7 +139,7 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
                 "ExpressionAttributeNames": {"#rl": "username"},
             }
         }
-    )["Responses"]["users"]
+    )["Responses"][user_table.name]
 
     assert len(returned_items) == 3
     assert {"username": {"S": "user1"}} in returned_items
@@ -152,12 +148,13 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
 
 
 @mock_aws
-def test_batch_items_should_throw_exception_for_duplicate_request(create_user_table):
-    client = create_user_table
+def test_batch_items_should_throw_exception_for_duplicate_request(
+    ddb_client, user_table
+):
     with pytest.raises(ClientError) as ex:
-        client.batch_get_item(
+        ddb_client.batch_get_item(
             RequestItems={
-                "users": {
+                user_table.name: {
                     "Keys": [
                         {"username": {"S": "user0"}},
                         {"username": {"S": "user0"}},
@@ -172,7 +169,7 @@ def test_batch_items_should_throw_exception_for_duplicate_request(create_user_ta
 
 
 @mock_aws
-def test_batch_items_should_return_16mb_max(create_user_table):
+def test_batch_items_should_return_16mb_max(ddb_client, user_table):
     """
     A single operation can retrieve up to 16 MB of data [...]. BatchGetItem returns a partial result if the response size limit is exceeded [..].
 
@@ -182,25 +179,24 @@ def test_batch_items_should_return_16mb_max(create_user_table):
     It also returns an appropriate UnprocessedKeys value so you can get the next page of results.
     If desired, your application can include its own logic to assemble the pages of results into one dataset.
     """
-    client = create_user_table
     # Fill table with all the data
     for i in range(100):
-        client.put_item(
-            TableName="users",
+        ddb_client.put_item(
+            TableName=user_table.name,
             Item={"username": {"S": f"largedata{i}"}, "foo": {"S": "x" * 300000}},
         )
 
-    resp = client.batch_get_item(
+    resp = ddb_client.batch_get_item(
         RequestItems={
-            "users": {
+            user_table.name: {
                 "Keys": [{"username": {"S": f"largedata{i}"}} for i in range(75)],
                 "ConsistentRead": True,
             }
         }
     )
 
-    assert len(resp["Responses"]["users"]) == 55
-    unprocessed_keys = resp["UnprocessedKeys"]["users"]["Keys"]
+    assert len(resp["Responses"][user_table.name]) == 55
+    unprocessed_keys = resp["UnprocessedKeys"][user_table.name]["Keys"]
     # 75 requested, 55 returned --> 20 unprocessed
     assert len(unprocessed_keys) == 20
 

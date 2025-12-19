@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import unquote
 
 import xmltodict
@@ -14,12 +14,24 @@ class CloudFrontResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="cloudfront")
 
-    def _get_xml_body(self) -> Dict[str, Any]:
+    def _get_xml_body(self) -> dict[str, Any]:
         return xmltodict.parse(self.body, dict_constructor=dict, force_list="Path")
 
     @property
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account][self.partition]
+
+    @classmethod
+    def tagging(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        operation = response._get_param("Operation")
+        if operation == "Tag":
+            return 204, {}, response.tag_resource()[2]
+        if operation == "Untag":
+            return 204, {}, response.untag_resource()[2]
+        if request.method == "GET":
+            return 200, {}, response.list_tags_for_resource()[2]
 
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
@@ -72,7 +84,6 @@ class CloudFrontResponse(BaseResponse):
         params = self._get_xml_body()
         dist_config = params.get("DistributionConfig")
         if_match = self.headers["If-Match"]
-
         dist, location, e_tag = self.backend.update_distribution(
             dist_config=dist_config,  # type: ignore[arg-type]
             _id=dist_id,
@@ -118,6 +129,24 @@ class CloudFrontResponse(BaseResponse):
         template = self.response_template(TAGS_TEMPLATE)
         response = template.render(tags=tags, xmlns=XMLNS)
         return 200, {}, response
+
+    def tag_resource(self) -> TYPE_RESPONSE:
+        resource = unquote(self._get_param("Resource"))
+        params = self._get_xml_body()
+        tags = params.get("Tags", {}).get("Items", {}).get("Tag", [])
+        if not isinstance(tags, list):
+            tags = [tags]
+        self.backend.tag_resource(resource=resource, tags=tags)
+        return 204, {}, ""
+
+    def untag_resource(self) -> TYPE_RESPONSE:
+        resource = unquote(self._get_param("Resource"))
+        params = self._get_xml_body()
+        tag_keys_data = params.get("TagKeys", {}).get("Items", {}).get("Key", [])
+        if not isinstance(tag_keys_data, list):
+            tag_keys_data = [tag_keys_data]
+        self.backend.untag_resource(resource=resource, tag_keys=tag_keys_data)
+        return 204, {}, ""
 
     def create_origin_access_control(self) -> TYPE_RESPONSE:
         config = self._get_xml_body().get("OriginAccessControlConfig", {})
@@ -325,7 +354,7 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
           <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
             {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}
@@ -549,7 +578,7 @@ DIST_CONFIG_TEMPLATE = """
       <PriceClass>{{ distribution.distribution_config.price_class }}</PriceClass>
       <Enabled>{{ distribution.distribution_config.enabled }}</Enabled>
       <ViewerCertificate>
-        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
+        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate == True else 'false' }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
         <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>

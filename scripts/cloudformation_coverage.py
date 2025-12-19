@@ -55,26 +55,14 @@ class CloudFormationChecklist:
         return report.strip()
 
     @property
-    def service_name(self):
-        return self.resource_name.split("::")[1].lower()
-
-    @property
-    def model_name(self):
-        return self.resource_name.split("::")[2]
-
-    @property
     def moto_model(self):
         from moto.core.common_models import CloudFormationModel
 
         for subclass in CloudFormationModel.__subclasses__():
-            subclass_service = subclass.__module__.split(".")[1]
-            subclass_model = subclass.__name__
 
-            if subclass_service == self.service_name and subclass_model in (
-                self.model_name,
-                "Fake" + self.model_name,
-            ):
+            if subclass.cloudformation_type() == self.resource_name:
                 return subclass
+
 
     @property
     def expected_attrs(self):
@@ -153,7 +141,7 @@ def write_documentation(supported):
         file.write("\n\n")
 
         max_resource_name_length = max([len(cf.resource_name) for cf in supported]) + 2
-        max_fn_att_length = 40
+        max_fn_att_length = 75
 
         file.write(".. table:: \n\n")
         file.write(

@@ -1,12 +1,11 @@
-import datetime
 from copy import deepcopy
+from datetime import datetime, timezone
 from unittest import SkipTest, mock
 from unittest.mock import PropertyMock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -327,7 +326,7 @@ def test_create_cluster_generates_valid_cluster_arn(ClusterBuilder):
 
 @mock_aws
 def test_create_cluster_generates_valid_cluster_created_timestamp(ClusterBuilder):
-    cluster_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    cluster_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(cluster_create_time):
         _, generated_test_data = ClusterBuilder()
     result_time = generated_test_data.cluster_describe_output[
@@ -607,7 +606,7 @@ def test_create_nodegroup_generates_valid_nodegroup_arn(NodegroupBuilder):
 
 @mock_aws
 def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupBuilder):
-    ng_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    ng_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(ng_create_time):
         _, generated_test_data = NodegroupBuilder()
 
@@ -622,7 +621,7 @@ def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupB
 def test_create_nodegroup_generates_valid_nodegroup_modified_timestamp(
     NodegroupBuilder,
 ):
-    ng_mod_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    ng_mod_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(ng_mod_time):
         _, generated_test_data = NodegroupBuilder()
     result_time = generated_test_data.nodegroup_describe_output[
@@ -1057,7 +1056,7 @@ def test_create_fargate_profile_generates_valid_profile_arn(FargateProfileBuilde
 def test_create_fargate_profile_generates_valid_created_timestamp(
     FargateProfileBuilder,
 ):
-    fp_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    fp_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(fp_create_time):
         _, generated_test_data = FargateProfileBuilder()
     result_time = generated_test_data.fargate_describe_output[
@@ -1415,3 +1414,58 @@ def assert_valid_selectors(ClusterBuilder, expected_msg, expected_result, select
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(**test_inputs)
         assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_update_cluster_config(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_name = generated_cluster.existing_cluster_name
+
+    new_vpc_config = {
+        "subnetIds": ["test-new-subnet"],
+        "endpointPublicAccess": False,
+    }
+
+    new_logging = {"clusterLogging": [{"types": ["api", "audit"], "enabled": True}]}
+
+    client_request_token = "test-new-client-request-token"
+
+    new_kubernetes_network_config = {"serviceIpv4Cidr": "0.0.0.0"}
+    new_remote_network_config = {
+        "remoteNodeNetworks": [
+            {"cidrs": ["test-new-cidrs"]},
+        ],
+    }
+
+    client.update_cluster_config(
+        name=cluster_name,
+        resourcesVpcConfig=new_vpc_config,
+        logging=new_logging,
+        clientRequestToken=client_request_token,
+        kubernetesNetworkConfig=new_kubernetes_network_config,
+        remoteNetworkConfig=new_remote_network_config,
+    )
+
+    updated = client.describe_cluster(name=cluster_name)[ResponseAttributes.CLUSTER]
+    assert updated[ClusterAttributes.RESOURCES_VPC_CONFIG] == new_vpc_config
+    assert updated[ClusterAttributes.LOGGING] == new_logging
+    assert (
+        updated[ClusterAttributes.KUBERNETES_NETWORK_CONFIG]
+        == new_kubernetes_network_config
+    )
+    assert updated[ClusterAttributes.REMOTE_NETWORK_CONFIG] == new_remote_network_config
+    assert updated[ClusterAttributes.CLIENT_REQUEST_TOKEN] == client_request_token
+
+
+@mock_aws
+def test_update_cluster_config_not_found(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(
+        clusterName=generated_cluster.nonexistent_cluster_name
+    )
+    with pytest.raises(ClientError) as raised_exception:
+        client.update_cluster_config(name=generated_cluster.nonexistent_cluster_name)
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)

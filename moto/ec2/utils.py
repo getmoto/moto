@@ -7,11 +7,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Set,
-    Tuple,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -25,7 +22,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
+from moto.ec2.exceptions import InvalidUserDataError
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
@@ -82,8 +81,8 @@ EC2_RESOURCE_TO_PREFIX = {
 }
 
 
-EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
-HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
+EC2_PREFIX_TO_RESOURCE = {v: k for (k, v) in EC2_RESOURCE_TO_PREFIX.items()}
+HEX_CHARS = [str(x) for x in range(10)] + ["a", "b", "c", "d", "e", "f"]
 
 
 def random_resource_id(size: int = 8) -> str:
@@ -317,7 +316,7 @@ def generate_route_id(
     return f"{route_table_id}~{cidr_block}"
 
 
-def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str]:
+def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> dict[str, str]:
     return {
         "dns_name": f"{vpc_endpoint_id}-{random_resource_id(8)}.{service_name}",
         "hosted_zone_id": random_resource_id(13).upper(),
@@ -330,21 +329,9 @@ def utc_date_and_time() -> str:
     return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
 
-def split_route_id(route_id: str) -> Tuple[str, str]:
+def split_route_id(route_id: str) -> tuple[str, str]:
     values = route_id.split("~")
     return values[0], values[1]
-
-
-def get_attribute_value(
-    parameter: str, querystring_dict: Dict[str, List[str]]
-) -> Union[None, bool, str]:
-    for key, value in querystring_dict.items():
-        match = re.search(rf"{parameter}.Value", key)
-        if match:
-            if value[0].lower() in ["true", "false"]:
-                return True if value[0].lower() in ["true"] else False
-            return value[0]
-    return None
 
 
 def get_object_value(obj: Any, attr: str) -> Any:
@@ -361,7 +348,7 @@ def get_object_value(obj: Any, attr: str) -> Any:
                 if item_val:
                     return item_val
         elif key == "owner_id" and hasattr(val, "account_id"):
-            val = getattr(val, "account_id")
+            val = val.account_id
         else:
             return None
     return val
@@ -377,30 +364,28 @@ def is_tag_filter(filter_name: str) -> bool:
 
 def get_obj_tag(obj: Any, filter_name: str) -> Optional[str]:
     tag_name = filter_name.replace("tag:", "", 1)
-    tags = dict((tag["key"], tag["value"]) for tag in obj.get_tags())
+    tags = {tag["key"]: tag["value"] for tag in obj.get_tags()}
     return tags.get(tag_name)
 
 
-def get_obj_tag_names(obj: Any) -> Set[str]:
-    tags = set((tag["key"] for tag in obj.get_tags()))
+def get_obj_tag_names(obj: Any) -> set[str]:
+    tags = {tag["key"] for tag in obj.get_tags()}
     return tags
 
 
-def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> Set[str]:
-    tags = set(
-        (tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None)
-    )
+def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
+    tags = {tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None}
     return tags
 
 
-def add_tag_specification(tags: Any) -> Dict[str, str]:
+def add_tag_specification(tags: Any) -> dict[str, str]:
     tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-    tags = (tags or {}).get("Tag", [])
+    tags = (tags or {}).get("Tags", [])
     tags = {t["Key"]: t["Value"] for t in tags}
     return tags
 
 
-def tag_filter_matches(obj: Any, filter_name: str, filter_values: List[str]) -> bool:
+def tag_filter_matches(obj: Any, filter_name: str, filter_values: list[str]) -> bool:
     regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == "tag-key":
         tag_values = get_obj_tag_names(obj)
@@ -424,7 +409,7 @@ def tag_filter_matches(obj: Any, filter_name: str, filter_values: List[str]) -> 
 filter_dict_attribute_mapping = {
     "instance-state-name": "state",
     "instance-id": "id",
-    "state-reason-code": "_state_reason.code",
+    "state-reason-code": "state_reason.code",
     "source-dest-check": "source_dest_check",
     "vpc-id": "vpc_id",
     "group-id": "security_groups.id",
@@ -436,17 +421,17 @@ filter_dict_attribute_mapping = {
     "availability-zone": "placement",
     "architecture": "architecture",
     "image-id": "image_id",
-    "network-interface.private-dns-name": "private_dns",
-    "private-dns-name": "private_dns",
+    "network-interface.private-dns-name": "private_dns_name",
+    "private-dns-name": "private_dns_name",
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
-    "dns-name": "public_dns",
+    "dns-name": "public_dns_name",
     "key-name": "key_name",
     "product-code": "product_codes",
 }
 
 
-def passes_filter_dict(instance: Any, filter_dict: Dict[str, Any]) -> bool:
+def passes_filter_dict(instance: Any, filter_dict: dict[str, Any]) -> bool:
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
@@ -459,8 +444,7 @@ def passes_filter_dict(instance: Any, filter_dict: Dict[str, Any]) -> bool:
                 return False
         else:
             raise NotImplementedError(
-                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/getmoto/moto/issues"
-                % filter_name
+                f"Filter dicts have not been implemented in Moto for '{filter_name}' yet. Feel free to open an issue at https://github.com/getmoto/moto/issues"
             )
     return True
 
@@ -468,6 +452,9 @@ def passes_filter_dict(instance: Any, filter_dict: Dict[str, Any]) -> bool:
 def instance_value_in_filter_values(instance_value: Any, filter_values: Any) -> bool:
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
+            return False
+    elif isinstance(instance_value, bool):
+        if str(instance_value).lower() not in filter_values:
             return False
     elif instance_value not in filter_values:
         return False
@@ -478,8 +465,8 @@ FILTER_TYPE = TypeVar("FILTER_TYPE")
 
 
 def filter_reservations(
-    reservations: List[FILTER_TYPE], filter_dict: Any
-) -> List[FILTER_TYPE]:
+    reservations: list[FILTER_TYPE], filter_dict: Any
+) -> list[FILTER_TYPE]:
     result = []
     for reservation in reservations:
         new_instances = []
@@ -499,7 +486,7 @@ filter_dict_igw_mapping = {
 }
 
 
-def passes_igw_filter_dict(igw: Any, filter_dict: Dict[str, Any]) -> bool:
+def passes_igw_filter_dict(igw: Any, filter_dict: dict[str, Any]) -> bool:
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_igw_mapping:
             igw_attr = filter_dict_igw_mapping[filter_name]
@@ -517,8 +504,8 @@ def passes_igw_filter_dict(igw: Any, filter_dict: Dict[str, Any]) -> bool:
 
 
 def filter_internet_gateways(
-    igws: List[FILTER_TYPE], filter_dict: Any
-) -> List[FILTER_TYPE]:
+    igws: list[FILTER_TYPE], filter_dict: Any
+) -> list[FILTER_TYPE]:
     result = []
     for igw in igws:
         if passes_igw_filter_dict(igw, filter_dict):
@@ -529,6 +516,16 @@ def filter_internet_gateways(
 def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
     value = obj.get_filter_value(_filter)
     if filter_value is None:
+        return False
+
+    if isinstance(value, bool):
+        if str(value).lower() in filter_value:
+            return True
+        return False
+
+    if isinstance(value, int):
+        if str(value) in filter_value:
+            return True
         return False
 
     if isinstance(value, str):
@@ -556,8 +553,8 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
 
 def generic_filter(
-    filters: Dict[str, Any], objects: List[FILTER_TYPE]
-) -> List[FILTER_TYPE]:
+    filters: dict[str, Any], objects: list[FILTER_TYPE]
+) -> list[FILTER_TYPE]:
     if filters:
         for _filter, _filter_value in filters.items():
             objects = [
@@ -576,7 +573,13 @@ def simple_aws_filter_to_re(filter_string: str) -> str:
     return tmp_filter
 
 
-def random_ed25519_key_pair() -> Dict[str, str]:
+class KeyDetails(TypedDict):
+    fingerprint: str
+    material: bytes
+    material_public: bytes
+
+
+def random_ed25519_key_pair() -> KeyDetails:
     private_key = Ed25519PrivateKey.generate()
     private_key_material = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -593,12 +596,12 @@ def random_ed25519_key_pair() -> Dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
-def random_rsa_key_pair() -> Dict[str, str]:
+def random_rsa_key_pair() -> KeyDetails:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -617,8 +620,8 @@ def random_rsa_key_pair() -> Dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
@@ -672,7 +675,7 @@ def is_valid_security_group_id(sg_id: str) -> bool:
     return compiled_re.match(sg_id) is not None
 
 
-def generate_instance_identity_document(instance: Any) -> Dict[str, Any]:
+def generate_instance_identity_document(instance: Any) -> dict[str, Any]:
     """
     http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
 
@@ -744,14 +747,8 @@ def _convert_rfc4716(data: bytes) -> bytes:
     return b" ".join(result_parts)
 
 
-def public_key_parse(
-    key_material: Union[str, bytes],
-) -> Union[RSAPublicKey, Ed25519PublicKey]:
+def public_key_parse(key_material: bytes) -> Union[RSAPublicKey, Ed25519PublicKey]:
     try:
-        if isinstance(key_material, str):
-            key_material = key_material.encode("ascii")
-        key_material = base64.b64decode(key_material)
-
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first
             key_material = _convert_rfc4716(key_material)
@@ -791,8 +788,8 @@ def select_hash_algorithm(
 
 
 def filter_iam_instance_profile_associations(
-    iam_instance_associations: List[FILTER_TYPE], filter_dict: Any
-) -> List[FILTER_TYPE]:
+    iam_instance_associations: list[FILTER_TYPE], filter_dict: Any
+) -> list[FILTER_TYPE]:
     if not filter_dict:
         return iam_instance_associations
     result = []
@@ -801,11 +798,11 @@ def filter_iam_instance_profile_associations(
         if filter_dict.get("instance-id"):
             if (
                 iam_instance_association.instance.id  # type: ignore[attr-defined]
-                not in filter_dict.get("instance-id").values()
+                not in filter_dict.get("instance-id", [])
             ):
                 filter_passed = False
         if filter_dict.get("state"):
-            if iam_instance_association.state not in filter_dict.get("state").values():  # type: ignore[attr-defined]
+            if iam_instance_association.state not in filter_dict.get("state", []):  # type: ignore[attr-defined]
                 filter_passed = False
         if filter_passed:
             result.append(iam_instance_association)
@@ -843,8 +840,8 @@ def filter_iam_instance_profiles(
 
 
 def describe_tag_filter(
-    filters: Any, instances: List[FILTER_TYPE]
-) -> List[FILTER_TYPE]:
+    filters: Any, instances: list[FILTER_TYPE]
+) -> list[FILTER_TYPE]:
     result = instances.copy()
     for instance in instances:
         for key in filters:
@@ -868,8 +865,8 @@ def describe_tag_filter(
 
 
 def gen_moto_amis(
-    described_images: List[Dict[str, Any]], drop_images_missing_keys: bool = True
-) -> List[Dict[str, Any]]:
+    described_images: list[dict[str, Any]], drop_images_missing_keys: bool = True
+) -> list[dict[str, Any]]:
     """Convert `boto3.EC2.Client.describe_images` output to form acceptable to `MOTO_AMIS_PATH`
 
     Parameters
@@ -923,12 +920,12 @@ def gen_moto_amis(
 
 
 def convert_tag_spec(
-    tag_spec_set: List[Dict[str, Any]], tag_key: str = "Tag"
-) -> Dict[str, Dict[str, str]]:
+    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tags"
+) -> dict[str, dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case
     # OUT:  {_type: {k: v, ..}}
-    tags: Dict[str, Dict[str, str]] = {}
+    tags: dict[str, dict[str, str]] = {}
     for tag_spec in tag_spec_set:
         if tag_spec["ResourceType"] not in tags:
             tags[tag_spec["ResourceType"]] = {}
@@ -936,3 +933,16 @@ def convert_tag_spec(
             {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
         )
     return tags
+
+
+def parse_user_data(value: Any) -> Optional[Base64EncodedString]:
+    if value is None:
+        return None
+    try:
+        if isinstance(value, bytes):
+            user_data = Base64EncodedString.from_encoded_bytes(value)
+        else:
+            user_data = Base64EncodedString(value)
+    except ValueError:
+        raise InvalidUserDataError("Invalid BASE64 encoding of user data.")
+    return user_data

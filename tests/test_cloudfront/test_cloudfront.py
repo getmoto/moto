@@ -25,6 +25,7 @@ def test_update_distribution():
     aliases = ["alias1", "alias2"]
     dist_config["Origins"]["Items"][0]["OriginPath"] = "/updated"
     dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
+    dist_config["ViewerCertificate"]["CloudFrontDefaultCertificate"] = False
 
     dist = client.update_distribution(
         DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
@@ -113,7 +114,7 @@ def test_update_distribution():
     assert config["IsIPV6Enabled"] is True
 
     cert = config["ViewerCertificate"]
-    assert cert["CloudFrontDefaultCertificate"] is True
+    assert cert["CloudFrontDefaultCertificate"] is False
     assert cert["MinimumProtocolVersion"] == "TLSv1"
     assert cert["CertificateSource"] == "cloudfront"
     assert cert["IAMCertificateId"] == ""

@@ -2,7 +2,7 @@ import abc
 import json
 import threading
 import time
-from typing import Any, Callable, Optional, Set, Union
+from typing import Any, Callable, Final, Optional, Union
 
 from moto.stepfunctions.parser.api import (
     HistoryEventExecutionDataDetails,
@@ -17,7 +17,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.failure_event imp
     FailureEvent,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -45,13 +45,13 @@ from moto.stepfunctions.parser.utils import TMP_THREADS
 
 # TODO: consider implementing a polling pattern similar to that observable from AWS:
 # https://repost.aws/questions/QUFFlHcbvIQFe-bS3RAi7TWA/a-glue-job-in-a-step-function-is-taking-so-long-to-continue-the-next-step
-_DELAY_SECONDS_SYNC_CONDITION_CHECK: float = 0.5
+_DELAY_SECONDS_SYNC_CONDITION_CHECK: Final[float] = 0.5
 
 
 class StateTaskServiceCallback(StateTaskService, abc.ABC):
-    _supported_integration_patterns: Set[ResourceCondition]
+    _supported_integration_patterns: Final[set[ResourceCondition]]
 
-    def __init__(self, supported_integration_patterns: Set[ResourceCondition]):
+    def __init__(self, supported_integration_patterns: set[ResourceCondition]):
         super().__init__()
         self._supported_integration_patterns = supported_integration_patterns
 
@@ -66,7 +66,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         raise RuntimeError(
             f"Unsupported .sync callback procedure in resource {self.resource.resource_arn}"
@@ -77,7 +77,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         raise RuntimeError(
             f"Unsupported .sync2 callback procedure in resource {self.resource.resource_arn}"
@@ -151,7 +151,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
         task_output = env.stack.pop()
 
@@ -194,7 +194,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
                         env=env,
                         resource_runtime_part=resource_runtime_part,
                         normalised_parameters=normalised_parameters,
-                        task_credentials=task_credentials,
+                        state_credentials=state_credentials,
                     )
                 else:
                     # The condition checks about the resource's condition is exhaustive leaving
@@ -203,7 +203,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
                         env=env,
                         resource_runtime_part=resource_runtime_part,
                         normalised_parameters=normalised_parameters,
-                        task_credentials=task_credentials,
+                        state_credentials=state_credentials,
                     )
 
                 outcome = self._eval_sync(
@@ -333,8 +333,11 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
+        # TODO: In Mock mode, when simulating a failure, the mock response is handled by
+        # super()._eval_execution, so this block is never executed. Consequently, the
+        # "TaskSubmitted" event isn’t recorded in the event history.
         if self._is_integration_pattern():
             output = env.stack[-1]
             env.event_manager.add_event(
@@ -349,16 +352,16 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
                     )
                 ),
             )
-            self._eval_integration_pattern(
-                env=env,
-                resource_runtime_part=resource_runtime_part,
-                normalised_parameters=normalised_parameters,
-                task_credentials=task_credentials,
-            )
-
+            if not env.is_mocked_mode():
+                self._eval_integration_pattern(
+                    env=env,
+                    resource_runtime_part=resource_runtime_part,
+                    normalised_parameters=normalised_parameters,
+                    state_credentials=state_credentials,
+                )
         super()._after_eval_execution(
             env=env,
             resource_runtime_part=resource_runtime_part,
             normalised_parameters=normalised_parameters,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )

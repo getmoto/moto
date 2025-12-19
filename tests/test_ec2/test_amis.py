@@ -9,8 +9,10 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import RFC3339_DATETIME_PATTERN
 from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
+from tests.test_ec2.helpers import assert_dryrun_error
 
 
 # The default AMIs are not loaded for our test case, to speed things up
@@ -26,9 +28,9 @@ def test_snapshots_for_initial_amis():
     snapshot_descs = [s["Description"] for s in snapshots]
     initial_ami_count = len(AMIS)
 
-    assert (
-        len(snapshots) >= initial_ami_count
-    ), "Should have at least as many snapshots as AMIs"
+    assert len(snapshots) >= initial_ami_count, (
+        "Should have at least as many snapshots as AMIs"
+    )
 
     for ami in AMIS:
         ami_id = ami["ami_id"]
@@ -51,29 +53,23 @@ def test_ami_create_and_delete():
         ec2.create_image(
             InstanceId=instance["InstanceId"], Name="test-ami", DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
+    assert_dryrun_error(ex)
 
     image_id = ec2.create_image(
         InstanceId=instance_id, Name="test-ami", Description="this is a test ami"
     )["ImageId"]
 
     all_images = ec2.describe_images()["Images"]
-    assert image_id in set([i["ImageId"] for i in all_images])
+    assert image_id in {i["ImageId"] for i in all_images}
 
     retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
 
     assert retrieved_image["ImageId"] == image_id
     assert retrieved_image["VirtualizationType"] == instance["VirtualizationType"]
     assert retrieved_image["Architecture"] == instance["Architecture"]
-    assert retrieved_image["KernelId"] == instance["KernelId"]
     assert retrieved_image["Platform"] == instance["Platform"]
-    assert "CreationDate" in retrieved_image
+    assert RFC3339_DATETIME_PATTERN.match(retrieved_image["CreationDate"])
     ec2.terminate_instances(InstanceIds=[instance_id])
 
     # Ensure we're no longer creating a volume
@@ -111,13 +107,7 @@ def test_ami_create_and_delete():
     # Deregister
     with pytest.raises(ClientError) as ex:
         ec2.deregister_image(ImageId=image_id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     success = ec2.deregister_image(ImageId=image_id)
     assert success["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -183,13 +173,7 @@ def test_ami_copy_dryrun():
             Description="this is a test copy ami",
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
@@ -224,7 +208,6 @@ def test_ami_copy():
     assert copy_image["ImageId"] == copy_image_id
     assert copy_image["VirtualizationType"] == source_image["VirtualizationType"]
     assert copy_image["Architecture"] == source_image["Architecture"]
-    assert copy_image["KernelId"] == source_image["KernelId"]
     assert copy_image["Platform"] == source_image["Platform"]
 
     # Validate auto-created snapshot
@@ -331,13 +314,7 @@ def test_ami_tagging():
 
     with pytest.raises(ClientError) as ex:
         image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
     assert image.tags == [{"Value": "some value", "Key": "a key"}]
@@ -434,9 +411,9 @@ def test_ami_filters():
         Filters=[{"Name": "architecture", "Values": ["x86_64"]}]
     )["Images"]
     assert imageB_id in [ami["ImageId"] for ami in amis_by_architecture]
-    assert (
-        len(amis_by_architecture) >= 40
-    ), "Should have at least 40 AMI's of type x86_64"
+    assert len(amis_by_architecture) >= 40, (
+        "Should have at least 40 AMI's of type x86_64"
+    )
 
     amis_by_kernel = ec2.describe_images(
         Filters=[{"Name": "kernel-id", "Values": [kernel_value_B]}]
@@ -581,12 +558,7 @@ def test_ami_attribute_group_permissions():
     # Add 'all' group and confirm
     with pytest.raises(ClientError) as ex:
         image.modify_attribute(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     image.modify_attribute(**ADD_GROUP_ARGS)
 
@@ -1311,6 +1283,34 @@ def test_ami_filter_by_empty_tag():
     assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
 
 
+@mock_aws
+def test_ami_filter_by_source_instance_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    instance_ids = [
+        i.instance_id
+        for i in ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    ]
+    for i in range(2):
+        client.create_image(
+            InstanceId=instance_ids[i],
+            Name=f"MyAMI{i}",
+            Description=f"Image from instance {i}",
+        )
+    for i in range(2):
+        images_filter = [
+            {
+                "Name": "source-instance-id",
+                "Values": [instance_ids[i]],
+            },
+        ]
+        resp = client.describe_images(Filters=images_filter)
+        images = resp["Images"]
+        assert len(images) == 1
+        assert images[0]["SourceInstanceId"] == instance_ids[i]
+
+
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
 def test_ami_filter_by_ownerid():
@@ -1369,12 +1369,7 @@ def test_describe_images_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_images(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeImages operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

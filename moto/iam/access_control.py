@@ -17,7 +17,8 @@ import logging
 import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Match, Optional, Union
+from re import Match
+from typing import Any, Optional, Union
 
 from botocore.auth import S3SigV4Auth, SigV4Auth
 from botocore.awsrequest import AWSRequest
@@ -42,7 +43,7 @@ from moto.s3.exceptions import (
 from moto.sts.models import sts_backends
 from moto.utilities.utils import get_partition
 
-from .exceptions import IAMNotFoundException
+from .exceptions import NotFoundException
 from .models import IAMBackend, Policy, iam_backends
 from .policy_conditions import TrustRelationShipConditions
 from .utils import (
@@ -54,7 +55,7 @@ log = logging.getLogger(__name__)
 
 
 def create_access_key(
-    account_id: str, partition: str, access_key_id: str, headers: Dict[str, str]
+    account_id: str, partition: str, access_key_id: str, headers: dict[str, str]
 ) -> Union["IAMUserAccessKey", "AssumedRoleAccessKey"]:
     if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
         return IAMUserAccessKey(
@@ -82,7 +83,7 @@ class IAMUserAccessKey:
         account_id: str,
         partition: str,
         access_key_id: str,
-        headers: Dict[str, str],
+        headers: dict[str, str],
     ):
         self.account_id = account_id
         self.partition = partition
@@ -108,7 +109,7 @@ class IAMUserAccessKey:
     def create_credentials(self) -> Credentials:
         return Credentials(self._access_key_id, self._secret_access_key)
 
-    def collect_policies(self) -> List[Dict[str, str]]:
+    def collect_policies(self) -> list[dict[str, str]]:
         user_policies = []
 
         inline_policy_names = self.backend.list_user_policies(self._owner_user_name)
@@ -152,7 +153,7 @@ class AssumedRoleAccessKey:
         account_id: str,
         partition: str,
         access_key_id: str,
-        headers: Dict[str, str],
+        headers: dict[str, str],
     ):
         self.account_id = account_id
         self.partition = partition
@@ -177,7 +178,7 @@ class AssumedRoleAccessKey:
             self._access_key_id, self._secret_access_key, self._session_token
         )
 
-    def collect_policies(self) -> List[str]:
+    def collect_policies(self) -> list[str]:
         role_policies = []
 
         inline_policy_names = self.backend.list_role_policies(self._owner_role_name)
@@ -201,19 +202,24 @@ class CreateAccessKeyFailure(Exception):
         self.reason = reason
 
 
-class IAMRequestBase(object, metaclass=ABCMeta):
+class IAMRequestBase(metaclass=ABCMeta):
     def __init__(
         self,
         account_id: str,
         method: str,
         path: str,
-        data: Dict[str, str],
+        data: dict[str, str],
         body: bytes,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         action: str,
     ):
         log.debug(
-            f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}"
+            "Creating %s with method=%s, path=%s, data=%s, headers=%s",
+            self.__class__.__name__,
+            method,
+            path,
+            data,
+            headers,
         )
         self.account_id = account_id
         self._method = method
@@ -280,7 +286,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         try:
             self.backend.get_role_by_arn(resource_arn)
             return self._action in REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK
-        except IAMNotFoundException:
+        except NotFoundException:
             return False
 
     def _check_role_trust_relationship(
@@ -320,8 +326,8 @@ class IAMRequestBase(object, metaclass=ABCMeta):
 
     @staticmethod
     def _create_headers_for_aws_request(
-        signed_headers: List[str], original_headers: Dict[str, str]
-    ) -> Dict[str, str]:
+        signed_headers: list[str], original_headers: dict[str, str]
+    ) -> dict[str, str]:
         headers = {}
         for key, value in original_headers.items():
             if key.lower() in signed_headers:
@@ -428,7 +434,7 @@ class IAMPolicy:
         action: str,
         resource: str = "*",
         principal: Optional[str] = None,
-        incoming_condition_values: Optional[Dict[str, str]] = None,
+        incoming_condition_values: Optional[dict[str, str]] = None,
     ) -> "PermissionResult":
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
@@ -465,7 +471,7 @@ class IAMPolicyStatement:
         action: str,
         resource: str = "*",
         principal: Optional[str] = None,
-        incoming_condition_values: Optional[Dict[str, str]] = None,
+        incoming_condition_values: Optional[dict[str, str]] = None,
     ) -> "PermissionResult":
         is_action_concerned = False
 
@@ -537,7 +543,7 @@ class IAMPolicyStatement:
         )
 
     def _check_conditions(
-        self, incoming_condition_values: Optional[Dict[str, str]]
+        self, incoming_condition_values: Optional[dict[str, str]]
     ) -> bool:
         expected_conditions = self._statement.get("Condition")
         if not expected_conditions:
@@ -545,7 +551,7 @@ class IAMPolicyStatement:
 
         trust_conditions = TrustRelationShipConditions(expected_conditions)
         for condition in trust_conditions:
-            actual_values: List[str] = []
+            actual_values: list[str] = []
 
             for context_key in condition.context_keys:
                 # TODO: expand functionality for covering internal data sources with backend component

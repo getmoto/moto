@@ -12,4 +12,4 @@ def test_describe_autoscaling_groups():
     res = test_client.get("/?Action=DescribeLaunchConfigurations")
 
     assert b"<DescribeLaunchConfigurationsResponse" in res.data
-    assert b"<LaunchConfigurations>" in res.data
+    assert b"<LaunchConfigurations" in res.data

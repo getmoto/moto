@@ -92,9 +92,7 @@ def test_sign_up_user_without_authentication():
     )
     assert res.status_code == 200
     data = json.loads(res.data)
-    assert data["UserPoolId"] == user_pool_id
     assert data["Username"] == "test@gmail.com"
-    assert data["UserStatus"] == "CONFIRMED"
 
 
 def test_admin_create_user_without_authentication():

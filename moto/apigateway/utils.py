@@ -1,6 +1,6 @@
 import json
 import string
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import yaml
 
@@ -15,7 +15,7 @@ class ApigwIdentifier(ResourceIdentifier):
         super().__init__(account_id, region, name)
 
     def generate(
-        self, existing_ids: Union[List[str], None] = None, tags: Tags = None
+        self, existing_ids: Union[list[str], None] = None, tags: Tags = None
     ) -> str:
         return generate_str_id(
             resource_identifier=self,
@@ -84,7 +84,7 @@ def create_id() -> str:
     return "".join(str(random.choice(chars)) for x in range(size))
 
 
-def deserialize_body(body: str) -> Dict[str, Any]:
+def deserialize_body(body: str) -> dict[str, Any]:
     try:
         api_doc = json.loads(body)
     except json.JSONDecodeError:

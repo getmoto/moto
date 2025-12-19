@@ -1,7 +1,7 @@
 import pytest
 from botocore.exceptions import ClientError
 
-from . import fixture_ec2, fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_ec2, fixture_efs  # noqa
 
 
 @pytest.fixture(scope="function", name="file_system")
@@ -95,7 +95,7 @@ def test_modify_mount_target_security_groups(efs, ec2, file_system, subnet):
     resp = ec2.describe_network_interfaces(NetworkInterfaceIds=[network_interface_id])
     network_interface = resp["NetworkInterfaces"][0]
     assert len(network_interface["Groups"]) == 2
-    assert set([sg["GroupId"] for sg in network_interface["Groups"]]) == {
+    assert {sg["GroupId"] for sg in network_interface["Groups"]} == {
         sg_id_2,
         sg_id_3,
     }

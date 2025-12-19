@@ -1,15 +1,16 @@
 import re
-from typing import TYPE_CHECKING, Iterator, List, Union
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from ..models import FakeSecret
+    from ..models import FakeSecret, ReplicaSecret
 
 
-def name_filter(secret: "FakeSecret", names: List[str]) -> bool:
+def name_filter(secret: "FakeSecret", names: list[str]) -> bool:
     return _matcher(names, [secret.name])
 
 
-def description_filter(secret: "FakeSecret", descriptions: List[str]) -> bool:
+def description_filter(secret: "FakeSecret", descriptions: list[str]) -> bool:
     if not secret.description:
         return False
     # The documentation states that this search uses `Prefix match`
@@ -20,7 +21,7 @@ def description_filter(secret: "FakeSecret", descriptions: List[str]) -> bool:
     )
 
 
-def owning_service_filter(secret: "FakeSecret", owning_services: List[str]) -> bool:
+def owning_service_filter(secret: "FakeSecret", owning_services: list[str]) -> bool:
     return _matcher(
         owning_services,
         [secret.owning_service] if secret.owning_service else [],
@@ -29,19 +30,21 @@ def owning_service_filter(secret: "FakeSecret", owning_services: List[str]) -> b
     )
 
 
-def tag_key(secret: "FakeSecret", tag_keys: List[str]) -> bool:
+def tag_key(secret: Union["FakeSecret", "ReplicaSecret"], tag_keys: list[str]) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_keys, [tag["Key"] for tag in secret.tags])
 
 
-def tag_value(secret: "FakeSecret", tag_values: List[str]) -> bool:
+def tag_value(
+    secret: Union["FakeSecret", "ReplicaSecret"], tag_values: list[str]
+) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
 
 
-def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
+def filter_all(secret: Union["FakeSecret", "ReplicaSecret"], values: list[str]) -> bool:
     attributes = [secret.name]
     if secret.description:
         attributes.append(secret.description)
@@ -54,8 +57,8 @@ def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
 
 
 def _matcher(
-    patterns: List[str],
-    strings: List[str],
+    patterns: list[str],
+    strings: list[str],
     match_prefix: bool = True,
     case_sensitive: bool = True,
 ) -> bool:
@@ -100,7 +103,7 @@ def _match_pattern(
     return True
 
 
-def split_words(s: str) -> List[str]:
+def split_words(s: str) -> list[str]:
     """
     Secrets are split by special characters first (/, +, _, etc)
     Partial results are then split again by UpperCasing
@@ -115,7 +118,7 @@ def split_words(s: str) -> List[str]:
         if char in s:
             others = special_chars.copy()
             others.remove(char)
-            contains_other = any([c in s for c in others])
+            contains_other = any(c in s for c in others)
             if contains_other:
                 # Secret contains two different characters, i.e. my/secret+value
                 # Values like this will not be split
@@ -125,7 +128,7 @@ def split_words(s: str) -> List[str]:
     return list(split_by_uppercase(s))
 
 
-def split_by_uppercase(s: Union[str, List[str]]) -> Iterator[str]:
+def split_by_uppercase(s: Union[str, list[str]]) -> Iterator[str]:
     """
     Split a string into words. Words are recognized by upper case letters, i.e.:
     test   -> [test]

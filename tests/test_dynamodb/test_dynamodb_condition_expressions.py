@@ -1,5 +1,6 @@
 import re
 from decimal import Decimal
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -11,7 +12,7 @@ from moto import mock_aws
 @mock_aws
 def test_condition_expression_with_dot_in_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
-    table_name = "Test"
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -45,10 +46,11 @@ def test_condition_expression_with_dot_in_attr_name():
 @mock_aws
 def test_condition_expressions():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     # Create the DynamoDB table.
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -60,7 +62,7 @@ def test_condition_expressions():
         ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
     )
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -70,7 +72,7 @@ def test_condition_expressions():
     )
 
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -87,7 +89,7 @@ def test_condition_expressions():
     )
 
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -99,7 +101,7 @@ def test_condition_expressions():
     )
 
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -111,7 +113,7 @@ def test_condition_expressions():
     )
 
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -124,7 +126,7 @@ def test_condition_expressions():
     )
 
     client.put_item(
-        TableName="test1",
+        TableName=table_name,
         Item={
             "client": {"S": "client1"},
             "app": {"S": "app1"},
@@ -141,7 +143,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app1"},
@@ -157,7 +159,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app1"},
@@ -173,7 +175,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app1"},
@@ -191,7 +193,7 @@ def test_condition_expressions():
 
     # Make sure update_item honors ConditionExpression as well
     client.update_item(
-        TableName="test1",
+        TableName=table_name,
         Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
         UpdateExpression="set #match=:match",
         ConditionExpression="attribute_exists(#existing)",
@@ -201,7 +203,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
-            TableName="test1",
+            TableName=table_name,
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
             UpdateExpression="set #match=:match",
             ConditionExpression="attribute_not_exists(#existing)",
@@ -212,7 +214,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
-            TableName="test1",
+            TableName=table_name,
             Key={"client": {"S": "client2"}, "app": {"S": "app1"}},
             UpdateExpression="set #match=:match",
             ConditionExpression="attribute_exists(#existing)",
@@ -223,7 +225,7 @@ def test_condition_expressions():
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.delete_item(
-            TableName="test1",
+            TableName=table_name,
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
             ConditionExpression="attribute_not_exists(#existing)",
             ExpressionAttributeValues={":match": {"S": "match"}},
@@ -240,13 +242,12 @@ def _assert_conditional_check_failed_exception(exc):
 @mock_aws
 def test_condition_expression_numerical_attribute():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="my-table",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
-    table = dynamodb.Table("my-table")
     table.put_item(Item={"partitionKey": "pk-pos", "myAttr": 5})
     table.put_item(Item={"partitionKey": "pk-neg", "myAttr": -5})
 
@@ -281,22 +282,23 @@ def update_numerical_con_expr(key, con_expr, res, table):
 @mock_aws
 def test_condition_expression__attr_doesnt_exist():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
     client.put_item(
-        TableName="test", Item={"forum_name": {"S": "foo"}, "ttl": {"N": "bar"}}
+        TableName=table_name, Item={"forum_name": {"S": "foo"}, "ttl": {"N": "4567.89"}}
     )
 
     def update_if_attr_doesnt_exist():
         # Test nonexistent top-level attribute.
         client.update_item(
-            TableName="test",
+            TableName=table_name,
             Key={"forum_name": {"S": "the-key"}},
             UpdateExpression="set #new_state=:new_state, #ttl=:ttl",
             ConditionExpression="attribute_not_exists(#new_state)",
@@ -319,9 +321,10 @@ def test_condition_expression__attr_doesnt_exist():
 @mock_aws
 def test_condition_expression__or_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -330,7 +333,7 @@ def test_condition_expression__or_order():
     # ensure that the RHS of the OR expression is not evaluated if the LHS
     # returns true (as it would result an error)
     client.update_item(
-        TableName="test",
+        TableName=table_name,
         Key={"forum_name": {"S": "the-key"}},
         UpdateExpression="set #ttl=:ttl",
         ConditionExpression="attribute_not_exists(#ttl) OR #ttl <= :old_ttl",
@@ -342,9 +345,10 @@ def test_condition_expression__or_order():
 @mock_aws
 def test_condition_expression__and_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -354,7 +358,7 @@ def test_condition_expression__and_order():
     # returns true (as it would result an error)
     with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
-            TableName="test",
+            TableName=table_name,
             Key={"forum_name": {"S": "the-key"}},
             UpdateExpression="set #ttl=:ttl",
             ConditionExpression="attribute_exists(#ttl) AND #ttl <= :old_ttl",
@@ -367,7 +371,7 @@ def test_condition_expression__and_order():
 @mock_aws
 def test_condition_expression_with_reserved_keyword_as_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
-    table_name = "Test"
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -432,8 +436,9 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
     # TypeError: Object of type DynamoType is not JSON serializable
 
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     dynamodb_client.create_table(
-        TableName="example_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -445,13 +450,13 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
         "some_list": {"L": [{"M": {"hello": {"S": "h"}}}]},
     }
     dynamodb_client.put_item(
-        TableName="example_table",
+        TableName=table_name,
         Item=record,
     )
 
     with pytest.raises(ClientError) as error:
         dynamodb_client.update_item(
-            TableName="example_table",
+            TableName=table_name,
             Key={"id": {"S": "example_id"}},
             UpdateExpression="set some_list=list_append(some_list, :w)",
             ExpressionAttributeValues={
@@ -482,8 +487,9 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
     # AttributeError: 'str' object has no attribute 'to_regular_json'
 
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     dynamodb_client.create_table(
-        TableName="example_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -495,13 +501,13 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
         "some_list": {"SS": ["hello"]},
     }
     dynamodb_client.put_item(
-        TableName="example_table",
+        TableName=table_name,
         Item=record,
     )
 
     with pytest.raises(ClientError) as error:
         dynamodb_client.update_item(
-            TableName="example_table",
+            TableName=table_name,
             Key={"id": {"S": "example_id"}},
             UpdateExpression="set some_list=list_append(some_list, :w)",
             ExpressionAttributeValues={
@@ -529,8 +535,9 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
     # when lists are inside a map
 
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     dynamodb_client.create_table(
-        TableName="example_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -543,14 +550,11 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
             "M": {"some_list": {"L": [{"M": {"hello": {"S": "h"}}}]}}
         },
     }
-    dynamodb_client.put_item(
-        TableName="example_table",
-        Item=record,
-    )
+    dynamodb_client.put_item(TableName=table_name, Item=record)
 
     with pytest.raises(ClientError) as error:
         dynamodb_client.update_item(
-            TableName="example_table",
+            TableName=table_name,
             Key={"id": {"S": "example_id"}},
             UpdateExpression="set some_list_in_a_map.some_list=list_append(some_list_in_a_map.some_list, :w)",
             ExpressionAttributeValues={

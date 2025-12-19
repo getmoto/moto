@@ -77,7 +77,7 @@ class AppMeshResponse(BaseResponse):
             limit=limit,
             next_token=next_token,
         )
-        return json.dumps(dict(meshes=meshes, nextToken=next_token))
+        return json.dumps({"meshes": meshes, "nextToken": next_token})
 
     def list_tags_for_resource(self) -> str:
         params = self._get_params()
@@ -89,7 +89,7 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(nextToken=next_token, tags=tags))
+        return json.dumps({"nextToken": next_token, "tags": tags})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -99,7 +99,7 @@ class AppMeshResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_virtual_router(self) -> str:
         mesh_name = self._get_param("meshName")
@@ -168,7 +168,7 @@ class AppMeshResponse(BaseResponse):
             mesh_owner=mesh_owner,
             next_token=next_token,
         )
-        return json.dumps(dict(nextToken=next_token, virtualRouters=virtual_routers))
+        return json.dumps({"nextToken": next_token, "virtualRouters": virtual_routers})
 
     def create_route(self) -> str:
         params = json.loads(self.body)
@@ -248,10 +248,10 @@ class AppMeshResponse(BaseResponse):
             virtual_router_name=virtual_router_name,
         )
         return json.dumps(
-            dict(
-                nextToken=next_token,
-                routes=[r.formatted_for_list_api() for r in routes],
-            )
+            {
+                "nextToken": next_token,
+                "routes": [r.formatted_for_list_api() for r in routes],
+            }
         )
 
     def describe_virtual_node(self) -> str:
@@ -322,8 +322,8 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(
-            dict(
-                nextToken=next_token,
-                virtualNodes=[n.formatted_for_list_api() for n in virtual_nodes],
-            )
+            {
+                "nextToken": next_token,
+                "virtualNodes": [n.formatted_for_list_api() for n in virtual_nodes],
+            }
         )

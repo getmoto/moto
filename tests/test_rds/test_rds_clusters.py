@@ -50,6 +50,23 @@ def test_describe_db_cluster_initial(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
 
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="example",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Domain="example.com",
+    )["DBCluster"]
+    assert cluster["DomainMemberships"][0]["Domain"] == "example"
+    assert cluster["DomainMemberships"][0]["Status"] == "active"
+    assert cluster["DomainMemberships"][0]["FQDN"] == "example.com"
+    assert (
+        cluster["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert cluster["DomainMemberships"][0]["DnsIps"] == []
+    assert cluster["DomainMemberships"][0]["OU"] == "OU=exampleOU,DC=example,DC=com"
+
 
 @mock_aws
 def test_describe_db_cluster_fails_for_non_existent_cluster(client):
@@ -280,6 +297,7 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["DBClusterIdentifier"] == "cluster-id"
     assert cluster["DBClusterParameterGroup"] == "default.aurora8.0"
     assert cluster["DBSubnetGroup"] == "default"
+    assert cluster["DomainMemberships"] == []
     assert cluster["Status"] == "creating"
     assert re.match(
         "cluster-id.cluster-[a-z0-9]{12}.us-west-2.rds.amazonaws.com",
@@ -314,7 +332,6 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["CopyTagsToSnapshot"] is False
     assert cluster["CrossAccountClone"] is False
     assert cluster["DeletionProtection"] is False
-    assert cluster["DomainMemberships"] == []
     assert cluster["TagList"] == []
     assert "ClusterCreateTime" in cluster
     assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]
@@ -1838,6 +1855,104 @@ def test_failover_db_cluster(client):
 
 
 @mock_aws
+def test_failover_db_cluster_without_target_instance_specified(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-replica",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is False
+    cluster_failed_over = client.failover_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+    )["DBCluster"]
+    cluster_members = cluster_failed_over["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is False
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is True
+
+
+@mock_aws
+def test_failover_db_cluster_with_single_instance_cluster(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 1
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier=cluster_identifier,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBClusterStateFault"
+
+
+@mock_aws
+def test_failover_db_cluster_exceptions(client):
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="non-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    create_db_instance(
+        DBInstanceIdentifier="now-existent-instance",
+        Engine="postgres",
+    )
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+    # Real AWS seems to check for the target instance being in a valid state
+    # before checking if it is actually part of the cluster, so we can put
+    # this non-clustered instance into a stopped state to simulate the error
+    # that AWS would return for a target instance in a non-valid state.
+    client.stop_db_instance(DBInstanceIdentifier="now-existent-instance")
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBInstanceState"
+
+
+@mock_aws
 def test_db_cluster_writer_promotion(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-1",
@@ -1908,3 +2023,202 @@ def test_db_cluster_identifier_is_case_insensitive(client):
 
     response = client.delete_db_cluster(DBClusterIdentifier="xXyY")
     assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"
+
+
+@mock_aws
+def test_db_cluster_attributes(client):
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+        PubliclyAccessible=True,
+    )["DBCluster"]
+    assert cluster["DBClusterIdentifier"] == "test-cluster"
+    assert cluster["Engine"] == "aurora-postgresql"
+    assert cluster["PubliclyAccessible"] is True
+
+
+@mock_aws
+def test_db_cluster_with_security_group():
+    rds_client = boto3.client("rds", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    # Create security groups
+    vpc = ec2_client.describe_vpcs()
+    vpc_id = vpc["Vpcs"][0]["VpcId"]
+    sg1 = ec2_client.create_security_group(
+        GroupName="test-sg-1",
+        Description="Test security group for RDS cluster",
+        VpcId=vpc_id,
+    )
+    sg1_id = sg1["GroupId"]
+    sg2 = ec2_client.create_security_group(
+        GroupName="test-sg-2",
+        Description="Test security group for RDS cluster",
+        VpcId=vpc_id,
+    )
+    sg2_id = sg2["GroupId"]
+    # Create a cluster
+    resp = rds_client.create_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        DatabaseName="test-db",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Port=5432,
+        ScalingConfiguration={"MinCapacity": 2, "MaxCapacity": 3},
+        VpcSecurityGroupIds=[sg1_id],
+    )
+    cluster = resp["DBCluster"]
+    vpc_security_groups = cluster["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg1_id
+    # Add instance to the cluster
+    resp = rds_client.create_db_instance(
+        DBInstanceIdentifier="test-instance",
+        DBClusterIdentifier="test-cluster",
+        AllocatedStorage=10,
+        DBInstanceClass="db.t3.medium",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Port=5432,
+    )
+    instance = resp["DBInstance"]
+    vpc_security_groups = instance["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg1_id
+    # Overwrite the cluster security group
+    rds_client.modify_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        VpcSecurityGroupIds=[sg2_id],
+        ApplyImmediately=True,
+    )
+    # Check propagation to the cluster
+    resp = rds_client.describe_db_clusters(DBClusterIdentifier="test-cluster")
+    cluster = resp["DBClusters"][0]
+    vpc_security_groups = cluster["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg2_id
+    # Check propagation to the instance
+    resp = rds_client.describe_db_instances(DBInstanceIdentifier="test-instance")
+    instance = resp["DBInstances"][0]
+    vpc_security_groups = instance["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg2_id
+
+
+@mock_aws
+def test_add_role_to_db_instance(client):
+    db_cluster_identifier = create_db_cluster()
+    instances = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert instances["DBClusters"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(instances["DBClusters"][0]["AssociatedRoles"]) == 1
+    role = instances["DBClusters"][0]["AssociatedRoles"][0]
+    assert role["FeatureName"] == "S3_INTERGRATION"
+    assert role["RoleArn"] == "role-to-for-rds-to-access-s3"
+    assert role["Status"] == "ACTIVE"
+
+
+@mock_aws
+def test_add_role_to_db_cluster_adding_feature_a_second_time_throws_DBClusterRoleAlreadyExists(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    clusters = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(clusters["DBClusters"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="a-different-role",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Feature S3_INTERGRATION alreday assigned to Cluster {db_cluster_identifier}"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_cluster_adding_role_a_second_time_throws_DBClusterRoleAlreadyExists(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    clusters = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(clusters["DBClusters"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Role role-to-for-rds-to-access-s3 alreday assigned to Cluster {db_cluster_identifier}"
+    )
+
+
+@mock_aws
+def test_add_role_to_non_existant_db_cluster_throws_DBClusterNotFoundError(
+    client,
+):
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier="not-a-valid-cluster",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "DBCluster not-a-valid-cluster not found."
+    )
+
+
+@mock_aws
+def test_add_role_to_db_cluster_cluster_in_invalid_state_throws_InvalidDBInstanceStateFault(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+    client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "InvalidDBClusterStateFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Cluster {db_cluster_identifier} should be in a valid state to add role."
+    )

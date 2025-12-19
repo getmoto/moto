@@ -2,9 +2,7 @@
 Ensure that the responses module plays nice with our mocks
 """
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Event, Thread
-from typing import Optional, Tuple
+from http.server import BaseHTTPRequestHandler
 from unittest import SkipTest, TestCase
 
 import boto3
@@ -15,6 +13,8 @@ from moto import mock_aws, settings
 from moto.core.models import override_responses_real_send
 from moto.core.versions import RESPONSES_VERSION
 from moto.utilities.distutils_version import LooseVersion
+
+from .utilities import SimpleServer
 
 
 class TestResponsesModule(TestCase):
@@ -78,37 +78,6 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"real response")
 
 
-class SimpleServer:
-    def __init__(self) -> None:
-        self._port = 0
-
-        self._thread: Optional[Thread] = None
-        self._ip_address = "0.0.0.0"
-        self._server: Optional[HTTPServer] = None
-        self._server_ready_event = Event()
-
-    def _server_entry(self) -> None:
-        self._server = HTTPServer(("0.0.0.0", 0), WebRequestHandler)
-        self._server_ready_event.set()
-        self._server.serve_forever()
-
-    def start(self) -> None:
-        self._thread = Thread(target=self._server_entry, daemon=True)
-        self._thread.start()
-        self._server_ready_event.wait()
-
-    def get_host_and_port(self) -> Tuple[str, int]:
-        assert self._server
-        host, port = self._server.server_address
-        return (str(host), port)
-
-    def stop(self) -> None:
-        if self._server:
-            self._server.shutdown()
-        if self._thread:
-            self._thread.join()
-
-
 @mock_aws
 class TestResponsesMockWithPassThru(TestCase):
     """
@@ -119,7 +88,7 @@ class TestResponsesMockWithPassThru(TestCase):
         if RESPONSES_VERSION < LooseVersion("0.24.0"):
             raise SkipTest("Can only test this with responses >= 0.24.0")
 
-        self.server = SimpleServer()
+        self.server = SimpleServer(WebRequestHandler)
         self.server.start()
         host, port = self.server.get_host_and_port()
         self.server_url = f"http://{host}:{port}"

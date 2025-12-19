@@ -10,6 +10,9 @@ state_manager = _internal.state_manager.StateManager()
 Default transitions across Moto
 """
 state_manager.register_default_transition(
+    model_name="athena::execution", transition={"progression": "immediate"}
+)
+state_manager.register_default_transition(
     "batch::job", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(
@@ -19,6 +22,14 @@ state_manager.register_default_transition(
     model_name="dax::cluster", transition={"progression": "manual", "times": 4}
 )
 state_manager.register_default_transition(
+    model_name="dms::connection",
+    transition={"progression": "manual", "times": 1},
+)
+state_manager.register_default_transition(
+    model_name="dms::replicationinstance",
+    transition={"progression": "manual", "times": 1},
+)
+state_manager.register_default_transition(
     "dsql::cluster", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(
@@ -26,6 +37,10 @@ state_manager.register_default_transition(
 )
 state_manager.register_default_transition(
     model_name="glue::job_run", transition={"progression": "immediate"}
+)
+state_manager.register_default_transition(
+    model_name="glue::crawl",
+    transition={"progression": "manual", "times": 1},
 )
 state_manager.register_default_transition(
     model_name="osis::pipeline", transition={"progression": "immediate"}

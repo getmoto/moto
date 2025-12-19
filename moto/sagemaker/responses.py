@@ -121,9 +121,7 @@ class SageMakerResponse(BaseResponse):
         paged_results, next_token = self.sagemaker_backend.list_tags(
             arn=arn, MaxResults=max_results, NextToken=next_token
         )
-        response = {"Tags": paged_results}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": paged_results, "NextToken": next_token}
         return 200, {}, json.dumps(response)
 
     def add_tags(self) -> TYPE_RESPONSE:
@@ -141,6 +139,7 @@ class SageMakerResponse(BaseResponse):
     def create_endpoint_config(self) -> TYPE_RESPONSE:
         endpoint_config = self.sagemaker_backend.create_endpoint_config(
             endpoint_config_name=self._get_param("EndpointConfigName"),
+            async_inference_config=self._get_param("AsyncInferenceConfig"),
             production_variants=self._get_param("ProductionVariants"),
             data_capture_config=self._get_param("DataCaptureConfig"),
             tags=self._get_param("Tags"),
@@ -785,10 +784,10 @@ class SageMakerResponse(BaseResponse):
             x.gen_response_object() for x in model_package_group_summary_list
         ]
         return json.dumps(
-            dict(
-                ModelPackageGroupSummaryList=model_package_group_summary_list_response_object,
-                NextToken=next_token,
-            )
+            {
+                "ModelPackageGroupSummaryList": model_package_group_summary_list_response_object,
+                "NextToken": next_token,
+            }
         )
 
     def list_model_packages(self) -> str:
@@ -821,10 +820,10 @@ class SageMakerResponse(BaseResponse):
             x.gen_response_object() for x in model_package_summary_list
         ]
         return json.dumps(
-            dict(
-                ModelPackageSummaryList=model_package_summary_list_response_object,
-                NextToken=next_token,
-            )
+            {
+                "ModelPackageSummaryList": model_package_summary_list_response_object,
+                "NextToken": next_token,
+            }
         )
 
     def describe_model_package(self) -> str:
@@ -864,7 +863,7 @@ class SageMakerResponse(BaseResponse):
             customer_metadata_properties_to_remove=customer_metadata_properties_to_remove,
             additional_inference_specifications_to_add=additional_inference_specification_to_add,
         )
-        return json.dumps(dict(ModelPackageArn=updated_model_package_arn))
+        return json.dumps({"ModelPackageArn": updated_model_package_arn})
 
     def create_model_package(self) -> str:
         model_package_name = self._get_param("ModelPackageName")
@@ -907,7 +906,7 @@ class SageMakerResponse(BaseResponse):
             additional_inference_specifications=additional_inference_specifications,
             client_token=client_token,
         )
-        return json.dumps(dict(ModelPackageArn=model_package_arn))
+        return json.dumps({"ModelPackageArn": model_package_arn})
 
     def create_model_package_group(self) -> str:
         model_package_group_name = self._get_param("ModelPackageGroupName")
@@ -920,7 +919,7 @@ class SageMakerResponse(BaseResponse):
             model_package_group_description=model_package_group_description,
             tags=tags,
         )
-        return json.dumps(dict(ModelPackageGroupArn=model_package_group_arn))
+        return json.dumps({"ModelPackageGroupArn": model_package_group_arn})
 
     def create_feature_group(self) -> str:
         feature_group_arn = self.sagemaker_backend.create_feature_group(
@@ -934,7 +933,7 @@ class SageMakerResponse(BaseResponse):
             role_arn=self._get_param("RoleArn"),
             tags=self._get_param("Tags"),
         )
-        return json.dumps(dict(FeatureGroupArn=feature_group_arn))
+        return json.dumps({"FeatureGroupArn": feature_group_arn})
 
     def describe_feature_group(self) -> str:
         resp = self.sagemaker_backend.describe_feature_group(
@@ -953,14 +952,14 @@ class SageMakerResponse(BaseResponse):
             vpc_config=vpc_config,
             tags=tags,
         )
-        return json.dumps(dict(ClusterArn=cluster_arn))
+        return json.dumps({"ClusterArn": cluster_arn})
 
     def delete_cluster(self) -> str:
         cluster_name = self._get_param("ClusterName")
         cluster_arn = self.sagemaker_backend.delete_cluster(
             cluster_name=cluster_name,
         )
-        return json.dumps(dict(ClusterArn=cluster_arn))
+        return json.dumps({"ClusterArn": cluster_arn})
 
     def describe_cluster(self) -> str:
         cluster_name = self._get_param("ClusterName")
@@ -976,7 +975,7 @@ class SageMakerResponse(BaseResponse):
             cluster_name=cluster_name,
             node_id=node_id,
         )
-        return json.dumps(dict(NodeDetails=node_details))
+        return json.dumps({"NodeDetails": node_details})
 
     def list_clusters(self) -> str:
         creation_time_after = self._get_param("CreationTimeAfter")
@@ -997,7 +996,7 @@ class SageMakerResponse(BaseResponse):
         )
         cluster_summaries = [cluster.summary() for cluster in clusters]
         return json.dumps(
-            dict(NextToken=next_token, ClusterSummaries=cluster_summaries)
+            {"NextToken": next_token, "ClusterSummaries": cluster_summaries}
         )
 
     def list_cluster_nodes(self) -> str:
@@ -1021,7 +1020,7 @@ class SageMakerResponse(BaseResponse):
         )
         cluster_node_summaries = [node.summary() for node in cluster_nodes]
         return json.dumps(
-            dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
+            {"NextToken": next_token, "ClusterNodeSummaries": cluster_node_summaries}
         )
 
     def create_model_bias_job_definition(self) -> str:
@@ -1139,7 +1138,7 @@ class SageMakerResponse(BaseResponse):
             model_deploy_config=model_deploy_config,
             data_split_config=data_split_config,
         )
-        return json.dumps(dict(AutoMLJobArn=auto_ml_job_arn))
+        return json.dumps({"AutoMLJobArn": auto_ml_job_arn})
 
     def describe_auto_ml_job_v2(self) -> str:
         auto_ml_job_name = self._get_param("AutoMLJobName")
@@ -1173,7 +1172,7 @@ class SageMakerResponse(BaseResponse):
         )
         auto_ml_job_summaries = [auto_ml_job.summary() for auto_ml_job in auto_ml_jobs]
         return json.dumps(
-            dict(AutoMLJobSummaries=auto_ml_job_summaries, NextToken=next_token)
+            {"AutoMLJobSummaries": auto_ml_job_summaries, "NextToken": next_token}
         )
 
     def stop_auto_ml_job(self) -> str:
@@ -1181,7 +1180,7 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.stop_auto_ml_job(
             auto_ml_job_name=auto_ml_job_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_endpoints(self) -> str:
         sort_by = self._get_param("SortBy")
@@ -1207,7 +1206,7 @@ class SageMakerResponse(BaseResponse):
             status_equals=status_equals,
         )
         endpoint_summaries = [endpoint.summary() for endpoint in endpoints]
-        return json.dumps(dict(Endpoints=endpoint_summaries, NextToken=next_token))
+        return json.dumps({"Endpoints": endpoint_summaries, "NextToken": next_token})
 
     def list_endpoint_configs(self) -> str:
         sort_by = self._get_param("SortBy")
@@ -1230,7 +1229,7 @@ class SageMakerResponse(BaseResponse):
             endpoint_config.summary() for endpoint_config in endpoint_configs
         ]
         return json.dumps(
-            dict(EndpointConfigs=endpoint_summaries, NextToken=next_token)
+            {"EndpointConfigs": endpoint_summaries, "NextToken": next_token}
         )
 
     def create_compilation_job(self) -> str:
@@ -1252,7 +1251,7 @@ class SageMakerResponse(BaseResponse):
             stopping_condition=stopping_condition,
             tags=tags,
         )
-        return json.dumps(dict(CompilationJobArn=compilation_job_arn))
+        return json.dumps({"CompilationJobArn": compilation_job_arn})
 
     def describe_compilation_job(self) -> str:
         compilation_job_name = self._get_param("CompilationJobName")
@@ -1286,9 +1285,10 @@ class SageMakerResponse(BaseResponse):
         )
         compilation_job_summaries = [x.summary() for x in compilation_jobs]
         return json.dumps(
-            dict(
-                CompilationJobSummaries=compilation_job_summaries, NextToken=next_token
-            )
+            {
+                "CompilationJobSummaries": compilation_job_summaries,
+                "NextToken": next_token,
+            }
         )
 
     def delete_compilation_job(self) -> str:
@@ -1342,7 +1342,7 @@ class SageMakerResponse(BaseResponse):
             max_results=max_results,
         )
         domain_summaries = [domain.summary() for domain in domains]
-        return json.dumps(dict(Domains=domain_summaries, NextToken=next_token))
+        return json.dumps({"Domains": domain_summaries, "NextToken": next_token})
 
     def delete_domain(self) -> str:
         domain_id = self._get_param("DomainId")
@@ -1351,7 +1351,7 @@ class SageMakerResponse(BaseResponse):
             domain_id=domain_id,
             retention_policy=retention_policy,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_model_explainability_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
@@ -1382,7 +1382,7 @@ class SageMakerResponse(BaseResponse):
             stopping_condition=stopping_condition,
             tags=tags,
         )
-        return json.dumps(dict(JobDefinitionArn=job_definition_arn))
+        return json.dumps({"JobDefinitionArn": job_definition_arn})
 
     def describe_model_explainability_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
@@ -1416,7 +1416,10 @@ class SageMakerResponse(BaseResponse):
         )
         job_definition_summaries = [job.summary() for job in job_definitions]
         return json.dumps(
-            dict(JobDefinitionSummaries=job_definition_summaries, NextToken=next_token)
+            {
+                "JobDefinitionSummaries": job_definition_summaries,
+                "NextToken": next_token,
+            }
         )
 
     def delete_model_explainability_job_definition(self) -> str:
@@ -1424,7 +1427,7 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.delete_model_explainability_job_definition(
             job_definition_name=job_definition_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_hyper_parameter_tuning_job(self) -> str:
         hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
@@ -1448,7 +1451,7 @@ class SageMakerResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(HyperParameterTuningJobArn=hyper_parameter_tuning_job_arn)
+            {"HyperParameterTuningJobArn": hyper_parameter_tuning_job_arn}
         )
 
     def describe_hyper_parameter_tuning_job(self) -> str:
@@ -1489,10 +1492,10 @@ class SageMakerResponse(BaseResponse):
             job.summary() for job in hyper_parameter_tuning_jobs
         ]
         return json.dumps(
-            dict(
-                HyperParameterTuningJobSummaries=hyper_parameter_tuning_job_summaries,
-                NextToken=next_token,
-            )
+            {
+                "HyperParameterTuningJobSummaries": hyper_parameter_tuning_job_summaries,
+                "NextToken": next_token,
+            }
         )
 
     def delete_hyper_parameter_tuning_job(self) -> str:
@@ -1500,7 +1503,7 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.delete_hyper_parameter_tuning_job(
             hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_model_quality_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
@@ -1527,7 +1530,7 @@ class SageMakerResponse(BaseResponse):
             stopping_condition=stopping_condition,
             tags=tags,
         )
-        return json.dumps(dict(JobDefinitionArn=job_definition_arn))
+        return json.dumps({"JobDefinitionArn": job_definition_arn})
 
     def describe_model_quality_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
@@ -1559,7 +1562,10 @@ class SageMakerResponse(BaseResponse):
         )
         job_definition_summaries = [x.summary() for x in job_definitions]
         return json.dumps(
-            dict(JobDefinitionSummaries=job_definition_summaries, NextToken=next_token)
+            {
+                "JobDefinitionSummaries": job_definition_summaries,
+                "NextToken": next_token,
+            }
         )
 
     def delete_model_quality_job_definition(self) -> str:
@@ -1567,7 +1573,7 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.delete_model_quality_job_definition(
             job_definition_name=job_definition_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_model_card(self) -> str:
         model_card_name = self._get_param("ModelCardName")
@@ -1582,7 +1588,7 @@ class SageMakerResponse(BaseResponse):
             model_card_status=model_card_status,
             tags=tags,
         )
-        return json.dumps(dict(ModelCardArn=model_card_arn))
+        return json.dumps({"ModelCardArn": model_card_arn})
 
     def list_model_cards(self) -> str:
         creation_time_after = self._get_param("CreationTimeAfter")
@@ -1605,7 +1611,7 @@ class SageMakerResponse(BaseResponse):
         )
         model_card_summaries = [model_card.summary() for model_card in model_cards]
         return json.dumps(
-            dict(ModelCardSummaries=model_card_summaries, NextToken=next_token)
+            {"ModelCardSummaries": model_card_summaries, "NextToken": next_token}
         )
 
     def list_model_card_versions(self) -> str:
@@ -1633,10 +1639,10 @@ class SageMakerResponse(BaseResponse):
             mcv.version_summary() for mcv in model_card_versions
         ]
         return json.dumps(
-            dict(
-                ModelCardVersionSummaryList=model_card_version_summaries,
-                NextToken=next_token,
-            )
+            {
+                "ModelCardVersionSummaryList": model_card_version_summaries,
+                "NextToken": next_token,
+            }
         )
 
     def update_model_card(self) -> str:
@@ -1648,7 +1654,7 @@ class SageMakerResponse(BaseResponse):
             content=content,
             model_card_status=model_card_status,
         )
-        return json.dumps(dict(ModelCardArn=model_card_arn))
+        return json.dumps({"ModelCardArn": model_card_arn})
 
     def describe_model_card(self) -> str:
         model_card_name = self._get_param("ModelCardName")
@@ -1664,4 +1670,4 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.delete_model_card(
             model_card_name=model_card_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})

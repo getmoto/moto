@@ -1,10 +1,11 @@
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
+from urllib.parse import unquote
 
 import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 
 from .models import S3ControlBackend, s3control_backends
@@ -39,7 +40,7 @@ class S3ControlResponse(BaseResponse):
         self.backend.delete_public_access_block(account_id=account_id)
         return 204, {"status": 204}, json.dumps({})
 
-    def _parse_pab_config(self, body: str) -> Dict[str, Any]:
+    def _parse_pab_config(self, body: str) -> dict[str, Any]:
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
 
@@ -99,7 +100,7 @@ class S3ControlResponse(BaseResponse):
 
     def _get_accountid_and_name_from_accesspoint(
         self, full_url: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]
@@ -107,13 +108,119 @@ class S3ControlResponse(BaseResponse):
         name = url.split("v20180820/accesspoint/")[-1]
         return account_id, name
 
-    def _get_accountid_and_name_from_policy(self, full_url: str) -> Tuple[str, str]:
+    def _get_accountid_and_name_from_policy(self, full_url: str) -> tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]
         account_id = url.split(".")[0]
         name = self.path.split("/")[-2]
         return account_id, name
+
+    def put_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        request = xmltodict.parse(self.body)["PutStorageLensConfigurationRequest"]
+        storage_lens_configuration = request.get("StorageLensConfiguration")
+        tags = request.get("Tags")
+        self.backend.put_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+            storage_lens_configuration=storage_lens_configuration,
+            tags=tags,
+        )
+        return ""
+
+    def get_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        storage_lens_configuration = self.backend.get_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        # TODO: Add support for all fields in the response
+        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
+        template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
+        return template.render(config=storage_lens_configuration.config)
+
+    def list_storage_lens_configurations(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        next_token = params.get("nextToken")
+        storage_lens_configuration_list, next_token = (
+            self.backend.list_storage_lens_configurations(
+                account_id=account_id,
+                next_token=next_token,
+            )
+        )
+        template = self.response_template(LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE)
+        return template.render(
+            next_token=next_token, configs=storage_lens_configuration_list
+        )
+
+    def put_storage_lens_configuration_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-2]
+        request = xmltodict.parse(self.body)[
+            "PutStorageLensConfigurationTaggingRequest"
+        ]
+        tags = request.get("Tags")
+        self.backend.put_storage_lens_configuration_tagging(
+            config_id=config_id,
+            account_id=account_id,
+            tags=tags,
+        )
+        return ""
+
+    def get_storage_lens_configuration_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-2]
+        storage_lens_tags = self.backend.get_storage_lens_configuration_tagging(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        template = self.response_template(
+            GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE
+        )
+        return template.render(tags=storage_lens_tags)
+
+    def list_access_points(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+
+        access_points, next_token = self.backend.list_access_points(
+            account_id=account_id,
+            bucket=params.get("bucket"),
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+
+        template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
+        return template.render(access_points=access_points, next_token=next_token)
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = self.backend.list_tags_for_resource(resource_arn)
+        return ActionResult(result={"Tags": tags})
+
+    def tag_resource(self) -> EmptyResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = (
+            xmltodict.parse(self.raw_body, force_list={"Tag": True})
+            .get("TagResourceRequest", {})
+            .get("Tags", {})["Tag"]
+        )
+        self.backend.tag_resource(resource_arn, tags=tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> EmptyResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.backend.untag_resource(resource_arn, tag_keys=tag_keys)
+        return EmptyResult()
 
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
@@ -187,3 +294,120 @@ GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
   </PolicyStatus>
 </GetAccessPointPolicyResult>
 """
+
+
+GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
+<StorageLensConfiguration>
+   <Id>{{config.get("Id")}}</Id>
+   {% if config.get("DataExport") %}
+   <DataExport>
+      {% if config["DataExport"]["S3BucketDestination"] %}
+      <S3BucketDestination>
+         <AccountId>{{config["DataExport"]["S3BucketDestination"]["AccountId"]}}</AccountId>
+         <Arn>{{config["DataExport"]["S3BucketDestination"]["Arn"]}}</Arn>
+         {% if config["DataExport"]["S3BucketDestination"].get("Encryption") %}
+         <Encryption>
+            {% if config["DataExport"]["S3BucketDestination"]["Encryption"].get("SSEKMS") %}
+            <SSE-KMS>
+               <KeyId>config["DataExport"]["S3BucketDestination"]["Encryption"]["KeyId"]</KeyId>
+            </SSE-KMS>
+            {% endif %}
+            {% if "SSE-S3" in config["DataExport"]["S3BucketDestination"]["Encryption"] %}
+            <SSE-S3>
+            </SSE-S3>
+            {% endif %}
+         </Encryption>
+         {% endif %}
+      </S3BucketDestination>
+      {% endif %}
+   </DataExport>
+   {% endif %}
+   <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
+   <AccountLevel>
+        <ActivityMetrics>
+            <IsEnabled>{{config["AccountLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
+        </ActivityMetrics>
+        <BucketLevel>
+            <ActivityMetrics>
+                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
+            </ActivityMetrics>
+            <PrefixLevel>
+                <StorageMetrics>
+                    <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["IsEnabled"]}}</IsEnabled>
+                    <SelectionCriteria>
+                        <Delimiter>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["Delimiter"]}}</Delimiter>
+                        <MaxDepth>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MaxDepth"]}}</MaxDepth>
+                        <MinStorageBytesPercentage>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MinStorageBytesPercentage"]}}</MinStorageBytesPercentage>
+                    </SelectionCriteria>
+                </StorageMetrics>
+            </PrefixLevel>
+            <DetailedStatusCodesMetrics>
+                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
+            </DetailedStatusCodesMetrics>
+        </BucketLevel>
+        <AdvancedDataProtectionMetrics>
+            <IsEnabled>{{config["AccountLevel"]["AdvancedDataProtectionMetrics"]["IsEnabled"]}}</IsEnabled>
+        </AdvancedDataProtectionMetrics>
+        <DetailedStatusCodesMetrics>
+            <IsEnabled>{{config["AccountLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
+        </DetailedStatusCodesMetrics>
+   </AccountLevel>
+   <AwsOrg>
+        <Arn>{{config.get("AwsOrg", {}).get("Arn", "")}}</Arn>
+    </AwsOrg>
+    <StorageLensArn>{{config.get("StorageLensArn")}}</StorageLensArn>
+</StorageLensConfiguration>
+"""
+
+
+LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
+<ListStorageLensConfigurationsResult>
+   {% if next_token %}
+   <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+   {% for config in configs %}
+   <StorageLensConfiguration>
+      <HomeRegion></HomeRegion>
+      <Id>{{ config.config.get("Id") }}</Id>
+      <IsEnabled>{{ config.config.get("IsEnabled") }}</IsEnabled>
+      <StorageLensArn>{{ config.arn }}</StorageLensArn>
+    </StorageLensConfiguration>
+    {% endfor %}
+</ListStorageLensConfigurationsResult>
+"""
+
+
+GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE = """
+<GetStorageLensConfigurationTaggingResult>
+   <Tags>
+      {% for tag in tags["Tag"] %}
+      <Tag>
+         <Key>{{ tag["Key"] }}</Key>
+         <Value>{{ tag["Value"] }}</Value>
+      </Tag>
+      {% endfor %}
+   </Tags>
+</GetStorageLensConfigurationTaggingResult>
+
+"""
+LIST_ACCESS_POINTS_TEMPLATE = """<ListAccessPointsResult>
+  <AccessPointList>
+    {% for access_point in access_points %}
+    <AccessPoint>
+      <Name>{{ access_point.name }}</Name>
+      <NetworkOrigin>{{ access_point.network_origin }}</NetworkOrigin>
+      {% if access_point.vpc_id %}
+      <VpcConfiguration>
+        <VpcId>{{ access_point.vpc_id }}</VpcId>
+      </VpcConfiguration>
+      {% endif %}
+      <Bucket>{{ access_point.bucket }}</Bucket>
+      <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
+      <Alias>{{ access_point.alias }}</Alias>
+    </AccessPoint>
+    {% endfor %}
+  </AccessPointList>
+  {% if next_token %}
+  <NextToken>{{ next_token }}</NextToken>
+  {% endif %}
+</ListAccessPointsResult>"""

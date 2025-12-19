@@ -1,5 +1,4 @@
 import json
-from typing import List
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -56,7 +55,7 @@ REGION_NAME = "us-east-1"
         ([S3NotificationEvent.OBJECT_TAGGING_DELETE_EVENT], "Object Tags Deleted"),
     ],
 )
-def test_detail_type(event_names: List[str], expected_event_message: str):
+def test_detail_type(event_names: list[str], expected_event_message: str):
     for event_name in event_names:
         assert _detail_type(event_name) == expected_event_message
 
@@ -79,7 +78,7 @@ def test_send_event_bridge_message():
     events_client.put_rule(
         Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]})
     )
-    log_group_name = "/test-group"
+    log_group_name = f"/loggroup{str(uuid4())}"
     logs_client.create_log_group(logGroupName=log_group_name)
     mocked_bucket = FakeBucket(str(uuid4()), ACCOUNT_ID, REGION_NAME)
     mocked_key = FakeKey(
@@ -117,7 +116,7 @@ def test_send_event_bridge_message():
     )
 
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+        raise SkipTest("Doesn't quite work right with the Proxy or Server")
     # an event is correctly sent to the log group.
     _send_event_bridge_message(
         ACCOUNT_ID,
