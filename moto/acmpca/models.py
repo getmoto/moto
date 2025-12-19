@@ -22,6 +22,7 @@ from .exceptions import (
     InvalidS3ObjectAclInCrlConfiguration,
     InvalidStateException,
     MalformedCertificateAuthorityException,
+    RequestInProgressException,
     ResourceNotFoundException,
 )
 
@@ -52,6 +53,7 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
         self.policy: Optional[str] = None
+        self.revoked_certificates: dict[str, dict[str, Any]] = {}
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
@@ -450,11 +452,19 @@ class ACMPCABackend(BaseBackend):
     def get_certificate(
         self, certificate_authority_arn: str, certificate_arn: str
     ) -> tuple[bytes, bytes]:
-        """
-        The CertificateChain will always return None for now
-        """
         ca = self.describe_certificate_authority(certificate_authority_arn)
         certificate, certificate_chain = ca.get_certificate(certificate_arn)
+        # Load the certificate to get its serial number
+        cert_obj = x509.load_pem_x509_certificate(certificate)
+        serial_number = format(cert_obj.serial_number, "X")
+        serial_number = ":".join(
+            serial_number[i : i + 2] for i in range(0, len(serial_number), 2)
+        )
+        # Check if the certificate is revoked
+        if serial_number in ca.revoked_certificates:
+            raise RequestInProgressException(
+                f"The certificate has been revoked with reason: {ca.revoked_certificates[serial_number]['revocation_reason']}"
+            )
         return certificate, certificate_chain
 
     def import_certificate_authority_certificate(
@@ -473,8 +483,19 @@ class ACMPCABackend(BaseBackend):
         revocation_reason: str,
     ) -> None:
         """
-        This is currently a NO-OP
+        Revokes a certificate issued by the private certificate authority.
         """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+
+        # Check if CA is active
+        if ca.status != "ACTIVE":
+            raise InvalidStateException(certificate_authority_arn)
+
+        # Store revocation information
+        ca.revoked_certificates[certificate_serial] = {
+            "revocation_reason": revocation_reason,
+            "revocation_time": unix_time(),
+        }
 
     def tag_certificate_authority(
         self, certificate_authority_arn: str, tags: list[dict[str, str]]

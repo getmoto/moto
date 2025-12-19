@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import DNSName, NameOID
 
 from moto import mock_aws, settings
+from moto.acmpca.models import acmpca_backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -581,8 +582,6 @@ def test_acmpca_backend_is_serialisable():
     )
     client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)
 
-    from moto.acmpca import acmpca_backends
-
     assert pickle.dumps(acmpca_backends)
 
 
@@ -728,6 +727,92 @@ def test_policy_operations():
     with pytest.raises(ClientError) as exc:
         client.get_policy(ResourceArn=ca_arn)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_revoke_certificate():
+    if settings.is_test_proxy_mode():
+        raise SkipTest("Cannot verify backend state in proxy mode")
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create and activate a CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "test.example.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Get CSR and issue certificate to activate the CA
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+    cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )["Certificate"]
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+
+    # Issue a certificate that we'll later revoke
+    test_csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)[
+        "Csr"
+    ]
+    test_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=test_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "YEARS", "Value": 1},
+    )["CertificateArn"]
+
+    # Get the certificate before revocation - this should work
+    test_cert_response = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=test_cert_arn
+    )
+    assert "Certificate" in test_cert_response
+    test_cert = test_cert_response["Certificate"]
+
+    # Get the serial number from the certificate
+    cert_obj = cryptography.x509.load_pem_x509_certificate(test_cert.encode("utf-8"))
+    serial_number = format(cert_obj.serial_number, "X")
+    serial_number = ":".join(
+        serial_number[i : i + 2] for i in range(0, len(serial_number), 2)
+    )
+
+    # Revoke certificate
+    client.revoke_certificate(
+        CertificateAuthorityArn=ca_arn,
+        CertificateSerial=serial_number,
+        RevocationReason="KEY_COMPROMISE",
+    )
+
+    # Verify the certificate is revoked by checking the backend directly
+    if not settings.TEST_SERVER_MODE:
+        # Can't verify this in ServerMode
+        backend = acmpca_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        ca = backend.describe_certificate_authority(ca_arn)
+        assert serial_number in ca.revoked_certificates
+        assert (
+            ca.revoked_certificates[serial_number]["revocation_reason"]
+            == "KEY_COMPROMISE"
+        )
+        assert "revocation_time" in ca.revoked_certificates[serial_number]
+
+    # Try to get the certificate after revocation - this should fail
+    with pytest.raises(ClientError) as exc:
+        client.get_certificate(
+            CertificateAuthorityArn=ca_arn, CertificateArn=test_cert_arn
+        )
+    assert exc.value.response["Error"]["Code"] == "RequestInProgressException"
+    assert "The certificate has been revoked" in exc.value.response["Error"]["Message"]
 
 
 @mock_aws
