@@ -73,27 +73,6 @@ class MetadataOptions:
         self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
 
 
-class BlockDeviceWrapper:
-    def __init__(self, block):
-        object.__setattr__(self, "_block", block)
-
-    def __getattr__(self, name):
-        block = object.__getattribute__(self, "_block")
-        return getattr(block, name)
-
-    @property
-    def status(self):
-        block = object.__getattribute__(self, "_block")
-        volume_status = block.status
-
-        if volume_status == "in-use":
-            return "attached"
-        elif volume_status == "available":
-            return "detached"
-
-        return volume_status
-
-
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     VALID_ATTRIBUTES = {
         "instanceType",
@@ -331,12 +310,27 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
         return self.block_device_mapping.items()
 
+    @staticmethod
+    def get_block_device_status(volume_status):
+
+        if volume_status == "in-use":
+            return "attached"
+        elif volume_status == "available":
+            return "detached"
+
+        return volume_status
+
     @property
     def block_device_mappings(self) -> list[dict[str, Any]]:
-        return [
-            {"DeviceName": device_name, "Ebs": BlockDeviceWrapper(block)}
-            for device_name, block in self.get_block_device_mapping
-        ]
+        result = []
+        for device_name, block in self.get_block_device_mapping:
+            block_copy = copy.copy(block)
+            block_copy.status = self.get_block_device_status(block.status)
+            result.append({
+                "DeviceName": device_name,
+                "Ebs": block_copy
+            })
+        return result
 
     @property
     def network_interfaces(self) -> list[NetworkInterface]:
