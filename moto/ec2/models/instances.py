@@ -312,7 +312,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @staticmethod
     def get_block_device_status(volume_status):
-
         if volume_status == "in-use":
             return "attached"
         elif volume_status == "available":
@@ -326,10 +325,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         for device_name, block in self.get_block_device_mapping:
             block_copy = copy.copy(block)
             block_copy.status = self.get_block_device_status(block.status)
-            result.append({
-                "DeviceName": device_name,
-                "Ebs": block_copy
-            })
+            result.append({"DeviceName": device_name, "Ebs": block_copy})
         return result
 
     @property
