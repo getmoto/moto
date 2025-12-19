@@ -312,6 +312,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @staticmethod
     def get_block_device_status(volume_status):
+        """Convert volume status to attachment status"""
         if volume_status == "in-use":
             return "attached"
         elif volume_status == "available":
