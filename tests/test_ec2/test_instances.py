@@ -3093,3 +3093,15 @@ def test_run_instances_default_response():
     assert "Tags" not in instance
     assert instance["VirtualizationType"] == "paravirtual"
     assert "VpcId" in instance
+
+
+def test_block_device_status_conversion():
+    """Test EBS block device status conversion."""
+    from moto.ec2.models.instances import Instance
+
+    assert Instance.get_block_device_status("in-use") == "attached"
+
+    assert Instance.get_block_device_status("available") == "detached"
+
+    assert Instance.get_block_device_status("creating") == "creating"
+    assert Instance.get_block_device_status("deleting") == "deleting"
