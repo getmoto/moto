@@ -53,7 +53,7 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
         self.policy: Optional[str] = None
-        self.revoked_certificates: Dict[str, Dict[str, Any]] = {}
+        self.revoked_certificates: dict[str, dict[str, Any]] = {}
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
