@@ -73,7 +73,7 @@ def test_instance_launch_and_terminate():
     root_device_name = instance["RootDeviceName"]
     mapping = instance["BlockDeviceMappings"][0]
     assert mapping["DeviceName"] == root_device_name
-    assert mapping["Ebs"]["Status"] == "in-use"
+    assert mapping["Ebs"]["Status"] == "attached"
     volume_id = mapping["Ebs"]["VolumeId"]
     assert volume_id.startswith("vol-")
 
@@ -3020,7 +3020,7 @@ def test_run_instances_default_response():
     bdm = instance["BlockDeviceMappings"][0]
     assert bdm["DeviceName"] == "/dev/sda1"
     assert bdm["Ebs"]["DeleteOnTermination"] is True
-    assert bdm["Ebs"]["Status"] == "in-use"
+    assert bdm["Ebs"]["Status"] == "attached"
     assert "ClientToken" in instance
     assert instance["EbsOptimized"] is False
     assert instance["Hypervisor"] == "xen"
