@@ -5,12 +5,12 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
 
-from .exceptions import ValidationException
+from .exceptions import ResourceNotFoundException
 
 
 class Cluster(BaseModel, ManagedState):
@@ -21,8 +21,14 @@ class Cluster(BaseModel, ManagedState):
             "identifier": self.identifier,
             "arn": self.arn,
             "status": self.status,
-            "creationTime": iso_8601_datetime_with_milliseconds(self.creation_time),
+            "creationTime": unix_time(self.creation_time),
             "deletionProtectionEnabled": self.deletion_protection_enabled,
+            "tags": self.tags,
+            "encryptionDetails": {
+                "encryptionStatus": "ENABLED",
+                "encryptionType": "AWS_OWNED_KMS_KEY",
+            },
+            "endpoint": self.endpoint,
         }
         return {k: v for k, v in dct.items() if v is not None}
 
@@ -45,6 +51,8 @@ class Cluster(BaseModel, ManagedState):
         self.deletion_protection_enabled = deletion_protection_enabled
         self.tags = tags
         self.client_token = client_token
+        self.endpoint = f"{self.identifier}.{self.region_name}.on.aws"
+        self.endpoint_service_name = f"com.amazonaws.{self.region_name}.dsql-7cwu"
 
 
 class AuroraDSQLBackend(BaseBackend):
@@ -73,14 +81,19 @@ class AuroraDSQLBackend(BaseBackend):
         self.clusters[cluster.identifier] = cluster
         return cluster
 
-    def get_cluster(
-        self,
-        identifier: str,
-    ) -> Cluster:
-        cluster = self.clusters.get(identifier)
-        if cluster is None:
-            raise ValidationException("invalid Cluster Id")
+    def delete_cluster(self, identifier: str) -> Cluster:
+        if identifier not in self.clusters:
+            arn = f"arn:{get_partition(self.region_name)}:dsql:{self.region_name}:{self.account_id}:cluster/{identifier}"
+            raise ResourceNotFoundException(arn, identifier, "cluster")
+        cluster = self.clusters.pop(identifier)
+        return cluster
 
+    def get_cluster(self, identifier: str) -> Cluster:
+        if identifier not in self.clusters:
+            arn = f"arn:{get_partition(self.region_name)}:dsql:{self.region_name}:{self.account_id}:cluster/{identifier}"
+            raise ResourceNotFoundException(arn, identifier, "cluster")
+        cluster = self.clusters[identifier]
+        cluster.advance()
         return cluster
 
 
