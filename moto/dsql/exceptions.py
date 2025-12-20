@@ -1,10 +1,10 @@
 """Exceptions raised by the dsql service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class ResourceNotFoundException(JsonRESTError):
-    code = 404
+class ResourceNotFoundException(ServiceException):
+    code = "ResourceNotFoundException"
 
     def __init__(self, arn: str, resource_id: str, resource_type: str):
         self.resource_id = resource_id
@@ -12,4 +12,4 @@ class ResourceNotFoundException(JsonRESTError):
         message = (
             f"The resource with ARN {arn} doesn't exist. Verify the ARN and try again."
         )
-        super().__init__("ResourceNotFoundException", message)
+        super().__init__(message)
