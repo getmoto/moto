@@ -1,11 +1,11 @@
 """AuroraDSQLBackend class with methods for supported APIs."""
 
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
@@ -15,22 +15,6 @@ from .exceptions import ResourceNotFoundException
 
 class Cluster(BaseModel, ManagedState):
     """Model for an AuroraDSQL cluster."""
-
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "identifier": self.identifier,
-            "arn": self.arn,
-            "status": self.status,
-            "creationTime": iso_8601_datetime_with_milliseconds(self.creation_time),
-            "deletionProtectionEnabled": self.deletion_protection_enabled,
-            "tags": self.tags,
-            "encryptionDetails": {
-                "encryptionStatus": "ENABLED",
-                "encryptionType": "AWS_OWNED_KMS_KEY",
-            },
-            "endpoint": self.endpoint,
-        }
-        return {k: v for k, v in dct.items() if v is not None}
 
     def __init__(
         self,
@@ -53,6 +37,10 @@ class Cluster(BaseModel, ManagedState):
         self.client_token = client_token
         self.endpoint = f"{self.identifier}.{self.region_name}.on.aws"
         self.endpoint_service_name = f"com.amazonaws.{self.region_name}.dsql-7cwu"
+        self.encryption_details = {
+            "encryptionStatus": "ENABLED",
+            "encryptionType": "AWS_OWNED_KMS_KEY",
+        }
 
 
 class AuroraDSQLBackend(BaseBackend):

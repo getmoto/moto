@@ -58,7 +58,11 @@ def test_delete_non_existent_cluster():
     client = boto3.client("dsql", region_name=TEST_REGION)
     with pytest.raises(ClientError) as exc:
         client.delete_cluster(identifier="non-existent-cluster")
-    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    resp = exc.value.response
+    assert resp["Error"]["Code"] == "ResourceNotFoundException"
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert resp["resourceId"] == "non-existent-cluster"
+    assert resp["resourceType"] == "cluster"
 
 
 @mock_aws
