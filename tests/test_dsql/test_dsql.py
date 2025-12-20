@@ -23,6 +23,10 @@ def test_create_cluster():
     assert resp["arn"] == f"arn:aws:dsql:us-east-1:123456789012:cluster/{identifier}"
     assert resp["deletionProtectionEnabled"] is True
     assert resp["status"] == "CREATING"
+    assert resp["encryptionDetails"] == {
+        "encryptionStatus": "ENABLED",
+        "encryptionType": "AWS_OWNED_KMS_KEY",
+    }
     if not settings.TEST_SERVER_MODE:
         assert resp["creationTime"] == datetime(
             2024, 12, 22, 12, 34, tzinfo=timezone.utc
