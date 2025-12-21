@@ -454,6 +454,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "connectcases": {
+                "Value": "connectcases",
+                "endpoint": {
+                  "Value": "cases.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "connectparticipant": {
                 "Value": "connectparticipant",
                 "endpoint": {
@@ -3017,6 +3026,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-east-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -4180,6 +4195,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15470,6 +15494,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -20333,15 +20360,6 @@
               "launchwizard": {
                 "Value": "launchwizard"
               },
-              "lex-models": {
-                "Value": "lex-models",
-                "endpoint": {
-                  "Value": "models.lex.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lex-runtime": {
                 "Value": "lex-runtime",
                 "endpoint": {
@@ -20773,6 +20791,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -24938,6 +24959,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -25635,6 +25665,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-5.amazonaws.com"
                 }
               },
               "organizations": {
@@ -26787,6 +26823,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-metrics": {
                 "Value": "sagemaker-metrics",
                 "endpoint": {
@@ -27673,6 +27718,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -27755,6 +27809,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-7.amazonaws.com"
                 }
               },
               "organizations": {
@@ -30969,6 +31029,15 @@
                 "Value": "cloudfront",
                 "endpoint": {
                   "Value": "cloudfront.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38804,6 +38873,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -44468,6 +44546,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-south-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -52185,6 +52269,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -53938,6 +54025,15 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56097,6 +56193,15 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fis": {
+                "Value": "fis",
+                "endpoint": {
+                  "Value": "fis.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59098,6 +59203,15 @@
                 "Value": "cloudfront",
                 "endpoint": {
                   "Value": "cloudfront.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63243,9 +63357,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "deepracer": {
-                "Value": "deepracer"
               },
               "detective": {
                 "Value": "detective",
@@ -75708,15 +75819,6 @@
               },
               "launchwizard": {
                 "Value": "launchwizard"
-              },
-              "lex-models": {
-                "Value": "lex-models",
-                "endpoint": {
-                  "Value": "models.lex.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "lex-runtime": {
                 "Value": "lex-runtime",
