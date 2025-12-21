@@ -3744,6 +3744,10 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "u7in-24tb.224xlarge",
   "Location": "us-east-2"
  },
