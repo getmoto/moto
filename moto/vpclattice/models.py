@@ -206,6 +206,20 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         }
 
 
+class AuthPolicy:
+    def __init__(
+        self,
+        policy_name: str,
+        policy: str,
+        created_at: datetime,
+        last_updated_at: datetime,
+    ) -> None:
+        self.policy_name = policy_name
+        self.policy = policy
+        self.created_at = created_at
+        self.last_updated_at = last_updated_at
+
+
 class VPCLatticeBackend(BaseBackend):
     PAGINATION_MODEL = {
         "list_services": {
@@ -232,6 +246,8 @@ class VPCLatticeBackend(BaseBackend):
         self.rules: dict[str, VPCLatticeRule] = {}
         self.tagger: TaggingService = TaggingService()
         self.access_log_subscriptions: dict[str, VPCLatticeAccessLogSubscription] = {}
+        self.resource_policies: dict[str, str] = {}
+        self.auth_policies: dict[str, str] = {}
 
     def create_service(
         self,
@@ -443,6 +459,50 @@ class VPCLatticeBackend(BaseBackend):
                 f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
             )
         del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
+
+    def put_auth_policy(self, resourceIdentifier: str, policy: str) -> None:
+        if resourceIdentifier in self.auth_policies:
+            self.auth_policies[resourceIdentifier].policy = policy
+            self.auth_policies[resourceIdentifier].last_updated_at = datetime.now(
+                timezone.utc
+            ).isoformat()
+
+        else:
+            policy = AuthPolicy(
+                policy_name=resourceIdentifier,
+                policy=policy,
+                created_at=datetime.now(timezone.utc).isoformat(),
+                last_updated_at=datetime.now(timezone.utc).isoformat(),
+            )
+
+        self.auth_policies[resourceIdentifier] = policy
+
+    def get_auth_policy(self, resourceIdentifier: str) -> str:
+        if resourceIdentifier not in self.auth_policies:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        return self.auth_policies[resourceIdentifier]
+
+    def delete_auth_policy(self, resourceIdentifier: str) -> None:
+        if resourceIdentifier not in self.auth_policies:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        del self.auth_policies[resourceIdentifier]
+
+    def put_resource_policy(self, resourceArn: str, policy: str) -> None:
+        self.resource_policies[resourceArn] = policy
+
+    def get_resource_policy(self, resourceArn: str) -> str:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        return self.resource_policies[resourceArn]
+
+    def delete_resource_policy(self, resourceArn: str) -> None:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        del self.resource_policies[resourceArn]
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

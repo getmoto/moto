@@ -160,3 +160,61 @@ class VPCLatticeResponse(BaseResponse):
         )
 
         return json.dumps({})
+
+    def put_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+        policy = self._get_param("policy")
+
+        self.backend.put_auth_policy(
+            resourceIdentifier=resourceId,
+            policy=policy,
+        )
+
+        response = {
+            "policy": policy,
+            "state": "ACTIVE",
+        }
+        return json.dumps(response)
+
+    def get_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+        auth_policy_obj = self.backend.get_auth_policy(resourceIdentifier=resourceId)
+
+        response = {
+            "policy": auth_policy_obj.policy,
+            "state": "ACTIVE",
+            "createdAt": auth_policy_obj.created_at,
+            "lastUpdatedAt": auth_policy_obj.last_updated_at,
+        }
+        return json.dumps(response)
+
+    def delete_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+
+        self.backend.delete_auth_policy(resourceIdentifier=resourceId)
+
+        return "{}"
+
+    def put_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+        policy = self._get_param("policy")
+        self.backend.put_resource_policy(
+            resourceArn=resource_arn,
+            policy=policy,
+        )
+
+        return "{}"
+
+    def get_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+
+        resource_policy = self.backend.get_resource_policy(resourceArn=resource_arn)
+
+        return json.dumps({"policy": resource_policy})
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+
+        self.backend.delete_resource_policy(resourceArn=resource_arn)
+
+        return "{}"

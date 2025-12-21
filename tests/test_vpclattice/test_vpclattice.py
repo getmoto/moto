@@ -495,3 +495,188 @@ def test_update_access_log_subscription_not_found():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Access Log Subscription als-invalid-id123 not found"
+
+
+@mock_aws
+def test_put_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=policy_document,
+    )
+
+    assert put_resp["policy"] == policy_document
+    assert put_resp["state"] == "ACTIVE"
+
+
+@mock_aws
+def test_update_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=policy_document,
+    )
+
+    assert put_resp["policy"] == policy_document
+
+    updated_policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=updated_policy_document,
+    )
+
+    assert put_resp["policy"] == updated_policy_document
+    assert put_resp["state"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_auth_policy(resourceIdentifier=resp["arn"])
+
+    assert resp["policy"] == policy_document
+    assert resp["state"] == "ACTIVE"
+
+
+@mock_aws
+def test_auth_policy_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_auth_policy(resourceIdentifier="svc-invalid-id123")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource svc-invalid-id123 not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_auth_policy(resourceIdentifier="svc-invalid-id123")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource svc-invalid-id123 not found"
+
+
+@mock_aws
+def test_delete_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=policy_document,
+    )
+
+    client.delete_auth_policy(resourceIdentifier=resp["arn"])
+
+    with pytest.raises(ClientError) as exc:
+        client.get_auth_policy(resourceIdentifier=resp["arn"])
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {resp['arn']} not found"
+
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % resp["arn"]
+    )
+
+    client.put_resource_policy(
+        resourceArn=resp["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_resource_policy(resourceArn=resp["arn"])
+
+    assert resp["policy"] == policy_document
+
+
+@mock_aws
+def test_resource_policy_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    arn = "arn:aws:vpc-lattice:us-west-2:123456789012:service/svc-invalid-id123"
+    with pytest.raises(ClientError) as exc:
+        client.get_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    arn = resp["arn"]
+    policy_document = (
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
+        % arn
+    )
+
+    client.put_resource_policy(
+        resourceArn=arn,
+        policy=policy_document,
+    )
+
+    resp = client.get_resource_policy(resourceArn=arn)
+    assert resp["policy"] == policy_document
+
+    client.delete_resource_policy(resourceArn=arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
