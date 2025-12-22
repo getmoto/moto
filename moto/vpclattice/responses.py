@@ -165,26 +165,26 @@ class VPCLatticeResponse(BaseResponse):
         resourceId = unquote(self._get_param("resourceIdentifier"))
         policy = self._get_param("policy")
 
-        self.backend.put_auth_policy(
+        auth_policy = self.backend.put_auth_policy(
             resourceIdentifier=resourceId,
             policy=policy,
         )
 
         response = {
-            "policy": policy,
-            "state": "ACTIVE",
+            "policy": auth_policy.policy,
+            "state": auth_policy.state,
         }
         return json.dumps(response)
 
     def get_auth_policy(self) -> str:
         resourceId = unquote(self._get_param("resourceIdentifier"))
-        auth_policy_obj = self.backend.get_auth_policy(resourceIdentifier=resourceId)
+        auth_policy = self.backend.get_auth_policy(resourceIdentifier=resourceId)
 
         response = {
-            "policy": auth_policy_obj.policy,
-            "state": "ACTIVE",
-            "createdAt": auth_policy_obj.created_at,
-            "lastUpdatedAt": auth_policy_obj.last_updated_at,
+            "policy": auth_policy.policy,
+            "state": auth_policy.state,
+            "createdAt": auth_policy.created_at,
+            "lastUpdatedAt": auth_policy.last_updated_at,
         }
         return json.dumps(response)
 

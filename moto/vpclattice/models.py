@@ -213,11 +213,13 @@ class AuthPolicy:
         policy: str,
         created_at: str,
         last_updated_at: str,
+        state: str,
     ) -> None:
         self.policy_name = policy_name
         self.policy = policy
         self.created_at = created_at
         self.last_updated_at = last_updated_at
+        self.state = state
 
 
 class VPCLatticeBackend(BaseBackend):
@@ -460,32 +462,77 @@ class VPCLatticeBackend(BaseBackend):
             )
         del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
 
-    def put_auth_policy(self, resourceIdentifier: str, policy: str) -> None:
+    def put_auth_policy(self, resourceIdentifier: str, policy: str) -> AuthPolicy:
+        # ResourceConfig not supported yet, only handle Service and Service Network
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        resource: Any = None
+
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        elif resourceIdentifier.startswith("svc-"):
+            resource = self.services.get(resourceIdentifier)
+        else:
+            raise ValidationException(
+                "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+            )
+
+        if not resource:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        # Handle state management
+        state = "INACTIVE" if resource.auth_type == "NONE" else "ACTIVE"
+
+        now_iso = datetime.now(timezone.utc).isoformat()
         if resourceIdentifier in self.auth_policies:
-            self.auth_policies[resourceIdentifier].policy = policy
-            self.auth_policies[resourceIdentifier].last_updated_at = datetime.now(
-                timezone.utc
-            ).isoformat()
+            auth_policy = self.auth_policies[resourceIdentifier]
+            auth_policy.policy = policy
+            auth_policy.last_updated_at = now_iso
+            auth_policy.state = state
 
         else:
             auth_policy = AuthPolicy(
                 policy_name=resourceIdentifier,
                 policy=policy,
-                created_at=datetime.now(timezone.utc).isoformat(),
-                last_updated_at=datetime.now(timezone.utc).isoformat(),
+                created_at=now_iso,
+                last_updated_at=now_iso,
+                state=state,
             )
 
             self.auth_policies[resourceIdentifier] = auth_policy
 
-    def get_auth_policy(self, resourceIdentifier: str) -> AuthPolicy:
-        if resourceIdentifier not in self.auth_policies:
-            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+        return auth_policy
 
-        return self.auth_policies[resourceIdentifier]
+    def get_auth_policy(self, resourceIdentifier: str) -> AuthPolicy:
+        original_identifier = resourceIdentifier
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        auth_policy = self.auth_policies.get(resourceIdentifier)
+        if not auth_policy:
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
+
+        resource: Any
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        else:
+            resource = self.services.get(resourceIdentifier)
+
+        auth_policy.state = (
+            "INACTIVE" if not resource or resource.auth_type == "NONE" else "ACTIVE"
+        )
+
+        return auth_policy
 
     def delete_auth_policy(self, resourceIdentifier: str) -> None:
+        original_identifier = resourceIdentifier
+
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
         if resourceIdentifier not in self.auth_policies:
-            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
 
         del self.auth_policies[resourceIdentifier]
 

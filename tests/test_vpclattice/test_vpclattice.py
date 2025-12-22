@@ -4,7 +4,9 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
+from moto.vpclattice.models import vpclattice_backends
+from tests import DEFAULT_ACCOUNT_ID
 
 
 @mock_aws
@@ -503,7 +505,8 @@ def test_update_access_log_subscription_not_found():
 def test_put_auth_policy():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
-    resp = client.create_service(name="my-service", authType="NONE")
+    svc = client.create_service(name="my-service", authType="AWS_IAM")
+    sn = client.create_service_network(name="my-sn", authType="NONE")
 
     policy_document = json.dumps(
         {
@@ -512,27 +515,35 @@ def test_put_auth_policy():
                 {
                     "Effect": "Allow",
                     "Principal": "*",
-                    "Action": "vpc-lattice:InvokeService",
-                    "Resource": resp["arn"],
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": svc["arn"],
                 }
             ],
         }
     )
 
     put_resp = client.put_auth_policy(
-        resourceIdentifier=resp["arn"],
+        resourceIdentifier=svc["arn"],
         policy=policy_document,
     )
 
     assert put_resp["policy"] == policy_document
     assert put_resp["state"] == "ACTIVE"
 
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=sn["arn"],
+        policy=policy_document,
+    )
+
+    assert put_resp["policy"] == policy_document
+    assert put_resp["state"] == "INACTIVE"
+
 
 @mock_aws
 def test_update_auth_policy():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
-    resp = client.create_service(name="my-service", authType="NONE")
+    resp = client.create_service(name="my-service", authType="AWS_IAM")
 
     policy_document = {
         "Version": "2012-10-17",
@@ -540,7 +551,7 @@ def test_update_auth_policy():
             {
                 "Effect": "Allow",
                 "Principal": "*",
-                "Action": "vpc-lattice:InvokeService",
+                "Action": "vpc-lattice-svcs:Invoke",
                 "Resource": resp["arn"],
             }
         ],
@@ -568,7 +579,8 @@ def test_update_auth_policy():
 def test_get_auth_policy():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
-    resp = client.create_service(name="my-service", authType="NONE")
+    svc = client.create_service(name="my-service", authType="NONE")
+    sn = client.create_service_network(name="my-sn", authType="AWS_IAM")
 
     policy_document = json.dumps(
         {
@@ -577,39 +589,70 @@ def test_get_auth_policy():
                 {
                     "Effect": "Allow",
                     "Principal": "*",
-                    "Action": "vpc-lattice:InvokeService",
-                    "Resource": resp["arn"],
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": svc["arn"],
                 }
             ],
         }
     )
 
     client.put_auth_policy(
-        resourceIdentifier=resp["arn"],
+        resourceIdentifier=svc["arn"],
         policy=policy_document,
     )
 
-    resp = client.get_auth_policy(resourceIdentifier=resp["arn"])
+    resp = client.get_auth_policy(resourceIdentifier=svc["arn"])
+
+    assert resp["policy"] == policy_document
+    assert resp["state"] == "INACTIVE"
+
+    resp = client.put_auth_policy(
+        resourceIdentifier=sn["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_auth_policy(resourceIdentifier=sn["arn"])
 
     assert resp["policy"] == policy_document
     assert resp["state"] == "ACTIVE"
 
 
 @mock_aws
-def test_auth_policy_not_found():
+def test_auth_policy_resource_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    id = "svc-invalid-id123"
+    with pytest.raises(ClientError) as exc:
+        client.get_auth_policy(resourceIdentifier=id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_auth_policy(resourceIdentifier=id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_auth_policy(resourceIdentifier=id, policy="{}")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+
+@mock_aws
+def test_auth_policy_invalid_parameter():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
     with pytest.raises(ClientError) as exc:
-        client.get_auth_policy(resourceIdentifier="svc-invalid-id123")
+        client.put_auth_policy(resourceIdentifier="invalid-id1234567", policy="{}")
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Resource svc-invalid-id123 not found"
-
-    with pytest.raises(ClientError) as exc:
-        client.delete_auth_policy(resourceIdentifier="svc-invalid-id123")
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Resource svc-invalid-id123 not found"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+    )
 
 
 @mock_aws
@@ -625,7 +668,7 @@ def test_delete_auth_policy():
                 {
                     "Effect": "Allow",
                     "Principal": "*",
-                    "Action": "vpc-lattice:InvokeService",
+                    "Action": "vpc-lattice-svcs:Invoke",
                     "Resource": resp["arn"],
                 }
             ],
@@ -660,7 +703,7 @@ def test_put_resource_policy():
                 {
                     "Effect": "Allow",
                     "Principal": "*",
-                    "Action": "vpc-lattice:InvokeService",
+                    "Action": "vpc-lattice-svcs:Invoke",
                     "Resource": resp["arn"],
                 }
             ],
@@ -709,7 +752,7 @@ def test_delete_resource_policy():
                 {
                     "Effect": "Allow",
                     "Principal": "*",
-                    "Action": "vpc-lattice:InvokeService",
+                    "Action": "vpc-lattice-svcs:Invoke",
                     "Resource": resp["arn"],
                 }
             ],
