@@ -1,3 +1,5 @@
+import json
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -503,9 +505,18 @@ def test_put_auth_policy():
 
     resp = client.create_service(name="my-service", authType="NONE")
 
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice:InvokeService",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
     )
 
     put_resp = client.put_auth_policy(
@@ -523,29 +534,33 @@ def test_update_auth_policy():
 
     resp = client.create_service(name="my-service", authType="NONE")
 
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
-    )
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "vpc-lattice:InvokeService",
+                "Resource": resp["arn"],
+            }
+        ],
+    }
 
     put_resp = client.put_auth_policy(
         resourceIdentifier=resp["arn"],
-        policy=policy_document,
+        policy=json.dumps(policy_document),
     )
 
-    assert put_resp["policy"] == policy_document
+    assert put_resp["policy"] == json.dumps(policy_document)
 
-    updated_policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
-    )
+    policy_document["Statement"][0]["Effect"] = "Deny"
 
     put_resp = client.put_auth_policy(
         resourceIdentifier=resp["arn"],
-        policy=updated_policy_document,
+        policy=json.dumps(policy_document),
     )
 
-    assert put_resp["policy"] == updated_policy_document
+    assert put_resp["policy"] == json.dumps(policy_document)
     assert put_resp["state"] == "ACTIVE"
 
 
@@ -555,9 +570,18 @@ def test_get_auth_policy():
 
     resp = client.create_service(name="my-service", authType="NONE")
 
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice:InvokeService",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
     )
 
     client.put_auth_policy(
@@ -594,9 +618,18 @@ def test_delete_auth_policy():
 
     resp = client.create_service(name="my-service", authType="NONE")
 
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice:InvokeService",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
     )
 
     client.put_auth_policy(
@@ -620,9 +653,18 @@ def test_put_resource_policy():
 
     resp = client.create_service(name="my-service", authType="NONE")
 
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % resp["arn"]
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice:InvokeService",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
     )
 
     client.put_resource_policy(
@@ -660,9 +702,18 @@ def test_delete_resource_policy():
     resp = client.create_service(name="my-service", authType="NONE")
 
     arn = resp["arn"]
-    policy_document = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"vpc-lattice:InvokeService","Resource":"%s"}]}'
-        % arn
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice:InvokeService",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
     )
 
     client.put_resource_policy(

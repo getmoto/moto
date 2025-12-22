@@ -211,8 +211,8 @@ class AuthPolicy:
         self,
         policy_name: str,
         policy: str,
-        created_at: datetime,
-        last_updated_at: datetime,
+        created_at: str,
+        last_updated_at: str,
     ) -> None:
         self.policy_name = policy_name
         self.policy = policy
@@ -247,7 +247,7 @@ class VPCLatticeBackend(BaseBackend):
         self.tagger: TaggingService = TaggingService()
         self.access_log_subscriptions: dict[str, VPCLatticeAccessLogSubscription] = {}
         self.resource_policies: dict[str, str] = {}
-        self.auth_policies: dict[str, str] = {}
+        self.auth_policies: dict[str, AuthPolicy] = {}
 
     def create_service(
         self,
@@ -468,16 +468,16 @@ class VPCLatticeBackend(BaseBackend):
             ).isoformat()
 
         else:
-            policy = AuthPolicy(
+            auth_policy = AuthPolicy(
                 policy_name=resourceIdentifier,
                 policy=policy,
                 created_at=datetime.now(timezone.utc).isoformat(),
                 last_updated_at=datetime.now(timezone.utc).isoformat(),
             )
 
-        self.auth_policies[resourceIdentifier] = policy
+            self.auth_policies[resourceIdentifier] = auth_policy
 
-    def get_auth_policy(self, resourceIdentifier: str) -> str:
+    def get_auth_policy(self, resourceIdentifier: str) -> AuthPolicy:
         if resourceIdentifier not in self.auth_policies:
             raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
 
