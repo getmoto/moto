@@ -184,9 +184,9 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:accesslogsubscription/{self.id}"
         )
-        self.created_at = datetime.now(timezone.utc).date().isoformat()
+        self.created_at = datetime.now(timezone.utc).isoformat()
         self.destinationArn = destinationArn
-        self.last_updated_at = datetime.now(timezone.utc).date().isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
         self.resourceArn = resourceArn
         self.resourceId = resourceId
         self.serviceNetworkLogType = serviceNetworkLogType or "SERVICE"
@@ -448,7 +448,7 @@ class VPCLatticeBackend(BaseBackend):
             )
 
         sub.destinationArn = destinationArn
-        sub.last_updated_at = datetime.now(timezone.utc).date().isoformat()
+        sub.last_updated_at = datetime.now(timezone.utc).isoformat()
 
         return sub
 
@@ -484,7 +484,7 @@ class VPCLatticeBackend(BaseBackend):
         # Handle state management
         state = "Inactive" if resource.auth_type == "NONE" else "Active"
 
-        now_iso = datetime.now(timezone.utc).date().isoformat()
+        now_iso = datetime.now(timezone.utc).isoformat()
         if resourceIdentifier in self.auth_policies:
             auth_policy = self.auth_policies[resourceIdentifier]
             auth_policy.policy = policy
