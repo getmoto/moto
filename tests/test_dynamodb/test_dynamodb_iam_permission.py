@@ -64,6 +64,7 @@ def test_dynamodb_authorization_put_item():
 
     with enable_iam_authentication():
         restricted_session = boto3.Session(
+            region_name="us-east-1",
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
