@@ -4,9 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
-from moto.vpclattice.models import vpclattice_backends
-from tests import DEFAULT_ACCOUNT_ID
+from moto import mock_aws
 
 
 @mock_aws
