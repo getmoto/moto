@@ -14,7 +14,7 @@ def test_dynamodb_authorization_put_item():
     https://github.com/getmoto/moto/issues/9581.
     This test could cover both cases by using the table ARN instead of the wildcard.
     """
-    dynamo = boto3.resource("dynamodb")
+    dynamo = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamo.create_table(
         TableName="example-table",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
@@ -22,7 +22,7 @@ def test_dynamodb_authorization_put_item():
         BillingMode="PAY_PER_REQUEST",
     )
 
-    iam = boto3.client("iam")
+    iam = boto3.client("iam", region_name="us-east-1")
     role_arn = iam.create_role(
         RoleName="test-role",
         AssumeRolePolicyDocument=json.dumps(
@@ -57,18 +57,18 @@ def test_dynamodb_authorization_put_item():
 
     iam.attach_role_policy(RoleName="test-role", PolicyArn=policy_arn)
 
-    sts = boto3.client("sts")
-    crendentials = sts.assume_role(RoleArn=role_arn, RoleSessionName="test-session")[
+    sts = boto3.client("sts", region_name="us-east-1")
+    credentials = sts.assume_role(RoleArn=role_arn, RoleSessionName="test-session")[
         "Credentials"
     ]
 
     with enable_iam_authentication():
-        restritced_session = boto3.Session(
-            aws_access_key_id=crendentials["AccessKeyId"],
-            aws_secret_access_key=crendentials["SecretAccessKey"],
-            aws_session_token=crendentials["SessionToken"],
+        restricted_session = boto3.Session(
+            aws_access_key_id=credentials["AccessKeyId"],
+            aws_secret_access_key=credentials["SecretAccessKey"],
+            aws_session_token=credentials["SessionToken"],
         )
-        restricted_table = restritced_session.resource("dynamodb").Table(
+        restricted_table = restricted_session.resource("dynamodb").Table(
             table.table_name
         )
         restricted_table.put_item(Item={"pk": "123"})
