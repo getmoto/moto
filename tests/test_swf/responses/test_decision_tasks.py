@@ -1,10 +1,9 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from time import sleep
 
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -519,7 +518,7 @@ def test_respond_decision_task_completed_with_schedule_activity_task():
     assert isinstance(resp["latestActivityTaskTimestamp"], datetime)
     if not settings.TEST_SERVER_MODE:
         ts = resp["latestActivityTaskTimestamp"]
-        assert ts == dtparse("2015-01-01 12:00:00 UTC")
+        assert ts == datetime(2015, 1, 1, 12, 0, 00, tzinfo=timezone.utc)
 
 
 @mock_aws

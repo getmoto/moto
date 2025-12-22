@@ -28,7 +28,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         log_destination: str,
         log_group_name: str,
         deliver_logs_permission_arn: str,
-        max_aggregation_interval: str,
+        max_aggregation_interval: int,
         log_destination_type: str,
         log_format: str,
         deliver_logs_status: str = "SUCCESS",
@@ -146,7 +146,7 @@ class FlowLogsBackend:
         log_group_name: str,
         log_destination: str,
         log_destination_type: str,
-        max_aggregation_interval: str,
+        max_aggregation_interval: int,
         deliver_logs_permission_arn: str,
     ) -> None:
         if log_group_name is None and log_destination is None:
@@ -165,7 +165,7 @@ class FlowLogsBackend:
                     "DeliverLogsPermissionArn", "LogDestinationType", "cloud-watch-logs"
                 )
 
-        if max_aggregation_interval not in ["60", "600"]:
+        if max_aggregation_interval not in [60, 600]:
             raise InvalidAggregationIntervalParameterError(
                 "Flow Log Max Aggregation Interval"
             )
@@ -180,12 +180,12 @@ class FlowLogsBackend:
         log_destination: str,
         log_group_name: str,
         log_format: str,
-        max_aggregation_interval: str,
+        max_aggregation_interval: int,
     ) -> tuple[list[FlowLogs], list[Any]]:
         # Guess it's best to put it here due to possible
         # lack of them in the CloudFormation template
         max_aggregation_interval = (
-            "600" if max_aggregation_interval is None else max_aggregation_interval
+            600 if max_aggregation_interval is None else max_aggregation_interval
         )
         log_destination_type = (
             "cloud-watch-logs" if log_destination_type is None else log_destination_type

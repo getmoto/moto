@@ -184,3 +184,82 @@ class ServiceCatalogResponse(BaseResponse):
         }
 
         return json.dumps(response)
+
+    def create_product(self) -> str:
+        params = json.loads(self.body)
+        name = params.get("Name")
+        owner = params.get("Owner")
+        description = params.get("Description")
+        distributor = params.get("Distributor")
+        support_description = params.get("SupportDescription")
+        support_email = params.get("SupportEmail")
+        support_url = params.get("SupportUrl")
+        product_type = params.get("ProductType")
+        tags = params.get("Tags")
+        provisioning_artifact_parameters = params.get("ProvisioningArtifactParameters")
+        idempotency_token = params.get("IdempotencyToken")
+        source_connection = params.get("SourceConnection")
+        accept_language = params.get("AcceptLanguage")
+
+        response = self.servicecatalog_backend.create_product(
+            name=name,
+            owner=owner,
+            description=description,
+            distributor=distributor,
+            support_description=support_description,
+            support_email=support_email,
+            support_url=support_url,
+            product_type=product_type,
+            tags=tags,
+            provisioning_artifact_parameters=provisioning_artifact_parameters,
+            idempotency_token=idempotency_token,
+            source_connection=source_connection,
+            accept_language=accept_language,
+        )
+
+        product_view = {
+            "ProductViewSummary": response.to_dict(),
+            "Status": "AVAILABLE",
+            "ProductARN": response.arn,
+            "CreatedTime": response.created_time.isoformat(),
+            "SourceConnection": response.source_connection,
+        }
+
+        return json.dumps(
+            {
+                "ProductViewDetail": product_view,
+                "ProvisioningArtifactDetail": {},
+                "Tags": response.tags,
+            }
+        )
+
+    def describe_product(self) -> str:
+        params = json.loads(self.body)
+        accept_language = params.get("AcceptLanguage")
+        id = params.get("Id")
+        name = params.get("Name")
+
+        response = self.servicecatalog_backend.describe_product(
+            accept_language=accept_language, id=id, name=name
+        )
+
+        result = {
+            "ProductViewSummary": response.to_dict(),
+            "ProvisioningArtifacts": [],
+            "Budgets": [],
+            "LaunchPaths": [],
+        }
+
+        return json.dumps(result)
+
+    def delete_product(self) -> str:
+        params = json.loads(self.body)
+        accept_language = params.get("AcceptLanguage")
+        id = params.get("Id")
+
+        self.servicecatalog_backend.delete_product(
+            accept_language=accept_language,
+            id=id,
+        )
+
+        return json.dumps({})

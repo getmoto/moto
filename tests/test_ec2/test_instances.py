@@ -13,7 +13,10 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
+
+from .helpers import assert_dryrun_error
 
 decode_method = base64.decodebytes
 
@@ -42,12 +45,7 @@ def test_instance_launch_and_terminate():
         client.run_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     assert len(reservation["Instances"]) == 1
@@ -75,7 +73,7 @@ def test_instance_launch_and_terminate():
     root_device_name = instance["RootDeviceName"]
     mapping = instance["BlockDeviceMappings"][0]
     assert mapping["DeviceName"] == root_device_name
-    assert mapping["Ebs"]["Status"] == "in-use"
+    assert mapping["Ebs"]["Status"] == "attached"
     volume_id = mapping["Ebs"]["VolumeId"]
     assert volume_id.startswith("vol-")
 
@@ -85,12 +83,7 @@ def test_instance_launch_and_terminate():
 
     with pytest.raises(ClientError) as ex:
         client.terminate_instances(InstanceIds=[instance_id], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the TerminateInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.terminate_instances(InstanceIds=[instance_id])
     assert len(response["TerminatingInstances"]) == 1
@@ -956,12 +949,7 @@ def test_instance_start_and_stop():
 
     with pytest.raises(ClientError) as ex:
         client.stop_instances(InstanceIds=instance_ids, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the StopInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     stopped_instances = client.stop_instances(InstanceIds=instance_ids)[
         "StoppingInstances"
@@ -977,12 +965,7 @@ def test_instance_start_and_stop():
 
     with pytest.raises(ClientError) as ex:
         client.start_instances(InstanceIds=[instance1.id], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the StartInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance1.reload()
     # The DryRun-operation did not change anything
@@ -1006,12 +989,7 @@ def test_instance_reboot():
 
     with pytest.raises(ClientError) as ex:
         instance.reboot(DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RebootInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     assert instance.state == {"Code": 16, "Name": "running"}
 
@@ -1028,12 +1006,7 @@ def test_instance_attribute_instance_type():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(InstanceType={"Value": "m1.medium"}, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(InstanceType={"Value": "m1.medium"})
 
@@ -1060,12 +1033,7 @@ def test_modify_instance_attribute_security_groups():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(Groups=[sg_id, sg_id2], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(Groups=[sg_id, sg_id2])
 
@@ -1080,23 +1048,15 @@ def test_instance_attribute_user_data():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     res = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = res[0]
-
+    user_data = Base64EncodedString.from_raw_string("this is my user data")
     with pytest.raises(ClientError) as ex:
-        instance.modify_attribute(
-            UserData={"Value": "this is my user data"}, DryRun=True
-        )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+        instance.modify_attribute(UserData={"Value": user_data.as_bytes()}, DryRun=True)
+    assert_dryrun_error(ex)
 
-    instance.modify_attribute(UserData={"Value": "this is my user data"})
+    instance.modify_attribute(UserData={"Value": user_data.as_bytes()})
 
     attribute = instance.describe_attribute(Attribute="userData")["UserData"]
-    retrieved_user_data = attribute["Value"].encode("utf-8")
-    assert decode_method(retrieved_user_data) == b"this is my user data"
+    assert attribute["Value"] == str(user_data)
 
 
 @mock_aws
@@ -1111,12 +1071,7 @@ def test_instance_attribute_source_dest_check():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(SourceDestCheck={"Value": False}, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(SourceDestCheck={"Value": False})
 
@@ -1154,12 +1109,7 @@ def test_run_instance_with_security_group_name():
         ec2.create_security_group(
             GroupName=sec_group_name, Description="d", DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     group = ec2.create_security_group(
         GroupName=sec_group_name, Description="some description"
@@ -1561,12 +1511,7 @@ def test_instance_with_nic_attach_detach():
             DeviceIndex=1,
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.attach_network_interface(
         NetworkInterfaceId=eni_id, InstanceId=instance.id, DeviceIndex=1
@@ -1597,12 +1542,7 @@ def test_instance_with_nic_attach_detach():
         client.detach_network_interface(
             AttachmentId=instance_eni["Attachment"]["AttachmentId"], DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.detach_network_interface(
         AttachmentId=instance_eni["Attachment"]["AttachmentId"]
@@ -2139,12 +2079,7 @@ def test_get_instance_by_security_group():
         client.modify_instance_attribute(
             InstanceId=instance.id, Groups=[security_group.id], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.modify_instance_attribute(InstanceId=instance.id, Groups=[security_group.id])
 
@@ -2716,12 +2651,7 @@ def test_describe_instances_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_instances(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -3041,6 +2971,7 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "enabled",
         "HttpProtocolIpv6": "disabled",
         "InstanceMetadataTags": "disabled",
+        "State": "applied",
     }
 
     # Change the defaults
@@ -3066,4 +2997,111 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "disabled",
         "HttpProtocolIpv6": "enabled",
         "InstanceMetadataTags": "enabled",
+        "State": "applied",
     }
+
+
+@mock_aws
+def test_run_instances_default_response():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    resp = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+    )
+    assert "ReservationId" in resp
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["Groups"] == []
+    instance = resp["Instances"][0]
+    assert instance["AmiLaunchIndex"] == 0
+    assert instance["Architecture"] == "x86_64"
+    assert len(instance["BlockDeviceMappings"]) == 1
+    bdm = instance["BlockDeviceMappings"][0]
+    assert bdm["DeviceName"] == "/dev/sda1"
+    assert bdm["Ebs"]["DeleteOnTermination"] is True
+    assert bdm["Ebs"]["Status"] == "attached"
+    assert "ClientToken" in instance
+    assert instance["EbsOptimized"] is False
+    assert instance["Hypervisor"] == "xen"
+    assert instance["ImageId"] == EXAMPLE_AMI_ID
+    assert "InstanceId" in instance
+    assert instance["InstanceType"] == "t2.micro"
+    assert instance["KernelId"] == "None"
+    assert "LaunchTime" in instance
+    mo = instance["MetadataOptions"]
+    assert mo["HttpEndpoint"] == "enabled"
+    assert mo["HttpProtocolIpv6"] == "disabled"
+    assert mo["HttpPutResponseHopLimit"] == 1
+    assert mo["HttpTokens"] == "optional"
+    assert mo["InstanceMetadataTags"] == "disabled"
+    monitoring = instance["Monitoring"]
+    assert monitoring["State"] == "disabled"
+    assert len(instance["NetworkInterfaces"]) == 1
+    nif = instance["NetworkInterfaces"][0]
+    assert nif["Association"]["IpOwnerId"] == ACCOUNT_ID
+    assert "PublicIp" in nif["Association"]
+    nif_attachment = nif["Attachment"]
+    assert "AttachTime" in nif_attachment
+    assert "AttachmentId" in nif_attachment
+    assert nif_attachment["DeleteOnTermination"] is False
+    assert nif_attachment["DeviceIndex"] == 0
+    assert nif_attachment["Status"] == "attached"
+    assert nif["Description"] == "Primary network interface"
+    nif_groups = nif["Groups"]
+    assert len(nif_groups) == 1
+    assert "GroupId" in nif_groups[0]
+    assert nif_groups[0]["GroupName"] == "default"
+    assert "MacAddress" in nif
+    assert "NetworkInterfaceId" in nif
+    assert nif["OwnerId"] == ACCOUNT_ID
+    assert len(nif["PrivateIpAddresses"]) == 1
+    private_ip = nif["PrivateIpAddresses"][0]
+    assert private_ip["Primary"] is True
+    assert (
+        private_ip["PrivateIpAddress"]
+        == nif["PrivateIpAddress"]
+        == instance["PrivateIpAddress"]
+    )
+    assert private_ip["Association"]["IpOwnerId"] == ACCOUNT_ID
+    assert private_ip["Association"]["PublicIp"] == instance["PublicIpAddress"]
+    assert nif["SourceDestCheck"] is True
+    assert nif["Status"] == "in-use"
+    assert nif["SubnetId"] == instance["SubnetId"]
+    assert nif["VpcId"] == instance["VpcId"]
+    placement = instance["Placement"]
+    assert placement["AvailabilityZone"].startswith("us-west-2")
+    assert placement["GroupName"] == ""
+    assert placement["Tenancy"] == "default"
+    private_ip_address_name = instance["PrivateIpAddress"].replace(".", "-")
+    assert (
+        instance["PrivateDnsName"]
+        == f"ip-{private_ip_address_name}.us-west-2.compute.internal"
+    )
+    public_ip_address_name = instance["PublicIpAddress"].replace(".", "-")
+    assert (
+        instance["PublicDnsName"]
+        == f"ec2-{public_ip_address_name}.us-west-2.compute.amazonaws.com"
+    )
+    assert instance["RootDeviceName"] == "/dev/sda1"
+    assert instance["RootDeviceType"] == "ebs"
+    assert instance["SecurityGroups"] == []
+    assert instance["SourceDestCheck"] is True
+    assert instance["State"] == {"Code": 0, "Name": "pending"}
+    assert instance["StateReason"] == {"Code": "", "Message": ""}
+    assert instance["StateTransitionReason"] == ""
+    assert "Tags" not in instance
+    assert instance["VirtualizationType"] == "paravirtual"
+    assert "VpcId" in instance
+
+
+def test_block_device_status_conversion():
+    """Test EBS block device status conversion."""
+    from moto.ec2.models.instances import Instance
+
+    assert Instance.get_block_device_status("in-use") == "attached"
+
+    assert Instance.get_block_device_status("available") == "detached"
+
+    assert Instance.get_block_device_status("creating") == "creating"
+    assert Instance.get_block_device_status("deleting") == "deleting"

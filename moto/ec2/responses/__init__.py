@@ -82,6 +82,7 @@ class EC2Response(
 ):
     def __init__(self) -> None:
         super().__init__(service_name="ec2")
+        self.automated_parameter_parsing = True
 
     @property
     def should_autoescape(self) -> bool:

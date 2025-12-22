@@ -1,7 +1,17 @@
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, ServiceException
+
+
+class EC2Error(ServiceException):
+    pass
+
+
+class DryRunClientError(EC2Error):
+    code = "DryRunOperation"
+    message = "Request would have succeeded, but DryRun flag is set."
+
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
 # `terraform destroy` will complain if the roottag is incorrect
@@ -671,7 +681,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number: str):
+    def __init__(self, rule_number: int):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",
@@ -777,8 +787,25 @@ class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
     def __init__(self, name: str):
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
-            f"The specified launch template, with template name {name}, does not exist",
+            f"The specified launch template, with template name {name}, does not exist.",
         )
+
+
+class InvalidLaunchTemplateIdNotFound(EC2ClientError):
+    def __init__(self, template_id: str):
+        super().__init__(
+            "InvalidLaunchTemplateId.NotFound",
+            f"The specified launch template, with template ID {template_id}, does not exist.",
+        )
+
+
+class InvalidLaunchTemplateVersionNotFound(EC2ClientError):
+    def __init__(self, version: str, template_id: Optional[str] = None):
+        if template_id:
+            msg = f"Could not find the specified version {version} for the launch template with ID {template_id}."
+        else:
+            msg = f"The launch template version {version} is not found for the specified launch template."
+        super().__init__("InvalidLaunchTemplateId.VersionNotFound", msg)
 
 
 class InvalidParameterDependency(EC2ClientError):
@@ -902,4 +929,12 @@ class AuthFailureRestricted(RESTError):
         super().__init__(
             "AuthFailure",
             "Unauthorized attempt to access restricted resource",
+        )
+
+
+class InvalidUserDataError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidUserData.Malformed",
+            message,
         )

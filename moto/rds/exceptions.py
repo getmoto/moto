@@ -350,3 +350,13 @@ class SourceClusterNotSupportedFault(RDSClientError):
             "SourceClusterNotSupportedFault",
             f"The source DB cluster {source_arn} isn't supported for a blue/green deployment.",
         )
+
+
+class DBInstanceRoleAlreadyExists(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("DBInstanceRoleAlreadyExists", message)
+
+
+class DBClusterRoleAlreadyExists(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("DBClusterRoleAlreadyExists", message)

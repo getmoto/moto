@@ -1,10 +1,11 @@
 import json
 from typing import Any
+from urllib.parse import unquote
 
 import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 
 from .models import S3ControlBackend, s3control_backends
@@ -199,6 +200,27 @@ class S3ControlResponse(BaseResponse):
 
         template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
         return template.render(access_points=access_points, next_token=next_token)
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = self.backend.list_tags_for_resource(resource_arn)
+        return ActionResult(result={"Tags": tags})
+
+    def tag_resource(self) -> EmptyResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = (
+            xmltodict.parse(self.raw_body, force_list={"Tag": True})
+            .get("TagResourceRequest", {})
+            .get("Tags", {})["Tag"]
+        )
+        self.backend.tag_resource(resource_arn, tags=tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> EmptyResult:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.backend.untag_resource(resource_arn, tag_keys=tag_keys)
+        return EmptyResult()
 
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>

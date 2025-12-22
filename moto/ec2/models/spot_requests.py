@@ -1,7 +1,9 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 
 if TYPE_CHECKING:
@@ -49,13 +51,13 @@ class SpotInstanceRequest(TaggedEC2Resource):
         price: str,
         image_id: str,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,
         security_groups: list[str],
-        user_data: dict[str, Any],
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
@@ -113,6 +115,20 @@ class SpotInstanceRequest(TaggedEC2Resource):
         self.state = "active"
         self.status = "fulfilled"
         self.status_message = ""
+
+    @property
+    def valid_from_as_string(self) -> Optional[str]:
+        if self.valid_from is None:
+            return self.valid_from
+        x = self.valid_from
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+
+    @property
+    def valid_until_as_string(self) -> Optional[str]:
+        if self.valid_until is None:
+            return self.valid_until
+        x = self.valid_until
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -227,22 +243,22 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
             launch_template_data = launch_template.latest_version().data
             new_launch_template = launch_template_data.copy()
             if config.get("Overrides"):
-                overrides = list(config["Overrides"].values())[0]
+                overrides = config["Overrides"][0]
                 new_launch_template.update(overrides)
             launch_specs_from_config.append(new_launch_template)
 
         for spec in (launch_specs or []) + launch_specs_from_config:
-            tag_spec_set = spec.get("TagSpecificationSet", [])
+            tag_spec_set = spec.get("TagSpecifications", [])
             tags = convert_tag_spec(tag_spec_set)
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
                     ebs_optimized=spec.get("EbsOptimized"),
-                    group_set=spec.get("GroupSet", []),
-                    iam_instance_profile=spec.get("IamInstanceProfile"),
+                    group_set=spec.get("SecurityGroups", []),
+                    iam_instance_profile=spec.get("IamInstanceProfile", {}).get("Arn"),
                     image_id=spec["ImageId"],
                     instance_type=spec["InstanceType"],
                     key_name=spec.get("KeyName"),
-                    monitoring=spec.get("Monitoring"),
+                    monitoring=spec.get("Monitoring", {}).get("Enabled", False),
                     spot_price=spec.get("SpotPrice", self.spot_price),
                     subnet_id=spec.get("SubnetId"),
                     tag_specifications=tags,
@@ -390,13 +406,13 @@ class SpotRequestBackend:
         image_id: str,
         count: int,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,
         security_groups: list[str],
-        user_data: dict[str, Any],
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],

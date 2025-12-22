@@ -32,6 +32,7 @@ vpc-lattice
 - [ ] create_target_group
 - [X] delete_access_log_subscription
 - [ ] delete_auth_policy
+- [ ] delete_domain_verification
 - [ ] delete_listener
 - [ ] delete_resource_configuration
 - [ ] delete_resource_endpoint_association
@@ -47,18 +48,20 @@ vpc-lattice
 - [ ] deregister_targets
 - [X] get_access_log_subscription
 - [ ] get_auth_policy
+- [ ] get_domain_verification
 - [ ] get_listener
 - [ ] get_resource_configuration
 - [ ] get_resource_gateway
 - [ ] get_resource_policy
 - [ ] get_rule
-- [ ] get_service
-- [ ] get_service_network
+- [X] get_service
+- [X] get_service_network
 - [ ] get_service_network_resource_association
 - [ ] get_service_network_service_association
 - [ ] get_service_network_vpc_association
 - [ ] get_target_group
 - [X] list_access_log_subscriptions
+- [ ] list_domain_verifications
 - [ ] list_listeners
 - [ ] list_resource_configurations
 - [ ] list_resource_endpoint_associations
@@ -68,16 +71,17 @@ vpc-lattice
 - [ ] list_service_network_service_associations
 - [ ] list_service_network_vpc_associations
 - [ ] list_service_network_vpc_endpoint_associations
-- [ ] list_service_networks
-- [ ] list_services
-- [ ] list_tags_for_resource
+- [X] list_service_networks
+- [X] list_services
+- [X] list_tags_for_resource
 - [ ] list_target_groups
 - [ ] list_targets
 - [ ] put_auth_policy
 - [ ] put_resource_policy
 - [ ] register_targets
-- [ ] tag_resource
-- [ ] untag_resource
+- [ ] start_domain_verification
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_access_log_subscription
 - [ ] update_listener
 - [ ] update_resource_configuration

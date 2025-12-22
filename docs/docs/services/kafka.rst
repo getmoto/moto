@@ -35,6 +35,8 @@ kafka
 - [ ] describe_configuration
 - [ ] describe_configuration_revision
 - [ ] describe_replicator
+- [ ] describe_topic
+- [ ] describe_topic_partitions
 - [ ] describe_vpc_connection
 - [ ] get_bootstrap_brokers
 - [ ] get_cluster_policy
@@ -51,6 +53,7 @@ kafka
 - [ ] list_replicators
 - [ ] list_scram_secrets
 - [X] list_tags_for_resource
+- [ ] list_topics
 - [ ] list_vpc_connections
 - [ ] put_cluster_policy
 - [ ] reboot_broker
@@ -65,6 +68,7 @@ kafka
 - [ ] update_configuration
 - [ ] update_connectivity
 - [ ] update_monitoring
+- [ ] update_rebalancing
 - [ ] update_replication_info
 - [ ] update_security
 - [ ] update_storage

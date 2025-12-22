@@ -9,10 +9,8 @@ import re
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
-    ClassVar,
     Optional,
     TypeVar,
     Union,
@@ -22,13 +20,13 @@ from urllib.parse import parse_qs, parse_qsl, urlparse
 from xml.dom.minidom import parseString as parseXML
 
 import boto3
-import requests
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
+from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parsers import PROTOCOL_PARSERS
 from moto.core.request import determine_request_protocol, normalize_request
@@ -36,6 +34,7 @@ from moto.core.serialize import (
     ResponseSerializer,
     XFormedAttributePicker,
     get_serializer_class,
+    never_return,
 )
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -43,7 +42,6 @@ from moto.core.utils import (
     get_value,
     gzip_decompress,
     method_names_from_class,
-    params_sort_function,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import get_partition
@@ -51,13 +49,6 @@ from moto.utilities.utils import get_partition
 log = logging.getLogger(__name__)
 
 JINJA_ENVS: dict[type, Environment] = {}
-
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec
-
-    P = ParamSpec("P")
-
-T = TypeVar("T")
 
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
@@ -184,111 +175,6 @@ class _TemplateEnvironmentMixin:
         return self.environment.get_template(template_id)
 
 
-class ActionAuthenticatorMixin:
-    request_count: ClassVar[int] = 0
-
-    PUBLIC_OPERATIONS = [
-        "AWSCognitoIdentityService.GetId",
-        "AWSCognitoIdentityService.GetOpenIdToken",
-        "AWSCognitoIdentityProviderService.ConfirmSignUp",
-        "AWSCognitoIdentityProviderService.GetUser",
-        "AWSCognitoIdentityProviderService.ForgotPassword",
-        "AWSCognitoIdentityProviderService.InitiateAuth",
-        "AWSCognitoIdentityProviderService.SignUp",
-    ]
-
-    def _authenticate_and_authorize_action(
-        self, iam_request_cls: type, resource: str = "*"
-    ) -> None:
-        if (
-            ActionAuthenticatorMixin.request_count
-            >= settings.INITIAL_NO_AUTH_ACTION_COUNT
-        ):
-            if (
-                self.headers.get("X-Amz-Target")  # type: ignore[attr-defined]
-                in ActionAuthenticatorMixin.PUBLIC_OPERATIONS
-            ):
-                return
-            parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
-            path = parsed_url.path
-            if parsed_url.query:
-                path += "?" + parsed_url.query
-            iam_request = iam_request_cls(
-                account_id=self.current_account,  # type: ignore[attr-defined]
-                method=self.method,  # type: ignore[attr-defined]
-                path=path,
-                data=self.data,  # type: ignore[attr-defined]
-                body=self.body,  # type: ignore[attr-defined]
-                headers=self.headers,  # type: ignore[attr-defined]
-                action=self._get_action(),  # type: ignore[attr-defined]
-            )
-            iam_request.check_signature()
-            iam_request.check_action_permitted(resource)
-        else:
-            ActionAuthenticatorMixin.request_count += 1
-
-    def _authenticate_and_authorize_normal_action(self, resource: str = "*") -> None:
-        from moto.iam.access_control import IAMRequest
-
-        self._authenticate_and_authorize_action(IAMRequest, resource)
-
-    def _authenticate_and_authorize_s3_action(
-        self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
-    ) -> None:
-        arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
-        resource = f"arn:{get_partition(self.region)}:s3:::{arn}"  # type: ignore[attr-defined]
-
-        from moto.iam.access_control import S3IAMRequest
-
-        self._authenticate_and_authorize_action(S3IAMRequest, resource)
-
-    @staticmethod
-    def set_initial_no_auth_action_count(
-        initial_no_auth_action_count: int,
-    ) -> Callable[[Callable[P, T]], Callable[P, T]]:
-        _test_server_mode_endpoint = settings.test_server_mode_endpoint()
-
-        def decorator(function: Callable[P, T]) -> Callable[P, T]:
-            def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-                if settings.TEST_SERVER_MODE:
-                    response = requests.post(
-                        f"{_test_server_mode_endpoint}/moto-api/reset-auth",
-                        data=str(initial_no_auth_action_count).encode("utf-8"),
-                    )
-                    original_initial_no_auth_action_count = response.json()[
-                        "PREVIOUS_INITIAL_NO_AUTH_ACTION_COUNT"
-                    ]
-                else:
-                    original_initial_no_auth_action_count = (
-                        settings.INITIAL_NO_AUTH_ACTION_COUNT
-                    )
-                    original_request_count = ActionAuthenticatorMixin.request_count
-                    settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
-                    ActionAuthenticatorMixin.request_count = 0
-                try:
-                    result = function(*args, **kwargs)
-                finally:
-                    if settings.TEST_SERVER_MODE:
-                        requests.post(
-                            f"{_test_server_mode_endpoint}/moto-api/reset-auth",
-                            data=str(original_initial_no_auth_action_count).encode(
-                                "utf-8"
-                            ),
-                        )
-                    else:
-                        ActionAuthenticatorMixin.request_count = original_request_count
-                        settings.INITIAL_NO_AUTH_ACTION_COUNT = (
-                            original_initial_no_auth_action_count
-                        )
-                return result
-
-            functools.update_wrapper(wrapper, function)
-            wrapper.__wrapped__ = function  # type: ignore[attr-defined]
-            return wrapper
-
-        return decorator
-
-
 @dataclass
 class ActionContext:
     service_model: ServiceModel
@@ -338,6 +224,7 @@ class EmptyResult(ActionResult):
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     PROTOCOL_PARSER_MAP_TYPE: Any = dict
+    RESPONSE_KEY_PATH_TO_TRANSFORMER: dict[str, Callable[[Any], Any]] = {}
 
     default_region = "us-east-1"
     # to extract region, use [^.]
@@ -346,9 +233,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    # Note: technically, we could remove "member" from the regex below... (leaving it for clarity)
-    param_list_regex = re.compile(r"^(\.?[^.]*(\.member|\.[^.]+)?)\.(\d+)\.?")
-    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -807,103 +691,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix: str) -> dict[str, Any]:
-        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
-
-    def _get_multi_param_helper(
-        self,
-        param_prefix: str,
-        skip_result_conversion: bool = False,
-        tracked_prefixes: Optional[set[str]] = None,
-    ) -> Any:
-        value_dict: Any = {}
-        tracked_prefixes = (
-            tracked_prefixes or set()
-        )  # prefixes which have already been processed
-
-        for name, value in self.querystring.items():
-            if not name.startswith(param_prefix):
-                continue
-
-            if len(name) > len(param_prefix) and not name[
-                len(param_prefix) :
-            ].startswith("."):
-                continue
-
-            match = (
-                self.param_list_regex.search(name[len(param_prefix) :])
-                if len(name) > len(param_prefix)
-                else None
-            )
-            if match:
-                prefix = param_prefix + match.group(1)
-                value = self._get_multi_param(prefix)
-                tracked_prefixes.add(prefix)
-                name = prefix
-                value_dict[name] = value
-            else:
-                match = self.param_regex.search(name[len(param_prefix) :])
-                if match:
-                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    sub_attr = (
-                        f"{name[: len(param_prefix)]}{match.group(1)}.{match.group(2)}"
-                    )
-                    if match.group(3):
-                        value = self._get_multi_param_helper(
-                            sub_attr,
-                            tracked_prefixes=tracked_prefixes,
-                            skip_result_conversion=skip_result_conversion,
-                        )
-                    else:
-                        value = self._get_param(sub_attr)
-                    tracked_prefixes.add(sub_attr)
-                    value_dict[name] = value
-                else:
-                    value_dict[name] = value[0]
-
-        if not value_dict:
-            return None
-
-        if skip_result_conversion or len(value_dict) > 1:
-            # strip off period prefix
-            value_dict = {
-                name[len(param_prefix) + 1 :]: value
-                for name, value in value_dict.items()
-            }
-            for k in list(value_dict.keys()):
-                parts = k.split(".")
-                if len(parts) != 2 or parts[1] != "member":
-                    value_dict[parts[0]] = value_dict.pop(k)
-        else:
-            value_dict = list(value_dict.values())[0]
-
-        return value_dict
-
-    def _get_multi_param(
-        self, param_prefix: str, skip_result_conversion: bool = False
-    ) -> list[Any]:
-        """
-        Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
-        this will return ['my-test-1', 'my-test-2']
-        """
-        if param_prefix.endswith("."):
-            prefix = param_prefix
-        else:
-            prefix = param_prefix + "."
-        values = []
-        index = 1
-        while True:
-            value_dict = self._get_multi_param_helper(
-                prefix + str(index), skip_result_conversion=skip_result_conversion
-            )
-            if not value_dict and value_dict != "":
-                break
-
-            values.append(value_dict)
-            index += 1
-
-        return values
-
     def _get_params(self) -> dict[str, Any]:
         """
         Given a querystring of
@@ -943,7 +730,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if self.automated_parameter_parsing:
             return self.params
         params: dict[str, Any] = {}
-        for k, v in sorted(self.querystring.items(), key=params_sort_function):
+        for k, v in sorted(self.querystring.items()):
             self._parse_param(k, v[0], params)
         return params
 
@@ -981,51 +768,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix: str) -> list[dict[str, Any]]:
-        """
-        Given a query dict like
-        {
-            'Steps.member.1.Name': ['example1'],
-            'Steps.member.1.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.1.HadoopJarStep.Jar': ['streaming1.jar'],
-            'Steps.member.2.Name': ['example2'],
-            'Steps.member.2.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.2.HadoopJarStep.Jar': ['streaming2.jar'],
-        }
-
-        returns
-        [{
-            'name': u'example1',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming1.jar',
-        }, {
-            'name': u'example2',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming2.jar',
-        }]
-        """
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = f"{param_prefix}.{param_index}."
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[
-                        camelcase_to_underscores(key.replace(index_prefix, ""))
-                    ] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
-
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
 
-    def error_on_dryrun(self) -> None:
-        if "true" in self.querystring.get("DryRun", ["false"]):
-            a = self._get_param("Action")
-            message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
-            raise DryRunClientError(error_type="DryRunOperation", message=message)
+    def _include_in_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = lambda x: x
+
+    def _exclude_from_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = never_return

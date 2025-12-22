@@ -18,10 +18,13 @@ dsql
 
 - [X] create_cluster
 - [ ] delete_cluster
+- [ ] delete_cluster_policy
 - [X] get_cluster
+- [ ] get_cluster_policy
 - [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
+- [ ] put_cluster_policy
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_cluster

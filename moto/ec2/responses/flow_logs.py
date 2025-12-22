@@ -6,14 +6,14 @@ from ._base_response import EC2BaseResponse
 class FlowLogs(EC2BaseResponse):
     def create_flow_logs(self) -> str:
         resource_type = self._get_param("ResourceType")
-        resource_ids = self._get_multi_param("ResourceId")
+        resource_ids = self._get_param("ResourceIds", [])
         traffic_type = self._get_param("TrafficType")
         deliver_logs_permission_arn = self._get_param("DeliverLogsPermissionArn")
         log_destination_type = self._get_param("LogDestinationType")
         log_destination = self._get_param("LogDestination")
         log_group_name = self._get_param("LogGroupName")
         log_format = self._get_param("LogFormat")
-        max_aggregation_interval = self._get_param("MaxAggregationInterval")
+        max_aggregation_interval = self._get_int_param("MaxAggregationInterval")
         validate_resource_ids(resource_ids)
 
         tags = self._parse_tag_specification().get("vpc-flow-log", {})
@@ -37,7 +37,7 @@ class FlowLogs(EC2BaseResponse):
         return template.render(flow_logs=flow_logs, errors=errors)
 
     def describe_flow_logs(self) -> str:
-        flow_log_ids = self._get_multi_param("FlowLogId")
+        flow_log_ids = self._get_param("FlowLogIds", [])
         filters = self._filters_from_querystring()
         flow_logs = self.ec2_backend.describe_flow_logs(flow_log_ids, filters)
 
@@ -47,7 +47,7 @@ class FlowLogs(EC2BaseResponse):
         return template.render(flow_logs=flow_logs)
 
     def delete_flow_logs(self) -> str:
-        flow_log_ids = self._get_multi_param("FlowLogId")
+        flow_log_ids = self._get_param("FlowLogIds", [])
 
         self.error_on_dryrun()
 

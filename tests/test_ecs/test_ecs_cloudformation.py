@@ -326,9 +326,9 @@ def test_create_task_definition_through_cloudformation():
                         {
                             "Name": "ecs-sample",
                             "Image": "amazon/amazon-ecs-sample",
-                            "Cpu": "200",
-                            "Memory": "500",
-                            "Essential": "true",
+                            "Cpu": 200,
+                            "Memory": 500,
+                            "Essential": True,
                             "PortMappings": [
                                 {
                                     "ContainerPort": 123,

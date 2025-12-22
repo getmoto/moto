@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ matrix.path }}
         key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -71,7 +71,7 @@ jobs:
         kill $(lsof -t -i:5005)
     - name: Archive Proxy logs
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: motoproxy-${{ matrix.os }}-${{ matrix.python-version }}
         path: |

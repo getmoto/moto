@@ -7,7 +7,7 @@ from ._base_response import EC2BaseResponse
 class EgressOnlyInternetGateway(EC2BaseResponse):
     def create_egress_only_internet_gateway(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
-        tag_param = self._get_multi_param("TagSpecification")
+        tag_param = self._get_param("TagSpecifications", [])
         tags = add_tag_specification(tag_param)
 
         egress_only_igw = self.ec2_backend.create_egress_only_internet_gateway(
@@ -17,7 +17,7 @@ class EgressOnlyInternetGateway(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_egress_only_internet_gateways(self) -> ActionResult:
-        egress_only_igw_ids = self._get_multi_param("EgressOnlyInternetGatewayId")
+        egress_only_igw_ids = self._get_param("EgressOnlyInternetGatewayIds", [])
         egress_only_igws = self.ec2_backend.describe_egress_only_internet_gateways(
             egress_only_igw_ids
         )

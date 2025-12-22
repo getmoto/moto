@@ -86,6 +86,7 @@ class FakeAccount(BaseModel):
         self.email = kwargs["Email"]
         self.create_time = utcnow()
         self.status = "ACTIVE"
+        self.state = "ACTIVE"
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
         self.attached_policies: list[FakePolicy] = []
@@ -147,6 +148,7 @@ class FakeAccount(BaseModel):
             "Email": self.email,
             "Name": self.name,
             "Status": self.status,
+            "State": self.state,
             "JoinedMethod": self.joined_method,
             "JoinedTimestamp": unix_time(self.create_time),
         }
@@ -157,6 +159,7 @@ class FakeAccount(BaseModel):
         # TODO: The CloseAccount spec allows the account to pass through a
         # "PENDING_CLOSURE" state before reaching the SUSPENDED state.
         self.status = "SUSPENDED"
+        self.state = "SUSPENDED"
 
 
 class FakeOrganizationalUnit(BaseModel):

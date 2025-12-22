@@ -16,9 +16,9 @@ class InternetGateways(EC2BaseResponse):
     def create_internet_gateway(self) -> str:
         self.error_on_dryrun()
 
-        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tags = self._get_param("TagSpecifications", [])
         if tags:
-            tags = tags[0].get("Tag") or []
+            tags = tags[0].get("Tags") or []
         igw = self.ec2_backend.create_internet_gateway(tags=tags)
         return self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE).render(
             internet_gateway=igw
@@ -33,14 +33,8 @@ class InternetGateways(EC2BaseResponse):
 
     def describe_internet_gateways(self) -> str:
         filter_dict = self._filters_from_querystring()
-        if "InternetGatewayId.1" in self.querystring:
-            igw_ids = self._get_multi_param("InternetGatewayId")
-            igws = self.ec2_backend.describe_internet_gateways(
-                igw_ids, filters=filter_dict
-            )
-        else:
-            igws = self.ec2_backend.describe_internet_gateways(filters=filter_dict)
-
+        igw_ids = self._get_param("InternetGatewayIds", None)
+        igws = self.ec2_backend.describe_internet_gateways(igw_ids, filters=filter_dict)
         template = self.response_template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 
