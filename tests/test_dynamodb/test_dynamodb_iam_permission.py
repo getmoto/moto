@@ -63,15 +63,14 @@ def test_dynamodb_authorization_put_item():
     ]
 
     with enable_iam_authentication():
-        restricted_session = boto3.Session(
+        restricted_dynamo = boto3.resource(
+            "dynamodb",
             region_name="us-east-1",
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
         )
-        restricted_table = restricted_session.resource("dynamodb").Table(
-            table.table_name
-        )
+        restricted_table = restricted_dynamo.Table(table.table_name)
         restricted_table.put_item(Item={"pk": "123"})
 
     # If we are allowed to put the item, then this test has passed.
