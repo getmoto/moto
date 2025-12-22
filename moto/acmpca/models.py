@@ -22,6 +22,7 @@ from .exceptions import (
     InvalidS3ObjectAclInCrlConfiguration,
     InvalidStateException,
     MalformedCertificateAuthorityException,
+    RequestInProgressException,
     ResourceNotFoundException,
 )
 
@@ -52,6 +53,7 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
         self.policy: Optional[str] = None
+        self.revoked_certificates: dict[str, dict[str, Any]] = {}
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
@@ -65,6 +67,7 @@ class CertificateAuthority(BaseModel):
         self.certificate_bytes: bytes = b""
         self.certificate_chain: Optional[bytes] = None
         self.issued_certificates: dict[str, bytes] = {}
+        self.issued_certificates_certificate_chains: dict[str, bytes] = {}
 
         self.subject = self.certificate_authority_configuration.get("Subject", {})
 
@@ -162,6 +165,15 @@ class CertificateAuthority(BaseModel):
         cert_id = str(mock_random.uuid4()).replace("-", "")
         cert_arn = f"arn:{get_partition(self.region_name)}:acm-pca:{self.region_name}:{self.account_id}:certificate-authority/{self.id}/certificate/{cert_id}"
         self.issued_certificates[cert_arn] = new_cert
+
+        # Store certificate with its chain
+        # For root CA certificates, chain is empty; for others, include CA certificate
+        is_root_cert = template_arn == "arn:aws:acm-pca:::template/RootCACertificate/V1"
+        if not is_root_cert:
+            self.issued_certificates_certificate_chains[cert_arn] = (
+                self.certificate_bytes
+            )
+
         return cert_arn
 
     def _x509_extensions(
@@ -263,8 +275,12 @@ class CertificateAuthority(BaseModel):
 
         return extensions
 
-    def get_certificate(self, certificate_arn: str) -> bytes:
-        return self.issued_certificates[certificate_arn]
+    def get_certificate(self, certificate_arn: str) -> tuple[bytes, bytes]:
+        certificate = self.issued_certificates[certificate_arn]
+        certificate_chain = self.issued_certificates_certificate_chains.get(
+            certificate_arn, b""
+        )
+        return certificate, certificate_chain
 
     def set_revocation_configuration(
         self, revocation_configuration: Optional[dict[str, Any]]
@@ -435,13 +451,20 @@ class ACMPCABackend(BaseBackend):
 
     def get_certificate(
         self, certificate_authority_arn: str, certificate_arn: str
-    ) -> tuple[bytes, Optional[str]]:
-        """
-        The CertificateChain will always return None for now
-        """
+    ) -> tuple[bytes, bytes]:
         ca = self.describe_certificate_authority(certificate_authority_arn)
-        certificate = ca.get_certificate(certificate_arn)
-        certificate_chain = None
+        certificate, certificate_chain = ca.get_certificate(certificate_arn)
+        # Load the certificate to get its serial number
+        cert_obj = x509.load_pem_x509_certificate(certificate)
+        serial_number = format(cert_obj.serial_number, "X")
+        serial_number = ":".join(
+            serial_number[i : i + 2] for i in range(0, len(serial_number), 2)
+        )
+        # Check if the certificate is revoked
+        if serial_number in ca.revoked_certificates:
+            raise RequestInProgressException(
+                f"The certificate has been revoked with reason: {ca.revoked_certificates[serial_number]['revocation_reason']}"
+            )
         return certificate, certificate_chain
 
     def import_certificate_authority_certificate(
@@ -460,8 +483,19 @@ class ACMPCABackend(BaseBackend):
         revocation_reason: str,
     ) -> None:
         """
-        This is currently a NO-OP
+        Revokes a certificate issued by the private certificate authority.
         """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+
+        # Check if CA is active
+        if ca.status != "ACTIVE":
+            raise InvalidStateException(certificate_authority_arn)
+
+        # Store revocation information
+        ca.revoked_certificates[certificate_serial] = {
+            "revocation_reason": revocation_reason,
+            "revocation_time": unix_time(),
+        }
 
     def tag_certificate_authority(
         self, certificate_authority_arn: str, tags: list[dict[str, str]]

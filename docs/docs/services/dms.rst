@@ -17,6 +17,8 @@ dms
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
 - [ ] batch_start_recommendations
+- [ ] cancel_metadata_model_conversion
+- [ ] cancel_metadata_model_creation
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_data_migration
 - [ ] create_data_provider
@@ -27,7 +29,7 @@ dms
 - [ ] create_migration_project
 - [ ] create_replication_config
 - [X] create_replication_instance
-- [ ] create_replication_subnet_group
+- [X] create_replication_subnet_group
 - [X] create_replication_task
   
         The following parameters are not yet implemented:
@@ -38,21 +40,21 @@ dms
 - [ ] delete_connection
 - [ ] delete_data_migration
 - [ ] delete_data_provider
-- [ ] delete_endpoint
+- [X] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_fleet_advisor_collector
 - [ ] delete_fleet_advisor_databases
 - [ ] delete_instance_profile
 - [ ] delete_migration_project
 - [ ] delete_replication_config
-- [ ] delete_replication_instance
-- [ ] delete_replication_subnet_group
+- [X] delete_replication_instance
+- [X] delete_replication_subnet_group
 - [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
 - [ ] describe_certificates
-- [ ] describe_connections
+- [X] describe_connections
 - [ ] describe_conversion_configuration
 - [ ] describe_data_migrations
 - [ ] describe_data_providers
@@ -70,8 +72,11 @@ dms
 - [ ] describe_fleet_advisor_schema_object_summary
 - [ ] describe_fleet_advisor_schemas
 - [ ] describe_instance_profiles
+- [ ] describe_metadata_model
 - [ ] describe_metadata_model_assessments
+- [ ] describe_metadata_model_children
 - [ ] describe_metadata_model_conversions
+- [ ] describe_metadata_model_creations
 - [ ] describe_metadata_model_exports_as_script
 - [ ] describe_metadata_model_exports_to_target
 - [ ] describe_metadata_model_imports
@@ -86,7 +91,7 @@ dms
 - [X] describe_replication_instances
   Get information about replication instances with optional filtering
 
-- [ ] describe_replication_subnet_groups
+- [X] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
@@ -100,6 +105,7 @@ dms
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] export_metadata_model_assessment
+- [ ] get_target_selection_rules
 - [ ] import_certificate
 - [X] list_tags_for_resource
 - [ ] modify_conversion_configuration
@@ -124,6 +130,7 @@ dms
 - [ ] start_extension_pack_association
 - [ ] start_metadata_model_assessment
 - [ ] start_metadata_model_conversion
+- [ ] start_metadata_model_creation
 - [ ] start_metadata_model_export_as_script
 - [ ] start_metadata_model_export_to_target
 - [ ] start_metadata_model_import
@@ -140,6 +147,6 @@ dms
 - [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
-- [ ] test_connection
+- [X] test_connection
 - [ ] update_subscriptions_to_event_bridge
 

@@ -23,7 +23,7 @@ class CustomerGateways(EC2BaseResponse):
     def describe_customer_gateways(self) -> ActionResult:
         self.error_on_dryrun()
         filters = self._filters_from_querystring()
-        customer_gateway_ids = self._get_multi_param("CustomerGatewayId")
+        customer_gateway_ids = self._get_param("CustomerGatewayIds", [])
         customer_gateways = self.ec2_backend.describe_customer_gateways(
             filters, customer_gateway_ids
         )

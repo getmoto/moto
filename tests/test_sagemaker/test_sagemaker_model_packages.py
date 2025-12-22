@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest, TestCase
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -242,7 +241,7 @@ def test_describe_model_package_default():
         resp["ModelPackageArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package-group/1"
     )
-    assert resp["CreationTime"] == datetime(2015, 1, 1, 0, 0, 0, tzinfo=tzutc())
+    assert resp["CreationTime"] == datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     assert (
         resp["CreatedBy"]["UserProfileArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:user-profile/fake-domain-id/fake-user-profile-name"
@@ -382,7 +381,9 @@ def test_update_model_package_should_update_last_modified_information():
         )
     resp = client.describe_model_package(ModelPackageName=model_package_arn)
     assert resp.get("LastModifiedTime") is not None
-    assert resp["LastModifiedTime"] == datetime(2020, 1, 1, 12, 0, 0, tzinfo=tzutc())
+    assert resp["LastModifiedTime"] == datetime(
+        2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc
+    )
     assert resp.get("LastModifiedBy") is not None
     assert (
         resp["LastModifiedBy"]["UserProfileArn"]

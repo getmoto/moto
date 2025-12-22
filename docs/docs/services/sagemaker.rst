@@ -21,6 +21,8 @@ sagemaker
 - [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
+- [ ] batch_reboot_cluster_nodes
+- [ ] batch_replace_cluster_nodes
 - [ ] create_action
 - [ ] create_algorithm
 - [ ] create_app
@@ -133,10 +135,12 @@ sagemaker
 - [ ] delete_optimization_job
 - [ ] delete_partner_app
 - [X] delete_pipeline
+- [ ] delete_processing_job
 - [ ] delete_project
 - [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
+- [ ] delete_training_job
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile

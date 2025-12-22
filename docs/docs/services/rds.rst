@@ -14,8 +14,8 @@ rds
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_role_to_db_cluster
-- [ ] add_role_to_db_instance
+- [X] add_role_to_db_cluster
+- [X] add_role_to_db_instance
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action

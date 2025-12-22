@@ -1,13 +1,27 @@
 from contextlib import nullcontext
 from functools import wraps
 from time import sleep
+from typing import Optional
 from uuid import uuid4
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import allow_aws_request
+
+pytest.register_assert_rewrite("tests.test_ec2.helpers")
+
+
+MINIMAL_LAUNCH_TEMPLATE_DATA = {
+    "TagSpecifications": [
+        {
+            "ResourceType": "instance",
+            "Tags": [{"Key": "test", "Value": "value"}],
+        }
+    ]
+}
 
 
 def ec2_aws_verified(
@@ -16,13 +30,23 @@ def ec2_aws_verified(
     create_subnet: bool = False,
     create_transit_gateway: bool = False,
     create_customer_gateway: bool = False,
+    create_launch_template: bool = False,
+    launch_template_data: Optional[dict] = None,
+    return_launch_template_details: bool = False,
 ):
     """
-    Function that is verified to work against AWS.
-    Can be run against AWS at any time by setting:
-      MOTO_TEST_ALLOW_AWS_REQUEST=true
+        Function that is vMINIMAL_LAUNCH_TEMPLATE_DATE = {
+        "TagSpecifications": [
+            {
+                "ResourceType": "instance",
+                "Tags": [{"Key": "test", "Value": "value"}],
+            }
+        ]
+    }erified to work against AWS.
+        Can be run against AWS at any time by setting:
+          MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_aws` context.
+        If this environment variable is not set, the function runs in a `mock_aws` context.
 
     """
 
@@ -38,6 +62,9 @@ def ec2_aws_verified(
                     create_subnet=create_subnet,
                     create_transit_gateway=create_transit_gateway,
                     create_customer_gateway=create_customer_gateway,
+                    create_launch_template=create_launch_template,
+                    return_launch_template_details=return_launch_template_details,
+                    launch_template_data=launch_template_data,
                     func=func,
                     kwargs=kwargs,
                 )
@@ -53,13 +80,16 @@ def _invoke_func(
     create_subnet: bool,
     create_transit_gateway: bool,
     create_customer_gateway: bool,
+    create_launch_template: bool,
+    return_launch_template_details: bool,
+    launch_template_data: Optional[dict],
     func,
     kwargs,
 ):
     ec2_client = boto3.client("ec2", "us-east-1")
     kwargs["ec2_client"] = ec2_client
 
-    vpc_id = sg_id = subnet_id = tg_id = cg_id = None
+    vpc_id = sg_id = subnet_id = tg_id = cg_id = lt_name = None
     if create_vpc:
         vpc = ec2_client.create_vpc(
             CidrBlock="10.0.0.0/16",
@@ -98,9 +128,21 @@ def _invoke_func(
         cg_id = customer_gateway["CustomerGateway"]["CustomerGatewayId"]
         kwargs["cg_id"] = cg_id
 
+    if create_launch_template:
+        lt_name = str(uuid4())
+        creation = ec2_client.create_launch_template(
+            LaunchTemplateName=lt_name,
+            LaunchTemplateData=launch_template_data or MINIMAL_LAUNCH_TEMPLATE_DATA,
+        )
+        kwargs["launch_template_name"] = lt_name
+        if return_launch_template_details:
+            kwargs["launch_template_details"] = creation
+
     try:
         func(**kwargs)
     finally:
+        if lt_name:
+            ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
         if cg_id:
             ec2_client.delete_customer_gateway(CustomerGatewayId=cg_id)
         if tg_id:

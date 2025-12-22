@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import itertools
+import math
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
@@ -263,7 +265,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
         ramdisk_id: str,
         kernel_id: str,
         security_groups: list[str],
-        user_data: str,
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         instance_monitoring: bool,
         instance_profile_name: Optional[str],
@@ -869,12 +871,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return self.launch_config.instance_type  # type: ignore[union-attr]
 
     @property
-    def user_data(self) -> str:
+    def user_data(self) -> Optional[Base64EncodedString]:
         if self.ec2_launch_template:
             version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.user_data
 
-        return self.launch_config.user_data  # type: ignore[union-attr]
+        return self.launch_config.user_data
 
     @property
     def security_groups(self) -> list[str]:
@@ -947,24 +949,80 @@ class FakeAutoScalingGroup(CloudFormationModel):
         else:
             self.desired_capacity = new_capacity
 
-        curr_instance_count = len(self.active_instances())
+        current_instance_count = len(self.active_instances())
 
-        if self.desired_capacity == curr_instance_count:
-            pass  # Nothing to do here
-        elif self.desired_capacity > curr_instance_count:  # type: ignore[operator]
-            # Need more instances
-            count_needed = int(self.desired_capacity) - int(curr_instance_count)  # type: ignore[arg-type]
+        is_mixed_instances = self.mixed_instances_policy and len(
+            self.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", [])
+        )
+        target_capacity = self.desired_capacity or 0
 
+        if is_mixed_instances:
+            policy = self.mixed_instances_policy or {}
+            # These calculations assume a strategy of "prioritized"
+            overrides = policy["LaunchTemplate"]["Overrides"]
+            distribution = policy.get("InstancesDistribution", {})
+
+            on_demand_base = int(distribution.get("OnDemandBaseCapacity", 0))
+            percent_above_base = int(
+                distribution.get("OnDemandPercentageAboveBaseCapacity", 100)
+            )
+
+            # When using a "prioritized" strategy, AWS will treat the overrides as priority list when deciding
+            # which instances to launch, meaning we always pick the first entry in a mocked environment.
+            primary_weight_str = overrides[0].get("WeightedCapacity", "1")
+            primary_weight = (
+                int(primary_weight_str) if primary_weight_str.isdigit() else 1
+            )
+            if primary_weight == 0:
+                primary_weight = 1
+
+            if on_demand_base >= target_capacity:
+                # If the base capacity meets or exceeds desired capacity, the entire desired capacity is fulfilled by On-Demand.
+                total_on_demand_capacity = target_capacity
+                total_spot_capacity = 0
+
+            else:
+                # After fulfilling the OnDemandBase, we need to add more on-demand and spot instances according
+                # to the passed percentage.
+                above_base_capacity = target_capacity - on_demand_base
+
+                on_demand_above_base_capacity = (
+                    int(above_base_capacity * percent_above_base) / 100.0
+                )
+                spot_above_base_capacity = int(
+                    above_base_capacity - on_demand_above_base_capacity
+                )
+
+                total_on_demand_capacity = int(
+                    on_demand_base + on_demand_above_base_capacity
+                )
+                total_spot_capacity = spot_above_base_capacity
+
+            on_demand_instances = math.ceil(total_on_demand_capacity / primary_weight)
+            spot_instances = math.ceil(total_spot_capacity / primary_weight)
+
+            total_target_instances = on_demand_instances + spot_instances
+
+        else:
+            total_target_instances = target_capacity
+
+        instance_count_delta = total_target_instances - current_instance_count
+
+        if instance_count_delta == 0:
+            pass
+        elif instance_count_delta > 0:
+            count_needed = instance_count_delta
             propagated_tags = self.get_propagated_tags()
             self.replace_autoscaling_group_instances(count_needed, propagated_tags)
         else:
-            # Need to remove some instances
-            count_to_remove = curr_instance_count - self.desired_capacity  # type: ignore[operator]
+            count_to_remove = abs(instance_count_delta)
+
             instances_to_remove = [  # only remove unprotected
                 state
                 for state in self.instance_states
                 if not state.protected_from_scale_in
             ][:count_to_remove]
+
             if instances_to_remove:  # just in case not instances to remove
                 instance_ids_to_remove = [
                     instance.instance.id for instance in instances_to_remove
@@ -975,6 +1033,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.instance_states = list(
                     set(self.instance_states) - set(instances_to_remove)
                 )
+
         if self.name in self.autoscaling_backend.autoscaling_groups:
             self.autoscaling_backend.update_attached_elbs(self.name)
             self.autoscaling_backend.update_attached_target_groups(self.name)
@@ -1077,7 +1136,7 @@ class AutoScalingBackend(BaseBackend):
         kernel_id: str,
         ramdisk_id: str,
         security_groups: list[str],
-        user_data: str,
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         instance_monitoring: bool,
         instance_profile_name: Optional[str],

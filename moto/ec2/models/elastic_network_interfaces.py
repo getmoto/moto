@@ -13,6 +13,8 @@ from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from .instances import Instance
 from ..utils import (
     generate_dns_from_ip,
@@ -66,7 +68,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             self.subnet = self.ec2_backend.get_subnet(subnet)
         self.instance: Optional[Instance] = None
         self.attachment_id: Optional[str] = None
-        self.attach_time: Optional[str] = None
+        self.attach_time: Optional[datetime] = None
         self.delete_on_termination = delete_on_termination
         self.description = description or ""
         self.source_dest_check = True
@@ -171,9 +173,43 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         return None
 
     @property
+    def instance_ipv6_address_list(self) -> list[dict[str, Any]]:
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.network_interface_ipv6_addresses_list` if possible.
+        ipv6_addresses = [
+            {
+                "Ipv6Address": ipv6,
+                "IsPrimaryIpv6": False,
+            }
+            for ipv6 in self.ipv6_addresses
+        ]
+        return ipv6_addresses
+
+    @property
     def network_interface_ipv6_addresses_list(self) -> list[dict[str, str]]:
         addresses = [{"Ipv6Address": ip} for ip in self.ipv6_addresses if ip]
         return addresses
+
+    @property
+    def instance_private_ip_address_list(self) -> list[dict[str, Any]]:
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.private_ip_addresses` if possible.
+        ip_addresses = []
+        for ip_address in self.private_ip_addresses:
+            item = {
+                "PrivateIpAddress": ip_address.get("PrivateIpAddress"),
+                "Primary": ip_address.get("Primary", False),
+            }
+            if ip_address.get("PrivateIpAddress") == self.private_ip_address:
+                item["Primary"] = True
+                if self.public_ip:
+                    item["Association"] = self.association
+            ip_addresses.append(item)
+        return ip_addresses
 
     @property
     def association(self) -> dict[str, Any]:  # type: ignore[misc]

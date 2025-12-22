@@ -1,11 +1,10 @@
-import datetime
 import time
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -95,7 +94,7 @@ def test_create_database(client):
     assert db_instance["IAMDatabaseAuthenticationEnabled"] is False
     assert "db-" in db_instance["DbiResourceId"]
     assert db_instance["CopyTagsToSnapshot"] is False
-    assert isinstance(db_instance["InstanceCreateTime"], datetime.datetime)
+    assert isinstance(db_instance["InstanceCreateTime"], datetime)
     assert db_instance["VpcSecurityGroups"][0]["VpcSecurityGroupId"] == "sg-123456"
     assert db_instance["DeletionProtection"] is False
     assert db_instance["EnabledCloudwatchLogsExports"] == ["audit", "error"]
@@ -857,7 +856,7 @@ def test_create_db_snapshots(client):
 
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    snapshot_create_time = datetime(2025, 1, 2, tzinfo=timezone.utc)
     with freeze_time(snapshot_create_time):
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
@@ -942,7 +941,7 @@ def test_copy_db_snapshots(
 ):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    snapshot_create_time = datetime(2025, 1, 2, tzinfo=timezone.utc)
     with freeze_time(snapshot_create_time):
         client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
@@ -952,7 +951,7 @@ def test_copy_db_snapshots(
         # Delete the original instance, but the copy snapshot operation should still succeed.
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    target_snapshot_create_time = snapshot_create_time + datetime.timedelta(minutes=1)
+    target_snapshot_create_time = snapshot_create_time + timedelta(minutes=1)
     with freeze_time(target_snapshot_create_time):
         target_snapshot = client.copy_db_snapshot(
             SourceDBSnapshotIdentifier=db_snapshot_identifier,
@@ -3046,9 +3045,9 @@ def test_restore_db_instance_to_point_in_time_with_allocated_storage(client):
     allocated_storage = 20
     details_source = create_db_instance(AllocatedStorage=allocated_storage)
     source_identifier = details_source["DBInstanceIdentifier"]
-    restore_time = datetime.datetime.fromtimestamp(
-        time.time() - 600, datetime.timezone.utc
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    restore_time = datetime.fromtimestamp(time.time() - 600, timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     # Default
     restored = client.restore_db_instance_to_point_in_time(
         SourceDBInstanceIdentifier=source_identifier,
@@ -3692,3 +3691,114 @@ def test_db_instance_identifier_is_case_insensitive(client):
 
     response = client.describe_db_instances()
     assert len(response["DBInstances"]) == 0
+
+
+@mock_aws
+def test_add_role_to_db_instance(client):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+    role = instances["DBInstances"][0]["AssociatedRoles"][0]
+    assert role["FeatureName"] == "S3_INTERGRATION"
+    assert role["RoleArn"] == "role-to-for-rds-to-access-s3"
+    assert role["Status"] == "ACTIVE"
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_feature_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="a-different-role",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Feature S3_INTERGRATION alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_role_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Role role-to-for-rds-to-access-s3 alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_in_invalid_state_throws_InvalidDBInstanceStateFault(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    response = client.stop_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        DBSnapshotIdentifier="rocky4570-rds-snap",
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="S3_INTEGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidDBInstanceState"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Instance db-master-1 should be in a valid state to add role."
+    )

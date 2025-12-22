@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 
 from . import ec2_aws_verified
+from .helpers import assert_dryrun_error
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
@@ -1456,12 +1457,7 @@ def test_describe_vpcs_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_vpcs(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

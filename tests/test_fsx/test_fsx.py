@@ -165,6 +165,88 @@ def test_backup_not_found():
 
 
 @mock_aws
+def test_describe_backups():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    # Create a LUSTRE file system
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+    client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+
+    resp = client.describe_backups()
+    backups = resp["Backups"]
+
+    assert len(backups) == 2
+    assert "BackupId" in backups[0]
+    assert ":backup/" in backups[0]["ResourceARN"]
+
+
+@mock_aws
+def test_describe_backups_with_id():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    # Create a LUSTRE file system
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    resp = client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+
+    resp = client.describe_backups(BackupIds=[resp["Backup"]["BackupId"]])
+    backups = resp["Backups"]
+
+    assert len(backups) == 1
+    assert "BackupId" in backups[0]
+    assert ":backup/" in backups[0]["ResourceARN"]
+
+
+@mock_aws
+def test_describe_backups_filters():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    # Create a LUSTRE file system
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    fs_id = fs["FileSystem"]["FileSystemId"]
+
+    resp = client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+    backup_id = resp["Backup"]["BackupId"]
+
+    filters = [
+        {
+            "Name": "file-system-id",
+            "Values": [fs_id],
+        }
+    ]
+
+    resp = client.describe_backups(Filters=filters)
+    backups = resp["Backups"]
+
+    assert len(backups) == 1
+    assert backups[0]["BackupId"] == backup_id
+
+
+@mock_aws
+def test_describe_backups_does_not_exist():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    resp = client.describe_backups(BackupIds=["NONEXISTENTBACKUPID"])
+    backups = resp["Backups"]
+
+    assert len(backups) == 0
+
+
+@mock_aws
 def test_tag_resource():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     fs = client.create_file_system(

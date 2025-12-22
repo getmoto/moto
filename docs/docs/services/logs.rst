@@ -21,6 +21,7 @@ logs
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] create_scheduled_query
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
 - [X] delete_delivery
@@ -41,6 +42,7 @@ logs
         
 
 - [X] delete_retention_policy
+- [ ] delete_scheduled_query
 - [X] delete_subscription_filter
 - [ ] delete_transformer
 - [ ] describe_account_policies
@@ -98,12 +100,15 @@ logs
         Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
         
 
+- [ ] get_scheduled_query
+- [ ] get_scheduled_query_history
 - [ ] get_transformer
 - [ ] list_anomalies
 - [ ] list_integrations
 - [ ] list_log_anomaly_detectors
 - [ ] list_log_groups
 - [ ] list_log_groups_for_query
+- [ ] list_scheduled_queries
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -120,6 +125,7 @@ logs
         The SequenceToken-parameter is not yet implemented
         
 
+- [ ] put_log_group_deletion_protection
 - [X] put_metric_filter
 - [ ] put_query_definition
 - [X] put_resource_policy
@@ -142,4 +148,5 @@ logs
 - [ ] update_anomaly
 - [ ] update_delivery_configuration
 - [ ] update_log_anomaly_detector
+- [ ] update_scheduled_query
 

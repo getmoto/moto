@@ -1,15 +1,17 @@
-from moto import mock_aws
+from sagemaker.modules.configs import InputData, SourceCode
 from sagemaker.modules.train import ModelTrainer
-from sagemaker.modules.configs import SourceCode, InputData
+
+from moto import mock_aws
 
 
 @mock_aws
 def test_model_trainer():
-
     # https://sagemaker.readthedocs.io/en/stable/overview.html#using-modeltrainer
 
     # Image URI for the training job
-    pytorch_image = "763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-training:2.0.0-cpu-py310"
+    pytorch_image = (
+        "763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-training:2.0.0-cpu-py310"
+    )
 
     # Define the script to be run
     source_code = SourceCode(
@@ -27,7 +29,7 @@ def test_model_trainer():
         # TODO
         # AFAIK, AWS also returns a User when calling `get_caller_identity`
         # We should investigate why SageMaker behaves like this/what SageMaker expects to happen
-        role=f"arn:aws:sts::000000000000:user/moto",
+        role="arn:aws:sts::000000000000:user/moto",
         training_image=pytorch_image,
         source_code=source_code,
         base_job_name="script-mode",

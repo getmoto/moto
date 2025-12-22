@@ -1,10 +1,8 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from re import Pattern
 from typing import Any, Optional
-
-from dateutil.tz import tzlocal
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -123,15 +121,21 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         execution_name: str,
         execution_input: str,
     ) -> "Execution":
-        self._ensure_execution_name_doesnt_exist(execution_name)
         self._validate_execution_input(execution_input)
+        existing_execution = self._handle_name_input_idempotency(
+            execution_name, execution_input
+        )
+        if existing_execution is not None:
+            # If we found a match for the name and input, return the existing execution.
+            return existing_execution
+
         execution = Execution(
             region_name=region_name,
             account_id=account_id,
             state_machine_name=self.name,
             execution_name=execution_name,
             state_machine_arn=self.arn,
-            execution_input=json.loads(execution_input),
+            execution_input=execution_input,
         )
         self.executions.append(execution)
         return execution
@@ -147,12 +151,23 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         execution.stop(stop_date=datetime.now(), error="", cause="")
         return execution
 
-    def _ensure_execution_name_doesnt_exist(self, name: str) -> None:
+    def _handle_name_input_idempotency(
+        self, name: str, execution_input: str
+    ) -> Optional["Execution"]:
         for execution in self.executions:
             if execution.name == name:
+                # Executions with the same name and input are considered idempotent
+                if (
+                    execution_input == execution.execution_input
+                    and execution.status == "RUNNING"
+                ):
+                    return execution
+
+                # If the inputs are different _or_ the execution already finished, raise
                 raise ExecutionAlreadyExists(
                     "Execution Already Exists: '" + execution.execution_arn + "'"
                 )
+        return None
 
     def _validate_execution_input(self, execution_input: str) -> None:
         try:
@@ -330,11 +345,12 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
+        tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionStarted",
                     "id": 1,
@@ -347,7 +363,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "PassStateEntered",
                     "id": 2,
@@ -360,7 +376,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "PassStateExited",
                     "id": 3,
@@ -373,7 +389,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionSucceeded",
                     "id": 4,
@@ -388,7 +404,7 @@ class Execution:
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionStarted",
                     "id": 1,
@@ -401,7 +417,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "FailStateEntered",
                     "id": 2,
@@ -414,7 +430,7 @@ class Execution:
                 },
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
                     ),
                     "type": "ExecutionFailed",
                     "id": 3,

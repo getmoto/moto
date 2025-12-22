@@ -41,8 +41,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         cidr_block: str,
         ipv6_cidr_block: Optional[str],
         availability_zone: Zone,
-        default_for_az: str,
-        map_public_ip_on_launch: str,
+        default_for_az: bool,
+        map_public_ip_on_launch: bool,
         ipv6_native: bool = False,
     ):
         self.ec2_backend = ec2_backend
@@ -403,7 +403,7 @@ class SubnetBackend:
 
         # if this is the first subnet for an availability zone,
         # consider it the default
-        default_for_az = str(len(self.subnets.get(availability_zone, [])) == 0).lower()  # type: ignore[arg-type]
+        default_for_az = len(self.subnets.get(availability_zone, [])) == 0  # type: ignore[arg-type]
         map_public_ip_on_launch = default_for_az
 
         if availability_zone is None and not availability_zone_id:

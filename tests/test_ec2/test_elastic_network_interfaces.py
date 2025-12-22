@@ -10,6 +10,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID, aws_verified
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_elastic_network_interfaces():
@@ -17,12 +19,7 @@ def test_elastic_network_interfaces():
 
     with pytest.raises(ClientError) as ex:
         ec2resource.create_network_interface(SubnetId=subnet.id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     eni = ec2resource.create_network_interface(SubnetId=subnet.id)
     assert eni.availability_zone == subnet.availability_zone
@@ -44,12 +41,7 @@ def test_elastic_network_interfaces():
 
     with pytest.raises(ClientError) as ex:
         ec2client.delete_network_interface(NetworkInterfaceId=eni_id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     ec2client.delete_network_interface(NetworkInterfaceId=eni_id)
 
@@ -175,12 +167,7 @@ def test_elastic_network_interfaces_modify_attribute():
         ec2client.modify_network_interface_attribute(
             NetworkInterfaceId=eni_id, Groups=[sec_group2.id], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     ec2client.modify_network_interface_attribute(
         NetworkInterfaceId=eni_id, Groups=[sec_group2.id]
@@ -272,12 +259,7 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
     with pytest.raises(ClientError) as ex:
         eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     tag_value = str(uuid4())
     eni1.create_tags(Tags=[{"Key": "Name", "Value": tag_value}])
@@ -930,12 +912,7 @@ def test_elastic_network_interfaces_describe_attachment():
         ec2client.describe_network_interface_attribute(
             NetworkInterfaceId=eni_id, Attribute="attachment", DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     my_eni_description = ec2client.describe_network_interface_attribute(
         NetworkInterfaceId=eni_id, Attribute="description"

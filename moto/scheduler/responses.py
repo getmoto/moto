@@ -91,8 +91,21 @@ class EventBridgeSchedulerResponse(BaseResponse):
     def list_schedules(self) -> str:
         group_names = self.querystring.get("ScheduleGroup")
         state = self._get_param("State")
-        schedules = self.scheduler_backend.list_schedules(group_names, state)
-        return json.dumps({"Schedules": [sch.to_dict(short=True) for sch in schedules]})
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedules, next_token = self.scheduler_backend.list_schedules(
+            group_names,
+            state,
+            name_prefix,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        result = {
+            "Schedules": [sch.to_dict(short=True) for sch in schedules],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
     def create_schedule_group(self) -> str:
         name = self._get_param("Name")
@@ -114,8 +127,17 @@ class EventBridgeSchedulerResponse(BaseResponse):
         return "{}"
 
     def list_schedule_groups(self) -> str:
-        schedule_groups = self.scheduler_backend.list_schedule_groups()
-        return json.dumps({"ScheduleGroups": [sg.to_dict() for sg in schedule_groups]})
+        name_prefix = self._get_param("NamePrefix")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        schedule_groups, next_token = self.scheduler_backend.list_schedule_groups(
+            name_prefix, max_results=max_results, next_token=next_token
+        )
+        result = {
+            "ScheduleGroups": [sg.to_dict() for sg in schedule_groups],
+            "NextToken": next_token,
+        }
+        return json.dumps(result)
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
