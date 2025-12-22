@@ -528,7 +528,7 @@ def test_put_auth_policy():
     )
 
     assert put_resp["policy"] == policy_document
-    assert put_resp["state"] == "ACTIVE"
+    assert put_resp["state"] == "Active"
 
     put_resp = client.put_auth_policy(
         resourceIdentifier=sn["arn"],
@@ -536,7 +536,7 @@ def test_put_auth_policy():
     )
 
     assert put_resp["policy"] == policy_document
-    assert put_resp["state"] == "INACTIVE"
+    assert put_resp["state"] == "Inactive"
 
 
 @mock_aws
@@ -572,7 +572,7 @@ def test_update_auth_policy():
     )
 
     assert put_resp["policy"] == json.dumps(policy_document)
-    assert put_resp["state"] == "ACTIVE"
+    assert put_resp["state"] == "Active"
 
 
 @mock_aws
@@ -604,7 +604,7 @@ def test_get_auth_policy():
     resp = client.get_auth_policy(resourceIdentifier=svc["arn"])
 
     assert resp["policy"] == policy_document
-    assert resp["state"] == "INACTIVE"
+    assert resp["state"] == "Inactive"
 
     resp = client.put_auth_policy(
         resourceIdentifier=sn["arn"],
@@ -614,7 +614,7 @@ def test_get_auth_policy():
     resp = client.get_auth_policy(resourceIdentifier=sn["arn"])
 
     assert resp["policy"] == policy_document
-    assert resp["state"] == "ACTIVE"
+    assert resp["state"] == "Active"
 
 
 @mock_aws

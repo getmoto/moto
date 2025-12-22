@@ -184,9 +184,9 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:accesslogsubscription/{self.id}"
         )
-        self.created_at = datetime.now(timezone.utc).isoformat()
+        self.created_at = datetime.now(timezone.utc).date().isoformat()
         self.destinationArn = destinationArn
-        self.last_updated_at = datetime.now(timezone.utc).isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).date().isoformat()
         self.resourceArn = resourceArn
         self.resourceId = resourceId
         self.serviceNetworkLogType = serviceNetworkLogType or "SERVICE"
@@ -448,7 +448,7 @@ class VPCLatticeBackend(BaseBackend):
             )
 
         sub.destinationArn = destinationArn
-        sub.last_updated_at = datetime.now(timezone.utc).isoformat()
+        sub.last_updated_at = datetime.now(timezone.utc).date().isoformat()
 
         return sub
 
@@ -482,9 +482,9 @@ class VPCLatticeBackend(BaseBackend):
             raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
 
         # Handle state management
-        state = "INACTIVE" if resource.auth_type == "NONE" else "ACTIVE"
+        state = "Inactive" if resource.auth_type == "NONE" else "Active"
 
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(timezone.utc).date().isoformat()
         if resourceIdentifier in self.auth_policies:
             auth_policy = self.auth_policies[resourceIdentifier]
             auth_policy.policy = policy
@@ -520,7 +520,7 @@ class VPCLatticeBackend(BaseBackend):
             resource = self.services.get(resourceIdentifier)
 
         auth_policy.state = (
-            "INACTIVE" if not resource or resource.auth_type == "NONE" else "ACTIVE"
+            "Inactive" if not resource or resource.auth_type == "NONE" else "Active"
         )
 
         return auth_policy
