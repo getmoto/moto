@@ -57,7 +57,7 @@ class ActionAuthenticatorMixin:
                 method=self.method,  # type: ignore[attr-defined]
                 path=path,
                 data=self.data,  # type: ignore[attr-defined]
-                body=self.body,  # type: ignore[attr-defined]
+                body=self.raw_body,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
                 action=self._get_action(),  # type: ignore[attr-defined]
             )
