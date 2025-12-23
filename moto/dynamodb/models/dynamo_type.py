@@ -168,6 +168,8 @@ class DynamoType:
             return [DynamoType(v).cast_value for v in self.value]
         elif self.is_map():
             return {k: DynamoType(v).cast_value for k, v in self.value.items()}
+        elif self.is_null():
+            return None
         else:
             return self.value
 
@@ -257,6 +259,9 @@ class DynamoType:
 
     def is_binary(self) -> bool:
         return self.type == DDBType.BINARY
+
+    def is_null(self) -> bool:
+        return self.type == DDBType.NULL
 
     def same_type(self, other: "DynamoType") -> bool:
         return self.type == other.type
