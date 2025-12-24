@@ -26,9 +26,10 @@ class TestLogFilterParameters(TestLogFilter):
         super().setUp()
 
     def test_filter_logs_interleaved(self):
+        timestamp = int(unix_time_millis())
         messages = [
-            {"timestamp": 0, "message": "hello"},
-            {"timestamp": 0, "message": "world"},
+            {"timestamp": timestamp, "message": "hello"},
+            {"timestamp": timestamp, "message": "world"},
         ]
         self.conn.put_log_events(
             logGroupName=self.log_group_name,
@@ -41,7 +42,7 @@ class TestLogFilterParameters(TestLogFilter):
             interleaved=True,
         )
         events = res["events"]
-        for original_message, resulting_event in zip(messages, events):
+        for original_message, resulting_event in zip(messages, events, strict=True):
             assert resulting_event["eventId"] == str(resulting_event["eventId"])
             assert resulting_event["timestamp"] == original_message["timestamp"]
             assert resulting_event["message"] == original_message["message"]
@@ -107,7 +108,7 @@ class TestLogFilterParameters(TestLogFilter):
         assert len(events) == 25
         assert "nextToken" not in res
 
-        for original_message, resulting_event in zip(messages, events):
+        for original_message, resulting_event in zip(messages, events, strict=True):
             assert resulting_event["eventId"] == str(resulting_event["eventId"])
             assert resulting_event["timestamp"] == original_message["timestamp"]
             assert resulting_event["message"] == original_message["message"]

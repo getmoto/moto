@@ -363,7 +363,7 @@ class Stream(CloudFormationModel):
                 [s for s in self.shards.values() if s.is_open],
                 key=lambda x: x.starting_hash,
             )
-            adjacent_shards = zip(list(shard_list[0:-1:2]), list(shard_list[1::2]))
+            adjacent_shards = zip(list(shard_list[0:-1:2]), list(shard_list[1::2]))  # noqa: B905
 
             for shard, adjacent in adjacent_shards:
                 self.merge_shards(shard.shard_id, adjacent.shard_id)

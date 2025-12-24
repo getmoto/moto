@@ -333,7 +333,7 @@ class _Ident(_Expr):
         raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
     def _eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> Any:
-        for key, value in zip(part_keys, part_input["Values"]):
+        for key, value in zip(part_keys, part_input["Values"]):  # noqa: B905
             if self.ident == key["Name"]:
                 return _cast(key["Type"], value)
 
