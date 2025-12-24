@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Callable, Final, Optional
+from collections.abc import Callable
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
