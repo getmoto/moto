@@ -63,7 +63,6 @@ if TYPE_CHECKING:
     from moto.eks.models import EKSBackend
     from moto.elasticache.models import ElastiCacheBackend
     from moto.elasticbeanstalk.models import EBBackend
-    from moto.elastictranscoder.models import ElasticTranscoderBackend
     from moto.elb.models import ELBBackend
     from moto.elbv2.models import ELBv2Backend
     from moto.emr.models import ElasticMapReduceBackend
@@ -253,7 +252,6 @@ SERVICE_NAMES = Union[
     "Literal['eks']",
     "Literal['elasticache']",
     "Literal['elasticbeanstalk']",
-    "Literal['elastictranscoder']",
     "Literal['elb']",
     "Literal['elbv2']",
     "Literal['emr']",
@@ -508,10 +506,6 @@ def get_backend(
 ) -> "BackendDict[ElastiCacheBackend]": ...
 @overload
 def get_backend(name: "Literal['elasticbeanstalk']") -> "BackendDict[EBBackend]": ...
-@overload
-def get_backend(
-    name: "Literal['elastictranscoder']",
-) -> "BackendDict[ElasticTranscoderBackend]": ...
 @overload
 def get_backend(name: "Literal['elb']") -> "BackendDict[ELBBackend]": ...
 @overload
