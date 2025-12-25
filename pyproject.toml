@@ -15,6 +15,9 @@ markers = [
     "requires_clean_slate: requires a clean slate, so no parallel testing",
 ]
 
+[tool.ruff]
+target-version = "py39"  # Same as python_requires in setup.cfg
+
 [tool.ruff.lint]
 ignore = [
     "B019",  # Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks

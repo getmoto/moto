@@ -30,7 +30,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 if TYPE_CHECKING:
-    from typing import TypeAlias
+    from typing_extensions import TypeAlias
 
     HashType: TypeAlias = hashlib._Hash
 
