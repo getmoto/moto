@@ -85,10 +85,6 @@ backend_url_patterns = [
             "https?://elasticbeanstalk\\.(?P<region>[a-zA-Z0-9\\-_]+)\\.amazonaws.com"
         ),
     ),
-    (
-        "elastictranscoder",
-        re.compile("https?://elastictranscoder\\.(.+)\\.amazonaws.com"),
-    ),
     ("elb", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("elbv2", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("emr", re.compile("https?://(.+)\\.elasticmapreduce\\.amazonaws.com")),
