@@ -976,6 +976,8 @@ class AttributeValue(Operand):
             return [AttributeValue(v).expr(item) for v in self.value]
         elif self.type == "M":
             return {k: AttributeValue(v).expr(item) for k, v in self.value.items()}
+        elif self.type == "NULL":
+            return None
         else:
             return self.value
         return self.value

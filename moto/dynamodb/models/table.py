@@ -561,6 +561,13 @@ class Table(CloudFormationModel):
                     raise SerializationException(
                         "Start of structure or map found where not expected"
                     )
+            elif key == "NULL":
+                if isinstance(value, bool):
+                    if value is not True:
+                        raise ValidationException(
+                            "Null attribute value types must have the value of true"
+                        )
+                # Non-bool values are raise elsewhere as a ParamValidationError
 
     def _validate_number_type(self, value: Any) -> None:
         if isinstance(value, int):
