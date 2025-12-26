@@ -42,7 +42,7 @@ class TestLogFilterParameters(TestLogFilter):
             interleaved=True,
         )
         events = res["events"]
-        for original_message, resulting_event in zip(messages, events, strict=True):
+        for original_message, resulting_event in zip(messages, events):
             assert resulting_event["eventId"] == str(resulting_event["eventId"])
             assert resulting_event["timestamp"] == original_message["timestamp"]
             assert resulting_event["message"] == original_message["message"]
@@ -108,7 +108,7 @@ class TestLogFilterParameters(TestLogFilter):
         assert len(events) == 25
         assert "nextToken" not in res
 
-        for original_message, resulting_event in zip(messages, events, strict=True):
+        for original_message, resulting_event in zip(messages, events):
             assert resulting_event["eventId"] == str(resulting_event["eventId"])
             assert resulting_event["timestamp"] == original_message["timestamp"]
             assert resulting_event["message"] == original_message["message"]

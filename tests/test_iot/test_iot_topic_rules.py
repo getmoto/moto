@@ -56,7 +56,7 @@ def test_topic_rule_list():
 
     res = client.list_topic_rules()
     assert len(res["rules"]) == 2
-    for rule, rule_name in zip(res["rules"], [name, f"{name}2"], strict=True):
+    for rule, rule_name in zip(res["rules"], [name, f"{name}2"]):
         assert rule["ruleName"] == rule_name
         assert rule["createdAt"] is not None
         assert rule["ruleArn"] is not None

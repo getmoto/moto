@@ -997,7 +997,7 @@ class EventPattern:
             return item.startswith(prefix)
         if filter_name == "numeric":
             as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
-            operators_and_values = zip(filter_value[::2], filter_value[1::2])  # noqa: B905
+            operators_and_values = zip(filter_value[::2], filter_value[1::2])
             numeric_matches = [
                 as_function[operator](item, value)
                 for operator, value in operators_and_values
