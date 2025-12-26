@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 import moto
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from typing_extensions import Literal
 
     from moto.acm.models import AWSCertificateManagerBackend
     from moto.acmpca.models import ACMPCABackend
