@@ -57,12 +57,11 @@ import base64
 import calendar
 import json
 from collections import namedtuple
-from collections.abc import Generator, Mapping, MutableMapping
+from collections.abc import Callable, Generator, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Any,
-    Callable,
     Optional,
     TypedDict,
     Union,

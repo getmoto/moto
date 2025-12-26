@@ -1,6 +1,7 @@
 """PrometheusServiceBackend class with methods for supported APIs."""
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

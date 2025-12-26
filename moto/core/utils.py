@@ -3,9 +3,10 @@ from __future__ import annotations
 import datetime
 import inspect
 import re
+from collections.abc import Callable
 from functools import cache
 from gzip import compress, decompress
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError

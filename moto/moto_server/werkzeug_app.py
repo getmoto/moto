@@ -1,8 +1,9 @@
 import io
 import os
 import os.path
+from collections.abc import Callable
 from threading import Lock
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 try:
     from flask import Flask

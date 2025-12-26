@@ -1,4 +1,5 @@
-from typing import Any, Callable, Final, Optional
+from collections.abc import Callable
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
     StateCredentials,

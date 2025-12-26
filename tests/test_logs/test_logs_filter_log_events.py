@@ -26,9 +26,10 @@ class TestLogFilterParameters(TestLogFilter):
         super().setUp()
 
     def test_filter_logs_interleaved(self):
+        timestamp = int(unix_time_millis())
         messages = [
-            {"timestamp": 0, "message": "hello"},
-            {"timestamp": 0, "message": "world"},
+            {"timestamp": timestamp, "message": "hello"},
+            {"timestamp": timestamp, "message": "world"},
         ]
         self.conn.put_log_events(
             logGroupName=self.log_group_name,

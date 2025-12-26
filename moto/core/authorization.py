@@ -1,9 +1,8 @@
 import functools
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
-    Callable,
     ClassVar,
     Optional,
     TypeVar,
