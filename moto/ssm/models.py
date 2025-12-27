@@ -1224,6 +1224,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.ssm_prefix = (
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
+        self.default_parameter_tier = "Standard"
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -2183,7 +2184,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             )
             tier = tier if tier is not None else previous_parameter.tier
             policies = policies if policies is not None else previous_parameter.policies
-
+        if tier is None:
+            tier = self.default_parameter_tier
         last_modified_date = time.time()
         new_param = Parameter(
             account_id=self.account_id,
