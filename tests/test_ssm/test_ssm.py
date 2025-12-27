@@ -229,6 +229,7 @@ def test_put_parameter(name):
     )
 
     assert response["Version"] == 1
+    assert response["Tier"] == "Standard"
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -328,11 +329,12 @@ def test_put_parameter_overwrite_preserves_metadata(name):
         Tags=[{"Key": test_tag_key, "Value": test_tag_value}],
         AllowedPattern=test_pattern,
         KeyId=test_key_id,
-        Tier="Standard",
+        Tier="Advanced",
         Policies='["Expiration"]',
     )
 
     assert response["Version"] == 1
+    assert response["Tier"] == "Advanced"
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -403,7 +405,7 @@ def test_put_parameter_overwrite_preserves_metadata(name):
     assert response["Parameters"][0]["Description"] == test_description
     assert response["Parameters"][0]["AllowedPattern"] == test_pattern
     assert response["Parameters"][0]["KeyId"] == test_key_id
-    assert response["Parameters"][0]["Tier"] == "Standard"
+    assert response["Parameters"][0]["Tier"] == "Advanced"
     assert response["Parameters"][0]["Policies"] == [
         {
             "PolicyStatus": "Finished",

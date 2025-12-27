@@ -290,7 +290,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             policies=policies,
         )
 
-        response = {"Version": param.version}
+        response = {"Version": param.version, "Tier": param.tier}
         return json.dumps(response)
 
     def get_parameter_history(self) -> Union[str, tuple[str, dict[str, int]]]:
