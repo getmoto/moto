@@ -1,8 +1,8 @@
 import json
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,

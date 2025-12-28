@@ -4,13 +4,13 @@ import itertools
 import os
 import re
 import unittest
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from threading import Lock
 from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
     TypeVar,
 )
