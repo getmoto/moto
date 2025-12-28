@@ -482,9 +482,6 @@ class ACMPCABackend(BaseBackend):
         certificate_serial: str,
         revocation_reason: str,
     ) -> None:
-        """
-        Revokes a certificate issued by the private certificate authority.
-        """
         ca = self.describe_certificate_authority(certificate_authority_arn)
 
         # Check if CA is active

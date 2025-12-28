@@ -49,15 +49,11 @@ class AuroraDSQLResponse(BaseResponse):
 
     def get_vpc_endpoint_service_name(self) -> ActionResult:
         identifier = self.path.split("/")[-2]
-        cluster = self.dsql_backend.get_cluster(identifier=identifier)
-        result = {
-            "serviceName": cluster.endpoint_service_name,
-            "clusterVpcEndpoint": cluster.endpoint,
-        }
+        result = self.dsql_backend.get_vpc_endpoint_service_name(identifier)
         return ActionResult(result)
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = unquote(self.path.split("/")[-1])
         identifier = arn.split("/")[-1]
-        cluster = self.dsql_backend.get_cluster(identifier=identifier)
-        return ActionResult({"tags": cluster.tags})
+        tags = self.dsql_backend.list_tags_for_resource(identifier)
+        return ActionResult({"tags": tags})

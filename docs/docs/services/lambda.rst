@@ -18,7 +18,9 @@ lambda
 
 - [X] add_layer_version_permission
 - [X] add_permission
+- [ ] checkpoint_durable_execution
 - [X] create_alias
+- [ ] create_capacity_provider
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
@@ -33,6 +35,7 @@ lambda
         
 
 - [X] delete_alias
+- [ ] delete_capacity_provider
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
@@ -48,7 +51,11 @@ lambda
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [X] get_alias
+- [ ] get_capacity_provider
 - [ ] get_code_signing_config
+- [ ] get_durable_execution
+- [ ] get_durable_execution_history
+- [ ] get_durable_execution_state
 - [X] get_event_source_mapping
 - [X] get_function
 - [X] get_function_code_signing_config
@@ -56,6 +63,7 @@ lambda
 - [ ] get_function_configuration
 - [X] get_function_event_invoke_config
 - [ ] get_function_recursion_config
+- [ ] get_function_scaling_config
 - [X] get_function_url_config
   
         The Qualifier-parameter is not yet implemented
@@ -95,10 +103,13 @@ lambda
 - [ ] invoke_async
 - [ ] invoke_with_response_stream
 - [X] list_aliases
+- [ ] list_capacity_providers
 - [ ] list_code_signing_configs
+- [ ] list_durable_executions_by_function
 - [X] list_event_source_mappings
 - [X] list_function_event_invoke_configs
 - [ ] list_function_url_configs
+- [ ] list_function_versions_by_capacity_provider
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
 - [X] list_layer_versions
@@ -125,10 +136,15 @@ lambda
 
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
+- [ ] put_function_scaling_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
 - [X] remove_layer_version_permission
 - [X] remove_permission
+- [ ] send_durable_execution_callback_failure
+- [ ] send_durable_execution_callback_heartbeat
+- [ ] send_durable_execution_callback_success
+- [ ] stop_durable_execution
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_alias
@@ -136,6 +152,7 @@ lambda
         The RevisionId parameter is not yet implemented
         
 
+- [ ] update_capacity_provider
 - [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code

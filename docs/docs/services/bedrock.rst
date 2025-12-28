@@ -114,6 +114,7 @@ bedrock
 - [ ] update_automated_reasoning_policy
 - [ ] update_automated_reasoning_policy_annotations
 - [ ] update_automated_reasoning_policy_test_case
+- [ ] update_custom_model_deployment
 - [ ] update_guardrail
 - [ ] update_marketplace_model_endpoint
 - [ ] update_provisioned_model_throughput

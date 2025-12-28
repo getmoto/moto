@@ -105,6 +105,7 @@ ce
 - [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
+- [ ] list_cost_category_resource_associations
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback

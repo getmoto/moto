@@ -84,6 +84,17 @@ class AuroraDSQLBackend(BaseBackend):
         cluster.advance()
         return cluster
 
+    def get_vpc_endpoint_service_name(self, identifier: str) -> dict[str, str]:
+        cluster = self.get_cluster(identifier=identifier)
+        return {
+            "serviceName": cluster.endpoint_service_name,
+            "clusterVpcEndpoint": cluster.endpoint,
+        }
+
+    def list_tags_for_resource(self, identifier: str) -> dict[str, str]:
+        cluster = self.get_cluster(identifier=identifier)
+        return cluster.tags or {}
+
 
 dsql_backends = BackendDict(
     AuroraDSQLBackend,
