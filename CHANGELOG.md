@@ -4,7 +4,7 @@ Moto Changelog
 
 5.1.19
 -----
-Docker Digest for 5.1.19: <autopopulateddigest>
+Docker Digest for 5.1.19: _sha256:1bba01d147a15d14a5816b69ee6d346ba04bd43baab4a3a27a55c368ecc2bb90_
 
     General:
         * Removed support for ElasticTranscoder, now that AWS has also deprecated this service
