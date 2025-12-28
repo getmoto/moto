@@ -7080,6 +7080,10 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-2b"
  },
