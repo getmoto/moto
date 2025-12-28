@@ -5838,15 +5838,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "evs": {
                 "Value": "evs",
                 "endpoint": {
@@ -6703,6 +6694,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.ap-northeast-1.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-northeast-1.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -17057,15 +17054,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "evs": {
                 "Value": "evs",
                 "endpoint": {
@@ -19860,15 +19848,6 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26589,6 +26568,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -26971,6 +26959,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36133,15 +36130,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "evs": {
                 "Value": "evs",
                 "endpoint": {
@@ -36986,6 +36974,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-central-1.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-central-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -40320,15 +40314,6 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46200,15 +46185,6 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63637,15 +63613,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "evs": {
                 "Value": "evs",
                 "endpoint": {
@@ -66796,15 +66763,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "evs": {
                 "Value": "evs",
                 "endpoint": {
@@ -67589,6 +67547,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.us-east-2.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.us-east-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -75275,15 +75239,6 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "evidently": {
-                "Value": "evidently",
-                "endpoint": {
-                  "Value": "evidently.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
