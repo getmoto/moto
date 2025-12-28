@@ -948,6 +948,7 @@
 - [ ] update_automated_reasoning_policy
 - [ ] update_automated_reasoning_policy_annotations
 - [ ] update_automated_reasoning_policy_test_case
+- [ ] update_custom_model_deployment
 - [ ] update_guardrail
 - [ ] update_marketplace_model_endpoint
 - [ ] update_provisioned_model_throughput
@@ -1101,6 +1102,7 @@
 - [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
+- [ ] list_cost_category_resource_associations
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
@@ -2663,16 +2665,16 @@
 
 ## dsql
 <details>
-<summary>16% implemented</summary>
+<summary>41% implemented</summary>
 
 - [X] create_cluster
-- [ ] delete_cluster
+- [X] delete_cluster
 - [ ] delete_cluster_policy
 - [X] get_cluster
 - [ ] get_cluster_policy
-- [ ] get_vpc_endpoint_service_name
+- [X] get_vpc_endpoint_service_name
 - [ ] list_clusters
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_cluster_policy
 - [ ] tag_resource
 - [ ] untag_resource
@@ -3700,13 +3702,14 @@
 
 ## eks
 <details>
-<summary>27% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] associate_access_policy
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
 - [ ] create_access_entry
 - [ ] create_addon
+- [ ] create_capability
 - [X] create_cluster
 - [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
@@ -3714,6 +3717,7 @@
 - [ ] create_pod_identity_association
 - [ ] delete_access_entry
 - [ ] delete_addon
+- [ ] delete_capability
 - [X] delete_cluster
 - [ ] delete_eks_anywhere_subscription
 - [X] delete_fargate_profile
@@ -3724,6 +3728,7 @@
 - [ ] describe_addon
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
+- [ ] describe_capability
 - [X] describe_cluster
 - [ ] describe_cluster_versions
 - [ ] describe_eks_anywhere_subscription
@@ -3740,6 +3745,7 @@
 - [ ] list_access_policies
 - [ ] list_addons
 - [ ] list_associated_access_policies
+- [ ] list_capabilities
 - [X] list_clusters
 - [ ] list_eks_anywhere_subscriptions
 - [X] list_fargate_profiles
@@ -3755,6 +3761,7 @@
 - [X] untag_resource
 - [ ] update_access_entry
 - [ ] update_addon
+- [ ] update_capability
 - [X] update_cluster_config
 - [ ] update_cluster_version
 - [ ] update_eks_anywhere_subscription
@@ -3895,29 +3902,6 @@
 - [ ] update_environment
 - [X] update_tags_for_resource
 - [ ] validate_configuration_settings
-</details>
-
-## elastictranscoder
-<details>
-<summary>29% implemented</summary>
-
-- [ ] cancel_job
-- [ ] create_job
-- [X] create_pipeline
-- [ ] create_preset
-- [X] delete_pipeline
-- [ ] delete_preset
-- [ ] list_jobs_by_pipeline
-- [ ] list_jobs_by_status
-- [X] list_pipelines
-- [ ] list_presets
-- [ ] read_job
-- [X] read_pipeline
-- [ ] read_preset
-- [ ] test_role
-- [X] update_pipeline
-- [ ] update_pipeline_notifications
-- [ ] update_pipeline_status
 </details>
 
 ## elb
@@ -4338,7 +4322,7 @@
 
 ## fsx
 <details>
-<summary>16% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] associate_file_system_aliases
 - [ ] cancel_data_repository_task
@@ -4362,7 +4346,7 @@
 - [ ] delete_snapshot
 - [ ] delete_storage_virtual_machine
 - [ ] delete_volume
-- [ ] describe_backups
+- [X] describe_backups
 - [ ] describe_data_repository_associations
 - [ ] describe_data_repository_tasks
 - [ ] describe_file_caches
@@ -5829,16 +5813,19 @@
 
 ## lambda
 <details>
-<summary>67% implemented</summary>
+<summary>54% implemented</summary>
 
 - [X] add_layer_version_permission
 - [X] add_permission
+- [ ] checkpoint_durable_execution
 - [X] create_alias
+- [ ] create_capacity_provider
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
 - [X] create_function_url_config
 - [X] delete_alias
+- [ ] delete_capacity_provider
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
@@ -5850,7 +5837,11 @@
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [X] get_alias
+- [ ] get_capacity_provider
 - [ ] get_code_signing_config
+- [ ] get_durable_execution
+- [ ] get_durable_execution_history
+- [ ] get_durable_execution_state
 - [X] get_event_source_mapping
 - [X] get_function
 - [X] get_function_code_signing_config
@@ -5858,6 +5849,7 @@
 - [ ] get_function_configuration
 - [X] get_function_event_invoke_config
 - [ ] get_function_recursion_config
+- [ ] get_function_scaling_config
 - [X] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
@@ -5869,10 +5861,13 @@
 - [ ] invoke_async
 - [ ] invoke_with_response_stream
 - [X] list_aliases
+- [ ] list_capacity_providers
 - [ ] list_code_signing_configs
+- [ ] list_durable_executions_by_function
 - [X] list_event_source_mappings
 - [X] list_function_event_invoke_configs
 - [ ] list_function_url_configs
+- [ ] list_function_versions_by_capacity_provider
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
 - [X] list_layer_versions
@@ -5886,13 +5881,19 @@
 - [X] put_function_concurrency
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
+- [ ] put_function_scaling_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
 - [X] remove_layer_version_permission
 - [X] remove_permission
+- [ ] send_durable_execution_callback_failure
+- [ ] send_durable_execution_callback_heartbeat
+- [ ] send_durable_execution_callback_success
+- [ ] stop_durable_execution
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_alias
+- [ ] update_capacity_provider
 - [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
@@ -6011,12 +6012,15 @@
 
 ## logs
 <details>
-<summary>52% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] associate_kms_key
+- [ ] associate_source_to_s3_table_integration
 - [X] cancel_export_task
+- [ ] cancel_import_task
 - [X] create_delivery
 - [X] create_export_task
+- [ ] create_import_task
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
@@ -6048,6 +6052,8 @@
 - [X] describe_destinations
 - [X] describe_export_tasks
 - [ ] describe_field_indexes
+- [ ] describe_import_task_batches
+- [ ] describe_import_tasks
 - [ ] describe_index_policies
 - [X] describe_log_groups
 - [X] describe_log_streams
@@ -6057,6 +6063,7 @@
 - [X] describe_resource_policies
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
+- [ ] disassociate_source_from_s3_table_integration
 - [X] filter_log_events
 - [ ] get_data_protection_policy
 - [X] get_delivery
@@ -6066,6 +6073,7 @@
 - [ ] get_integration
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
+- [ ] get_log_fields
 - [ ] get_log_group_fields
 - [ ] get_log_object
 - [ ] get_log_record
@@ -6073,12 +6081,14 @@
 - [ ] get_scheduled_query
 - [ ] get_scheduled_query_history
 - [ ] get_transformer
+- [ ] list_aggregate_log_group_summaries
 - [ ] list_anomalies
 - [ ] list_integrations
 - [ ] list_log_anomaly_detectors
 - [ ] list_log_groups
 - [ ] list_log_groups_for_query
 - [ ] list_scheduled_queries
+- [ ] list_sources_for_s3_table_integration
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -7535,6 +7545,7 @@
 - [ ] get_dashboard_embed_url
 - [ ] get_flow_metadata
 - [ ] get_flow_permissions
+- [ ] get_identity_context
 - [ ] get_session_embed_url
 - [ ] list_action_connectors
 - [ ] list_analyses
@@ -8634,7 +8645,7 @@
 
 ## s3tables
 <details>
-<summary>38% implemented</summary>
+<summary>28% implemented</summary>
 
 - [X] create_namespace
 - [X] create_table
@@ -8645,7 +8656,9 @@
 - [ ] delete_table_bucket_encryption
 - [ ] delete_table_bucket_metrics_configuration
 - [ ] delete_table_bucket_policy
+- [ ] delete_table_bucket_replication
 - [ ] delete_table_policy
+- [ ] delete_table_replication
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
@@ -8653,11 +8666,18 @@
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_metrics_configuration
 - [ ] get_table_bucket_policy
+- [ ] get_table_bucket_replication
+- [ ] get_table_bucket_storage_class
 - [ ] get_table_encryption
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
 - [ ] get_table_policy
+- [ ] get_table_record_expiration_configuration
+- [ ] get_table_record_expiration_job_status
+- [ ] get_table_replication
+- [ ] get_table_replication_status
+- [ ] get_table_storage_class
 - [X] list_namespaces
 - [X] list_table_buckets
 - [X] list_tables
@@ -8666,8 +8686,12 @@
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_metrics_configuration
 - [ ] put_table_bucket_policy
+- [ ] put_table_bucket_replication
+- [ ] put_table_bucket_storage_class
 - [ ] put_table_maintenance_configuration
 - [ ] put_table_policy
+- [ ] put_table_record_expiration_configuration
+- [ ] put_table_replication
 - [X] rename_table
 - [ ] tag_resource
 - [ ] untag_resource
@@ -8676,7 +8700,7 @@
 
 ## s3vectors
 <details>
-<summary>93% implemented</summary>
+<summary>78% implemented</summary>
 
 - [X] create_index
 - [X] create_vector_bucket
@@ -8689,16 +8713,19 @@
 - [X] get_vector_bucket_policy
 - [X] get_vectors
 - [X] list_indexes
+- [ ] list_tags_for_resource
 - [X] list_vector_buckets
 - [X] list_vectors
 - [X] put_vector_bucket_policy
 - [X] put_vectors
 - [ ] query_vectors
+- [ ] tag_resource
+- [ ] untag_resource
 </details>
 
 ## sagemaker
 <details>
-<summary>30% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -8744,6 +8771,7 @@
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
+- [ ] create_mlflow_app
 - [ ] create_mlflow_tracking_server
 - [X] create_model
 - [X] create_model_bias_job_definition
@@ -8761,6 +8789,7 @@
 - [ ] create_partner_app_presigned_url
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
+- [ ] create_presigned_mlflow_app_url
 - [ ] create_presigned_mlflow_tracking_server_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
@@ -8806,6 +8835,7 @@
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_mlflow_app
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
 - [X] delete_model_bias_job_definition
@@ -8871,6 +8901,7 @@
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
+- [ ] describe_mlflow_app
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
 - [X] describe_model_bias_job_definition
@@ -8955,6 +8986,7 @@
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
+- [ ] list_mlflow_apps
 - [ ] list_mlflow_tracking_servers
 - [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
@@ -9054,6 +9086,7 @@
 - [ ] update_inference_component
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
+- [ ] update_mlflow_app
 - [ ] update_mlflow_tracking_server
 - [X] update_model_card
 - [X] update_model_package
@@ -9173,7 +9206,6 @@
 - [ ] batch_update_findings
 - [ ] batch_update_findings_v2
 - [ ] batch_update_standards_control_associations
-- [ ] connector_registrations_v2
 - [ ] create_action_target
 - [ ] create_aggregator_v2
 - [ ] create_automation_rule
@@ -9250,6 +9282,7 @@
 - [ ] list_security_control_definitions
 - [ ] list_standards_control_associations
 - [ ] list_tags_for_resource
+- [ ] register_connector_v2
 - [ ] start_configuration_policy_association
 - [ ] start_configuration_policy_disassociation
 - [ ] tag_resource
@@ -9270,7 +9303,7 @@
 
 ## service-quotas
 <details>
-<summary>8% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] associate_service_quota_template
 - [ ] create_support_case
@@ -9279,6 +9312,7 @@
 - [ ] get_association_for_service_quota_template
 - [ ] get_auto_management_configuration
 - [ ] get_aws_default_service_quota
+- [ ] get_quota_utilization_report
 - [ ] get_requested_service_quota_change
 - [X] get_service_quota
 - [ ] get_service_quota_increase_request_from_template
@@ -9292,6 +9326,7 @@
 - [ ] put_service_quota_increase_request_into_template
 - [ ] request_service_quota_increase
 - [ ] start_auto_management
+- [ ] start_quota_utilization_report
 - [ ] stop_auto_management
 - [ ] tag_resource
 - [ ] untag_resource
@@ -9539,7 +9574,7 @@
 
 ## sesv2
 <details>
-<summary>22% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -9585,6 +9620,7 @@
 - [ ] get_deliverability_test_report
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
+- [ ] get_email_address_insights
 - [X] get_email_identity
 - [X] get_email_identity_policies
 - [ ] get_email_template
@@ -9611,7 +9647,7 @@
 - [ ] list_reputation_entities
 - [ ] list_resource_tenants
 - [ ] list_suppressed_destinations
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_tenant_resources
 - [ ] list_tenants
 - [ ] put_account_dedicated_ip_warmup_attributes
@@ -9639,9 +9675,9 @@
 - [ ] send_bulk_email
 - [ ] send_custom_verification_email
 - [X] send_email
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_render_email_template
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_configuration_set_event_destination
 - [ ] update_contact
 - [ ] update_contact_list
@@ -10217,7 +10253,7 @@
 
 ## timestream-influxdb
 <details>
-<summary>76% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] create_db_cluster
 - [X] create_db_instance
@@ -10232,6 +10268,8 @@
 - [ ] list_db_instances_for_cluster
 - [X] list_db_parameter_groups
 - [X] list_tags_for_resource
+- [ ] reboot_db_cluster
+- [ ] reboot_db_instance
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_db_cluster
@@ -10412,7 +10450,7 @@
 
 ## vpc-lattice
 <details>
-<summary>21% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] batch_update_rule
 - [X] create_access_log_subscription
@@ -10427,13 +10465,13 @@
 - [X] create_service_network_vpc_association
 - [ ] create_target_group
 - [X] delete_access_log_subscription
-- [ ] delete_auth_policy
+- [X] delete_auth_policy
 - [ ] delete_domain_verification
 - [ ] delete_listener
 - [ ] delete_resource_configuration
 - [ ] delete_resource_endpoint_association
 - [ ] delete_resource_gateway
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [ ] delete_rule
 - [ ] delete_service
 - [ ] delete_service_network
@@ -10443,12 +10481,12 @@
 - [ ] delete_target_group
 - [ ] deregister_targets
 - [X] get_access_log_subscription
-- [ ] get_auth_policy
+- [X] get_auth_policy
 - [ ] get_domain_verification
 - [ ] get_listener
 - [ ] get_resource_configuration
 - [ ] get_resource_gateway
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [ ] get_rule
 - [X] get_service
 - [X] get_service_network
@@ -10472,8 +10510,8 @@
 - [X] list_tags_for_resource
 - [ ] list_target_groups
 - [ ] list_targets
-- [ ] put_auth_policy
-- [ ] put_resource_policy
+- [X] put_auth_policy
+- [X] put_resource_policy
 - [ ] register_targets
 - [ ] start_domain_verification
 - [X] tag_resource
@@ -10818,6 +10856,7 @@
 - ds-data
 - ecr-public
 - eks-auth
+- elastictranscoder
 - entityresolution
 - evidently
 - evs
@@ -10908,11 +10947,14 @@
 - networkmonitor
 - notifications
 - notificationscontacts
+- nova-act
 - oam
 - observabilityadmin
 - odb
 - omics
 - outposts
+- partnercentral-account
+- partnercentral-benefits
 - partnercentral-channel
 - partnercentral-selling
 - payment-cryptography
@@ -10939,6 +10981,7 @@
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
+- route53globalresolver
 - route53profiles
 - rtbfabric
 - rum
@@ -10977,6 +11020,7 @@
 - waf
 - waf-regional
 - wellarchitected
+- wickr
 - wisdom
 - workdocs
 - workmail

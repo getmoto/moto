@@ -1,6 +1,52 @@
 Moto Changelog
 ==============
 
+
+5.1.19
+-----
+Docker Digest for 5.1.19: <autopopulateddigest>
+
+    General:
+        * Removed support for ElasticTranscoder, now that AWS has also deprecated this service
+
+    New Methods:
+        * ACM-PCA:
+            * revoke_certificate()
+
+        * DSQL:
+            * delete_cluster()
+            * get_vpc_endpoint_service_name()
+            * list_tags_for_resource()
+
+        * FSX:
+            * describe_backups()
+
+        * SESv2:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * VPC Lattice:
+            * delete_auth_policy()
+            * delete_resource_policy()
+            * get_auth_policy()
+            * get_resource_policy()
+            * put_auth_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: put_item() now correctly validates numeric and boolean values
+        * EC2: describe_instances() now returns the correct status for BlockDeviceMappings.Ebs.Status (attached, instead of in-use)
+        * EC2: describe_network_acls() now supports the 'association.association-id' Filter
+        * ELBv2: modify_load_balancer_attributes() no longer fails when modifying the 'health_check_logs.s3.enabled' attribute
+        * ResourceGroupsTaggingAPI: get_resources() now supports the SESv2 resources: ConfigurationSets, ContactLists, DedicatedIpPool, EmailIdentity
+        * Route53: change_tags_for_resource() no longer throws an error for removing a non-existing tag
+        * S3: list_object_versions() now correctly calculates the IsLatest-attribute
+        * Scheduler: list_schedules() and list_schedule_groups() now support pagination
+        * SecretsManager: batch_get_secret_value() now returns error handling for unknown secrets
+        * SSM: put_parameter() now returns the Tier-attribute
+
+
 5.1.18
 -----
 Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_

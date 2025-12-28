@@ -137,6 +137,7 @@ quicksight
 - [ ] get_dashboard_embed_url
 - [ ] get_flow_metadata
 - [ ] get_flow_permissions
+- [ ] get_identity_context
 - [ ] get_session_embed_url
 - [ ] list_action_connectors
 - [ ] list_analyses
