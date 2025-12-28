@@ -1,7 +1,8 @@
 import abc
 import logging
 import threading
-from typing import Any, Callable, TypedDict, Union
+from collections.abc import Callable
+from typing import Any, TypedDict, Union
 
 from moto.moto_api._internal import mock_random
 

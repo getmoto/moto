@@ -7,10 +7,10 @@ import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
