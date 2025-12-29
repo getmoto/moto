@@ -155,7 +155,10 @@ class Shard(BaseModel):
         return 0
 
     def get_sequence_number_at(self, at_timestamp: float) -> int:
-        if not self.records or at_timestamp < list(self.records.values())[0].created_at:
+        if (
+            not self.records
+            or at_timestamp <= list(self.records.values())[0].created_at
+        ):
             return 0
         else:
             # find the last item in the list that was created before
