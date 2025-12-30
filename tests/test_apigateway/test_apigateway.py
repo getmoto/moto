@@ -57,12 +57,18 @@ def test_update_rest_api():
             "value": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
             '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
         },
+        {
+            "op": "replace",
+            "path": "/endpointConfiguration/types",
+            "value": "REGIONAL",
+        },
     ]
 
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.pop("binaryMediaTypes")
+
     assert response == {
         "id": api_id,
         "name": "new-name",
@@ -71,7 +77,7 @@ def test_update_rest_api():
         "apiKeySource": "AUTHORIZER",
         "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
         '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
-        "endpointConfiguration": {"types": ["EDGE"]},
+        "endpointConfiguration": {"types": ["REGIONAL"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
         "rootResourceId": root_resource_id,
