@@ -1,0 +1,16 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "DescribeCacheClusters": {
+        "unique_attribute": "cache_cluster_id"
+      },
+      "DescribeCacheSubnetGroups": {
+        "unique_attribute": "cache_subnet_group_name"
+      },
+      "DescribeReplicationGroups": {
+        "unique_attribute": "replication_group_id"
+      }
+    }
+  }
+}
