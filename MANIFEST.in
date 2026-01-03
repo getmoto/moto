@@ -9,6 +9,7 @@ include moto/ec2/resources/latest_amis/*.json
 include moto/ec2/resources/amis.json
 include moto/ec2/resources/ecs/optimized_amis/*.json
 include moto/elasticache/*/*.json
+include moto/emr/*/*.json
 include moto/emr/resources/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
