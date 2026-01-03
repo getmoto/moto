@@ -468,3 +468,23 @@ def _get_value_for_key(obj: Any, key: int | str, default: Any) -> Any:
         return obj[key]
     except (KeyError, IndexError, TypeError, AttributeError):
         return default
+
+
+def set_value(obj: Any, key: str, value: Any) -> None:
+    """Helper for adding a keyed value to various types of objects.
+
+    A key containing a dot (e.g. `parent.child`) will be treated as a
+    path to traverse to get to the desired value.
+    """
+    if "." in key:
+        key_path = key.split(".")
+        obj = get_value(obj, ".".join(key_path[:-1]))
+        key = key_path[-1]
+    _set_value_for_key(obj, key, value)
+
+
+def _set_value_for_key(obj: Any, key: str, value: Any) -> None:
+    try:
+        obj[key] = value
+    except (KeyError, IndexError, TypeError, AttributeError):
+        setattr(obj, key, value)
