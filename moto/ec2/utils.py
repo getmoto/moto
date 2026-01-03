@@ -4,14 +4,7 @@ import hashlib
 import ipaddress
 import re
 from collections.abc import Callable
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, TypeVar, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -78,6 +71,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "iam-instance-profile-association": "iip-assoc",
     "carrier-gateway": "cagw",
     "key-pair": "key",
+    "subnet-cidr-reservation": "scr",
 }
 
 
@@ -303,6 +297,10 @@ def random_ipv6_cidr() -> str:
     return f"2400:6500:{random_resource_id(4)}:{random_resource_id(2)}00::/56"
 
 
+def random_subnet_cidr_reservation_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet-cidr-reservation"])
+
+
 def generate_route_id(
     route_table_id: str,
     cidr_block: Optional[str],
@@ -514,7 +512,7 @@ def filter_internet_gateways(
 
 
 def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
-    value = obj.get_filter_value(_filter)
+    value = obj[_filter] if isinstance(obj, dict) else obj.get_filter_value(_filter)
     if filter_value is None:
         return False
 
