@@ -2069,6 +2069,44 @@ class SimpleSystemManagerBackend(BaseBackend):
                         parameter.labels.remove(label)
         return (invalid_labels, version)
 
+    def unlabel_parameter_version(
+        self, name: str, version: int, labels: list[str]
+    ) -> tuple[list[str], list[str]]:
+        previous_parameter_versions = self._parameters[name]
+        if not previous_parameter_versions:
+            raise ParameterNotFound(f"Parameter {name} not found.")
+
+        if version is None:
+            raise ValidationException(
+                "1 validation error detected: Value 'null' at 'parameterVersion' failed to satisfy constraint: Member must not be null"
+            )
+
+        found_parameter = None
+        for parameter in previous_parameter_versions:
+            if parameter.version == version:
+                found_parameter = parameter
+                break
+
+        if not found_parameter:
+            raise ParameterVersionNotFound(
+                f"Systems Manager could not find version {version} of {name}. Verify the version and try again."
+            )
+
+        removed_labels = []
+        invalid_labels = []
+
+        if not labels:
+            return removed_labels, invalid_labels
+
+        for label in labels:
+            if label in found_parameter.labels:
+                found_parameter.labels.remove(label)
+                removed_labels.append(label)
+            else:
+                invalid_labels.append(label)
+
+        return removed_labels, invalid_labels
+
     def _check_for_parameter_version_limit_exception(self, name: str) -> None:
         # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html
         parameter_versions = self._parameters[name]

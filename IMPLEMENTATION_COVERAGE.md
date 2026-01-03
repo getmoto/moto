@@ -7526,6 +7526,7 @@
 - [ ] describe_quick_sight_q_search_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
+- [ ] describe_self_upgrade_configuration
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -7570,6 +7571,7 @@
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
+- [ ] list_self_upgrades
 - [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -7637,6 +7639,8 @@
 - [ ] update_quick_sight_q_search_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
+- [ ] update_self_upgrade
+- [ ] update_self_upgrade_configuration
 - [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias
@@ -9834,7 +9838,7 @@
 
 ## ssm
 <details>
-<summary>27% implemented</summary>
+<summary>28% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -9967,7 +9971,7 @@
 - [ ] start_session
 - [ ] stop_automation_execution
 - [ ] terminate_session
-- [ ] unlabel_parameter_version
+- [X] unlabel_parameter_version
 - [ ] update_association
 - [ ] update_association_status
 - [X] update_document
@@ -10856,7 +10860,6 @@
 - ds-data
 - ecr-public
 - eks-auth
-- elastictranscoder
 - entityresolution
 - evidently
 - evs
