@@ -802,8 +802,7 @@ class RDSResponse(BaseResponse):
         from moto.rds.exceptions import InvalidParameterValue
 
         marker = self.params.get("Marker")
-        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
-        page_size = self.params.get("MaxRecords", 50)
+        page_size = self.params.get("MaxRecords", 100)
         if page_size < 20 or page_size > 100:
             msg = (
                 f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"

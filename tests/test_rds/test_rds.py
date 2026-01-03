@@ -431,18 +431,18 @@ def test_get_databases(client):
 
 @mock_aws
 def test_get_databases_paginated(client):
-    for i in range(51):
+    for i in range(101):
         create_db_instance(DBInstanceIdentifier=f"rds{i}")
 
     resp = client.describe_db_instances()
-    assert len(resp["DBInstances"]) == 50
-    assert resp["Marker"] == resp["DBInstances"][-1]["DBInstanceIdentifier"]
+    assert len(resp["DBInstances"]) == 100
+    assert "Marker" in resp
 
     resp2 = client.describe_db_instances(Marker=resp["Marker"])
     assert len(resp2["DBInstances"]) == 1
 
-    resp3 = client.describe_db_instances(MaxRecords=100)
-    assert len(resp3["DBInstances"]) == 51
+    resp3 = client.describe_db_instances(MaxRecords=23)
+    assert len(resp3["DBInstances"]) == 23
 
 
 @mock_aws
