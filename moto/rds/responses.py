@@ -343,9 +343,7 @@ class RDSResponse(BaseResponse):
         db_parameter_group_name = self.params.get("DBParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
@@ -356,9 +354,7 @@ class RDSResponse(BaseResponse):
         db_parameter_group_name = self.params.get("DBClusterParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_cluster_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
