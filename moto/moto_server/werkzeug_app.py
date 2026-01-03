@@ -135,10 +135,6 @@ class DomainDispatcherApplication:
         if service in ["budgets", "cloudfront"]:
             # Global Services - they do not have/expect a region
             host = f"{service}.amazonaws.com"
-        elif service == "mediastore" and not target:
-            # All MediaStore API calls have a target header
-            # If no target is set, assume we're trying to reach the mediastore-data service
-            host = f"data.{service}.{region}.amazonaws.com"
         elif service == "dsql":
             host = f"{service}.{region}.api.aws"
         elif service == "dynamodb":
