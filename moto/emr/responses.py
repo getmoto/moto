@@ -19,9 +19,7 @@ class ElasticMapReduceResponse(BaseResponse):
     ]
     PROTOCOL_PARSER_MAP_TYPE = XFormedDict
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "Properties": lambda x: dict(x.original_items())
-        if hasattr(x, "original_items")
-        else x,
+        "Properties": lambda x: x.original_dict() if hasattr(x, "original_dict") else x,
     }
 
     def __init__(self) -> None:
