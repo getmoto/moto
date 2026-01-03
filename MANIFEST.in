@@ -22,6 +22,7 @@ include moto/sqs/*/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json
 include moto/ssm/resources/ecs/optimized_amis/*.json
+include moto/ses/*/*.json
 include moto/sesv2/*/*.json
 include moto/support/resources/*.json
 recursive-include moto/moto_server *

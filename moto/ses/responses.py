@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 from moto.core.utils import utcnow
 
 from .exceptions import ValidationError
@@ -312,18 +312,12 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def list_configuration_sets(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_items = self._get_param("MaxItems")
-        configuration_sets, next_token = self.backend.list_configuration_sets(
-            next_token=next_token,
-            max_items=max_items,
-        )
+        configuration_sets = self.backend.list_configuration_sets()
         config_set_names = [c.configuration_set_name for c in configuration_sets]
         result = {
             "ConfigurationSets": [{"Name": name} for name in config_set_names],
-            "NextToken": next_token,
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
