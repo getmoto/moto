@@ -1,0 +1,26 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "DescribeBlueGreenDeployments": {
+        "unique_attribute": "resource_id"
+      },
+      "DescribeDBInstances": {
+        "unique_attribute": "resource_id"
+      },
+      "DescribeOptionGroups": {
+        "unique_attribute": "resource_id"
+      },
+      "DescribeOrderableDBInstanceOptions": {
+        "unique_attribute": [
+          "Engine",
+          "EngineVersion",
+          "DBInstanceClass"
+        ]
+      },
+      "DescribeDBParameterGroups": {
+        "unique_attribute": "resource_id"
+      }
+    }
+  }
+}

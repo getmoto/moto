@@ -1,7 +1,5 @@
-from typing import Any, Optional
-
 from moto.core.parsers import XFormedDict
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
@@ -40,17 +38,13 @@ class RDSResponse(BaseResponse):
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
         filters = self.params.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
-        all_instances = list(
+        db_instances = list(
             self.backend.describe_db_instances(
                 db_instance_identifier, filters=filter_dict
             )
         )
-        instances_resp, next_marker = self._paginate(all_instances)
-        result = {
-            "DBInstances": instances_resp,
-            "Marker": next_marker,
-        }
-        return ActionResult(result)
+        result = {"DBInstances": db_instances}
+        return PaginatedResult(result)
 
     def modify_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
@@ -297,12 +291,8 @@ class RDSResponse(BaseResponse):
     def describe_option_groups(self) -> ActionResult:
         kwargs = self.params
         option_groups = self.backend.describe_option_groups(kwargs)
-        option_groups, marker = self._paginate(option_groups)
-        result = {
-            "OptionGroupsList": option_groups,
-            "Marker": marker,
-        }
-        return ActionResult(result)
+        result = {"OptionGroupsList": option_groups}
+        return PaginatedResult(result)
 
     def describe_option_group_options(self) -> str:
         engine_name = self.params.get("EngineName")
@@ -335,9 +325,8 @@ class RDSResponse(BaseResponse):
     def describe_db_parameter_groups(self) -> ActionResult:
         kwargs = self.params
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
-        db_parameter_groups, _ = self._paginate(db_parameter_groups)
         result = {"DBParameterGroups": db_parameter_groups}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def modify_db_parameter_group(self) -> ActionResult:
         db_parameter_group_name = self.params.get("DBParameterGroupName")
@@ -508,7 +497,7 @@ class RDSResponse(BaseResponse):
             engine, engine_version
         )
         result = {"OrderableDBInstanceOptions": options}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def describe_global_clusters(self) -> ActionResult:
         clusters = self.global_backend.describe_global_clusters()
@@ -779,10 +768,9 @@ class RDSResponse(BaseResponse):
         filters = self.params.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         self.params["filters"] = filter_dict
-        all_bg_deployments = self.backend.describe_blue_green_deployments(**self.params)
-        bg_deployments, _ = self._paginate(all_bg_deployments)
+        bg_deployments = self.backend.describe_blue_green_deployments(**self.params)
         result = {"BlueGreenDeployments": bg_deployments}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def switchover_blue_green_deployment(self) -> ActionResult:
         bg_deployment = self.backend.switchover_blue_green_deployment(**self.params)
@@ -793,28 +781,6 @@ class RDSResponse(BaseResponse):
         bg_deployment = self.backend.delete_blue_green_deployment(**self.params)
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
-
-    def _paginate(self, resources: list[Any]) -> tuple[list[Any], Optional[str]]:
-        from moto.rds.exceptions import InvalidParameterValue
-
-        marker = self.params.get("Marker")
-        page_size = self.params.get("MaxRecords", 100)
-        if page_size < 20 or page_size > 100:
-            msg = (
-                f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
-            )
-            raise InvalidParameterValue(msg)
-        all_resources = list(resources)
-        all_ids = [resource.resource_id for resource in all_resources]
-        if marker:
-            start = all_ids.index(marker) + 1
-        else:
-            start = 0
-        paginated_resources = all_resources[start : start + page_size]
-        next_marker = None
-        if len(all_resources) > start + page_size:
-            next_marker = paginated_resources[-1].resource_id
-        return paginated_resources, next_marker
 
     def add_role_to_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")

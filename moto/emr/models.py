@@ -952,27 +952,16 @@ class ElasticMapReduceBackend(BaseBackend):
             if group_id in instance_group_ids
         ]
 
-    def list_bootstrap_actions(
-        self, cluster_id: str, marker: Optional[str] = None
-    ) -> tuple[list[BootstrapAction], Optional[str]]:
-        max_items = 50
+    def list_bootstrap_actions(self, cluster_id: str) -> list[BootstrapAction]:
         actions = self.clusters[cluster_id].bootstrap_actions
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None
-            if len(actions) <= start_idx + max_items
-            else str(start_idx + max_items)
-        )
-        return actions[start_idx : start_idx + max_items], marker
+        return actions
 
     def list_clusters(
         self,
         cluster_states: Optional[list[str]] = None,
         created_after: Optional[datetime] = None,
         created_before: Optional[datetime] = None,
-        marker: Optional[str] = None,
-    ) -> tuple[list[Cluster], Optional[str]]:
-        max_items = 50
+    ) -> list[Cluster]:
         clusters = list(self.clusters.values())
         if cluster_states:
             clusters = [c for c in clusters if c.state in cluster_states]
@@ -981,54 +970,33 @@ class ElasticMapReduceBackend(BaseBackend):
         if created_before:
             clusters = [c for c in clusters if c.creation_datetime < created_before]
         clusters = sorted(clusters, key=lambda x: x.id)
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None
-            if len(clusters) <= start_idx + max_items
-            else str(start_idx + max_items)
-        )
-        return clusters[start_idx : start_idx + max_items], marker
+        return clusters
 
-    def list_instance_groups(
-        self, cluster_id: str, marker: Optional[str] = None
-    ) -> tuple[list[InstanceGroup], Optional[str]]:
-        max_items = 50
+    def list_instance_groups(self, cluster_id: str) -> list[InstanceGroup]:
         groups = sorted(self.clusters[cluster_id].instance_groups, key=lambda x: x.id)
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
-        )
-        return groups[start_idx : start_idx + max_items], marker
+        return groups
 
     def list_instances(
         self,
         cluster_id: str,
-        marker: Optional[str] = None,
         instance_group_id: Optional[str] = None,
         instance_group_types: Optional[list[str]] = None,
-    ) -> tuple[list[Instance], Optional[str]]:
-        max_items = 50
+    ) -> list[Instance]:
         groups = sorted(self.clusters[cluster_id].ec2_instances, key=lambda x: x.id)
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
-        )
         if instance_group_id:
             groups = [g for g in groups if g.instance_group.id == instance_group_id]
         if instance_group_types:
             groups = [
                 g for g in groups if g.instance_group.role in instance_group_types
             ]
-        return groups[start_idx : start_idx + max_items], marker
+        return groups
 
     def list_steps(
         self,
         cluster_id: str,
-        marker: Optional[str] = None,
         step_ids: Optional[list[str]] = None,
         step_states: Optional[list[str]] = None,
-    ) -> tuple[list[Step], Optional[str]]:
-        max_items = 50
+    ) -> list[Step]:
         steps = sorted(
             self.clusters[cluster_id].steps,
             key=lambda o: o.creation_date_time,
@@ -1038,11 +1006,7 @@ class ElasticMapReduceBackend(BaseBackend):
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
             steps = [s for s in steps if s.state in step_states]
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None if len(steps) <= start_idx + max_items else str(start_idx + max_items)
-        )
-        return steps[start_idx : start_idx + max_items], marker
+        return steps
 
     def modify_cluster(self, cluster_id: str, step_concurrency_level: int) -> Cluster:
         cluster = self.clusters[cluster_id]
