@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from moto.core.parsers import XFormedDict
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
@@ -182,13 +182,13 @@ class RDSResponse(BaseResponse):
         arn = self.params.get("ResourceName")
         tags = self.params.get("Tags", [])
         self.backend.add_tags_to_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_tags_from_resource(self) -> ActionResult:
         arn = self.params.get("ResourceName")
         tag_keys = self.params.get("TagKeys")
         self.backend.remove_tags_from_resource(arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def stop_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
@@ -574,7 +574,7 @@ class RDSResponse(BaseResponse):
         self.backend.delete_db_cluster_parameter_group(
             group_name=group_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -727,7 +727,7 @@ class RDSResponse(BaseResponse):
             db_cluster_identifiers=db_cluster_identifiers,
             db_instance_identifiers=db_instance_identifiers,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_db_proxy_targets(self) -> ActionResult:
         proxy_name = self.params.get("DBProxyName")
@@ -829,7 +829,7 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def add_role_to_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -840,4 +840,4 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()
