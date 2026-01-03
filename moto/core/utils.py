@@ -433,10 +433,15 @@ def get_equivalent_url_in_aws_domain(url: str) -> tuple[ParseResult, bool]:
         return (result, True)
 
 
+def _load_service_model(service_name: str, model_name: str) -> dict[str, Any]:
+    loader = create_loader()
+    model = loader.load_service_model(service_name, model_name)
+    return model
+
+
 @cache
 def get_service_model(service_name: str) -> ServiceModel:
-    loader = create_loader()
-    model = loader.load_service_model(service_name, "service-2")
+    model = _load_service_model(service_name, "service-2")
     service_model = ServiceModel(model, service_name)
     return service_model
 
