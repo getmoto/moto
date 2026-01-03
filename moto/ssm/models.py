@@ -2092,8 +2092,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                 f"Systems Manager could not find version {version} of {name}. Verify the version and try again."
             )
 
-        removed_labels = []
-        invalid_labels = []
+        removed_labels: list[str] = []
+        invalid_labels: list[str] = []
 
         if not labels:
             return removed_labels, invalid_labels

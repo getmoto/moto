@@ -2479,7 +2479,7 @@ def test_list_parameter_tags_created_with_leading_slash(param_name):
 
 
 @mock_aws
-def test_unlabel_parameter_version():
+def test_unlabel_parameter_version() -> None:
     client = boto3.client("ssm", region_name=SSM_REGION)
 
     # Create parameter
@@ -2508,7 +2508,7 @@ def test_unlabel_parameter_version():
 
 
 @mock_aws
-def test_unlabel_parameter_version_not_found():
+def test_unlabel_parameter_version_not_found() -> None:
     client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as exc:
@@ -2519,7 +2519,7 @@ def test_unlabel_parameter_version_not_found():
 
 
 @mock_aws
-def test_unlabel_parameter_version_version_not_found():
+def test_unlabel_parameter_version_version_not_found() -> None:
     client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(Name="/test/param", Value="v", Type="String")
 
