@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, PaginatedResult
 
 from .exceptions import (
     InvalidParameterCombinationException,
@@ -165,15 +165,11 @@ class ElastiCacheResponse(BaseResponse):
 
     def describe_cache_clusters(self) -> ActionResult:
         cache_cluster_id = self._get_param("CacheClusterId")
-        max_records = self._get_int_param("MaxRecords")
-        marker = self._get_param("Marker")
-        cache_clusters, marker = self.elasticache_backend.describe_cache_clusters(
+        cache_clusters = self.elasticache_backend.describe_cache_clusters(
             cache_cluster_id=cache_cluster_id,
-            marker=marker,
-            max_records=max_records,
         )
-        result = {"CacheClusters": cache_clusters, "Marker": marker}
-        return ActionResult(result)
+        result = {"CacheClusters": cache_clusters}
+        return PaginatedResult(result)
 
     def delete_cache_cluster(self) -> ActionResult:
         cache_cluster_id = self._get_param("CacheClusterId")
@@ -214,17 +210,11 @@ class ElastiCacheResponse(BaseResponse):
 
     def describe_cache_subnet_groups(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
-        max_records = self._get_param("MaxRecords")
-        marker = self._get_param("Marker")
-        cache_subnet_groups, marker = (
-            self.elasticache_backend.describe_cache_subnet_groups(
-                cache_subnet_group_name=cache_subnet_group_name,
-                marker=marker,
-                max_records=max_records,
-            )
+        cache_subnet_groups = self.elasticache_backend.describe_cache_subnet_groups(
+            cache_subnet_group_name=cache_subnet_group_name,
         )
-        result = {"CacheSubnetGroups": cache_subnet_groups, "Marker": marker}
-        return ActionResult(result)
+        result = {"CacheSubnetGroups": cache_subnet_groups}
+        return PaginatedResult(result)
 
     def create_replication_group(self) -> ActionResult:
         params = self._get_params()
@@ -313,17 +303,11 @@ class ElastiCacheResponse(BaseResponse):
 
     def describe_replication_groups(self) -> ActionResult:
         replication_group_id = self._get_param("ReplicationGroupId")
-        max_records = self._get_param("MaxRecords")
-        marker = self._get_param("Marker")
-        replication_groups, marker = (
-            self.elasticache_backend.describe_replication_groups(
-                replication_group_id=replication_group_id,
-                marker=marker,
-                max_records=max_records,
-            )
+        replication_groups = self.elasticache_backend.describe_replication_groups(
+            replication_group_id=replication_group_id,
         )
-        result = {"ReplicationGroups": replication_groups, "Marker": marker}
-        return ActionResult(result)
+        result = {"ReplicationGroups": replication_groups}
+        return PaginatedResult(result)
 
     def delete_replication_group(self) -> ActionResult:
         replication_group_id = self._get_param("ReplicationGroupId")
