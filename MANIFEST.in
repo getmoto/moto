@@ -15,6 +15,7 @@ include moto/moto_api/_internal/*
 include moto/moto_proxy/*
 include moto/moto_proxy/certs/__init__.py
 include moto/moto_proxy/certs/req.conf.tmpl
+include moto/rds/*/*.json
 include moto/rds/resources/cluster_options/*.json
 include moto/sqs/*/*.json
 include moto/ssm/resources/*.json
