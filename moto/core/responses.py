@@ -180,7 +180,7 @@ class ActionContext:
     service_model: ServiceModel
     operation_model: OperationModel
     serializer_class: type[ResponseSerializer]
-    response_class: type[BaseResponse]
+    response: BaseResponse
 
 
 class ActionResult:
@@ -201,7 +201,7 @@ class ActionResult:
         """
         serializer_cls = context.serializer_class
         response_transformers = getattr(
-            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+            context.response, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
         )
         value_picker = XFormedAttributePicker(
             response_transformers=response_transformers
@@ -547,9 +547,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
-        context = ActionContext(
-            service_model, operation_model, serializer_cls, self.__class__
-        )
+        context = ActionContext(service_model, operation_model, serializer_cls, self)
         status_code, headers, body = action_result.execute_result(context)
         headers.update(self.response_headers)
         return status_code, headers, body

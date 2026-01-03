@@ -1111,6 +1111,7 @@ class RestAPI(CloudFormationModel):
             if self.OPERATION_VALUE in op:
                 value = op[self.OPERATION_VALUE]
             operaton = op[self.OPERATION_OP]
+
             if operaton == self.OPERATION_REPLACE:
                 if to_path(self.PROP_NAME) in path:
                     self.name = value
@@ -1124,6 +1125,9 @@ class RestAPI(CloudFormationModel):
                     self.disableExecuteApiEndpoint = bool(value)
                 if to_path(self.PROP_POLICY) in path:
                     self.policy = value
+                if to_path(self.PROP_ENDPOINT_CONFIGURATION) in path:
+                    self.endpoint_configuration["types"] = [value]
+
             elif operaton == self.OPERATION_ADD:
                 if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
                     self.binaryMediaTypes.append(value)
