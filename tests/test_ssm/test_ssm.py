@@ -2476,3 +2476,55 @@ def test_list_parameter_tags_created_with_leading_slash(param_name):
 
     # Cleanup resources
     client.delete_parameters(Names=[param_name])
+
+
+@mock_aws
+def test_unlabel_parameter_version() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    # Create parameter
+    client.put_parameter(Name="/test/param", Value="value", Type="String")
+
+    # Label it
+    client.label_parameter_version(
+        Name="/test/param", ParameterVersion=1, Labels=["label1", "label2"]
+    )
+
+    # Unlabel
+    response = client.unlabel_parameter_version(
+        Name="/test/param",
+        ParameterVersion=1,
+        Labels=["label1", "label3"],  # label3 doesn't exist
+    )
+
+    assert "label1" in response["RemovedLabels"]
+    assert "label3" in response["InvalidLabels"]
+
+    # Verify removal by checking history
+    history = client.get_parameter_history(Name="/test/param")
+    labels = history["Parameters"][0]["Labels"]
+    assert "label1" not in labels
+    assert "label2" in labels
+
+
+@mock_aws
+def test_unlabel_parameter_version_not_found() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    with pytest.raises(ClientError) as exc:
+        client.unlabel_parameter_version(
+            Name="/test/nonexistent", ParameterVersion=1, Labels=["label1"]
+        )
+    assert exc.value.response["Error"]["Code"] == "ParameterNotFound"
+
+
+@mock_aws
+def test_unlabel_parameter_version_version_not_found() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    client.put_parameter(Name="/test/param", Value="v", Type="String")
+
+    with pytest.raises(ClientError) as exc:
+        client.unlabel_parameter_version(
+            Name="/test/param", ParameterVersion=999, Labels=["label1"]
+        )
+    assert exc.value.response["Error"]["Code"] == "ParameterVersionNotFound"

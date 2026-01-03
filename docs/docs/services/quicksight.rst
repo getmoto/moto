@@ -118,6 +118,7 @@ quicksight
 - [ ] describe_quick_sight_q_search_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
+- [ ] describe_self_upgrade_configuration
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -162,6 +163,7 @@ quicksight
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
+- [ ] list_self_upgrades
 - [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -234,6 +236,8 @@ quicksight
 - [ ] update_quick_sight_q_search_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
+- [ ] update_self_upgrade
+- [ ] update_self_upgrade_configuration
 - [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias

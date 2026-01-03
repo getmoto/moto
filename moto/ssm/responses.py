@@ -334,6 +334,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"InvalidLabels": invalid_labels, "ParameterVersion": version}
         return json.dumps(response)
 
+    def unlabel_parameter_version(self) -> str:
+        name = self._get_param("Name")
+        version = self._get_param("ParameterVersion")
+        labels = self._get_param("Labels")
+
+        removed_labels, invalid_labels = self.ssm_backend.unlabel_parameter_version(
+            name, version, labels
+        )
+
+        response = {"RemovedLabels": removed_labels, "InvalidLabels": invalid_labels}
+        return json.dumps(response)
+
     def add_tags_to_resource(self) -> str:
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
