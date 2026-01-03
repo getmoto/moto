@@ -28,7 +28,7 @@ from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS
+from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -38,12 +38,15 @@ from moto.core.serialize import (
 )
 from moto.core.utils import (
     camelcase_to_underscores,
+    get_pagination_model,
     get_service_model,
     get_value,
     gzip_decompress,
     method_names_from_class,
+    set_value,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
@@ -213,6 +216,29 @@ class ActionResult:
         )
         serialized = serializer.serialize(self.result)
         return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class PaginatedResult(ActionResult):
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        service_name = str(context.service_model.service_name)
+        operation_name = str(context.operation_model.name)
+        pagination_model = get_pagination_model(service_name)
+        paging_config = pagination_model[operation_name]
+        paging_config.setdefault("limit_default", 100)
+
+        kwargs = context.response.params
+        if isinstance(kwargs, XFormedDict):
+            kwargs = kwargs.original_dict()
+
+        def get_result_to_paginate(**_: Any) -> Any:
+            return get_value(self._result, paging_config["result_key"])
+
+        get_result_to_paginate.__name__ = operation_name
+        paginator = paginate(pagination_model)(get_result_to_paginate)
+        paginated_results, next_token = paginator(**kwargs)
+        set_value(self._result, paging_config["result_key"], paginated_results)
+        set_value(self._result, paging_config["output_token"], next_token)
+        return super().execute_result(context)
 
 
 class EmptyResult(ActionResult):
