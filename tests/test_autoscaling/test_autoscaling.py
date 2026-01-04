@@ -1143,6 +1143,9 @@ def test_create_auto_scaling_group_with_mixed_instances_policy(
     instances = autoscaling_client.describe_auto_scaling_instances()[
         "AutoScalingInstances"
     ]
+    instances = [
+        i for i in instances if i["AutoScalingGroupName"] == autoscaling_group_name
+    ]
     assert len(instances) == 2
     for instance in instances:
         assert instance["LaunchTemplate"] == {
@@ -1176,7 +1179,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
             "LaunchTemplate": {
                 "LaunchTemplateSpecification": {
                     "LaunchTemplateName": launch_template_name,
-                    "Version": "$DEFAULT",
+                    "Version": "$Default",
                 },
                 "Overrides": [
                     {
@@ -1198,11 +1201,18 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
     )
     group = response["AutoScalingGroups"][0]
     assert group["MixedInstancesPolicy"] == {
+        "InstancesDistribution": {
+            "OnDemandAllocationStrategy": "prioritized",
+            "OnDemandBaseCapacity": 0,
+            "OnDemandPercentageAboveBaseCapacity": 100,
+            "SpotAllocationStrategy": "lowest-price",
+            "SpotInstancePools": 2,
+        },
         "LaunchTemplate": {
             "LaunchTemplateSpecification": {
                 "LaunchTemplateId": lt["LaunchTemplateId"],
                 "LaunchTemplateName": launch_template_name,
-                "Version": "$DEFAULT",
+                "Version": "$Default",
             },
             "Overrides": [
                 {
@@ -1210,7 +1220,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
                     "WeightedCapacity": "50",
                 }
             ],
-        }
+        },
     }
 
 
