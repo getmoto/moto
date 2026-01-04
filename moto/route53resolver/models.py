@@ -447,7 +447,7 @@ class ResolverDnssecConfig(BaseModel):
         self.resource_id = resource_id
         self.validation_status = validation_status
 
-    def description(self):
+    def description(self) -> dict[str, Any]:
         return {
             "Id": self.id,
             "OwnerId": self.owner_id,
@@ -1160,14 +1160,14 @@ class Route53ResolverBackend(BaseBackend):
     ) -> ResolverDnssecConfig:
         """Update the configuration of the DNSSEC validation."""
 
-        """ AWS Route53Resolver API handles DNSSEC configuration changes via status transitions rather than distinct 
+        """ AWS Route53Resolver API handles DNSSEC configuration changes via status transitions rather than distinct
         CRUD operations for the config resource itself.
         - A 'Create' operation effectively sends an 'ENABLE' action.
         - A 'Delete' operation effectively sends a 'DISABLE' action.
         Critically, there is a mismatch between the Input API and the Output Status:
         - Input (Request): Expects "ENABLE", "DISABLE".
         - Output (Status): Returns "ENABLED", "DISABLED".
-        We map the requested action to the corresponding status state below to ensure the internal state and response 
+        We map the requested action to the corresponding status state below to ensure the internal state and response
         match the AWS spec.
         AWS SDK v2 API References:
         https://github.com/aws/aws-sdk-go-v2/blob/d399d1e5fadf8668b7ed593019c84d5e91b0c7cc/service/route53resolver/types/enums.go#L700
