@@ -512,7 +512,7 @@ def filter_internet_gateways(
 
 
 def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
-    value = obj[_filter] if isinstance(obj, dict) else obj.get_filter_value(_filter)
+    value = obj.get_filter_value(_filter)
     if filter_value is None:
         return False
 

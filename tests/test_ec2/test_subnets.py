@@ -1269,7 +1269,7 @@ def test_get_subnet_cidr_reservations_dual() -> None:
 
 
 @mock_aws
-def test_get_subnet_cidr_reservations_owner_filter() -> None:
+def test_get_subnet_cidr_reservations_type_filter() -> None:
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     vpc = ec2.create_vpc(
@@ -1293,8 +1293,8 @@ def test_get_subnet_cidr_reservations_owner_filter() -> None:
         SubnetId=subnet["SubnetId"],
         Filters=[
             {
-                "Name": "OwnerId",
-                "Values": [scr_v4["OwnerId"]],
+                "Name": "reservationType",
+                "Values": ["prefix"],
             }
         ],
     )
@@ -1306,18 +1306,18 @@ def test_get_subnet_cidr_reservations_owner_filter() -> None:
 
     assert len(reservations["SubnetIpv6CidrReservations"]) == 0
 
-    reservations_bad_owner = ec2.get_subnet_cidr_reservations(
+    reservations_bad_type = ec2.get_subnet_cidr_reservations(
         SubnetId=subnet["SubnetId"],
         Filters=[
             {
-                "Name": "OwnerId",
+                "Name": "reservationType",
                 "Values": ["should not match"],
             }
         ],
     )
 
-    assert len(reservations_bad_owner["SubnetIpv4CidrReservations"]) == 0
-    assert len(reservations_bad_owner["SubnetIpv6CidrReservations"]) == 0
+    assert len(reservations_bad_type["SubnetIpv4CidrReservations"]) == 0
+    assert len(reservations_bad_type["SubnetIpv6CidrReservations"]) == 0
 
 
 @mock_aws

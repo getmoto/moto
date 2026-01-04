@@ -4,7 +4,7 @@ import ipaddress
 import itertools
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from moto.core.common_models import CloudFormationModel
 
@@ -38,13 +38,34 @@ from .availability_zones_and_regions import RegionsAndZonesBackend
 from .core import TaggedEC2Resource
 
 
-class SubnetCidrReservation(TypedDict):
-    SubnetCidrReservationId: str
-    SubnetId: str
-    Cidr: str
-    ReservationType: Literal["explicit"] | Literal["prefix"]
-    OwnerId: str
-    TagSpecifications: list[dict[str, Any]]
+class SubnetCidrReservation(TaggedEC2Resource):
+    def __init__(
+        self,
+        ec2_backend: Any,
+        subnet_id: str,
+        cidr: ipaddress.IPv4Network | ipaddress.IPv6Network,
+        reservation_type: Literal["explicit"] | Literal["prefix"],
+        owner_id: str,
+        tag_specifications: Optional[list[dict[str, Any]]] = None,
+        subnet_cidr_reservation_id: Optional[str] = None,
+    ) -> None:
+        self.ec2_backend = ec2_backend
+        self.id = subnet_cidr_reservation_id or random_subnet_cidr_reservation_id()
+        self.subnet_id = subnet_id
+        self.cidr = cidr
+        self.reservation_type = reservation_type
+        self.owner_id = owner_id
+        self.tag_specifications = tag_specifications or []
+
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "reservationType":
+            return self.reservation_type
+        elif filter_name == "subnet-id":
+            return self.subnet_id
+
+        return super().get_filter_value(filter_name, method_name)
 
 
 class Subnet(TaggedEC2Resource, CloudFormationModel):
@@ -311,14 +332,15 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         if self._cidr_overlaps_with_existing_reservation(cidr_block):
             raise InvalidCidrReservationOverlapExisting(str(cidr_block))
 
-        reservation: SubnetCidrReservation = {
-            "Cidr": str(cidr_block),
-            "ReservationType": reservation_type,
-            "OwnerId": self.owner_id,
-            "SubnetId": self.id,
-            "SubnetCidrReservationId": random_subnet_cidr_reservation_id(),
-            "TagSpecifications": tag_specifications or [],
-        }
+        reservation = SubnetCidrReservation(
+            ec2_backend=self.ec2_backend,
+            subnet_id=self.id,
+            cidr=cidr_block,
+            reservation_type=reservation_type,
+            owner_id=self.owner_id,
+            tag_specifications=tag_specifications,
+            subnet_cidr_reservation_id=random_subnet_cidr_reservation_id(),
+        )
 
         for ip in cidr_block:
             self._reserved_ips.add(ip)
@@ -345,11 +367,15 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self, cidr_to_reserve: ipaddress.IPv4Network | ipaddress.IPv6Network
     ) -> bool:
         if isinstance(cidr_to_reserve, ipaddress.IPv4Network):
-            return cidr_to_reserve.subnet_of(self.cidr)
+            if isinstance(self.cidr, ipaddress.IPv4Network):
+                return cidr_to_reserve.subnet_of(self.cidr)
+            return False
 
         for _, ipv6_block_association in self.ipv6_cidr_block_associations.items():
             ipv6_block = ipaddress.ip_network(ipv6_block_association["ipv6CidrBlock"])
-            if cidr_to_reserve.subnet_of(ipv6_block):
+            if isinstance(
+                ipv6_block, ipaddress.IPv6Network
+            ) and cidr_to_reserve.subnet_of(ipv6_block):
                 return True
         return False
 
@@ -360,7 +386,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             cidr_to_reserve, ipaddress.IPv4Network
         )
         for reservation in self._cidr_reservations:
-            existing_block = ipaddress.ip_network(reservation.get("Cidr"))
+            existing_block = reservation.cidr
             if (
                 isinstance(existing_block, ipaddress.IPv4Network)
                 and cidr_to_reserve_is_ipv4
@@ -381,11 +407,11 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         reservation_id: str,
     ) -> Optional[SubnetCidrReservation]:
         for index, reservation in enumerate(self._cidr_reservations):
-            if reservation.get("SubnetCidrReservationId") == reservation_id:
+            if reservation.id == reservation_id:
                 self._cidr_reservations.pop(index)
 
-                if reservation.get("ReservationType") == "prefix":
-                    for ip in ipaddress.ip_network(reservation.get("Cidr")):
+                if reservation.reservation_type == "prefix":
+                    for ip in reservation.cidr:
                         if (
                             ip not in self._subnet_ips
                             and ip not in self.aws_reserved_ips
@@ -642,9 +668,13 @@ class SubnetBackend:
         reservation_type: str,
         cidr: str,
         tags: Optional[list[dict[str, Any]]] = None,
-    ) -> dict[str, Any]:
+    ) -> SubnetCidrReservation:
         if reservation_type not in {"prefix", "explicit"}:
             raise InvalidPrefixReservationType(reservation_type)
+
+        reservation_type_lit: Literal["prefix", "explicit"] = cast(
+            Literal["prefix", "explicit"], reservation_type
+        )
 
         cidr_to_reserve: ipaddress.IPv4Network | ipaddress.IPv6Network
         try:
@@ -654,7 +684,9 @@ class SubnetBackend:
 
         subnet = self.get_subnet(subnet_id)
 
-        scr = subnet.create_cidr_reservation(reservation_type, cidr_to_reserve, tags)
+        scr = subnet.create_cidr_reservation(
+            reservation_type_lit, cidr_to_reserve, tags
+        )
         return scr
 
     def get_subnet_cidr_reservations(
@@ -673,9 +705,7 @@ class SubnetBackend:
         ipv6_reservations = []
 
         for reservation in matches:
-            if isinstance(
-                ipaddress.ip_network(reservation.get("Cidr")), ipaddress.IPv4Network
-            ):
+            if isinstance(reservation.cidr, ipaddress.IPv4Network):
                 ipv4_reservations.append(reservation)
             else:
                 ipv6_reservations.append(reservation)
