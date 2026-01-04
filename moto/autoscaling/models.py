@@ -593,7 +593,6 @@ class FakeAutoScalingGroup(CloudFormationModel):
         if (
             self.mixed_instances_policy
             and "InstancesDistribution" not in self.mixed_instances_policy
-            and "Overrides" not in self.mixed_instances_policy.get("LaunchTemplate", {})
         ):
             self.mixed_instances_policy["InstancesDistribution"] = {
                 "OnDemandAllocationStrategy": "prioritized",
@@ -936,6 +935,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         health_check_period: int,
         health_check_type: str,
         new_instances_protected_from_scale_in: Optional[bool] = None,
+        mixed_instances_policy: Optional[dict[str, Any]] = None,
     ) -> None:
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
 
@@ -950,8 +950,11 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if max_size is not None and max_size < len(self.instance_states):
                 desired_capacity = max_size
 
+        self.mixed_instances_policy = mixed_instances_policy
         self._set_launch_configuration(
-            launch_config_name, launch_template, mixed_instances_policy=None
+            launch_config_name,
+            launch_template,
+            mixed_instances_policy=mixed_instances_policy,
         )
 
         if health_check_period is not None:
@@ -1425,11 +1428,11 @@ class AutoScalingBackend(BaseBackend):
         health_check_period: int,
         health_check_type: str,
         new_instances_protected_from_scale_in: Optional[bool] = None,
+        mixed_instances_policy: Optional[dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
         """
         The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
         """
-        # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
         if launch_config_name and launch_template:
             raise ValidationError(
@@ -1451,6 +1454,7 @@ class AutoScalingBackend(BaseBackend):
             health_check_period=health_check_period,
             health_check_type=health_check_type,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
+            mixed_instances_policy=mixed_instances_policy,
         )
         return group
 
