@@ -146,7 +146,8 @@ def test_create_autoscaling_group_from_invalid_instance_id():
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
     return_launch_template_details=True,
 )
-@autoscaling_aws_verified(get_group_name=True)
+# Instances are created in the Subnet - wait until the instances are terminated at the end, otherwise subsequent Subnet deletion fails (because of dangling resources)
+@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=True)
 @pytest.mark.aws_verified
 def test_create_autoscaling_group_from_template(
     autoscaling_client=None,
@@ -1222,6 +1223,66 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
             ],
         },
     }
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=False)
+@pytest.mark.aws_verified
+def test_update_mixed_instances_policy(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    launch_template_name=None,
+):
+    autoscaling_client.create_auto_scaling_group(
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": launch_template_name,
+                    "Version": "$Default",
+                },
+            }
+        },
+        AutoScalingGroupName=autoscaling_group_name,
+        MinSize=2,
+        MaxSize=2,
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    new_launch_template = ec2_client.create_launch_template_version(
+        LaunchTemplateName=launch_template_name,
+        SourceVersion="$Default",
+        LaunchTemplateData={
+            "InstanceType": "t2.large",
+        },
+    )["LaunchTemplateVersion"]
+    new_version = new_launch_template["VersionNumber"]
+
+    # Update MixedInstancesPolicy
+    autoscaling_client.update_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": launch_template_name,
+                    "Version": str(new_launch_template["VersionNumber"]),
+                }
+            }
+        },
+    )
+
+    # Assert the MixedInstancesPolicy has an updated LaunchTemplateVersion
+    response = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )
+    group = response["AutoScalingGroups"][0]
+    template = group["MixedInstancesPolicy"]["LaunchTemplate"]
+    template_spec = template["LaunchTemplateSpecification"]
+    assert template_spec["LaunchTemplateName"] == launch_template_name
+    assert template_spec["Version"] == str(new_version)
 
 
 @mock_aws
