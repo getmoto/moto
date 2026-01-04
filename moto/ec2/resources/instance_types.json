@@ -19101,6 +19101,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -19225,6 +19228,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -19359,6 +19365,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -19463,6 +19472,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -19572,6 +19584,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -19690,6 +19705,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -19791,6 +19809,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -19895,6 +19916,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -20021,6 +20045,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -20155,6 +20182,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -20306,6 +20336,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -20414,6 +20447,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -20564,6 +20600,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -20673,6 +20712,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -20791,6 +20833,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -21075,6 +21120,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -28808,6 +28856,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -28939,6 +28990,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29080,6 +29134,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -29191,6 +29248,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29307,6 +29367,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29432,6 +29495,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -29540,6 +29606,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29651,6 +29720,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29784,6 +29856,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -29926,6 +30001,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -30058,6 +30136,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -30170,6 +30251,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -30314,6 +30398,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -30454,6 +30541,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -30570,6 +30660,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -30698,6 +30791,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -30838,6 +30934,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -31146,6 +31245,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -74796,6 +74898,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -74920,6 +75025,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75054,6 +75162,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -75158,6 +75269,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75267,6 +75381,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75385,6 +75502,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -75486,6 +75606,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75590,6 +75713,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75716,6 +75842,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -75850,6 +75979,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -76001,6 +76133,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -76109,6 +76244,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -76259,6 +76397,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -76368,6 +76509,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -76486,6 +76630,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -76770,6 +76917,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -84211,6 +84361,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -84342,6 +84495,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -84483,6 +84639,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -84594,6 +84753,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -84710,6 +84872,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -84835,6 +85000,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -84943,6 +85111,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -85054,6 +85225,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -85187,6 +85361,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -85329,6 +85506,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -85461,6 +85641,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -85573,6 +85756,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -85717,6 +85903,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -85857,6 +86046,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -85973,6 +86165,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -86101,6 +86296,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -86241,6 +86439,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -86549,6 +86750,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -88515,7 +88719,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -109816,6 +110020,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -109941,6 +110148,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -110075,6 +110285,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -110226,6 +110439,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -110334,6 +110550,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -110484,6 +110703,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.2
   },
   "RebootMigrationSupport": "supported",
@@ -110593,6 +110815,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -110711,6 +110936,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -110995,6 +111223,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
@@ -119846,6 +120077,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -119977,6 +120211,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120118,6 +120355,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -120229,6 +120469,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120345,6 +120588,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120470,6 +120716,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -120578,6 +120827,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120689,6 +120941,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120822,6 +121077,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -120964,6 +121222,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -121096,6 +121357,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -121208,6 +121472,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -121352,6 +121619,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -121492,6 +121762,9 @@
    "SupportedArchitectures": [
     "x86_64"
    ],
+   "SupportedFeatures": [
+    "nested-virtualization"
+   ],
    "SustainedClockSpeedInGhz": 3.9
   },
   "RebootMigrationSupport": "supported",
@@ -121608,6 +121881,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -121736,6 +122012,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -121876,6 +122155,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
@@ -122184,6 +122466,9 @@
    "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
+   ],
+   "SupportedFeatures": [
+    "nested-virtualization"
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
