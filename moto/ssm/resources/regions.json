@@ -27006,6 +27006,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
