@@ -74,5 +74,8 @@ def _invoke_func(
                 # Wait until instances are terminated
                 ec2_client = boto3.client("ec2", "us-east-1")
                 waiter = ec2_client.get_waiter("instance_terminated")
-                instances = group["Instances"]
-                waiter.wait(InstanceIds=[inst["InstanceId"] for inst in instances])
+                waiter.wait(
+                    # Delay to get around https://github.com/boto/boto3/issues/176
+                    WaiterConfig={"Delay": 10},
+                    InstanceIds=[inst["InstanceId"] for inst in group["Instances"]],
+                )

@@ -593,7 +593,6 @@ class FakeAutoScalingGroup(CloudFormationModel):
         if (
             self.mixed_instances_policy
             and "InstancesDistribution" not in self.mixed_instances_policy
-            and "Overrides" not in self.mixed_instances_policy.get("LaunchTemplate", {})
         ):
             self.mixed_instances_policy["InstancesDistribution"] = {
                 "OnDemandAllocationStrategy": "prioritized",
