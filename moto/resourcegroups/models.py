@@ -393,5 +393,13 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
+    def list_tag_sync_tasks(self, filters, max_results, next_token):
+        # implement here
+        return tag_sync_tasks, next_token
+    
+    def start_tag_sync_task(self, group, tag_key, tag_value, resource_query, role_arn):
+        # implement here
+        return group_arn, group_name, task_arn, tag_key, tag_value, resource_query, role_arn
+    
 
 resourcegroups_backends = BackendDict(ResourceGroupsBackend, "resource-groups")

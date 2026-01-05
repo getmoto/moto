@@ -180,3 +180,33 @@ class ResourceGroupsResponse(BaseResponse):
             group_name=group_name, configuration=configuration
         )
         return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
+    
+    
+    def list_tag_sync_tasks(self):
+        params = self._get_params()
+        filters = params.get("Filters")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        tag_sync_tasks, next_token = self.resourcegroups_backend.list_tag_sync_tasks(
+            filters=filters,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(tagSyncTasks=tag_sync_tasks, nextToken=next_token))
+    def start_tag_sync_task(self):
+        params = self._get_params()
+        group = params.get("Group")
+        tag_key = params.get("TagKey")
+        tag_value = params.get("TagValue")
+        resource_query = params.get("ResourceQuery")
+        role_arn = params.get("RoleArn")
+        group_arn, group_name, task_arn, tag_key, tag_value, resource_query, role_arn = self.resourcegroups_backend.start_tag_sync_task(
+            group=group,
+            tag_key=tag_key,
+            tag_value=tag_value,
+            resource_query=resource_query,
+            role_arn=role_arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(groupArn=group_arn, groupName=group_name, taskArn=task_arn, tagKey=tag_key, tagValue=tag_value, resourceQuery=resource_query, roleArn=role_arn))

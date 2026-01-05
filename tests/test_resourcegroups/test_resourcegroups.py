@@ -273,3 +273,19 @@ def test_update_group_query():
 
     response = resource_groups.get_group_query(Group=group_arn)
     assert "TAG_FILTERS_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
+
+
+@mock_aws
+def test_start_tag_sync_task():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resp = client.start_tag_sync_task()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_tag_sync_tasks():
+    client = boto3.client("resource-groups", region_name="eu-west-1")
+    resp = client.list_tag_sync_tasks()
+
+    raise Exception("NotYetImplemented")
