@@ -614,6 +614,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
+        if not resource_type_filters or "dms:task" in resource_type_filters:
+            for replication_task in self.dms_backend.replication_tasks.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_task.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_task.arn}", "Tags": tags}
+
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
             for service in self.ecs_backend.services.values():

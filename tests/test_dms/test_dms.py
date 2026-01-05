@@ -83,6 +83,49 @@ def test_create_existing_replication_task_throws_error():
 
 
 @mock_aws
+def test_create_replication_task_with_tags():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    response = client.create_replication_task(
+        ReplicationTaskIdentifier="test",
+        SourceEndpointArn="source-endpoint-arn",
+        TargetEndpointArn="target-endpoint-arn",
+        ReplicationInstanceArn="replication-instance-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+        ReplicationTaskSettings='{"Logging":{} }',
+        Tags=[{"Key": "Test-tag", "Value": "Test Task"}],
+    )
+
+    tasks = client.describe_replication_tasks(
+        Filters=[
+            {"Name": "replication-task-id", "Values": ["test"]},
+            {"Name": "migration-type", "Values": ["full-load"]},
+            {
+                "Name": "endpoint-arn",
+                "Values": ["source-endpoint-arn", "target-endpoint-arn"],
+            },
+            {
+                "Name": "replication-instance-arn",
+                "Values": ["replication-instance-arn"],
+            },
+        ]
+    )
+
+    assert len(tasks["ReplicationTasks"]) == 1
+    task = tasks["ReplicationTasks"][0]
+    assert task["ReplicationTaskIdentifier"] == "test"
+
+    tagging_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    response = tagging_client.get_resources(ResourceTypeFilters=["dms:task"])
+    resources = response["ResourceTagMappingList"]
+    assert len(resources) == 1
+    resources = resources[0]
+    assert resources["ResourceARN"] == task["ReplicationTaskArn"]
+    assert resources["Tags"] == [{"Key": "Test-tag", "Value": "Test Task"}]
+
+
+@mock_aws
 def test_start_replication_task():
     client = boto3.client("dms", region_name="us-east-1")
 
