@@ -180,20 +180,20 @@ class ResourceGroupsResponse(BaseResponse):
         self.resourcegroups_backend.put_group_configuration(
             group_name=group_name, configuration=configuration
         )
+        return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
 
-    def get_tag_sync_task(self):
+    def get_tag_sync_task(self) -> str:
         task_arn = self._get_param("TaskArn")
         tag_sync_task = self.resourcegroups_backend.get_tag_sync_task(
             task_arn=task_arn,
         )
         return json.dumps(tag_sync_task, default=str)
 
-    def cancel_tag_sync_task(self):
+    def cancel_tag_sync_task(self) -> None:
         task_arn = self._get_param("TaskArn")
         self.resourcegroups_backend.cancel_tag_sync_task(
             task_arn=task_arn,
         )
-        return
 
     def list_tag_sync_tasks(self) -> str:
         filters = self._get_param("Filters")

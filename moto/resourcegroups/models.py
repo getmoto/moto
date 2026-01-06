@@ -238,16 +238,23 @@ class FakeTagSyncTask(BaseModel):
         self.error_message = None
         self.created_at = datetime.now()
 
-    def as_dict(self) -> dict[str, str]:
-        """returns required fields as a dict"""
-        to_return = {}
+    def as_dict(self) -> dict[str, Any]:
+        to_return: dict[str, Any] = {}
         to_return["GroupArn"] = self.group_arn
         to_return["GroupName"] = self.group_name
         to_return["TaskArn"] = self.task_arn
-        if self.resource_query is None:
+        if (
+            self.resource_query is None
+            and self.tag_key is not None
+            and self.tag_value is not None
+        ):
             to_return["TagKey"] = self.tag_key
             to_return["TagValue"] = self.tag_value
-        else:
+        elif (
+            self.resource_query is not None
+            and self.tag_key is None
+            and self.tag_value is None
+        ):
             to_return["ResourceQuery"] = self.resource_query
         to_return["RoleArn"] = self.role_arn
         to_return["Status"] = self.status
@@ -288,7 +295,7 @@ class ResourceGroupsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.groups = ResourceGroups()
-        self.tag_sync_tasks = {}
+        self.tag_sync_tasks: dict[str, FakeTagSyncTask] = {}
 
     @staticmethod
     def _validate_resource_query(resource_query: dict[str, str]) -> None:
@@ -403,11 +410,11 @@ class ResourceGroupsBackend(BaseBackend):
             raise NotFoundException()
         return group
 
-    def get_tag_sync_task(self, task_arn):
+    def get_tag_sync_task(self, task_arn: str) -> dict[str, Any]:
         tag_sync_task = self.tag_sync_tasks[task_arn]
         return tag_sync_task.as_dict()
 
-    def cancel_tag_sync_task(self, task_arn):
+    def cancel_tag_sync_task(self, task_arn: str) -> None:
         del self.tag_sync_tasks[task_arn]
         return
 
@@ -457,13 +464,25 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
-    def list_tag_sync_tasks(self, filters, max_results, next_token):
+    def list_tag_sync_tasks(
+        self,
+        next_token: str,
+        filters: Optional[list[dict[str, str]]] = None,
+        max_results: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], str]:
         tag_sync_tasks = []
         for task in self.tag_sync_tasks.values():
             tag_sync_tasks.append(task.as_dict())
         return tag_sync_tasks, next_token
 
-    def start_tag_sync_task(self, group, tag_key, tag_value, resource_query, role_arn):
+    def start_tag_sync_task(
+        self,
+        group: str,
+        role_arn: str,
+        tag_key: Optional[str] = None,
+        tag_value: Optional[str] = None,
+        resource_query: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
         group_arn, group_name = None, None
         group_arn_regex = r"arn:aws(-[a-z]+)*:resource-groups:[a-z]{2}(-[a-z]+)+-\d{1}:[0-9]{12}:group/([a-zA-Z0-9_\.-]{1,300}|[a-zA-Z0-9_\.-]{1,150}/[a-z0-9]{26})"
         match = re.search(group_arn_regex, group)
