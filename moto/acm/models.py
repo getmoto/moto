@@ -7,10 +7,10 @@ from collections.abc import Iterable
 from typing import Any, Optional
 
 import cryptography.hazmat.primitives.asymmetric.rsa
-from cryptography.hazmat.primitives.asymmetric import ec
 import cryptography.x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 
 from moto import settings
