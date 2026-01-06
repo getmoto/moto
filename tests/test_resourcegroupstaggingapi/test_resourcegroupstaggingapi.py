@@ -1335,6 +1335,48 @@ def test_untag_resources_for_unknown_service():
 
 
 @mock_aws
+def test_get_resources_elasticbeanstalk_environment():
+    client = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    app_name = "test-app"
+    env_name = "test-env"
+
+    client.create_application(ApplicationName=app_name)
+
+    client.create_environment(
+        ApplicationName=app_name,
+        EnvironmentName=env_name,
+        SolutionStackName="64bit Amazon Linux 2023 v4.9.0 running Python 3.14",
+        Tags=[
+            {"Key": "Test-tag", "Value": "test"},
+        ],
+    )
+
+    client.create_environment(
+        ApplicationName=app_name,
+        EnvironmentName="untagged",
+        SolutionStackName="64bit Amazon Linux 2023 v4.9.0 running Python 3.14",
+    )
+
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resources_no_filter = rgta_client.get_resources(
+        ResourceTypeFilters=["elasticbeanstalk:environment"],
+    )
+    assert len(resources_no_filter["ResourceTagMappingList"]) == 2
+
+    resources = rgta_client.get_resources(
+        TagFilters=[{"Key": "Test-tag", "Values": ["test"]}]
+    )
+    assert len(resources["ResourceTagMappingList"]) == 1
+    assert (
+        f"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/{app_name}/{env_name}"
+        == resources["ResourceTagMappingList"][0]["ResourceARN"]
+    )
+    assert {"Key": "Test-tag", "Value": "test"} in resources["ResourceTagMappingList"][
+        0
+    ]["Tags"]
+
+
+@mock_aws
 def test_get_resources_elb():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name = "my-lb"
