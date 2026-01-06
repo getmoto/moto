@@ -1048,13 +1048,19 @@ def test_list_certificates_with_all_key_types():
             Certificate=RSA_4096_CRT, PrivateKey=RSA_4096_KEY, CertificateChain=CA_CRT
         )["CertificateArn"],
         "ec_256": client.import_certificate(
-            Certificate=EC_PRIME256V1_CRT, PrivateKey=EC_PRIME256V1_KEY, CertificateChain=CA_CRT
+            Certificate=EC_PRIME256V1_CRT,
+            PrivateKey=EC_PRIME256V1_KEY,
+            CertificateChain=CA_CRT,
         )["CertificateArn"],
         "ec_384": client.import_certificate(
-            Certificate=EC_SECP384R1_CRT, PrivateKey=EC_SECP384R1_KEY, CertificateChain=CA_CRT
+            Certificate=EC_SECP384R1_CRT,
+            PrivateKey=EC_SECP384R1_KEY,
+            CertificateChain=CA_CRT,
         )["CertificateArn"],
         "ec_521": client.import_certificate(
-            Certificate=EC_SECP521R1_CRT, PrivateKey=EC_SECP521R1_KEY, CertificateChain=CA_CRT
+            Certificate=EC_SECP521R1_CRT,
+            PrivateKey=EC_SECP521R1_KEY,
+            CertificateChain=CA_CRT,
         )["CertificateArn"],
     }
 
@@ -1067,7 +1073,9 @@ def test_list_certificates_with_all_key_types():
         ("EC_secp384r1", arns["ec_384"]),
         ("EC_secp521r1", arns["ec_521"]),
     ]:
-        certs = client.list_certificates(Includes={"keyTypes": [key_type]})["CertificateSummaryList"]
+        certs = client.list_certificates(Includes={"keyTypes": [key_type]})[
+            "CertificateSummaryList"
+        ]
         all_certs = client.list_certificates()["CertificateSummaryList"]
         cert_info = [(c["KeyAlgorithm"], c["CertificateArn"][-12:]) for c in all_certs]
         assert len(certs) == 1, (
@@ -1081,21 +1089,42 @@ def test_list_certificates_with_all_key_types():
     )["CertificateSummaryList"]
     assert len(certs) == 4
     assert {c["CertificateArn"] for c in certs} == {
-        arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"]
+        arns["rsa_1024"],
+        arns["rsa_2048"],
+        arns["rsa_3072"],
+        arns["rsa_4096"],
     }
 
     certs = client.list_certificates(
         Includes={"keyTypes": ["EC_prime256v1", "EC_secp384r1", "EC_secp521r1"]}
     )["CertificateSummaryList"]
     assert len(certs) == 3
-    assert {c["CertificateArn"] for c in certs} == {arns["ec_256"], arns["ec_384"], arns["ec_521"]}
+    assert {c["CertificateArn"] for c in certs} == {
+        arns["ec_256"],
+        arns["ec_384"],
+        arns["ec_521"],
+    }
 
     certs = client.list_certificates(
-        Includes={"keyTypes": ["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096",
-                               "EC_prime256v1", "EC_secp384r1", "EC_secp521r1"]}
+        Includes={
+            "keyTypes": [
+                "RSA_1024",
+                "RSA_2048",
+                "RSA_3072",
+                "RSA_4096",
+                "EC_prime256v1",
+                "EC_secp384r1",
+                "EC_secp521r1",
+            ]
+        }
     )["CertificateSummaryList"]
     assert len(certs) == 7
     assert {c["CertificateArn"] for c in certs} == {
-        arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"],
-        arns["ec_256"], arns["ec_384"], arns["ec_521"],
+        arns["rsa_1024"],
+        arns["rsa_2048"],
+        arns["rsa_3072"],
+        arns["rsa_4096"],
+        arns["ec_256"],
+        arns["ec_384"],
+        arns["ec_521"],
     }
