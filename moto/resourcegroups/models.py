@@ -218,7 +218,7 @@ class FakeTagSyncTask(BaseModel):
         self.group_arn = group_arn
         self.group_name = group_name
         if tag_key is not None and tag_value is not None and resource_query is not None:
-            raise BadRequestException("cannot specify resource query and tag key value")
+            raise BadRequestException("To define a task, you can use TagKey and TagValue with non-null values, or use a ResourceQuery")
         self.task_id = generate_str_id(
             resource_identifier=None,
             existing_ids=None,
@@ -486,8 +486,6 @@ class ResourceGroupsBackend(BaseBackend):
         task = FakeTagSyncTask(
             group_arn, group_name, role_arn, tag_key, tag_value, resource_query
         )
-        if task.task_arn in self.tag_sync_tasks:
-            raise BadRequestException("task is already defined")
         self.tag_sync_tasks[task.task_arn] = task
         task_dict = task.as_dict()
         del task_dict["Status"]

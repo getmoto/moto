@@ -301,6 +301,72 @@ def test_start_tag_sync_task():
     assert resp["RoleArn"] == role_arn
 
 @mock_aws
+def test_start_tag_sync_task_with_name():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["Name"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    resp = client.start_tag_sync_task(Group=resource_group,
+                                      TagKey=tag_key,
+                                      TagValue=tag_value,
+                                      RoleArn=role_arn)
+    assert "GroupArn" in resp
+    assert resource_group in resp["GroupArn"]
+    assert "GroupName" in resp
+    assert resp["GroupName"] == resource_group
+    assert "TaskArn" in resp
+    assert "ResourceQuery" not in resp
+    assert "TagKey" in resp
+    assert resp["TagKey"] == tag_key
+    assert "TagValue" in resp
+    assert resp["TagValue"] == tag_value
+    assert "RoleArn" in resp
+    assert resp["RoleArn"] == role_arn
+
+@mock_aws
+def test_start_tag_sync_task_with_query():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["Name"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    query = {"Type":"TAG_FILTERS_1.0", "Query":"bar"}
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    resp = client.start_tag_sync_task(Group=resource_group,
+                                      ResourceQuery=query,
+                                      RoleArn=role_arn)
+    assert "GroupArn" in resp
+    assert resource_group in resp["GroupArn"]
+    assert "GroupName" in resp
+    assert resp["GroupName"] == resource_group
+    assert "TaskArn" in resp
+    assert "ResourceQuery" in resp
+    assert resp["ResourceQuery"] == query
+    assert "TagKey" not in resp
+    assert "TagValue" not in resp
+    assert "RoleArn" in resp
+    assert resp["RoleArn"] == role_arn
+
+@mock_aws
+def test_start_tag_sync_task_with_with_query_and_tags():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["Name"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    with pytest.raises(ClientError) as exc:
+        resp = client.start_tag_sync_task(Group=resource_group,
+                                          TagKey=tag_key,
+                                          TagValue=tag_value,
+                                          ResourceQuery={"Type": "TAG_FILTERS_1_0",
+                                                          "Query": tag_value},
+                                          RoleArn=role_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "BadRequestException"
+    assert err["Message"] == "To define a task, you can use TagKey and TagValue with non-null values, or use a ResourceQuery"
+
+@mock_aws
 def test_list_tag_sync_tasks():
     client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]
