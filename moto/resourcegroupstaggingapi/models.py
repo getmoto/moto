@@ -23,6 +23,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
+from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -99,6 +100,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def efs_backend(self) -> EFSBackend:
         return efs_backends[self.account_id][self.region_name]
+
+    @property
+    def eb_backend(self) -> EBBackend:
+        return eb_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -614,6 +619,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
+        if not resource_type_filters or "dms:task" in resource_type_filters:
+            for replication_task in self.dms_backend.replication_tasks.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_task.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_task.arn}", "Tags": tags}
+
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
             for service in self.ecs_backend.services.values():
@@ -753,6 +767,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
+
+        # ElasticBeanstalk
+        if (
+            not resource_type_filters
+            or "elasticbeanstalk:environment" in resource_type_filters
+        ):
+            for eb_application in self.eb_backend.applications.values():
+                for eb_environment in eb_application.environments.values():
+                    tags = [
+                        {"Key": k, "Value": v} for k, v in eb_environment.tags.items()
+                    ]
+                    if not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{eb_environment.environment_arn}",
+                        "Tags": tags,
+                    }
 
         # ELB (Classic Load Balancers)
         if (
