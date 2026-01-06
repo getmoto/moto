@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from moto.core.parsers import XFormedDict
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
@@ -182,13 +182,13 @@ class RDSResponse(BaseResponse):
         arn = self.params.get("ResourceName")
         tags = self.params.get("Tags", [])
         self.backend.add_tags_to_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_tags_from_resource(self) -> ActionResult:
         arn = self.params.get("ResourceName")
         tag_keys = self.params.get("TagKeys")
         self.backend.remove_tags_from_resource(arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def stop_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
@@ -343,9 +343,7 @@ class RDSResponse(BaseResponse):
         db_parameter_group_name = self.params.get("DBParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
@@ -356,9 +354,7 @@ class RDSResponse(BaseResponse):
         db_parameter_group_name = self.params.get("DBClusterParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_cluster_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
@@ -574,7 +570,7 @@ class RDSResponse(BaseResponse):
         self.backend.delete_db_cluster_parameter_group(
             group_name=group_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -727,7 +723,7 @@ class RDSResponse(BaseResponse):
             db_cluster_identifiers=db_cluster_identifiers,
             db_instance_identifiers=db_instance_identifiers,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_db_proxy_targets(self) -> ActionResult:
         proxy_name = self.params.get("DBProxyName")
@@ -802,8 +798,7 @@ class RDSResponse(BaseResponse):
         from moto.rds.exceptions import InvalidParameterValue
 
         marker = self.params.get("Marker")
-        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
-        page_size = self.params.get("MaxRecords", 50)
+        page_size = self.params.get("MaxRecords", 100)
         if page_size < 20 or page_size > 100:
             msg = (
                 f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
@@ -830,7 +825,7 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def add_role_to_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -841,4 +836,4 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()

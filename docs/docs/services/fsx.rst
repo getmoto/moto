@@ -38,7 +38,7 @@ fsx
 - [ ] delete_snapshot
 - [ ] delete_storage_virtual_machine
 - [ ] delete_volume
-- [ ] describe_backups
+- [X] describe_backups
 - [ ] describe_data_repository_associations
 - [ ] describe_data_repository_tasks
 - [ ] describe_file_caches

@@ -2424,6 +2424,10 @@
   "Location": "ap-south-1a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "ap-south-1a"
  },

@@ -131,6 +131,10 @@ class Fleet(TaggedEC2Resource):
                 self.create_spot_requests(remaining_capacity)
 
     @property
+    def type(self) -> str:
+        return self.fleet_type
+
+    @property
     def valid_from_as_string(self) -> str:
         x = self.valid_from
         return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
@@ -314,6 +318,7 @@ class FleetsBackend:
         fleet = self.get_fleet(fleet_id)
         if not fleet:
             return []
+        # TODO: These are incompatible types (list[object] + list[dict]) and should be normalized.
         return fleet.spot_requests + fleet.on_demand_instances
 
     def describe_fleets(self, fleet_ids: Optional[list[str]]) -> list[Fleet]:

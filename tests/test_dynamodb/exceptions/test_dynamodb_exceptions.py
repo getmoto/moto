@@ -1333,6 +1333,34 @@ def test_put_item_invalid_number_types(value, expected_error_template):
     assert err["Message"] == expected_error_template.format(value=value)
 
 
+@mock_aws
+def test_put_item_invalid_null():
+    """
+    Test that passing a "False" value for a NULL attribute raises an exception.
+    """
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name,
+            Item={"pk": {"S": str(uuid4())}, "value": {"NULL": False}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Null attribute value types must have the value of true"
+
+
 @dynamodb_aws_verified()
 @pytest.mark.aws_verified
 def test_put_item_empty_set(table_name=None):
