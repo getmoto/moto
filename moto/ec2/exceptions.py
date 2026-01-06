@@ -938,3 +938,35 @@ class InvalidUserDataError(EC2ClientError):
             "InvalidUserData.Malformed",
             message,
         )
+
+
+class InvalidPrefixReservationType(EC2ClientError):
+    def __init__(self, reservation_type: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Value ({reservation_type}) for parameter reservationType is invalid.",
+        )
+
+
+class InvalidCidrReservationNotWithinSubnetCidr(EC2ClientError):
+    def __init__(self, cidr_block: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR should be within subnet CIDR block ({cidr_block})",
+        )
+
+
+class InvalidCidrReservationOverlapExisting(EC2ClientError):
+    def __init__(self, cidr: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR {cidr} has overlap with existing reserved CIDR block",
+        )
+
+
+class InvalidCidrReservationNotFound(EC2ClientError):
+    def __init__(self, reservation_id: str):
+        super().__init__(
+            "InvalidSubnetCidrReservationID.NotFound",
+            f"The subnet-cidr-reservation ID '{reservation_id}' does not exist",
+        )

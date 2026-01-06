@@ -92,3 +92,37 @@ class Subnets(EC2BaseResponse):
         )
         result = {"Ipv6CidrBlockAssociation": association, "SubnetId": subnet_id}
         return ActionResult(result)
+
+    def create_subnet_cidr_reservation(self) -> ActionResult:
+        self.error_on_dryrun()
+        subnet_id = self._get_param("SubnetId")
+        reservation_type = self._get_param("ReservationType")
+        cidr = self._get_param("Cidr")
+        tag_specifications = self._get_param("TagSpecifications", [])
+
+        reservation = self.ec2_backend.create_subnet_cidr_reservation(
+            subnet_id, reservation_type, cidr, tag_specifications
+        )
+
+        return ActionResult({"SubnetCidrReservation": reservation})
+
+    def get_subnet_cidr_reservations(self) -> ActionResult:
+        self.error_on_dryrun()
+
+        subnet_id = self._get_param("SubnetId")
+        filters = self._filters_from_querystring()
+        cidr_reservations = self.ec2_backend.get_subnet_cidr_reservations(
+            subnet_id, filters
+        )
+        return ActionResult(cidr_reservations)
+
+    def delete_subnet_cidr_reservation(self) -> ActionResult:
+        self.error_on_dryrun()
+
+        reservation_id = self._get_param("SubnetCidrReservationId")
+
+        deleted_reservation = self.ec2_backend.delete_subnet_cidr_reservation(
+            reservation_id
+        )
+
+        return ActionResult({"DeletedSubnetCidrReservation": deleted_reservation})

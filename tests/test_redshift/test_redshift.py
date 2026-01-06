@@ -431,6 +431,34 @@ def test_describe_non_existent_cluster():
 
 
 @mock_aws
+def test_describe_clusters_with_tag_keys_filter():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test-no-tag",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test-tagged",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        Tags=[{"Key": "Test-tag", "Value": "test"}],
+    )
+
+    response = client.describe_clusters(TagKeys=["Test-tag"])
+    assert len(response["Clusters"]) == 1
+    cluster = response["Clusters"][0]
+    assert cluster["ClusterIdentifier"] == "test-tagged"
+
+
+@mock_aws
 def test_modify_cluster_vpc_routing():
     iam_roles_arn = ["arn:aws:iam:::role/my-iam-role"]
     client = boto3.client("redshift", region_name="us-east-1")
