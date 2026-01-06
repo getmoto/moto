@@ -422,6 +422,41 @@ class ResolverQueryLogConfigAssociation(BaseModel):
         }
 
 
+class ResolverDnssecConfig(BaseModel):
+    """Representation of a configuration for DNSSEC validation."""
+
+    FILTER_NAMES = [
+        "dnssec_config_id",
+        "resource_id",
+        "account_id",
+        "validation_status",
+    ]
+
+    def __init__(
+        self,
+        account_id: str,
+        resource_id: str,
+        region: str,
+        dnssec_config_id: str,
+        validation_status: str = "DISABLED",
+    ):
+        self.region = region
+        self.dnssec_config_id = dnssec_config_id
+        self.id = dnssec_config_id
+        self.owner_id = account_id
+        self.resource_id = resource_id
+        self.validation_status = validation_status
+
+    def description(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "OwnerId": self.owner_id,
+            "ResourceId": self.resource_id,
+            "DnssecConfigId": self.dnssec_config_id,
+            "ValidationStatus": self.validation_status,
+        }
+
+
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
 
@@ -442,6 +477,9 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_query_log_config_associations: dict[
             str, ResolverQueryLogConfigAssociation
         ] = {}  # Key is resolver_query_log_config_association_id
+        self.resolver_dnssec_configs: dict[
+            str, ResolverDnssecConfig
+        ] = {}  # Key is resource_id
         self.tagger = TaggingService()
 
         self.ec2_backend = ec2_backends[self.account_id][self.region_name]
@@ -1116,6 +1154,74 @@ class Route53ResolverBackend(BaseBackend):
             )
 
         return self.resolver_query_log_configs[resolver_query_log_config_id]
+
+    def update_resolver_dnssec_config(
+        self, resource_id: str, validation: str
+    ) -> ResolverDnssecConfig:
+        """Update the configuration of the DNSSEC validation."""
+
+        """ AWS Route53Resolver API handles DNSSEC configuration changes via status transitions rather than distinct
+        CRUD operations for the config resource itself.
+        - A 'Create' operation effectively sends an 'ENABLE' action.
+        - A 'Delete' operation effectively sends a 'DISABLE' action.
+        Critically, there is a mismatch between the Input API and the Output Status:
+        - Input (Request): Expects "ENABLE", "DISABLE".
+        - Output (Status): Returns "ENABLED", "DISABLED".
+        We map the requested action to the corresponding status state below to ensure the internal state and response
+        match the AWS spec.
+        AWS SDK v2 API References:
+        https://github.com/aws/aws-sdk-go-v2/blob/d399d1e5fadf8668b7ed593019c84d5e91b0c7cc/service/route53resolver/types/enums.go#L700
+        https://github.com/aws/aws-sdk-go-v2/blob/d399d1e5fadf8668b7ed593019c84d5e91b0c7cc/service/route53resolver/types/enums.go#L417
+        """
+        if validation == "DISABLE":
+            validation = "DISABLED"
+        elif validation == "ENABLE":
+            validation = "ENABLED"
+
+        if resource_id not in self.resolver_dnssec_configs:
+            new_config = ResolverDnssecConfig(
+                account_id=self.account_id,
+                resource_id=resource_id,
+                region=self.region_name,
+                validation_status=validation,
+                dnssec_config_id=f"rdsc-{mock_random.get_random_hex(17)}",
+            )
+            self.resolver_dnssec_configs[resource_id] = new_config
+
+            return new_config
+
+        config = self.resolver_dnssec_configs[resource_id]
+
+        config.validation_status = validation
+
+        return config
+
+    def get_resolver_dnssec_config(self, resource_id: str) -> ResolverDnssecConfig:
+        """Get information about a resolver DNSSEC config."""
+
+        if resource_id not in self.resolver_dnssec_configs:
+            raise ResourceNotFoundException(
+                f"Resolver DNSSEC configuration for '{resource_id}' does not exist."
+            )
+
+        return self.resolver_dnssec_configs[resource_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_dnssec_configs(self, filters: Any) -> list[ResolverDnssecConfig]:
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverDnssecConfig.FILTER_NAMES)
+
+        dnssec_configs = []
+        for dnssec_config in sorted(
+            self.resolver_dnssec_configs.values(), key=lambda x: x.dnssec_config_id
+        ):
+            if self._matches_all_filters(dnssec_config, filters):
+                dnssec_configs.append(dnssec_config)
+
+        return dnssec_configs
 
 
 route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")
