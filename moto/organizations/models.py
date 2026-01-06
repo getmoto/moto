@@ -192,6 +192,7 @@ class FakeRoot(FakeOrganizationalUnit):
     SUPPORTED_POLICY_TYPES = [
         "AISERVICES_OPT_OUT_POLICY",
         "BACKUP_POLICY",
+        "RESOURCE_CONTROL_POLICY",
         "SERVICE_CONTROL_POLICY",
         "TAG_POLICY",
     ]
@@ -237,6 +238,7 @@ class FakePolicy(BaseModel):
     SUPPORTED_POLICY_TYPES = [
         "AISERVICES_OPT_OUT_POLICY",
         "BACKUP_POLICY",
+        "RESOURCE_CONTROL_POLICY",
         "SERVICE_CONTROL_POLICY",
         "TAG_POLICY",
     ]
@@ -258,6 +260,8 @@ class FakePolicy(BaseModel):
             raise InvalidInputException("You specified an invalid value.")
         elif self.type == "AISERVICES_OPT_OUT_POLICY":
             self._arn_format = utils.AI_POLICY_ARN_FORMAT
+        elif self.type == "RESOURCE_CONTROL_POLICY":
+            self._arn_format = utils.RCP_ARN_FORMAT
         elif self.type == "SERVICE_CONTROL_POLICY":
             self._arn_format = utils.SCP_ARN_FORMAT
         elif self.type == "TAG_POLICY":
@@ -444,7 +448,7 @@ class OrganizationsBackend(BaseBackend):
         )
         master_account.id = self.org.master_account_id
         self.accounts.append(master_account)
-        default_policy = FakePolicy(
+        default_scp = FakePolicy(
             self.org,
             Name="FullAWSAccess",
             Description="Allows access to every operation",
@@ -456,11 +460,37 @@ class OrganizationsBackend(BaseBackend):
                 }
             ),
         )
-        default_policy.id = utils.DEFAULT_POLICY_ID
-        default_policy.aws_managed = True
-        self.policies.append(default_policy)
-        self.attach_policy(PolicyId=default_policy.id, TargetId=root_ou.id)
-        self.attach_policy(PolicyId=default_policy.id, TargetId=master_account.id)
+        default_scp.id = utils.DEFAULT_SCP_POLICY_ID
+        default_scp.aws_managed = True
+        self.policies.append(default_scp)
+        self.attach_policy(PolicyId=default_scp.id, TargetId=root_ou.id)
+        self.attach_policy(PolicyId=default_scp.id, TargetId=master_account.id)
+
+        default_rcp = FakePolicy(
+            self.org,
+            Name="RCPFullAWSAccess",
+            Description="Allows access to every resource",
+            Type="RESOURCE_CONTROL_POLICY",
+            Content=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": "*",
+                            "Action": "*",
+                            "Resource": "*",
+                        }
+                    ],
+                }
+            ),
+        )
+        default_rcp.id = utils.DEFAULT_RCP_POLICY_ID
+        default_rcp.aws_managed = True
+        self.policies.append(default_rcp)
+        self.attach_policy(PolicyId=default_rcp.id, TargetId=root_ou.id)
+        self.attach_policy(PolicyId=default_rcp.id, TargetId=master_account.id)
+
         return self.org.describe()
 
     def describe_organization(self) -> dict[str, Any]:
@@ -503,7 +533,8 @@ class OrganizationsBackend(BaseBackend):
     def create_organizational_unit(self, **kwargs: Any) -> dict[str, Any]:
         new_ou = FakeOrganizationalUnit(self.org, **kwargs)  # type: ignore
         self.ou.append(new_ou)
-        self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
+        for policy_id in (utils.DEFAULT_SCP_POLICY_ID, utils.DEFAULT_RCP_POLICY_ID):
+            self.attach_policy(PolicyId=policy_id, TargetId=new_ou.id)
         return new_ou.describe()
 
     def delete_organizational_unit(self, **kwargs: Any) -> None:
@@ -555,7 +586,8 @@ class OrganizationsBackend(BaseBackend):
 
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
-        self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
+        for policy_id in (utils.DEFAULT_SCP_POLICY_ID, utils.DEFAULT_RCP_POLICY_ID):
+            self.attach_policy(PolicyId=policy_id, TargetId=new_account.id)
         organizations_backends.master_accounts[new_account.id] = (
             self.account_id,
             self.partition,
@@ -740,9 +772,28 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def list_policies(self) -> dict[str, Any]:
+    def list_policies(self, **kwargs: Any) -> dict[str, Any]:
+        _filter = kwargs["Filter"]
+
+        if not FakePolicy.supported_policy_type(_filter):
+            raise InvalidInputException("You specified an invalid value.")
+
+        if _filter not in [
+            "AISERVICES_OPT_OUT_POLICY",
+            "RESOURCE_CONTROL_POLICY",
+            "SERVICE_CONTROL_POLICY",
+            "TAG_POLICY",
+        ]:
+            raise NotImplementedError(
+                f"The {_filter} policy type has not been implemented"
+            )
+
         return {
-            "Policies": [p.describe()["Policy"]["PolicySummary"] for p in self.policies]
+            "Policies": [
+                p.describe()["Policy"]["PolicySummary"]
+                for p in self.policies
+                if p.type == _filter
+            ]
         }
 
     def delete_policy(self, **kwargs: Any) -> None:
@@ -785,6 +836,7 @@ class OrganizationsBackend(BaseBackend):
 
         if _filter not in [
             "AISERVICES_OPT_OUT_POLICY",
+            "RESOURCE_CONTROL_POLICY",
             "SERVICE_CONTROL_POLICY",
             "TAG_POLICY",
         ]:

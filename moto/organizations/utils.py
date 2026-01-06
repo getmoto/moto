@@ -6,13 +6,15 @@ from typing import Union
 from moto.moto_api._internal import mock_random as random
 
 MASTER_ACCOUNT_EMAIL = "master@example.com"
-DEFAULT_POLICY_ID = "p-FullAWSAccess"
+DEFAULT_SCP_POLICY_ID = "p-FullAWSAccess"
+DEFAULT_RCP_POLICY_ID = "p-RCPFullAWSAccess"
 ORGANIZATION_ARN_FORMAT = "arn:{0}:organizations::{1}:organization/{2}"
 MASTER_ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{1}"
 ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{3}"
 ROOT_ARN_FORMAT = "arn:{0}:organizations::{1}:root/{2}/{3}"
 OU_ARN_FORMAT = "arn:{0}:organizations::{1}:ou/{2}/{3}"
 SCP_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/service_control_policy/{3}"
+RCP_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/resource_control_policy/{3}"
 AI_POLICY_ARN_FORMAT = (
     "arn:{0}:organizations::{1}:policy/{2}/aiservices_opt_out_policy/{3}"
 )
@@ -32,7 +34,9 @@ ROOT_ID_REGEX = rf"r-[a-z0-9]{{{ROOT_ID_SIZE}}}"
 OU_ID_REGEX = rf"ou-[a-z0-9]{{{ROOT_ID_SIZE}}}-[a-z0-9]{{{OU_ID_SUFFIX_SIZE}}}"
 ACCOUNT_ID_REGEX = rf"[0-9]{{{ACCOUNT_ID_SIZE}}}"
 CREATE_ACCOUNT_STATUS_ID_REGEX = rf"car-[a-z0-9]{{{CREATE_ACCOUNT_STATUS_ID_SIZE}}}"
-POLICY_ID_REGEX = rf"{DEFAULT_POLICY_ID}|p-[a-z0-9]{{{POLICY_ID_SIZE}}}"
+POLICY_ID_REGEX = (
+    rf"{DEFAULT_SCP_POLICY_ID}|{DEFAULT_RCP_POLICY_ID}|p-[a-z0-9]{{{POLICY_ID_SIZE}}}"
+)
 
 PAGINATION_MODEL = {
     "list_accounts": {
