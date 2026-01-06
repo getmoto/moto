@@ -27,12 +27,12 @@ def get_resource(filename):
 
 CA_CRT = get_resource("ca.pem")
 CA_KEY = get_resource("ca.key")
-SERVER_CRT = get_resource("star_moto_com.pem")
 SERVER_COMMON_NAME = "*.moto.com"
 SERVER_CRT_BAD = get_resource("star_moto_com-bad.pem")
-SERVER_KEY = get_resource("star_moto_com.key")
 RSA_1024_CRT = get_resource("star_moto_com_rsa_1024.pem")
 RSA_1024_KEY = get_resource("star_moto_com_rsa_1024.key")
+RSA_2048_CRT = get_resource("star_moto_com.pem")
+RSA_2048_KEY = get_resource("star_moto_com.key")
 RSA_3072_CRT = get_resource("star_moto_com_rsa_3072.pem")
 RSA_3072_KEY = get_resource("star_moto_com_rsa_3072.key")
 RSA_4096_CRT = get_resource("star_moto_com_rsa_4096.pem")
@@ -49,7 +49,7 @@ CERT_AUTH_ARN = f"arn:aws:acm-pca:eu-central-1:{ACCOUNT_ID}:certificate-authorit
 
 def _import_cert(client):
     response = client.import_certificate(
-        Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT
+        Certificate=RSA_2048_CRT, PrivateKey=RSA_2048_KEY, CertificateChain=CA_CRT
     )
     return response["CertificateArn"]
 
@@ -67,11 +67,11 @@ def test_import_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
     resp = client.import_certificate(
-        Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT
+        Certificate=RSA_2048_CRT, PrivateKey=RSA_2048_KEY, CertificateChain=CA_CRT
     )
     resp = client.get_certificate(CertificateArn=resp["CertificateArn"])
 
-    assert resp["Certificate"] == SERVER_CRT.decode()
+    assert resp["Certificate"] == RSA_2048_CRT.decode()
     assert "CertificateChain" in resp
 
 
@@ -80,15 +80,15 @@ def test_import_certificate_with_tags():
     client = boto3.client("acm", region_name="eu-central-1")
 
     resp = client.import_certificate(
-        Certificate=SERVER_CRT,
-        PrivateKey=SERVER_KEY,
+        Certificate=RSA_2048_CRT,
+        PrivateKey=RSA_2048_KEY,
         CertificateChain=CA_CRT,
         Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"}],
     )
     arn = resp["CertificateArn"]
 
     resp = client.get_certificate(CertificateArn=arn)
-    assert resp["Certificate"] == SERVER_CRT.decode()
+    assert resp["Certificate"] == RSA_2048_CRT.decode()
     assert "CertificateChain" in resp
 
     resp = client.list_tags_for_certificate(CertificateArn=arn)
@@ -104,7 +104,7 @@ def test_import_bad_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
     try:
-        client.import_certificate(Certificate=SERVER_CRT_BAD, PrivateKey=SERVER_KEY)
+        client.import_certificate(Certificate=SERVER_CRT_BAD, PrivateKey=RSA_2048_KEY)
     except ClientError as err:
         assert err.response["Error"]["Code"] == "ValidationException"
     else:
@@ -675,8 +675,8 @@ def test_operations_with_invalid_tags():
     # import certificate with invalid tags
     with pytest.raises(ClientError) as ex:
         client.import_certificate(
-            Certificate=SERVER_CRT,
-            PrivateKey=SERVER_KEY,
+            Certificate=RSA_2048_CRT,
+            PrivateKey=RSA_2048_KEY,
             CertificateChain=CA_CRT,
             Tags=[
                 {"Key": "Valid", "Value": "X" * 300},
@@ -1004,92 +1004,27 @@ def test_account_configuration():
 
 
 @mock_aws
-def test_ec_prime256v1_key_algorithm():
-    """Test that EC prime256v1 (P-256/secp256r1) certificates are correctly identified."""
+@pytest.mark.parametrize(
+    "cert,key,expected_algorithm",
+    [
+        (RSA_1024_CRT, RSA_1024_KEY, "RSA_1024"),
+        (RSA_3072_CRT, RSA_3072_KEY, "RSA_3072"),
+        (RSA_4096_CRT, RSA_4096_KEY, "RSA_4096"),
+        (EC_PRIME256V1_CRT, EC_PRIME256V1_KEY, "EC_prime256v1"),
+        (EC_SECP384R1_CRT, EC_SECP384R1_KEY, "EC_secp384r1"),
+        (EC_SECP521R1_CRT, EC_SECP521R1_KEY, "EC_secp521r1"),
+    ],
+)
+def test_key_algorithms(cert, key, expected_algorithm):
+    """Test that certificates with different key algorithms are correctly identified."""
     client = boto3.client("acm", region_name="us-east-1")
 
     arn = client.import_certificate(
-        Certificate=EC_PRIME256V1_CRT,
-        PrivateKey=EC_PRIME256V1_KEY,
-        CertificateChain=CA_CRT,
+        Certificate=cert, PrivateKey=key, CertificateChain=CA_CRT
     )["CertificateArn"]
 
     resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "EC_prime256v1"
-    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-
-
-@mock_aws
-def test_ec_secp384r1_key_algorithm():
-    """Test that EC secp384r1 (P-384) certificates are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
-
-    arn = client.import_certificate(
-        Certificate=EC_SECP384R1_CRT,
-        PrivateKey=EC_SECP384R1_KEY,
-        CertificateChain=CA_CRT,
-    )["CertificateArn"]
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "EC_secp384r1"
-    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-
-
-@mock_aws
-def test_ec_secp521r1_key_algorithm():
-    """Test that EC secp521r1 (P-521) certificates are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
-
-    arn = client.import_certificate(
-        Certificate=EC_SECP521R1_CRT,
-        PrivateKey=EC_SECP521R1_KEY,
-        CertificateChain=CA_CRT,
-    )["CertificateArn"]
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "EC_secp521r1"
-    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-
-
-@mock_aws
-def test_rsa_1024_key_algorithm():
-    """Test that RSA 1024-bit certificates are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
-
-    arn = client.import_certificate(
-        Certificate=RSA_1024_CRT, PrivateKey=RSA_1024_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_1024"
-    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-
-
-@mock_aws
-def test_rsa_3072_key_algorithm():
-    """Test that RSA 3072-bit certificates are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
-
-    arn = client.import_certificate(
-        Certificate=RSA_3072_CRT, PrivateKey=RSA_3072_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_3072"
-    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-
-
-@mock_aws
-def test_rsa_4096_key_algorithm():
-    """Test that RSA 4096-bit certificates are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
-
-    arn = client.import_certificate(
-        Certificate=RSA_4096_CRT, PrivateKey=RSA_4096_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_4096"
+    assert resp["Certificate"]["KeyAlgorithm"] == expected_algorithm
     assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
 
 
@@ -1098,99 +1033,42 @@ def test_list_certificates_with_all_key_types():
     """Test that list_certificates correctly filters all RSA and EC key types."""
     client = boto3.client("acm", region_name="us-east-1")
 
-    # Import all RSA certificates
-    arn_rsa_1024 = client.import_certificate(
-        Certificate=RSA_1024_CRT, PrivateKey=RSA_1024_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    arn_rsa_2048 = client.import_certificate(
-        Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    arn_rsa_3072 = client.import_certificate(
-        Certificate=RSA_3072_CRT, PrivateKey=RSA_3072_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    arn_rsa_4096 = client.import_certificate(
-        Certificate=RSA_4096_CRT, PrivateKey=RSA_4096_KEY, CertificateChain=CA_CRT
-    )["CertificateArn"]
-
-    # Import all EC certificates
-    arn_ec_256 = client.import_certificate(
-        Certificate=EC_PRIME256V1_CRT,
-        PrivateKey=EC_PRIME256V1_KEY,
-        CertificateChain=CA_CRT,
-    )["CertificateArn"]
-
-    arn_ec_384 = client.import_certificate(
-        Certificate=EC_SECP384R1_CRT,
-        PrivateKey=EC_SECP384R1_KEY,
-        CertificateChain=CA_CRT,
-    )["CertificateArn"]
-
-    arn_ec_521 = client.import_certificate(
-        Certificate=EC_SECP521R1_CRT,
-        PrivateKey=EC_SECP521R1_KEY,
-        CertificateChain=CA_CRT,
-    )["CertificateArn"]
-
-    # Test filtering for specific RSA sizes
-    certs = client.list_certificates(Includes={"keyTypes": ["RSA_1024"]})[
-        "CertificateSummaryList"
+    # Import all certificates
+    cert_configs = [
+        (RSA_1024_CRT, RSA_1024_KEY, "rsa_1024"),
+        (RSA_2048_CRT, RSA_2048_KEY, "rsa_2048"),
+        (RSA_3072_CRT, RSA_3072_KEY, "rsa_3072"),
+        (RSA_4096_CRT, RSA_4096_KEY, "rsa_4096"),
+        (EC_PRIME256V1_CRT, EC_PRIME256V1_KEY, "ec_256"),
+        (EC_SECP384R1_CRT, EC_SECP384R1_KEY, "ec_384"),
+        (EC_SECP521R1_CRT, EC_SECP521R1_KEY, "ec_521"),
     ]
-    assert len(certs) == 1
-    assert certs[0]["CertificateArn"] == arn_rsa_1024
 
-    certs = client.list_certificates(Includes={"keyTypes": ["RSA_3072"]})[
-        "CertificateSummaryList"
+    arns = {}
+    for cert, key, name in cert_configs:
+        arns[name] = client.import_certificate(
+            Certificate=cert, PrivateKey=key, CertificateChain=CA_CRT
+        )["CertificateArn"]
+
+    # Test individual filtering and grouped filtering
+    test_cases = [
+        (["RSA_1024"], 1, {arns["rsa_1024"]}),
+        (["RSA_2048"], 1, {arns["rsa_2048"]}),
+        (["RSA_3072"], 1, {arns["rsa_3072"]}),
+        (["RSA_4096"], 1, {arns["rsa_4096"]}),
+        (["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096"], 4,
+         {arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"]}),
+        (["EC_prime256v1", "EC_secp384r1", "EC_secp521r1"], 3,
+         {arns["ec_256"], arns["ec_384"], arns["ec_521"]}),
+        (["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096",
+          "EC_prime256v1", "EC_secp384r1", "EC_secp521r1"], 7,
+         {arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"],
+          arns["ec_256"], arns["ec_384"], arns["ec_521"]}),
     ]
-    assert len(certs) == 1
-    assert certs[0]["CertificateArn"] == arn_rsa_3072
 
-    certs = client.list_certificates(Includes={"keyTypes": ["RSA_4096"]})[
-        "CertificateSummaryList"
-    ]
-    assert len(certs) == 1
-    assert certs[0]["CertificateArn"] == arn_rsa_4096
-
-    # Test filtering for all RSA types
-    certs = client.list_certificates(
-        Includes={"keyTypes": ["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096"]}
-    )["CertificateSummaryList"]
-    assert len(certs) == 4
-    cert_arns = {c["CertificateArn"] for c in certs}
-    assert cert_arns == {arn_rsa_1024, arn_rsa_2048, arn_rsa_3072, arn_rsa_4096}
-
-    # Test filtering for all EC types
-    certs = client.list_certificates(
-        Includes={"keyTypes": ["EC_prime256v1", "EC_secp384r1", "EC_secp521r1"]}
-    )["CertificateSummaryList"]
-    assert len(certs) == 3
-    cert_arns = {c["CertificateArn"] for c in certs}
-    assert cert_arns == {arn_ec_256, arn_ec_384, arn_ec_521}
-
-    # Test filtering for all types
-    certs = client.list_certificates(
-        Includes={
-            "keyTypes": [
-                "RSA_1024",
-                "RSA_2048",
-                "RSA_3072",
-                "RSA_4096",
-                "EC_prime256v1",
-                "EC_secp384r1",
-                "EC_secp521r1",
-            ]
-        }
-    )["CertificateSummaryList"]
-    assert len(certs) == 7
-    cert_arns = {c["CertificateArn"] for c in certs}
-    assert cert_arns == {
-        arn_rsa_1024,
-        arn_rsa_2048,
-        arn_rsa_3072,
-        arn_rsa_4096,
-        arn_ec_256,
-        arn_ec_384,
-        arn_ec_521,
-    }
+    for key_types, expected_count, expected_arns in test_cases:
+        certs = client.list_certificates(Includes={"keyTypes": key_types})[
+            "CertificateSummaryList"
+        ]
+        assert len(certs) == expected_count
+        assert {c["CertificateArn"] for c in certs} == expected_arns
