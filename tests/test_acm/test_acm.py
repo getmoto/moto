@@ -1056,14 +1056,37 @@ def test_list_certificates_with_all_key_types():
         (["RSA_2048"], 1, {arns["rsa_2048"]}),
         (["RSA_3072"], 1, {arns["rsa_3072"]}),
         (["RSA_4096"], 1, {arns["rsa_4096"]}),
-        (["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096"], 4,
-         {arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"]}),
-        (["EC_prime256v1", "EC_secp384r1", "EC_secp521r1"], 3,
-         {arns["ec_256"], arns["ec_384"], arns["ec_521"]}),
-        (["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096",
-          "EC_prime256v1", "EC_secp384r1", "EC_secp521r1"], 7,
-         {arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"],
-          arns["ec_256"], arns["ec_384"], arns["ec_521"]}),
+        (
+            ["RSA_1024", "RSA_2048", "RSA_3072", "RSA_4096"],
+            4,
+            {arns["rsa_1024"], arns["rsa_2048"], arns["rsa_3072"], arns["rsa_4096"]},
+        ),
+        (
+            ["EC_prime256v1", "EC_secp384r1", "EC_secp521r1"],
+            3,
+            {arns["ec_256"], arns["ec_384"], arns["ec_521"]},
+        ),
+        (
+            [
+                "RSA_1024",
+                "RSA_2048",
+                "RSA_3072",
+                "RSA_4096",
+                "EC_prime256v1",
+                "EC_secp384r1",
+                "EC_secp521r1",
+            ],
+            7,
+            {
+                arns["rsa_1024"],
+                arns["rsa_2048"],
+                arns["rsa_3072"],
+                arns["rsa_4096"],
+                arns["ec_256"],
+                arns["ec_384"],
+                arns["ec_521"],
+            },
+        ),
     ]
 
     for key_types, expected_count, expected_arns in test_cases:
