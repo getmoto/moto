@@ -1102,7 +1102,7 @@ def test_create_subnet_cidr_reservations_err_outside_subnet() -> None:
     assert err["Code"] == "InvalidParameterValue"
     assert (
         err["Message"]
-        == "An error occurred (InvalidParameterValue) when calling the CreateSubnetCidrReservation operation: Reservation CIDR should be within subnet CIDR block (10.0.0.0/24)"
+        == "Reservation CIDR should be within subnet CIDR block (10.0.0.0/24)"
     )
 
 
@@ -1137,7 +1137,7 @@ def test_create_subnet_cidr_reservations_err_overlap_existing() -> None:
     assert err["Code"] == "InvalidParameterValue"
     assert (
         err["Message"]
-        == "An error occurred (InvalidParameterValue) when calling the CreateSubnetCidrReservation operation: Reservation CIDR 10.0.0.2/31 has overlap with existing reserved CIDR block"
+        == "Reservation CIDR 10.0.0.2/31 has overlap with existing reserved CIDR block"
     )
 
 
@@ -1346,7 +1346,7 @@ def test_delete_subnet_cidr_reservation_not_exists() -> None:
     assert err["Code"] == "InvalidSubnetCidrReservationID.NotFound"
     assert (
         err["Message"]
-        == "An error occurred (InvalidSubnetCidrReservationID.NotFound) when calling the DeleteSubnetCidrReservation operation: The subnet-cidr-reservation ID 'scr-not-exists' does not exist"
+        == "The subnet-cidr-reservation ID 'scr-not-exists' does not exist"
     )
 
 
