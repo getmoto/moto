@@ -1,9 +1,11 @@
 import json
 import re
+from datetime import datetime
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.id_generator import generate_str_id
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import BadRequestException, NotFoundException
@@ -32,7 +34,7 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = f"arn:{get_partition(region_name)}:resource-groups:us-west-1:{account_id}:{name}"
+        self.arn = f"arn:{get_partition(region_name)}:resource-groups:us-west-1:{account_id}:group/{name}"
         self.configuration = configuration
 
     @staticmethod
@@ -203,6 +205,57 @@ class FakeResourceGroup(BaseModel):
         self._tags = value
 
 
+class FakeTagSyncTask(BaseModel):
+    def __init__(
+        self,
+        group_arn: str,
+        group_name: str,
+        role_arn: str,
+        tag_key: Optional[str] = None,
+        tag_value: Optional[str] = None,
+        resource_query: Optional[dict[str, str]] = None,
+    ):
+        self.group_arn = group_arn
+        self.group_name = group_name
+        if tag_key is not None and tag_value is not None and resource_query is not None:
+            raise BadRequestException("cannot specify resource query and tag key value")
+        self.task_id = generate_str_id(
+            resource_identifier=None,
+            existing_ids=None,
+            tags=None,
+            length=27,
+            include_digits=True,
+            lower_case=True,
+        )
+        self.task_arn = f"{group_arn}/tag-sync-task/{self.task_id}"
+        self.tag_key = tag_key
+        self.tag_value = tag_value
+        self.resource_query = resource_query
+        self.role_arn = role_arn
+        self.status = "ACTIVE"
+        self.error_message = None
+        self.created_at = datetime.now()
+
+    def as_dict(self) -> dict[str, str]:
+        """returns required fields as a dict"""
+        to_return = {}
+        to_return["GroupArn"] = self.group_arn
+        to_return["GroupName"] = self.group_name
+        to_return["TaskArn"] = self.task_arn
+        if self.resource_query is None:
+            to_return["TagKey"] = self.tag_key
+            to_return["TagValue"] = self.tag_value
+        else:
+            to_return["ResourceQuery"] = self.resource_query
+        to_return["RoleArn"] = self.role_arn
+        to_return["Status"] = self.status
+        if self.status == "ERROR" and self.error_message is not None:
+            to_return["ErrorMessage"] = self.error_message
+        to_return["CreatedAt"] = self.created_at
+
+        return to_return
+
+
 class ResourceGroups:
     def __init__(self) -> None:
         self.by_name: dict[str, FakeResourceGroup] = {}
@@ -233,6 +286,7 @@ class ResourceGroupsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.groups = ResourceGroups()
+        self.tag_sync_tasks = {}
 
     @staticmethod
     def _validate_resource_query(resource_query: dict[str, str]) -> None:
@@ -347,6 +401,14 @@ class ResourceGroupsBackend(BaseBackend):
             raise NotFoundException()
         return group
 
+    def get_tag_sync_task(self, task_arn):
+        tag_sync_task = self.tag_sync_tasks[task_arn]
+        return tag_sync_task.as_dict()
+
+    def cancel_tag_sync_task(self, task_arn):
+        del self.tag_sync_tasks[task_arn]
+        return
+
     def get_tags(self, arn: str) -> dict[str, str]:
         return self.groups.by_arn[arn].tags
 
@@ -394,12 +456,43 @@ class ResourceGroupsBackend(BaseBackend):
         return self.groups.by_name[group_name]
 
     def list_tag_sync_tasks(self, filters, max_results, next_token):
-        # implement here
+        tag_sync_tasks = []
+        for task in self.tag_sync_tasks.values():
+            tag_sync_tasks.append(task.as_dict())
         return tag_sync_tasks, next_token
-    
+
     def start_tag_sync_task(self, group, tag_key, tag_value, resource_query, role_arn):
-        # implement here
-        return group_arn, group_name, task_arn, tag_key, tag_value, resource_query, role_arn
-    
+        group_arn, group_name = None, None
+        group_arn_regex = r"arn:aws(-[a-z]+)*:resource-groups:[a-z]{2}(-[a-z]+)+-\d{1}:[0-9]{12}:group/([a-zA-Z0-9_\.-]{1,300}|[a-zA-Z0-9_\.-]{1,150}/[a-z0-9]{26})"
+        match = re.search(group_arn_regex, group)
+        if match is not None:
+            group_arn = group
+            split_group = re.split(r":[0-9]{12}:group/", group_arn)
+            group_name = split_group[-1]
+        else:
+            group_name = group
+            group_arn = "".join(
+                [
+                    "arn:",
+                    get_partition(self.region_name),
+                    ":resource-groups:",
+                    self.region_name,
+                    ":",
+                    self.account_id,
+                    ":",
+                    group_name,
+                ]
+            )
+        task = FakeTagSyncTask(
+            group_arn, group_name, role_arn, tag_key, tag_value, resource_query
+        )
+        if task.task_arn in self.tag_sync_tasks:
+            raise BadRequestException("task is already defined")
+        self.tag_sync_tasks[task.task_arn] = task
+        task_dict = task.as_dict()
+        del task_dict["Status"]
+        del task_dict["CreatedAt"]
+        return task_dict
+
 
 resourcegroups_backends = BackendDict(ResourceGroupsBackend, "resource-groups")

@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 
 import boto3
@@ -278,14 +279,110 @@ def test_update_group_query():
 @mock_aws
 def test_start_tag_sync_task():
     client = boto3.client("resource-groups", region_name="us-east-2")
-    resp = client.start_tag_sync_task()
-
-    raise Exception("NotYetImplemented")
-
+    resource_group = create_group(client)["Group"]["GroupArn"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    resp = client.start_tag_sync_task(Group=resource_group,
+                                      TagKey=tag_key,
+                                      TagValue=tag_value,
+                                      RoleArn=role_arn)
+    assert "GroupArn" in resp
+    assert resp["GroupArn"] == resource_group
+    assert "GroupName" in resp
+    assert resp["GroupName"] == resource_group.split("group/")[-1]
+    assert "TaskArn" in resp
+    assert "TagKey" in resp
+    assert resp["TagKey"] == tag_key
+    assert "TagValue" in resp
+    assert resp["TagValue"] == tag_value
+    assert "RoleArn" in resp
+    assert resp["RoleArn"] == role_arn
 
 @mock_aws
 def test_list_tag_sync_tasks():
-    client = boto3.client("resource-groups", region_name="eu-west-1")
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["GroupArn"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    resp = client.start_tag_sync_task(Group=resource_group,
+                                      TagKey=tag_key,
+                                      TagValue=tag_value,
+                                      RoleArn=role_arn)
     resp = client.list_tag_sync_tasks()
 
-    raise Exception("NotYetImplemented")
+    assert "TagSyncTasks" in resp
+    assert isinstance(resp["TagSyncTasks"], list)
+    assert len(resp["TagSyncTasks"]) == 1
+    assert "GroupArn" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["GroupArn"] == resource_group
+    assert "GroupName" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["GroupName"] == resource_group.split("group/")[-1]
+    assert "TaskArn" in resp["TagSyncTasks"][0]
+    assert "TagKey" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["TagKey"] == tag_key
+    assert "TagValue" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["TagValue"] == tag_value
+    assert "RoleArn" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["RoleArn"] == role_arn
+    assert "Status" in resp["TagSyncTasks"][0]
+    assert resp["TagSyncTasks"][0]["Status"] in ["ACTIVE", "ERROR"]
+    if resp["TagSyncTasks"][0]["Status"] == "ERROR":
+        assert "ErrorMessage" in resp["TagSyncTasks"][0]
+    assert "CreatedAt" in resp["TagSyncTasks"][0]
+    assert isinstance(resp["TagSyncTasks"][0]["CreatedAt"], datetime)
+
+
+
+@mock_aws
+def test_cancel_tag_sync_task():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["GroupArn"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    task_arn = client.start_tag_sync_task(Group=resource_group,
+                                      TagKey=tag_key,
+                                      TagValue=tag_value,
+                                      RoleArn=role_arn)["TaskArn"]
+    resp = client.cancel_tag_sync_task(TaskArn=task_arn)
+
+    assert isinstance(resp, dict)
+
+@mock_aws
+def test_get_tag_sync_task():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    resource_group = create_group(client)["Group"]["GroupArn"]
+    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    tag_key = "foo"
+    tag_value = "bar"
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    task_arn = client.start_tag_sync_task(Group=resource_group,
+                                      TagKey=tag_key,
+                                      TagValue=tag_value,
+                                      RoleArn=role_arn)["TaskArn"]
+    resp = client.get_tag_sync_task(TaskArn=task_arn)
+
+
+    assert "GroupArn" in resp
+    assert resp["GroupArn"] == resource_group
+    assert "GroupName" in resp
+    assert resp["GroupName"] == resource_group.split("group/")[-1]
+    assert "TaskArn" in resp
+    assert "TagKey" in resp
+    assert resp["TagKey"] == tag_key
+    assert "TagValue" in resp
+    assert resp["TagValue"] == tag_value
+    assert "RoleArn" in resp
+    assert resp["RoleArn"] == role_arn
+    assert "Status" in resp
+    assert resp["Status"] in ["ACTIVE", "ERROR"]
+    if resp["Status"] == "ERROR":
+        assert "ErrorMessage" in resp
+    assert "CreatedAt" in resp
+    assert isinstance(resp["CreatedAt"], datetime)
+

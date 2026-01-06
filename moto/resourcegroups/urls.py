@@ -17,4 +17,6 @@ url_paths = {
     "{0}/update-group-query$": ResourceGroupsResponse.dispatch,
     "{0}/start-tag-sync-task$": ResourceGroupsResponse.dispatch,
     "{0}/list-tag-sync-tasks$": ResourceGroupsResponse.dispatch,
+    "{0}/cancel-tag-sync-task$": ResourceGroupsResponse.dispatch,
+    "{0}/get-tag-sync-task$": ResourceGroupsResponse.dispatch,
 }

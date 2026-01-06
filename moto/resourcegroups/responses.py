@@ -1,4 +1,5 @@
 import json
+import re
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -70,7 +71,7 @@ class ResourceGroupsResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         group_arn = self._get_param("Group")
         if group_arn and not group_name:
-            group_name = group_arn.split(":")[-1]
+            group_name = re.split(r":[0-9]{12}:group/", group_arn)[-1]
         group = self.resourcegroups_backend.get_group(group_name=group_name)
         return json.dumps(
             {
@@ -158,7 +159,7 @@ class ResourceGroupsResponse(BaseResponse):
         resource_query = self._get_param("ResourceQuery")
         group_arn = self._get_param("Group")
         if group_arn and not group_name:
-            group_name = group_arn.split(":")[-1]
+            group_name = re.split(r":[0-9]{12}:group/", group_arn)[-1]
         group = self.resourcegroups_backend.update_group_query(
             group_name=group_name, resource_query=resource_query
         )
@@ -179,34 +180,43 @@ class ResourceGroupsResponse(BaseResponse):
         self.resourcegroups_backend.put_group_configuration(
             group_name=group_name, configuration=configuration
         )
-        return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
-    
-    
-    def list_tag_sync_tasks(self):
-        params = self._get_params()
-        filters = params.get("Filters")
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
-        tag_sync_tasks, next_token = self.resourcegroups_backend.list_tag_sync_tasks(
-            filters=filters,
-            max_results=max_results,
-            next_token=next_token,
+
+    def get_tag_sync_task(self):
+        task_arn = self._get_param("TaskArn")
+        tag_sync_task = self.resourcegroups_backend.get_tag_sync_task(
+            task_arn=task_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(tagSyncTasks=tag_sync_tasks, nextToken=next_token))
-    def start_tag_sync_task(self):
-        params = self._get_params()
-        group = params.get("Group")
-        tag_key = params.get("TagKey")
-        tag_value = params.get("TagValue")
-        resource_query = params.get("ResourceQuery")
-        role_arn = params.get("RoleArn")
-        group_arn, group_name, task_arn, tag_key, tag_value, resource_query, role_arn = self.resourcegroups_backend.start_tag_sync_task(
+        return json.dumps(tag_sync_task, default=str)
+
+    def cancel_tag_sync_task(self):
+        task_arn = self._get_param("TaskArn")
+        self.resourcegroups_backend.cancel_tag_sync_task(
+            task_arn=task_arn,
+        )
+        return
+
+    def list_tag_sync_tasks(self) -> str:
+        filters = self._get_param("Filters")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        tag_sync_tasks, next_token = self.resourcegroups_backend.list_tag_sync_tasks(
+            filters=filters, max_results=max_results, next_token=next_token
+        )
+        return json.dumps(
+            {"TagSyncTasks": tag_sync_tasks, "NextToken": next_token}, default=str
+        )
+
+    def start_tag_sync_task(self) -> str:
+        group = self._get_param("Group")
+        tag_key = self._get_param("TagKey")
+        tag_value = self._get_param("TagValue")
+        resource_query = self._get_param("ResourceQuery")
+        role_arn = self._get_param("RoleArn")
+        tag_sync_task = self.resourcegroups_backend.start_tag_sync_task(
             group=group,
             tag_key=tag_key,
             tag_value=tag_value,
             resource_query=resource_query,
             role_arn=role_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(groupArn=group_arn, groupName=group_name, taskArn=task_arn, tagKey=tag_key, tagValue=tag_value, resourceQuery=resource_query, roleArn=role_arn))
+        return json.dumps(tag_sync_task)
