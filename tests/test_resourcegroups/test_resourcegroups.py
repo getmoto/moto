@@ -1,5 +1,5 @@
-from datetime import datetime
 import json
+from datetime import datetime
 
 import boto3
 import pytest
@@ -284,10 +284,9 @@ def test_start_tag_sync_task():
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    resp = client.start_tag_sync_task(Group=resource_group,
-                                      TagKey=tag_key,
-                                      TagValue=tag_value,
-                                      RoleArn=role_arn)
+    resp = client.start_tag_sync_task(
+        Group=resource_group, TagKey=tag_key, TagValue=tag_value, RoleArn=role_arn
+    )
     assert "GroupArn" in resp
     assert resp["GroupArn"] == resource_group
     assert "GroupName" in resp
@@ -300,6 +299,7 @@ def test_start_tag_sync_task():
     assert "RoleArn" in resp
     assert resp["RoleArn"] == role_arn
 
+
 @mock_aws
 def test_start_tag_sync_task_with_name():
     client = boto3.client("resource-groups", region_name="us-east-2")
@@ -308,10 +308,9 @@ def test_start_tag_sync_task_with_name():
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    resp = client.start_tag_sync_task(Group=resource_group,
-                                      TagKey=tag_key,
-                                      TagValue=tag_value,
-                                      RoleArn=role_arn)
+    resp = client.start_tag_sync_task(
+        Group=resource_group, TagKey=tag_key, TagValue=tag_value, RoleArn=role_arn
+    )
     assert "GroupArn" in resp
     assert resource_group in resp["GroupArn"]
     assert "GroupName" in resp
@@ -325,16 +324,17 @@ def test_start_tag_sync_task_with_name():
     assert "RoleArn" in resp
     assert resp["RoleArn"] == role_arn
 
+
 @mock_aws
 def test_start_tag_sync_task_with_query():
     client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["Name"]
     account_id = boto3.client("sts").get_caller_identity()["Account"]
-    query = {"Type":"TAG_FILTERS_1.0", "Query":"bar"}
+    query = {"Type": "TAG_FILTERS_1.0", "Query": "bar"}
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    resp = client.start_tag_sync_task(Group=resource_group,
-                                      ResourceQuery=query,
-                                      RoleArn=role_arn)
+    resp = client.start_tag_sync_task(
+        Group=resource_group, ResourceQuery=query, RoleArn=role_arn
+    )
     assert "GroupArn" in resp
     assert resource_group in resp["GroupArn"]
     assert "GroupName" in resp
@@ -347,6 +347,7 @@ def test_start_tag_sync_task_with_query():
     assert "RoleArn" in resp
     assert resp["RoleArn"] == role_arn
 
+
 @mock_aws
 def test_start_tag_sync_task_with_with_query_and_tags():
     client = boto3.client("resource-groups", region_name="us-east-2")
@@ -356,15 +357,20 @@ def test_start_tag_sync_task_with_with_query_and_tags():
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
     with pytest.raises(ClientError) as exc:
-        client.start_tag_sync_task(Group=resource_group,
-                                          TagKey=tag_key,
-                                          TagValue=tag_value,
-                                          ResourceQuery={"Type": "TAG_FILTERS_1_0",
-                                                          "Query": tag_value},
-                                          RoleArn=role_arn)
+        client.start_tag_sync_task(
+            Group=resource_group,
+            TagKey=tag_key,
+            TagValue=tag_value,
+            ResourceQuery={"Type": "TAG_FILTERS_1_0", "Query": tag_value},
+            RoleArn=role_arn,
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "BadRequestException"
-    assert err["Message"] == "To define a task, you can use TagKey and TagValue with non-null values, or use a ResourceQuery"
+    assert (
+        err["Message"]
+        == "To define a task, you can use TagKey and TagValue with non-null values, or use a ResourceQuery"
+    )
+
 
 @mock_aws
 def test_list_tag_sync_tasks():
@@ -374,10 +380,9 @@ def test_list_tag_sync_tasks():
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    resp = client.start_tag_sync_task(Group=resource_group,
-                                      TagKey=tag_key,
-                                      TagValue=tag_value,
-                                      RoleArn=role_arn)
+    resp = client.start_tag_sync_task(
+        Group=resource_group, TagKey=tag_key, TagValue=tag_value, RoleArn=role_arn
+    )
     resp = client.list_tag_sync_tasks()
 
     assert "TagSyncTasks" in resp
@@ -402,7 +407,6 @@ def test_list_tag_sync_tasks():
     assert isinstance(resp["TagSyncTasks"][0]["CreatedAt"], datetime)
 
 
-
 @mock_aws
 def test_cancel_tag_sync_task():
     client = boto3.client("resource-groups", region_name="us-east-2")
@@ -411,13 +415,13 @@ def test_cancel_tag_sync_task():
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    task_arn = client.start_tag_sync_task(Group=resource_group,
-                                      TagKey=tag_key,
-                                      TagValue=tag_value,
-                                      RoleArn=role_arn)["TaskArn"]
+    task_arn = client.start_tag_sync_task(
+        Group=resource_group, TagKey=tag_key, TagValue=tag_value, RoleArn=role_arn
+    )["TaskArn"]
     resp = client.cancel_tag_sync_task(TaskArn=task_arn)
 
     assert isinstance(resp, dict)
+
 
 @mock_aws
 def test_get_tag_sync_task():
@@ -427,12 +431,10 @@ def test_get_tag_sync_task():
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
-    task_arn = client.start_tag_sync_task(Group=resource_group,
-                                      TagKey=tag_key,
-                                      TagValue=tag_value,
-                                      RoleArn=role_arn)["TaskArn"]
+    task_arn = client.start_tag_sync_task(
+        Group=resource_group, TagKey=tag_key, TagValue=tag_value, RoleArn=role_arn
+    )["TaskArn"]
     resp = client.get_tag_sync_task(TaskArn=task_arn)
-
 
     assert "GroupArn" in resp
     assert resp["GroupArn"] == resource_group
@@ -451,4 +453,3 @@ def test_get_tag_sync_task():
         assert "ErrorMessage" in resp
     assert "CreatedAt" in resp
     assert isinstance(resp["CreatedAt"], datetime)
-
