@@ -348,28 +348,18 @@ class CertBundle(BaseModel):
     def describe(self) -> dict[str, Any]:
         # 'RenewalSummary': {},  # Only when cert is amazon issued
         if isinstance(self._key, ec.EllipticCurvePrivateKey):
-            # Handle EC keys
-            curve = self._key.curve
-            if isinstance(curve, ec.SECP256R1):
-                key_algo = "EC_prime256v1"
-            elif isinstance(curve, ec.SECP384R1):
-                key_algo = "EC_secp384r1"
-            elif isinstance(curve, ec.SECP521R1):
-                key_algo = "EC_secp521r1"
-            else:
-                key_algo = "EC_prime256v1"  # Default fallback
+            # Handle EC keys (map curve name to AWS name)
+            curve_name_map = {
+                "secp256r1": "prime256v1",
+                "secp384r1": "secp384r1",
+                "secp521r1": "secp521r1",
+            }
+            curve_name = self._key.curve.name.lower()
+            aws_curve_name = curve_name_map.get(curve_name, curve_name)
+            key_algo = f"EC_{aws_curve_name}"
         else:
             # Handle RSA keys
-            if self._key.key_size == 1024:
-                key_algo = "RSA_1024"
-            elif self._key.key_size == 2048:
-                key_algo = "RSA_2048"
-            elif self._key.key_size == 3072:
-                key_algo = "RSA_3072"
-            elif self._key.key_size == 4096:
-                key_algo = "RSA_4096"
-            else:
-                key_algo = "RSA_2048"  # Default fallback
+            key_algo = f"RSA_{self._key.key_size}"
 
         # Look for SANs
         try:
