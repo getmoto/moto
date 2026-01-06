@@ -356,7 +356,7 @@ def test_start_tag_sync_task_with_with_query_and_tags():
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
     with pytest.raises(ClientError) as exc:
-        resp = client.start_tag_sync_task(Group=resource_group,
+        client.start_tag_sync_task(Group=resource_group,
                                           TagKey=tag_key,
                                           TagValue=tag_value,
                                           ResourceQuery={"Type": "TAG_FILTERS_1_0",
