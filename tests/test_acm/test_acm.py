@@ -1011,9 +1011,15 @@ def test_account_configuration():
         pytest.param(RSA_2048_CRT, RSA_2048_KEY, "RSA_2048", id="RSA_2048"),
         pytest.param(RSA_3072_CRT, RSA_3072_KEY, "RSA_3072", id="RSA_3072"),
         pytest.param(RSA_4096_CRT, RSA_4096_KEY, "RSA_4096", id="RSA_4096"),
-        pytest.param(EC_PRIME256V1_CRT, EC_PRIME256V1_KEY, "EC_prime256v1", id="EC_prime256v1"),
-        pytest.param(EC_SECP384R1_CRT, EC_SECP384R1_KEY, "EC_secp384r1", id="EC_secp384r1"),
-        pytest.param(EC_SECP521R1_CRT, EC_SECP521R1_KEY, "EC_secp521r1", id="EC_secp521r1"),
+        pytest.param(
+            EC_PRIME256V1_CRT, EC_PRIME256V1_KEY, "EC_prime256v1", id="EC_prime256v1"
+        ),
+        pytest.param(
+            EC_SECP384R1_CRT, EC_SECP384R1_KEY, "EC_secp384r1", id="EC_secp384r1"
+        ),
+        pytest.param(
+            EC_SECP521R1_CRT, EC_SECP521R1_KEY, "EC_secp521r1", id="EC_secp521r1"
+        ),
     ],
 )
 def test_key_algorithms(cert, key, expected_algorithm):
@@ -1032,7 +1038,7 @@ def test_key_algorithms(cert, key, expected_algorithm):
 @mock_aws
 def test_list_certificates_with_all_key_types():
     """Test that list_certificates correctly filters all RSA and EC key types."""
-    client = boto3.client("acm", region_name="ap-southeast-1")
+    client = boto3.client("acm", region_name="us-east-1")
 
     arns = {
         "rsa_1024": client.import_certificate(
