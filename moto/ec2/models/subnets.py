@@ -3,7 +3,8 @@ from __future__ import annotations
 import ipaddress
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from moto.core.common_models import CloudFormationModel
 
@@ -17,7 +18,11 @@ from ..exceptions import (
     DefaultVpcDoesNotExistError,
     InvalidAvailabilityZoneError,
     InvalidCIDRBlockParameterError,
+    InvalidCidrReservationNotFound,
+    InvalidCidrReservationNotWithinSubnetCidr,
+    InvalidCidrReservationOverlapExisting,
     InvalidParameterValueError,
+    InvalidPrefixReservationType,
     InvalidSubnetCidrBlockAssociationID,
     InvalidSubnetConflictError,
     InvalidSubnetIdError,
@@ -25,11 +30,42 @@ from ..exceptions import (
 )
 from ..utils import (
     generic_filter,
+    random_subnet_cidr_reservation_id,
     random_subnet_id,
     random_subnet_ipv6_cidr_block_association_id,
 )
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .core import TaggedEC2Resource
+
+
+class SubnetCidrReservation(TaggedEC2Resource):
+    def __init__(
+        self,
+        ec2_backend: Any,
+        subnet_id: str,
+        cidr: ipaddress.IPv4Network | ipaddress.IPv6Network,
+        reservation_type: Literal["explicit"] | Literal["prefix"],
+        owner_id: str,
+        tag_specifications: Optional[list[dict[str, Any]]] = None,
+        subnet_cidr_reservation_id: Optional[str] = None,
+    ) -> None:
+        self.ec2_backend = ec2_backend
+        self.id = subnet_cidr_reservation_id or random_subnet_cidr_reservation_id()
+        self.subnet_id = subnet_id
+        self.cidr = cidr
+        self.reservation_type = reservation_type
+        self.owner_id = owner_id
+        self.tag_specifications = tag_specifications or []
+
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "reservationType":
+            return self.reservation_type
+        elif filter_name == "subnet-id":
+            return self.subnet_id
+
+        return super().get_filter_value(filter_name, method_name)
 
 
 class Subnet(TaggedEC2Resource, CloudFormationModel):
@@ -63,11 +99,14 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         if ipv6_cidr_block:
             self.attach_ipv6_cidr_block_associations(ipv6_cidr_block)
 
-        # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
-        self._subnet_ip_generator = self.cidr.hosts()
-        self.reserved_ips = [
+        self._base_avail_ip_iterator = self.cidr.hosts()
+        self._reserved_ips: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+
+        # Reserved by AWS
+        self.aws_reserved_ips = {
             next(iter(self._subnet_ip_generator)) for _ in range(0, 3)
-        ]  # Reserved by AWS
+        }
+
         self._unused_ips: set[str] = (
             set()
         )  # if instance is destroyed hold IP here for reuse
@@ -76,6 +115,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
         # Placeholder for response templates until Ipv6 support implemented.
         self.ipv6_native = ipv6_native
+
+        self._cidr_reservations: list[SubnetCidrReservation] = []
 
     @property
     def arn(self) -> str:
@@ -245,6 +286,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
         if ip in self._subnet_ips:
             raise Exception("IP already in use")
+
         try:
             self._unused_ips.remove(ip)
         except KeyError:
@@ -277,6 +319,107 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         assert association is not None
         association["ipv6CidrBlockState"] = {"State": "disassociated"}
         return association
+
+    def create_cidr_reservation(
+        self,
+        reservation_type: Literal["explicit"] | Literal["prefix"],
+        cidr_block: ipaddress.IPv4Network | ipaddress.IPv6Network,
+        tag_specifications: Optional[list[dict[str, Any]]] = None,
+    ) -> SubnetCidrReservation:
+        if not self._cidr_within_subnet_cidr_blocks(cidr_block):
+            raise InvalidCidrReservationNotWithinSubnetCidr(str(self.cidr))
+
+        if self._cidr_overlaps_with_existing_reservation(cidr_block):
+            raise InvalidCidrReservationOverlapExisting(str(cidr_block))
+
+        reservation = SubnetCidrReservation(
+            ec2_backend=self.ec2_backend,
+            subnet_id=self.id,
+            cidr=cidr_block,
+            reservation_type=reservation_type,
+            owner_id=self.owner_id,
+            tag_specifications=tag_specifications,
+            subnet_cidr_reservation_id=random_subnet_cidr_reservation_id(),
+        )
+
+        for ip in cidr_block:
+            self._reserved_ips.add(ip)
+
+        if reservation_type == "prefix":
+            # prefix reservations impact the avail ip count immediately
+            self._available_ip_addresses -= cidr_block.num_addresses
+
+        self._cidr_reservations.append(reservation)
+
+        return reservation
+
+    @property
+    def _subnet_ip_generator(
+        self,
+    ) -> Iterator[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+        for host in self._base_avail_ip_iterator:
+            # Skip any reserved ips
+            if host in self._reserved_ips:
+                continue
+            yield host
+
+    def _cidr_within_subnet_cidr_blocks(
+        self, cidr_to_reserve: ipaddress.IPv4Network | ipaddress.IPv6Network
+    ) -> bool:
+        if isinstance(cidr_to_reserve, ipaddress.IPv4Network):
+            if isinstance(self.cidr, ipaddress.IPv4Network):
+                return cidr_to_reserve.subnet_of(self.cidr)
+            return False
+
+        for _, ipv6_block_association in self.ipv6_cidr_block_associations.items():
+            ipv6_block = ipaddress.ip_network(ipv6_block_association["ipv6CidrBlock"])
+            if isinstance(
+                ipv6_block, ipaddress.IPv6Network
+            ) and cidr_to_reserve.subnet_of(ipv6_block):
+                return True
+        return False
+
+    def _cidr_overlaps_with_existing_reservation(
+        self, cidr_to_reserve: ipaddress.IPv4Network | ipaddress.IPv6Network
+    ) -> bool:
+        cidr_to_reserve_is_ipv4: bool = isinstance(
+            cidr_to_reserve, ipaddress.IPv4Network
+        )
+        for reservation in self._cidr_reservations:
+            existing_block = reservation.cidr
+            if (
+                isinstance(existing_block, ipaddress.IPv4Network)
+                and cidr_to_reserve_is_ipv4
+                and cidr_to_reserve.overlaps(existing_block)
+            ):
+                return True
+            elif (
+                isinstance(existing_block, ipaddress.IPv6Network)
+                and not cidr_to_reserve_is_ipv4
+                and cidr_to_reserve.overlaps(existing_block)
+            ):
+                return True
+
+        return False
+
+    def delete_subnet_cidr_reservation(
+        self,
+        reservation_id: str,
+    ) -> Optional[SubnetCidrReservation]:
+        for index, reservation in enumerate(self._cidr_reservations):
+            if reservation.id == reservation_id:
+                self._cidr_reservations.pop(index)
+
+                if reservation.reservation_type == "prefix":
+                    for ip in reservation.cidr:
+                        if (
+                            ip not in self._subnet_ips
+                            and ip not in self.aws_reserved_ips
+                        ):
+                            self._available_ip_addresses += 1
+                return reservation
+
+        return None
 
 
 class SubnetRouteTableAssociation(CloudFormationModel):
@@ -518,3 +661,70 @@ class SubnetBackend:
         subnet_association = SubnetRouteTableAssociation(route_table_id, subnet_id)
         self.subnet_associations[f"{route_table_id}:{subnet_id}"] = subnet_association
         return subnet_association
+
+    def create_subnet_cidr_reservation(
+        self,
+        subnet_id: str,
+        reservation_type: str,
+        cidr: str,
+        tags: Optional[list[dict[str, Any]]] = None,
+    ) -> SubnetCidrReservation:
+        if reservation_type not in {"prefix", "explicit"}:
+            raise InvalidPrefixReservationType(reservation_type)
+
+        reservation_type_lit: Literal["prefix", "explicit"] = cast(
+            Literal["prefix", "explicit"], reservation_type
+        )
+
+        cidr_to_reserve: ipaddress.IPv4Network | ipaddress.IPv6Network
+        try:
+            cidr_to_reserve = ipaddress.ip_network(cidr)
+        except ValueError:
+            raise InvalidCIDRBlockParameterError(cidr)
+
+        subnet = self.get_subnet(subnet_id)
+
+        scr = subnet.create_cidr_reservation(
+            reservation_type_lit, cidr_to_reserve, tags
+        )
+        return scr
+
+    def get_subnet_cidr_reservations(
+        self,
+        subnet_id: str,
+        filters: Optional[Any] = None,
+    ) -> dict[str, list[SubnetCidrReservation]]:
+        matches: list[SubnetCidrReservation] = self.get_subnet(
+            subnet_id
+        )._cidr_reservations
+
+        if filters:
+            matches = generic_filter(filters, matches)
+
+        ipv4_reservations = []
+        ipv6_reservations = []
+
+        for reservation in matches:
+            if isinstance(reservation.cidr, ipaddress.IPv4Network):
+                ipv4_reservations.append(reservation)
+            else:
+                ipv6_reservations.append(reservation)
+
+        return {
+            "SubnetIpv4CidrReservations": ipv4_reservations,
+            "SubnetIpv6CidrReservations": ipv6_reservations,
+        }
+
+    def delete_subnet_cidr_reservation(
+        self,
+        reservation_id: str,
+    ) -> SubnetCidrReservation:
+        for az_subnet in self.subnets.values():
+            for subnet in az_subnet.values():
+                deleted_reservation = subnet.delete_subnet_cidr_reservation(
+                    reservation_id
+                )
+                if deleted_reservation:
+                    return deleted_reservation
+
+        raise InvalidCidrReservationNotFound(reservation_id)

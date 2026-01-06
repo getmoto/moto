@@ -565,7 +565,7 @@ class Route53ResolverBackend(BaseBackend):
                 ) from exc
 
             # IP in IPv4 CIDR range and not reserved?
-            if ip_address(ip_addr) in subnet_info.reserved_ips or ip_address(
+            if ip_address(ip_addr) in subnet_info.aws_reserved_ips or ip_address(
                 ip_addr
             ) not in ip_network(subnet_info.cidr_block):
                 raise InvalidRequestException(
