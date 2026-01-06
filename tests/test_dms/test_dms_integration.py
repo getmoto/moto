@@ -18,8 +18,7 @@ def get_resource_groups_client():
 
 @mock_aws
 def test_create_replication_task_with_tags(client, resource_groups_client):
-
-    response1 = client.create_replication_task(
+    response = client.create_replication_task(
         ReplicationTaskIdentifier="test",
         SourceEndpointArn="source-endpoint-arn",
         TargetEndpointArn="target-endpoint-arn",
@@ -29,13 +28,13 @@ def test_create_replication_task_with_tags(client, resource_groups_client):
         ReplicationTaskSettings='{"Logging":{} }',
         Tags=[
             {"Key": "Test-tag", "Value": "Test Task"},
-            {"Key": "Test-tag2", "Value": "Test Task"}
+            {"Key": "Test-tag2", "Value": "Test Task"},
         ],
     )
 
-    task1 = response1["ReplicationTask"]
+    task1 = response["ReplicationTask"]
 
-    response2 = client.create_replication_task(
+    client.create_replication_task(
         ReplicationTaskIdentifier="test-untagged",
         SourceEndpointArn="source-endpoint-arn",
         TargetEndpointArn="target-endpoint-arn",
@@ -44,8 +43,6 @@ def test_create_replication_task_with_tags(client, resource_groups_client):
         TableMappings='{"rules":[]}',
         ReplicationTaskSettings='{"Logging":{} }',
     )
-
-    task2 = response2["ReplicationTask"]
 
     tasks = client.describe_replication_tasks(
         Filters=[
@@ -58,14 +55,19 @@ def test_create_replication_task_with_tags(client, resource_groups_client):
 
     assert len(tasks["ReplicationTasks"]) == 2
 
-    response_no_filter = resource_groups_client.get_resources(ResourceTypeFilters=["dms:task"])
+    response_no_filter = resource_groups_client.get_resources(
+        ResourceTypeFilters=["dms:task"]
+    )
     assert len(response_no_filter["ResourceTagMappingList"]) == 2
 
-    response_filtered = resource_groups_client.get_resources(ResourceTypeFilters=["dms:task"], TagFilters=[{"Key": "Test-tag", "Values": ["Test Task"]}])
+    response_filtered = resource_groups_client.get_resources(
+        ResourceTypeFilters=["dms:task"],
+        TagFilters=[{"Key": "Test-tag", "Values": ["Test Task"]}],
+    )
     assert len(response_filtered["ResourceTagMappingList"]) == 1
     resources = response_filtered["ResourceTagMappingList"]
     assert resources[0]["ResourceARN"] == task1["ReplicationTaskArn"]
     assert resources[0]["Tags"] == [
         {"Key": "Test-tag", "Value": "Test Task"},
-        {"Key": "Test-tag2", "Value": "Test Task"}
+        {"Key": "Test-tag2", "Value": "Test Task"},
     ]
