@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import json
 import re
+import sys
 import warnings
 from collections import OrderedDict
 from enum import Enum, unique
@@ -954,13 +955,13 @@ class EventPattern:
     def matches_event(self, event: EventMessageType) -> bool:
         if not self._pattern:
             return True
-        # json.dumps handles circular references by raising a ValueError/TypeError
         event = json.loads(json.dumps(event))
         event_flat = self._flatten_dict(event)
         return self._does_event_match(event_flat, self._pattern)
 
+    @staticmethod
     def _flatten_dict(
-        self, node: Any, prefix: str = "", result: Optional[dict[str, Any]] = None
+        node: Any, prefix: str = "", result: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         if result is None:
             result = {}
@@ -968,7 +969,7 @@ class EventPattern:
             for k, v in node.items():
                 new_key = f"{prefix}.{k}" if prefix else k
                 if isinstance(v, dict) and v:
-                    self._flatten_dict(v, new_key, result)
+                    EventPattern._flatten_dict(v, new_key, result)
                 else:
                     result[new_key] = v
         return result
@@ -1013,7 +1014,8 @@ class EventPattern:
                     return True
         return False
 
-    def _does_item_match_named_filter(self, item: Any, pattern: dict[str, Any]) -> bool:
+    @staticmethod
+    def _does_item_match_named_filter(item: Any, pattern: dict[str, Any]) -> bool:
         filter_name, filter_value = list(pattern.items())[0]
         if filter_name == "exists":
             exists = item is not UNDEFINED
@@ -1024,16 +1026,24 @@ class EventPattern:
 
         def evaluate(val: Any) -> bool:
             if filter_name == "prefix":
-                if isinstance(filter_value, dict) and "equals-ignore-case" in filter_value:
+                if (
+                    isinstance(filter_value, dict)
+                    and "equals-ignore-case" in filter_value
+                ):
                     target = filter_value["equals-ignore-case"]
-                    return isinstance(val, str) and val.lower().startswith(target.lower())
+                    return isinstance(val, str) and val.lower().startswith(
+                        target.lower()
+                    )
                 if isinstance(filter_value, list):
                     return isinstance(val, str) and any(
                         val.startswith(v) for v in filter_value
                     )
                 return isinstance(val, str) and val.startswith(filter_value)
             if filter_name == "suffix":
-                if isinstance(filter_value, dict) and "equals-ignore-case" in filter_value:
+                if (
+                    isinstance(filter_value, dict)
+                    and "equals-ignore-case" in filter_value
+                ):
                     target = filter_value["equals-ignore-case"]
                     return isinstance(val, str) and val.lower().endswith(target.lower())
                 if isinstance(filter_value, list):
@@ -1062,7 +1072,9 @@ class EventPattern:
                     return val not in filter_value
                 if isinstance(filter_value, dict):
                     # Recursive check for any-but with other filters (e.g. prefix)
-                    return not self._does_item_match_named_filter(val, filter_value)
+                    return not EventPattern._does_item_match_named_filter(
+                        val, filter_value
+                    )
                 return val != filter_value
             if filter_name == "cidr":
                 try:
@@ -1073,15 +1085,18 @@ class EventPattern:
                     return False
             if filter_name == "wildcard":
                 if isinstance(filter_value, list):
-                    return any(self._wildcard_match(val, v) for v in filter_value)
-                return self._wildcard_match(val, filter_value)
+                    return any(
+                        EventPattern._wildcard_match(val, v) for v in filter_value
+                    )
+                return EventPattern._wildcard_match(val, filter_value)
             return True
 
         if isinstance(item, list):
             return any(evaluate(i) for i in item)
         return evaluate(item)
 
-    def _wildcard_match(self, item: Any, pattern: str) -> bool:
+    @staticmethod
+    def _wildcard_match(item: Any, pattern: str) -> bool:
         if not isinstance(item, str):
             return False
         regex = ""
