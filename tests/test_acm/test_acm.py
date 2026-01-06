@@ -1024,7 +1024,7 @@ def test_account_configuration():
 )
 def test_key_algorithms(cert, key, expected_algorithm):
     """Test that certificates with different key algorithms are correctly identified."""
-    client = boto3.client("acm", region_name="us-east-1")
+    client = boto3.client("acm", region_name="ca-central-1")
 
     arn = client.import_certificate(
         Certificate=cert, PrivateKey=key, CertificateChain=CA_CRT
@@ -1038,7 +1038,7 @@ def test_key_algorithms(cert, key, expected_algorithm):
 @mock_aws
 def test_list_certificates_with_all_key_types():
     """Test that list_certificates correctly filters all RSA and EC key types."""
-    client = boto3.client("acm", region_name="us-east-1")
+    client = boto3.client("acm", region_name="ap-southeast-1")
 
     arns = {
         "rsa_1024": client.import_certificate(
