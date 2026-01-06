@@ -278,9 +278,11 @@ def test_update_group_query():
 
 @mock_aws
 def test_start_tag_sync_task():
-    client = boto3.client("resource-groups", , region_name=region)
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]
-    account_id = boto3.client("sts", region_name=region).get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
@@ -302,9 +304,11 @@ def test_start_tag_sync_task():
 
 @mock_aws
 def test_start_tag_sync_task_with_name():
-    client = boto3.client("resource-groups", , region_name="us-east-2")
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["Name"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
@@ -327,9 +331,11 @@ def test_start_tag_sync_task_with_name():
 
 @mock_aws
 def test_start_tag_sync_task_with_query():
-    client = boto3.client("resource-groups", , region_name="us-east-2")
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["Name"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     query = {"Type": "TAG_FILTERS_1.0", "Query": "bar"}
     role_arn = f"arn:aws:iam::{account_id}:role/role"
     resp = client.start_tag_sync_task(
@@ -352,7 +358,9 @@ def test_start_tag_sync_task_with_query():
 def test_start_tag_sync_task_with_with_query_and_tags():
     client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["Name"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
@@ -374,9 +382,11 @@ def test_start_tag_sync_task_with_with_query_and_tags():
 
 @mock_aws
 def test_list_tag_sync_tasks():
-    client = boto3.client("resource-groups", , region_name="us-east-2")
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
@@ -409,9 +419,11 @@ def test_list_tag_sync_tasks():
 
 @mock_aws
 def test_cancel_tag_sync_task():
-    client = boto3.client("resource-groups", , region_name="us-east-2")
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
@@ -425,9 +437,11 @@ def test_cancel_tag_sync_task():
 
 @mock_aws
 def test_get_tag_sync_task():
-    client = boto3.client("resource-groups", , region_name="us-east-2")
+    client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]
-    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()["Account"]
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
     tag_key = "foo"
     tag_value = "bar"
     role_arn = f"arn:aws:iam::{account_id}:role/role"
