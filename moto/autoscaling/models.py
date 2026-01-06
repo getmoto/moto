@@ -151,7 +151,7 @@ class InstanceState:
         lt = {
             "LaunchTemplateId": self.auto_scaling_group.ec2_launch_template.id,
             "LaunchTemplateName": self.auto_scaling_group.ec2_launch_template.name,
-            "Version": self.auto_scaling_group.launch_template_version,
+            "Version": self.auto_scaling_group.ec2_launch_template.default_version_number,
         }
         return lt
 
@@ -589,6 +589,19 @@ class FakeAutoScalingGroup(CloudFormationModel):
         # Will be None if self.launch_template is used instead
         self.launch_config: FakeLaunchConfiguration = None  # type: ignore[assignment]
 
+        # Some defaults, if not set
+        if (
+            self.mixed_instances_policy
+            and "InstancesDistribution" not in self.mixed_instances_policy
+        ):
+            self.mixed_instances_policy["InstancesDistribution"] = {
+                "OnDemandAllocationStrategy": "prioritized",
+                "OnDemandBaseCapacity": 0,
+                "OnDemandPercentageAboveBaseCapacity": 100,
+                "SpotAllocationStrategy": "lowest-price",
+                "SpotInstancePools": 2,
+            }
+
         self._set_launch_configuration(
             launch_config_name, launch_template, mixed_instances_policy
         )
@@ -763,6 +776,15 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 except (AttributeError, KeyError, TypeError):
                     pass
 
+            try:
+                if (
+                    self.mixed_instances_policy
+                    and "Overrides" not in self.mixed_instances_policy["LaunchTemplate"]
+                ):
+                    self.mixed_instances_policy["LaunchTemplate"]["Overrides"] = []
+            except (AttributeError, KeyError, TypeError):
+                pass
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return "AutoScalingGroupName"
@@ -789,7 +811,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         target_group_arns = properties.get("TargetGroupARNs", [])
         mixed_instances_policy = properties.get("MixedInstancesPolicy", {})
 
-        backend = autoscaling_backends[account_id][region_name]
+        backend: AutoScalingBackend = autoscaling_backends[account_id][region_name]
         group = backend.create_auto_scaling_group(
             name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
@@ -913,6 +935,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         health_check_period: int,
         health_check_type: str,
         new_instances_protected_from_scale_in: Optional[bool] = None,
+        mixed_instances_policy: Optional[dict[str, Any]] = None,
     ) -> None:
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
 
@@ -927,8 +950,11 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if max_size is not None and max_size < len(self.instance_states):
                 desired_capacity = max_size
 
+        self.mixed_instances_policy = mixed_instances_policy
         self._set_launch_configuration(
-            launch_config_name, launch_template, mixed_instances_policy=None
+            launch_config_name,
+            launch_template,
+            mixed_instances_policy=mixed_instances_policy,
         )
 
         if health_check_period is not None:
@@ -1402,11 +1428,11 @@ class AutoScalingBackend(BaseBackend):
         health_check_period: int,
         health_check_type: str,
         new_instances_protected_from_scale_in: Optional[bool] = None,
+        mixed_instances_policy: Optional[dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
         """
         The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
         """
-        # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
         if launch_config_name and launch_template:
             raise ValidationError(
@@ -1428,6 +1454,7 @@ class AutoScalingBackend(BaseBackend):
             health_check_period=health_check_period,
             health_check_type=health_check_type,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
+            mixed_instances_policy=mixed_instances_policy,
         )
         return group
 

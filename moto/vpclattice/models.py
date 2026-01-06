@@ -206,6 +206,22 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         }
 
 
+class AuthPolicy:
+    def __init__(
+        self,
+        policy_name: str,
+        policy: str,
+        created_at: str,
+        last_updated_at: str,
+        state: str,
+    ) -> None:
+        self.policy_name = policy_name
+        self.policy = policy
+        self.created_at = created_at
+        self.last_updated_at = last_updated_at
+        self.state = state
+
+
 class VPCLatticeBackend(BaseBackend):
     PAGINATION_MODEL = {
         "list_services": {
@@ -232,6 +248,8 @@ class VPCLatticeBackend(BaseBackend):
         self.rules: dict[str, VPCLatticeRule] = {}
         self.tagger: TaggingService = TaggingService()
         self.access_log_subscriptions: dict[str, VPCLatticeAccessLogSubscription] = {}
+        self.resource_policies: dict[str, str] = {}
+        self.auth_policies: dict[str, AuthPolicy] = {}
 
     def create_service(
         self,
@@ -443,6 +461,95 @@ class VPCLatticeBackend(BaseBackend):
                 f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
             )
         del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
+
+    def put_auth_policy(self, resourceIdentifier: str, policy: str) -> AuthPolicy:
+        # ResourceConfig not supported yet, only handle Service and Service Network
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        resource: Any = None
+
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        elif resourceIdentifier.startswith("svc-"):
+            resource = self.services.get(resourceIdentifier)
+        else:
+            raise ValidationException(
+                "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+            )
+
+        if not resource:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        # Handle state management
+        state = "Inactive" if resource.auth_type == "NONE" else "Active"
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        if resourceIdentifier in self.auth_policies:
+            auth_policy = self.auth_policies[resourceIdentifier]
+            auth_policy.policy = policy
+            auth_policy.last_updated_at = now_iso
+            auth_policy.state = state
+
+        else:
+            auth_policy = AuthPolicy(
+                policy_name=resourceIdentifier,
+                policy=policy,
+                created_at=now_iso,
+                last_updated_at=now_iso,
+                state=state,
+            )
+
+            self.auth_policies[resourceIdentifier] = auth_policy
+
+        return auth_policy
+
+    def get_auth_policy(self, resourceIdentifier: str) -> AuthPolicy:
+        original_identifier = resourceIdentifier
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        auth_policy = self.auth_policies.get(resourceIdentifier)
+        if not auth_policy:
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
+
+        resource: Any
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        else:
+            resource = self.services.get(resourceIdentifier)
+
+        auth_policy.state = (
+            "Inactive" if not resource or resource.auth_type == "NONE" else "Active"
+        )
+
+        return auth_policy
+
+    def delete_auth_policy(self, resourceIdentifier: str) -> None:
+        original_identifier = resourceIdentifier
+
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        if resourceIdentifier not in self.auth_policies:
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
+
+        del self.auth_policies[resourceIdentifier]
+
+    def put_resource_policy(self, resourceArn: str, policy: str) -> None:
+        self.resource_policies[resourceArn] = policy
+
+    def get_resource_policy(self, resourceArn: str) -> str:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        return self.resource_policies[resourceArn]
+
+    def delete_resource_policy(self, resourceArn: str) -> None:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        del self.resource_policies[resourceArn]
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

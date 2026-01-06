@@ -229,6 +229,7 @@ def test_put_parameter(name):
     )
 
     assert response["Version"] == 1
+    assert response["Tier"] == "Standard"
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -328,11 +329,12 @@ def test_put_parameter_overwrite_preserves_metadata(name):
         Tags=[{"Key": test_tag_key, "Value": test_tag_value}],
         AllowedPattern=test_pattern,
         KeyId=test_key_id,
-        Tier="Standard",
+        Tier="Advanced",
         Policies='["Expiration"]',
     )
 
     assert response["Version"] == 1
+    assert response["Tier"] == "Advanced"
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -403,7 +405,7 @@ def test_put_parameter_overwrite_preserves_metadata(name):
     assert response["Parameters"][0]["Description"] == test_description
     assert response["Parameters"][0]["AllowedPattern"] == test_pattern
     assert response["Parameters"][0]["KeyId"] == test_key_id
-    assert response["Parameters"][0]["Tier"] == "Standard"
+    assert response["Parameters"][0]["Tier"] == "Advanced"
     assert response["Parameters"][0]["Policies"] == [
         {
             "PolicyStatus": "Finished",
@@ -2474,3 +2476,55 @@ def test_list_parameter_tags_created_with_leading_slash(param_name):
 
     # Cleanup resources
     client.delete_parameters(Names=[param_name])
+
+
+@mock_aws
+def test_unlabel_parameter_version() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    # Create parameter
+    client.put_parameter(Name="/test/param", Value="value", Type="String")
+
+    # Label it
+    client.label_parameter_version(
+        Name="/test/param", ParameterVersion=1, Labels=["label1", "label2"]
+    )
+
+    # Unlabel
+    response = client.unlabel_parameter_version(
+        Name="/test/param",
+        ParameterVersion=1,
+        Labels=["label1", "label3"],  # label3 doesn't exist
+    )
+
+    assert "label1" in response["RemovedLabels"]
+    assert "label3" in response["InvalidLabels"]
+
+    # Verify removal by checking history
+    history = client.get_parameter_history(Name="/test/param")
+    labels = history["Parameters"][0]["Labels"]
+    assert "label1" not in labels
+    assert "label2" in labels
+
+
+@mock_aws
+def test_unlabel_parameter_version_not_found() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    with pytest.raises(ClientError) as exc:
+        client.unlabel_parameter_version(
+            Name="/test/nonexistent", ParameterVersion=1, Labels=["label1"]
+        )
+    assert exc.value.response["Error"]["Code"] == "ParameterNotFound"
+
+
+@mock_aws
+def test_unlabel_parameter_version_version_not_found() -> None:
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    client.put_parameter(Name="/test/param", Value="v", Type="String")
+
+    with pytest.raises(ClientError) as exc:
+        client.unlabel_parameter_version(
+            Name="/test/param", ParameterVersion=999, Labels=["label1"]
+        )
+    assert exc.value.response["Error"]["Code"] == "ParameterVersionNotFound"

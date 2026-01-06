@@ -1334,6 +1334,53 @@ def test_filter_expression():
 
 
 @mock_aws
+def test_filter_expression_sparse_booleans():
+    # Test filtering between boolean and null values.
+    row_no_boolean = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={},
+    )
+    row_null_boolean = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"NULL": True}},
+    )
+    row_boolean_true = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"BOOL": True}},
+    )
+    row_boolean_false = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"BOOL": False}},
+    )
+
+    # equivalent to (is_visible.exists()) & (is_visible != None)
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "(attribute_exists (is_visible) AND is_visible <> :0)",
+        names=None,
+        values={":0": {"NULL": True}},
+    )
+    assert filter_expr.expr(row_no_boolean) is False
+    assert filter_expr.expr(row_null_boolean) is False
+    assert filter_expr.expr(row_boolean_false) is True
+    assert filter_expr.expr(row_boolean_true) is True
+
+    # Equivalent to (is_visible.exists()) & (is_visible == True)
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "(attribute_exists (is_visible) AND is_visible = :0)",
+        names=None,
+        values={":0": {"BOOL": True}},
+    )
+    assert filter_expr.expr(row_no_boolean) is False
+    assert filter_expr.expr(row_null_boolean) is False
+    assert filter_expr.expr(row_boolean_false) is False
+    assert filter_expr.expr(row_boolean_true) is True
+
+
+@mock_aws
 def test_duplicate_create():
     client = boto3.client("dynamodb", region_name="us-east-1")
     table_name = f"T{uuid4()}"

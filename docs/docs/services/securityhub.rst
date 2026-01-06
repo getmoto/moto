@@ -40,7 +40,6 @@ securityhub
 - [ ] batch_update_findings
 - [ ] batch_update_findings_v2
 - [ ] batch_update_standards_control_associations
-- [ ] connector_registrations_v2
 - [ ] create_action_target
 - [ ] create_aggregator_v2
 - [ ] create_automation_rule
@@ -121,6 +120,7 @@ securityhub
 - [ ] list_security_control_definitions
 - [ ] list_standards_control_associations
 - [ ] list_tags_for_resource
+- [ ] register_connector_v2
 - [ ] start_configuration_policy_association
 - [ ] start_configuration_policy_disassociation
 - [ ] tag_resource

@@ -2326,6 +2326,10 @@ class DBShardGroup(RDSBaseModel):
 
 
 class RDSBackend(BaseBackend):
+    @property
+    def SNAPSHOT_QUOTA(self) -> int:
+        return int(os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", 1000))
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
@@ -2574,9 +2578,7 @@ class RDSBackend(BaseBackend):
 
         if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
-        if len(self.database_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
+        if len(self.database_snapshots) >= self.SNAPSHOT_QUOTA:
             raise SnapshotQuotaExceededFault()
         snapshot = DBSnapshot(
             self,
@@ -2604,9 +2606,7 @@ class RDSBackend(BaseBackend):
         if target_db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(target_db_snapshot_identifier)
 
-        if len(self.database_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
+        if len(self.database_snapshots) >= self.SNAPSHOT_QUOTA:
             raise SnapshotQuotaExceededFault()
         if kms_key_id is not None:
             kms_key_id = self._validate_kms_key(kms_key_id)
@@ -3502,8 +3502,9 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotAlreadyExistsError(db_cluster_snapshot_identifier)
         if db_cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
-        if snapshot_type == "manual" and len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        if (
+            snapshot_type == "manual"
+            and len(self.cluster_snapshots) >= self.SNAPSHOT_QUOTA
         ):
             raise SnapshotQuotaExceededFault()
         cluster = self.clusters[db_cluster_identifier]
@@ -3527,9 +3528,7 @@ class RDSBackend(BaseBackend):
                 target_db_cluster_snapshot_identifier
             )
 
-        if len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
+        if len(self.cluster_snapshots) >= self.SNAPSHOT_QUOTA:
             raise SnapshotQuotaExceededFault()
         if kms_key_id is not None:
             kms_key_id = self._validate_kms_key(kms_key_id)

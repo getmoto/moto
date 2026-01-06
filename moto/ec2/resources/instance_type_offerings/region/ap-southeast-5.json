@@ -1476,6 +1476,10 @@
   "Location": "ap-southeast-5"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "ap-southeast-5"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-5"
  },

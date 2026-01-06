@@ -5,16 +5,26 @@ from moto import mock_aws
 from tests import allow_aws_request
 
 
-@pytest.fixture(scope="session")
-def valid_ami():
-    path = "/aws/service/ami-amazon-linux-latest"
+def _get_param() -> str:
+    # Ideally we just pick the first parameter in "/aws/service/ami-amazon-linux-latest"
+    # But we usually need x86_64 - and the chance if randomly picking ARM64 is quite high
+    # Alternative implementation: call get_parameters_by_path(..) until we find a x86_64 kernel
+    # (There is currently no option to filter by architecture)
+    client = boto3.client("ssm", region_name="us-east-1")
+    return client.get_parameters(
+        Names=["/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"],
+    )["Parameters"][0]["Value"]
+
+
+def get_valid_ami():
     if allow_aws_request():
-        client = boto3.client("ssm", region_name="us-east-1")
-        param = client.get_parameters_by_path(Path=path, MaxResults=1)["Parameters"][0]
+        param = _get_param()
     else:
         with mock_aws():
-            client = boto3.client("ssm", region_name="us-east-1")
-            param = client.get_parameters_by_path(Path=path, MaxResults=1)[
-                "Parameters"
-            ][0]
-    yield param["Value"]
+            param = _get_param()
+    return param
+
+
+@pytest.fixture(scope="session")
+def valid_ami():
+    yield get_valid_ami()

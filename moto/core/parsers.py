@@ -330,9 +330,20 @@ class XFormedDict(MutableMapping[str, Any]):
     def __len__(self) -> int:
         return len(self._store)
 
-    def original_items(self) -> Any:
-        """Like iteritems(), but with all PascalCase keys."""
-        return ((keyval[0], keyval[1]) for (_, keyval) in self._store.items())
+    def original_dict(self) -> dict[str, Any]:
+        original_dict = {}
+        for _, keyval in self._store.items():
+            key = keyval[0]
+            value = keyval[1]
+            if isinstance(value, XFormedDict):
+                value = value.original_dict()
+            if isinstance(value, list):
+                value = [
+                    v.original_dict() if isinstance(v, XFormedDict) else v
+                    for v in value
+                ]
+            original_dict[key] = value
+        return original_dict
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, dict):

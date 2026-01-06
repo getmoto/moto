@@ -23,12 +23,12 @@ resourcegroupstaggingapi
 - [ ] start_report_creation
 - [X] tag_resources
   
-        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, and SageMaker resources are currently supported
+        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
         
 
 - [X] untag_resources
   
-        Only EFS, Elasticache, Lambda, and Quicksight resources are currently supported
+        Only EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
         
 
 

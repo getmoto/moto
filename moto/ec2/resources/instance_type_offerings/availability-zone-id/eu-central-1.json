@@ -7688,6 +7688,38 @@
   "Location": "euc1-az3"
  },
  {
+  "InstanceType": "g6e.12xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.16xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.24xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.2xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.48xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.4xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.8xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "g6e.xlarge",
+  "Location": "euc1-az3"
+ },
+ {
   "InstanceType": "g6f.2xlarge",
   "Location": "euc1-az3"
  },
