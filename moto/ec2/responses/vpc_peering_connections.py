@@ -51,12 +51,13 @@ class VPCPeeringConnections(EC2BaseResponse):
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         accepter_options = self._get_param("AccepterPeeringConnectionOptions", {})
         requester_options = self._get_param("RequesterPeeringConnectionOptions", {})
-        self.ec2_backend.modify_vpc_peering_connection_options(
+        vpc_pcx = self.ec2_backend.modify_vpc_peering_connection_options(
             vpc_pcx_id, accepter_options, requester_options
         )
         template = self.response_template(MODIFY_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(
-            accepter_options=accepter_options, requester_options=requester_options
+            accepter_options=vpc_pcx.accepter_options,
+            requester_options=vpc_pcx.requester_options,
         )
 
 
