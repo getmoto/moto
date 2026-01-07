@@ -1591,7 +1591,6 @@ def test_update_policy_exception():
 
 
 @mock_aws
-@mock_aws
 def test_list_polices():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1621,6 +1620,21 @@ def test_list_polices():
     assert len(response["Policies"]) == 5
     for policy in response["Policies"]:
         validate_resource_control_policy_summary(org, policy)
+
+
+@mock_aws
+def test_list_polices_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.list_policies(Filter="MOTO")
+
+    # then
+    ex = e.value
+    assert ex.operation_name == "ListPolicies"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
 @mock_aws
