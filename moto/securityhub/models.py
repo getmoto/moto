@@ -31,7 +31,14 @@ class SecurityHubBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "Id",
             "fail_on_invalid_token": True,
-        }
+        },
+        "list_members": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "AccountId",
+            "fail_on_invalid_token": False,
+        },
     }
 
     _org_configs: dict[str, dict[str, Any]] = {}
@@ -43,6 +50,7 @@ class SecurityHubBackend(BaseBackend):
         self.org_backend = organizations_backends[self.account_id]["aws"]
         self.enabled_at: Optional[str] = None
         self.enabled = False
+        self.members: dict[str, dict[str, str]] = {}
 
     def _get_org_config(self) -> dict[str, Any]:
         """Get organization config for the current account."""
@@ -360,6 +368,133 @@ class SecurityHubBackend(BaseBackend):
             "AutoEnableStandards": org_config["auto_enable_standards"],
             "OrganizationConfiguration": org_config["configuration"],
         }
+
+    def create_members(
+        self, account_details: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
+        """
+        Create member accounts for Security Hub.
+
+        Args:
+            account_details: List of dicts with AccountId and optionally Email
+
+        Returns:
+            List of unprocessed accounts
+        """
+        unprocessed_accounts: list[dict[str, str]] = []
+
+        if not account_details:
+            return unprocessed_accounts
+
+        for account in account_details:
+            account_id = account.get("AccountId")
+            email = account.get("Email", "")
+
+            if not account_id:
+                unprocessed_accounts.append(
+                    {
+                        "AccountId": account_id or "",
+                        "ProcessingResult": "Invalid input: AccountId is required",
+                    }
+                )
+                continue
+
+            if account_id in self.members:
+                unprocessed_accounts.append(
+                    {
+                        "AccountId": account_id,
+                        "ProcessingResult": f"Account {account_id} is already a member",
+                    }
+                )
+                continue
+
+            self.members[account_id] = {
+                "AccountId": account_id,
+                "Email": email,
+                "MemberStatus": "ENABLED",
+                "InvitedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "UpdatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+
+        return unprocessed_accounts
+
+    def get_members(
+        self, account_ids: list[str]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+        """
+        Get member account details by account IDs.
+
+        Args:
+            account_ids: List of account IDs to retrieve
+
+        Returns:
+            Tuple of (members, unprocessed_accounts)
+        """
+        members = []
+        unprocessed_accounts = []
+
+        try:
+            org_config = self._get_org_config()
+            admin_account_id = org_config.get("admin_account_id")
+        except Exception:
+            admin_account_id = None
+
+        for account_id in account_ids:
+            if account_id in self.members:
+                member_data = self.members[account_id].copy()
+                if admin_account_id:
+                    member_data["AdministratorId"] = admin_account_id
+                    member_data["MasterId"] = admin_account_id
+                members.append(member_data)
+            else:
+                unprocessed_accounts.append(
+                    {
+                        "AccountId": account_id,
+                        "ProcessingResult": f"Account {account_id} is not a member",
+                    }
+                )
+
+        return members, unprocessed_accounts
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_members(
+        self,
+        only_associated: Optional[bool] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        List all member accounts.
+
+        Args:
+            only_associated: If True, only return members with ENABLED status
+            max_results: Maximum number of results to return
+            next_token: Pagination token
+
+        Returns:
+            List of member details
+        """
+        if only_associated is None:
+            only_associated = True
+
+        try:
+            org_config = self._get_org_config()
+            admin_account_id = org_config.get("admin_account_id")
+        except Exception:
+            admin_account_id = None
+
+        members = []
+        for member_data in self.members.values():
+            if only_associated and member_data.get("MemberStatus") != "ENABLED":
+                continue
+
+            member = member_data.copy()
+            if admin_account_id:
+                member["AdministratorId"] = admin_account_id
+                member["MasterId"] = admin_account_id
+            members.append(member)
+
+        return members
 
 
 securityhub_backends = BackendDict(SecurityHubBackend, "securityhub")
