@@ -1,6 +1,7 @@
 """Handles incoming securityhub requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -141,7 +142,7 @@ class SecurityHubResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        response = {"Members": members}
+        response: dict[str, Any] = {"Members": members}
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
