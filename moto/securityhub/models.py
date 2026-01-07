@@ -462,7 +462,7 @@ class SecurityHubBackend(BaseBackend):
         only_associated: Optional[bool] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, str]]:
         """
         List all member accounts.
 
