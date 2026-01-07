@@ -7,6 +7,7 @@ url_bases = [
 ]
 
 url_paths = {
+    "{0}/$": SecurityHubResponse.dispatch,
     "{0}/accounts$": SecurityHubResponse.dispatch,
     "{0}/accounts/describe$": SecurityHubResponse.dispatch,
     "{0}/findings$": SecurityHubResponse.dispatch,
