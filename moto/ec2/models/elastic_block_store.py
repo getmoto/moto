@@ -31,6 +31,17 @@ GP3_DEFAULT_IOPS = 3000
 
 
 class VolumeModification:
+    original_size: Optional[int] = None
+    target_size: Optional[int] = None
+    original_volume_type: Optional[str] = None
+    target_volume_type: Optional[str] = None
+    original_iops: Optional[int] = None
+    target_iops: Optional[int] = None
+    original_throughput: Optional[int] = None
+    target_throughput: Optional[int] = None
+    original_multi_attach_enabled: Optional[bool] = None
+    target_multi_attach_enabled: Optional[bool] = None
+
     def __init__(
         self,
         volume: "Volume",
@@ -183,15 +194,15 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.modifications.append(modification)
 
         if target_size:
-            self.size = modification.target_size
+            self.size = target_size
         if target_volume_type:
-            self.volume_type = modification.target_volume_type
+            self.volume_type = target_volume_type
         if target_iops:
-            self.iops = modification.target_iops
+            self.iops = target_iops
         if target_throughput:
-            self.throughput = modification.target_throughput
+            self.throughput = target_throughput
         if target_multi_attach_enabled:
-            self.multi_attach_enabled = modification.target_multi_attach_enabled
+            self.multi_attach_enabled = target_multi_attach_enabled
 
     @staticmethod
     def cloudformation_name_type() -> str:
