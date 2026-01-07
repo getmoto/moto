@@ -251,7 +251,9 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% if volume.encrypted %}
   <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
   {% endif %}
+  {% if volume.zone %}
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
+  {% endif %}
   <status>creating</status>
   <createTime>{{ volume.create_time }}</createTime>
   {% if volume.get_tags() %}
@@ -294,7 +296,9 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% if volume.encrypted %}
              <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
              {% endif %}
+             {% if volume.zone %}
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
+             {% endif %}
              <status>{{ volume.status }}</status>
              <createTime>{{ volume.create_time }}</createTime>
              <attachmentSet>
