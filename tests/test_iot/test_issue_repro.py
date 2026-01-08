@@ -1,5 +1,7 @@
 import boto3
+
 from moto import mock_aws
+
 
 @mock_aws
 def test_list_thing_principals_v2():
