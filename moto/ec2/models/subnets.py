@@ -99,7 +99,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         if ipv6_cidr_block:
             self.attach_ipv6_cidr_block_associations(ipv6_cidr_block)
 
-        self._base_avail_ip_iterator = self.cidr.hosts()
         self._reserved_ips: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
         # Reserved by AWS
@@ -357,7 +356,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
     def _subnet_ip_generator(
         self,
     ) -> Iterator[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-        for host in self._base_avail_ip_iterator:
+        for host in self.cidr.hosts():
             # Skip any reserved ips
             if host in self._reserved_ips:
                 continue
