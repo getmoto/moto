@@ -1081,6 +1081,11 @@ class InstanceBackend:
             reservations = filter_reservations(reservations, filters)
         return reservations
 
+    def get_instance_uefi_data(self, instance_id: str) -> bytes:
+        # Just a stub for now, doesn't return any actual data.
+        _ = self.get_instance(instance_id)
+        return b""
+
     def _get_template_from_args(
         self, launch_template_arg: dict[str, Any]
     ) -> LaunchTemplateVersion:

@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Any
 
 from moto.core.responses import ActionResult, EmptyResult
+from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     InvalidParameterCombination,
@@ -282,6 +283,15 @@ class InstanceResponse(EC2BaseResponse):
             metadata_tags=metadata_tags,
         )
         result = {"InstanceId": instance_id, "InstanceMetadataOptions": options}
+        return ActionResult(result)
+
+    def get_instance_uefi_data(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        uefi_data = self.ec2_backend.get_instance_uefi_data(instance_id)
+        result = {
+            "InstanceId": instance_id,
+            "UefiData": Base64EncodedString.from_encoded_bytes(uefi_data),
+        }
         return ActionResult(result)
 
     def _block_device_mapping_handler(self) -> bool:
