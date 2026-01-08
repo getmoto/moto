@@ -591,19 +591,19 @@ class IoTResponse(BaseResponse):
         thing_name = self._get_param("thingName")
         principals = self.iot_backend.list_thing_principals(thing_name=thing_name)
         return json.dumps({"principals": principals})
-    
+
     def list_thing_principals_v2(self) -> str:
         thing_name = self._get_param("thingName")
-        # 呼叫剛剛在大腦 (models.py) 寫好的新功能
+        # Call the new function that was just written in the brain (models.py).
         principals = self.iot_backend.list_thing_principals_v2(thing_name=thing_name)
-        
-        # 【關鍵差異】V2 要求的格式是 "物件列表"，不是原本的 "字串列表"
-        # 用迴圈把每個 principal 包裝成字典 (Dictionary)
+
+        # [Key Difference] V2 requires a "list of objects" format, not the original "list of strings".
+        # Wrap each principal into a dictionary using a loop.
         thing_principal_objects = [
             {"thingName": thing_name, "principal": p} for p in principals
         ]
-        
-        # 回傳 V2 規定的 key: "thingPrincipalObjects"
+
+        # Return V2 specifications key: "thingPrincipalObjects"
         return json.dumps({"thingPrincipalObjects": thing_principal_objects})
 
     def describe_thing_group(self) -> str:
