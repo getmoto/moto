@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import functools
 import json
 import logging
@@ -22,6 +21,7 @@ from xml.dom.minidom import parseString as parseXML
 import boto3
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
+from werkzeug.http import http_date
 
 from moto import settings
 from moto.core.authorization import ActionAuthenticatorMixin
@@ -44,6 +44,7 @@ from moto.core.utils import (
     gzip_decompress,
     method_names_from_class,
     set_value,
+    utcnow,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.paginator import paginate
@@ -405,8 +406,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.headers["host"] = self.parsed_url.netloc
         self.response_headers = {
             "server": "amazon.com",
-            "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
+        if not self.is_werkzeug_request:
+            self.response_headers["date"] = http_date(utcnow())
 
         if self.automated_parameter_parsing:
             self.parse_parameters(request)
