@@ -4,6 +4,7 @@ import ipaddress
 import itertools
 from collections import defaultdict
 from collections.abc import Iterator
+from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from moto.core.common_models import CloudFormationModel
@@ -352,11 +353,22 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
         return reservation
 
+    @cache
+    def _base_avail_ip_iterator(
+        self,
+    ) -> (
+        Iterator[ipaddress.IPv4Address]
+        | list[ipaddress.IPv4Address]
+        | Iterator[ipaddress.IPv6Address]
+        | list[ipaddress.IPv6Address]
+    ):
+        return self.cidr.hosts()
+
     @property
     def _subnet_ip_generator(
         self,
     ) -> Iterator[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-        for host in self.cidr.hosts():
+        for host in self._base_avail_ip_iterator():
             # Skip any reserved ips
             if host in self._reserved_ips:
                 continue
