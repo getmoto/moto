@@ -162,7 +162,9 @@ class OrganizationsResponse(BaseResponse):
         return "{}"
 
     def list_policies(self) -> str:
-        return json.dumps(self.organizations_backend.list_policies())
+        return json.dumps(
+            self.organizations_backend.list_policies(**self.request_params)
+        )
 
     def delete_policy(self) -> str:
         self.organizations_backend.delete_policy(**self.request_params)
