@@ -40,6 +40,7 @@ from .security_groups import SecurityGroupBackend
 from .spot_requests import SpotRequestBackend
 from .subnets import SubnetBackend
 from .tags import TagBackend
+from .traffic_mirrors import TrafficMirrorsBackend
 from .transit_gateway import TransitGatewayBackend
 from .transit_gateway_attachments import TransitGatewayAttachmentBackend
 from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
@@ -107,6 +108,7 @@ class EC2Backend(
     VpnGatewayBackend,
     CustomerGatewayBackend,
     NatGatewayBackend,
+    TrafficMirrorsBackend,
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
     TransitGatewayAttachmentBackend,
