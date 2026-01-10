@@ -2231,6 +2231,9 @@ class IoTBackend(BaseBackend):
         ]
         return principals
 
+    def list_thing_principals_v2(self, thing_name: str) -> list[str]:
+        return self.list_thing_principals(thing_name)
+
     def describe_thing_group(self, thing_group_name: str) -> FakeThingGroup:
         thing_groups = [
             _
