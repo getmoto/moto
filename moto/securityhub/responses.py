@@ -1,6 +1,7 @@
 """Handles incoming securityhub requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -110,3 +111,38 @@ class SecurityHubResponse(BaseResponse):
     def describe_organization_configuration(self) -> str:
         response = self.securityhub_backend.describe_organization_configuration()
         return json.dumps(dict(response))
+
+    def create_members(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        account_details = params.get("AccountDetails", [])
+        unprocessed_accounts = self.securityhub_backend.create_members(
+            account_details=account_details,
+        )
+        return json.dumps({"UnprocessedAccounts": unprocessed_accounts})
+
+    def get_members(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        account_ids = params.get("AccountIds", [])
+        members, unprocessed_accounts = self.securityhub_backend.get_members(
+            account_ids=account_ids,
+        )
+        return json.dumps(
+            {"Members": members, "UnprocessedAccounts": unprocessed_accounts}
+        )
+
+    def list_members(self) -> str:
+        only_associated = self._get_param("OnlyAssociated")
+        max_results = self._get_param("MaxResults")
+        if max_results is not None:
+            max_results = int(max_results)
+        next_token = self._get_param("NextToken")
+
+        members, next_token = self.securityhub_backend.list_members(
+            only_associated=only_associated,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        response: dict[str, Any] = {"Members": members}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
