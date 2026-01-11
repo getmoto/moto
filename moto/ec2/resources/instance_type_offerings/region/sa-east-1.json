@@ -2512,6 +2512,10 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "sa-east-1"
  },
