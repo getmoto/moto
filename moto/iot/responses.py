@@ -592,6 +592,20 @@ class IoTResponse(BaseResponse):
         principals = self.iot_backend.list_thing_principals(thing_name=thing_name)
         return json.dumps({"principals": principals})
 
+    def list_thing_principals_v2(self) -> str:
+        thing_name = self._get_param("thingName")
+        # Call the new function that was just written in the brain (models.py).
+        principals = self.iot_backend.list_thing_principals_v2(thing_name=thing_name)
+
+        # [Key Difference] V2 requires a "list of objects" format, not the original "list of strings".
+        # Wrap each principal into a dictionary using a loop.
+        thing_principal_objects = [
+            {"thingName": thing_name, "principal": p} for p in principals
+        ]
+
+        # Return V2 specifications key: "thingPrincipalObjects"
+        return json.dumps({"thingPrincipalObjects": thing_principal_objects})
+
     def describe_thing_group(self) -> str:
         thing_group_name = unquote(self.path.split("/thing-groups/")[-1])
         thing_group = self.iot_backend.describe_thing_group(
