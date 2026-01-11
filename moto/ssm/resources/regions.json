@@ -5757,15 +5757,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -6405,15 +6396,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -6844,15 +6826,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9472,15 +9445,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12794,15 +12758,6 @@
                 "Value": "elasticbeanstalk",
                 "endpoint": {
                   "Value": "elasticbeanstalk.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16973,15 +16928,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -17576,15 +17522,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -17982,15 +17919,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19772,15 +19700,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -20402,15 +20321,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -20886,15 +20796,6 @@
                 "Value": "qbusiness",
                 "endpoint": {
                   "Value": "qbusiness.ap-southeast-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22114,6 +22015,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26220,6 +26130,15 @@
               "artifact": {
                 "Value": "artifact"
               },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aurora": {
                 "Value": "aurora",
                 "endpoint": {
@@ -26541,6 +26460,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -26577,6 +26505,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -26599,6 +26536,15 @@
                 "Value": "kms",
                 "endpoint": {
                   "Value": "kms.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26731,6 +26677,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30051,15 +30006,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36697,15 +36643,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -37172,15 +37109,6 @@
                 "Value": "qdeveloper",
                 "endpoint": {
                   "Value": "q.eu-central-1.amazonaws.com"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
                 }
               },
               "quicksight": {
@@ -40701,15 +40629,6 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46118,15 +46037,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -46811,15 +46721,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -47310,15 +47211,6 @@
                 "Value": "qbusiness",
                 "endpoint": {
                   "Value": "qbusiness.eu-west-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50056,15 +49948,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53016,7 +52899,7 @@
               "Value": "DE-BE"
             },
             "longName": {
-              "Value": "EU (Germany)"
+              "Value": "AWS European Sovereign Cloud (Germany)"
             },
             "partition": {
               "Value": "aws-eusc"
@@ -63541,15 +63424,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -64252,15 +64126,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -64895,15 +64760,6 @@
                 "Value": "qdeveloper",
                 "endpoint": {
                   "Value": "q.us-east-1.amazonaws.com"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
                 }
               },
               "quicksight": {
@@ -67309,15 +67165,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -67706,15 +67553,6 @@
                 "Value": "proton",
                 "endpoint": {
                   "Value": "proton.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -69318,6 +69156,15 @@
                 "Value": "kafka",
                 "endpoint": {
                   "Value": "kafka.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -71067,6 +70914,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kendra": {
                 "Value": "kendra",
                 "endpoint": {
@@ -72686,15 +72542,6 @@
                 "Value": "elasticbeanstalk",
                 "endpoint": {
                   "Value": "elasticbeanstalk.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -75172,15 +75019,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "elastictranscoder": {
-                "Value": "elastictranscoder",
-                "endpoint": {
-                  "Value": "elastictranscoder.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -75847,15 +75685,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "lookoutmetrics": {
-                "Value": "lookoutmetrics",
-                "endpoint": {
-                  "Value": "lookoutmetrics.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "lumberyard": {
                 "Value": "lumberyard"
               },
@@ -76346,15 +76175,6 @@
                 "Value": "qbusiness",
                 "endpoint": {
                   "Value": "qbusiness.us-west-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb": {
-                "Value": "qldb",
-                "endpoint": {
-                  "Value": "qldb.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
