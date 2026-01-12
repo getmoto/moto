@@ -1638,6 +1638,29 @@ def test_list_polices_exception():
 
 
 @mock_aws
+def test_list_policies_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    for i in range(15):
+        client.create_policy(
+            Content=json.dumps(policy_doc_scp),
+            Description="A dummy service control policy",
+            Name="MockServiceControlPolicy" + str(i),
+            Type="SERVICE_CONTROL_POLICY",
+        )
+    response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
+    assert "NextToken" not in response
+    assert len(response["Policies"]) >= i
+
+    paginator = client.get_paginator("list_policies")
+    page_iterator = paginator.paginate(Filter="SERVICE_CONTROL_POLICY", MaxResults=5)
+    page_list = list(page_iterator)
+    for page in page_list:
+        assert len(page["Policies"]) <= 5
+    assert "14" in page_list[-1]["Policies"][-1]["Name"]
+
+
+@mock_aws
 def test_list_service_control_policies_for_target():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1825,6 +1848,44 @@ def test_list_resource_control_policies_for_target_exception():
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert "InvalidInputException" in ex.response["Error"]["Code"]
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+
+@mock_aws
+def test_list_policies_for_target_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    for i in range(15):
+        policy_id = client.create_policy(
+            Content=json.dumps(policy_doc_scp),
+            Description="A dummy service control policy",
+            Name="MockServiceControlPolicy" + str(i),
+            Type="SERVICE_CONTROL_POLICY",
+        )["Policy"]["PolicySummary"]["Id"]
+        client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+        client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+
+    for target_id in (ou_id, account_id):
+        response = client.list_policies_for_target(
+            TargetId=target_id, Filter="SERVICE_CONTROL_POLICY"
+        )
+        assert "NextToken" not in response
+        assert len(response["Policies"]) >= i
+
+        paginator = client.get_paginator("list_policies_for_target")
+        page_iterator = paginator.paginate(
+            TargetId=target_id, Filter="SERVICE_CONTROL_POLICY", MaxResults=5
+        )
+        page_list = list(page_iterator)
+        for page in page_list:
+            assert len(page["Policies"]) <= 5
+        assert "14" in page_list[-1]["Policies"][-1]["Name"]
 
 
 @mock_aws

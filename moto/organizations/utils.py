@@ -53,6 +53,20 @@ PAGINATION_MODEL = {
         "result_key": "Accounts",
         "unique_attribute": "id",
     },
+    "list_policies": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 20,
+        "result_key": "Policies",
+        "unique_attribute": "Id",
+    },
+    "list_policies_for_target": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 20,
+        "result_key": "Policies",
+        "unique_attribute": "Id",
+    },
     "list_organizational_units_for_parent": {
         "input_token": "next_token",
         "limit_key": "max_results",

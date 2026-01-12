@@ -772,29 +772,16 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def list_policies(self, **kwargs: Any) -> dict[str, Any]:
-        _filter = kwargs["Filter"]
-
-        if not FakePolicy.supported_policy_type(_filter):
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_policies(self, policy_type: str) -> list[FakePolicy]:
+        if not FakePolicy.supported_policy_type(policy_type):
             raise InvalidInputException("You specified an invalid value.")
 
-        if _filter not in [
-            "AISERVICES_OPT_OUT_POLICY",
-            "RESOURCE_CONTROL_POLICY",
-            "SERVICE_CONTROL_POLICY",
-            "TAG_POLICY",
-        ]:
-            raise NotImplementedError(
-                f"The {_filter} policy type has not been implemented"
-            )
-
-        return {
-            "Policies": [
-                p.describe()["Policy"]["PolicySummary"]
-                for p in self.policies
-                if p.type == _filter
-            ]
-        }
+        return [
+            p.describe()["Policy"]["PolicySummary"]
+            for p in self.policies
+            if p.type == policy_type
+        ]
 
     def delete_policy(self, **kwargs: Any) -> None:
         for idx, policy in enumerate(self.policies):
@@ -810,47 +797,36 @@ class OrganizationsBackend(BaseBackend):
             "We can't find a policy with the PolicyId that you specified.",
         )
 
-    def list_policies_for_target(self, **kwargs: Any) -> dict[str, Any]:
-        _filter = kwargs["Filter"]
-
-        if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
-            obj: Any = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_policies_for_target(
+        self, target_id: str, policy_type: str
+    ) -> list[FakePolicy]:
+        if re.match(utils.ROOT_ID_REGEX, target_id):
+            obj: Any = next((ou for ou in self.ou if ou.id == target_id), None)
             if obj is None:
                 raise TargetNotFoundException
-        elif re.compile(utils.OU_ID_REGEX).match(kwargs["TargetId"]):
-            obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
+        elif re.compile(utils.OU_ID_REGEX).match(target_id):
+            obj = next((ou for ou in self.ou if ou.id == target_id), None)
             if obj is None:
                 raise RESTError(
                     "OrganizationalUnitNotFoundException",
                     "You specified an organizational unit that doesn't exist.",
                 )
-        elif re.compile(utils.ACCOUNT_ID_REGEX).match(kwargs["TargetId"]):
-            obj = next((a for a in self.accounts if a.id == kwargs["TargetId"]), None)
+        elif re.compile(utils.ACCOUNT_ID_REGEX).match(target_id):
+            obj = next((a for a in self.accounts if a.id == target_id), None)
             if obj is None:
                 raise AccountNotFoundException
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-        if not FakePolicy.supported_policy_type(_filter):
+        if not FakePolicy.supported_policy_type(policy_type):
             raise InvalidInputException("You specified an invalid value.")
 
-        if _filter not in [
-            "AISERVICES_OPT_OUT_POLICY",
-            "RESOURCE_CONTROL_POLICY",
-            "SERVICE_CONTROL_POLICY",
-            "TAG_POLICY",
-        ]:
-            raise NotImplementedError(
-                f"The {_filter} policy type has not been implemented"
-            )
-
-        return {
-            "Policies": [
-                p.describe()["Policy"]["PolicySummary"]
-                for p in obj.attached_policies
-                if p.type == _filter
-            ]
-        }
+        return [
+            p.describe()["Policy"]["PolicySummary"]
+            for p in obj.attached_policies
+            if p.type == policy_type
+        ]
 
     def _get_resource_for_tagging(self, resource_id: str) -> Any:
         if utils.fullmatch(

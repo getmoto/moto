@@ -162,18 +162,32 @@ class OrganizationsResponse(BaseResponse):
         return "{}"
 
     def list_policies(self) -> str:
-        return json.dumps(
-            self.organizations_backend.list_policies(**self.request_params)
+        policy_type = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        policies, next_token = self.organizations_backend.list_policies(
+            policy_type=policy_type, max_results=max_results, next_token=next_token
         )
+        response = {"Policies": policies, "NextToken": next_token}
+        return json.dumps(response)
 
     def delete_policy(self) -> str:
         self.organizations_backend.delete_policy(**self.request_params)
         return json.dumps({})
 
     def list_policies_for_target(self) -> str:
-        return json.dumps(
-            self.organizations_backend.list_policies_for_target(**self.request_params)
+        target_id = self._get_param("TargetId")
+        policy_type = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        policies, next_token = self.organizations_backend.list_policies_for_target(
+            target_id=target_id,
+            policy_type=policy_type,
+            max_results=max_results,
+            next_token=next_token,
         )
+        response = {"Policies": policies, "NextToken": next_token}
+        return json.dumps(response)
 
     def list_targets_for_policy(self) -> str:
         return json.dumps(
