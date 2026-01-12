@@ -95,8 +95,8 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags: dict[str, str] = {}
-        self.fifo_topic = "false"
-        self.content_based_deduplication = "false"
+        self.fifo_topic = False
+        self.content_based_deduplication = False
 
     def publish(
         self,
@@ -264,7 +264,7 @@ class Subscription(BaseModel):
 
             backend: SQSBackend = sqs_backends[self.account_id][region]
 
-            if self.attributes.get("RawMessageDelivery") != "true":
+            if not self.attributes.get("RawMessageDelivery"):
                 backend.send_message(
                     queue_name,
                     json.dumps(
@@ -457,7 +457,7 @@ class PlatformEndpoint(BaseModel):
         application: PlatformApplication,
         custom_user_data: str,
         token: str,
-        attributes: dict[str, str],
+        attributes: dict[str, Any],
     ):
         self.region = region
         self.application = application
@@ -474,15 +474,12 @@ class PlatformEndpoint(BaseModel):
         # automatically ensure they exist as well.
         if "Token" not in self.attributes:
             self.attributes["Token"] = self.token
-        if "Enabled" in self.attributes:
-            enabled = self.attributes["Enabled"]
-            self.attributes["Enabled"] = enabled.lower()
-        else:
-            self.attributes["Enabled"] = "true"
+        if "Enabled" not in self.attributes:
+            self.attributes["Enabled"] = True
 
     @property
     def enabled(self) -> bool:
-        return json.loads(self.attributes.get("Enabled", "true").lower())
+        return self.attributes.get("Enabled", True) is True
 
     def publish(self, message: str) -> str:
         if not self.enabled:
@@ -555,7 +552,7 @@ class SNSBackend(BaseBackend):
     ) -> Topic:
         if attributes is None:
             attributes = {}
-        if attributes.get("FifoTopic") and attributes["FifoTopic"].lower() == "true":
+        if attributes.get("FifoTopic"):
             fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}\.fifo$", name)
             msg = "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
 
@@ -651,7 +648,7 @@ class SNSBackend(BaseBackend):
             topic = self.get_topic(topic_arn)
             try:
                 queue = backend.get_queue(arn.resource_id)
-                if topic.fifo_topic == "false" and queue.fifo_queue:
+                if not topic.fifo_topic and queue.fifo_queue:
                     raise SNSInvalidParameter(
                         "Invalid parameter: Invalid parameter: Endpoint Reason: FIFO SQS Queues can not be subscribed to standard SNS topics"
                     )
@@ -677,14 +674,14 @@ class SNSBackend(BaseBackend):
 
         subscription = Subscription(self.account_id, topic, endpoint, protocol)
         attributes = {
-            "PendingConfirmation": "false",
-            "ConfirmationWasAuthenticated": "true",
+            "PendingConfirmation": False,
+            "ConfirmationWasAuthenticated": True,
             "Endpoint": endpoint,
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
             "Owner": self.account_id,
-            "RawMessageDelivery": "false",
+            "RawMessageDelivery": False,
         }
 
         if protocol in ["http", "https"]:
@@ -761,13 +758,12 @@ class SNSBackend(BaseBackend):
         try:
             topic = self.get_topic(arn)  # type: ignore
 
-            fifo_topic = topic.fifo_topic == "true"
-            if fifo_topic:
+            if topic.fifo_topic:
                 if not group_id:
                     # MessageGroupId is a mandatory parameter for all
                     # messages in a fifo queue
                     raise MissingParameter("MessageGroupId")
-                deduplication_id_required = topic.content_based_deduplication == "false"
+                deduplication_id_required = not topic.content_based_deduplication
                 if not deduplication_id and deduplication_id_required:
                     raise InvalidParameterValue(
                         "The topic should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly"
@@ -834,8 +830,7 @@ class SNSBackend(BaseBackend):
             if token == endpoint.token:
                 same_user_data = custom_user_data == endpoint.custom_user_data
                 same_attrs = (
-                    attributes.get("Enabled", "true").lower()
-                    == endpoint.attributes["Enabled"]
+                    attributes.get("Enabled", True) == endpoint.attributes["Enabled"]
                 )
 
                 if same_user_data and same_attrs:
@@ -1199,8 +1194,7 @@ class SNSBackend(BaseBackend):
         if len(set(ids)) != len(ids):
             raise BatchEntryIdsNotDistinct
 
-        fifo_topic = topic.fifo_topic == "true"
-        if fifo_topic:
+        if topic.fifo_topic:
             if not all(
                 "MessageGroupId" in entry for entry in publish_batch_request_entries
             ):
@@ -1319,10 +1313,10 @@ class SNSBackend(BaseBackend):
         if topic.kms_master_key_id:
             configuration["kmsMasterKeyId"] = topic.kms_master_key_id
 
-        if topic.fifo_topic == "true":
+        if topic.fifo_topic:
             configuration["fifoTopic"] = True
             configuration["contentBasedDeduplication"] = (
-                topic.content_based_deduplication == "true"
+                topic.content_based_deduplication
             )
 
         return config_item
