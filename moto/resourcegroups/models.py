@@ -258,8 +258,6 @@ class FakeTagSyncTask(BaseModel):
             to_return["ResourceQuery"] = self.resource_query
         to_return["RoleArn"] = self.role_arn
         to_return["Status"] = self.status
-        if self.status == "ERROR" and self.error_message is not None:
-            to_return["ErrorMessage"] = self.error_message
         to_return["CreatedAt"] = self.created_at
 
         return to_return
