@@ -201,7 +201,7 @@ class VPCPeeringConnectionBackend:
         vpc_pcx_id: str,
         accepter_options: Optional[dict[str, Any]] = None,
         requester_options: Optional[dict[str, Any]] = None,
-    ) -> None:
+    ) -> VPCPeeringConnection:
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if not vpc_pcx:
             raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
@@ -210,3 +210,4 @@ class VPCPeeringConnectionBackend:
             vpc_pcx.accepter_options.update(accepter_options)
         if requester_options:
             vpc_pcx.requester_options.update(requester_options)
+        return vpc_pcx

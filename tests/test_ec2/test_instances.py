@@ -3095,6 +3095,17 @@ def test_run_instances_default_response():
     assert "VpcId" in instance
 
 
+@mock_aws
+def test_get_instance_uefi_data():
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+    resp = client.get_instance_uefi_data(InstanceId=instance_id)
+    assert resp["InstanceId"] == instance_id
+    # Implementation is just a stub at the moment, so just check that value exists.
+    assert "UefiData" in resp
+
+
 def test_block_device_status_conversion():
     """Test EBS block device status conversion."""
     from moto.ec2.models.instances import Instance

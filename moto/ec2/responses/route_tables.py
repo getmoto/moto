@@ -151,8 +151,8 @@ CREATE_ROUTE_TABLE_RESPONSE = """
               {% if route.destination_cidr_block %}
               <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
               {% endif %}
-              {% if route.destination_prefix_list_id %}
-                <destinationPrefixListId>{{ route.destination_prefix_list_id }}</destinationPrefixListId>
+              {% if route.destination_prefix_list %}
+                <destinationPrefixListId>{{ route.destination_prefix_list.id }}</destinationPrefixListId>
               {% endif %}
              <gatewayId>local</gatewayId>
              <state>active</state>

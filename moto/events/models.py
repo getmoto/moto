@@ -1,4 +1,5 @@
 import copy
+import ipaddress
 import json
 import re
 import sys
@@ -955,60 +956,169 @@ class EventPattern:
         if not self._pattern:
             return True
         event = json.loads(json.dumps(event))
-        return self._does_event_match(event, self._pattern)
-
-    def _does_event_match(
-        self, event: EventMessageType, pattern: dict[str, Any]
-    ) -> bool:
-        items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
-        nested_filter_matches = [
-            self._does_event_match(item, nested_filter)  # type: ignore
-            for item, nested_filter in items_and_filters
-            if isinstance(nested_filter, dict)
-        ]
-        filter_list_matches = [
-            self._does_item_match_filters(item, filter_list)
-            for item, filter_list in items_and_filters
-            if isinstance(filter_list, list)
-        ]
-        return all(nested_filter_matches + filter_list_matches)
-
-    def _does_item_match_filters(self, item: Any, filters: Any) -> bool:
-        allowed_values = [value for value in filters if isinstance(value, str)]
-        allowed_values_match = item in allowed_values if allowed_values else True
-        full_match = isinstance(item, list) and item == allowed_values
-        named_filter_matches = [
-            self._does_item_match_named_filter(item, pattern)
-            for pattern in filters
-            if isinstance(pattern, dict)
-        ]
-        return (full_match or allowed_values_match) and all(named_filter_matches)
+        event_flat = self._flatten_dict(event)
+        return self._does_event_match(event_flat, self._pattern)
 
     @staticmethod
-    def _does_item_match_named_filter(item: Any, pattern: Any) -> bool:  # type: ignore[misc]
+    def _flatten_dict(
+        node: Any, prefix: str = "", result: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
+        if result is None:
+            result = {}
+        if isinstance(node, dict):
+            for k, v in node.items():
+                new_key = f"{prefix}.{k}" if prefix else k
+                if isinstance(v, dict) and v:
+                    EventPattern._flatten_dict(v, new_key, result)
+                else:
+                    result[new_key] = v
+        return result
+
+    def _does_event_match(
+        self, event_flat: dict[str, Any], pattern_node: dict[str, Any], prefix: str = ""
+    ) -> bool:
+        if not isinstance(pattern_node, dict):
+            return False
+
+        results = []
+        for k, v in pattern_node.items():
+            if k == "$or":
+                results.append(
+                    any(self._does_event_match(event_flat, p, prefix) for p in v)
+                )
+            else:
+                new_prefix = f"{prefix}.{k}" if prefix else k
+                if isinstance(v, dict):
+                    # v is a nested pattern
+                    results.append(self._does_event_match(event_flat, v, new_prefix))
+                elif isinstance(v, list):
+                    # v is a list of filters (scalars or named filter dicts)
+                    item = event_flat.get(new_prefix, UNDEFINED)
+                    results.append(self._does_item_match_filters(item, v))
+                else:
+                    results.append(False)
+        return all(results)
+
+    def _does_item_match_filters(self, item: Any, filters: list[Any]) -> bool:
+        for f in filters:
+            if isinstance(f, (str, bool, int, float)) or f is None:
+                if item is UNDEFINED:
+                    continue
+                if isinstance(item, list):
+                    if f in item:
+                        return True
+                elif item == f:
+                    return True
+            elif isinstance(f, dict):
+                if self._does_item_match_named_filter(item, f):
+                    return True
+        return False
+
+    @staticmethod
+    def _does_item_match_named_filter(item: Any, pattern: dict[str, Any]) -> bool:
         filter_name, filter_value = list(pattern.items())[0]
         if filter_name == "exists":
-            is_leaf_node = not isinstance(item, dict)
-            leaf_exists = is_leaf_node and item is not UNDEFINED
-            should_exist = filter_value
-            return leaf_exists if should_exist else not leaf_exists
-        if filter_name == "prefix":
-            prefix = filter_value
-            return item.startswith(prefix)
-        if filter_name == "numeric":
-            as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
-            operators_and_values = zip(filter_value[::2], filter_value[1::2])
-            numeric_matches = [
-                as_function[operator](item, value)
-                for operator, value in operators_and_values
-            ]
-            return all(numeric_matches)
-        else:
-            warnings.warn(
-                f"'{filter_name}' filter logic unimplemented. defaulting to True",
-                stacklevel=2,
-            )
+            exists = item is not UNDEFINED
+            return exists == filter_value
+
+        if item is UNDEFINED:
+            return False
+
+        def evaluate(val: Any) -> bool:
+            if filter_name == "prefix":
+                if (
+                    isinstance(filter_value, dict)
+                    and "equals-ignore-case" in filter_value
+                ):
+                    target = filter_value["equals-ignore-case"]
+                    return isinstance(val, str) and val.lower().startswith(
+                        target.lower()
+                    )
+                if isinstance(filter_value, list):
+                    return isinstance(val, str) and any(
+                        val.startswith(v) for v in filter_value
+                    )
+                return isinstance(val, str) and val.startswith(filter_value)
+            if filter_name == "suffix":
+                if (
+                    isinstance(filter_value, dict)
+                    and "equals-ignore-case" in filter_value
+                ):
+                    target = filter_value["equals-ignore-case"]
+                    return isinstance(val, str) and val.lower().endswith(target.lower())
+                if isinstance(filter_value, list):
+                    return isinstance(val, str) and any(
+                        val.endswith(v) for v in filter_value
+                    )
+                return isinstance(val, str) and val.endswith(filter_value)
+            if filter_name == "equals-ignore-case":
+                if isinstance(filter_value, list):
+                    return isinstance(val, str) and any(
+                        val.lower() == v.lower() for v in filter_value
+                    )
+                return isinstance(val, str) and val.lower() == filter_value.lower()
+            if filter_name == "numeric":
+                if not isinstance(val, (int, float)):
+                    return False
+                as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
+                operators_and_values = zip(filter_value[::2], filter_value[1::2])
+                numeric_matches = [
+                    as_function[operator](val, value)
+                    for operator, value in operators_and_values
+                ]
+                return all(numeric_matches)
+            if filter_name == "anything-but":
+                if isinstance(filter_value, list):
+                    return val not in filter_value
+                if isinstance(filter_value, dict):
+                    # Recursive check for any-but with other filters (e.g. prefix)
+                    return not EventPattern._does_item_match_named_filter(
+                        val, filter_value
+                    )
+                return val != filter_value
+            if filter_name == "cidr":
+                try:
+                    ip_item = ipaddress.ip_address(val)
+                    network = ipaddress.ip_network(filter_value)
+                    return ip_item in network
+                except Exception:
+                    return False
+            if filter_name == "wildcard":
+                if isinstance(filter_value, list):
+                    return any(
+                        EventPattern._wildcard_match(val, v) for v in filter_value
+                    )
+                return EventPattern._wildcard_match(val, filter_value)
             return True
+
+        if isinstance(item, list):
+            return any(evaluate(i) for i in item)
+        return evaluate(item)
+
+    @staticmethod
+    def _wildcard_match(item: Any, pattern: str) -> bool:
+        if not isinstance(item, str):
+            return False
+        regex = ""
+        i = 0
+        while i < len(pattern):
+            c = pattern[i]
+            if c == "\\":
+                if i + 1 < len(pattern):
+                    next_c = pattern[i + 1]
+                    if next_c in ["*", "\\"]:
+                        regex += re.escape(next_c)
+                        i += 2
+                        continue
+                regex += re.escape(c)
+                i += 1
+            elif c == "*":
+                regex += ".*"
+                i += 1
+            else:
+                regex += re.escape(c)
+                i += 1
+        return re.fullmatch(regex, item) is not None
 
     @classmethod
     def load(cls, raw_pattern: Optional[str]) -> "EventPattern":

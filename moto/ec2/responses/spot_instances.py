@@ -114,7 +114,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
         <message>{{ request.status_message }}</message>
       </status>
-      <instanceId>{{ request.instance_id }}</instanceId>
+      <instanceId>{{ request.instance.id }}</instanceId>
       <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       <launchSpecification>
         <imageId>{{ request.launch_specification.image_id }}</imageId>

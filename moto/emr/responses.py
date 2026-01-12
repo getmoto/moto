@@ -3,7 +3,7 @@ from re import Pattern
 from typing import Any
 
 from moto.core.parsers import XFormedDict
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .exceptions import ValidationException
 from .models import ElasticMapReduceBackend, emr_backends
@@ -103,57 +103,47 @@ class ElasticMapReduceResponse(BaseResponse):
 
     def list_bootstrap_actions(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
-        marker = self._get_param("Marker")
-        bootstrap_actions, marker = self.backend.list_bootstrap_actions(
-            cluster_id, marker
-        )
-        result = {"BootstrapActions": bootstrap_actions, "Marker": marker}
-        return ActionResult(result)
+        bootstrap_actions = self.backend.list_bootstrap_actions(cluster_id)
+        result = {"BootstrapActions": bootstrap_actions}
+        return PaginatedResult(result)
 
     def list_clusters(self) -> ActionResult:
         cluster_states = self._get_param("ClusterStates", [])
         created_after = self._get_param("CreatedAfter")
         created_before = self._get_param("CreatedBefore")
-        marker = self._get_param("Marker")
-        clusters, marker = self.backend.list_clusters(
-            cluster_states, created_after, created_before, marker
+        clusters = self.backend.list_clusters(
+            cluster_states, created_after, created_before
         )
-        result = {"Clusters": clusters, "Marker": marker}
-        return ActionResult(result)
+        result = {"Clusters": clusters}
+        return PaginatedResult(result)
 
     def list_instance_groups(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
-        marker = self._get_param("Marker")
-        instance_groups, marker = self.backend.list_instance_groups(
-            cluster_id, marker=marker
-        )
-        result = {"InstanceGroups": instance_groups, "Marker": marker}
-        return ActionResult(result)
+        instance_groups = self.backend.list_instance_groups(cluster_id)
+        result = {"InstanceGroups": instance_groups}
+        return PaginatedResult(result)
 
     def list_instances(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
-        marker = self._get_param("Marker")
         instance_group_id = self._get_param("InstanceGroupId")
         instance_group_types = self._get_param("InstanceGroupTypes")
-        instances, marker = self.backend.list_instances(
+        instances = self.backend.list_instances(
             cluster_id,
-            marker=marker,
             instance_group_id=instance_group_id,
             instance_group_types=instance_group_types,
         )
-        result = {"Instances": instances, "Marker": marker}
-        return ActionResult(result)
+        result = {"Instances": instances}
+        return PaginatedResult(result)
 
     def list_steps(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
-        marker = self._get_param("Marker")
         step_ids = self._get_param("StepIds", [])
         step_states = self._get_param("StepStates", [])
-        steps, marker = self.backend.list_steps(
-            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states
+        steps = self.backend.list_steps(
+            cluster_id, step_ids=step_ids, step_states=step_states
         )
-        result = {"Steps": steps, "Marker": marker}
-        return ActionResult(result)
+        result = {"Steps": steps}
+        return PaginatedResult(result)
 
     def modify_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")

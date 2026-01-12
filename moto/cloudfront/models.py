@@ -106,6 +106,9 @@ class DefaultCacheBehaviour:
         self.default_ttl = config.get("DefaultTTL") or 0
         self.max_ttl = config.get("MaxTTL") or 0
         self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
+        self.cache_policy_id = config.get("CachePolicyId")
+        self.origin_request_policy_id = config.get("OriginRequestPolicyId")
+        self.response_headers_policy_id = config.get("ResponseHeadersPolicyId")
 
 
 class CacheBehaviour(DefaultCacheBehaviour):
@@ -143,6 +146,7 @@ class ViewerCertificate:
         self.ssl_support_method = config.get("SSLSupportMethod") or "sni-only"
         self.min_protocol_version = config.get("MinimumProtocolVersion") or "TLSv1"
         self.certificate_source = "cloudfront"
+        self.certificate = config.get("Certificate", "")
 
 
 class CustomOriginConfig:
@@ -229,6 +233,7 @@ class DistributionConfig:
             raise OriginDoesNotExist
 
         self.origins = [Origin(o) for o in self.origins]
+        self.origin_groups: list[Any] = []
         self.price_class = config.get("PriceClass", "PriceClass_All")
         self.http_version = config.get("HttpVersion", "http2")
         self.is_ipv6_enabled = config.get("IsIPV6Enabled", "true").lower() == "true"
