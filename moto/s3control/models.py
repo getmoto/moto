@@ -24,6 +24,7 @@ from .exceptions import (
     MultiRegionAccessPointNotFound,
     MultiRegionAccessPointOperationNotFound,
     MultiRegionAccessPointPolicyNotFound,
+    StorageLensConfigurationNotFound,
 )
 
 PAGINATION_MODEL = {
@@ -150,27 +151,47 @@ class MultiRegionAccessPointOperation(BaseModel):
             "RequestTokenARN": self.request_token_arn,
             "RequestStatus": self.request_status,
             "CreationTime": self.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "Operation": self.operation,
         }
 
         if self.operation == "CreateMultiRegionAccessPoint" and self.details:
-            response["ResponseDetails"] = {
-                "MultiRegionAccessPointDetails": {
-                    "Regions": self.details.get("Regions", []),
+            # RequestParameters contains the original request details
+            response["RequestParameters"] = {
+                "CreateMultiRegionAccessPointRequest": {
                     "Name": self.name or "",
+                    "Regions": self.details.get("Regions", []),
                     "PublicAccessBlock": self.details.get("PublicAccessBlock", {}),
                 }
             }
-        elif self.operation == "DeleteMultiRegionAccessPoint":
+            # ResponseDetails contains the status of each region
+            regions_response = [
+                {"Name": r.get("Region", ""), "RequestStatus": self.request_status}
+                for r in self.details.get("Regions", [])
+            ]
             response["ResponseDetails"] = {
-                "MultiRegionAccessPointDetails": {"Name": self.name or ""}
+                "MultiRegionAccessPointDetails": {
+                    "Regions": regions_response,
+                }
+            }
+        elif self.operation == "DeleteMultiRegionAccessPoint":
+            response["RequestParameters"] = {
+                "DeleteMultiRegionAccessPointRequest": {
+                    "Name": self.name or "",
+                }
+            }
+            response["ResponseDetails"] = {
+                "MultiRegionAccessPointDetails": {
+                    "Regions": [],
+                }
             }
         elif self.operation == "PutMultiRegionAccessPointPolicy":
-            response["ResponseDetails"] = {
-                "PutMultiRegionAccessPointPolicyDetails": {
+            response["RequestParameters"] = {
+                "PutMultiRegionAccessPointPolicyRequest": {
                     "Name": self.name or "",
                     "Policy": self.details.get("Policy", ""),
                 }
             }
+            response["ResponseDetails"] = {}
 
         return response
 
@@ -308,7 +329,7 @@ class S3ControlBackend(BaseBackend):
                     # Skip the global 'aws' partition to find real region
                     if region_key == "aws":
                         continue
-                    
+
                     if bucket_name in backend.buckets:
                         found_region = region_key
                         found = True
@@ -398,6 +419,14 @@ class S3ControlBackend(BaseBackend):
         self.get_multi_region_access_point_policy(account_id, name)
         return {"IsPublic": True}
 
+    def delete_multi_region_access_point_policy(
+        self,
+        account_id: str,
+        name: str,
+    ) -> None:
+        mrap = self.get_multi_region_access_point(account_id, name)
+        mrap.delete_policy()
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_multi_region_access_points(
         self,
@@ -451,7 +480,7 @@ class S3ControlBackend(BaseBackend):
         self, config_id: str, account_id: str
     ) -> StorageLensConfiguration:
         if config_id not in self.storage_lens_configs:
-            raise AccessPointNotFound(config_id)
+            raise StorageLensConfigurationNotFound(config_id)
         storage_lens_configuration = self.storage_lens_configs[config_id]
         return storage_lens_configuration
 

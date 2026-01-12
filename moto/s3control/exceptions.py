@@ -108,3 +108,14 @@ class InvalidRequestException(S3ControlError):
             message,
             **kwargs,
         )
+
+
+class StorageLensConfigurationNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, config_id: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchConfiguration",
+            f"The specified configuration does not exist: {config_id}",
+            **kwargs,
+        )
