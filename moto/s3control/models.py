@@ -1,10 +1,12 @@
+import uuid
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.s3 import s3_backends
 from moto.s3.exceptions import (
     InvalidPublicAccessBlockConfiguration,
     NoSuchPublicAccessBlockConfiguration,
@@ -15,7 +17,14 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from .exceptions import AccessPointNotFound, AccessPointPolicyNotFound
+from .exceptions import (
+    AccessPointNotFound,
+    AccessPointPolicyNotFound,
+    InvalidRequestException,
+    MultiRegionAccessPointNotFound,
+    MultiRegionAccessPointOperationNotFound,
+    MultiRegionAccessPointPolicyNotFound,
+)
 
 PAGINATION_MODEL = {
     "list_storage_lens_configurations": {
@@ -27,6 +36,12 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 1000,
+        "unique_attribute": "name",
+    },
+    "list_multi_region_access_points": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
         "unique_attribute": "name",
     },
 }
@@ -45,7 +60,7 @@ class AccessPoint(BaseModel):
         self.name = name
         self.alias = f"{name}-{mock_random.get_random_hex(34)}-s3alias"
         self.bucket = bucket
-        self.created = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        self.created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")
         self.arn = f"arn:{get_partition(region_name)}:s3:us-east-1:{account_id}:accesspoint/{name}"
         self.policy: Optional[str] = None
         self.network_origin = "VPC" if vpc_configuration else "Internet"
@@ -68,6 +83,98 @@ class AccessPoint(BaseModel):
         return self.policy is not None
 
 
+class MultiRegionAccessPoint(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        name: str,
+        public_access_block: dict[str, Any],
+        regions: list[dict[str, str]],
+    ):
+        self.account_id = account_id
+        self.name = name
+        self.alias = f"{name}-{mock_random.get_random_hex(10)}.mrap"
+        self.created_at = datetime.now(timezone.utc)
+        self.public_access_block = public_access_block or {
+            "BlockPublicAcls": True,
+            "IgnorePublicAcls": True,
+            "BlockPublicPolicy": True,
+            "RestrictPublicBuckets": True,
+        }
+        self.regions = regions
+        self.status = "READY"
+        self.policy: Optional[str] = None
+
+    @property
+    def arn(self) -> str:
+        return f"arn:aws:s3::{self.account_id}:accesspoint/{self.alias}"
+
+    def set_policy(self, policy: str) -> None:
+        self.policy = policy
+
+    def delete_policy(self) -> None:
+        self.policy = None
+
+    def has_policy(self) -> bool:
+        return self.policy is not None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name or "",
+            "Alias": self.alias,
+            "CreatedAt": self.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "PublicAccessBlock": self.public_access_block,
+            "Status": self.status,
+            "Regions": self.regions,
+        }
+
+
+class MultiRegionAccessPointOperation(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        operation: str,
+        region_name: str,
+        name: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        self.request_token_arn = f"arn:aws:s3:{region_name}:{account_id}:async-request/mrap/{operation.lower()}/{uuid.uuid4().hex[:24]}"
+        self.request_status = "SUCCEEDED"
+        self.name = name
+        self.operation = operation
+        self.created_at = datetime.now(timezone.utc)
+        self.details = details or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        response: dict[str, Any] = {
+            "RequestTokenARN": self.request_token_arn,
+            "RequestStatus": self.request_status,
+            "CreationTime": self.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        }
+
+        if self.operation == "CreateMultiRegionAccessPoint" and self.details:
+            response["ResponseDetails"] = {
+                "MultiRegionAccessPointDetails": {
+                    "Regions": self.details.get("Regions", []),
+                    "Name": self.name or "",
+                    "PublicAccessBlock": self.details.get("PublicAccessBlock", {}),
+                }
+            }
+        elif self.operation == "DeleteMultiRegionAccessPoint":
+            response["ResponseDetails"] = {
+                "MultiRegionAccessPointDetails": {"Name": self.name or ""}
+            }
+        elif self.operation == "PutMultiRegionAccessPointPolicy":
+            response["ResponseDetails"] = {
+                "PutMultiRegionAccessPointPolicyDetails": {
+                    "Name": self.name or "",
+                    "Policy": self.details.get("Policy", ""),
+                }
+            }
+
+        return response
+
+
 class StorageLensConfiguration(BaseModel):
     def __init__(
         self,
@@ -88,11 +195,16 @@ class S3ControlBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.public_access_block: Optional[PublicAccessBlock] = None
         self.access_points: dict[str, dict[str, AccessPoint]] = defaultdict(dict)
+        self.multi_region_access_points: dict[
+            str, dict[str, MultiRegionAccessPoint]
+        ] = defaultdict(dict)
+        self.mrap_operations: dict[str, dict[str, MultiRegionAccessPointOperation]] = (
+            defaultdict(dict)
+        )
         self.storage_lens_configs: dict[str, StorageLensConfiguration] = {}
         self.tagger = TaggingService()
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
-        # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
@@ -102,7 +214,6 @@ class S3ControlBackend(BaseBackend):
         return self.public_access_block
 
     def delete_public_access_block(self, account_id: str) -> None:
-        # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
@@ -111,7 +222,6 @@ class S3ControlBackend(BaseBackend):
     def put_public_access_block(
         self, account_id: str, pub_block_config: dict[str, Any]
     ) -> None:
-        # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
@@ -167,11 +277,157 @@ class S3ControlBackend(BaseBackend):
         access_point.delete_policy()
 
     def get_access_point_policy_status(self, account_id: str, name: str) -> bool:
-        """
-        We assume the policy status is always public
-        """
         self.get_access_point_policy(account_id, name)
         return True
+
+    def create_multi_region_access_point(
+        self,
+        account_id: str,
+        client_token: str,
+        name: str,
+        public_access_block: dict[str, Any],
+        regions: list[dict[str, str]],
+        region_name: str,
+    ) -> MultiRegionAccessPointOperation:
+        if name in self.multi_region_access_points[account_id]:
+            raise InvalidRequestException(
+                f"Multi-Region Access Point {name} already exists"
+            )
+
+        processed_regions = []
+        for region_item in regions:
+            bucket_name = region_item.get("Bucket")
+            found_region = "us-east-1"
+
+            # Search all S3 backends for the bucket
+            found = False
+            for account_id_key in s3_backends:
+                if found:
+                    break
+                for region_key, backend in s3_backends[account_id_key].items():
+                    # Skip the global 'aws' partition to find real region
+                    if region_key == "aws":
+                        continue
+                    
+                    if bucket_name in backend.buckets:
+                        found_region = region_key
+                        found = True
+                        break
+
+            processed_regions.append({"Bucket": bucket_name, "Region": found_region})
+
+        mrap = MultiRegionAccessPoint(
+            account_id=account_id,
+            name=name,
+            public_access_block=public_access_block,
+            regions=processed_regions,
+        )
+        self.multi_region_access_points[account_id][name] = mrap
+
+        operation = MultiRegionAccessPointOperation(
+            account_id=account_id,
+            operation="CreateMultiRegionAccessPoint",
+            region_name=region_name,
+            name=name,
+            details={
+                "Regions": processed_regions,
+                "PublicAccessBlock": public_access_block,
+            },
+        )
+        self.mrap_operations[account_id][operation.request_token_arn] = operation
+
+        return operation
+
+    def delete_multi_region_access_point(
+        self,
+        account_id: str,
+        client_token: str,
+        name: str,
+        region_name: str,
+    ) -> MultiRegionAccessPointOperation:
+        if name not in self.multi_region_access_points[account_id]:
+            raise MultiRegionAccessPointNotFound(name)
+
+        del self.multi_region_access_points[account_id][name]
+
+        operation = MultiRegionAccessPointOperation(
+            account_id=account_id,
+            operation="DeleteMultiRegionAccessPoint",
+            region_name=region_name,
+            name=name,
+        )
+        self.mrap_operations[account_id][operation.request_token_arn] = operation
+
+        return operation
+
+    def describe_multi_region_access_point_operation(
+        self,
+        account_id: str,
+        request_token_arn: str,
+    ) -> MultiRegionAccessPointOperation:
+        if request_token_arn not in self.mrap_operations[account_id]:
+            raise MultiRegionAccessPointOperationNotFound(request_token_arn)
+
+        return self.mrap_operations[account_id][request_token_arn]
+
+    def get_multi_region_access_point(
+        self,
+        account_id: str,
+        name: str,
+    ) -> MultiRegionAccessPoint:
+        if name not in self.multi_region_access_points[account_id]:
+            raise MultiRegionAccessPointNotFound(name)
+
+        return self.multi_region_access_points[account_id][name]
+
+    def get_multi_region_access_point_policy(
+        self,
+        account_id: str,
+        name: str,
+    ) -> str:
+        mrap = self.get_multi_region_access_point(account_id, name)
+        if not mrap.has_policy():
+            raise MultiRegionAccessPointPolicyNotFound(name)
+        return mrap.policy  # type: ignore[return-value]
+
+    def get_multi_region_access_point_policy_status(
+        self,
+        account_id: str,
+        name: str,
+    ) -> dict[str, Any]:
+        self.get_multi_region_access_point_policy(account_id, name)
+        return {"IsPublic": True}
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_multi_region_access_points(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[MultiRegionAccessPoint]:
+        return list(self.multi_region_access_points[account_id].values())
+
+    def put_multi_region_access_point_policy(
+        self,
+        account_id: str,
+        client_token: str,
+        name: str,
+        policy: str,
+        region_name: str,
+    ) -> MultiRegionAccessPointOperation:
+        mrap = self.get_multi_region_access_point(account_id, name)
+        mrap.set_policy(policy)
+
+        operation = MultiRegionAccessPointOperation(
+            account_id=account_id,
+            operation="PutMultiRegionAccessPointPolicy",
+            region_name=region_name,
+            name=name,
+            details={"Policy": policy},
+        )
+        self.mrap_operations[account_id][operation.request_token_arn] = operation
+
+        return operation
 
     def put_storage_lens_configuration(
         self,
@@ -180,11 +436,9 @@ class S3ControlBackend(BaseBackend):
         storage_lens_configuration: dict[str, Any],
         tags: Optional[dict[str, str]] = None,
     ) -> None:
-        # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
-        # Create a new Storage Lens configuration
         storage_lens = StorageLensConfiguration(
             account_id=account_id,
             config_id=config_id,
@@ -226,7 +480,6 @@ class S3ControlBackend(BaseBackend):
     def put_storage_lens_configuration_tagging(
         self, config_id: str, account_id: str, tags: dict[str, str]
     ) -> None:
-        # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
