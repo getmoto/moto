@@ -440,6 +440,12 @@ def _load_service_model(service_name: str, model_name: str) -> dict[str, Any]:
 
 
 @cache
+def get_pagination_model(service_name: str) -> dict[str, Any]:  # type: ignore[misc]
+    pagination_model = _load_service_model(service_name, "paginators-1")
+    return pagination_model["pagination"]
+
+
+@cache
 def get_service_model(service_name: str) -> ServiceModel:
     model = _load_service_model(service_name, "service-2")
     service_model = ServiceModel(model, service_name)

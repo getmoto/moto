@@ -2484,6 +2484,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "sae1-az1"
  },
@@ -4721,6 +4725,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "sae1-az2"
  },
  {

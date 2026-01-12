@@ -3,6 +3,7 @@ import json
 import time
 import zlib
 from io import BytesIO
+from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import boto3
@@ -395,6 +396,41 @@ def test_put_subscription_filter_with_kinesis():
         resp = kinesis.get_records(ShardIterator=shard_iterator)
         nr_of_records = nr_of_records + len(resp["Records"])
     assert nr_of_records == 1
+
+
+@mock_aws()
+def test_put_subscription_filter_with_loggroup():
+    log_group_us = str(uuid4())
+    log_group_ap = str(uuid4())
+    logs_us = boto3.client("logs", "us-east-1")
+    logs_us.create_log_group(logGroupName=log_group_us)
+    logs_us.create_log_stream(logGroupName=log_group_us, logStreamName="ls1")
+
+    # Create a LogGroup in a different region
+    logs_ap = boto3.client("logs", "ap-southeast-2")
+    logs_ap.create_log_group(logGroupName=log_group_ap)
+    logs_ap.create_log_stream(logGroupName=log_group_ap, logStreamName="ls1")
+    log_groups = logs_ap.describe_log_groups(logGroupNamePrefix=log_group_ap)
+    log_group_ap_arn = log_groups["logGroups"][0]["arn"]
+
+    # Subscribe to new log events
+    logs_us.put_subscription_filter(
+        logGroupName=log_group_us,
+        filterName="my_filter",
+        filterPattern="*",
+        destinationArn=log_group_ap_arn,
+    )
+
+    # Create new log events
+    logs_us.put_log_events(
+        logGroupName=log_group_us,
+        logStreamName="ls1",
+        logEvents=[{"timestamp": int(unix_time_millis()), "message": "test"}],
+    )
+
+    # Verify that the second LogGroup has this event
+    _, msg = _wait_for_log_msg(logs_ap, log_group_ap, expected_msg_part="")
+    assert msg == "test"
 
 
 @mock_aws

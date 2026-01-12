@@ -19,6 +19,7 @@ from moto.logs.logs_query import execute_query
 from moto.logs.metric_filters import MetricFilters
 from moto.moto_api._internal import mock_random
 from moto.s3.models import MissingBucket, s3_backends
+from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -243,6 +244,13 @@ class LogStream(BaseModel):
                 self.log_stream_name,
                 log_events,
             )
+        elif service == "logs":
+            target_arn = parse_arn(destination_arn)
+            backend: LogsBackend = logs_backends[target_arn.account][target_arn.region]
+            # {name}:* --> We only need the name
+            target_group_name = target_arn.resource_id.split(":")[0]
+            log_group = backend._find_log_group(log_group_name=target_group_name)
+            log_group.put_log_events(self.log_stream_name, log_events=log_events)
 
     def get_log_events(
         self,
@@ -1068,7 +1076,7 @@ class LogsBackend(BaseBackend):
         next_token: Optional[str],
         order_by: str,
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
-        log_group = self._find_log_group(log_group_id, log_group_name)
+        log_group = self._find_log_group(log_group_id, log_group_name=log_group_name)
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -1304,7 +1312,9 @@ class LogsBackend(BaseBackend):
         if not log_group:
             raise ResourceNotFoundException()
 
-        service = destination_arn.split(":")[2]
+        parsed_arn = parse_arn(destination_arn)
+        service = parsed_arn.service
+
         if service == "lambda":
             from moto.awslambda.utils import get_backend
 
@@ -1341,6 +1351,11 @@ class LogsBackend(BaseBackend):
                 raise InvalidParameterException(
                     "Could not deliver test message to specified Kinesis stream. Verify the stream exists "
                 )
+        elif service == "logs":
+            backend: LogsBackend = logs_backends[parsed_arn.account][parsed_arn.region]
+            # {name}:* --> We only need the name
+            target_group_name = parsed_arn.resource_id.split(":")[0]
+            backend._find_log_group(log_group_name=target_group_name)
         else:
             # TODO: support Kinesis stream destinations
             raise InvalidParameterException(
@@ -1491,7 +1506,9 @@ class LogsBackend(BaseBackend):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
-    def _find_log_group(self, log_group_id: str, log_group_name: str) -> LogGroup:
+    def _find_log_group(
+        self, log_group_id: Optional[str] = None, log_group_name: Optional[str] = None
+    ) -> LogGroup:
         log_group: Optional[LogGroup] = None
         if log_group_name:
             log_group = self.groups.get(log_group_name)
