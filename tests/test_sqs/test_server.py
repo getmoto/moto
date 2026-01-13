@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 import moto.server as server
 from moto.core.utils import utcnow
+from moto.utilities.constants import APPLICATION_AMZ_JSON_1_0
 
 
 def test_sqs_list_identities():
@@ -21,11 +22,11 @@ def test_sqs_list_identities():
     # See: https://github.com/getmoto/moto/issues/866
 
     for queue_name in ("testqueue", "otherqueue.fifo"):
-        res = test_client.put(
+        res = test_client.post(
             f"/?Action=CreateQueue&QueueName={queue_name}", headers=headers
         )
 
-        res = test_client.put(
+        res = test_client.get(
             f"/123/{queue_name}?MessageBody=test-message&Action=SendMessage",
             headers=headers,
         )
@@ -48,12 +49,12 @@ def test_messages_polling():
     test_client = backend.test_client()
     messages = []
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    test_client.put("/?Action=CreateQueue&QueueName=testqueue", headers=headers)
+    test_client.post("/?Action=CreateQueue&QueueName=testqueue", headers=headers)
 
     def insert_messages():
         messages_count = 5
         while messages_count > 0:
-            test_client.put(
+            test_client.get(
                 "/123/testqueue?MessageBody=test-message&Action=SendMessage"
                 "&Attribute.1.Name=WaitTimeSeconds&Attribute.1.Value=10",
                 headers=headers,
@@ -91,7 +92,7 @@ def test_no_messages_polling_timeout():
     queue_name = "test-queue"
     test_client = backend.test_client()
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    test_client.put(f"/?Action=CreateQueue&QueueName={queue_name}", headers=headers)
+    test_client.post(f"/?Action=CreateQueue&QueueName={queue_name}", headers=headers)
     wait_seconds = 5
     start = utcnow()
     test_client.get(
@@ -127,3 +128,14 @@ def test_create_queue_with_tags_using_query_protocol():
     }
     resp = test_client.post(headers=headers, data=urlencode(params))
     assert "<Tag><Key>foo</Key><Value>bar</Value></Tag>" in resp.data.decode("utf-8")
+
+
+def test_json_protocol():
+    backend = server.create_backend_app("sqs")
+    test_client = backend.test_client()
+    headers = {
+        "X-Amz-Target": "AmazonSQS.CreateQueue",
+        "Content-Type": APPLICATION_AMZ_JSON_1_0,
+    }
+    res = test_client.post("/123456789012/testqueue", headers=headers)
+    assert b"testqueue" in res.data
