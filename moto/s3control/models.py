@@ -303,9 +303,9 @@ class S3ControlBackend(BaseBackend):
                 f"Multi-Region Access Point {name} already exists"
             )
 
-        processed_regions = []
+        processed_regions: list[dict[str, str]] = []
         for region_item in regions:
-            bucket_name = region_item.get("Bucket")
+            bucket_name = region_item.get("Bucket", "")
             found_region = "us-east-1"
 
             found = False
