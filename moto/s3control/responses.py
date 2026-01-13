@@ -6,7 +6,12 @@ from urllib.parse import unquote
 import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse, _get_method_urls, ActionResult, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    _get_method_urls,
+)
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 
 from .models import S3ControlBackend, s3control_backends
@@ -376,6 +381,7 @@ class S3ControlResponse(BaseResponse):
 
         template = self.response_template(PUT_MULTI_REGION_ACCESS_POINT_POLICY_TEMPLATE)
         return template.render(request_token=operation.request_token_arn)
+
     def list_tags_for_resource(self) -> ActionResult:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.backend.list_tags_for_resource(resource_arn)

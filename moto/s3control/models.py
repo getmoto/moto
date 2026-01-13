@@ -12,7 +12,7 @@ from moto.s3.exceptions import (
     NoSuchPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
 )
-from moto.s3.models import PublicAccessBlock, S3Backend, s3_backends
+from moto.s3.models import PublicAccessBlock, S3Backend
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
