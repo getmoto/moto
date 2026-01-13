@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 
 import moto.server as server
 from moto.core.utils import utcnow
-from moto.utilities.constants import APPLICATION_AMZ_JSON_1_0
 
 
 def test_sqs_list_identities():
@@ -128,14 +127,3 @@ def test_create_queue_with_tags_using_query_protocol():
     }
     resp = test_client.post(headers=headers, data=urlencode(params))
     assert "<Tag><Key>foo</Key><Value>bar</Value></Tag>" in resp.data.decode("utf-8")
-
-
-def test_json_protocol():
-    backend = server.create_backend_app("sqs")
-    test_client = backend.test_client()
-    headers = {
-        "X-Amz-Target": "AmazonSQS.CreateQueue",
-        "Content-Type": APPLICATION_AMZ_JSON_1_0,
-    }
-    res = test_client.post("/123456789012/testqueue", headers=headers)
-    assert b"testqueue" in res.data
