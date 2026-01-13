@@ -87,12 +87,10 @@ class AccessPoint(BaseModel):
 class MultiRegionAccessPoint(BaseModel):
     def __init__(
         self,
-        account_id: str,
         name: str,
         public_access_block: dict[str, Any],
         regions: list[dict[str, str]],
     ):
-        self.account_id = account_id
         self.name = name
         self.alias = f"{name}-{mock_random.get_random_hex(10)}.mrap"
         self.created_at = datetime.now(timezone.utc)
@@ -106,15 +104,8 @@ class MultiRegionAccessPoint(BaseModel):
         self.status = "READY"
         self.policy: Optional[str] = None
 
-    @property
-    def arn(self) -> str:
-        return f"arn:aws:s3::{self.account_id}:accesspoint/{self.alias}"
-
     def set_policy(self, policy: str) -> None:
         self.policy = policy
-
-    def delete_policy(self) -> None:
-        self.policy = None
 
     def has_policy(self) -> bool:
         return self.policy is not None
@@ -304,7 +295,6 @@ class S3ControlBackend(BaseBackend):
     def create_multi_region_access_point(
         self,
         account_id: str,
-        client_token: str,
         name: str,
         public_access_block: dict[str, Any],
         regions: list[dict[str, str]],
@@ -338,7 +328,6 @@ class S3ControlBackend(BaseBackend):
             processed_regions.append({"Bucket": bucket_name, "Region": found_region})
 
         mrap = MultiRegionAccessPoint(
-            account_id=account_id,
             name=name,
             public_access_block=public_access_block,
             regions=processed_regions,
@@ -362,7 +351,6 @@ class S3ControlBackend(BaseBackend):
     def delete_multi_region_access_point(
         self,
         account_id: str,
-        client_token: str,
         name: str,
         region_name: str,
     ) -> MultiRegionAccessPointOperation:
@@ -419,14 +407,6 @@ class S3ControlBackend(BaseBackend):
         self.get_multi_region_access_point_policy(account_id, name)
         return {"IsPublic": True}
 
-    def delete_multi_region_access_point_policy(
-        self,
-        account_id: str,
-        name: str,
-    ) -> None:
-        mrap = self.get_multi_region_access_point(account_id, name)
-        mrap.delete_policy()
-
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_multi_region_access_points(
         self,
@@ -439,7 +419,6 @@ class S3ControlBackend(BaseBackend):
     def put_multi_region_access_point_policy(
         self,
         account_id: str,
-        client_token: str,
         name: str,
         policy: str,
         region_name: str,
@@ -483,6 +462,15 @@ class S3ControlBackend(BaseBackend):
             raise StorageLensConfigurationNotFound(config_id)
         storage_lens_configuration = self.storage_lens_configs[config_id]
         return storage_lens_configuration
+
+    def delete_storage_lens_configuration(
+        self, config_id: str, account_id: str
+    ) -> None:
+        if account_id != self.account_id:
+            raise WrongPublicAccessBlockAccountIdError()
+        if config_id not in self.storage_lens_configs:
+            raise StorageLensConfigurationNotFound(config_id)
+        del self.storage_lens_configs[config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_storage_lens_configurations(

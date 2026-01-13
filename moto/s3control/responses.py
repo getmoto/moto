@@ -167,6 +167,15 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
         return template.render(config=storage_lens_configuration.config)
 
+    def delete_storage_lens_configuration(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        self.backend.delete_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        return 204, {"status": 204}, ""
+
     def list_storage_lens_configurations(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         params = self._get_params()
@@ -237,7 +246,6 @@ class S3ControlResponse(BaseResponse):
             "CreateMultiRegionAccessPointRequest"
         ]
 
-        client_token = params["ClientToken"]
         details = params["Details"]
         name = details.get("Name")
 
@@ -253,7 +261,6 @@ class S3ControlResponse(BaseResponse):
 
         operation = self.backend.create_multi_region_access_point(
             account_id=account_id,
-            client_token=client_token,
             name=name,
             public_access_block=public_access_block,
             regions=regions_list,
@@ -270,13 +277,11 @@ class S3ControlResponse(BaseResponse):
             "DeleteMultiRegionAccessPointRequest"
         ]
 
-        client_token = params["ClientToken"]
         details = params["Details"]
         name = details.get("Name")
 
         operation = self.backend.delete_multi_region_access_point(
             account_id=account_id,
-            client_token=client_token,
             name=name,
             region_name=self.region,
         )
@@ -366,14 +371,12 @@ class S3ControlResponse(BaseResponse):
             "PutMultiRegionAccessPointPolicyRequest"
         ]
 
-        client_token = params["ClientToken"]
         details = params["Details"]
         name = details.get("Name")
         policy = details.get("Policy")
 
         operation = self.backend.put_multi_region_access_point_policy(
             account_id=account_id,
-            client_token=client_token,
             name=name,
             policy=policy,
             region_name=self.region,
