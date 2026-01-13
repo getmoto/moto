@@ -2556,6 +2556,10 @@
   "Location": "cac1-az1"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "cac1-az1"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "cac1-az1"
  },

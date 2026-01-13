@@ -2631,3 +2631,27 @@ def test_publish_with_message_structure_errors():
             err.response["Error"]["Message"]
             == "MessageStructure must be 'json' if provided"
         )
+
+
+@mock_aws
+def test_publish_with_boolean_attributes():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(
+        Name="ml.fifo",
+        Attributes={
+            "FifoTopic": str(True),
+            "ContentBasedDeduplication": str(False),
+            "FifoThroughputScope": "Topic",
+        },
+    )
+    message = {
+        "sample_uuid": "hui",
+        "metadata": {"sample_id": "123456"},
+        "key": "178500",
+    }
+    resp = topic.publish(
+        Message=json.dumps(message),
+        MessageDeduplicationId=message["sample_uuid"],
+        MessageGroupId=message["metadata"]["sample_id"],
+    )
+    assert "MessageId" in resp
