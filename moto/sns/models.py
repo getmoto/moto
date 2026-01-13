@@ -20,6 +20,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
+    ensure_boolean,
     iso_8601_datetime_with_milliseconds,
     unix_time,
     utcnow,
@@ -869,7 +870,7 @@ class SNSBackend(BaseBackend):
     ) -> PlatformEndpoint:
         endpoint = self.get_endpoint(arn)
         if "Enabled" in attributes:
-            attributes["Enabled"] = attributes["Enabled"].lower()
+            attributes["Enabled"] = ensure_boolean(attributes["Enabled"])
         endpoint.attributes.update(attributes)
         return endpoint
 
