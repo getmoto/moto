@@ -810,14 +810,13 @@ def test_delete_function():
         Publish=True,
     )
 
-    success_result = conn.delete_function(FunctionName=function_name)
-    # this is hard to match against, so remove it
-    success_result["ResponseMetadata"].pop("HTTPHeaders", None)
-    # Botocore inserts retry attempts not seen in Python27
-    success_result["ResponseMetadata"].pop("RetryAttempts", None)
-    success_result["ResponseMetadata"].pop("RequestId")
-
-    assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
+    result = conn.delete_function(FunctionName=function_name)
+    # There are differences in the modelled response between versions of Botocore,
+    # so we check multiple places for the status code and allow for a success range.
+    status_code = result.get(
+        "StatusCode", result.get("ResponseMetadata", {}).get("HTTPStatusCode")
+    )
+    assert 200 <= status_code < 300
 
     func_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]

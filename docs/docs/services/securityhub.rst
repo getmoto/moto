@@ -40,7 +40,6 @@ securityhub
 - [ ] batch_update_findings
 - [ ] batch_update_findings_v2
 - [ ] batch_update_standards_control_associations
-- [ ] connector_registrations_v2
 - [ ] create_action_target
 - [ ] create_aggregator_v2
 - [ ] create_automation_rule
@@ -95,6 +94,7 @@ securityhub
         Returns findings based on optional filters and sort criteria.
         
 
+- [ ] get_findings_trends_v2
 - [ ] get_findings_v2
 - [ ] get_insight_results
 - [ ] get_insights
@@ -102,6 +102,7 @@ securityhub
 - [ ] get_master_account
 - [ ] get_members
 - [ ] get_resources_statistics_v2
+- [ ] get_resources_trends_v2
 - [ ] get_resources_v2
 - [ ] get_security_control_definition
 - [ ] invite_members
@@ -119,6 +120,7 @@ securityhub
 - [ ] list_security_control_definitions
 - [ ] list_standards_control_associations
 - [ ] list_tags_for_resource
+- [ ] register_connector_v2
 - [ ] start_configuration_policy_association
 - [ ] start_configuration_policy_disassociation
 - [ ] tag_resource

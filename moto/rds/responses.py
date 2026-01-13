@@ -1,7 +1,5 @@
-from typing import Any, Optional
-
 from moto.core.parsers import XFormedDict
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
@@ -40,17 +38,13 @@ class RDSResponse(BaseResponse):
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
         filters = self.params.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
-        all_instances = list(
+        db_instances = list(
             self.backend.describe_db_instances(
                 db_instance_identifier, filters=filter_dict
             )
         )
-        instances_resp, next_marker = self._paginate(all_instances)
-        result = {
-            "DBInstances": instances_resp,
-            "Marker": next_marker,
-        }
-        return ActionResult(result)
+        result = {"DBInstances": db_instances}
+        return PaginatedResult(result)
 
     def modify_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
@@ -182,13 +176,13 @@ class RDSResponse(BaseResponse):
         arn = self.params.get("ResourceName")
         tags = self.params.get("Tags", [])
         self.backend.add_tags_to_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_tags_from_resource(self) -> ActionResult:
         arn = self.params.get("ResourceName")
         tag_keys = self.params.get("TagKeys")
         self.backend.remove_tags_from_resource(arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def stop_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
@@ -297,12 +291,8 @@ class RDSResponse(BaseResponse):
     def describe_option_groups(self) -> ActionResult:
         kwargs = self.params
         option_groups = self.backend.describe_option_groups(kwargs)
-        option_groups, marker = self._paginate(option_groups)
-        result = {
-            "OptionGroupsList": option_groups,
-            "Marker": marker,
-        }
-        return ActionResult(result)
+        result = {"OptionGroupsList": option_groups}
+        return PaginatedResult(result)
 
     def describe_option_group_options(self) -> str:
         engine_name = self.params.get("EngineName")
@@ -335,17 +325,14 @@ class RDSResponse(BaseResponse):
     def describe_db_parameter_groups(self) -> ActionResult:
         kwargs = self.params
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
-        db_parameter_groups, _ = self._paginate(db_parameter_groups)
         result = {"DBParameterGroups": db_parameter_groups}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def modify_db_parameter_group(self) -> ActionResult:
         db_parameter_group_name = self.params.get("DBParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
@@ -356,9 +343,7 @@ class RDSResponse(BaseResponse):
         db_parameter_group_name = self.params.get("DBClusterParameterGroupName")
         param_list = self.params.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
-        db_parameter_group_parameters = [
-            dict(param.original_items()) for param in param_list
-        ]
+        db_parameter_group_parameters = [param.original_dict() for param in param_list]
         db_parameter_group = self.backend.modify_db_cluster_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
@@ -512,7 +497,7 @@ class RDSResponse(BaseResponse):
             engine, engine_version
         )
         result = {"OrderableDBInstanceOptions": options}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def describe_global_clusters(self) -> ActionResult:
         clusters = self.global_backend.describe_global_clusters()
@@ -574,7 +559,7 @@ class RDSResponse(BaseResponse):
         self.backend.delete_db_cluster_parameter_group(
             group_name=group_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -727,7 +712,7 @@ class RDSResponse(BaseResponse):
             db_cluster_identifiers=db_cluster_identifiers,
             db_instance_identifiers=db_instance_identifiers,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_db_proxy_targets(self) -> ActionResult:
         proxy_name = self.params.get("DBProxyName")
@@ -783,10 +768,9 @@ class RDSResponse(BaseResponse):
         filters = self.params.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         self.params["filters"] = filter_dict
-        all_bg_deployments = self.backend.describe_blue_green_deployments(**self.params)
-        bg_deployments, _ = self._paginate(all_bg_deployments)
+        bg_deployments = self.backend.describe_blue_green_deployments(**self.params)
         result = {"BlueGreenDeployments": bg_deployments}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def switchover_blue_green_deployment(self) -> ActionResult:
         bg_deployment = self.backend.switchover_blue_green_deployment(**self.params)
@@ -798,29 +782,6 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
-    def _paginate(self, resources: list[Any]) -> tuple[list[Any], Optional[str]]:
-        from moto.rds.exceptions import InvalidParameterValue
-
-        marker = self.params.get("Marker")
-        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
-        page_size = self.params.get("MaxRecords", 50)
-        if page_size < 20 or page_size > 100:
-            msg = (
-                f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
-            )
-            raise InvalidParameterValue(msg)
-        all_resources = list(resources)
-        all_ids = [resource.resource_id for resource in all_resources]
-        if marker:
-            start = all_ids.index(marker) + 1
-        else:
-            start = 0
-        paginated_resources = all_resources[start : start + page_size]
-        next_marker = None
-        if len(all_resources) > start + page_size:
-            next_marker = paginated_resources[-1].resource_id
-        return paginated_resources, next_marker
-
     def add_role_to_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
         role_arn = self.params.get("RoleArn")
@@ -830,7 +791,7 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def add_role_to_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
@@ -841,4 +802,4 @@ class RDSResponse(BaseResponse):
             role_arn=role_arn,
             feature_name=feature_name,
         )
-        return ActionResult({})
+        return EmptyResult()

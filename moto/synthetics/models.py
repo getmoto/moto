@@ -1,20 +1,19 @@
 """SyntheticsBackend class with methods for supported APIs."""
 
-import datetime
 import uuid
 from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
 
-class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few-public-methods
+class Canary(BaseModel):
     """
     Represents a CloudWatch Synthetics Canary resource.
     """
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+    def __init__(
         self,
         name: str,
         code: dict[str, object],
@@ -50,7 +49,7 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
         self.artifact_config = artifact_config
         self.state = "READY"
 
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         self.timeline = {
             "Created": now,
             "LastModified": now,
@@ -106,7 +105,7 @@ class SyntheticsBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.canaries: dict[str, Canary] = {}
 
-    def create_canary(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+    def create_canary(
         self,
         name: str,
         code: dict[str, object],
@@ -144,7 +143,7 @@ class SyntheticsBackend(BaseBackend):
         self.canaries[name] = canary
         return canary
 
-    def get_canary(self, name: str, dry_run_id: Optional[str] = None) -> Canary:  # pylint: disable=unused-argument
+    def get_canary(self, name: str, dry_run_id: Optional[str] = None) -> Canary:
         """
         The dry-run_id-parameter is not yet supported
         """
@@ -153,8 +152,8 @@ class SyntheticsBackend(BaseBackend):
 
     def describe_canaries(
         self,
-        next_token: Optional[str],  # pylint: disable=unused-argument
-        max_results: Optional[int],  # pylint: disable=unused-argument
+        next_token: Optional[str],
+        max_results: Optional[int],
         names: Optional[list[str]],
     ) -> tuple[list[Canary], None]:
         """

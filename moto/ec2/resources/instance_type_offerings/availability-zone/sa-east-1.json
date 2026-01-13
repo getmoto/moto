@@ -2268,6 +2268,86 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "r8i-flex.12xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.16xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.2xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.large",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i-flex.xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.12xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.16xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.24xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.2xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.32xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.48xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.96xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.large",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.metal-48xl",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.metal-96xl",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "r8i.xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "sa-east-1a"
  },
@@ -2384,6 +2464,10 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1a"
  },
@@ -2397,6 +2481,10 @@
  },
  {
   "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "sa-east-1a"
  },
  {
@@ -4460,6 +4548,86 @@
   "Location": "sa-east-1b"
  },
  {
+  "InstanceType": "r8i-flex.12xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.16xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.2xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.8xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.large",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i-flex.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.12xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.16xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.24xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.2xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.32xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.48xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.8xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.96xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.large",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.metal-48xl",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.metal-96xl",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "r8i.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "sa-east-1b"
  },
@@ -4544,6 +4712,10 @@
   "Location": "sa-east-1b"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1b"
  },
@@ -4553,6 +4725,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "sa-east-1b"
  },
  {
@@ -6617,6 +6793,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "trn2.3xlarge",
   "Location": "sa-east-1c"
  },
  {

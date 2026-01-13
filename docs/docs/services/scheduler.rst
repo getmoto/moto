@@ -31,10 +31,6 @@ scheduler
 - [X] get_schedule
 - [X] get_schedule_group
 - [X] list_schedule_groups
-  
-        The MaxResults-parameter and pagination options are not yet implemented
-        
-
 - [X] list_schedules
   
         The following parameters are not yet implemented: MaxResults, NamePrefix, NextToken

@@ -16,7 +16,7 @@ class ShieldResponse(BaseResponse):
     @property
     def shield_backend(self) -> ShieldBackend:
         """Return backend instance specific for this region."""
-        return shield_backends[self.current_account][self.region]
+        return shield_backends[self.current_account][self.partition]
 
     def create_protection(self) -> str:
         params = json.loads(self.body)

@@ -64,3 +64,13 @@ def test_request_decompression() -> None:
     resp = test_client.post(headers=headers, data=data)
     assert resp.status_code == 200
     assert "<DescribeDBInstancesResult>" in resp.data.decode("utf-8")
+
+
+def test_date_header_is_not_duplicated(moto_server: str) -> None:
+    client = boto3.client("glue", region_name="us-east-1", endpoint_url=moto_server)
+    resp = client.get_connections()
+    date_header_value = resp["ResponseMetadata"]["HTTPHeaders"]["date"]
+    # RFC 2822 dates should only have 1 comma, e.g. 'Mon, 20 Nov 1995 19:12:08 GMT'
+    # If multiple date headers exist, their values will be concatenated with a comma
+    # and this assertion will fail.
+    assert len(date_header_value.split(",")) == 2

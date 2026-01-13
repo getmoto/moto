@@ -643,6 +643,26 @@ def test_list_configuration_sets():
 
 
 @mock_aws
+def test_list_configuration_sets_pagination():
+    conn = boto3.client("ses", region_name="us-east-1")
+    for i in range(101):
+        conn.create_configuration_set(ConfigurationSet={"Name": f"test{i}"})
+
+    resp = conn.list_configuration_sets()
+    assert len(resp["ConfigurationSets"]) == 100
+    assert resp["ConfigurationSets"][99]["Name"] == "test99"
+    assert "NextToken" in resp
+
+    resp2 = conn.list_configuration_sets(NextToken=resp["NextToken"])
+    assert len(resp2["ConfigurationSets"]) == 1
+    assert resp2["ConfigurationSets"][0]["Name"] == "test100"
+
+    resp3 = conn.list_configuration_sets(MaxItems=23)
+    assert len(resp3["ConfigurationSets"]) == 23
+    assert resp3["ConfigurationSets"][22]["Name"] == "test22"
+
+
+@mock_aws
 def test_delete_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.create_configuration_set(ConfigurationSet={"Name": "test1"})

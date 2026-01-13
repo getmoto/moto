@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from .helpers import assert_dryrun_error
@@ -72,7 +73,7 @@ def test_instance_launch_and_terminate():
     root_device_name = instance["RootDeviceName"]
     mapping = instance["BlockDeviceMappings"][0]
     assert mapping["DeviceName"] == root_device_name
-    assert mapping["Ebs"]["Status"] == "in-use"
+    assert mapping["Ebs"]["Status"] == "attached"
     volume_id = mapping["Ebs"]["VolumeId"]
     assert volume_id.startswith("vol-")
 
@@ -1047,18 +1048,15 @@ def test_instance_attribute_user_data():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     res = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = res[0]
-
+    user_data = Base64EncodedString.from_raw_string("this is my user data")
     with pytest.raises(ClientError) as ex:
-        instance.modify_attribute(
-            UserData={"Value": "this is my user data"}, DryRun=True
-        )
+        instance.modify_attribute(UserData={"Value": user_data.as_bytes()}, DryRun=True)
     assert_dryrun_error(ex)
 
-    instance.modify_attribute(UserData={"Value": "this is my user data"})
+    instance.modify_attribute(UserData={"Value": user_data.as_bytes()})
 
     attribute = instance.describe_attribute(Attribute="userData")["UserData"]
-    retrieved_user_data = attribute["Value"].encode("utf-8")
-    assert decode_method(retrieved_user_data) == b"this is my user data"
+    assert attribute["Value"] == str(user_data)
 
 
 @mock_aws
@@ -3022,7 +3020,7 @@ def test_run_instances_default_response():
     bdm = instance["BlockDeviceMappings"][0]
     assert bdm["DeviceName"] == "/dev/sda1"
     assert bdm["Ebs"]["DeleteOnTermination"] is True
-    assert bdm["Ebs"]["Status"] == "in-use"
+    assert bdm["Ebs"]["Status"] == "attached"
     assert "ClientToken" in instance
     assert instance["EbsOptimized"] is False
     assert instance["Hypervisor"] == "xen"
@@ -3095,3 +3093,26 @@ def test_run_instances_default_response():
     assert "Tags" not in instance
     assert instance["VirtualizationType"] == "paravirtual"
     assert "VpcId" in instance
+
+
+@mock_aws
+def test_get_instance_uefi_data():
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+    resp = client.get_instance_uefi_data(InstanceId=instance_id)
+    assert resp["InstanceId"] == instance_id
+    # Implementation is just a stub at the moment, so just check that value exists.
+    assert "UefiData" in resp
+
+
+def test_block_device_status_conversion():
+    """Test EBS block device status conversion."""
+    from moto.ec2.models.instances import Instance
+
+    assert Instance.get_block_device_status("in-use") == "attached"
+
+    assert Instance.get_block_device_status("available") == "detached"
+
+    assert Instance.get_block_device_status("creating") == "creating"
+    assert Instance.get_block_device_status("deleting") == "deleting"

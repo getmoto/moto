@@ -263,6 +263,8 @@ class NetworkAcl(TaggedEC2Resource):
             return self.vpc_id
         elif filter_name == "association.network-acl-id":
             return self.id
+        elif filter_name == "association.association-id":
+            return [assoc.new_association_id for assoc in self.associations.values()]
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
         elif filter_name == "entry.cidr":

@@ -13,7 +13,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.sns.models import sns_backends
-from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -37,18 +37,9 @@ from .exceptions import (
 )
 from .feedback import BOUNCE, COMMON_MAIL, COMPLAINT, DELIVERY
 from .template import parse_template
-from .utils import get_random_message_id, is_valid_address
+from .utils import get_arn, get_random_message_id, is_valid_address
 
 RECIPIENT_LIMIT = 50
-
-PAGINATION_MODEL = {
-    "list_configuration_sets": {
-        "input_token": "next_token",
-        "limit_key": "max_items",
-        "limit_default": 100,
-        "unique_attribute": "configuration_set_name",
-    },
-}
 
 
 class SESFeedback(BaseModel):
@@ -283,7 +274,7 @@ class EmailIdentity(BaseModel):
     def __init__(
         self,
         email_identity: str,
-        tags: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> None:
@@ -392,6 +383,7 @@ class SESBackend(BaseBackend):
         self.contacts_lists: dict[str, ContactList] = {}
         self.email_identities: dict[str, EmailIdentity] = {}
         self.dedicated_ip_pools: dict[str, DedicatedIpPool] = {}
+        self.tagger = TaggingService()
 
     def _is_verified_address(self, source: str) -> bool:
         _, address = parseaddr(source)
@@ -417,7 +409,7 @@ class SESBackend(BaseBackend):
     def create_email_identity_v2(
         self,
         email_identity: str,
-        tags: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
@@ -427,6 +419,12 @@ class SESBackend(BaseBackend):
             dkim_signing_attributes=dkim_signing_attributes,
             configuration_set_name=configuration_set_name,
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=get_arn(self, "ses", f"email-identity/{email_identity}"),
+                tags=tags,
+            )
         self.email_identities[email_identity] = identity
         return identity
 
@@ -677,6 +675,7 @@ class SESBackend(BaseBackend):
                 f"Configuration set <{configuration_set_name}> already exists"
             )
         config_set = ConfigurationSet(configuration_set_name=configuration_set_name)
+
         self.config_sets[configuration_set_name] = config_set
 
     def create_configuration_set_v2(
@@ -704,6 +703,13 @@ class SESBackend(BaseBackend):
             suppression_options=suppression_options,
             vdm_options=vdm_options,
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=get_arn(self, "ses", f"configuration-set/{configuration_set_name}"),
+                tags=tags,
+            )
+
         self.config_sets[configuration_set_name] = new_config_set
 
     def describe_configuration_set(
@@ -718,7 +724,6 @@ class SESBackend(BaseBackend):
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.config_sets.pop(configuration_set_name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_configuration_sets(self) -> list[ConfigurationSet]:
         return list(self.config_sets.values())
 

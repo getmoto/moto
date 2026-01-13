@@ -924,8 +924,6 @@ class S3Response(BaseResponse):
                     raise IllegalLocationConstraintException()
                 if location_constraint != self.region:
                     raise IncompatibleLocationConstraintException(location_constraint)
-            if self.body and not location_constraint:
-                raise MalformedXML()
 
             bucket_region = (
                 location_constraint if location_constraint else DEFAULT_REGION_NAME
@@ -1163,7 +1161,7 @@ class S3Response(BaseResponse):
         else:
             # Tried to delete a bucket that still has keys
             template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return 409, {}, template.render(bucket=removed_bucket)
+            return 409, {}, template.render(bucket_name=self.bucket_name)
 
     def delete_bucket_ownership_controls(self) -> TYPE_RESPONSE:
         self.backend.delete_bucket_ownership_controls(self.bucket_name)
@@ -2832,7 +2830,7 @@ S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.c
 S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>BucketNotEmpty</Code>
 <Message>The bucket you tried to delete is not empty</Message>
-<BucketName>{{ bucket.name }}</BucketName>
+<BucketName>{{ bucket_name }}</BucketName>
 <RequestId>asdfasdfsdafds</RequestId>
 <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""

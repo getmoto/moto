@@ -23,6 +23,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
+from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -49,6 +50,7 @@ from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
+from moto.sesv2.models import SESV2Backend, sesv2_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -98,6 +100,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def efs_backend(self) -> EFSBackend:
         return efs_backends[self.account_id][self.region_name]
+
+    @property
+    def eb_backend(self) -> EBBackend:
+        return eb_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -208,8 +214,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
-        # Workspaces service has limited region availability
-        if self.region_name in workspaces_backends[self.account_id].regions:
+        # WorkspacesWeb service has limited region availability
+        if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
 
@@ -268,6 +274,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
+
+    @property
+    def sesv2_backend(self) -> SESV2Backend:
+        return sesv2_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -609,6 +619,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
+        if not resource_type_filters or "dms:task" in resource_type_filters:
+            for replication_task in self.dms_backend.replication_tasks.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_task.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_task.arn}", "Tags": tags}
+
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
             for service in self.ecs_backend.services.values():
@@ -684,8 +703,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
                     if not tags or not tag_filter(tags):
                         continue
+                    resource_type_part = resource_type.split(":", 1)[1]
+                    resource_arn = f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type_part}/{resource.id}"
                     yield {
-                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type}/{resource.id}",
+                        "ResourceARN": resource_arn,
                         "Tags": tags,
                     }
 
@@ -746,6 +767,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
+
+        # ElasticBeanstalk
+        if (
+            not resource_type_filters
+            or "elasticbeanstalk:environment" in resource_type_filters
+        ):
+            for eb_application in self.eb_backend.applications.values():
+                for eb_environment in eb_application.environments.values():
+                    tags = [
+                        {"Key": k, "Value": v} for k, v in eb_environment.tags.items()
+                    ]
+                    if not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{eb_environment.environment_arn}",
+                        "Tags": tags,
+                    }
 
         # ELB (Classic Load Balancers)
         if (
@@ -1016,7 +1054,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     yield {"ResourceARN": f"{secret.arn}", "Tags": formated_tags}
 
         # SQS
-        if not resource_type_filters or "sqs" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "sqs" in resource_type_filters
+            or "sqs:queue" in resource_type_filters
+        ):
             for queue in self.sqs_backend.queues.values():
                 tags = format_tags(queue.tags)
                 if not tags or not tag_filter(
@@ -1046,6 +1088,44 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{product.arn}", "Tags": tags}
 
+        if self.sesv2_backend:
+            sesv2_resource_map: dict[str, dict[str, Any]] = {
+                "ses:configuration-set": self.sesv2_backend.core_backend.config_sets,
+                "ses:contact-list": self.sesv2_backend.core_backend.contacts_lists,
+                "ses:dedicated-ip-pool": self.sesv2_backend.core_backend.dedicated_ip_pools,
+                "ses:email-identity": self.sesv2_backend.core_backend.email_identities,
+            }
+
+            resource_id_attr_map: dict[str, str] = {
+                "ses:configuration-set": "configuration_set_name",
+                "ses:contact-list": "contact_list_name",
+                "ses:dedicated-ip-pool": "pool_name",
+                "ses:email-identity": "email_identity",
+            }
+
+            for resource_type, resource_source in sesv2_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "ses" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        resource_id_attr = resource_id_attr_map[resource_type]
+                        resource_id = getattr(resource, resource_id_attr)
+
+                        arn = f"arn:{get_partition(self.region_name)}:ses:{self.region_name}:{self.account_id}:{resource_type.split(':')[-1]}/{resource_id}"
+
+                        tags = self.sesv2_backend.core_backend.tagger.list_tags_for_resource(
+                            arn
+                        )["Tags"]
+
+                        if not tags or not tag_filter(tags):
+                            continue
+
+                        yield {
+                            "ResourceARN": arn,
+                            "Tags": tags,
+                        }
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
             for topic in self.sns_backend.topics.values():
@@ -1570,7 +1650,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, and SageMaker resources are currently supported
+        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1578,6 +1658,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorCode": "InternalServiceException",
             "ErrorMessage": "Service not yet supported",
         }
+
         for arn in resource_arns:
             if arn.startswith(
                 f"arn:{get_partition(self.region_name)}:rds:"
@@ -1625,6 +1706,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.elasticache_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
+                self.sesv2_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
@@ -1633,7 +1718,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: list[str], tag_keys: list[str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only EFS, Elasticache, Lambda, and Quicksight resources are currently supported
+        Only EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1657,6 +1742,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:rds:"):
                 self.rds_backend.remove_tags_from_resource(arn, tag_keys)
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
+                self.sesv2_backend.untag_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
 

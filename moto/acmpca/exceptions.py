@@ -60,3 +60,11 @@ class ConcurrentModificationException(JsonRESTError):
             "ConcurrentModificationException",
             "A previous update to your private CA is still ongoing.",
         )
+
+
+class RequestInProgressException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(
+            "RequestInProgressException",
+            message,
+        )

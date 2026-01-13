@@ -15,12 +15,16 @@ logs
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_kms_key
+- [ ] associate_source_to_s3_table_integration
 - [X] cancel_export_task
+- [ ] cancel_import_task
 - [X] create_delivery
 - [X] create_export_task
+- [ ] create_import_task
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] create_scheduled_query
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
 - [X] delete_delivery
@@ -41,6 +45,7 @@ logs
         
 
 - [X] delete_retention_policy
+- [ ] delete_scheduled_query
 - [X] delete_subscription_filter
 - [ ] delete_transformer
 - [ ] describe_account_policies
@@ -55,6 +60,8 @@ logs
         
 
 - [ ] describe_field_indexes
+- [ ] describe_import_task_batches
+- [ ] describe_import_tasks
 - [ ] describe_index_policies
 - [X] describe_log_groups
 - [X] describe_log_streams
@@ -76,6 +83,7 @@ logs
 
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
+- [ ] disassociate_source_from_s3_table_integration
 - [X] filter_log_events
   
         The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
@@ -90,6 +98,7 @@ logs
 - [ ] get_integration
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
+- [ ] get_log_fields
 - [ ] get_log_group_fields
 - [ ] get_log_object
 - [ ] get_log_record
@@ -98,12 +107,17 @@ logs
         Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
         
 
+- [ ] get_scheduled_query
+- [ ] get_scheduled_query_history
 - [ ] get_transformer
+- [ ] list_aggregate_log_group_summaries
 - [ ] list_anomalies
 - [ ] list_integrations
 - [ ] list_log_anomaly_detectors
 - [ ] list_log_groups
 - [ ] list_log_groups_for_query
+- [ ] list_scheduled_queries
+- [ ] list_sources_for_s3_table_integration
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -120,6 +134,7 @@ logs
         The SequenceToken-parameter is not yet implemented
         
 
+- [ ] put_log_group_deletion_protection
 - [X] put_metric_filter
 - [ ] put_query_definition
 - [X] put_resource_policy
@@ -142,4 +157,5 @@ logs
 - [ ] update_anomaly
 - [ ] update_delivery_configuration
 - [ ] update_log_anomaly_detector
+- [ ] update_scheduled_query
 

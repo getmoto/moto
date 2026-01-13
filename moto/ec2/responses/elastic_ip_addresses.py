@@ -195,12 +195,6 @@ DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE = """<DescribeAddressesAttributeResponse xml
           {% if address.allocation_id %}
             <allocationId>{{ address.allocation_id }}</allocationId>
           {% endif %}
-          {% if address.ptrRecord %}
-            <ptrRecord>{{ address.ptrRecord }}</ptrRecord>
-          {% endif %}
-          {% if address.ptrRecordUpdate %}
-            <ptrRecordUpdate>{{ address.ptrRecordUpdate }}</ptrRecordUpdate>
-          {% endif %}
         </item>
     {% endfor %}
   </addressSet>

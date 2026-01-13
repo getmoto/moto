@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.fleets import Fleet
@@ -94,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Any,
+        user_data: Optional[Base64EncodedString],
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -309,12 +310,24 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
         return self.block_device_mapping.items()
 
+    @staticmethod
+    def get_block_device_status(volume_status: str) -> str:
+        """Convert volume status to attachment status"""
+        if volume_status == "in-use":
+            return "attached"
+        elif volume_status == "available":
+            return "detached"
+
+        return volume_status
+
     @property
     def block_device_mappings(self) -> list[dict[str, Any]]:
-        return [
-            {"DeviceName": device_name, "Ebs": block}
-            for device_name, block in self.get_block_device_mapping
-        ]
+        result = []
+        for device_name, block in self.get_block_device_mapping:
+            block_copy = copy.copy(block)
+            block_copy.status = self.get_block_device_status(block.status)
+            result.append({"DeviceName": device_name, "Ebs": block_copy})
+        return result
 
     @property
     def network_interfaces(self) -> list[NetworkInterface]:
@@ -737,7 +750,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Optional[str],
+        user_data: Optional[Base64EncodedString],
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:
@@ -1067,6 +1080,11 @@ class InstanceBackend:
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+
+    def get_instance_uefi_data(self, instance_id: str) -> bytes:
+        # Just a stub for now, doesn't return any actual data.
+        _ = self.get_instance(instance_id)
+        return b""
 
     def _get_template_from_args(
         self, launch_template_arg: dict[str, Any]

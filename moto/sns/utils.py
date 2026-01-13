@@ -1,7 +1,7 @@
 import json
 import re
-from collections.abc import Iterable
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Iterable
+from typing import Any, Optional, Union
 
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition

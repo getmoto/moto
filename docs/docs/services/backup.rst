@@ -28,6 +28,7 @@ backup
 - [ ] create_restore_access_backup_vault
 - [ ] create_restore_testing_plan
 - [ ] create_restore_testing_selection
+- [ ] create_tiering_configuration
 - [X] delete_backup_plan
 - [ ] delete_backup_selection
 - [ ] delete_backup_vault
@@ -39,6 +40,7 @@ backup
 - [ ] delete_report_plan
 - [ ] delete_restore_testing_plan
 - [ ] delete_restore_testing_selection
+- [ ] delete_tiering_configuration
 - [ ] describe_backup_job
 - [ ] describe_backup_vault
 - [ ] describe_copy_job
@@ -50,6 +52,7 @@ backup
 - [ ] describe_report_job
 - [ ] describe_report_plan
 - [ ] describe_restore_job
+- [ ] describe_scan_job
 - [ ] disassociate_backup_vault_mpa_approval_team
 - [ ] disassociate_recovery_point
 - [ ] disassociate_recovery_point_from_parent
@@ -68,6 +71,7 @@ backup
 - [ ] get_restore_testing_plan
 - [ ] get_restore_testing_selection
 - [ ] get_supported_resource_types
+- [ ] get_tiering_configuration
 - [ ] list_backup_job_summaries
 - [ ] list_backup_jobs
 - [ ] list_backup_plan_templates
@@ -101,11 +105,14 @@ backup
 - [ ] list_restore_jobs_by_protected_resource
 - [ ] list_restore_testing_plans
 - [ ] list_restore_testing_selections
+- [ ] list_scan_job_summaries
+- [ ] list_scan_jobs
 - [X] list_tags
   
         Pagination is not yet implemented
         
 
+- [ ] list_tiering_configurations
 - [ ] put_backup_vault_access_policy
 - [ ] put_backup_vault_lock_configuration
 - [ ] put_backup_vault_notifications
@@ -115,6 +122,7 @@ backup
 - [ ] start_copy_job
 - [ ] start_report_job
 - [ ] start_restore_job
+- [ ] start_scan_job
 - [ ] stop_backup_job
 - [X] tag_resource
 - [X] untag_resource
@@ -127,4 +135,5 @@ backup
 - [ ] update_report_plan
 - [ ] update_restore_testing_plan
 - [ ] update_restore_testing_selection
+- [ ] update_tiering_configuration
 

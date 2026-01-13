@@ -521,7 +521,7 @@ class FakeBillingGroup(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:billinggroup/{billing_group_name}"
         self.version = 1
         self.things: list[str] = []
-        self.metadata = {"creationDate": datetime.utcnow().isoformat()}
+        self.metadata = {"creationDate": utcnow().isoformat()}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -2230,6 +2230,9 @@ class IoTBackend(BaseBackend):
             k[0] for k, v in self.principal_things.items() if k[1] == thing_name
         ]
         return principals
+
+    def list_thing_principals_v2(self, thing_name: str) -> list[str]:
+        return self.list_thing_principals(thing_name)
 
     def describe_thing_group(self, thing_group_name: str) -> FakeThingGroup:
         thing_groups = [

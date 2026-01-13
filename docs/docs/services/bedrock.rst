@@ -40,6 +40,7 @@ bedrock
 - [ ] delete_automated_reasoning_policy_test_case
 - [X] delete_custom_model
 - [ ] delete_custom_model_deployment
+- [ ] delete_enforced_guardrail_configuration
 - [ ] delete_foundation_model_agreement
 - [ ] delete_guardrail
 - [ ] delete_imported_model
@@ -84,6 +85,7 @@ bedrock
         The foundation_model_arn_equals-argument is not yet supported
         
 
+- [ ] list_enforced_guardrails_configuration
 - [ ] list_evaluation_jobs
 - [ ] list_foundation_model_agreement_offers
 - [ ] list_foundation_models
@@ -98,6 +100,7 @@ bedrock
 - [ ] list_prompt_routers
 - [ ] list_provisioned_model_throughputs
 - [X] list_tags_for_resource
+- [ ] put_enforced_guardrail_configuration
 - [X] put_model_invocation_logging_configuration
 - [ ] put_use_case_for_model_access
 - [ ] register_marketplace_model_endpoint
@@ -111,6 +114,7 @@ bedrock
 - [ ] update_automated_reasoning_policy
 - [ ] update_automated_reasoning_policy_annotations
 - [ ] update_automated_reasoning_policy_test_case
+- [ ] update_custom_model_deployment
 - [ ] update_guardrail
 - [ ] update_marketplace_model_endpoint
 - [ ] update_provisioned_model_throughput

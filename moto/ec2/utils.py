@@ -3,15 +3,8 @@ import fnmatch
 import hashlib
 import ipaddress
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Optional,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, TypeVar, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -22,7 +15,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
+from moto.ec2.exceptions import InvalidUserDataError
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
@@ -76,6 +71,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "iam-instance-profile-association": "iip-assoc",
     "carrier-gateway": "cagw",
     "key-pair": "key",
+    "subnet-cidr-reservation": "scr",
 }
 
 
@@ -299,6 +295,10 @@ def randor_ipv4_cidr() -> str:
 
 def random_ipv6_cidr() -> str:
     return f"2400:6500:{random_resource_id(4)}:{random_resource_id(2)}00::/56"
+
+
+def random_subnet_cidr_reservation_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet-cidr-reservation"])
 
 
 def generate_route_id(
@@ -931,3 +931,16 @@ def convert_tag_spec(
             {tag["Key"]: tag["Value"] for tag in tag_spec[tag_key]}
         )
     return tags
+
+
+def parse_user_data(value: Any) -> Optional[Base64EncodedString]:
+    if value is None:
+        return None
+    try:
+        if isinstance(value, bytes):
+            user_data = Base64EncodedString.from_encoded_bytes(value)
+        else:
+            user_data = Base64EncodedString(value)
+    except ValueError:
+        raise InvalidUserDataError("Invalid BASE64 encoding of user data.")
+    return user_data

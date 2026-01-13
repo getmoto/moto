@@ -1,10 +1,10 @@
-import datetime
 import time
+from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
+from freezegun import freeze_time
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -489,7 +489,8 @@ def test_get_records_timestamp_filtering():
     conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
 
     time.sleep(1.0)
-    timestamp = datetime.datetime.now(tz=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    timestamp = datetime.now(tz=tzlocal)
 
     conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
 
@@ -543,7 +544,7 @@ def test_get_records_at_very_new_timestamp():
     for k in keys:
         conn.put_record(StreamName=stream_name, Data=k, PartitionKey=k)
 
-    timestamp = utcnow() + datetime.timedelta(seconds=1)
+    timestamp = utcnow() + timedelta(seconds=1)
 
     # Get a shard iterator
     response = conn.describe_stream(StreamName=stream_name)
@@ -585,6 +586,33 @@ def test_get_records_from_empty_stream_at_timestamp():
 
     assert len(response["Records"]) == 0
     assert response["MillisBehindLatest"] == 0
+
+
+@freeze_time("2024-01-01 12:00:00")
+@mock_aws
+def test_get_records_at_exact_timestamp():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
+
+    timestamp = datetime(2024, 1, 1, 12, 0, 0)
+
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
+    response = conn.get_shard_iterator(
+        StreamName=stream_name,
+        ShardId=shard_id,
+        ShardIteratorType="AT_TIMESTAMP",
+        Timestamp=timestamp,
+    )
+    shard_iterator = response["ShardIterator"]
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+
+    assert len(response["Records"]) == 1
+    assert response["Records"][0]["Data"] == b"0"
 
 
 @mock_aws

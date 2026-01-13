@@ -13,7 +13,7 @@ class FlowLogs(EC2BaseResponse):
         log_destination = self._get_param("LogDestination")
         log_group_name = self._get_param("LogGroupName")
         log_format = self._get_param("LogFormat")
-        max_aggregation_interval = self._get_param("MaxAggregationInterval")
+        max_aggregation_interval = self._get_int_param("MaxAggregationInterval")
         validate_resource_ids(resource_ids)
 
         tags = self._parse_tag_specification().get("vpc-flow-log", {})

@@ -37,6 +37,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         migration_type: str,
         table_mappings: str,
         replication_task_settings: str,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> "FakeReplicationTask":
         """
         The following parameters are not yet implemented:
@@ -60,6 +61,9 @@ class DatabaseMigrationServiceBackend(BaseBackend):
             )
 
         self.replication_tasks[replication_task.arn] = replication_task
+
+        if tags:
+            self.tagger.tag_resource(replication_task.arn, tags)
 
         return replication_task
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from time import sleep
 from uuid import uuid4
 
 import boto3
@@ -7,21 +8,26 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID, aws_verified
+from tests.test_autoscaling import autoscaling_aws_verified
+from tests.test_ec2 import ec2_aws_verified
+from tests.test_ec2.conftest import get_valid_ami
 
 from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_aws
-def test_propogate_tags():
+def test_propagate_attributes():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
+    user_data = Base64EncodedString.from_raw_string("test user data")
     conn.create_launch_configuration(
         LaunchConfigurationName="TestLC",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t2.medium",
+        UserData=user_data.decode(),
     )
-
     conn.create_auto_scaling_group(
         AutoScalingGroupName="TestGroup1",
         MinSize=1,
@@ -38,13 +44,16 @@ def test_propogate_tags():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.describe_instances()
-
-    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    instance = instances["Reservations"][0]["Instances"][0]
+    tags = instance["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
+    resp = ec2.describe_instance_attribute(
+        InstanceId=instance["InstanceId"], Attribute="userData"
+    )
+    assert resp["UserData"]["Value"] == str(user_data)
 
 
 @mock_aws
@@ -128,18 +137,30 @@ def test_create_autoscaling_group_from_invalid_instance_id():
     assert err["Message"] == f"Instance [{invalid_instance_id}] is invalid."
 
 
-@mock_aws
-def test_create_autoscaling_group_from_template():
-    mocked_networking = setup_networking()
-
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    template = ec2_client.create_launch_template(
-        LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
-    )["LaunchTemplate"]
-    client = boto3.client("autoscaling", region_name="us-east-1")
-    response = client.create_auto_scaling_group(
-        AutoScalingGroupName="test_asg",
+# Create LaunchTemplate first, and delete it last
+# If we first delete the Launch Template and then delete the AutoScalingGroup, AWS will show a notification in the console (even if it's only for a few milliseconds)
+@ec2_aws_verified(
+    create_vpc=True,
+    create_subnet=True,
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+    return_launch_template_details=True,
+)
+# Instances are created in the Subnet - wait until the instances are terminated at the end, otherwise subsequent Subnet deletion fails (because of dangling resources)
+@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=True)
+@pytest.mark.aws_verified
+def test_create_autoscaling_group_from_template(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    vpc_id=None,
+    subnet_id=None,
+    launch_template_name=None,
+    launch_template_details=None,
+):
+    template = launch_template_details["LaunchTemplate"]
+    response = autoscaling_client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
         LaunchTemplate={
             "LaunchTemplateId": template["LaunchTemplateId"],
             "Version": str(template["LatestVersionNumber"]),
@@ -147,7 +168,7 @@ def test_create_autoscaling_group_from_template():
         MinSize=1,
         MaxSize=3,
         DesiredCapacity=2,
-        VPCZoneIdentifier=mocked_networking["subnet1"],
+        VPCZoneIdentifier=subnet_id,
         NewInstancesProtectedFromScaleIn=False,
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -182,22 +203,25 @@ def test_create_auto_scaling_from_template_version__latest():
     assert response["LaunchTemplate"]["Version"] == "$Latest"
 
 
-@mock_aws
-def test_create_auto_scaling_from_template_version__default():
-    ec2_client = boto3.client("ec2", region_name="us-west-1")
-    launch_template_name = "tester"
-    ec2_client.create_launch_template(
-        LaunchTemplateName=launch_template_name,
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.medium"},
-    )
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True)
+@pytest.mark.aws_verified
+def test_create_auto_scaling_from_template_version__default(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    launch_template_name=None,
+):
     ec2_client.create_launch_template_version(
         LaunchTemplateName=launch_template_name,
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t3.medium"},
+        LaunchTemplateData={"ImageId": get_valid_ami(), "InstanceType": "t3.medium"},
         VersionDescription="v2",
     )
-    asg_client = boto3.client("autoscaling", region_name="us-west-1")
-    asg_client.create_auto_scaling_group(
-        AutoScalingGroupName="name",
+    autoscaling_client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
         DesiredCapacity=1,
         MinSize=1,
         MaxSize=1,
@@ -205,63 +229,63 @@ def test_create_auto_scaling_from_template_version__default():
             "LaunchTemplateName": launch_template_name,
             "Version": "$Default",
         },
-        AvailabilityZones=["us-west-1a"],
+        AvailabilityZones=["us-east-1a"],
     )
 
-    response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
-        "AutoScalingGroups"
-    ][0]
-    assert "LaunchTemplate" in response
-    assert response["LaunchTemplate"]["LaunchTemplateName"] == launch_template_name
-    assert response["LaunchTemplate"]["Version"] == "$Default"
+    launch_template = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )["AutoScalingGroups"][0]["LaunchTemplate"]
+    assert launch_template["LaunchTemplateName"] == launch_template_name
+    assert launch_template["Version"] == "$Default"
 
 
-@mock_aws
-def test_create_auto_scaling_from_template_version__no_version():
-    ec2_client = boto3.client("ec2", region_name="us-west-1")
-    launch_template_name = "tester"
-    ec2_client.create_launch_template(
-        LaunchTemplateName=launch_template_name,
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.medium"},
-    )
-    asg_client = boto3.client("autoscaling", region_name="us-west-1")
-    asg_client.create_auto_scaling_group(
-        AutoScalingGroupName="name",
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True)
+@pytest.mark.aws_verified
+def test_create_auto_scaling_from_template_version__no_version(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    launch_template_name=None,
+):
+    autoscaling_client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
         DesiredCapacity=1,
         MinSize=1,
         MaxSize=1,
         LaunchTemplate={"LaunchTemplateName": launch_template_name},
-        AvailabilityZones=["us-west-1a"],
+        AvailabilityZones=["us-east-1a"],
     )
 
-    response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
-        "AutoScalingGroups"
-    ][0]
-    assert "LaunchTemplate" in response
-    # We never specified the version - and AWS will not return anything if we don't
-    assert "Version" not in response["LaunchTemplate"]
+    template = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )["AutoScalingGroups"][0]["LaunchTemplate"]
+    # We never specified the version - so AWS will not return it
+    assert "Version" not in template
+    assert template["LaunchTemplateName"] == launch_template_name
 
 
-@mock_aws
-def test_create_autoscaling_group_no_template_ref():
-    mocked_networking = setup_networking()
-
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    template = ec2_client.create_launch_template(
-        LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
-    )["LaunchTemplate"]
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@pytest.mark.aws_verified
+def test_create_autoscaling_group_no_template_ref(
+    ec2_client=None,
+    launch_template_name=None,
+):
     client = boto3.client("autoscaling", region_name="us-east-1")
-
     with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
-            AutoScalingGroupName="test_asg",
-            LaunchTemplate={"Version": str(template["LatestVersionNumber"])},
+            AutoScalingGroupName=str(uuid4()),
+            LaunchTemplate={"Version": "1"},
             MinSize=0,
-            MaxSize=20,
-            DesiredCapacity=5,
-            VPCZoneIdentifier=mocked_networking["subnet1"],
-            NewInstancesProtectedFromScaleIn=False,
+            MaxSize=3,
+            DesiredCapacity=1,
+            AvailabilityZones=["us-east-1a"],
         )
     err = ex.value.response["Error"]
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -367,45 +391,62 @@ def test_create_autoscaling_group_multiple_launch_configurations():
     )
 
 
-@mock_aws
-def test_describe_autoscaling_groups_launch_template():
-    mocked_networking = setup_networking()
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    template = ec2_client.create_launch_template(
-        LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
-    )["LaunchTemplate"]
-    client = boto3.client("autoscaling", region_name="us-east-1")
-    client.create_auto_scaling_group(
-        AutoScalingGroupName="test_asg",
-        LaunchTemplate={"LaunchTemplateName": "test_launch_template", "Version": "1"},
-        MinSize=0,
-        MaxSize=20,
-        DesiredCapacity=5,
-        VPCZoneIdentifier=mocked_networking["subnet1"],
-        NewInstancesProtectedFromScaleIn=True,
+@ec2_aws_verified(
+    create_launch_template=True,
+    return_launch_template_details=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True)
+@pytest.mark.aws_verified
+def test_describe_autoscaling_groups_launch_template(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    launch_template_name=None,
+    launch_template_details=None,
+):
+    template = launch_template_details["LaunchTemplate"]
+    autoscaling_client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
+        LaunchTemplate={"LaunchTemplateName": launch_template_name, "Version": "1"},
+        MinSize=1,
+        MaxSize=2,
+        DesiredCapacity=1,
+        AvailabilityZones=["us-east-1a"],
     )
     expected_launch_template = {
         "LaunchTemplateId": template["LaunchTemplateId"],
-        "LaunchTemplateName": "test_launch_template",
+        "LaunchTemplateName": launch_template_name,
         "Version": "1",
     }
 
-    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    response = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     group = response["AutoScalingGroups"][0]
-    assert group["AutoScalingGroupName"] == "test_asg"
+    assert group["AutoScalingGroupName"] == autoscaling_group_name
     assert group["LaunchTemplate"] == expected_launch_template
     assert "LaunchConfigurationName" not in group
     assert group["AvailabilityZones"] == ["us-east-1a"]
-    assert group["VPCZoneIdentifier"] == mocked_networking["subnet1"]
-    assert group["NewInstancesProtectedFromScaleIn"] is True
-    for instance in group["Instances"]:
+
+    instances = group["Instances"]
+    count = 0
+    while not instances and count < 10:
+        response = autoscaling_client.describe_auto_scaling_groups(
+            AutoScalingGroupNames=[autoscaling_group_name]
+        )
+        instances = response["AutoScalingGroups"][0]["Instances"]
+        count += 1
+        if instances:
+            break
+        else:
+            sleep(5)
+    for instance in instances:
         assert instance["LaunchTemplate"] == expected_launch_template
         assert "LaunchConfigurationName" not in instance
         assert instance["AvailabilityZone"] == "us-east-1a"
-        assert instance["ProtectedFromScaleIn"] is True
-        assert instance["InstanceType"] == "t2.micro"
+        assert instance["InstanceType"] == "t2.medium"
 
 
 @mock_aws
@@ -1015,82 +1056,131 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
     }
 
 
-@mock_aws
+@ec2_aws_verified(
+    create_vpc=True,
+    create_subnet=True,
+    create_launch_template=True,
+    return_launch_template_details=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True)
+@pytest.mark.aws_verified
 @pytest.mark.parametrize("include_instances_distribution", [True, False])
 def test_create_auto_scaling_group_with_mixed_instances_policy(
     include_instances_distribution,
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    vpc_id=None,
+    subnet_id=None,
+    launch_template_name=None,
+    launch_template_details=None,
 ):
-    mocked_networking = setup_networking(region_name="eu-west-1")
-    client = boto3.client("autoscaling", region_name="eu-west-1")
-    ec2_client = boto3.client("ec2", region_name="eu-west-1")
-    asg_name = "asg_test"
-
-    lt = ec2_client.create_launch_template(
-        LaunchTemplateName="launchie",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
-    )["LaunchTemplate"]
     input_policy = {
         "LaunchTemplate": {
             "LaunchTemplateSpecification": {
-                "LaunchTemplateName": "launchie",
-                "Version": "$DEFAULT",
+                "LaunchTemplateName": launch_template_name,
+                "Version": "$Default",
             }
         }
     }
     if include_instances_distribution:
         input_policy["InstancesDistribution"] = {
-            "OnDemandAllocationStrategy": "string",
+            "OnDemandAllocationStrategy": "lowest-price",
             "OnDemandBaseCapacity": 123,
-            "OnDemandPercentageAboveBaseCapacity": 123,
-            "SpotAllocationStrategy": "string",
-            "SpotInstancePools": 123,
-            "SpotMaxPrice": "string",
+            "OnDemandPercentageAboveBaseCapacity": 50,
+            "SpotAllocationStrategy": "lowest-price",
+            "SpotInstancePools": 1,
+            "SpotMaxPrice": "0.05",
         }
-    client.create_auto_scaling_group(
+    autoscaling_client.create_auto_scaling_group(
         MixedInstancesPolicy=input_policy,
-        AutoScalingGroupName=asg_name,
+        AutoScalingGroupName=autoscaling_group_name,
         MinSize=2,
         MaxSize=2,
-        VPCZoneIdentifier=mocked_networking["subnet1"],
+        VPCZoneIdentifier=subnet_id,
     )
 
     # Assert we can describe MixedInstancesPolicy
-    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    response = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )
     group = response["AutoScalingGroups"][0]
 
+    lt = launch_template_details["LaunchTemplate"]
     input_policy["LaunchTemplate"]["LaunchTemplateSpecification"][
         "LaunchTemplateId"
     ] = lt["LaunchTemplateId"]
-    assert group["MixedInstancesPolicy"] == input_policy
+    expected_policy = input_policy.copy()
+    expected_policy["LaunchTemplate"]["Overrides"] = []
+    if not include_instances_distribution:
+        # Expect default
+        expected_policy["InstancesDistribution"] = {
+            "OnDemandAllocationStrategy": "prioritized",
+            "OnDemandBaseCapacity": 0,
+            "OnDemandPercentageAboveBaseCapacity": 100,
+            "SpotAllocationStrategy": "lowest-price",
+            "SpotInstancePools": 2,
+        }
+    assert group["MixedInstancesPolicy"] == expected_policy
+
+    # Wait for instances to be ready
+    instances = group["Instances"]
+    count = 0
+    while not instances and count < 10:
+        response = autoscaling_client.describe_auto_scaling_groups(
+            AutoScalingGroupNames=[autoscaling_group_name]
+        )
+        instances = response["AutoScalingGroups"][0]["Instances"]
+        count += 1
+        if instances:
+            break
+        else:
+            sleep(5)
+    waiter = ec2_client.get_waiter("instance_running")
+    waiter.wait(InstanceIds=[inst["InstanceId"] for inst in instances])
 
     # Assert the LaunchTemplate is known for the resulting instances
-    response = client.describe_auto_scaling_instances()
-    assert len(response["AutoScalingInstances"]) == 2
-    for instance in response["AutoScalingInstances"]:
+    instances = autoscaling_client.describe_auto_scaling_instances()[
+        "AutoScalingInstances"
+    ]
+    instances = [
+        i for i in instances if i["AutoScalingGroupName"] == autoscaling_group_name
+    ]
+    assert len(instances) == 2
+    for instance in instances:
         assert instance["LaunchTemplate"] == {
             "LaunchTemplateId": lt["LaunchTemplateId"],
-            "LaunchTemplateName": "launchie",
-            "Version": "$DEFAULT",
+            "LaunchTemplateName": launch_template_name,
+            "Version": "1",
         }
 
 
-@mock_aws
-def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
-    mocked_networking = setup_networking(region_name="eu-west-1")
-    client = boto3.client("autoscaling", region_name="eu-west-1")
-    ec2_client = boto3.client("ec2", region_name="eu-west-1")
-    asg_name = "asg_test"
-
-    lt = ec2_client.create_launch_template(
-        LaunchTemplateName="launchie",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
-    )["LaunchTemplate"]
-    client.create_auto_scaling_group(
+@ec2_aws_verified(
+    create_vpc=True,
+    create_subnet=True,
+    create_launch_template=True,
+    return_launch_template_details=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True)
+@pytest.mark.aws_verified
+def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    vpc_id=None,
+    subnet_id=None,
+    launch_template_name=None,
+    launch_template_details=None,
+):
+    lt = launch_template_details["LaunchTemplate"]
+    autoscaling_client.create_auto_scaling_group(
         MixedInstancesPolicy={
             "LaunchTemplate": {
                 "LaunchTemplateSpecification": {
-                    "LaunchTemplateName": "launchie",
-                    "Version": "$DEFAULT",
+                    "LaunchTemplateName": launch_template_name,
+                    "Version": "$Default",
                 },
                 "Overrides": [
                     {
@@ -1100,21 +1190,30 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
                 ],
             }
         },
-        AutoScalingGroupName=asg_name,
+        AutoScalingGroupName=autoscaling_group_name,
         MinSize=2,
         MaxSize=2,
-        VPCZoneIdentifier=mocked_networking["subnet1"],
+        VPCZoneIdentifier=subnet_id,
     )
 
     # Assert we can describe MixedInstancesPolicy
-    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    response = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )
     group = response["AutoScalingGroups"][0]
     assert group["MixedInstancesPolicy"] == {
+        "InstancesDistribution": {
+            "OnDemandAllocationStrategy": "prioritized",
+            "OnDemandBaseCapacity": 0,
+            "OnDemandPercentageAboveBaseCapacity": 100,
+            "SpotAllocationStrategy": "lowest-price",
+            "SpotInstancePools": 2,
+        },
         "LaunchTemplate": {
             "LaunchTemplateSpecification": {
                 "LaunchTemplateId": lt["LaunchTemplateId"],
-                "LaunchTemplateName": "launchie",
-                "Version": "$DEFAULT",
+                "LaunchTemplateName": launch_template_name,
+                "Version": "$Default",
             },
             "Overrides": [
                 {
@@ -1122,8 +1221,68 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
                     "WeightedCapacity": "50",
                 }
             ],
-        }
+        },
     }
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
+)
+@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=False)
+@pytest.mark.aws_verified
+def test_update_mixed_instances_policy(
+    autoscaling_client=None,
+    autoscaling_group_name=None,
+    ec2_client=None,
+    launch_template_name=None,
+):
+    autoscaling_client.create_auto_scaling_group(
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": launch_template_name,
+                    "Version": "$Default",
+                },
+            }
+        },
+        AutoScalingGroupName=autoscaling_group_name,
+        MinSize=2,
+        MaxSize=2,
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    new_launch_template = ec2_client.create_launch_template_version(
+        LaunchTemplateName=launch_template_name,
+        SourceVersion="$Default",
+        LaunchTemplateData={
+            "InstanceType": "t2.large",
+        },
+    )["LaunchTemplateVersion"]
+    new_version = new_launch_template["VersionNumber"]
+
+    # Update MixedInstancesPolicy
+    autoscaling_client.update_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
+        MixedInstancesPolicy={
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": launch_template_name,
+                    "Version": str(new_launch_template["VersionNumber"]),
+                }
+            }
+        },
+    )
+
+    # Assert the MixedInstancesPolicy has an updated LaunchTemplateVersion
+    response = autoscaling_client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[autoscaling_group_name]
+    )
+    group = response["AutoScalingGroups"][0]
+    template = group["MixedInstancesPolicy"]["LaunchTemplate"]
+    template_spec = template["LaunchTemplateSpecification"]
+    assert template_spec["LaunchTemplateName"] == launch_template_name
+    assert template_spec["Version"] == str(new_version)
 
 
 @mock_aws

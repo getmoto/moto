@@ -35,4 +35,10 @@ PAGINATION_MODEL = {
         "unique_attribute": "Key",
         "fail_on_invalid_token": InvalidNextTokenException,
     },
+    "list_resolver_dnssec_configs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "dnssec_config_id",
+    },
 }

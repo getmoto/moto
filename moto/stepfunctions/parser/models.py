@@ -164,6 +164,12 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         trace_header: TraceHeader = None,
     ) -> Execution:
         state_machine = self.describe_state_machine(state_machine_arn)
+        existing_execution = state_machine._handle_name_input_idempotency(
+            name, execution_input
+        )
+        if existing_execution is not None:
+            # If we found a match for the name and input, return the existing execution.
+            return existing_execution
 
         # Update event change parameters about the state machine and should not affect those about this execution.
         state_machine_clone = copy.deepcopy(state_machine)

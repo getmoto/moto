@@ -424,6 +424,29 @@ def test_describe_network_acls():
 
 
 @mock_aws
+def test_describe_network_acls_associations_by_acl_id():
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    vpc_id = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")
+    subnet_id = subnet["Subnet"]["SubnetId"]
+    custom_acl = ec2_client.create_network_acl(VpcId=vpc_id)["NetworkAcl"]
+    associate_subnet_to_acl(ec2_client, subnet_id, custom_acl["NetworkAclId"])
+
+    network_acls_by_subnet = ec2_client.describe_network_acls(
+        Filters=[{"Name": "association.subnet-id", "Values": [subnet_id]}]
+    )["NetworkAcls"]
+    association_id = network_acls_by_subnet[0]["Associations"][0][
+        "NetworkAclAssociationId"
+    ]
+
+    network_acls_by_association = ec2_client.describe_network_acls(
+        Filters=[{"Name": "association.association-id", "Values": [association_id]}]
+    )["NetworkAcls"]
+    assert len(network_acls_by_association) == 1
+    assert network_acls_by_association[0]["NetworkAclId"] == custom_acl["NetworkAclId"]
+
+
+@mock_aws
 def test_describe_network_acls_associations_by_subnet():
     ec2_client = boto3.client("ec2", region_name="us-west-2")
     vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")

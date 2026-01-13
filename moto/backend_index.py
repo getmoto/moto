@@ -85,10 +85,6 @@ backend_url_patterns = [
             "https?://elasticbeanstalk\\.(?P<region>[a-zA-Z0-9\\-_]+)\\.amazonaws.com"
         ),
     ),
-    (
-        "elastictranscoder",
-        re.compile("https?://elastictranscoder\\.(.+)\\.amazonaws.com"),
-    ),
     ("elb", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("elbv2", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("emr", re.compile("https?://(.+)\\.elasticmapreduce\\.amazonaws.com")),
@@ -163,6 +159,7 @@ backend_url_patterns = [
     ("panorama", re.compile("https?://panorama\\.(.+)\\.amazonaws.com")),
     ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
+    ("pipes", re.compile("https?://pipes\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
     ("quicksight", re.compile("https?://quicksight\\.(.+)\\.amazonaws\\.com")),
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),

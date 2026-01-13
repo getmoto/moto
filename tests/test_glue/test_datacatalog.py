@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 from . import helpers
 
@@ -1576,7 +1577,7 @@ def test_filter_crawls_for_start_time(operator):
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
-    between_the_two_run_starts = datetime.now()
+    between_the_two_run_starts = utcnow()
     # turn crawler to completed
     client.list_crawls(CrawlerName=name)
 
@@ -1608,7 +1609,7 @@ def test_filter_crawls_for_end_time(operator):
     client.list_crawls(CrawlerName=name)
 
     client.start_crawler(Name=name)
-    between_the_two_run_ends = datetime.now()
+    between_the_two_run_ends = utcnow()
     client.list_crawls(CrawlerName=name)
 
     crawls = client.list_crawls(
@@ -1636,7 +1637,7 @@ def test_multiple_filters(operator):
     # turn crawler to completed
     client.list_crawls(CrawlerName=name)
 
-    between_the_two_runs = datetime.now()
+    between_the_two_runs = utcnow()
     client.start_crawler(Name=name)
     client.list_crawls(CrawlerName=name)
 

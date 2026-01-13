@@ -12,7 +12,7 @@ from moto.s3.exceptions import (
     NoSuchPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
 )
-from moto.s3.models import PublicAccessBlock
+from moto.s3.models import PublicAccessBlock, S3Backend, s3_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
@@ -528,6 +528,18 @@ class S3ControlBackend(BaseBackend):
             raise AccessPointNotFound(config_id)
 
         return self.storage_lens_configs[config_id].tags
+
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        return backend.tagger.list_tags_for_resource(resource_arn)["Tags"]
+
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.tagger.tag_resource(resource_arn, tags=tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.tagger.untag_resource_using_names(resource_arn, tag_names=tag_keys)
 
 
 s3control_backends = BackendDict(

@@ -15,6 +15,9 @@ markers = [
     "requires_clean_slate: requires a clean slate, so no parallel testing",
 ]
 
+[tool.ruff]
+target-version = "py39"  # Same as python_requires in setup.cfg
+
 [tool.ruff.lint]
 ignore = [
     "B019",  # Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks
@@ -23,6 +26,7 @@ ignore = [
     "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
     "E501",  # Line length
     "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
+    "UP045",  # Use `X | None` for type annotations - same as above
 ]
-extend-select = ["B", "C4", "I", "T201", "T203", "UP"]
+extend-select = ["B", "C4", "E", "F", "G", "I", "T", "UP", "W"]
 

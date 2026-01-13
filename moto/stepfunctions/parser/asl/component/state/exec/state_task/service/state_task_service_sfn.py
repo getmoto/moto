@@ -1,5 +1,6 @@
 import json
-from typing import Any, Callable, Final, Optional
+from collections.abc import Callable
+from typing import Any, Final, Optional
 
 from botocore.exceptions import ClientError
 

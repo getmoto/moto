@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import datetime
 import functools
 import json
 import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
@@ -22,13 +21,14 @@ from xml.dom.minidom import parseString as parseXML
 import boto3
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
+from werkzeug.http import http_date
 
 from moto import settings
 from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS
+from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -38,13 +38,16 @@ from moto.core.serialize import (
 )
 from moto.core.utils import (
     camelcase_to_underscores,
+    get_pagination_model,
     get_service_model,
     get_value,
     gzip_decompress,
     method_names_from_class,
-    params_sort_function,
+    set_value,
+    utcnow,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
@@ -181,7 +184,7 @@ class ActionContext:
     service_model: ServiceModel
     operation_model: OperationModel
     serializer_class: type[ResponseSerializer]
-    response_class: type[BaseResponse]
+    response: BaseResponse
 
 
 class ActionResult:
@@ -202,7 +205,7 @@ class ActionResult:
         """
         serializer_cls = context.serializer_class
         response_transformers = getattr(
-            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+            context.response, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
         )
         value_picker = XFormedAttributePicker(
             response_transformers=response_transformers
@@ -214,6 +217,29 @@ class ActionResult:
         )
         serialized = serializer.serialize(self.result)
         return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class PaginatedResult(ActionResult):
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        service_name = str(context.service_model.service_name)
+        operation_name = str(context.operation_model.name)
+        pagination_model = get_pagination_model(service_name)
+        paging_config = pagination_model[operation_name]
+        paging_config.setdefault("limit_default", 100)
+
+        kwargs = context.response.params
+        if isinstance(kwargs, XFormedDict):
+            kwargs = kwargs.original_dict()
+
+        def get_result_to_paginate(**_: Any) -> Any:
+            return get_value(self._result, paging_config["result_key"])
+
+        get_result_to_paginate.__name__ = operation_name
+        paginator = paginate(pagination_model)(get_result_to_paginate)
+        paginated_results, next_token = paginator(**kwargs)
+        set_value(self._result, paging_config["result_key"], paginated_results)
+        set_value(self._result, paging_config["output_token"], next_token)
+        return super().execute_result(context)
 
 
 class EmptyResult(ActionResult):
@@ -380,8 +406,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.headers["host"] = self.parsed_url.netloc
         self.response_headers = {
             "server": "amazon.com",
-            "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
+        if not self.is_werkzeug_request:
+            self.response_headers["date"] = http_date(utcnow())
 
         if self.automated_parameter_parsing:
             self.parse_parameters(request)
@@ -548,9 +575,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
-        context = ActionContext(
-            service_model, operation_model, serializer_cls, self.__class__
-        )
+        context = ActionContext(service_model, operation_model, serializer_cls, self)
         status_code, headers, body = action_result.execute_result(context)
         headers.update(self.response_headers)
         return status_code, headers, body
@@ -731,7 +756,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if self.automated_parameter_parsing:
             return self.params
         params: dict[str, Any] = {}
-        for k, v in sorted(self.querystring.items(), key=params_sort_function):
+        for k, v in sorted(self.querystring.items()):
             self._parse_param(k, v[0], params)
         return params
 

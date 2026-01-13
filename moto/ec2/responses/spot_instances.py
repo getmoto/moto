@@ -1,3 +1,4 @@
+from ..utils import parse_user_data
 from ._base_response import EC2BaseResponse
 
 
@@ -59,7 +60,7 @@ class SpotInstances(EC2BaseResponse):
         availability_zone_group = self._get_param("AvailabilityZoneGroup")
         key_name = self._get_param("LaunchSpecification.KeyName")
         security_groups = self._get_param("LaunchSpecification.SecurityGroups", [])
-        user_data = self._get_param("LaunchSpecification.UserData")
+        user_data = parse_user_data(self._get_param("LaunchSpecification.UserData"))
         instance_type = self._get_param("LaunchSpecification.InstanceType", "m1.small")
         placement = self._get_param("LaunchSpecification.Placement.AvailabilityZone")
         kernel_id = self._get_param("LaunchSpecification.KernelId")
@@ -113,7 +114,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
         <message>{{ request.status_message }}</message>
       </status>
-      <instanceId>{{ request.instance_id }}</instanceId>
+      <instanceId>{{ request.instance.id }}</instanceId>
       <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       <launchSpecification>
         <imageId>{{ request.launch_specification.image_id }}</imageId>

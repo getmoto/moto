@@ -268,3 +268,28 @@ class SESV2Response(BaseResponse):
             email_identity=email_identity,
         )
         return json.dumps({"Policies": policies})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        self.sesv2_backend.tag_resource(
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self.__dict__["data"]["TagKeys"]
+        self.sesv2_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self.sesv2_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"Tags": tags})

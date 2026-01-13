@@ -1,8 +1,9 @@
 import copy
 import itertools
 import json
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -726,15 +727,12 @@ class DynamoHandler(BaseResponse):
             )
 
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
+        if projection_expression is None and expression_attribute_names:
+            raise MockValidationException(
+                "ExpressionAttributeNames can only be specified when using expressions"
+            )
         if expression_attribute_names == {}:
-            if projection_expression is None:
-                raise MockValidationException(
-                    "ExpressionAttributeNames can only be specified when using expressions"
-                )
-            else:
-                raise MockValidationException(
-                    "ExpressionAttributeNames must not be empty"
-                )
+            raise MockValidationException("ExpressionAttributeNames must not be empty")
 
         if not all(k in table.attribute_keys for k in key):
             raise ProvidedKeyDoesNotExist

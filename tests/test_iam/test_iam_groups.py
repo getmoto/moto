@@ -1,11 +1,10 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -114,7 +113,8 @@ def test_add_user_to_unknown_group():
 @mock_aws
 def test_add_user_to_group():
     # Setup
-    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal)
 
     group = "my-group"
     user = "my-user"

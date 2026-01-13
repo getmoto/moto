@@ -787,8 +787,25 @@ class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
     def __init__(self, name: str):
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
-            f"The specified launch template, with template name {name}, does not exist",
+            f"The specified launch template, with template name {name}, does not exist.",
         )
+
+
+class InvalidLaunchTemplateIdNotFound(EC2ClientError):
+    def __init__(self, template_id: str):
+        super().__init__(
+            "InvalidLaunchTemplateId.NotFound",
+            f"The specified launch template, with template ID {template_id}, does not exist.",
+        )
+
+
+class InvalidLaunchTemplateVersionNotFound(EC2ClientError):
+    def __init__(self, version: str, template_id: Optional[str] = None):
+        if template_id:
+            msg = f"Could not find the specified version {version} for the launch template with ID {template_id}."
+        else:
+            msg = f"The launch template version {version} is not found for the specified launch template."
+        super().__init__("InvalidLaunchTemplateId.VersionNotFound", msg)
 
 
 class InvalidParameterDependency(EC2ClientError):
@@ -912,4 +929,44 @@ class AuthFailureRestricted(RESTError):
         super().__init__(
             "AuthFailure",
             "Unauthorized attempt to access restricted resource",
+        )
+
+
+class InvalidUserDataError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidUserData.Malformed",
+            message,
+        )
+
+
+class InvalidPrefixReservationType(EC2ClientError):
+    def __init__(self, reservation_type: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Value ({reservation_type}) for parameter reservationType is invalid.",
+        )
+
+
+class InvalidCidrReservationNotWithinSubnetCidr(EC2ClientError):
+    def __init__(self, cidr_block: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR should be within subnet CIDR block ({cidr_block})",
+        )
+
+
+class InvalidCidrReservationOverlapExisting(EC2ClientError):
+    def __init__(self, cidr: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR {cidr} has overlap with existing reserved CIDR block",
+        )
+
+
+class InvalidCidrReservationNotFound(EC2ClientError):
+    def __init__(self, reservation_id: str):
+        super().__init__(
+            "InvalidSubnetCidrReservationID.NotFound",
+            f"The subnet-cidr-reservation ID '{reservation_id}' does not exist",
         )

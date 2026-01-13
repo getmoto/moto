@@ -100,7 +100,8 @@ class RedshiftResponse(BaseResponse):
 
     def describe_clusters(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
-        clusters = self.redshift_backend.describe_clusters(cluster_identifier)
+        tag_keys = self._get_param("TagKeys")
+        clusters = self.redshift_backend.describe_clusters(cluster_identifier, tag_keys)
 
         return ActionResult({"Clusters": clusters})
 

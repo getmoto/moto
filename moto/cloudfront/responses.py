@@ -354,7 +354,7 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
           <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
             {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}
@@ -496,7 +496,7 @@ DIST_CONFIG_TEMPLATE = """
                 <LambdaFunctionAssociations>
                   <Quantity>{{ behaviour.lambda_function_associations | length }}</Quantity>
                   <Items>
-                    {% for lambda_function_association_list in behaviour.lambda_function_associations.LambdaFunctionAssociationList %}
+                    {% for lambda_function_association_list in behaviour.lambda_function_associations %}
                       <LambdaFunctionARN>{{ LambdaFunctionARN }}</LambdaFunctionARN>
                       <EventType>{{ EventType }}</EventType>
                       <IncludeBody>{{ lambda_function_association_list.include_body }}</IncludeBody>
@@ -506,7 +506,7 @@ DIST_CONFIG_TEMPLATE = """
                 <FunctionAssociations>
                   <Quantity>{{ behaviour.function_associations | length }}</Quantity>
                   <Items>
-                    {% for function_association_list  in behaviour.function_associations.FunctionAssociationList %}
+                    {% for function_association_list  in behaviour.function_associations %}
                       <FunctionARN>{{ FunctionARN }}</FunctionARN>
                       <EventType>{{ EventType }}</EventType>
                     {% endfor %}
@@ -520,11 +520,11 @@ DIST_CONFIG_TEMPLATE = """
                 <ForwardedValues>
                   <QueryString>{{ behaviour.forwarded_values.query_string }}</QueryString>
                   <Cookies>
-                    <Forward>{{ ItemSelection }}</Forward>
+                    <Forward>{{ behaviour.forwarded_values.cookie_forward }}</Forward>
                     <WhitelistedNames>
-                      <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names| length }}</Quantity>
+                      <Quantity>{{ behaviour.forwarded_values.whitelisted_names| length }}</Quantity>
                       <Items>
-                        {% for wl_name in behaviour.forwarded_values.cookies.whitelisted_names %}
+                        {% for wl_name in behaviour.forwarded_values.whitelisted_names %}
                           <Name>{{ wl_name }}</Name>
                         {% endfor %}
                       </Items>
@@ -533,7 +533,7 @@ DIST_CONFIG_TEMPLATE = """
                   <Headers>
                     <Quantity>{{ behaviour.forwarded_values.headers | length }}</Quantity>
                     <Items>
-                      {% for header_list in behaviour.forwarded_values.headers.HeaderList %}
+                      {% for header_list in behaviour.forwarded_values.headers %}
                         <Name>{{ header_list.name }}</Name>
                       {% endfor %}
                     </Items>
@@ -541,7 +541,7 @@ DIST_CONFIG_TEMPLATE = """
                   <QueryStringCacheKeys>
                     <Quantity>{{ behaviour.forwarded_values.query_string_cache_keys | length }}</Quantity>
                     <Items>
-                      {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys.QueryStringCacheKeysList %}
+                      {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys %}
                         <Name>{{ query_string_cache_keys_list.name }}</Name>
                       {% endfor %}
                     </Items>
