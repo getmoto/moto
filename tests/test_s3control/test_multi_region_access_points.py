@@ -15,7 +15,6 @@ def test_create_multi_region_access_point():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_west = boto3.client("s3", region_name="us-west-2")
 
-    # Create buckets in different regions
     bucket1 = "test-bucket-us-east-1"
     bucket2 = "test-bucket-us-west-2"
     s3_client.create_bucket(Bucket=bucket1)
@@ -23,7 +22,6 @@ def test_create_multi_region_access_point():
         Bucket=bucket2, CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
     )
 
-    # Create multi-region access point
     response = client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token-1",
@@ -40,7 +38,6 @@ def test_create_multi_region_access_point():
     )
 
     assert "RequestTokenARN" in response
-    # FIXED: Match against us-east-1 because client is in us-east-1
     assert re.match(
         r"arn:aws:s3:us-east-1:\d+:async-request/mrap/createmultiregionaccesspoint/[a-z0-9]+",
         response["RequestTokenARN"],
@@ -55,14 +52,12 @@ def test_create_multi_region_access_point_duplicate_name():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create first MRAP
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token-1",
         Details={"Name": "duplicate-mrap", "Regions": [{"Bucket": bucket}]},
     )
 
-    # Try to create second MRAP with same name
     with pytest.raises(ClientError) as exc:
         client.create_multi_region_access_point(
             AccountId=ACCOUNT_ID,
@@ -83,7 +78,6 @@ def test_describe_multi_region_access_point_operation():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP
     create_response = client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
@@ -92,7 +86,6 @@ def test_describe_multi_region_access_point_operation():
 
     request_token = create_response["RequestTokenARN"]
 
-    # Describe the operation
     response = client.describe_multi_region_access_point_operation(
         AccountId=ACCOUNT_ID, RequestTokenARN=request_token
     )
@@ -101,14 +94,12 @@ def test_describe_multi_region_access_point_operation():
     assert response["AsyncOperation"]["RequestStatus"] == "SUCCEEDED"
     assert "CreationTime" in response["AsyncOperation"]
     assert response["AsyncOperation"]["Operation"] == "CreateMultiRegionAccessPoint"
-    # The MRAP name is in RequestParameters, not ResponseDetails
     assert (
         response["AsyncOperation"]["RequestParameters"][
             "CreateMultiRegionAccessPointRequest"
         ]["Name"]
         == "test-mrap"
     )
-    # ResponseDetails contains per-region status
     regions = response["AsyncOperation"]["ResponseDetails"][
         "MultiRegionAccessPointDetails"
     ]["Regions"]
@@ -138,7 +129,6 @@ def test_get_multi_region_access_point():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
@@ -154,7 +144,6 @@ def test_get_multi_region_access_point():
         },
     )
 
-    # Get MRAP details
     response = client.get_multi_region_access_point(
         AccountId=ACCOUNT_ID, Name="test-mrap-get"
     )
@@ -169,7 +158,6 @@ def test_get_multi_region_access_point():
         "BlockPublicPolicy": True,
         "RestrictPublicBuckets": True,
     }
-    # We expect us-east-1 since that's where we created the bucket
     assert response["AccessPoint"]["Regions"][0]["Region"] == "us-east-1"
 
 
@@ -192,11 +180,9 @@ def test_list_multi_region_access_points():
     client = boto3.client("s3control", region_name="us-east-1")
     s3_client = boto3.client("s3", region_name="us-east-1")
 
-    # Initially empty
     response = client.list_multi_region_access_points(AccountId=ACCOUNT_ID)
     assert response["AccessPoints"] == []
 
-    # Create multiple MRAPs
     for i in range(3):
         bucket = f"test-bucket-{i}"
         s3_client.create_bucket(Bucket=bucket)
@@ -207,7 +193,6 @@ def test_list_multi_region_access_points():
             Details={"Name": f"mrap-{i}", "Regions": [{"Bucket": bucket}]},
         )
 
-    # List all MRAPs
     response = client.list_multi_region_access_points(AccountId=ACCOUNT_ID)
 
     assert len(response["AccessPoints"]) == 3
@@ -225,7 +210,6 @@ def test_list_multi_region_access_points_pagination():
     client = boto3.client("s3control", region_name="us-east-1")
     s3_client = boto3.client("s3", region_name="us-east-1")
 
-    # Create 5 MRAPs
     for i in range(5):
         bucket = f"test-bucket-{i}"
         s3_client.create_bucket(Bucket=bucket)
@@ -236,7 +220,6 @@ def test_list_multi_region_access_points_pagination():
             Details={"Name": f"mrap-{i}", "Regions": [{"Bucket": bucket}]},
         )
 
-    # List with pagination
     response = client.list_multi_region_access_points(
         AccountId=ACCOUNT_ID, MaxResults=3
     )
@@ -244,7 +227,6 @@ def test_list_multi_region_access_points_pagination():
     assert len(response["AccessPoints"]) == 3
     assert "NextToken" in response
 
-    # Get next page
     response2 = client.list_multi_region_access_points(
         AccountId=ACCOUNT_ID, NextToken=response["NextToken"]
     )
@@ -261,14 +243,12 @@ def test_put_multi_region_access_point_policy():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
         Details={"Name": "mrap-with-policy", "Regions": [{"Bucket": bucket}]},
     )
 
-    # Define a policy
     policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -281,7 +261,6 @@ def test_put_multi_region_access_point_policy():
         ],
     }
 
-    # Put the policy
     response = client.put_multi_region_access_point_policy(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token-policy",
@@ -300,14 +279,12 @@ def test_get_multi_region_access_point_policy():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
         Details={"Name": "mrap-policy-test", "Regions": [{"Bucket": bucket}]},
     )
 
-    # Set a policy
     policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -326,7 +303,6 @@ def test_get_multi_region_access_point_policy():
         Details={"Name": "mrap-policy-test", "Policy": json.dumps(policy)},
     )
 
-    # Get the policy
     response = client.get_multi_region_access_point_policy(
         AccountId=ACCOUNT_ID, Name="mrap-policy-test"
     )
@@ -345,14 +321,12 @@ def test_get_multi_region_access_point_policy_not_found():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP without policy
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
         Details={"Name": "mrap-no-policy", "Regions": [{"Bucket": bucket}]},
     )
 
-    # Try to get non-existent policy
     with pytest.raises(ClientError) as exc:
         client.get_multi_region_access_point_policy(
             AccountId=ACCOUNT_ID, Name="mrap-no-policy"
@@ -370,11 +344,19 @@ def test_get_multi_region_access_point_policy_status():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP and set policy
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
-        Details={"Name": "mrap-status-test", "Regions": [{"Bucket": bucket}]},
+        Details={
+            "Name": "mrap-status-test",
+            "PublicAccessBlock": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": False,
+                "RestrictPublicBuckets": True,
+            },
+            "Regions": [{"Bucket": bucket}],
+        },
     )
 
     policy = {
@@ -395,13 +377,11 @@ def test_get_multi_region_access_point_policy_status():
         Details={"Name": "mrap-status-test", "Policy": json.dumps(policy)},
     )
 
-    # Get policy status
     response = client.get_multi_region_access_point_policy_status(
         AccountId=ACCOUNT_ID, Name="mrap-status-test"
     )
 
     assert "Established" in response
-    # Established contains IsPublic directly (botocore maps PolicyStatus to Established)
     assert response["Established"]["IsPublic"] is True
 
 
@@ -413,20 +393,17 @@ def test_delete_multi_region_access_point():
     bucket = "test-bucket"
     s3_client.create_bucket(Bucket=bucket)
 
-    # Create MRAP
     client.create_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token",
         Details={"Name": "mrap-to-delete", "Regions": [{"Bucket": bucket}]},
     )
 
-    # Verify it exists
     response = client.get_multi_region_access_point(
         AccountId=ACCOUNT_ID, Name="mrap-to-delete"
     )
     assert response["AccessPoint"]["Name"] == "mrap-to-delete"
 
-    # Delete MRAP
     delete_response = client.delete_multi_region_access_point(
         AccountId=ACCOUNT_ID,
         ClientToken="test-token-delete",
@@ -436,7 +413,6 @@ def test_delete_multi_region_access_point():
     assert "RequestTokenARN" in delete_response
     assert "deletemultiregionaccesspoint" in delete_response["RequestTokenARN"]
 
-    # Verify it's deleted
     with pytest.raises(ClientError) as exc:
         client.get_multi_region_access_point(
             AccountId=ACCOUNT_ID, Name="mrap-to-delete"
@@ -466,7 +442,6 @@ def test_multi_region_access_point_with_multiple_buckets():
     client = boto3.client("s3control", region_name="us-east-1")
     s3_client = boto3.client("s3", region_name="us-east-1")
 
-    # Create buckets
     for i in range(3):
         s3_client.create_bucket(Bucket=f"bucket-{i}")
 

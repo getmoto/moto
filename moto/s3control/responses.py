@@ -31,7 +31,6 @@ class S3ControlResponse(BaseResponse):
         """
         methods_url = _get_method_urls(self.service_name, self.region)
         regexp_and_names = methods_url[method]
-        # Sort by pattern length descending - longer patterns are more specific
         sorted_patterns = sorted(
             regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
         )
@@ -235,13 +234,8 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
         return template.render(access_points=access_points, next_token=next_token)
 
-    # ----------------------------------------------------------------
-    # Multi-Region Access Point methods
-    # ----------------------------------------------------------------
-
     def create_multi_region_access_point(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
-        # Fix: process_namespaces=False ensures tag names are clean
         params = xmltodict.parse(self.body, process_namespaces=False)[
             "CreateMultiRegionAccessPointRequest"
         ]
@@ -272,7 +266,6 @@ class S3ControlResponse(BaseResponse):
 
     def delete_multi_region_access_point(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
-        # Fix: process_namespaces=False here too
         params = xmltodict.parse(self.body, process_namespaces=False)[
             "DeleteMultiRegionAccessPointRequest"
         ]
@@ -366,7 +359,6 @@ class S3ControlResponse(BaseResponse):
 
     def put_multi_region_access_point_policy(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
-        # Fix: process_namespaces=False here too
         params = xmltodict.parse(self.body, process_namespaces=False)[
             "PutMultiRegionAccessPointPolicyRequest"
         ]
@@ -460,7 +452,6 @@ GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
 
 XMLNS = 'xmlns="http://awss3control.amazonaws.com/doc/2018-08-20/"'
 
-# Multi-region access point templates
 CREATE_MULTI_REGION_ACCESS_POINT_TEMPLATE = f"""<CreateMultiRegionAccessPointResult {XMLNS}>
   <RequestTokenARN>{{{{ request_token }}}}</RequestTokenARN>
 </CreateMultiRegionAccessPointResult>

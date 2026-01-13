@@ -146,7 +146,6 @@ class MultiRegionAccessPointOperation(BaseModel):
         }
 
         if self.operation == "CreateMultiRegionAccessPoint" and self.details:
-            # RequestParameters contains the original request details
             response["RequestParameters"] = {
                 "CreateMultiRegionAccessPointRequest": {
                     "Name": self.name or "",
@@ -154,7 +153,6 @@ class MultiRegionAccessPointOperation(BaseModel):
                     "PublicAccessBlock": self.details.get("PublicAccessBlock", {}),
                 }
             }
-            # ResponseDetails contains the status of each region
             regions_response = [
                 {"Name": r.get("Region", ""), "RequestStatus": self.request_status}
                 for r in self.details.get("Regions", [])
@@ -310,13 +308,11 @@ class S3ControlBackend(BaseBackend):
             bucket_name = region_item.get("Bucket")
             found_region = "us-east-1"
 
-            # Search all S3 backends for the bucket
             found = False
             for account_id_key in s3_backends:
                 if found:
                     break
                 for region_key, backend in s3_backends[account_id_key].items():
-                    # Skip the global 'aws' partition to find real region
                     if region_key == "aws":
                         continue
 
@@ -399,13 +395,31 @@ class S3ControlBackend(BaseBackend):
             raise MultiRegionAccessPointPolicyNotFound(name)
         return mrap.policy  # type: ignore[return-value]
 
+    def _is_policy_public(
+        self, policy: str, public_access_block: dict[str, Any]
+    ) -> bool:
+        block_public = public_access_block.get("BlockPublicPolicy")
+        if block_public is True or block_public == "true":
+            return False
+
+        policy_no_spaces = policy.replace(" ", "")
+        if '"Principal":"*"' in policy_no_spaces:
+            return True
+        if '"Principal":{"AWS":"*"}' in policy_no_spaces:
+            return True
+
+        return False
+
     def get_multi_region_access_point_policy_status(
         self,
         account_id: str,
         name: str,
     ) -> dict[str, Any]:
-        self.get_multi_region_access_point_policy(account_id, name)
-        return {"IsPublic": True}
+        mrap = self.get_multi_region_access_point(account_id, name)
+        if not mrap.has_policy():
+            raise MultiRegionAccessPointPolicyNotFound(name)
+        is_public = self._is_policy_public(mrap.policy, mrap.public_access_block)  # type: ignore[arg-type]
+        return {"IsPublic": is_public}
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_multi_region_access_points(
