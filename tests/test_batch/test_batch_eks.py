@@ -55,7 +55,9 @@ def test_register_job_definition_with_eks_properties():
     assert len(pod_props["containers"]) == 1
     assert pod_props["containers"][0]["image"] == "python:3.11"
     assert pod_props["containers"][0]["command"] == ["python", "-c", "print('hello')"]
-    assert pod_props["containers"][0]["env"] == [{"name": "MY_VAR", "value": "my_value"}]
+    assert pod_props["containers"][0]["env"] == [
+        {"name": "MY_VAR", "value": "my_value"}
+    ]
 
 
 @mock_aws
@@ -268,9 +270,7 @@ def test_eks_job_definition_defaults():
     batch_client.register_job_definition(
         jobDefinitionName=job_def_name,
         type="container",
-        eksProperties={
-            "podProperties": {"containers": [{"image": "python:3.11"}]}
-        },
+        eksProperties={"podProperties": {"containers": [{"image": "python:3.11"}]}},
     )
 
     # Describe and verify defaults are set
