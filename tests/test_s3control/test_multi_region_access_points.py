@@ -270,6 +270,21 @@ def test_put_multi_region_access_point_policy():
     assert "RequestTokenARN" in response
     assert "putmultiregionaccesspointpolicy" in response["RequestTokenARN"]
 
+    describe_response = client.describe_multi_region_access_point_operation(
+        AccountId=ACCOUNT_ID,
+        RequestTokenARN=response["RequestTokenARN"],
+    )
+    async_op = describe_response["AsyncOperation"]
+    assert async_op["Operation"] == "PutMultiRegionAccessPointPolicy"
+    assert (
+        async_op["RequestParameters"]["PutMultiRegionAccessPointPolicyRequest"]["Name"]
+        == "mrap-with-policy"
+    )
+    assert async_op["RequestParameters"]["PutMultiRegionAccessPointPolicyRequest"][
+        "Policy"
+    ] == json.dumps(policy)
+    assert "ResponseDetails" not in async_op
+
 
 @mock_aws
 def test_get_multi_region_access_point_policy():
@@ -412,6 +427,17 @@ def test_delete_multi_region_access_point():
 
     assert "RequestTokenARN" in delete_response
     assert "deletemultiregionaccesspoint" in delete_response["RequestTokenARN"]
+
+    describe_response = client.describe_multi_region_access_point_operation(
+        AccountId=ACCOUNT_ID,
+        RequestTokenARN=delete_response["RequestTokenARN"],
+    )
+    async_op = describe_response["AsyncOperation"]
+    assert async_op["Operation"] == "DeleteMultiRegionAccessPoint"
+    assert (
+        async_op["RequestParameters"]["DeleteMultiRegionAccessPointRequest"]["Name"]
+        == "mrap-to-delete"
+    )
 
     with pytest.raises(ClientError) as exc:
         client.get_multi_region_access_point(
