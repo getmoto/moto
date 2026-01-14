@@ -8,7 +8,10 @@ def test_elasticbeanstalk_describe():
     test_client = backend.test_client()
 
     data = "Action=DescribeApplications"
-    headers = {"Host": "elasticbeanstalk.us-east-1.amazonaws.com"}
+    headers = {
+        "Host": "elasticbeanstalk.us-east-1.amazonaws.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
     resp = test_client.post("/", data=data, headers=headers)
 
     assert resp.status_code == 200
