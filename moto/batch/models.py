@@ -322,6 +322,8 @@ class JobDefinition(CloudFormationModel):
         :return: The value of the resource requirement, or None.
         :rtype: any
         """
+        if self.container_properties is None:
+            return default
         resource_reqs = self.container_properties.get("resourceRequirements", [])
 
         # Filter the resource requirements by the specified type.
@@ -365,6 +367,7 @@ class JobDefinition(CloudFormationModel):
                 )
 
     def _validate_container_properties(self) -> None:
+        assert self.container_properties is not None  # Checked before calling
         if "image" not in self.container_properties:
             raise ClientException("containerProperties must contain image")
 
@@ -381,6 +384,7 @@ class JobDefinition(CloudFormationModel):
             raise ClientException("container vcpus limit must be greater than 0")
 
     def _validate_eks_properties(self) -> None:
+        assert self.eks_properties is not None  # Checked before calling
         pod_props = self.eks_properties.get("podProperties", {})
         containers = pod_props.get("containers", [])
         if not containers:
@@ -499,6 +503,11 @@ class JobDefinition(CloudFormationModel):
             node_properties=(
                 lowercase_first_key(properties["NodeProperties"])  # type: ignore[arg-type]
                 if "NodeProperties" in properties
+                else None
+            ),
+            eks_properties=(
+                lowercase_first_key(properties["EksProperties"])  # type: ignore[arg-type]
+                if "EksProperties" in properties
                 else None
             ),
             timeout=lowercase_first_key(properties.get("timeout", {})),
@@ -660,6 +669,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return details
 
     def _get_container_property(self, p: str, default: Any) -> Any:
+        assert (
+            self.job_definition.container_properties is not None
+        )  # Only called for container jobs
         if p == "environment":
             job_env = self.container_overrides.get(p, default)
             jd_env = self.job_definition.container_properties.get(p, default)
@@ -840,6 +852,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 )
             else:
                 node_properties = self.job_definition.node_properties
+                assert (
+                    node_properties is not None
+                )  # Multinode jobs have node_properties
                 num_nodes = node_properties["numNodes"]
                 node_containers = {}
                 for node_range in node_properties["nodeRangeProperties"]:
