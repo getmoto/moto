@@ -464,14 +464,13 @@ class ResourceGroupsBackend(BaseBackend):
 
     def list_tag_sync_tasks(
         self,
-        next_token: str,
         filters: Optional[list[dict[str, str]]] = None,
         max_results: Optional[int] = None,
     ) -> tuple[list[dict[str, Any]], str]:
         tag_sync_tasks = []
         for task in self.tag_sync_tasks.values():
             tag_sync_tasks.append(task.as_dict())
-        return tag_sync_tasks, next_token
+        return tag_sync_tasks
 
     def start_tag_sync_task(
         self,

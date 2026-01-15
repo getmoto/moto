@@ -198,13 +198,10 @@ class ResourceGroupsResponse(BaseResponse):
     def list_tag_sync_tasks(self) -> str:
         filters = self._get_param("Filters")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        tag_sync_tasks, next_token = self.resourcegroups_backend.list_tag_sync_tasks(
-            filters=filters, max_results=max_results, next_token=next_token
+        tag_sync_tasks = self.resourcegroups_backend.list_tag_sync_tasks(
+            filters=filters, max_results=max_results
         )
-        return json.dumps(
-            {"TagSyncTasks": tag_sync_tasks, "NextToken": next_token}, default=str
-        )
+        return json.dumps({"TagSyncTasks": tag_sync_tasks}, default=str)
 
     def start_tag_sync_task(self) -> str:
         group = self._get_param("Group")
