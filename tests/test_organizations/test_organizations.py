@@ -28,9 +28,11 @@ from .organizations_test_utils import (
     validate_create_account_status,
     validate_organization,
     validate_organizational_unit,
-    validate_policy_summary,
+    validate_resource_control_policy,
+    validate_resource_control_policy_summary,
     validate_roots,
     validate_service_control_policy,
+    validate_service_control_policy_summary,
 )
 
 boto3_version = sys.modules["botocore"].__version__
@@ -79,10 +81,16 @@ def test_create_organization(region, partition):
     response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
     assert len(response["Policies"]) == 1
     assert response["Policies"][0]["Name"] == "FullAWSAccess"
-    assert response["Policies"][0]["Id"] == utils.DEFAULT_POLICY_ID
+    assert response["Policies"][0]["Id"] == utils.DEFAULT_SCP_POLICY_ID
     assert response["Policies"][0]["AwsManaged"] is True
 
-    response = client.list_targets_for_policy(PolicyId=utils.DEFAULT_POLICY_ID)
+    response = client.list_policies(Filter="RESOURCE_CONTROL_POLICY")
+    assert len(response["Policies"]) == 1
+    assert response["Policies"][0]["Name"] == "RCPFullAWSAccess"
+    assert response["Policies"][0]["Id"] == utils.DEFAULT_RCP_POLICY_ID
+    assert response["Policies"][0]["AwsManaged"] is True
+
+    response = client.list_targets_for_policy(PolicyId=utils.DEFAULT_SCP_POLICY_ID)
     assert len(response["Targets"]) == 2
     root_ou = [t for t in response["Targets"] if t["Type"] == "ROOT"][0]
     assert root_ou["Name"] == "Root"
@@ -241,6 +249,29 @@ def test_create_organizational_unit():
 
 
 @mock_aws
+def test_create_organizational_unit_attaches_default_policies():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+    assert response["OrganizationalUnit"]["Name"] == ou_name
+
+    ou_scps = client.list_policies_for_target(
+        TargetId=response["OrganizationalUnit"]["Id"], Filter="SERVICE_CONTROL_POLICY"
+    )["Policies"]
+    assert len(ou_scps) == 1
+    assert ou_scps[0]["Name"] == "FullAWSAccess"
+
+    ou_rcps = client.list_policies_for_target(
+        TargetId=response["OrganizationalUnit"]["Id"], Filter="RESOURCE_CONTROL_POLICY"
+    )["Policies"]
+    assert len(ou_rcps) == 1
+    assert ou_rcps[0]["Name"] == "RCPFullAWSAccess"
+
+
+@mock_aws
 def test_delete_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -356,6 +387,30 @@ def test_create_account():
     ]
     validate_create_account_status(create_status)
     assert create_status["AccountName"] == mockname
+
+
+@mock_aws
+def test_create_account_attaches_default_policies():
+    client = boto3.client("organizations", region_name="us-east-1")
+
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    validate_create_account_status(create_status)
+    assert create_status["AccountName"] == mockname
+
+    account_scps = client.list_policies_for_target(
+        TargetId=create_status["AccountId"], Filter="SERVICE_CONTROL_POLICY"
+    )["Policies"]
+    assert len(account_scps) == 1
+    assert account_scps[0]["Name"] == "FullAWSAccess"
+
+    account_rcps = client.list_policies_for_target(
+        TargetId=create_status["AccountId"], Filter="RESOURCE_CONTROL_POLICY"
+    )["Policies"]
+    assert len(account_rcps) == 1
+    assert account_rcps[0]["Name"] == "RCPFullAWSAccess"
 
 
 @mock_aws
@@ -788,8 +843,8 @@ def test_delete_organization_with_existing_account():
     e.match("AWSOrganizationsNotInUseException")
 
 
-# Service Control Policies
-policy_doc01 = {
+# Service Control and Resource Control Policies
+policy_doc_scp = {
     "Version": "2012-10-17",
     "Statement": [
         {
@@ -802,12 +857,26 @@ policy_doc01 = {
 }
 
 
+policy_doc_rcp = {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "MockPolicyStatement",
+            "Principal": "*",
+            "Effect": "Deny",
+            "Action": "s3:*",
+            "Resource": "*",
+        }
+    ],
+}
+
+
 @mock_aws
-def test_create_policy():
+def test_create_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     policy = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -815,7 +884,23 @@ def test_create_policy():
     validate_service_control_policy(org, policy)
     assert policy["PolicySummary"]["Name"] == "MockServiceControlPolicy"
     assert policy["PolicySummary"]["Description"] == "A dummy service control policy"
-    assert policy["Content"] == json.dumps(policy_doc01)
+    assert policy["Content"] == json.dumps(policy_doc_scp)
+
+
+@mock_aws
+def test_create_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    policy = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]
+    validate_resource_control_policy(org, policy)
+    assert policy["PolicySummary"]["Name"] == "MockResourceControlPolicy"
+    assert policy["PolicySummary"]["Description"] == "A dummy resource control policy"
+    assert policy["Content"] == json.dumps(policy_doc_rcp)
 
 
 @mock_aws
@@ -828,7 +913,7 @@ def test_create_policy_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.create_policy(
-            Content=json.dumps(policy_doc01),
+            Content=json.dumps(policy_doc_scp),
             Description="moto",
             Name="moto",
             Type="MOTO",
@@ -843,11 +928,11 @@ def test_create_policy_errors():
 
 
 @mock_aws
-def test_describe_policy():
+def test_describe_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -856,7 +941,24 @@ def test_describe_policy():
     validate_service_control_policy(org, policy)
     assert policy["PolicySummary"]["Name"] == "MockServiceControlPolicy"
     assert policy["PolicySummary"]["Description"] == "A dummy service control policy"
-    assert policy["Content"] == json.dumps(policy_doc01)
+    assert policy["Content"] == json.dumps(policy_doc_scp)
+
+
+@mock_aws
+def test_describe_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    policy = client.describe_policy(PolicyId=policy_id)["Policy"]
+    validate_resource_control_policy(org, policy)
+    assert policy["PolicySummary"]["Name"] == "MockResourceControlPolicy"
+    assert policy["PolicySummary"]["Description"] == "A dummy resource control policy"
+    assert policy["Content"] == json.dumps(policy_doc_rcp)
 
 
 @mock_aws
@@ -882,7 +984,7 @@ def test_describe_policy_exception():
 
 
 @mock_aws
-def test_attach_policy():
+def test_attach_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -893,7 +995,7 @@ def test_attach_policy():
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -907,7 +1009,7 @@ def test_attach_policy():
 
 
 @mock_aws
-def test_detach_policy():
+def test_attach_resource_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -918,7 +1020,32 @@ def test_detach_policy():
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_detach_service_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -944,18 +1071,71 @@ def test_detach_policy():
         )
 
 
-def get_nonaws_policies(account_id, client):
+@mock_aws
+def test_detach_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    # Attach/List/Detach policy
+    for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
+        #
+        assert (
+            len(
+                get_nonaws_policies(
+                    target, client, policy_type="RESOURCE_CONTROL_POLICY"
+                )
+            )
+            == 0
+        ), "We should start with 0 policies"
+
+        #
+        client.attach_policy(PolicyId=policy_id, TargetId=target)
+        assert (
+            len(
+                get_nonaws_policies(
+                    target, client, policy_type="RESOURCE_CONTROL_POLICY"
+                )
+            )
+            == 1
+        ), f"Expecting 1 policy after creation of target={name}"
+
+        #
+        response = client.detach_policy(PolicyId=policy_id, TargetId=target)
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert (
+            len(
+                get_nonaws_policies(
+                    target, client, policy_type="RESOURCE_CONTROL_POLICY"
+                )
+            )
+            == 0
+        ), f"Expecting 0 policies after deletion of target={name}"
+
+
+def get_nonaws_policies(account_id, client, policy_type="SERVICE_CONTROL_POLICY"):
     return [
         p
         for p in client.list_policies_for_target(
-            TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
+            TargetId=account_id, Filter=policy_type
         )["Policies"]
         if not p["AwsManaged"]
     ]
 
 
 @mock_aws
-def test_detach_policy_root_ou_not_found_exception():
+def test_detach_service_control_policy_root_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -966,7 +1146,7 @@ def test_detach_policy_root_ou_not_found_exception():
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -982,7 +1162,34 @@ def test_detach_policy_root_ou_not_found_exception():
 
 
 @mock_aws
-def test_detach_policy_ou_not_found_exception():
+def test_detach_resource_control_policy_root_ou_not_found_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    _ = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    with pytest.raises(ClientError) as e:
+        client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
+    ex = e.value
+    assert ex.operation_name == "DetachPolicy"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+
+
+@mock_aws
+def test_detach_service_control_policy_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -990,7 +1197,7 @@ def test_detach_policy_ou_not_found_exception():
         "OrganizationalUnit"
     ]["Id"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1005,14 +1212,37 @@ def test_detach_policy_ou_not_found_exception():
 
 
 @mock_aws
-def test_detach_policy_account_id_not_found_exception():
+def test_detach_resource_control_policy_ou_not_found_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    with pytest.raises(ClientError) as e:
+        client.detach_policy(PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7")
+    ex = e.value
+    assert ex.operation_name == "DetachPolicy"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+
+
+@mock_aws
+def test_detach_service_control_policy_account_id_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1030,7 +1260,32 @@ def test_detach_policy_account_id_not_found_exception():
 
 
 @mock_aws
-def test_detach_policy_invalid_target_exception():
+def test_detach_resource_control_policy_account_id_not_found_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    with pytest.raises(ClientError) as e:
+        client.detach_policy(PolicyId=policy_id, TargetId="111619863336")
+    ex = e.value
+    assert ex.operation_name == "DetachPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AccountNotFoundException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "You specified an account that doesn't exist."
+    )
+
+
+@mock_aws
+def test_detach_service_control_policy_invalid_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -1038,7 +1293,7 @@ def test_detach_policy_invalid_target_exception():
         "OrganizationalUnit"
     ]["Id"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1054,13 +1309,37 @@ def test_detach_policy_invalid_target_exception():
 
 
 @mock_aws
-def test_delete_policy():
+def test_detach_resource_control_policy_invalid_target_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    with pytest.raises(ClientError) as e:
+        client.detach_policy(PolicyId=policy_id, TargetId="invalidtargetid")
+    ex = e.value
+    assert ex.operation_name == "DetachPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+
+@mock_aws
+def test_delete_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     base_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
     assert len(base_policies) == 1
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1075,7 +1354,28 @@ def test_delete_policy():
 
 
 @mock_aws
-def test_delete_policy_exception():
+def test_delete_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    base_policies = client.list_policies(Filter="RESOURCE_CONTROL_POLICY")["Policies"]
+    assert len(base_policies) == 1
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    new_policies = client.list_policies(Filter="RESOURCE_CONTROL_POLICY")["Policies"]
+    assert len(new_policies) == 2
+    response = client.delete_policy(PolicyId=policy_id)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    new_policies = client.list_policies(Filter="RESOURCE_CONTROL_POLICY")["Policies"]
+    assert new_policies == base_policies
+    assert len(new_policies) == 1
+
+
+@mock_aws
+def test_delete_service_control_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     non_existent_policy_id = utils.make_random_policy_id()
@@ -1091,7 +1391,7 @@ def test_delete_policy_exception():
 
     # Attempt to delete an attached policy
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1107,14 +1407,46 @@ def test_delete_policy_exception():
 
 
 @mock_aws
-def test_attach_policy_exception():
+def test_delete_resource_control_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    non_existent_policy_id = utils.make_random_policy_id()
+    with pytest.raises(ClientError) as e:
+        client.delete_policy(PolicyId=non_existent_policy_id)
+    ex = e.value
+    assert ex.operation_name == "DeletePolicy"
+    assert ex.response["Error"]["Code"] == "PolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "We can't find a policy with the PolicyId that you specified."
+    )
+
+    # Attempt to delete an attached policy
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    with pytest.raises(ClientError) as e:
+        client.delete_policy(PolicyId=policy_id)
+    ex = e.value
+    assert ex.operation_name == "DeletePolicy"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "PolicyInUseException" in ex.response["Error"]["Message"]
+
+
+@mock_aws
+def test_attach_service_control_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = "r-dj873"
     ou_id = "ou-gi99-i7r8eh2i2"
     account_id = "126644886543"
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1150,12 +1482,55 @@ def test_attach_policy_exception():
 
 
 @mock_aws
-def test_update_policy():
+def test_attach_resource_control_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = "r-dj873"
+    ou_id = "ou-gi99-i7r8eh2i2"
+    account_id = "126644886543"
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    with pytest.raises(ClientError) as e:
+        client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    ex = e.value
+    assert ex.operation_name == "AttachPolicy"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    with pytest.raises(ClientError) as e:
+        client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    ex = e.value
+    assert ex.operation_name == "AttachPolicy"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    with pytest.raises(ClientError) as e:
+        client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    ex = e.value
+    assert ex.operation_name == "AttachPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AccountNotFoundException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "You specified an account that doesn't exist."
+    )
+    with pytest.raises(ClientError) as e:
+        client.attach_policy(PolicyId=policy_id, TargetId="meaninglessstring")
+    ex = e.value
+    assert ex.operation_name == "AttachPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+
+@mock_aws
+def test_update_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
 
     policy_dict = {
-        "Content": json.dumps(policy_doc01),
+        "Content": json.dumps(policy_doc_scp),
         "Description": "A dummy service control policy",
         "Name": "MockServiceControlPolicy",
         "Type": "SERVICE_CONTROL_POLICY",
@@ -1172,6 +1547,31 @@ def test_update_policy():
     policy = client.describe_policy(PolicyId=policy_id)
     assert policy["Policy"]["Content"] == "foobar"
     validate_service_control_policy(org, response["Policy"])
+
+
+@mock_aws
+def test_update_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+
+    policy_dict = {
+        "Content": json.dumps(policy_doc_rcp),
+        "Description": "A dummy resource control policy",
+        "Name": "MockResourceControlPolicy",
+        "Type": "RESOURCE_CONTROL_POLICY",
+    }
+    policy_id = client.create_policy(**policy_dict)["Policy"]["PolicySummary"]["Id"]
+
+    for key in ("Description", "Name"):
+        response = client.update_policy(**{"PolicyId": policy_id, key: "foobar"})
+        policy = client.describe_policy(PolicyId=policy_id)
+        assert policy["Policy"]["PolicySummary"][key] == "foobar"
+        validate_resource_control_policy(org, response["Policy"])
+
+    response = client.update_policy(PolicyId=policy_id, Content="foobar")
+    policy = client.describe_policy(PolicyId=policy_id)
+    assert policy["Policy"]["Content"] == "foobar"
+    validate_resource_control_policy(org, response["Policy"])
 
 
 @mock_aws
@@ -1194,20 +1594,74 @@ def test_update_policy_exception():
 def test_list_polices():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
+
+    # Create four each of service control and resource control policies. With the default
+    # policies, there will be five of each total.
     for i in range(0, 4):
         client.create_policy(
-            Content=json.dumps(policy_doc01),
+            Content=json.dumps(policy_doc_scp),
+            Description="A dummy service control policy",
+            Name="MockServiceControlPolicy" + str(i),
+            Type="SERVICE_CONTROL_POLICY",
+        )
+        client.create_policy(
+            Content=json.dumps(policy_doc_rcp),
+            Description="A dummy resource control policy",
+            Name="MockResourceControlPolicy" + str(i),
+            Type="RESOURCE_CONTROL_POLICY",
+        )
+
+    response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
+    assert len(response["Policies"]) == 5
+    for policy in response["Policies"]:
+        validate_service_control_policy_summary(org, policy)
+
+    response = client.list_policies(Filter="RESOURCE_CONTROL_POLICY")
+    assert len(response["Policies"]) == 5
+    for policy in response["Policies"]:
+        validate_resource_control_policy_summary(org, policy)
+
+
+@mock_aws
+def test_list_polices_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.list_policies(Filter="MOTO")
+
+    # then
+    ex = e.value
+    assert ex.operation_name == "ListPolicies"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+
+@mock_aws
+def test_list_policies_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    for i in range(15):
+        client.create_policy(
+            Content=json.dumps(policy_doc_scp),
             Description="A dummy service control policy",
             Name="MockServiceControlPolicy" + str(i),
             Type="SERVICE_CONTROL_POLICY",
         )
     response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
-    for policy in response["Policies"]:
-        validate_policy_summary(org, policy)
+    assert "NextToken" not in response
+    assert len(response["Policies"]) >= i
+
+    paginator = client.get_paginator("list_policies")
+    page_iterator = paginator.paginate(Filter="SERVICE_CONTROL_POLICY", MaxResults=5)
+    page_list = list(page_iterator)
+    for page in page_list:
+        assert len(page["Policies"]) <= 5
+    assert "14" in page_list[-1]["Policies"][-1]["Name"]
 
 
 @mock_aws
-def test_list_policies_for_target():
+def test_list_service_control_policies_for_target():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -1218,7 +1672,7 @@ def test_list_policies_for_target():
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
@@ -1228,17 +1682,48 @@ def test_list_policies_for_target():
         TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY"
     )
     for policy in response["Policies"]:
-        validate_policy_summary(org, policy)
+        validate_service_control_policy_summary(org, policy)
     client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     response = client.list_policies_for_target(
         TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
     )
     for policy in response["Policies"]:
-        validate_policy_summary(org, policy)
+        validate_service_control_policy_summary(org, policy)
 
 
 @mock_aws
-def test_list_policies_for_target_exception():
+def test_list_resource_control_policies_for_target():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    response = client.list_policies_for_target(
+        TargetId=ou_id, Filter="RESOURCE_CONTROL_POLICY"
+    )
+    for policy in response["Policies"]:
+        validate_resource_control_policy_summary(org, policy)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response = client.list_policies_for_target(
+        TargetId=account_id, Filter="RESOURCE_CONTROL_POLICY"
+    )
+    for policy in response["Policies"]:
+        validate_resource_control_policy_summary(org, policy)
+
+
+@mock_aws
+def test_list_service_control_policies_for_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -1301,7 +1786,110 @@ def test_list_policies_for_target_exception():
 
 
 @mock_aws
-def test_list_targets_for_policy():
+def test_list_resource_control_policies_for_target_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = "ou-gi99-i7r8eh2i2"
+    account_id = "126644886543"
+    with pytest.raises(ClientError) as e:
+        client.list_policies_for_target(
+            TargetId=ou_id, Filter="RESOURCE_CONTROL_POLICY"
+        )
+    ex = e.value
+    assert ex.operation_name == "ListPoliciesForTarget"
+    assert ex.response["Error"]["Code"] == "400"
+    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    with pytest.raises(ClientError) as e:
+        client.list_policies_for_target(
+            TargetId=account_id, Filter="RESOURCE_CONTROL_POLICY"
+        )
+    ex = e.value
+    assert ex.operation_name == "ListPoliciesForTarget"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AccountNotFoundException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "You specified an account that doesn't exist."
+    )
+    with pytest.raises(ClientError) as e:
+        client.list_policies_for_target(
+            TargetId="meaninglessstring", Filter="RESOURCE_CONTROL_POLICY"
+        )
+    ex = e.value
+    assert ex.operation_name == "ListPoliciesForTarget"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+    # not existing root
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_policies_for_target(
+            TargetId="r-0000", Filter="RESOURCE_CONTROL_POLICY"
+        )
+
+    # then
+    ex = e.value
+    assert ex.operation_name == "ListPoliciesForTarget"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "TargetNotFoundException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "You specified a target that doesn't exist."
+    )
+
+    # invalid policy type
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_policies_for_target(TargetId=root_id, Filter="MOTO")
+
+    # then
+    ex = e.value
+    assert ex.operation_name == "ListPoliciesForTarget"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidInputException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == "You specified an invalid value."
+
+
+@mock_aws
+def test_list_policies_for_target_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    for i in range(15):
+        policy_id = client.create_policy(
+            Content=json.dumps(policy_doc_scp),
+            Description="A dummy service control policy",
+            Name="MockServiceControlPolicy" + str(i),
+            Type="SERVICE_CONTROL_POLICY",
+        )["Policy"]["PolicySummary"]["Id"]
+        client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+        client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+
+    for target_id in (ou_id, account_id):
+        response = client.list_policies_for_target(
+            TargetId=target_id, Filter="SERVICE_CONTROL_POLICY"
+        )
+        assert "NextToken" not in response
+        assert len(response["Policies"]) >= i
+
+        paginator = client.get_paginator("list_policies_for_target")
+        page_iterator = paginator.paginate(
+            TargetId=target_id, Filter="SERVICE_CONTROL_POLICY", MaxResults=5
+        )
+        page_list = list(page_iterator)
+        for page in page_list:
+            assert len(page["Policies"]) <= 5
+        assert "14" in page_list[-1]["Policies"][-1]["Name"]
+
+
+@mock_aws
+def test_list_targets_for_service_control_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
@@ -1312,10 +1900,39 @@ def test_list_targets_for_policy():
         "CreateAccountStatus"
     ]["AccountId"]
     policy_id = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response = client.list_targets_for_policy(PolicyId=policy_id)
+    for target in response["Targets"]:
+        assert isinstance(target, dict)
+        assert isinstance(target["Name"], str)
+        assert isinstance(target["Arn"], str)
+        assert isinstance(target["TargetId"], str)
+        assert target["Type"] in ["ROOT", "ORGANIZATIONAL_UNIT", "ACCOUNT"]
+
+
+@mock_aws
+def test_list_targets_for_resource_control_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    _ = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc_rcp),
+        Description="A dummy resource control policy",
+        Name="MockResourceControlPolicy",
+        Type="RESOURCE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
@@ -1445,7 +2062,7 @@ def test_tag_resource_policy(policy_type, region, partition):
     _ = client.list_roots()["Roots"][0]["Id"]
 
     policy = client.create_policy(
-        Content=json.dumps(policy_doc01),
+        Content=json.dumps(policy_doc_scp),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type=policy_type,
@@ -2170,7 +2787,8 @@ def test_deregister_delegated_administrator_erros():
 
 @mock_aws
 @pytest.mark.parametrize(
-    "policy_type", ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]
+    "policy_type",
+    ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY", "RESOURCE_CONTROL_POLICY"],
 )
 @pytest.mark.parametrize(
     "region,partition",

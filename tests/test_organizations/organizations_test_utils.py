@@ -141,7 +141,27 @@ def validate_create_account_status(create_status):
     assert isinstance(create_status["CompletedTimestamp"], datetime.datetime)
 
 
-def validate_policy_summary(org, summary):
+def validate_resource_control_policy_summary(org, summary):
+    assert isinstance(summary, dict)
+    assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
+    assert summary["Arn"] == (
+        utils.RCP_ARN_FORMAT.format(
+            "aws", org["MasterAccountId"], org["Id"], summary["Id"]
+        )
+    )
+    assert isinstance(summary["Name"], str)
+    assert isinstance(summary["Description"], str)
+    assert summary["Type"] == "RESOURCE_CONTROL_POLICY"
+    assert isinstance(summary["AwsManaged"], bool)
+
+
+def validate_resource_control_policy(org, response):
+    assert isinstance(response["PolicySummary"], dict)
+    assert isinstance(response["Content"], str)
+    validate_resource_control_policy_summary(org, response["PolicySummary"])
+
+
+def validate_service_control_policy_summary(org, summary):
     assert isinstance(summary, dict)
     assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
     assert summary["Arn"] == (
@@ -158,4 +178,4 @@ def validate_policy_summary(org, summary):
 def validate_service_control_policy(org, response):
     assert isinstance(response["PolicySummary"], dict)
     assert isinstance(response["Content"], str)
-    validate_policy_summary(org, response["PolicySummary"])
+    validate_service_control_policy_summary(org, response["PolicySummary"])
