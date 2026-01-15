@@ -466,7 +466,7 @@ class ResourceGroupsBackend(BaseBackend):
         self,
         filters: Optional[list[dict[str, str]]] = None,
         max_results: Optional[int] = None,
-    ) -> tuple[list[dict[str, Any]], str]:
+    ) -> list[dict[str, Any]]:
         tag_sync_tasks = []
         for task in self.tag_sync_tasks.values():
             tag_sync_tasks.append(task.as_dict())
