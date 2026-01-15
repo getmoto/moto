@@ -291,3 +291,61 @@ def test_eks_job_definition_defaults():
     container = job_defs[0]["eksProperties"]["podProperties"]["containers"][0]
     assert container["command"] == []  # Default empty command
     assert container["env"] == []  # Default empty env
+
+
+@mock_aws
+def test_eks_job_definition_validation_no_properties():
+    """Test validation error when neither containerProperties nor eksProperties provided."""
+    from moto.batch.exceptions import ClientException
+    from moto.batch.models import JobDefinition, batch_backends
+    from moto.core import DEFAULT_ACCOUNT_ID
+
+    backend = batch_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+
+    # Directly test the model to bypass boto3 validation
+    with pytest.raises(ClientException) as exc:
+        JobDefinition(
+            name="test-job",
+            parameters={},
+            _type="container",
+            container_properties=None,
+            node_properties=None,
+            eks_properties=None,
+            tags={},
+            retry_strategy={},
+            timeout={},
+            backend=backend,
+            platform_capabilities=[],
+            propagate_tags=False,
+        )
+    assert "containerProperties or eksProperties must be provided" in str(exc.value)
+
+
+@mock_aws
+def test_eks_job_definition_validation_missing_image_direct():
+    """Test validation error when EKS container missing image - direct model test."""
+    from moto.batch.exceptions import ClientException
+    from moto.batch.models import JobDefinition, batch_backends
+    from moto.core import DEFAULT_ACCOUNT_ID
+
+    backend = batch_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+
+    # Directly test the model to bypass boto3 validation
+    with pytest.raises(ClientException) as exc:
+        JobDefinition(
+            name="test-job",
+            parameters={},
+            _type="container",
+            container_properties=None,
+            node_properties=None,
+            eks_properties={
+                "podProperties": {"containers": [{"command": ["sleep", "10"]}]}
+            },
+            tags={},
+            retry_strategy={},
+            timeout={},
+            backend=backend,
+            platform_capabilities=[],
+            propagate_tags=False,
+        )
+    assert "must contain image" in str(exc.value)
