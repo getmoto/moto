@@ -5,18 +5,19 @@ import pytest
 import moto.server as server
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.constants import APPLICATION_AMZ_JSON_1_1
 
 from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 CREATE_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.CreateWebACL",
-    "Content-Type": "application/json",
+    "Content-Type": APPLICATION_AMZ_JSON_1_1,
 }
 
 
 LIST_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.ListWebACLs",
-    "Content-Type": "application/json",
+    "Content-Type": APPLICATION_AMZ_JSON_1_1,
 }
 
 

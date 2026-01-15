@@ -1224,10 +1224,20 @@ class ShapeNameAlias(AttributeAliasProvider):
 
     def has_alias(self, key: str) -> bool:
         shape = self.context.shape
-        if shape is not None:
-            if shape.type_name in ["list", "structure"]:
-                if key != shape.name:
-                    return True
+        if shape is None:
+            return False
+        if shape.type_name not in ["list", "structure"]:
+            return False
+        try:
+            if shape.name in shape.parent.members:  # type: ignore[attr-defined]
+                # If the name of the shape conflicts with a sibling key,
+                # we don't want to use it as an alias because it will
+                # pick up the sibling value.
+                return False
+        except AttributeError:
+            pass
+        if key != shape.name:
+            return True
         return False
 
     def get_alias(self, key: str) -> Any:

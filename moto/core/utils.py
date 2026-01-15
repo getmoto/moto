@@ -290,6 +290,19 @@ def tags_from_cloudformation_tags_list(
     return tags
 
 
+def ensure_boolean(val: Any) -> bool:
+    """Ensures a boolean value if a string or boolean is provided
+
+    For strings, the value for True/False is case-insensitive.
+    """
+    if isinstance(val, bool):
+        return val
+    elif isinstance(val, str):
+        return val.lower() == "true"
+    else:
+        return False
+
+
 def remap_nested_keys(root: Any, key_transform: Callable[[str], str]) -> Any:
     """This remap ("recursive map") function is used to traverse and
     transform the dictionary keys of arbitrarily nested structures.

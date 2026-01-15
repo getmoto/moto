@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, ensure_boolean
 
 from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
@@ -15,12 +15,24 @@ def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
     return [{"Key": key, "Value": value} for key, value in tags.items()]
 
 
+def transform_attributes(attributes: dict[str, str]) -> dict[str, str]:
+    return {
+        key: str(value).lower() if isinstance(value, bool) else value
+        for key, value in attributes.items()
+    }
+
+
 class SNSResponse(BaseResponse):
     SMS_ATTR_REGEX = re.compile(
         r"^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$"
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "GetEndpointAttributesResponse.Attributes": transform_attributes,
+        "GetPlatformApplicationAttributesResponse.Attributes": transform_attributes,
+        "GetSMSAttributesResponse.Attributes": transform_attributes,
+        "GetSubscriptionAttributesResponse.Attributes": transform_attributes,
+        "GetTopicAttributesResponse.Attributes": transform_attributes,
         "ListTagsForResourceResponse.Tags": transform_tags,
     }
 
@@ -34,6 +46,15 @@ class SNSResponse(BaseResponse):
 
     def _get_attributes(self) -> dict[str, Any]:
         attributes = self._get_param("Attributes", {})
+        boolean_attributes = [
+            "ContentBasedDeduplication",
+            "Enabled",
+            "FifoTopic",
+            "RawMessageDelivery",
+        ]
+        for attribute in boolean_attributes:
+            if attribute in attributes:
+                attributes[attribute] = ensure_boolean(attributes[attribute])
         return attributes
 
     def _get_tags(self) -> dict[str, str]:
@@ -137,7 +158,7 @@ class SNSResponse(BaseResponse):
         }
         if topic.kms_master_key_id:
             attributes["KmsMasterKeyId"] = topic.kms_master_key_id
-        if topic.fifo_topic == "true":
+        if topic.fifo_topic:
             attributes["FifoTopic"] = topic.fifo_topic
             attributes["ContentBasedDeduplication"] = topic.content_based_deduplication
         result = {"Attributes": attributes}

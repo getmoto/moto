@@ -766,3 +766,205 @@ def test_enable_security_hub_with_parameters():
     client.disable_security_hub()
     response = client.enable_security_hub(EnableDefaultStandards=True)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_create_members():
+    client = boto3.client("securityhub", region_name="us-east-2")
+
+    client.enable_security_hub()
+
+    response = client.create_members(
+        AccountDetails=[
+            {"AccountId": "123456789012", "Email": "test1@example.com"},
+            {"AccountId": "123456789013", "Email": "test2@example.com"},
+        ]
+    )
+
+    assert "UnprocessedAccounts" in response
+    assert response["UnprocessedAccounts"] == []
+
+    response = client.create_members(
+        AccountDetails=[
+            {"AccountId": "123456789012", "Email": "test1@example.com"},
+        ]
+    )
+
+    assert "UnprocessedAccounts" in response
+    assert len(response["UnprocessedAccounts"]) == 1
+    assert response["UnprocessedAccounts"][0]["AccountId"] == "123456789012"
+
+
+@mock_aws
+def test_get_members():
+    client = boto3.client("securityhub", region_name="us-east-2")
+
+    client.enable_security_hub()
+
+    client.create_members(
+        AccountDetails=[
+            {"AccountId": "123456789012", "Email": "test1@example.com"},
+            {"AccountId": "123456789013", "Email": "test2@example.com"},
+        ]
+    )
+
+    response = client.get_members(AccountIds=["123456789012", "123456789013"])
+
+    assert "Members" in response
+    assert "UnprocessedAccounts" in response
+    assert len(response["Members"]) == 2
+    assert len(response["UnprocessedAccounts"]) == 0
+
+    member_ids = {m["AccountId"] for m in response["Members"]}
+    assert member_ids == {"123456789012", "123456789013"}
+
+    for member in response["Members"]:
+        assert "AccountId" in member
+        assert member["MemberStatus"] == "ENABLED"
+
+    response = client.get_members(AccountIds=["999999999999"])
+
+    assert "Members" in response
+    assert "UnprocessedAccounts" in response
+    assert len(response["Members"]) == 0
+    assert len(response["UnprocessedAccounts"]) == 1
+    assert response["UnprocessedAccounts"][0]["AccountId"] == "999999999999"
+    assert "not a member" in response["UnprocessedAccounts"][0]["ProcessingResult"]
+
+    response = client.get_members(
+        AccountIds=["123456789012", "999999999999", "123456789013"]
+    )
+
+    assert len(response["Members"]) == 2
+    assert len(response["UnprocessedAccounts"]) == 1
+
+
+@mock_aws
+def test_create_and_get_members_with_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        return
+
+    org_client = boto3.client("organizations", region_name="us-east-1")
+    org_client.create_organization(FeatureSet="ALL")
+
+    org_client.create_account(
+        AccountName="SecurityHubAdmin",
+        Email="securityhub.admin@example.com",
+    )
+
+    accounts = org_client.list_accounts()["Accounts"]
+    admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
+    admin_account_id = admin_account["Id"]
+
+    client = boto3.client("securityhub", region_name="us-east-1")
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_client.enable_security_hub()
+
+        response = admin_client.create_members(
+            AccountDetails=[
+                {"AccountId": "123456789012", "Email": "member1@example.com"},
+                {"AccountId": "123456789013", "Email": "member2@example.com"},
+            ]
+        )
+
+        assert len(response["UnprocessedAccounts"]) == 0
+
+        response = admin_client.get_members(AccountIds=["123456789012", "123456789013"])
+
+        assert len(response["Members"]) == 2
+        assert len(response["UnprocessedAccounts"]) == 0
+
+        for member in response["Members"]:
+            assert member["AdministratorId"] == admin_account_id
+            assert member["MasterId"] == admin_account_id
+            assert member["MemberStatus"] == "ENABLED"
+
+
+@mock_aws
+def test_list_members():
+    client = boto3.client("securityhub", region_name="us-east-2")
+
+    client.enable_security_hub()
+
+    response = client.list_members()
+    assert "Members" in response
+    assert len(response["Members"]) == 0
+
+    client.create_members(
+        AccountDetails=[
+            {"AccountId": "123456789012", "Email": "test1@example.com"},
+            {"AccountId": "123456789013", "Email": "test2@example.com"},
+            {"AccountId": "123456789014", "Email": "test3@example.com"},
+        ]
+    )
+
+    response = client.list_members()
+
+    assert "Members" in response
+    assert len(response["Members"]) == 3
+
+    member_ids = {m["AccountId"] for m in response["Members"]}
+    assert member_ids == {"123456789012", "123456789013", "123456789014"}
+
+    for member in response["Members"]:
+        assert member["MemberStatus"] == "ENABLED"
+
+    response = client.list_members(OnlyAssociated=False)
+    assert len(response["Members"]) == 3
+
+    response = client.list_members(MaxResults=2)
+    assert len(response["Members"]) == 2
+    assert "NextToken" in response
+
+    next_token = response["NextToken"]
+    response = client.list_members(MaxResults=2, NextToken=next_token)
+    assert len(response["Members"]) == 1
+
+    response = client.list_members(OnlyAssociated=True)
+    assert len(response["Members"]) == 3
+
+
+@mock_aws
+def test_list_members_with_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        return
+
+    org_client = boto3.client("organizations", region_name="us-east-1")
+    org_client.create_organization(FeatureSet="ALL")
+
+    org_client.create_account(
+        AccountName="SecurityHubAdmin",
+        Email="securityhub.admin@example.com",
+    )
+
+    accounts = org_client.list_accounts()["Accounts"]
+    admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
+    admin_account_id = admin_account["Id"]
+
+    client = boto3.client("securityhub", region_name="us-east-1")
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_client.enable_security_hub()
+
+        response = admin_client.create_members(
+            AccountDetails=[
+                {"AccountId": "123456789012", "Email": "member1@example.com"},
+                {"AccountId": "123456789013", "Email": "member2@example.com"},
+            ]
+        )
+
+        assert len(response["UnprocessedAccounts"]) == 0
+
+        response = admin_client.list_members()
+
+        assert len(response["Members"]) == 2
+
+        for member in response["Members"]:
+            assert member["AdministratorId"] == admin_account_id
+            assert member["MasterId"] == admin_account_id
+            assert member["MemberStatus"] == "ENABLED"
