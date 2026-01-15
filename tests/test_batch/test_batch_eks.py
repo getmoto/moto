@@ -99,6 +99,10 @@ def test_submit_job_with_eks_properties_override():
                             {"name": "VAR1", "value": "from_definition"},
                             {"name": "VAR2", "value": "from_definition"},
                         ],
+                        "resources": {
+                            "requests": {"cpu": "1", "memory": "1024Mi"},
+                            "limits": {"cpu": "2", "memory": "2048Mi"},
+                        },
                     }
                 ]
             }
@@ -119,6 +123,9 @@ def test_submit_job_with_eks_properties_override():
                             {"name": "VAR1", "value": "from_override"},
                             {"name": "VAR3", "value": "from_override"},
                         ],
+                        "resources": {
+                            "requests": {"cpu": "4", "memory": "4096Mi"},
+                        },
                     }
                 ]
             }
@@ -148,6 +155,9 @@ def test_submit_job_with_eks_properties_override():
     assert env_dict["VAR1"] == "from_override"  # Overridden
     assert env_dict["VAR2"] == "from_definition"  # Kept from definition
     assert env_dict["VAR3"] == "from_override"  # Added from override
+
+    # Resources should be overridden
+    assert container["resources"] == {"requests": {"cpu": "4", "memory": "4096Mi"}}
 
 
 @mock_aws
