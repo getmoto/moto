@@ -35,9 +35,9 @@ class SNSResponse(BaseResponse):
         "GetSMSAttributesResponse.Attributes": transform_attributes,
         "GetSubscriptionAttributesResponse.Attributes": transform_attributes,
         "GetTopicAttributesResponse.Attributes": transform_attributes,
-        "ListTagsForResourceResponse.Tags": transform_tags,
         "ListEndpointsByPlatformApplicationResponse.Endpoints.Endpoint.Attributes": transform_attributes,
         "ListPlatformApplicationsResponse.PlatformApplications.PlatformApplication.Attributes": transform_attributes,
+        "ListTagsForResourceResponse.Tags": transform_tags,
     }
 
     def __init__(self) -> None:
