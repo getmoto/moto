@@ -16,6 +16,8 @@ def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
 
 
 def transform_attributes(attributes: dict[str, str]) -> dict[str, str]:
+    # Botocore models this as dict[str, str], but responses from AWS serialize boolean values
+    # as `true` not `True`, so we have to do a bit of manipulation here.
     return {
         key: str(value).lower() if isinstance(value, bool) else value
         for key, value in attributes.items()
