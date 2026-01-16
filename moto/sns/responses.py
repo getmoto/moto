@@ -16,6 +16,8 @@ def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
 
 
 def transform_attributes(attributes: dict[str, str]) -> dict[str, str]:
+    # Botocore models this as dict[str, str], but responses from AWS serialize boolean values
+    # as `true` not `True`, so we have to do a bit of manipulation here.
     return {
         key: str(value).lower() if isinstance(value, bool) else value
         for key, value in attributes.items()
@@ -33,6 +35,8 @@ class SNSResponse(BaseResponse):
         "GetSMSAttributesResponse.Attributes": transform_attributes,
         "GetSubscriptionAttributesResponse.Attributes": transform_attributes,
         "GetTopicAttributesResponse.Attributes": transform_attributes,
+        "ListEndpointsByPlatformApplicationResponse.Endpoints.Endpoint.Attributes": transform_attributes,
+        "ListPlatformApplicationsResponse.PlatformApplications.PlatformApplication.Attributes": transform_attributes,
         "ListTagsForResourceResponse.Tags": transform_tags,
     }
 
@@ -167,8 +171,10 @@ class SNSResponse(BaseResponse):
     def set_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         attribute_name = self._get_param("AttributeName")
-        attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param("AttributeValue")
+        if attribute_name == "ContentBasedDeduplication":
+            attribute_value = ensure_boolean(attribute_value)
+        attribute_name = camelcase_to_underscores(attribute_name)
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
         return EmptyResult()
 
@@ -355,6 +361,8 @@ class SNSResponse(BaseResponse):
         arn = self._get_param("SubscriptionArn")
         attr_name = self._get_param("AttributeName")
         attr_value = self._get_param("AttributeValue")
+        if attr_name == "RawMessageDelivery":
+            attr_value = ensure_boolean(attr_value)
         self.backend.set_subscription_attributes(arn, attr_name, attr_value)
         return EmptyResult()
 

@@ -868,8 +868,6 @@ class SNSBackend(BaseBackend):
         self, arn: str, attributes: dict[str, Any]
     ) -> PlatformEndpoint:
         endpoint = self.get_endpoint(arn)
-        if "Enabled" in attributes:
-            attributes["Enabled"] = attributes["Enabled"].lower()
         endpoint.attributes.update(attributes)
         return endpoint
 
