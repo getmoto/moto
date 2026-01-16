@@ -171,8 +171,10 @@ class SNSResponse(BaseResponse):
     def set_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         attribute_name = self._get_param("AttributeName")
-        attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param("AttributeValue")
+        if attribute_name == "ContentBasedDeduplication":
+            attribute_value = ensure_boolean(attribute_value)
+        attribute_name = camelcase_to_underscores(attribute_name)
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
         return EmptyResult()
 
@@ -359,6 +361,8 @@ class SNSResponse(BaseResponse):
         arn = self._get_param("SubscriptionArn")
         attr_name = self._get_param("AttributeName")
         attr_value = self._get_param("AttributeValue")
+        if attr_name == "RawMessageDelivery":
+            attr_value = ensure_boolean(attr_value)
         self.backend.set_subscription_attributes(arn, attr_name, attr_value)
         return EmptyResult()
 
