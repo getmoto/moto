@@ -14,6 +14,7 @@ from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
     MaxVisibilityTimeout,
+    QueueDoesNotExist,
     SQSException,
 )
 from .models import SQSBackend, sqs_backends
@@ -30,6 +31,13 @@ class SQSResponse(BaseResponse):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.current_account][self.region]
+
+    def _determine_resource(self) -> str:
+        queue_name = self._get_queue_name()
+        try:
+            return self.sqs_backend.get_queue(queue_name).queue_arn
+        except QueueDoesNotExist:
+            return "*"
 
     def _get_queue_name(self) -> str:
         try:
