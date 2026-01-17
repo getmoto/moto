@@ -2768,7 +2768,7 @@
 
 ## ec2
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -2898,7 +2898,7 @@
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
-- [ ] create_subnet_cidr_reservation
+- [X] create_subnet_cidr_reservation
 - [X] create_tags
 - [ ] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
@@ -2988,7 +2988,7 @@
 - [X] delete_snapshot
 - [ ] delete_spot_datafeed_subscription
 - [X] delete_subnet
-- [ ] delete_subnet_cidr_reservation
+- [X] delete_subnet_cidr_reservation
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
@@ -3311,7 +3311,7 @@
 - [ ] get_instance_metadata_defaults
 - [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
-- [ ] get_instance_uefi_data
+- [X] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
 - [ ] get_ipam_discovered_public_addresses
@@ -3338,7 +3338,7 @@
 - [ ] get_serial_console_access_status
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
-- [ ] get_subnet_cidr_reservations
+- [X] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
@@ -4415,7 +4415,7 @@
 
 ## glue
 <details>
-<summary>37% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4547,6 +4547,7 @@
 - [X] get_job_runs
 - [X] get_jobs
 - [ ] get_mapping
+- [ ] get_materialized_view_refresh_task_run
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
@@ -4601,6 +4602,7 @@
 - [ ] list_entities
 - [ ] list_integration_resource_properties
 - [X] list_jobs
+- [ ] list_materialized_view_refresh_task_runs
 - [ ] list_ml_transforms
 - [X] list_registries
 - [ ] list_schema_versions
@@ -4634,6 +4636,7 @@
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
+- [ ] start_materialized_view_refresh_task_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
@@ -4642,6 +4645,7 @@
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
+- [ ] stop_materialized_view_refresh_task_run
 - [X] stop_session
 - [X] stop_trigger
 - [X] stop_workflow_run
@@ -5365,7 +5369,7 @@
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
 - [X] list_thing_principals
-- [ ] list_thing_principals_v2
+- [X] list_thing_principals_v2
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
@@ -5747,7 +5751,7 @@
 
 ## lakeformation
 <details>
-<summary>33% implemented</summary>
+<summary>32% implemented</summary>
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
@@ -5781,6 +5785,7 @@
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
 - [ ] get_table_objects
+- [ ] get_temporary_data_location_credentials
 - [ ] get_temporary_glue_partition_credentials
 - [ ] get_temporary_glue_table_credentials
 - [ ] get_work_unit_results
@@ -7002,14 +7007,16 @@
 
 ## opensearchserverless
 <details>
-<summary>29% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] batch_get_collection
+- [ ] batch_get_collection_group
 - [ ] batch_get_effective_lifecycle_policy
 - [ ] batch_get_lifecycle_policy
 - [ ] batch_get_vpc_endpoint
 - [ ] create_access_policy
 - [X] create_collection
+- [ ] create_collection_group
 - [ ] create_index
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
@@ -7017,6 +7024,7 @@
 - [X] create_vpc_endpoint
 - [ ] delete_access_policy
 - [X] delete_collection
+- [ ] delete_collection_group
 - [ ] delete_index
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
@@ -7029,6 +7037,7 @@
 - [ ] get_security_config
 - [X] get_security_policy
 - [ ] list_access_policies
+- [ ] list_collection_groups
 - [X] list_collections
 - [ ] list_lifecycle_policies
 - [ ] list_security_configs
@@ -7040,6 +7049,7 @@
 - [ ] update_access_policy
 - [ ] update_account_settings
 - [ ] update_collection
+- [ ] update_collection_group
 - [ ] update_index
 - [ ] update_lifecycle_policy
 - [ ] update_security_config
@@ -8193,25 +8203,25 @@
 
 ## resource-groups
 <details>
-<summary>47% implemented</summary>
+<summary>65% implemented</summary>
 
-- [ ] cancel_tag_sync_task
+- [X] cancel_tag_sync_task
 - [X] create_group
 - [X] delete_group
 - [ ] get_account_settings
 - [X] get_group
 - [X] get_group_configuration
 - [ ] get_group_query
-- [ ] get_tag_sync_task
+- [X] get_tag_sync_task
 - [X] get_tags
 - [ ] group_resources
 - [ ] list_group_resources
 - [ ] list_grouping_statuses
 - [X] list_groups
-- [ ] list_tag_sync_tasks
+- [X] list_tag_sync_tasks
 - [X] put_group_configuration
 - [ ] search_resources
-- [ ] start_tag_sync_task
+- [X] start_tag_sync_task
 - [X] tag
 - [ ] ungroup_resources
 - [X] untag
@@ -8354,7 +8364,7 @@
 
 ## route53resolver
 <details>
-<summary>32% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
@@ -8385,7 +8395,7 @@
 - [ ] get_firewall_rule_group_policy
 - [ ] get_outpost_resolver
 - [ ] get_resolver_config
-- [ ] get_resolver_dnssec_config
+- [X] get_resolver_dnssec_config
 - [X] get_resolver_endpoint
 - [X] get_resolver_query_log_config
 - [ ] get_resolver_query_log_config_association
@@ -8402,7 +8412,7 @@
 - [ ] list_firewall_rules
 - [ ] list_outpost_resolvers
 - [ ] list_resolver_configs
-- [ ] list_resolver_dnssec_configs
+- [X] list_resolver_dnssec_configs
 - [X] list_resolver_endpoint_ip_addresses
 - [X] list_resolver_endpoints
 - [ ] list_resolver_query_log_config_associations
@@ -8421,7 +8431,7 @@
 - [ ] update_firewall_rule_group_association
 - [ ] update_outpost_resolver
 - [ ] update_resolver_config
-- [ ] update_resolver_dnssec_config
+- [X] update_resolver_dnssec_config
 - [X] update_resolver_endpoint
 - [ ] update_resolver_rule
 </details>
@@ -9194,7 +9204,7 @@
 
 ## securityhub
 <details>
-<summary>8% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -9218,7 +9228,7 @@
 - [ ] create_connector_v2
 - [ ] create_finding_aggregator
 - [ ] create_insight
-- [ ] create_members
+- [X] create_members
 - [ ] create_ticket_v2
 - [ ] decline_invitations
 - [ ] delete_action_target
@@ -9266,7 +9276,7 @@
 - [ ] get_insights
 - [ ] get_invitations_count
 - [ ] get_master_account
-- [ ] get_members
+- [X] get_members
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2
@@ -9281,7 +9291,7 @@
 - [ ] list_enabled_products_for_import
 - [ ] list_finding_aggregators
 - [ ] list_invitations
-- [ ] list_members
+- [X] list_members
 - [ ] list_organization_admin_accounts
 - [ ] list_security_control_definitions
 - [ ] list_standards_control_associations

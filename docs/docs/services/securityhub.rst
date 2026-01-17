@@ -26,16 +26,6 @@ securityhub
 - [ ] batch_get_security_controls
 - [ ] batch_get_standards_control_associations
 - [X] batch_import_findings
-  
-        Import findings in batch to SecurityHub.
-
-        Args:
-            findings: List of finding dictionaries to import
-
-        Returns:
-            Tuple of (failed_count, success_count, failed_findings)
-        
-
 - [ ] batch_update_automation_rules
 - [ ] batch_update_findings
 - [ ] batch_update_findings_v2
@@ -48,7 +38,7 @@ securityhub
 - [ ] create_connector_v2
 - [ ] create_finding_aggregator
 - [ ] create_insight
-- [ ] create_members
+- [X] create_members
 - [ ] create_ticket_v2
 - [ ] decline_invitations
 - [ ] delete_action_target
@@ -91,7 +81,7 @@ securityhub
 - [ ] get_finding_statistics_v2
 - [X] get_findings
   
-        Returns findings based on optional filters and sort criteria.
+        Filters and SortCriteria is not yet implemented
         
 
 - [ ] get_findings_trends_v2
@@ -100,7 +90,7 @@ securityhub
 - [ ] get_insights
 - [ ] get_invitations_count
 - [ ] get_master_account
-- [ ] get_members
+- [X] get_members
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2
@@ -115,7 +105,7 @@ securityhub
 - [ ] list_enabled_products_for_import
 - [ ] list_finding_aggregators
 - [ ] list_invitations
-- [ ] list_members
+- [X] list_members
 - [ ] list_organization_admin_accounts
 - [ ] list_security_control_definitions
 - [ ] list_standards_control_associations

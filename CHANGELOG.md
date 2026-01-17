@@ -1,6 +1,58 @@
 Moto Changelog
 ==============
 
+5.1.20
+-----
+Docker Digest for 5.1.20: <autopopulateddigest>
+
+    New Methods:
+        * EC2:
+            * create_subnet_cidr_reservation()
+            * delete_subnet_cidr_reservation()
+            * get_instance_uefi_data() (Just a stub, no actual data is returned)
+            * get_subnet_cidr_reservations()
+
+        * IOT:
+            * list_thing_principals_v2()
+
+        * ResourceGroups:
+            * cancel_tag_sync_task()
+            * get_tag_sync_task()
+            * list_tag_sync_tasks()
+            * start_tag_sync_task()
+
+        * Route53Resolver:
+            * get_resolver_dnssec_config()
+            * list_resolver_dnssec_configs()
+            * update_resolver_dnssec_config()
+
+        * S3Control:
+            * create_multi_region_access_point()
+            * delete_multi_region_access_point()
+            * delete_storage_lens_configuration()
+            * describe_multi_region_access_point_operation()
+            * get_multi_region_access_point()
+            * get_multi_region_access_point_policy()
+            * get_multi_region_access_point_policy_status()
+            * list_multi_region_access_points()
+            * put_multi_region_access_point_policy()
+
+        * SecurityHub:
+            * create_members()
+            * get_members()
+            * list_members()
+
+    Miscellaneous:
+        * ACM: import_certificate() now supports all key types, RSA and EC
+        * APIGateway: update_rest_api() now supports `/endpointConfiguration/types`
+        * Autoscaling: update_auto_scaling_group() now supports the MixedInstancesPolicy-parameter
+        * Batch: register_job_definition() now supports the eksProperties-parameter
+        * DMS: create_replication_task() now supports the Tags-parameter
+        * Organizations: list_policies() now support pagination
+        * Organizations now supports Resource Control Policy
+        * Redshift: describe_clusters() now supports the TagKeys-parameter
+        * Logs: put_subscription_filter() now supports other LogGroups
+
 
 5.1.19
 -----

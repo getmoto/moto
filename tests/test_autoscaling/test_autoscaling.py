@@ -140,8 +140,6 @@ def test_create_autoscaling_group_from_invalid_instance_id():
 # Create LaunchTemplate first, and delete it last
 # If we first delete the Launch Template and then delete the AutoScalingGroup, AWS will show a notification in the console (even if it's only for a few milliseconds)
 @ec2_aws_verified(
-    create_vpc=True,
-    create_subnet=True,
     create_launch_template=True,
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
     return_launch_template_details=True,
@@ -153,8 +151,6 @@ def test_create_autoscaling_group_from_template(
     autoscaling_client=None,
     autoscaling_group_name=None,
     ec2_client=None,
-    vpc_id=None,
-    subnet_id=None,
     launch_template_name=None,
     launch_template_details=None,
 ):
@@ -168,7 +164,7 @@ def test_create_autoscaling_group_from_template(
         MinSize=1,
         MaxSize=3,
         DesiredCapacity=2,
-        VPCZoneIdentifier=subnet_id,
+        AvailabilityZones=["us-east-1a"],
         NewInstancesProtectedFromScaleIn=False,
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -1057,8 +1053,6 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
 
 
 @ec2_aws_verified(
-    create_vpc=True,
-    create_subnet=True,
     create_launch_template=True,
     return_launch_template_details=True,
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
@@ -1071,8 +1065,6 @@ def test_create_auto_scaling_group_with_mixed_instances_policy(
     autoscaling_client=None,
     autoscaling_group_name=None,
     ec2_client=None,
-    vpc_id=None,
-    subnet_id=None,
     launch_template_name=None,
     launch_template_details=None,
 ):
@@ -1098,7 +1090,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy(
         AutoScalingGroupName=autoscaling_group_name,
         MinSize=2,
         MaxSize=2,
-        VPCZoneIdentifier=subnet_id,
+        AvailabilityZones=["us-east-1a"],
     )
 
     # Assert we can describe MixedInstancesPolicy
@@ -1157,8 +1149,6 @@ def test_create_auto_scaling_group_with_mixed_instances_policy(
 
 
 @ec2_aws_verified(
-    create_vpc=True,
-    create_subnet=True,
     create_launch_template=True,
     return_launch_template_details=True,
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
@@ -1169,8 +1159,6 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
     autoscaling_client=None,
     autoscaling_group_name=None,
     ec2_client=None,
-    vpc_id=None,
-    subnet_id=None,
     launch_template_name=None,
     launch_template_details=None,
 ):
@@ -1193,7 +1181,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
         AutoScalingGroupName=autoscaling_group_name,
         MinSize=2,
         MaxSize=2,
-        VPCZoneIdentifier=subnet_id,
+        AvailabilityZones=["us-east-1a"],
     )
 
     # Assert we can describe MixedInstancesPolicy

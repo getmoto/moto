@@ -270,7 +270,7 @@ iot
         
 
 - [X] list_thing_principals
-- [ ] list_thing_principals_v2
+- [X] list_thing_principals_v2
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
