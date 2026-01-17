@@ -135,6 +135,7 @@ class BatchResponse(BaseResponse):
     def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
         node_properties = self._get_param("nodeProperties")
+        eks_properties = self._get_param("eksProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
         tags = self._get_param("tags")
@@ -151,6 +152,7 @@ class BatchResponse(BaseResponse):
             retry_strategy=retry_strategy,
             container_properties=container_properties,
             node_properties=node_properties,
+            eks_properties=eks_properties,
             timeout=timeout,
             platform_capabilities=platform_capabilities,
             propagate_tags=propagate_tags,
@@ -185,6 +187,7 @@ class BatchResponse(BaseResponse):
 
     def submitjob(self) -> str:
         container_overrides = self._get_param("containerOverrides")
+        eks_properties_override = self._get_param("eksPropertiesOverride")
         depends_on = self._get_param("dependsOn")
         job_def = self._get_param("jobDefinition")
         job_name = self._get_param("jobName")
@@ -200,6 +203,7 @@ class BatchResponse(BaseResponse):
             job_queue,
             depends_on=depends_on,
             container_overrides=container_overrides,
+            eks_properties_override=eks_properties_override,
             timeout=timeout,
             array_properties=array_properties,
             parameters=parameters,

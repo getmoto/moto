@@ -222,8 +222,9 @@ class JobDefinition(CloudFormationModel):
         name: str,
         parameters: Optional[dict[str, Any]],
         _type: str,
-        container_properties: dict[str, Any],
-        node_properties: dict[str, Any],
+        container_properties: Optional[dict[str, Any]],
+        node_properties: Optional[dict[str, Any]],
+        eks_properties: Optional[dict[str, Any]],
         tags: dict[str, str],
         retry_strategy: dict[str, str],
         timeout: dict[str, int],
@@ -239,6 +240,7 @@ class JobDefinition(CloudFormationModel):
         self._region = backend.region_name
         self.container_properties = container_properties
         self.node_properties = node_properties
+        self.eks_properties = eks_properties
         self.status = "ACTIVE"
         self.parameters = parameters or {}
         self.timeout = timeout
@@ -275,6 +277,16 @@ class JobDefinition(CloudFormationModel):
                 if env_var.get("value") != ""
             ]
 
+        if self.eks_properties is not None:
+            # Set default values for EKS containers
+            pod_props = self.eks_properties.get("podProperties", {})
+            containers = pod_props.get("containers", [])
+            for container in containers:
+                if "command" not in container:
+                    container["command"] = []
+                if "env" not in container:
+                    container["env"] = []
+
         self._validate()
         self.revision += 1
         self.arn = make_arn_for_task_def(
@@ -310,6 +322,8 @@ class JobDefinition(CloudFormationModel):
         :return: The value of the resource requirement, or None.
         :rtype: any
         """
+        if self.container_properties is None:
+            return default
         resource_reqs = self.container_properties.get("resourceRequirements", [])
 
         # Filter the resource requirements by the specified type.
@@ -342,20 +356,46 @@ class JobDefinition(CloudFormationModel):
             raise ClientException("parameters must be a string to string map")
 
         if self.type == "container":
-            if "image" not in self.container_properties:
-                raise ClientException("containerProperties must contain image")
+            # EKS jobs use eksProperties, standard jobs use containerProperties
+            if self.eks_properties is not None:
+                self._validate_eks_properties()
+            elif self.container_properties is not None:
+                self._validate_container_properties()
+            else:
+                raise ClientException(
+                    "containerProperties or eksProperties must be provided"
+                )
 
-            memory = self._get_resource_requirement("memory")
-            if memory is None:
-                raise ClientException("containerProperties must contain memory")
-            if memory < 4:
-                raise ClientException("container memory limit must be greater than 4")
+    def _validate_container_properties(self) -> None:
+        assert self.container_properties is not None  # Checked before calling
+        if "image" not in self.container_properties:
+            raise ClientException("containerProperties must contain image")
 
-            vcpus = self._get_resource_requirement("vcpus")
-            if vcpus is None:
-                raise ClientException("containerProperties must contain vcpus")
-            if vcpus <= 0:
-                raise ClientException("container vcpus limit must be greater than 0")
+        memory = self._get_resource_requirement("memory")
+        if memory is None:
+            raise ClientException("containerProperties must contain memory")
+        if memory < 4:
+            raise ClientException("container memory limit must be greater than 4")
+
+        vcpus = self._get_resource_requirement("vcpus")
+        if vcpus is None:
+            raise ClientException("containerProperties must contain vcpus")
+        if vcpus <= 0:
+            raise ClientException("container vcpus limit must be greater than 0")
+
+    def _validate_eks_properties(self) -> None:
+        assert self.eks_properties is not None  # Checked before calling
+        pod_props = self.eks_properties.get("podProperties", {})
+        containers = pod_props.get("containers", [])
+        if not containers:
+            raise ClientException(
+                "eksProperties.podProperties must contain at least one container"
+            )
+        for container in containers:
+            if "image" not in container:
+                raise ClientException(
+                    "eksProperties.podProperties.containers must contain image"
+                )
 
     def deregister(self) -> None:
         self.status = "INACTIVE"
@@ -364,8 +404,9 @@ class JobDefinition(CloudFormationModel):
         self,
         parameters: Optional[dict[str, Any]],
         _type: str,
-        container_properties: dict[str, Any],
-        node_properties: dict[str, Any],
+        container_properties: Optional[dict[str, Any]],
+        node_properties: Optional[dict[str, Any]],
+        eks_properties: Optional[dict[str, Any]],
         retry_strategy: dict[str, Any],
         tags: dict[str, str],
         timeout: dict[str, int],
@@ -380,6 +421,9 @@ class JobDefinition(CloudFormationModel):
             if container_properties is None:
                 container_properties = self.container_properties
 
+            if eks_properties is None:
+                eks_properties = self.eks_properties
+
             if retry_strategy is None:
                 retry_strategy = self.retry_strategy
 
@@ -389,6 +433,7 @@ class JobDefinition(CloudFormationModel):
             _type,
             container_properties,
             node_properties=node_properties,
+            eks_properties=eks_properties,
             revision=self.revision,
             retry_strategy=retry_strategy,
             tags=tags,
@@ -413,6 +458,8 @@ class JobDefinition(CloudFormationModel):
         }
         if self.container_properties is not None:
             result["containerProperties"] = self.container_properties
+        if self.eks_properties is not None:
+            result["eksProperties"] = self.eks_properties
         if self.timeout:
             result["timeout"] = self.timeout
 
@@ -458,6 +505,11 @@ class JobDefinition(CloudFormationModel):
                 if "NodeProperties" in properties
                 else None
             ),
+            eks_properties=(
+                lowercase_first_key(properties["EksProperties"])  # type: ignore[arg-type]
+                if "EksProperties" in properties
+                else None
+            ),
             timeout=lowercase_first_key(properties.get("timeout", {})),
             platform_capabilities=None,  # type: ignore[arg-type]
             propagate_tags=None,  # type: ignore[arg-type]
@@ -473,6 +525,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         backend: "BatchBackend",
         log_backend: LogsBackend,
         container_overrides: Optional[dict[str, Any]],
+        eks_properties_override: Optional[dict[str, Any]],
         depends_on: Optional[list[dict[str, str]]],
         parameters: Optional[dict[str, str]],
         all_jobs: dict[str, "Job"],
@@ -493,6 +546,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_id = provided_job_id or str(mock_random.uuid4())
         self.job_definition = job_def
         self.container_overrides: dict[str, Any] = container_overrides or {}
+        self.eks_properties_override: dict[str, Any] = eks_properties_override or {}
         self.job_queue = job_queue
         self.backend = backend
         self.job_queue.jobs.append(self)
@@ -562,7 +616,10 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result["parameters"] = {**self.job_definition.parameters, **self.parameters}
         result["tags"] = self.backend.list_tags_for_resource(self.arn)
         if self.job_definition.type == "container":
-            result["container"] = self._container_details()
+            if self.job_definition.eks_properties is not None:
+                result["eksProperties"] = self._eks_properties_details()
+            else:
+                result["container"] = self._container_details()
         elif self.job_definition.type == "multinode":
             result["container"] = {
                 "logStreamName": self.log_stream_name,
@@ -612,6 +669,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return details
 
     def _get_container_property(self, p: str, default: Any) -> Any:
+        assert (
+            self.job_definition.container_properties is not None
+        )  # Only called for container jobs
         if p == "environment":
             job_env = self.container_overrides.get(p, default)
             jd_env = self.job_definition.container_properties.get(p, default)
@@ -635,6 +695,62 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
+
+    def _eks_properties_details(self) -> dict[str, Any]:
+        """
+        Build EKS properties output with merged overrides.
+        Follows the same pattern as _container_details() for container jobs.
+        """
+        eks_props = self.job_definition.eks_properties or {}
+        pod_props = eks_props.get("podProperties", {})
+
+        override_pod_props = self.eks_properties_override.get("podProperties", {})
+
+        base_containers = pod_props.get("containers", [])
+        override_containers = override_pod_props.get("containers", [])
+
+        merged_containers = []
+        for i, base_container in enumerate(base_containers):
+            merged_container = dict(base_container)
+
+            if i < len(override_containers):
+                override = override_containers[i]
+
+                if "command" in override:
+                    merged_container["command"] = override["command"]
+
+                merged_container["env"] = self._merge_eks_env(
+                    base_container.get("env", []),
+                    override.get("env", []),
+                )
+
+                if "resources" in override:
+                    merged_container["resources"] = override["resources"]
+
+            merged_containers.append(merged_container)
+
+        return {
+            "podProperties": {
+                "containers": merged_containers,
+                **{k: v for k, v in pod_props.items() if k != "containers"},
+            }
+        }
+
+    def _merge_eks_env(
+        self,
+        base_env: list[dict[str, str]],
+        override_env: list[dict[str, str]],
+    ) -> list[dict[str, str]]:
+        """
+        Merge environment variables for EKS containers.
+        Override takes precedence for same-named variables.
+        """
+        env_dict = {env["name"]: env["value"] for env in base_env}
+
+        for env in override_env:
+            env_dict[env["name"]] = env["value"]
+
+        return [{"name": k, "value": v} for k, v in env_dict.items()]
 
     def _get_attempt_duration(self) -> Optional[int]:
         if self.timeout:
@@ -736,6 +852,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 )
             else:
                 node_properties = self.job_definition.node_properties
+                assert (
+                    node_properties is not None
+                )  # Multinode jobs have node_properties
                 num_nodes = node_properties["numNodes"]
                 node_containers = {}
                 for node_range in node_properties["nodeRangeProperties"]:
@@ -1688,8 +1807,9 @@ class BatchBackend(BaseBackend):
         _type: str,
         tags: dict[str, str],
         retry_strategy: dict[str, Any],
-        container_properties: dict[str, Any],
-        node_properties: dict[str, Any],
+        container_properties: Optional[dict[str, Any]],
+        node_properties: Optional[dict[str, Any]],
+        eks_properties: Optional[dict[str, Any]],
         timeout: dict[str, int],
         platform_capabilities: list[str],
         propagate_tags: bool,
@@ -1711,6 +1831,7 @@ class BatchBackend(BaseBackend):
                 _type,
                 container_properties,
                 node_properties=node_properties,
+                eks_properties=eks_properties,
                 tags=tags,
                 retry_strategy=retry_strategy,
                 timeout=timeout,
@@ -1725,6 +1846,7 @@ class BatchBackend(BaseBackend):
                 _type,
                 container_properties,
                 node_properties,
+                eks_properties,
                 retry_strategy,
                 tags,
                 timeout,
@@ -1782,6 +1904,7 @@ class BatchBackend(BaseBackend):
         array_properties: dict[str, int],
         depends_on: Optional[list[dict[str, str]]] = None,
         container_overrides: Optional[dict[str, Any]] = None,
+        eks_properties_override: Optional[dict[str, Any]] = None,
         timeout: Optional[dict[str, int]] = None,
         parameters: Optional[dict[str, str]] = None,
         tags: Optional[dict[str, str]] = None,
@@ -1808,6 +1931,7 @@ class BatchBackend(BaseBackend):
             self,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
+            eks_properties_override=eks_properties_override,
             depends_on=depends_on,
             all_jobs=self._jobs,
             timeout=timeout,
@@ -1829,6 +1953,7 @@ class BatchBackend(BaseBackend):
                     self,
                     log_backend=self.logs_backend,
                     container_overrides=container_overrides,
+                    eks_properties_override=eks_properties_override,
                     depends_on=depends_on,
                     all_jobs=self._jobs,
                     timeout=timeout,
