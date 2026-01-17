@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.20
 -----
-Docker Digest for 5.1.20: <autopopulateddigest>
+Docker Digest for 5.1.20: _sha256:d2711655244df58411ce0be34236c95736390db17886370d21e12ae2b1e36f79_
 
     New Methods:
         * EC2:
