@@ -46,6 +46,7 @@ lakeformation
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
 - [ ] get_table_objects
+- [ ] get_temporary_data_location_credentials
 - [ ] get_temporary_glue_partition_credentials
 - [ ] get_temporary_glue_table_credentials
 - [ ] get_work_unit_results

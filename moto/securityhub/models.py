@@ -133,10 +133,9 @@ class SecurityHubBackend(BaseBackend):
         filters: Optional[dict[str, Any]] = None,
         sort_criteria: Optional[list[dict[str, str]]] = None,
         max_results: Optional[int] = None,
-        next_token: Optional[str] = None,
     ) -> list[dict[str, str]]:
         """
-        Returns findings based on optional filters and sort criteria.
+        Filters and SortCriteria is not yet implemented
         """
         if max_results is not None:
             try:
@@ -151,25 +150,11 @@ class SecurityHubBackend(BaseBackend):
                     op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
-        findings = self.findings
-
-        # TODO: Apply filters if provided
-        # TODO: Apply sort criteria if provided
-
-        return [f.as_dict() for f in findings]
+        return [f.as_dict() for f in self.findings]
 
     def batch_import_findings(
         self, findings: list[dict[str, Any]]
     ) -> tuple[int, int, list[dict[str, Any]]]:
-        """
-        Import findings in batch to SecurityHub.
-
-        Args:
-            findings: List of finding dictionaries to import
-
-        Returns:
-            Tuple of (failed_count, success_count, failed_findings)
-        """
         failed_count = 0
         success_count = 0
         failed_findings = []
@@ -372,15 +357,6 @@ class SecurityHubBackend(BaseBackend):
     def create_members(
         self, account_details: list[dict[str, str]]
     ) -> list[dict[str, str]]:
-        """
-        Create member accounts for Security Hub.
-
-        Args:
-            account_details: List of dicts with AccountId and optionally Email
-
-        Returns:
-            List of unprocessed accounts
-        """
         unprocessed_accounts: list[dict[str, str]] = []
 
         if not account_details:
@@ -421,15 +397,6 @@ class SecurityHubBackend(BaseBackend):
     def get_members(
         self, account_ids: list[str]
     ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-        """
-        Get member account details by account IDs.
-
-        Args:
-            account_ids: List of account IDs to retrieve
-
-        Returns:
-            Tuple of (members, unprocessed_accounts)
-        """
         members = []
         unprocessed_accounts = []
 
@@ -458,22 +425,8 @@ class SecurityHubBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_members(
-        self,
-        only_associated: Optional[bool] = None,
-        max_results: Optional[int] = None,
-        next_token: Optional[str] = None,
+        self, only_associated: Optional[bool] = None
     ) -> list[dict[str, str]]:
-        """
-        List all member accounts.
-
-        Args:
-            only_associated: If True, only return members with ENABLED status
-            max_results: Maximum number of results to return
-            next_token: Pagination token
-
-        Returns:
-            List of member details
-        """
         if only_associated is None:
             only_associated = True
 
