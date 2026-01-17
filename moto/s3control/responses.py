@@ -1,11 +1,17 @@
 import json
+import re
 from typing import Any
 from urllib.parse import unquote
 
 import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    _get_method_urls,
+)
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 
 from .models import S3ControlBackend, s3control_backends
@@ -14,6 +20,31 @@ from .models import S3ControlBackend, s3control_backends
 class S3ControlResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3control")
+
+    def _get_action_from_method_and_request_uri(
+        self, method: str, request_uri: str
+    ) -> str:
+        """
+        Override to sort patterns by length (descending) so more specific
+        patterns match before more general ones.
+
+        This fixes issues where patterns like:
+        - /mrap/instances/{name+} (GetMultiRegionAccessPoint)
+        - /mrap/instances/{name+}/policy (GetMultiRegionAccessPointPolicy)
+
+        Both match the same URL, but we want the more specific one to win.
+        """
+        methods_url = _get_method_urls(self.service_name, self.region)
+        regexp_and_names = methods_url[method]
+        sorted_patterns = sorted(
+            regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
+        )
+        for regexp, name in sorted_patterns:
+            match = re.match(regexp, request_uri)
+            self.uri_match = match
+            if match:
+                return name
+        return None  # type: ignore[return-value]
 
     @property
     def backend(self) -> S3ControlBackend:
@@ -137,10 +168,17 @@ class S3ControlResponse(BaseResponse):
             config_id=config_id,
             account_id=account_id,
         )
-        # TODO: Add support for all fields in the response
-        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
         template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
         return template.render(config=storage_lens_configuration.config)
+
+    def delete_storage_lens_configuration(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        self.backend.delete_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        return 204, {"status": 204}, ""
 
     def list_storage_lens_configurations(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
@@ -200,6 +238,149 @@ class S3ControlResponse(BaseResponse):
 
         template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
         return template.render(access_points=access_points, next_token=next_token)
+
+    def create_multi_region_access_point(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body, process_namespaces=False)[
+            "CreateMultiRegionAccessPointRequest"
+        ]
+
+        details = params["Details"]
+        name = details.get("Name")
+
+        regions_data = details.get("Regions", {})
+        if regions_data and "Region" in regions_data:
+            regions_list = regions_data["Region"]
+            if isinstance(regions_list, dict):
+                regions_list = [regions_list]
+        else:
+            regions_list = []
+
+        public_access_block = details.get("PublicAccessBlock", {})
+
+        operation = self.backend.create_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+            public_access_block=public_access_block,
+            regions=regions_list,
+            region_name=self.region,
+        )
+
+        template = self.response_template(CREATE_MULTI_REGION_ACCESS_POINT_TEMPLATE)
+        return template.render(request_token=operation.request_token_arn)
+
+    def delete_multi_region_access_point(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body, process_namespaces=False)[
+            "DeleteMultiRegionAccessPointRequest"
+        ]
+
+        details = params["Details"]
+        name = details.get("Name")
+
+        operation = self.backend.delete_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+            region_name=self.region,
+        )
+
+        template = self.response_template(DELETE_MULTI_REGION_ACCESS_POINT_TEMPLATE)
+        return template.render(request_token=operation.request_token_arn)
+
+    def describe_multi_region_access_point_operation(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        _prefix = "/async-requests/mrap/"
+        if _prefix in self.path:
+            request_token = unquote(self.path.partition(_prefix)[2])
+        else:
+            request_token = self.path.split("/")[-1]
+
+        operation = self.backend.describe_multi_region_access_point_operation(
+            account_id=account_id,
+            request_token_arn=request_token,
+        )
+
+        template = self.response_template(
+            DESCRIBE_MULTI_REGION_ACCESS_POINT_OPERATION_TEMPLATE
+        )
+        return template.render(operation=operation.to_dict())
+
+    def get_multi_region_access_point(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-1]
+
+        mrap = self.backend.get_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+        )
+
+        template = self.response_template(GET_MULTI_REGION_ACCESS_POINT_TEMPLATE)
+        return template.render(mrap=mrap.to_dict())
+
+    def get_multi_region_access_point_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+
+        policy = self.backend.get_multi_region_access_point_policy(
+            account_id=account_id,
+            name=name,
+        )
+
+        template = self.response_template(GET_MULTI_REGION_ACCESS_POINT_POLICY_TEMPLATE)
+        return template.render(policy=policy)
+
+    def get_multi_region_access_point_policy_status(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+
+        policy_status = self.backend.get_multi_region_access_point_policy_status(
+            account_id=account_id,
+            name=name,
+        )
+
+        template = self.response_template(
+            GET_MULTI_REGION_ACCESS_POINT_POLICY_STATUS_TEMPLATE
+        )
+        return template.render(is_public=policy_status["IsPublic"])
+
+    def list_multi_region_access_points(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+
+        mraps, next_token = self.backend.list_multi_region_access_points(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+
+        template = self.response_template(LIST_MULTI_REGION_ACCESS_POINTS_TEMPLATE)
+        return template.render(
+            mraps=[mrap.to_dict() for mrap in mraps], next_token=next_token
+        )
+
+    def put_multi_region_access_point_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body, process_namespaces=False)[
+            "PutMultiRegionAccessPointPolicyRequest"
+        ]
+
+        details = params["Details"]
+        name = details.get("Name")
+        policy = details.get("Policy")
+
+        operation = self.backend.put_multi_region_access_point_policy(
+            account_id=account_id,
+            name=name,
+            policy=policy,
+            region_name=self.region,
+        )
+
+        template = self.response_template(PUT_MULTI_REGION_ACCESS_POINT_POLICY_TEMPLATE)
+        return template.render(request_token=operation.request_token_arn)
 
     def list_tags_for_resource(self) -> ActionResult:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
@@ -295,6 +476,158 @@ GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
 </GetAccessPointPolicyResult>
 """
 
+XMLNS = 'xmlns="http://awss3control.amazonaws.com/doc/2018-08-20/"'
+
+CREATE_MULTI_REGION_ACCESS_POINT_TEMPLATE = f"""<CreateMultiRegionAccessPointResult {XMLNS}>
+  <RequestTokenARN>{{{{ request_token }}}}</RequestTokenARN>
+</CreateMultiRegionAccessPointResult>
+"""
+
+DELETE_MULTI_REGION_ACCESS_POINT_TEMPLATE = f"""<DeleteMultiRegionAccessPointResult {XMLNS}>
+  <RequestTokenARN>{{{{ request_token }}}}</RequestTokenARN>
+</DeleteMultiRegionAccessPointResult>
+"""
+
+DESCRIBE_MULTI_REGION_ACCESS_POINT_OPERATION_TEMPLATE = f"""<DescribeMultiRegionAccessPointOperationResult {XMLNS}>
+  <AsyncOperation>
+    <CreationTime>{{{{ operation.CreationTime }}}}</CreationTime>
+    <Operation>{{{{ operation.Operation }}}}</Operation>
+    <RequestTokenARN>{{{{ operation.RequestTokenARN }}}}</RequestTokenARN>
+    <RequestStatus>{{{{ operation.RequestStatus }}}}</RequestStatus>
+    {{% if operation.RequestParameters %}}
+    <RequestParameters>
+      {{% if operation.RequestParameters.CreateMultiRegionAccessPointRequest %}}
+      <CreateMultiRegionAccessPointRequest>
+        <Name>{{{{ operation.RequestParameters.CreateMultiRegionAccessPointRequest.Name }}}}</Name>
+        {{% if operation.RequestParameters.CreateMultiRegionAccessPointRequest.PublicAccessBlock %}}
+        <PublicAccessBlock>
+          <BlockPublicAcls>{{{{ operation.RequestParameters.CreateMultiRegionAccessPointRequest.PublicAccessBlock.BlockPublicAcls|default("true") }}}}</BlockPublicAcls>
+          <IgnorePublicAcls>{{{{ operation.RequestParameters.CreateMultiRegionAccessPointRequest.PublicAccessBlock.IgnorePublicAcls|default("true") }}}}</IgnorePublicAcls>
+          <BlockPublicPolicy>{{{{ operation.RequestParameters.CreateMultiRegionAccessPointRequest.PublicAccessBlock.BlockPublicPolicy|default("true") }}}}</BlockPublicPolicy>
+          <RestrictPublicBuckets>{{{{ operation.RequestParameters.CreateMultiRegionAccessPointRequest.PublicAccessBlock.RestrictPublicBuckets|default("true") }}}}</RestrictPublicBuckets>
+        </PublicAccessBlock>
+        {{% endif %}}
+        {{% if operation.RequestParameters.CreateMultiRegionAccessPointRequest.Regions %}}
+        <Regions>
+          {{% for region in operation.RequestParameters.CreateMultiRegionAccessPointRequest.Regions %}}
+          <Region>
+            <Bucket>{{{{ region.Bucket }}}}</Bucket>
+          </Region>
+          {{% endfor %}}
+        </Regions>
+        {{% endif %}}
+      </CreateMultiRegionAccessPointRequest>
+      {{% endif %}}
+      {{% if operation.RequestParameters.DeleteMultiRegionAccessPointRequest %}}
+      <DeleteMultiRegionAccessPointRequest>
+        <Name>{{{{ operation.RequestParameters.DeleteMultiRegionAccessPointRequest.Name }}}}</Name>
+      </DeleteMultiRegionAccessPointRequest>
+      {{% endif %}}
+      {{% if operation.RequestParameters.PutMultiRegionAccessPointPolicyRequest %}}
+      <PutMultiRegionAccessPointPolicyRequest>
+        <Name>{{{{ operation.RequestParameters.PutMultiRegionAccessPointPolicyRequest.Name }}}}</Name>
+        <Policy>{{{{ operation.RequestParameters.PutMultiRegionAccessPointPolicyRequest.Policy }}}}</Policy>
+      </PutMultiRegionAccessPointPolicyRequest>
+      {{% endif %}}
+    </RequestParameters>
+    {{% endif %}}
+    {{% if operation.ResponseDetails %}}
+    <ResponseDetails>
+      {{% if operation.ResponseDetails.MultiRegionAccessPointDetails %}}
+      <MultiRegionAccessPointDetails>
+        {{% if operation.ResponseDetails.MultiRegionAccessPointDetails.Regions %}}
+        <Regions>
+          {{% for region in operation.ResponseDetails.MultiRegionAccessPointDetails.Regions %}}
+          <Region>
+            <Name>{{{{ region.Name }}}}</Name>
+            <RequestStatus>{{{{ region.RequestStatus }}}}</RequestStatus>
+          </Region>
+          {{% endfor %}}
+        </Regions>
+        {{% endif %}}
+      </MultiRegionAccessPointDetails>
+      {{% endif %}}
+    </ResponseDetails>
+    {{% endif %}}
+  </AsyncOperation>
+</DescribeMultiRegionAccessPointOperationResult>
+"""
+
+GET_MULTI_REGION_ACCESS_POINT_TEMPLATE = f"""<GetMultiRegionAccessPointResult {XMLNS}>
+  <AccessPoint>
+    <Name>{{{{ mrap.Name }}}}</Name>
+    <Alias>{{{{ mrap.Alias }}}}</Alias>
+    <CreatedAt>{{{{ mrap.CreatedAt }}}}</CreatedAt>
+    <PublicAccessBlock>
+      <BlockPublicAcls>{{{{ mrap.PublicAccessBlock.BlockPublicAcls|default("true") }}}}</BlockPublicAcls>
+      <IgnorePublicAcls>{{{{ mrap.PublicAccessBlock.IgnorePublicAcls|default("true") }}}}</IgnorePublicAcls>
+      <BlockPublicPolicy>{{{{ mrap.PublicAccessBlock.BlockPublicPolicy|default("true") }}}}</BlockPublicPolicy>
+      <RestrictPublicBuckets>{{{{ mrap.PublicAccessBlock.RestrictPublicBuckets|default("true") }}}}</RestrictPublicBuckets>
+    </PublicAccessBlock>
+    <Status>{{{{ mrap.Status }}}}</Status>
+    <Regions>
+      {{% for region in mrap.Regions %}}
+      <Region>
+        <Bucket>{{{{ region.Bucket }}}}</Bucket>
+        <Region>{{{{ region.Region }}}}</Region>
+      </Region>
+      {{% endfor %}}
+    </Regions>
+  </AccessPoint>
+</GetMultiRegionAccessPointResult>
+"""
+
+GET_MULTI_REGION_ACCESS_POINT_POLICY_TEMPLATE = f"""<GetMultiRegionAccessPointPolicyResult {XMLNS}>
+  <Policy>
+    <Established>
+      <Policy>{{{{ policy }}}}</Policy>
+    </Established>
+  </Policy>
+</GetMultiRegionAccessPointPolicyResult>
+"""
+
+GET_MULTI_REGION_ACCESS_POINT_POLICY_STATUS_TEMPLATE = f"""<GetMultiRegionAccessPointPolicyStatusResult {XMLNS}>
+  <Established>
+    <IsPublic>{{{{ is_public|lower }}}}</IsPublic>
+  </Established>
+</GetMultiRegionAccessPointPolicyStatusResult>
+"""
+
+LIST_MULTI_REGION_ACCESS_POINTS_TEMPLATE = f"""<ListMultiRegionAccessPointsResult {XMLNS}>
+  <AccessPoints>
+    {{% for mrap in mraps %}}
+    <AccessPoint>
+      <Name>{{{{ mrap.Name }}}}</Name>
+      <Alias>{{{{ mrap.Alias }}}}</Alias>
+      <CreatedAt>{{{{ mrap.CreatedAt }}}}</CreatedAt>
+      <PublicAccessBlock>
+        <BlockPublicAcls>{{{{ mrap.PublicAccessBlock.BlockPublicAcls|default("true") }}}}</BlockPublicAcls>
+        <IgnorePublicAcls>{{{{ mrap.PublicAccessBlock.IgnorePublicAcls|default("true") }}}}</IgnorePublicAcls>
+        <BlockPublicPolicy>{{{{ mrap.PublicAccessBlock.BlockPublicPolicy|default("true") }}}}</BlockPublicPolicy>
+        <RestrictPublicBuckets>{{{{ mrap.PublicAccessBlock.RestrictPublicBuckets|default("true") }}}}</RestrictPublicBuckets>
+      </PublicAccessBlock>
+      <Status>{{{{ mrap.Status }}}}</Status>
+      <Regions>
+        {{% for region in mrap.Regions %}}
+        <Region>
+          <Bucket>{{{{ region.Bucket }}}}</Bucket>
+          <Region>{{{{ region.Region }}}}</Region>
+        </Region>
+        {{% endfor %}}
+      </Regions>
+    </AccessPoint>
+    {{% endfor %}}
+  </AccessPoints>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListMultiRegionAccessPointsResult>
+"""
+
+PUT_MULTI_REGION_ACCESS_POINT_POLICY_TEMPLATE = f"""<PutMultiRegionAccessPointPolicyResult {XMLNS}>
+  <RequestTokenARN>{{{{ request_token }}}}</RequestTokenARN>
+</PutMultiRegionAccessPointPolicyResult>
+"""
 
 GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
 <StorageLensConfiguration>

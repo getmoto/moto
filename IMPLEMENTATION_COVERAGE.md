@@ -8546,7 +8546,7 @@
 
 ## s3control
 <details>
-<summary>19% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] associate_access_grants_identity_center
 - [ ] create_access_grant
@@ -8556,7 +8556,7 @@
 - [ ] create_access_point_for_object_lambda
 - [ ] create_bucket
 - [ ] create_job
-- [ ] create_multi_region_access_point
+- [X] create_multi_region_access_point
 - [ ] create_storage_lens_group
 - [ ] delete_access_grant
 - [ ] delete_access_grants_instance
@@ -8573,13 +8573,13 @@
 - [ ] delete_bucket_replication
 - [ ] delete_bucket_tagging
 - [ ] delete_job_tagging
-- [ ] delete_multi_region_access_point
+- [X] delete_multi_region_access_point
 - [X] delete_public_access_block
-- [ ] delete_storage_lens_configuration
+- [X] delete_storage_lens_configuration
 - [ ] delete_storage_lens_configuration_tagging
 - [ ] delete_storage_lens_group
 - [ ] describe_job
-- [ ] describe_multi_region_access_point_operation
+- [X] describe_multi_region_access_point_operation
 - [ ] dissociate_access_grants_identity_center
 - [ ] get_access_grant
 - [ ] get_access_grants_instance
@@ -8602,9 +8602,9 @@
 - [ ] get_bucket_versioning
 - [ ] get_data_access
 - [ ] get_job_tagging
-- [ ] get_multi_region_access_point
-- [ ] get_multi_region_access_point_policy
-- [ ] get_multi_region_access_point_policy_status
+- [X] get_multi_region_access_point
+- [X] get_multi_region_access_point_policy
+- [X] get_multi_region_access_point_policy_status
 - [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [X] get_storage_lens_configuration
@@ -8618,7 +8618,7 @@
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
 - [ ] list_jobs
-- [ ] list_multi_region_access_points
+- [X] list_multi_region_access_points
 - [ ] list_regional_buckets
 - [X] list_storage_lens_configurations
 - [ ] list_storage_lens_groups
@@ -8634,7 +8634,7 @@
 - [ ] put_bucket_tagging
 - [ ] put_bucket_versioning
 - [ ] put_job_tagging
-- [ ] put_multi_region_access_point_policy
+- [X] put_multi_region_access_point_policy
 - [X] put_public_access_block
 - [X] put_storage_lens_configuration
 - [X] put_storage_lens_configuration_tagging
