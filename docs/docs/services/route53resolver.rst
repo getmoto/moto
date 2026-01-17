@@ -56,7 +56,9 @@ route53resolver
 - [ ] get_firewall_rule_group_policy
 - [ ] get_outpost_resolver
 - [ ] get_resolver_config
-- [ ] get_resolver_dnssec_config
+- [X] get_resolver_dnssec_config
+  Get information about a resolver DNSSEC config.
+
 - [X] get_resolver_endpoint
 - [X] get_resolver_query_log_config
   Get information about a resolver query log config.
@@ -77,7 +79,7 @@ route53resolver
 - [ ] list_firewall_rules
 - [ ] list_outpost_resolvers
 - [ ] list_resolver_configs
-- [ ] list_resolver_dnssec_configs
+- [X] list_resolver_dnssec_configs
 - [X] list_resolver_endpoint_ip_addresses
 - [X] list_resolver_endpoints
 - [ ] list_resolver_query_log_config_associations
@@ -96,7 +98,9 @@ route53resolver
 - [ ] update_firewall_rule_group_association
 - [ ] update_outpost_resolver
 - [ ] update_resolver_config
-- [ ] update_resolver_dnssec_config
+- [X] update_resolver_dnssec_config
+  Update the configuration of the DNSSEC validation.
+
 - [X] update_resolver_endpoint
 - [ ] update_resolver_rule
 

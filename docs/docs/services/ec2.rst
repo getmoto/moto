@@ -148,7 +148,7 @@ ec2
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
-- [ ] create_subnet_cidr_reservation
+- [X] create_subnet_cidr_reservation
 - [X] create_tags
 - [ ] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
@@ -238,7 +238,7 @@ ec2
 - [X] delete_snapshot
 - [ ] delete_spot_datafeed_subscription
 - [X] delete_subnet
-- [ ] delete_subnet_cidr_reservation
+- [X] delete_subnet_cidr_reservation
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
@@ -597,7 +597,7 @@ ec2
 - [ ] get_instance_metadata_defaults
 - [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
-- [ ] get_instance_uefi_data
+- [X] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
 - [ ] get_ipam_discovered_public_addresses
@@ -624,7 +624,7 @@ ec2
 - [ ] get_serial_console_access_status
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
-- [ ] get_subnet_cidr_reservations
+- [X] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
