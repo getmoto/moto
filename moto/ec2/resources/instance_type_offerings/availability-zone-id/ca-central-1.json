@@ -2568,6 +2568,10 @@
   "Location": "cac1-az1"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "cac1-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "cac1-az1"
  },
@@ -5189,6 +5193,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "cac1-az2"
  },
  {

@@ -6168,6 +6168,10 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "apse1-az2"
  },
