@@ -2596,6 +2596,10 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ca-central-1"
  },

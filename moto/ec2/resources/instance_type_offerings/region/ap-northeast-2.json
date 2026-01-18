@@ -2660,6 +2660,38 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "x8aedz.12xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.24xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.3xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.6xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.large",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.metal-12xl",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.metal-24xl",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "x8aedz.xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "z1d.12xlarge",
   "Location": "ap-northeast-2"
  },
