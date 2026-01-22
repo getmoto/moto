@@ -449,5 +449,13 @@ class SecurityHubBackend(BaseBackend):
 
         return members
 
+    def get_master_account(self) -> dict[str, Any]:
+        admin_result = self.get_administrator_account()
+
+        if not admin_result or "Administrator" not in admin_result:
+            return {}
+
+        return {"Master": admin_result["Administrator"]}
+
 
 securityhub_backends = BackendDict(SecurityHubBackend, "securityhub")

@@ -146,3 +146,7 @@ class SecurityHubResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+
+    def get_master_account(self) -> str:
+        master = self.securityhub_backend.get_master_account()
+        return json.dumps(master)
