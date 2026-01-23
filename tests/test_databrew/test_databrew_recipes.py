@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core.utils import utcnow
 
 
 def _create_databrew_client():
@@ -361,7 +361,7 @@ def test_publish_recipe(recipe_name):
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-    dt_before_publish = datetime.now().astimezone()
+    dt_before_publish = utcnow()
 
     # Publish the recipe
     publish_response = client.publish_recipe(Name=recipe_name, Description="1st desc")
@@ -371,7 +371,7 @@ def test_publish_recipe(recipe_name):
     recipe = client.describe_recipe(Name=recipe_name)
     assert recipe["Description"] == "1st desc"
     assert recipe["RecipeVersion"] == "1.0"
-    assert recipe["PublishedDate"] > dt_before_publish
+    assert recipe["PublishedDate"].replace(tzinfo=None) > dt_before_publish
     first_published_date = recipe["PublishedDate"]
 
     # Latest Working should have created date == publish date

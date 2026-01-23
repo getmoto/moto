@@ -1,10 +1,9 @@
-from datetime import datetime
-
 import boto3
 import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core.utils import utcnow
 
 
 @mock_aws
@@ -104,7 +103,7 @@ def test_update_workflow_updated_timestamp():
     client = boto3.client("glue", region_name="us-east-1")
     workflow_name = "test"
     client.create_workflow(Name=workflow_name)
-    before_update = datetime.now()
+    before_update = utcnow()
 
     client.update_workflow(Name=workflow_name)
 
