@@ -329,6 +329,19 @@ class Route53ResolverResponse(BaseResponse):
             {"ResolverQueryLogConfig": resolver_query_log_config.description()}
         )
 
+    def get_resolver_query_log_config_association(self) -> str:
+        resolver_query_log_config_association_id = self._get_param(
+            "ResolverQueryLogConfigAssociationId"
+        )
+
+        association = self.route53resolver_backend.get_resolver_query_log_config_association(
+            resolver_query_log_config_association_id=resolver_query_log_config_association_id,
+        )
+
+        return json.dumps(
+            {"ResolverQueryLogConfigAssociation": association.description()}
+        )
+
     def list_resolver_query_log_configs(self) -> str:
         """List all resolver query logging configurations."""
         filters = self._get_param("Filters")

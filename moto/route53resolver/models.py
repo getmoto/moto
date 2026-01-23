@@ -1173,6 +1173,23 @@ class Route53ResolverBackend(BaseBackend):
 
         return self.resolver_query_log_configs[resolver_query_log_config_id]
 
+    def get_resolver_query_log_config_association(
+        self, resolver_query_log_config_association_id: str
+    ) -> ResolverQueryLogConfigAssociation:
+        """Get information about a resolver query log config association."""
+
+        if (
+            resolver_query_log_config_association_id
+            not in self.resolver_query_log_config_associations
+        ):
+            raise ResourceNotFoundException(
+                f"Resolver query log config association with ID '{resolver_query_log_config_association_id}' does not exist"
+            )
+
+        return self.resolver_query_log_config_associations[
+            resolver_query_log_config_association_id
+        ]
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_query_log_configs(
         self, filters: Any
