@@ -3,9 +3,9 @@ import uuid
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_aws
-from moto.core.utils import utcnow
 
 
 def _create_databrew_client():
@@ -159,6 +159,34 @@ def test_describe_recipe_latest_working():
     assert recipe["Name"] == response["Name"]
     assert len(recipe["Steps"]) == 1
     assert recipe["RecipeVersion"] == "0.1"
+
+
+@mock_aws
+def test_create_recipe_with_description_and_tags():
+    client = _create_databrew_client()
+    recipe_name = str(uuid.uuid4())
+    description = "Test recipe description"
+    tags = {"env": "test", "project": "moto"}
+
+    client.create_recipe(
+        Name=recipe_name,
+        Description=description,
+        Steps=[
+            {
+                "Action": {
+                    "Operation": "REMOVE_COMBINED",
+                    "Parameters": {"sourceColumn": "FakeColumn"},
+                }
+            }
+        ],
+        Tags=tags,
+    )
+
+    recipe = client.describe_recipe(Name=recipe_name, RecipeVersion="LATEST_WORKING")
+
+    assert recipe["Name"] == recipe_name
+    assert recipe["Description"] == description
+    assert recipe["Tags"] == tags
 
 
 @mock_aws
@@ -357,43 +385,46 @@ def test_publish_recipe(recipe_name):
 
     # Before a recipe is published, we should not be able to retrieve a published version
     with pytest.raises(ClientError) as exc:
-        recipe = client.describe_recipe(Name=recipe_name)
+        client.describe_recipe(Name=recipe_name)
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-    dt_before_publish = utcnow()
+    with freeze_time("2024-01-15 12:00:00"):
+        # Publish the recipe
+        publish_response = client.publish_recipe(
+            Name=recipe_name, Description="1st desc"
+        )
+        assert publish_response["Name"] == recipe_name
 
-    # Publish the recipe
-    publish_response = client.publish_recipe(Name=recipe_name, Description="1st desc")
-    assert publish_response["Name"] == recipe_name
+        # Recipe is now published, so check we can retrieve the published version
+        recipe = client.describe_recipe(Name=recipe_name)
+        assert recipe["Description"] == "1st desc"
+        assert recipe["RecipeVersion"] == "1.0"
+        first_published_date = recipe["PublishedDate"]
 
-    # Recipe is now published, so check we can retrieve the published version
-    recipe = client.describe_recipe(Name=recipe_name)
-    assert recipe["Description"] == "1st desc"
-    assert recipe["RecipeVersion"] == "1.0"
-    assert recipe["PublishedDate"].replace(tzinfo=None) > dt_before_publish
-    first_published_date = recipe["PublishedDate"]
+        # Latest Working should have created date == publish date
+        working_response = client.describe_recipe(
+            Name=recipe_name, RecipeVersion="LATEST_WORKING"
+        )
+        assert working_response["CreateDate"] == first_published_date
 
-    # Latest Working should have created date == publish date
-    working_response = client.describe_recipe(
-        Name=recipe_name, RecipeVersion="LATEST_WORKING"
-    )
-    assert working_response["CreateDate"] == first_published_date
+    with freeze_time("2024-01-15 13:00:00"):
+        # Publish the recipe a 2nd time
+        publish_response = client.publish_recipe(
+            Name=recipe_name, Description="2nd desc"
+        )
+        assert publish_response["Name"] == recipe_name
 
-    # Publish the recipe a 2nd time
-    publish_response = client.publish_recipe(Name=recipe_name, Description="2nd desc")
-    assert publish_response["Name"] == recipe_name
+        recipe = client.describe_recipe(Name=recipe_name)
+        assert recipe["Description"] == "2nd desc"
+        assert recipe["RecipeVersion"] == "2.0"
+        assert recipe["PublishedDate"] > first_published_date
 
-    recipe = client.describe_recipe(Name=recipe_name)
-    assert recipe["Description"] == "2nd desc"
-    assert recipe["RecipeVersion"] == "2.0"
-    assert recipe["PublishedDate"] >= first_published_date
-
-    # Check working Created Date
-    working_response = client.describe_recipe(
-        Name=recipe_name, RecipeVersion="LATEST_WORKING"
-    )
-    assert recipe["PublishedDate"] == working_response["CreateDate"]
+        # Check working Created Date
+        working_response = client.describe_recipe(
+            Name=recipe_name, RecipeVersion="LATEST_WORKING"
+        )
+        assert recipe["PublishedDate"] == working_response["CreateDate"]
 
 
 @mock_aws
@@ -403,6 +434,7 @@ def test_publish_recipe_that_does_not_exist():
         client.publish_recipe(Name="DoesNotExist")
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Recipe DoesNotExist wasn't found"
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
@@ -496,6 +528,22 @@ def test_delete_recipe_version_invalid_version_string():
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"] == f"Recipe {recipe_name} version {recipe_version} is invalid."
+    )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_delete_recipe_version_latest_published_not_allowed():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+    recipe_name = response["Name"]
+    client.publish_recipe(Name=recipe_name)
+    with pytest.raises(ClientError) as exc:
+        client.delete_recipe_version(Name=recipe_name, RecipeVersion="LATEST_PUBLISHED")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == f"Recipe {recipe_name} version LATEST_PUBLISHED is invalid."
     )
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
