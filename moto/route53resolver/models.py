@@ -348,6 +348,14 @@ class ResolverQueryLogConfig(BaseModel):
     MAX_TAGS_PER_QUERY_LOG_CONFIG = 50
     MAX_QUERY_LOG_CONFIGS_PER_REGION = 100
 
+    FILTER_NAMES = [
+        "name",
+        "creator_request_id",
+        "destination_arn",
+        "owner_id",
+        "status",
+    ]
+
     def __init__(
         self,
         account_id: str,
@@ -368,6 +376,10 @@ class ResolverQueryLogConfig(BaseModel):
         self.share_status = "NOT_SHARED"
         self.association_count = 0
         self.creation_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def owner_id(self) -> str:
+        return self.account_id
 
     @property
     def arn(self) -> str:
@@ -391,6 +403,12 @@ class ResolverQueryLogConfig(BaseModel):
 
 class ResolverQueryLogConfigAssociation(BaseModel):
     """Representation of an association between a VPC and a query logging configuration."""
+
+    FILTER_NAMES = [
+        "resolver_query_log_config_id",
+        "resource_id",
+        "status",
+    ]
 
     def __init__(
         self,
@@ -1154,6 +1172,43 @@ class Route53ResolverBackend(BaseBackend):
             )
 
         return self.resolver_query_log_configs[resolver_query_log_config_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_query_log_configs(
+        self, filters: Any
+    ) -> list[ResolverQueryLogConfig]:
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverQueryLogConfig.FILTER_NAMES)
+
+        configs = []
+        for config in sorted(
+            self.resolver_query_log_configs.values(), key=lambda x: x.name
+        ):
+            if self._matches_all_filters(config, filters):
+                configs.append(config)
+        return configs
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_query_log_config_associations(
+        self, filters: Any
+    ) -> list[ResolverQueryLogConfigAssociation]:
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverQueryLogConfigAssociation.FILTER_NAMES)
+
+        associations = []
+        for association in sorted(
+            self.resolver_query_log_config_associations.values(),
+            key=lambda x: x.id,
+        ):
+            if self._matches_all_filters(association, filters):
+                associations.append(association)
+        return associations
 
     def update_resolver_dnssec_config(
         self, resource_id: str, validation: str
