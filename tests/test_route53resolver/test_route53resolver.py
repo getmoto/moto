@@ -352,3 +352,60 @@ def test_list_resolver_query_log_config_associations_empty():
     assert "ResolverQueryLogConfigAssociations" in response
     assert len(response["ResolverQueryLogConfigAssociations"]) == 0
     assert response["TotalCount"] == 0
+
+
+@mock_aws
+def test_list_resolver_query_log_configs_pagination():
+    client = boto3.client("route53resolver", region_name="us-east-1")
+
+    for i in range(3):
+        client.create_resolver_query_log_config(
+            Name=f"test-config-{i}",
+            DestinationArn=f"arn:aws:s3:::test-bucket-{i}",
+            CreatorRequestId=f"creator-{i}",
+        )
+
+    response = client.list_resolver_query_log_configs(MaxResults=2)
+
+    assert len(response["ResolverQueryLogConfigs"]) == 2
+    assert "NextToken" in response
+
+    response2 = client.list_resolver_query_log_configs(NextToken=response["NextToken"])
+
+    assert len(response2["ResolverQueryLogConfigs"]) == 1
+    assert "NextToken" not in response2
+
+
+@mock_aws
+def test_list_resolver_query_log_config_associations_pagination():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    client = boto3.client("route53resolver", region_name="us-east-1")
+
+    vpc_ids = []
+    for i in range(3):
+        vpc_response = ec2_client.create_vpc(CidrBlock=f"10.{i}.0.0/16")
+        vpc_ids.append(vpc_response["Vpc"]["VpcId"])
+
+    config_response = client.create_resolver_query_log_config(
+        Name="test-query-log-config",
+        DestinationArn="arn:aws:s3:::test-bucket",
+        CreatorRequestId="test-creator-request-id",
+    )
+    config_id = config_response["ResolverQueryLogConfig"]["Id"]
+
+    for vpc_id in vpc_ids:
+        client.associate_resolver_query_log_config(
+            ResolverQueryLogConfigId=config_id, ResourceId=vpc_id
+        )
+
+    response = client.list_resolver_query_log_config_associations(MaxResults=2)
+
+    assert len(response["ResolverQueryLogConfigAssociations"]) == 2
+    assert "NextToken" in response
+
+    response2 = client.list_resolver_query_log_config_associations(
+        NextToken=response["NextToken"]
+    )
+
+    assert len(response2["ResolverQueryLogConfigAssociations"]) == 1
+    assert "NextToken" not in response2
