@@ -820,6 +820,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "c8gb.48xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "c8gb.4xlarge",
   "Location": "usw2-az1"
  },
@@ -2576,6 +2580,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "m8gb.48xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "m8gb.4xlarge",
   "Location": "usw2-az1"
  },
@@ -2761,6 +2769,10 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
   "Location": "usw2-az1"
  },
  {
@@ -3697,6 +3709,10 @@
  },
  {
   "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.48xlarge",
   "Location": "usw2-az1"
  },
  {
@@ -5205,6 +5221,10 @@
  },
  {
   "InstanceType": "c8gb.2xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "c8gb.48xlarge",
   "Location": "usw2-az2"
  },
  {
@@ -6932,6 +6952,10 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "m8gb.48xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "m8gb.4xlarge",
   "Location": "usw2-az2"
  },
@@ -8053,6 +8077,10 @@
  },
  {
   "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.48xlarge",
   "Location": "usw2-az2"
  },
  {
@@ -9493,6 +9521,10 @@
  },
  {
   "InstanceType": "c8gb.2xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "c8gb.48xlarge",
   "Location": "usw2-az3"
  },
  {
@@ -11248,6 +11280,10 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "m8gb.48xlarge",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "m8gb.4xlarge",
   "Location": "usw2-az3"
  },
@@ -11437,6 +11473,10 @@
  },
  {
   "InstanceType": "mac-m4.metal",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "mac-m4max.metal",
   "Location": "usw2-az3"
  },
  {
@@ -12381,6 +12421,10 @@
  },
  {
   "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.48xlarge",
   "Location": "usw2-az3"
  },
  {
@@ -13725,6 +13769,10 @@
  },
  {
   "InstanceType": "c8gb.2xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gb.48xlarge",
   "Location": "usw2-az4"
  },
  {
@@ -15221,6 +15269,10 @@
  },
  {
   "InstanceType": "mac-m4.metal",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "mac-m4max.metal",
   "Location": "usw2-az4"
  },
  {
