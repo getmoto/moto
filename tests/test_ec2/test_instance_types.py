@@ -53,9 +53,15 @@ def test_describe_instance_types_gpu_instance_types():
             "Gpus": [
                 {
                     "Count": 2,
+                    "GpuPartitionSize": 1.0,
+                    "LogicalGpuCount": 2,
                     "Manufacturer": "AMD",
                     "MemoryInfo": {"SizeInMiB": 8192},
                     "Name": "Radeon Pro V520",
+                    "Workloads": [
+                        "graphics",
+                        "ml-ai",
+                    ],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
@@ -64,9 +70,14 @@ def test_describe_instance_types_gpu_instance_types():
             "Gpus": [
                 {
                     "Count": 1,
+                    "GpuPartitionSize": 1.0,
+                    "LogicalGpuCount": 1,
                     "Manufacturer": "NVIDIA",
                     "MemoryInfo": {"SizeInMiB": 16384},
                     "Name": "V100",
+                    "Workloads": [
+                        "ml-ai",
+                    ],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
