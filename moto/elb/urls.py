@@ -1,8 +1,6 @@
 from typing import Any
-from urllib.parse import parse_qs
 
-from botocore.awsrequest import AWSPreparedRequest
-
+from moto.core.request import normalize_request
 from moto.elb.responses import ELBResponse
 from moto.elbv2.responses import ELBV2Response
 
@@ -15,19 +13,8 @@ def api_version_elb_backend(*args: Any, **kwargs: Any) -> Any:
     has _got_ to be a better way to do this. Please help us think of
     one.
     """
-    request = args[0]
-
-    if hasattr(request, "values"):
-        # boto3
-        version = request.values.get("Version")
-    elif isinstance(request, AWSPreparedRequest):
-        # boto in-memory
-        version = parse_qs(request.body).get("Version")[0]  # type: ignore
-    else:
-        # boto in server mode
-        request.parse_request()
-        version = request.querystring.get("Version")[0]
-
+    request = normalize_request(args[0])
+    version = request.values.get("Version")
     if "2012-06-01" == version:
         return ELBResponse.dispatch(*args, **kwargs)
     elif "2015-12-01" == version:
