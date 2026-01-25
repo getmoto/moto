@@ -41,4 +41,16 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "dnssec_config_id",
     },
+    "list_resolver_query_log_configs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    },
+    "list_resolver_query_log_config_associations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    },
 }
