@@ -18,7 +18,7 @@ jobs:
         pip install .[sagemaker]
     - name: Install dependencies
       run: |
-        pip install boto3 pytest "sagemaker<3"
+        pip install boto3 pytest pytz "sagemaker<3"
     - name: Run tests
       run: |
         mkdir ~/.aws
