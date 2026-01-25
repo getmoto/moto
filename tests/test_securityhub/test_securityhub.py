@@ -968,3 +968,48 @@ def test_list_members_with_organization():
             assert member["AdministratorId"] == admin_account_id
             assert member["MasterId"] == admin_account_id
             assert member["MemberStatus"] == "ENABLED"
+
+
+@mock_aws
+def test_get_master_account():
+    if not settings.TEST_DECORATOR_MODE:
+        return
+
+    org_client = boto3.client("organizations", region_name="us-east-1")
+    org_client.create_organization(FeatureSet="ALL")
+
+    org_client.create_account(
+        AccountName="SecurityHubAdmin",
+        Email="securityhub.admin@example.com",
+    )
+    org_client.create_account(
+        AccountName="Member",
+        Email="member@example.com",
+    )
+
+    accounts = org_client.list_accounts()["Accounts"]
+    admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
+    member_account = next(acc for acc in accounts if acc["Name"] == "Member")
+    admin_account_id = admin_account["Id"]
+    member_account_id = member_account["Id"]
+
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    response = client.get_master_account()
+    assert "Master" not in response
+
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        response = admin_client.get_master_account()
+        assert "Master" not in response
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
+        member_client = boto3.client("securityhub", region_name="us-east-1")
+        response = member_client.get_master_account()
+        assert "Master" in response
+        assert response["Master"]["AccountId"] == admin_account_id
+        assert response["Master"]["MemberStatus"] == "ENABLED"
+        assert "InvitationId" in response["Master"]
+        assert "InvitedAt" in response["Master"]
