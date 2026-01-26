@@ -25,39 +25,34 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_param("InstanceId")
         return unquote(instance_id) if instance_id else ""
 
-    def _get_param_case_insensitive(
-        self, name: str, default: Optional[str] = None
-    ) -> Optional[str]:
+    def _get_int_param(self, name: str) -> Optional[int]:
+        """Get an integer parameter, trying both camelCase and PascalCase."""
         value = self._get_param(name)
-        if value is not None:
-            return value
-        if name and name[0].islower():
-            alt_name = name[0].upper() + name[1:]
-        elif name:
-            alt_name = name[0].lower() + name[1:]
-        else:
-            return default
-        value = self._get_param(alt_name)
-        if value is not None:
-            return value
-        return default
-
-    def _get_int_param_case_insensitive(
-        self, name: str, default: Optional[int] = None
-    ) -> Optional[int]:
-        value = self._get_param_case_insensitive(name)
         if value is None:
-            return default
-        try:
-            return int(value)
-        except (ValueError, TypeError):
-            return default
+            # Try alternate case (maxResults -> MaxResults or vice versa)
+            alt_name = (
+                name[0].upper() + name[1:]
+                if name[0].islower()
+                else name[0].lower() + name[1:]
+            )
+            value = self._get_param(alt_name)
+        return int(value) if value is not None else None
+
+    def _get_str_param(self, name: str) -> Optional[str]:
+        """Get a string parameter, trying both camelCase and PascalCase."""
+        value = self._get_param(name)
+        if value is None:
+            alt_name = (
+                name[0].upper() + name[1:]
+                if name[0].islower()
+                else name[0].lower() + name[1:]
+            )
+            value = self._get_param(alt_name)
+        return value
 
     def associate_analytics_data_set(self) -> str:
         instance_id = self._get_instance_id()
         params = json.loads(self.body) if self.body else {}
-        if "DataSetId" not in params:
-            raise ValueError("DataSetId is required")
         data_set_id = str(params["DataSetId"])
         target_account_id = params.get("TargetAccountId")
 
@@ -72,8 +67,6 @@ class ConnectResponse(BaseResponse):
     def disassociate_analytics_data_set(self) -> str:
         instance_id = self._get_instance_id()
         params = json.loads(self.body) if self.body else {}
-        if "DataSetId" not in params:
-            raise ValueError("DataSetId is required")
         data_set_id = str(params["DataSetId"])
 
         self.connect_backend.disassociate_analytics_data_set(
@@ -85,9 +78,9 @@ class ConnectResponse(BaseResponse):
 
     def list_analytics_data_associations(self) -> str:
         instance_id = self._get_instance_id()
-        data_set_id = self._get_param_case_insensitive("DataSetId")
-        max_results = self._get_int_param_case_insensitive("maxResults")
-        next_token = self._get_param_case_insensitive("nextToken")
+        data_set_id = self._get_str_param("DataSetId")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_str_param("nextToken")
 
         results: list[dict[str, str]]
         token: Optional[str]
@@ -104,19 +97,8 @@ class ConnectResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def analytics_data_association(self) -> str:
-        """Route analytics data association requests based on HTTP method."""
-        if self.method == "PUT":
-            return self.associate_analytics_data_set()
-        elif self.method == "POST":
-            return self.disassociate_analytics_data_set()
-        else:
-            return self.list_analytics_data_associations()
-
     def create_instance(self) -> str:
         params = json.loads(self.body) if self.body else {}
-        if "IdentityManagementType" not in params:
-            raise ValueError("IdentityManagementType is required")
         identity_management_type = str(params["IdentityManagementType"])
         instance_alias = params.get("InstanceAlias")
         inbound_calls_enabled = params.get("InboundCallsEnabled", False)
@@ -141,8 +123,8 @@ class ConnectResponse(BaseResponse):
         return json.dumps({"Instance": instance})
 
     def list_instances(self) -> str:
-        max_results = self._get_int_param_case_insensitive("maxResults")
-        next_token = self._get_param_case_insensitive("nextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_str_param("nextToken")
 
         results: list[dict[str, Any]]
         token: Optional[str]
@@ -163,3 +145,34 @@ class ConnectResponse(BaseResponse):
         self.connect_backend.delete_instance(instance_id=instance_id)
 
         return "{}"
+
+    def _get_resource_arn(self) -> str:
+        """Extract resourceArn from request path params."""
+        resource_arn = self._get_param("resourceArn")
+        return unquote(resource_arn) if resource_arn else ""
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_resource_arn()
+        params = json.loads(self.body) if self.body else {}
+        tags = params.get("tags", {})
+
+        self.connect_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+
+        return "{}"
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_resource_arn()
+        tag_keys = self.querystring.get("tagKeys", [])
+
+        self.connect_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
+
+        return "{}"
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_resource_arn()
+
+        tags = self.connect_backend.list_tags_for_resource(resource_arn=resource_arn)
+
+        return json.dumps({"tags": tags})

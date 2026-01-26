@@ -1,16 +1,11 @@
-"""Unit tests for connect-supported APIs."""
-
 import boto3
 import pytest
 
 from moto import mock_aws
 
-# ========== Instance API Tests ==========
-
 
 @mock_aws
 def test_create_instance():
-    """Test creating a Connect instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     response = client.create_instance(
@@ -27,7 +22,6 @@ def test_create_instance():
 
 @mock_aws
 def test_create_instance_with_tags():
-    """Test creating a Connect instance with tags."""
     client = boto3.client("connect", region_name="us-east-1")
 
     response = client.create_instance(
@@ -41,7 +35,6 @@ def test_create_instance_with_tags():
     assert "Id" in response
     instance_id = response["Id"]
 
-    # Verify tags are stored
     describe_response = client.describe_instance(InstanceId=instance_id)
     instance = describe_response["Instance"]
     assert instance["Tags"]["Environment"] == "Test"
@@ -50,10 +43,8 @@ def test_create_instance_with_tags():
 
 @mock_aws
 def test_describe_instance():
-    """Test describing a Connect instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="SAML",
         InboundCallsEnabled=True,
@@ -62,7 +53,6 @@ def test_describe_instance():
     )
     instance_id = create_response["Id"]
 
-    # Describe instance
     response = client.describe_instance(InstanceId=instance_id)
 
     instance = response["Instance"]
@@ -79,7 +69,6 @@ def test_describe_instance():
 
 @mock_aws
 def test_describe_instance_not_found():
-    """Test describing a non-existent instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
@@ -88,7 +77,6 @@ def test_describe_instance_not_found():
 
 @mock_aws
 def test_list_instances_empty():
-    """Test listing instances when none exist."""
     client = boto3.client("connect", region_name="us-east-1")
 
     response = client.list_instances()
@@ -99,10 +87,8 @@ def test_list_instances_empty():
 
 @mock_aws
 def test_list_instances():
-    """Test listing Connect instances."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create multiple instances
     client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -125,10 +111,8 @@ def test_list_instances():
 
 @mock_aws
 def test_list_instances_pagination():
-    """Test pagination for listing instances."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create multiple instances
     for i in range(5):
         client.create_instance(
             IdentityManagementType="CONNECT_MANAGED",
@@ -137,19 +121,16 @@ def test_list_instances_pagination():
             InstanceAlias=f"instance-{i}",
         )
 
-    # Get first page
     response = client.list_instances(MaxResults=2)
 
     assert len(response["InstanceSummaryList"]) == 2
     assert "NextToken" in response
 
-    # Get second page
     response2 = client.list_instances(MaxResults=2, NextToken=response["NextToken"])
 
     assert len(response2["InstanceSummaryList"]) == 2
     assert "NextToken" in response2
 
-    # Get last page
     response3 = client.list_instances(MaxResults=2, NextToken=response2["NextToken"])
 
     assert len(response3["InstanceSummaryList"]) == 1
@@ -158,10 +139,8 @@ def test_list_instances_pagination():
 
 @mock_aws
 def test_delete_instance():
-    """Test deleting a Connect instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -169,21 +148,17 @@ def test_delete_instance():
     )
     instance_id = create_response["Id"]
 
-    # Verify it exists
     response = client.list_instances()
     assert len(response["InstanceSummaryList"]) == 1
 
-    # Delete instance
     client.delete_instance(InstanceId=instance_id)
 
-    # Verify it's gone
     response = client.list_instances()
     assert len(response["InstanceSummaryList"]) == 0
 
 
 @mock_aws
 def test_delete_instance_not_found():
-    """Test deleting a non-existent instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
@@ -192,7 +167,6 @@ def test_delete_instance_not_found():
 
 @mock_aws
 def test_instance_summary_structure():
-    """Test that instance summary has correct structure."""
     client = boto3.client("connect", region_name="us-east-1")
 
     client.create_instance(
@@ -217,15 +191,10 @@ def test_instance_summary_structure():
     assert "InstanceAccessUrl" in summary
 
 
-# ========== Analytics Data Association Tests ==========
-
-
 @mock_aws
 def test_associate_analytics_data_set():
-    """Test associating an analytics data set with a Connect instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # First create an instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -242,16 +211,13 @@ def test_associate_analytics_data_set():
     assert "TargetAccountId" in response
     assert "ResourceShareId" in response
     assert "ResourceShareArn" in response
-    # Verify ARN uses source account (123456789012 is moto's default)
     assert "123456789012" in response["ResourceShareArn"]
 
 
 @mock_aws
 def test_associate_analytics_data_set_with_target_account():
-    """Test associating with a specific target account."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # First create an instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -267,13 +233,11 @@ def test_associate_analytics_data_set_with_target_account():
 
     assert response["DataSetId"] == "dataset-001"
     assert response["TargetAccountId"] == "987654321098"
-    # RAM ARN should still use source account, not target
     assert "123456789012" in response["ResourceShareArn"]
 
 
 @mock_aws
 def test_associate_analytics_data_set_instance_not_found():
-    """Test associating with a non-existent instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
@@ -285,10 +249,8 @@ def test_associate_analytics_data_set_instance_not_found():
 
 @mock_aws
 def test_associate_analytics_data_set_duplicate():
-    """Test that duplicate associations raise an error."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -296,13 +258,11 @@ def test_associate_analytics_data_set_duplicate():
     )
     instance_id = create_response["Id"]
 
-    # First association should succeed
     client.associate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
     )
 
-    # Duplicate should fail
     with pytest.raises(client.exceptions.InvalidParameterException):
         client.associate_analytics_data_set(
             InstanceId=instance_id,
@@ -312,10 +272,8 @@ def test_associate_analytics_data_set_duplicate():
 
 @mock_aws
 def test_list_analytics_data_associations_empty():
-    """Test listing associations when none exist."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance first
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -333,7 +291,6 @@ def test_list_analytics_data_associations_empty():
 
 @mock_aws
 def test_list_analytics_data_associations_instance_not_found():
-    """Test listing associations for a non-existent instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
@@ -344,10 +301,8 @@ def test_list_analytics_data_associations_instance_not_found():
 
 @mock_aws
 def test_list_analytics_data_associations():
-    """Test listing analytics data associations."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -355,7 +310,6 @@ def test_list_analytics_data_associations():
     )
     instance_id = create_response["Id"]
 
-    # Create some associations
     client.associate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
@@ -376,10 +330,8 @@ def test_list_analytics_data_associations():
 
 @mock_aws
 def test_list_analytics_data_associations_with_filter():
-    """Test listing associations with DataSetId filter."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -387,7 +339,6 @@ def test_list_analytics_data_associations_with_filter():
     )
     instance_id = create_response["Id"]
 
-    # Create some associations
     client.associate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
@@ -408,10 +359,8 @@ def test_list_analytics_data_associations_with_filter():
 
 @mock_aws
 def test_list_analytics_data_associations_pagination():
-    """Test pagination for listing associations."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -419,14 +368,12 @@ def test_list_analytics_data_associations_pagination():
     )
     instance_id = create_response["Id"]
 
-    # Create multiple associations
     for i in range(5):
         client.associate_analytics_data_set(
             InstanceId=instance_id,
             DataSetId=f"dataset-{i:03d}",
         )
 
-    # Get first page
     response = client.list_analytics_data_associations(
         InstanceId=instance_id,
         MaxResults=2,
@@ -435,7 +382,6 @@ def test_list_analytics_data_associations_pagination():
     assert len(response["Results"]) == 2
     assert "NextToken" in response
 
-    # Get second page
     response2 = client.list_analytics_data_associations(
         InstanceId=instance_id,
         MaxResults=2,
@@ -445,7 +391,6 @@ def test_list_analytics_data_associations_pagination():
     assert len(response2["Results"]) == 2
     assert "NextToken" in response2
 
-    # Get last page
     response3 = client.list_analytics_data_associations(
         InstanceId=instance_id,
         MaxResults=2,
@@ -458,10 +403,8 @@ def test_list_analytics_data_associations_pagination():
 
 @mock_aws
 def test_disassociate_analytics_data_set():
-    """Test disassociating an analytics data set."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -469,30 +412,25 @@ def test_disassociate_analytics_data_set():
     )
     instance_id = create_response["Id"]
 
-    # First associate
     client.associate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
     )
 
-    # Verify it exists
     response = client.list_analytics_data_associations(InstanceId=instance_id)
     assert len(response["Results"]) == 1
 
-    # Disassociate
     client.disassociate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
     )
 
-    # Verify it's gone
     response = client.list_analytics_data_associations(InstanceId=instance_id)
     assert len(response["Results"]) == 0
 
 
 @mock_aws
 def test_disassociate_analytics_data_set_instance_not_found():
-    """Test disassociating from a non-existent instance."""
     client = boto3.client("connect", region_name="us-east-1")
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
@@ -504,10 +442,8 @@ def test_disassociate_analytics_data_set_instance_not_found():
 
 @mock_aws
 def test_disassociate_analytics_data_set_not_found():
-    """Test disassociating a non-existent data set."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -524,10 +460,8 @@ def test_disassociate_analytics_data_set_not_found():
 
 @mock_aws
 def test_association_response_structure():
-    """Test that association response has correct structure."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -548,16 +482,13 @@ def test_association_response_structure():
     assert "ResourceShareId" in result
     assert "ResourceShareArn" in result
     assert "ResourceShareStatus" in result
-    # Verify status is uppercase (AWS convention)
     assert result["ResourceShareStatus"] == "ACTIVE"
 
 
 @mock_aws
 def test_delete_instance_cleans_up_associations():
-    """Test that deleting an instance cleans up its analytics associations."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -565,30 +496,24 @@ def test_delete_instance_cleans_up_associations():
     )
     instance_id = create_response["Id"]
 
-    # Add analytics association
     client.associate_analytics_data_set(
         InstanceId=instance_id,
         DataSetId="dataset-001",
     )
 
-    # Verify association exists
     response = client.list_analytics_data_associations(InstanceId=instance_id)
     assert len(response["Results"]) == 1
 
-    # Delete instance
     client.delete_instance(InstanceId=instance_id)
 
-    # Verify instance is gone (and associations too)
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         client.list_analytics_data_associations(InstanceId=instance_id)
 
 
 @mock_aws
 def test_list_instances_deterministic_order():
-    """Test that list_instances returns instances in deterministic order."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instances
     ids = []
     for i in range(3):
         response = client.create_instance(
@@ -599,7 +524,6 @@ def test_list_instances_deterministic_order():
         )
         ids.append(response["Id"])
 
-    # List multiple times and verify order is consistent
     response1 = client.list_instances()
     response2 = client.list_instances()
 
@@ -611,10 +535,8 @@ def test_list_instances_deterministic_order():
 
 @mock_aws
 def test_list_analytics_associations_deterministic_order():
-    """Test that list_analytics_data_associations returns in deterministic order."""
     client = boto3.client("connect", region_name="us-east-1")
 
-    # Create instance
     create_response = client.create_instance(
         IdentityManagementType="CONNECT_MANAGED",
         InboundCallsEnabled=True,
@@ -622,14 +544,12 @@ def test_list_analytics_associations_deterministic_order():
     )
     instance_id = create_response["Id"]
 
-    # Create associations in non-alphabetical order
     for ds_id in ["dataset-c", "dataset-a", "dataset-b"]:
         client.associate_analytics_data_set(
             InstanceId=instance_id,
             DataSetId=ds_id,
         )
 
-    # List multiple times and verify order is consistent
     response1 = client.list_analytics_data_associations(InstanceId=instance_id)
     response2 = client.list_analytics_data_associations(InstanceId=instance_id)
 
@@ -637,5 +557,81 @@ def test_list_analytics_associations_deterministic_order():
     order2 = [r["DataSetId"] for r in response2["Results"]]
 
     assert order1 == order2
-    # Should be sorted by DataSetId
     assert order1 == ["dataset-a", "dataset-b", "dataset-c"]
+
+
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("connect", region_name="us-east-1")
+
+    create_response = client.create_instance(
+        IdentityManagementType="CONNECT_MANAGED",
+        InboundCallsEnabled=True,
+        OutboundCallsEnabled=True,
+        InstanceAlias="tag-test",
+    )
+    instance_arn = create_response["Arn"]
+
+    client.tag_resource(
+        resourceArn=instance_arn,
+        tags={"Environment": "Production", "Team": "Engineering"},
+    )
+
+    response = client.list_tags_for_resource(resourceArn=instance_arn)
+    assert response["tags"]["Environment"] == "Production"
+    assert response["tags"]["Team"] == "Engineering"
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("connect", region_name="us-east-1")
+
+    create_response = client.create_instance(
+        IdentityManagementType="CONNECT_MANAGED",
+        InboundCallsEnabled=True,
+        OutboundCallsEnabled=True,
+        InstanceAlias="untag-test",
+        Tags={"Environment": "Test", "Team": "QA", "Project": "Demo"},
+    )
+    instance_arn = create_response["Arn"]
+
+    client.untag_resource(resourceArn=instance_arn, tagKeys=["Team", "Project"])
+
+    response = client.list_tags_for_resource(resourceArn=instance_arn)
+    assert "Environment" in response["tags"]
+    assert "Team" not in response["tags"]
+    assert "Project" not in response["tags"]
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("connect", region_name="us-east-1")
+
+    create_response = client.create_instance(
+        IdentityManagementType="CONNECT_MANAGED",
+        InboundCallsEnabled=True,
+        OutboundCallsEnabled=True,
+        InstanceAlias="list-tags-test",
+        Tags={"Key1": "Value1", "Key2": "Value2"},
+    )
+    instance_arn = create_response["Arn"]
+
+    response = client.list_tags_for_resource(resourceArn=instance_arn)
+
+    assert response["tags"] == {"Key1": "Value1", "Key2": "Value2"}
+
+
+@mock_aws
+def test_list_tags_for_resource_empty():
+    client = boto3.client("connect", region_name="us-east-1")
+
+    create_response = client.create_instance(
+        IdentityManagementType="CONNECT_MANAGED",
+        InboundCallsEnabled=True,
+        OutboundCallsEnabled=True,
+    )
+    instance_arn = create_response["Arn"]
+
+    response = client.list_tags_for_resource(resourceArn=instance_arn)
+
+    assert response["tags"] == {}

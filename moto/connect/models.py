@@ -175,6 +175,9 @@ class ConnectBackend(BaseBackend):
         )
         self.instances[instance.id] = instance
 
+        if tags:
+            self.tag_resource(instance.arn, tags)
+
         return {
             "Id": instance.id,
             "Arn": instance.arn,

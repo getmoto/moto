@@ -15,17 +15,3 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message: str) -> None:
         super().__init__("InvalidParameterException", message)
-
-
-class InvalidRequestException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str) -> None:
-        super().__init__("InvalidRequestException", message)
-
-
-class ResourceInUseException(JsonRESTError):
-    code = 409
-
-    def __init__(self, message: str) -> None:
-        super().__init__("ResourceInUseException", message)
