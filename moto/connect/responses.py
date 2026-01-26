@@ -89,6 +89,8 @@ class ConnectResponse(BaseResponse):
         max_results = self._get_int_param_case_insensitive("maxResults")
         next_token = self._get_param_case_insensitive("nextToken")
 
+        results: list[dict[str, str]]
+        token: Optional[str]
         results, token = self.connect_backend.list_analytics_data_associations(
             instance_id=instance_id,
             data_set_id=data_set_id,
@@ -142,6 +144,8 @@ class ConnectResponse(BaseResponse):
         max_results = self._get_int_param_case_insensitive("maxResults")
         next_token = self._get_param_case_insensitive("nextToken")
 
+        results: list[dict[str, Any]]
+        token: Optional[str]
         results, token = self.connect_backend.list_instances(
             max_results=max_results,
             next_token=next_token,

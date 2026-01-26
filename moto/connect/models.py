@@ -188,12 +188,12 @@ class ConnectBackend(BaseBackend):
         instance = self._get_instance_or_raise(instance_id)
         return instance.to_dict()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_instances(
         self,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    ) -> list[dict[str, Any]]:
         sorted_instances = sorted(
             self.instances.values(),
             key=lambda i: (i.created_time, i.id),
@@ -285,14 +285,14 @@ class ConnectBackend(BaseBackend):
         if not self.analytics_data_associations[instance_id]:
             del self.analytics_data_associations[instance_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_analytics_data_associations(
         self,
         instance_id: str,
         data_set_id: Optional[str] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    ) -> list[dict[str, str]]:
         """List analytics data associations for a Connect instance."""
         if not instance_id:
             raise InvalidParameterException("InstanceId is a required parameter")
