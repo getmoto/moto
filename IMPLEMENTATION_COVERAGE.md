@@ -2125,7 +2125,7 @@
 
 ## connect
 <details>
-<summary>2% implemented</summary>
+<summary>3% implemented</summary>
 
 - [ ] activate_evaluation_form
 - [X] associate_analytics_data_set
@@ -2302,7 +2302,7 @@
 - [ ] list_security_profile_applications
 - [ ] list_security_profile_permissions
 - [ ] list_security_profiles
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_task_templates
 - [ ] list_traffic_distribution_group_users
 - [ ] list_traffic_distribution_groups
@@ -2357,10 +2357,10 @@
 - [ ] submit_contact_evaluation
 - [ ] suspend_contact_recording
 - [ ] tag_contact
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] transfer_contact
 - [ ] untag_contact
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_agent_status
 - [ ] update_authentication_profile
 - [ ] update_contact
