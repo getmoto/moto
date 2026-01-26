@@ -7,6 +7,7 @@ from typing import Any, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import InvalidParameterException, ResourceNotFoundException
 
@@ -127,10 +128,21 @@ class ConnectBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.instances: dict[str, Instance] = {}
-        # Enforces one association per (instance_id, data_set_id) pair
         self.analytics_data_associations: dict[
             str, dict[str, AnalyticsDataAssociation]
         ] = {}
+        self.tagger = TaggingService()
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(
+            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def _get_instance_or_raise(self, instance_id: str) -> Instance:
         """Get instance by ID or raise ResourceNotFoundException."""
