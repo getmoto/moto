@@ -193,7 +193,7 @@ class ConnectBackend(BaseBackend):
         self,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, str]]:
         sorted_instances = sorted(
             self.instances.values(),
             key=lambda i: (i.created_time, i.id),
