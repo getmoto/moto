@@ -292,7 +292,7 @@ class ConnectBackend(BaseBackend):
         data_set_id: Optional[str] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, Any]]:
         """List analytics data associations for a Connect instance."""
         if not instance_id:
             raise InvalidParameterException("InstanceId is a required parameter")
