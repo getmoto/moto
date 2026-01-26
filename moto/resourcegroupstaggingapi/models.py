@@ -1650,7 +1650,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
+        Only CloudFront, DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1710,6 +1710,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sesv2_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
+                self.cloudfront_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
@@ -1718,7 +1722,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: list[str], tag_keys: list[str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
+        Only CloudFront, EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1744,6 +1748,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.rds_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
+                self.cloudfront_backend.untag_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
 
