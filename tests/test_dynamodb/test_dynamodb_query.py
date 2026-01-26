@@ -6,7 +6,7 @@ import boto3
 import pytest
 from boto3.dynamodb.conditions import Attr, Key
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodb.models import DynamoType
@@ -158,7 +158,10 @@ def test_key_condition_expressions():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_query_returns_detached_items():
+    if settings.TEST_SERVER_MODE:
+        pytest.skip("Can't access backend directly in server mode")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table_name = f"T{uuid4()}"
     table = dynamodb.create_table(
