@@ -24773,6 +24773,237 @@
    ]
   }
  },
+ "c8gb.48xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    },
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    }
+   ],
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 300000,
+    "BaselineIops": 1440000,
+    "BaselineThroughputInMBps": 37500.0,
+    "MaximumBandwidthInMbps": 300000,
+    "MaximumIops": 1440000,
+    "MaximumThroughputInMBps": 37500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 128,
+   "MaximumEbsCards": 2,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c8gb.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 393216
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 24,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    },
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.7
+  },
+  "RebootMigrationSupport": "supported",
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104,
+    106,
+    108,
+    110,
+    112,
+    114,
+    116,
+    118,
+    120,
+    122,
+    124,
+    126,
+    128,
+    130,
+    132,
+    134,
+    136,
+    138,
+    140,
+    142,
+    144,
+    146,
+    148,
+    150,
+    152,
+    154,
+    156,
+    158,
+    160,
+    162,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    184,
+    186,
+    188,
+    190,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
  "c8gb.4xlarge": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
@@ -25318,6 +25549,131 @@
    "DefaultCores": 96,
    "DefaultThreadsPerCore": 1,
    "DefaultVCpus": 96
+  }
+ },
+ "c8gb.metal-48xl": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    },
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    }
+   ],
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 300000,
+    "BaselineIops": 1440000,
+    "BaselineThroughputInMBps": 37500.0,
+    "MaximumBandwidthInMbps": 300000,
+    "MaximumIops": 1440000,
+    "MaximumThroughputInMBps": 37500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 78,
+   "MaximumEbsCards": 2,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "c8gb.metal-48xl",
+  "MemoryInfo": {
+   "SizeInMiB": 393216
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 24,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    },
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.7
+  },
+  "RebootMigrationSupport": "supported",
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192
   }
  },
  "c8gb.xlarge": {
@@ -32955,11 +33311,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "Habana",
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "Gaudi HL-205"
+     "Name": "Gaudi HL-205",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 262144
@@ -34064,11 +34425,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "AMD",
      "MemoryInfo": {
       "SizeInMiB": 8192
      },
-     "Name": "Radeon Pro V520"
+     "Name": "Radeon Pro V520",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 32768
@@ -34190,11 +34557,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "AMD",
      "MemoryInfo": {
       "SizeInMiB": 8192
      },
-     "Name": "Radeon Pro V520"
+     "Name": "Radeon Pro V520",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 8192
@@ -34313,11 +34686,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "AMD",
      "MemoryInfo": {
       "SizeInMiB": 8192
      },
-     "Name": "Radeon Pro V520"
+     "Name": "Radeon Pro V520",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 8192
@@ -34437,11 +34816,17 @@
    "Gpus": [
     {
      "Count": 2,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 2,
      "Manufacturer": "AMD",
      "MemoryInfo": {
       "SizeInMiB": 8192
      },
-     "Name": "Radeon Pro V520"
+     "Name": "Radeon Pro V520",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -34562,11 +34947,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "AMD",
      "MemoryInfo": {
       "SizeInMiB": 8192
      },
-     "Name": "Radeon Pro V520"
+     "Name": "Radeon Pro V520",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 8192
@@ -34684,11 +35075,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 65536
@@ -34826,11 +35223,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -34972,11 +35375,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -35101,11 +35510,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -35232,11 +35647,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -35370,11 +35791,17 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 131072
@@ -35487,11 +35914,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4"
+     "Name": "T4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -35615,11 +36048,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 91552
@@ -35739,11 +36178,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -35863,11 +36308,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 91552
@@ -35987,11 +36438,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -36108,11 +36565,17 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 183104
@@ -36232,11 +36695,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -36353,11 +36822,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -36477,11 +36952,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "A10G"
+     "Name": "A10G",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -36598,11 +37079,17 @@
    "Gpus": [
     {
      "Count": 2,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 2,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 32768
@@ -36770,11 +37257,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -36886,11 +37379,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -37010,11 +37509,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -37150,11 +37655,17 @@
    "Gpus": [
     {
      "Count": 2,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 2,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 32768
@@ -37252,11 +37763,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "T4g"
+     "Name": "T4g",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -37364,11 +37881,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 91552
@@ -37504,11 +38027,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -37645,11 +38174,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 91552
@@ -37788,11 +38323,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -37919,11 +38460,17 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 183104
@@ -38061,11 +38608,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -38196,11 +38749,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -38335,11 +38894,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -38464,11 +39029,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 183104
@@ -38602,11 +39173,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 45776
@@ -38740,11 +39317,17 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 183104
@@ -38886,11 +39469,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 45776
@@ -39017,11 +39606,17 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 366208
@@ -39179,11 +39774,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 45776
@@ -39314,11 +39915,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 45776
@@ -39452,11 +40059,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 45776
      },
-     "Name": "L40S"
+     "Name": "L40S",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 45776
@@ -39581,11 +40194,17 @@
    "Gpus": [
     {
      "Count": 0,
+     "GpuPartitionSize": 0.25,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 5722
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 5722
@@ -39712,11 +40331,17 @@
    "Gpus": [
     {
      "Count": 0,
+     "GpuPartitionSize": 0.5,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 11444
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 11444
@@ -39847,11 +40472,17 @@
    "Gpus": [
     {
      "Count": 0,
+     "GpuPartitionSize": 0.125,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 2861
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 2861
@@ -39975,11 +40606,17 @@
    "Gpus": [
     {
      "Count": 0,
+     "GpuPartitionSize": 0.125,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 2861
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "ml-ai",
+      "graphics"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 2861
@@ -40078,6 +40715,995 @@
    ]
   }
  },
+ "g7e.12xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 25000,
+    "BaselineIops": 100000,
+    "BaselineThroughputInMBps": 3125.0,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 32,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 2,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 2,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 196608
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 3800
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.12xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 524288
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 10,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 24,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 48,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "g7e.24xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 50000,
+    "BaselineIops": 200000,
+    "BaselineThroughputInMBps": 6250.0,
+    "MaximumBandwidthInMbps": 50000,
+    "MaximumIops": 200000,
+    "MaximumThroughputInMBps": 6250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 64,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 393216
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 2,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 7600
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.24xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 1048576
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 20,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    }
+   ],
+   "NetworkPerformance": "800 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 48,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 96,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "g7e.2xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 2000,
+    "BaselineIops": 8000,
+    "BaselineThroughputInMBps": 250.0,
+    "MaximumBandwidthInMbps": 5000,
+    "MaximumIops": 20000,
+    "MaximumThroughputInMBps": 625.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 32,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 98304
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 1900
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.2xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 65536
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 4,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "DefaultEnaQueueCountPerInterface": 8,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 4,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 8,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "g7e.48xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 128,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 786432
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 4,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 15200
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 2097152
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 4
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 4,
+   "MaximumNetworkInterfaces": 40,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 2,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 10,
+     "NetworkCardIndex": 3,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    }
+   ],
+   "NetworkPerformance": "1600 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 96,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "g7e.4xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 8000,
+    "BaselineIops": 32000,
+    "BaselineThroughputInMBps": 1000.0,
+    "MaximumBandwidthInMbps": 8000,
+    "MaximumIops": 32000,
+    "MaximumThroughputInMBps": 1000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 32,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 98304
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 1900
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.4xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 131072
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "DefaultEnaQueueCountPerInterface": 16,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 8,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 16,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "g7e.8xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 16000,
+    "BaselineIops": 64000,
+    "BaselineThroughputInMBps": 2000.0,
+    "MaximumBandwidthInMbps": 16000,
+    "MaximumIops": 64000,
+    "MaximumThroughputInMBps": 2000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 32,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 98304
+     },
+     "Name": "RTX PRO Server 6000",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
+    }
+   ],
+   "TotalGpuMemoryInMiB": 98304
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 1900
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "g7e.8xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 64,
+   "Ipv6AddressesPerInterface": 64,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "100 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 16,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 32,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
  "gr6.4xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
@@ -40104,11 +41730,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -40239,11 +41871,17 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 22888
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 22888
@@ -40378,11 +42016,17 @@
    "Gpus": [
     {
      "Count": 0,
+     "GpuPartitionSize": 0.5,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 11444
      },
-     "Name": "L4"
+     "Name": "L4",
+     "Workloads": [
+      "graphics",
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 11444
@@ -80570,6 +82214,237 @@
    ]
   }
  },
+ "m8gb.48xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    },
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    }
+   ],
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 300000,
+    "BaselineIops": 1440000,
+    "BaselineThroughputInMBps": 37500.0,
+    "MaximumBandwidthInMbps": 300000,
+    "MaximumIops": 1440000,
+    "MaximumThroughputInMBps": 37500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 128,
+   "MaximumEbsCards": 2,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "m8gb.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 786432
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 24,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    },
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.7
+  },
+  "RebootMigrationSupport": "supported",
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104,
+    106,
+    108,
+    110,
+    112,
+    114,
+    116,
+    118,
+    120,
+    122,
+    124,
+    126,
+    128,
+    130,
+    132,
+    134,
+    136,
+    138,
+    140,
+    142,
+    144,
+    146,
+    148,
+    150,
+    152,
+    154,
+    156,
+    158,
+    160,
+    162,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    184,
+    186,
+    188,
+    190,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
  "m8gb.4xlarge": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
@@ -86884,6 +88759,93 @@
    "DefaultVCpus": 10
   }
  },
+ "mac-m4max.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "shared",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 55000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 55000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 10,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "mac-m4max.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 131072
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": false,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 10.0,
+     "DefaultEnaQueueCountPerInterface": 8,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "10 Gigabit",
+     "PeakBandwidthInGbps": 10.0
+    }
+   ],
+   "NetworkPerformance": "10 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "supported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Apple",
+   "SupportedArchitectures": [
+    "arm64_mac"
+   ],
+   "SustainedClockSpeedInGhz": 4.0
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 16,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 16
+  }
+ },
  "mac-m4pro.metal": {
   "AutoRecoverySupported": false,
   "BareMetal": true,
@@ -87444,11 +89406,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "V100"
+     "Name": "V100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 131072
@@ -87568,11 +89535,16 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "V100"
+     "Name": "V100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 16384
@@ -87680,11 +89652,16 @@
    "Gpus": [
     {
      "Count": 4,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 16384
      },
-     "Name": "V100"
+     "Name": "V100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 65536
@@ -87804,11 +89781,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "V100"
+     "Name": "V100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 262144
@@ -87952,11 +89934,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 40960
      },
-     "Name": "A100"
+     "Name": "A100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 327680
@@ -88125,11 +90112,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 81920
      },
-     "Name": "A100"
+     "Name": "A100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 655360
@@ -88298,11 +90290,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 81920
      },
-     "Name": "H100"
+     "Name": "H100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 655360
@@ -88685,11 +90682,16 @@
    "Gpus": [
     {
      "Count": 1,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 81920
      },
-     "Name": "H100"
+     "Name": "H100",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 81920
@@ -88824,11 +90826,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 144384
      },
-     "Name": "H200"
+     "Name": "H200",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 1155072
@@ -89211,11 +91218,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 144384
      },
-     "Name": "H200"
+     "Name": "H200",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 1155072
@@ -89509,11 +91521,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 183359
      },
-     "Name": "B200"
+     "Name": "B200",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 1466872
@@ -89743,11 +91760,16 @@
    "Gpus": [
     {
      "Count": 8,
+     "GpuPartitionSize": 1.0,
+     "LogicalGpuCount": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 275040
      },
-     "Name": "B300"
+     "Name": "B300",
+     "Workloads": [
+      "ml-ai"
+     ]
     }
    ],
    "TotalGpuMemoryInMiB": 2200320
@@ -115994,6 +118016,237 @@
    ]
   }
  },
+ "r8gb.48xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    },
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    }
+   ],
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 300000,
+    "BaselineIops": 1440000,
+    "BaselineThroughputInMBps": 37500.0,
+    "MaximumBandwidthInMbps": 300000,
+    "MaximumIops": 1440000,
+    "MaximumThroughputInMBps": 37500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 128,
+   "MaximumEbsCards": 2,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "r8gb.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 1572864
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 24,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    },
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.7
+  },
+  "RebootMigrationSupport": "supported",
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104,
+    106,
+    108,
+    110,
+    112,
+    114,
+    116,
+    118,
+    120,
+    122,
+    124,
+    126,
+    128,
+    130,
+    132,
+    134,
+    136,
+    138,
+    140,
+    142,
+    144,
+    146,
+    148,
+    150,
+    152,
+    154,
+    156,
+    158,
+    160,
+    162,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    184,
+    186,
+    188,
+    190,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
  "r8gb.4xlarge": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
@@ -116539,6 +118792,131 @@
    "DefaultCores": 96,
    "DefaultThreadsPerCore": 1,
    "DefaultVCpus": 96
+  }
+ },
+ "r8gb.metal-48xl": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    },
+    {
+     "BaselineBandwidthInMbps": 150000,
+     "BaselineIops": 720000,
+     "BaselineThroughputInMBps": 18750.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 150000,
+     "MaximumIops": 720000,
+     "MaximumThroughputInMBps": 18750.0
+    }
+   ],
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 300000,
+    "BaselineIops": 1440000,
+    "BaselineThroughputInMBps": 37500.0,
+    "MaximumBandwidthInMbps": 300000,
+    "MaximumIops": 1440000,
+    "MaximumThroughputInMBps": 37500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 78,
+   "MaximumEbsCards": 2,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "r8gb.metal-48xl",
+  "MemoryInfo": {
+   "SizeInMiB": 1572864
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 24,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    },
+    {
+     "BaselineBandwidthInGbps": 200.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 12,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
+    }
+   ],
+   "NetworkPerformance": "400 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.7
+  },
+  "RebootMigrationSupport": "supported",
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192
   }
  },
  "r8gb.xlarge": {
@@ -132362,7 +134740,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -132498,7 +134876,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -132630,7 +135008,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -132757,7 +135135,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -132886,7 +135264,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -133002,7 +135380,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -133113,7 +135491,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -133227,7 +135605,7 @@
    ],
    "SustainedClockSpeedInGhz": 5.0
   },
-  "RebootMigrationSupport": "supported",
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
