@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -193,7 +193,7 @@ class ConnectBackend(BaseBackend):
         self,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> Tuple[list[dict[str, Any]], Optional[str]]:
         sorted_instances = sorted(
             self.instances.values(),
             key=lambda i: (i.created_time, i.id),
@@ -292,7 +292,7 @@ class ConnectBackend(BaseBackend):
         data_set_id: Optional[str] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> Tuple[list[dict[str, Any]], Optional[str]]:
         """List analytics data associations for a Connect instance."""
         if not instance_id:
             raise InvalidParameterException("InstanceId is a required parameter")
