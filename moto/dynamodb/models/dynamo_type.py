@@ -1,7 +1,7 @@
 import base64
 import copy
 from decimal import Decimal
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.utils import merge_dicts
@@ -96,6 +96,22 @@ class DynamoType:
 
     def __repr__(self) -> str:
         return f"DynamoType: {self.to_json()}"
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> "DynamoType":
+        if id(self) in memo:
+            return memo[id(self)]
+        result = self.__class__.__new__(self.__class__)
+        memo[id(self)] = result
+        result.type = self.type
+        if self.is_list():
+            result.value = [copy.deepcopy(v, memo) for v in self.value]
+        elif self.is_map():
+            result.value = {k: copy.deepcopy(v, memo) for k, v in self.value.items()}
+        elif self.is_set():
+            result.value = list(self.value)
+        else:
+            result.value = self.value
+        return result
 
     def __add__(self, other: "DynamoType") -> "DynamoType":
         if self.type != other.type:
@@ -322,6 +338,20 @@ class Item(BaseModel):
 
     def __repr__(self) -> str:
         return f"Item: {self.to_json()}"
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> "Item":
+        if id(self) in memo:
+            return memo[id(self)]
+        result = cast(Item, self.__class__.__new__(self.__class__))
+        memo[id(self)] = result
+        result.hash_key = copy.deepcopy(self.hash_key, memo)
+        result.range_key = copy.deepcopy(self.range_key, memo)
+        attrs_copy = LimitedSizeDict.__new__(LimitedSizeDict)
+        dict.__init__(attrs_copy)
+        for key, value in self.attrs.items():
+            dict.__setitem__(attrs_copy, key, copy.deepcopy(value, memo))
+        result.attrs = attrs_copy
+        return result
 
     def size(self) -> int:
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
