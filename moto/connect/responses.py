@@ -25,7 +25,7 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_param("InstanceId")
         return unquote(instance_id) if instance_id else ""
 
-    def _get_int_param(self, name: str) -> Optional[int]:
+    def _get_int_param_with_fallback(self, name: str) -> Optional[int]:
         """Get an integer parameter, trying both camelCase and PascalCase."""
         value = self._get_param(name)
         if value is None:
@@ -38,7 +38,7 @@ class ConnectResponse(BaseResponse):
             value = self._get_param(alt_name)
         return int(value) if value is not None else None
 
-    def _get_str_param(self, name: str) -> Optional[str]:
+    def _get_str_param_with_fallback(self, name: str) -> Optional[str]:
         """Get a string parameter, trying both camelCase and PascalCase."""
         value = self._get_param(name)
         if value is None:
@@ -78,9 +78,9 @@ class ConnectResponse(BaseResponse):
 
     def list_analytics_data_associations(self) -> str:
         instance_id = self._get_instance_id()
-        data_set_id = self._get_str_param("DataSetId")
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_str_param("nextToken")
+        data_set_id = self._get_str_param_with_fallback("DataSetId")
+        max_results = self._get_int_param_with_fallback("maxResults")
+        next_token = self._get_str_param_with_fallback("nextToken")
 
         results: list[dict[str, str]]
         token: Optional[str]
@@ -123,8 +123,8 @@ class ConnectResponse(BaseResponse):
         return json.dumps({"Instance": instance})
 
     def list_instances(self) -> str:
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_str_param("nextToken")
+        max_results = self._get_int_param_with_fallback("maxResults")
+        next_token = self._get_str_param_with_fallback("nextToken")
 
         results: list[dict[str, Any]]
         token: Optional[str]
