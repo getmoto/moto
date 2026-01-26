@@ -346,6 +346,9 @@ class Item(BaseModel):
         memo[id(self)] = result
         result.hash_key = copy.deepcopy(self.hash_key, memo)
         result.range_key = copy.deepcopy(self.range_key, memo)
+        # Bypass LimitedSizeDict.__setitem__ which runs O(n) size validation on
+        # every insert. The source item already passed validation, so re-checking
+        # during copy is unnecessary and would make the overall copy O(n²).
         attrs_copy = LimitedSizeDict.__new__(LimitedSizeDict)
         dict.__init__(attrs_copy)
         for key, value in self.attrs.items():

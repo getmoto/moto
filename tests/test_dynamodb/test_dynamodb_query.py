@@ -1,3 +1,4 @@
+import copy
 from decimal import Decimal
 from uuid import uuid4
 
@@ -8,6 +9,7 @@ from boto3.dynamodb.conditions import Attr, Key
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
+from moto.dynamodb.models import DynamoType
 
 from . import dynamodb_aws_verified
 
@@ -208,6 +210,33 @@ def test_query_returns_detached_items():
     assert stored_item is not item
     assert stored_item.attrs["payload"].value["nested"].value == "original"
     assert stored_item.attrs["tags"].value[0].value == "a"
+
+
+@pytest.mark.parametrize(
+    "attr_value",
+    [
+        pytest.param({"S": "hello"}, id="string"),
+        pytest.param({"N": "123"}, id="number"),
+        pytest.param({"B": "aGVsbG8="}, id="binary"),
+        pytest.param({"BOOL": True}, id="boolean"),
+        pytest.param({"NULL": True}, id="null"),
+        pytest.param({"SS": ["a", "b", "c"]}, id="string_set"),
+        pytest.param({"NS": ["1", "2", "3"]}, id="number_set"),
+        pytest.param({"BS": ["aGVsbG8=", "d29ybGQ="]}, id="binary_set"),
+        pytest.param({"L": [{"S": "a"}, {"N": "1"}]}, id="list"),
+        pytest.param({"M": {"key": {"S": "value"}}}, id="map"),
+    ],
+)
+def test_dynamotype_deepcopy_all_types(attr_value):
+    original = DynamoType(attr_value)
+    copied = copy.deepcopy(original)
+
+    assert copied == original
+    assert copied is not original
+    assert copied.type == original.type
+    # For mutable containers, verify the value is a different object
+    if original.is_list() or original.is_map() or original.is_set():
+        assert copied.value is not original.value
 
 
 @pytest.mark.aws_verified
