@@ -586,6 +586,109 @@ def test_get_tag_values_cloudfront():
 
 
 @mock_aws
+def test_tag_resources_cloudfront():
+    client = boto3.client("cloudfront", "us-east-1")
+
+    dist = client.create_distribution_with_tags(
+        DistributionConfigWithTags={
+            "DistributionConfig": {
+                "CallerReference": "test-distribution",
+                "Origins": {
+                    "Quantity": 1,
+                    "Items": [
+                        {
+                            "Id": "origin1",
+                            "DomainName": "example-bucket.s3.amazonaws.com",
+                            "S3OriginConfig": {"OriginAccessIdentity": ""},
+                        }
+                    ],
+                },
+                "DefaultCacheBehavior": {
+                    "TargetOriginId": "origin1",
+                    "ViewerProtocolPolicy": "allow-all",
+                    "TrustedSigners": {"Enabled": False, "Quantity": 0},
+                    "ForwardedValues": {
+                        "QueryString": False,
+                        "Cookies": {"Forward": "none"},
+                    },
+                    "MinTTL": 0,
+                },
+                "Comment": "Test distribution",
+                "Enabled": True,
+            },
+            "Tags": {"Items": [{"Key": "OriginalKey", "Value": "OriginalValue"}]},
+        }
+    )
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+    dist_arn = dist["Distribution"]["ARN"]
+
+    rtapi.tag_resources(
+        ResourceARNList=[dist_arn],
+        Tags={"NewKey": "NewValue"},
+    )
+
+    tags = client.list_tags_for_resource(Resource=dist_arn)["Tags"]["Items"]
+
+    assert {"Key": "OriginalKey", "Value": "OriginalValue"} in tags
+    assert {"Key": "NewKey", "Value": "NewValue"} in tags
+
+
+@mock_aws
+def test_untag_resources_cloudfront():
+    client = boto3.client("cloudfront", "us-east-1")
+
+    dist = client.create_distribution_with_tags(
+        DistributionConfigWithTags={
+            "DistributionConfig": {
+                "CallerReference": "test-distribution",
+                "Origins": {
+                    "Quantity": 1,
+                    "Items": [
+                        {
+                            "Id": "origin1",
+                            "DomainName": "example-bucket.s3.amazonaws.com",
+                            "S3OriginConfig": {"OriginAccessIdentity": ""},
+                        }
+                    ],
+                },
+                "DefaultCacheBehavior": {
+                    "TargetOriginId": "origin1",
+                    "ViewerProtocolPolicy": "allow-all",
+                    "TrustedSigners": {"Enabled": False, "Quantity": 0},
+                    "ForwardedValues": {
+                        "QueryString": False,
+                        "Cookies": {"Forward": "none"},
+                    },
+                    "MinTTL": 0,
+                },
+                "Comment": "Test distribution",
+                "Enabled": True,
+            },
+            "Tags": {
+                "Items": [
+                    {"Key": "Key1", "Value": "Value1"},
+                    {"Key": "Key2", "Value": "Value2"},
+                    {"Key": "Key3", "Value": "Value3"},
+                ]
+            },
+        }
+    )
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+    dist_arn = dist["Distribution"]["ARN"]
+
+    rtapi.untag_resources(
+        ResourceARNList=[dist_arn],
+        TagKeys=["Key1", "Key3"],
+    )
+
+    tags = client.list_tags_for_resource(Resource=dist_arn)["Tags"]["Items"]
+
+    assert {"Key": "Key1", "Value": "Value1"} not in tags
+    assert {"Key": "Key2", "Value": "Value2"} in tags
+    assert {"Key": "Key3", "Value": "Value3"} not in tags
+
+
+@mock_aws
 def test_get_tag_values_lexv2_models():
     client = boto3.client("lexv2-models", "us-east-1")
     # Create a bot
