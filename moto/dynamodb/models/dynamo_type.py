@@ -98,8 +98,8 @@ class DynamoType:
         return f"DynamoType: {self.to_json()}"
 
     def __deepcopy__(self, memo: dict[int, Any]) -> "DynamoType":
-        if id(self) in memo:
-            return memo[id(self)]
+        if id(self) in memo:  # pragma: no cover
+            return memo[id(self)]  # Circular refs can't occur in DynamoDB data
         result = self.__class__.__new__(self.__class__)
         memo[id(self)] = result
         result.type = self.type
@@ -340,8 +340,8 @@ class Item(BaseModel):
         return f"Item: {self.to_json()}"
 
     def __deepcopy__(self, memo: dict[int, Any]) -> "Item":
-        if id(self) in memo:
-            return memo[id(self)]
+        if id(self) in memo:  # pragma: no cover
+            return memo[id(self)]  # Circular refs can't occur in DynamoDB data
         result = cast(Item, self.__class__.__new__(self.__class__))
         memo[id(self)] = result
         result.hash_key = copy.deepcopy(self.hash_key, memo)
