@@ -82,7 +82,7 @@ def test_describe_domain():
             'IpAddressType': 'ipv4',
             'ExecutionRoleIdentityConfig': 'USER_PROFILE_NAME',
             'TrustedIdentityPropagationSettings': {
-                'Status': 'ENABLED'
+                'Status': 'ENABLED',
             },
         },
         Tags=[{"Key": "string", "Value": "string"}],
@@ -118,7 +118,7 @@ def test_describe_domain():
          'IpAddressType': 'ipv4',
          'ExecutionRoleIdentityConfig': 'USER_PROFILE_NAME',
          'TrustedIdentityPropagationSettings': {
-             'Status': 'ENABLED'
+             'Status': 'ENABLED',
          },
      }
 
