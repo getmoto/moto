@@ -79,10 +79,10 @@ def test_describe_domain():
             },
         },
         DomainSettings={
-            'IpAddressType': 'ipv4',
-            'ExecutionRoleIdentityConfig': 'USER_PROFILE_NAME',
-            'TrustedIdentityPropagationSettings': {
-                'Status': 'ENABLED',
+            "IpAddressType": "ipv4",
+            "ExecutionRoleIdentityConfig": "USER_PROFILE_NAME",
+            "TrustedIdentityPropagationSettings": {
+                "Status": "ENABLED",
             },
         },
         Tags=[{"Key": "string", "Value": "string"}],
@@ -114,13 +114,13 @@ def test_describe_domain():
             "S3OutputPath": "s3://output",
         },
     }
-    assert resp['DomainSettings'] == {
-         'IpAddressType': 'ipv4',
-         'ExecutionRoleIdentityConfig': 'USER_PROFILE_NAME',
-         'TrustedIdentityPropagationSettings': {
-             'Status': 'ENABLED',
-         },
-     }
+    assert resp["DomainSettings"] == {
+        "IpAddressType": "ipv4",
+        "ExecutionRoleIdentityConfig": "USER_PROFILE_NAME",
+        "TrustedIdentityPropagationSettings": {
+            "Status": "ENABLED",
+        },
+    }
 
 
 @mock_aws
