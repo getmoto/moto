@@ -3,6 +3,7 @@
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_aws
 
@@ -389,6 +390,27 @@ def test_put_backup_vault_lock_configuration():
 
     with pytest.raises(ClientError) as exc:
         client.put_backup_vault_lock_configuration(
+            BackupVaultName="test-vault",
+            MinRetentionDays=0,
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_backup_vault_lock_configuration(
+            BackupVaultName="test-vault",
+            MaxRetentionDays=36501,
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_backup_vault_lock_configuration(
+            BackupVaultName="test-vault",
+            ChangeableForDays=2,
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_backup_vault_lock_configuration(
             BackupVaultName="nonexistent-vault",
             MinRetentionDays=7,
         )
@@ -418,3 +440,29 @@ def test_delete_backup_vault_lock_configuration():
             BackupVaultName="nonexistent-vault",
         )
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@freeze_time("2024-01-01")
+@mock_aws
+def test_backup_vault_lock_immutable():
+    client = boto3.client("backup", region_name="eu-west-1")
+    client.create_backup_vault(BackupVaultName="test-vault")
+
+    client.put_backup_vault_lock_configuration(
+        BackupVaultName="test-vault",
+        MinRetentionDays=7,
+        ChangeableForDays=3,
+    )
+
+    # Fast forward past the lock date
+    with freeze_time("2024-01-05"):
+        with pytest.raises(ClientError) as exc:
+            client.delete_backup_vault_lock_configuration(BackupVaultName="test-vault")
+        assert exc.value.response["Error"]["Code"] == "InvalidRequestException"
+
+        with pytest.raises(ClientError) as exc:
+            client.put_backup_vault_lock_configuration(
+                BackupVaultName="test-vault",
+                MinRetentionDays=14,
+            )
+        assert exc.value.response["Error"]["Code"] == "InvalidRequestException"
