@@ -25,31 +25,6 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_param("InstanceId")
         return unquote(instance_id) if instance_id else ""
 
-    def _get_int_param_with_fallback(self, name: str) -> Optional[int]:
-        """Get an integer parameter, trying both camelCase and PascalCase."""
-        value = self._get_param(name)
-        if value is None:
-            # Try alternate case (maxResults -> MaxResults or vice versa)
-            alt_name = (
-                name[0].upper() + name[1:]
-                if name[0].islower()
-                else name[0].lower() + name[1:]
-            )
-            value = self._get_param(alt_name)
-        return int(value) if value is not None else None
-
-    def _get_str_param_with_fallback(self, name: str) -> Optional[str]:
-        """Get a string parameter, trying both camelCase and PascalCase."""
-        value = self._get_param(name)
-        if value is None:
-            alt_name = (
-                name[0].upper() + name[1:]
-                if name[0].islower()
-                else name[0].lower() + name[1:]
-            )
-            value = self._get_param(alt_name)
-        return value
-
     def associate_analytics_data_set(self) -> str:
         instance_id = self._get_instance_id()
         params = json.loads(self.body) if self.body else {}
@@ -78,9 +53,9 @@ class ConnectResponse(BaseResponse):
 
     def list_analytics_data_associations(self) -> str:
         instance_id = self._get_instance_id()
-        data_set_id = self._get_str_param_with_fallback("DataSetId")
-        max_results = self._get_int_param_with_fallback("maxResults")
-        next_token = self._get_str_param_with_fallback("nextToken")
+        data_set_id = self._get_param("DataSetId")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
 
         results: list[dict[str, str]]
         token: Optional[str]
@@ -123,8 +98,8 @@ class ConnectResponse(BaseResponse):
         return json.dumps({"Instance": instance})
 
     def list_instances(self) -> str:
-        max_results = self._get_int_param_with_fallback("maxResults")
-        next_token = self._get_str_param_with_fallback("nextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
 
         results: list[dict[str, Any]]
         token: Optional[str]
