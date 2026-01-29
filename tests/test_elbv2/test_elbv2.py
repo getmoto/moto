@@ -1318,6 +1318,17 @@ def test_set_ip_address_type():
     client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
     assert get_ip_address_type(arn) == "dualstack"
 
+    # validate that the ip address type must be one of the supported values
+    with pytest.raises(ClientError) as ex:
+        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="invalid")
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'invalid' at 'ipAddressType' failed to satisfy constraint: Member must satisfy enum value set: [ipv4, dualstack]"
+    )
+
 
 @mock_aws
 def test_create_dualstack_load_balancer():
@@ -1330,6 +1341,19 @@ def test_create_dualstack_load_balancer():
         0
     ]
     assert response["IpAddressType"] == "dualstack"
+
+
+@mock_aws
+def test_ip_address_type_validation():
+    with pytest.raises(ClientError) as ex:
+        create_load_balancer(ip_address_type="invalid")
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'invalid' at 'ipAddressType' failed to satisfy constraint: Member must satisfy enum value set: [ipv4, dualstack]"
+    )
 
 
 @mock_aws
