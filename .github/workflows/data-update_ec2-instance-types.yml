@@ -16,7 +16,7 @@ jobs:
   update:
     name: Update EC2 Instance Types
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
+    if: ${{ github.ref == 'refs/heads/localstack' && github.repository == 'localstack/moto' }}
     permissions:
       id-token: write
       contents: write
