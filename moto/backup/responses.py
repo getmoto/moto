@@ -115,3 +115,28 @@ class BackupResponse(BaseResponse):
             tag_key_list=tag_key_list,
         )
         return "{}"
+
+    def put_backup_vault_lock_configuration(self) -> str:
+        backup_vault_name = self.path.split("/")[-2]
+        params = json.loads(self.body) if self.body else {}
+        min_retention_days = params.get("MinRetentionDays")
+        max_retention_days = params.get("MaxRetentionDays")
+        changeable_for_days = params.get("ChangeableForDays")
+
+        self.backup_backend.put_backup_vault_lock_configuration(
+            backup_vault_name=backup_vault_name,
+            min_retention_days=min_retention_days,
+            max_retention_days=max_retention_days,
+            changeable_for_days=changeable_for_days,
+        )
+
+        return "{}"
+
+    def delete_backup_vault_lock_configuration(self) -> str:
+        backup_vault_name = self.path.split("/")[-2]
+
+        self.backup_backend.delete_backup_vault_lock_configuration(
+            backup_vault_name=backup_vault_name,
+        )
+
+        return "{}"

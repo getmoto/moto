@@ -358,3 +358,63 @@ def test_untag_resource():
     resp = client.untag_resource(ResourceArn=resource_arn, TagKeyList=["key2"])
     resp = client.list_tags(ResourceArn=resource_arn)
     assert resp["Tags"] == {"key1": "value1", "key3": "value3"}
+
+
+@mock_aws
+def test_put_backup_vault_lock_configuration():
+    client = boto3.client("backup", region_name="eu-west-1")
+    client.create_backup_vault(BackupVaultName="test-vault")
+
+    client.put_backup_vault_lock_configuration(
+        BackupVaultName="test-vault",
+        MinRetentionDays=7,
+        MaxRetentionDays=365,
+        ChangeableForDays=5,
+    )
+
+    resp = client.list_backup_vaults()
+    vault = resp["BackupVaultList"][0]
+    assert vault["Locked"] is True
+    assert vault["MinRetentionDays"] == 7
+    assert vault["MaxRetentionDays"] == 365
+    assert "LockDate" in vault
+
+    with pytest.raises(ClientError) as exc:
+        client.put_backup_vault_lock_configuration(
+            BackupVaultName="test-vault",
+            MinRetentionDays=100,
+            MaxRetentionDays=50,
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_backup_vault_lock_configuration(
+            BackupVaultName="nonexistent-vault",
+            MinRetentionDays=7,
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_backup_vault_lock_configuration():
+    client = boto3.client("backup", region_name="eu-west-1")
+    client.create_backup_vault(BackupVaultName="test-vault")
+
+    client.put_backup_vault_lock_configuration(
+        BackupVaultName="test-vault",
+        MinRetentionDays=7,
+        MaxRetentionDays=365,
+    )
+
+    client.delete_backup_vault_lock_configuration(BackupVaultName="test-vault")
+
+    resp = client.list_backup_vaults()
+    vault = resp["BackupVaultList"][0]
+    assert vault.get("Locked", False) is False
+    assert "MinRetentionDays" not in vault
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_backup_vault_lock_configuration(
+            BackupVaultName="nonexistent-vault",
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
