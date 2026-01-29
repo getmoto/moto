@@ -48,6 +48,7 @@ backend_url_patterns = [
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
     ("comprehend", re.compile("https?://comprehend\\.(.+)\\.amazonaws\\.com")),
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
+    ("connect", re.compile("https?://connect\\.(.+)\\.amazonaws\\.com")),
     (
         "connectcampaigns",
         re.compile("https?://connect-campaigns\\.(.+)\\.amazonaws\\.com"),
