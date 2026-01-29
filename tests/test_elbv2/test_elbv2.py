@@ -37,7 +37,9 @@ def test_create_load_balancer():
     assert tags == {"key_name": "a_value"}
 
 
-def create_load_balancer(load_balancer_type: str = "application"):
+def create_load_balancer(
+    load_balancer_type: str = "application", ip_address_type: str = "ipv4"
+):
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -58,6 +60,7 @@ def create_load_balancer(load_balancer_type: str = "application"):
         SecurityGroups=[security_group.id],
         Scheme="internal",
         Tags=[{"Key": "key_name", "Value": "a_value"}],
+        IpAddressType=ip_address_type,
         Type=load_balancer_type,
     )
     return response, vpc, security_group, subnet1, subnet2, conn
@@ -1289,9 +1292,16 @@ def test_set_ip_address_type():
     response, _, security_group, subnet1, subnet2, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    # Internal LBs cant be dualstack yet
-    with pytest.raises(ClientError):
-        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    def get_ip_address_type(lb_arn: str) -> str:
+        response = client.describe_load_balancers(
+            LoadBalancerArns=[lb_arn],
+        )["LoadBalancers"][0]
+        return response["IpAddressType"]
+
+    assert get_ip_address_type(arn) == "ipv4"
+
+    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "dualstack"
 
     # Create internet facing one
     response = client.create_load_balancer(
@@ -1303,12 +1313,23 @@ def test_set_ip_address_type():
     )
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "ipv4"
 
-    with pytest.raises(ClientError) as ex:
-        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="internal")
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
+    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "dualstack"
+
+
+@mock_aws
+def test_create_dualstack_load_balancer():
+    response, _, security_group, subnet1, subnet2, client = create_load_balancer(
+        ip_address_type="dualstack"
+    )
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    response = client.describe_load_balancers(LoadBalancerArns=[arn])["LoadBalancers"][
+        0
+    ]
+    assert response["IpAddressType"] == "dualstack"
 
 
 @mock_aws
