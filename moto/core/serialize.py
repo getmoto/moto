@@ -248,7 +248,9 @@ class ResponseSerializer:
         response_dict: ResponseDict = {
             "body": "",
             "headers": {},
-            "status_code": self.DEFAULT_RESPONSE_CODE,
+            "status_code": self.operation_model.http.get(
+                "responseCode", self.DEFAULT_RESPONSE_CODE
+            ),
         }
         return response_dict
 
