@@ -104,6 +104,7 @@ def region_matches_partition(region, partition):
         ("us-gov-", "aws-us-gov"),
         ("us-gov-iso-", "aws-iso"),
         ("us-gov-iso-b-", "aws-iso-b"),
+        ("eusc-", "aws-eusc"),
     ]
 
     for prefix, expected_partition in valid_matches:

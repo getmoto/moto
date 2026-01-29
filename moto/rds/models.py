@@ -103,7 +103,7 @@ def find_cluster(cluster_arn: str) -> DBCluster:
 
 
 KMS_ARN_PATTERN = re.compile(
-    r"^arn:(aws|aws-us-gov|aws-cn):kms:(?P<region>\w+(?:-\w+)+):(?P<account_id>\d{12}):key\/(?P<key>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)$"
+    rf"{ARN_PARTITION_REGEX}:kms:(?P<region>\w+(?:-\w+)+):(?P<account_id>\d{12}):key\/(?P<key>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)$"
 )
 
 
