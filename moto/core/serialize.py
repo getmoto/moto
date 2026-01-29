@@ -593,7 +593,10 @@ class BaseXMLSerializer(ResponseSerializer):
         shape: Optional[StructureShape],
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
-        result_key = f"{self.operation_model.name}Result"
+        if shape and "payload" in shape.serialization:
+            result_key = shape.serialization["payload"]
+        else:
+            result_key = f"{self.operation_model.name}Response"
         result_wrapper = {
             result_key: serialized_result,
         }
@@ -764,6 +767,15 @@ class BaseRestSerializer(ResponseSerializer):
 
 class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> str:
+        body_serialized = xmltodict.unparse(
+            body,
+            full_document=True,
+            pretty=self.pretty_print,
+            short_empty_elements=False,
+        )
+        return body_serialized
 
 
 class RestJSONSerializer(BaseRestSerializer, BaseJSONSerializer):
