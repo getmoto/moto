@@ -31,11 +31,11 @@ def example_distribution_config(ref):
 
 
 def example_dist_config_with_tags(ref):
-    config = example_distribution_config(ref)
-    config["Tags"] = {
-        "Items": [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
+    tags = {"Items": [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]}
+    return {
+        "DistributionConfig": example_distribution_config(ref),
+        "Tags": tags,
     }
-    return config
 
 
 def example_dist_custom_config(ref, ssl_protocols):
