@@ -19,7 +19,7 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition, md5_hash
 
-from .constants import MAXIMUM_VISIBILITY_TIMEOUT
+from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
     BatchEntryIdsNotDistinct,
     BatchRequestTooLong,
@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
-MAXIMUM_MESSAGE_LENGTH = 1048576  # 1 MB
 
 MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
 MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
