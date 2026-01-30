@@ -16,7 +16,7 @@ jobs:
   update:
     name: Update EMR Instance Types
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
+    if: ${{ github.ref == 'refs/heads/localstack' && github.repository == 'localstack/moto' }}
     permissions:
       id-token: write
       contents: write
@@ -35,7 +35,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v5
       with:
         aws-region: us-east-1
-        role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
+        role-to-assume: arn:aws:iam::385386232812:role/MotoExt-OIDC-Role
 
     - name: Pull EMR instance types from AWS
       run: |
