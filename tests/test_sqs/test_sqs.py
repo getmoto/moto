@@ -1447,7 +1447,7 @@ def test_send_large_message_fails():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
-        "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes."
+        "One or more parameters are invalid. Reason: Message must be shorter than 1048576 bytes."
     )
 
 
@@ -2903,9 +2903,17 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
 
 
 @mock_aws
-def test_send_message_fails_when_message_size_greater_than_max_message_size():
+@pytest.mark.parametrize(
+    "message_size_limit",
+    (
+        12345,
+        500_000,  # Above old limit of 262144
+    ),
+)
+def test_send_message_fails_when_message_size_greater_than_max_message_size(
+    message_size_limit: int,
+):
     sqs = boto3.resource("sqs", region_name="eu-west-3")
-    message_size_limit = 12345
     queue = sqs.create_queue(
         QueueName=str(uuid4()),
         Attributes={"MaximumMessageSize": str(message_size_limit)},
