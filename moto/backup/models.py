@@ -8,7 +8,12 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import AlreadyExistsException, ResourceNotFoundException
+from .exceptions import (
+    AlreadyExistsException,
+    InvalidParameterValueException,
+    InvalidRequestException,
+    ResourceNotFoundException,
+)
 
 
 class Plan(BaseModel):
@@ -90,10 +95,11 @@ class Vault(BaseModel):
         self.encryption_key_arn = encryption_key_arn
         self.creator_request_id = creator_request_id
         self.num_of_recovery_points = 0  # start_backup_job not yet supported
-        self.locked = False  # put_backup_vault_lock_configuration
-        self.min_retention_days = 0  # put_backup_vault_lock_configuration
-        self.max_retention_days = 0  # put_backup_vault_lock_configuration
-        self.lock_date = None  # put_backup_vault_lock_configuration
+        self.locked = False
+        self.min_retention_days: Optional[int] = None
+        self.max_retention_days: Optional[int] = None
+        self.lock_date: Optional[float] = None
+        self.changeable_for_days: Optional[int] = None
 
     def to_dict(self) -> dict[str, Any]:
         dct = {
@@ -210,6 +216,79 @@ class BackupBackend(BaseBackend):
             self.tag_resource(vault.backup_vault_arn, backup_vault_tags)
         self.vaults[backup_vault_name] = vault
         return vault
+
+    def put_backup_vault_lock_configuration(
+        self,
+        backup_vault_name: str,
+        min_retention_days: Optional[int],
+        max_retention_days: Optional[int],
+        changeable_for_days: Optional[int],
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+
+        vault = self.vaults[backup_vault_name]
+
+        if vault.lock_date is not None and unix_time() >= vault.lock_date:
+            raise InvalidRequestException(
+                msg="Vault Lock configuration is immutable and cannot be modified"
+            )
+
+        if min_retention_days is not None and min_retention_days < 1:
+            raise InvalidParameterValueException(
+                msg="MinRetentionDays must be at least 1 day"
+            )
+
+        if max_retention_days is not None and max_retention_days > 36500:
+            raise InvalidParameterValueException(
+                msg="MaxRetentionDays cannot exceed 36500 days"
+            )
+
+        if (
+            min_retention_days is not None
+            and max_retention_days is not None
+            and min_retention_days > max_retention_days
+        ):
+            raise InvalidParameterValueException(
+                msg="MinRetentionDays cannot be greater than MaxRetentionDays"
+            )
+
+        if changeable_for_days is not None and changeable_for_days < 3:
+            raise InvalidParameterValueException(
+                msg="ChangeableForDays must be at least 3 days"
+            )
+
+        vault.locked = True
+        vault.min_retention_days = min_retention_days
+        vault.max_retention_days = max_retention_days
+        vault.changeable_for_days = changeable_for_days
+
+        if changeable_for_days is not None:
+            vault.lock_date = unix_time() + (changeable_for_days * 24 * 60 * 60)
+
+    def delete_backup_vault_lock_configuration(
+        self,
+        backup_vault_name: str,
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+
+        vault = self.vaults[backup_vault_name]
+
+        if vault.lock_date is not None and unix_time() >= vault.lock_date:
+            raise InvalidRequestException(
+                msg="Vault Lock configuration is immutable and cannot be deleted"
+            )
+
+        vault.locked = False
+        vault.min_retention_days = None
+        vault.max_retention_days = None
+        vault.lock_date = None
+        vault.changeable_for_days = None
 
     def list_backup_vaults(self) -> list[Vault]:
         """
