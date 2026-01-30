@@ -406,7 +406,10 @@ ISO_REGION_DOMAINS = {
     "isoe": "cloud.adc-e.uk",
     "isof": "csp.hci.ic.gov",
 }
-ALT_DOMAIN_SUFFIXES = list(ISO_REGION_DOMAINS.values()) + ["amazonaws.com.cn"]
+ALT_DOMAIN_SUFFIXES = list(ISO_REGION_DOMAINS.values()) + [
+    "amazonaws.com.cn",
+    "amazonaws.eu",
+]
 
 
 def get_equivalent_url_in_aws_domain(url: str) -> tuple[ParseResult, bool]:
