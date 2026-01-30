@@ -1447,7 +1447,7 @@ def test_send_large_message_fails():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
-        "One or more parameters are invalid. Reason: Message must be shorter than 1048576 bytes."
+        f"One or more parameters are invalid. Reason: Message must be shorter than {MAXIMUM_MESSAGE_LENGTH} bytes."
     )
 
 
