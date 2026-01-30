@@ -353,3 +353,15 @@ SSL_POLICIES = {
         "ssl_protocols": ["TLSv1.2", "TLSv1.1", "TLSv1"],
     },
 }
+
+
+def build_policy(name, data):
+    # Adding priority numbers to ciphers and restructuring output to required format
+    ciphers = [
+        {"Name": c, "Priority": i + 1} for i, c in enumerate(data.get("ciphers", []))
+    ]
+    return {
+        "Name": name,
+        "SslProtocols": data.get("ssl_protocols", []),
+        "Ciphers": ciphers,
+    }

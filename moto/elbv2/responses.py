@@ -6,7 +6,7 @@ from moto.core.serialize import return_if_not_empty
 
 from .exceptions import ListenerOrBalancerMissingError, TargetGroupNotFoundError
 from .models import ELBv2Backend, elbv2_backends
-from .ssl_policies import SSL_POLICIES
+from .ssl_policies import SSL_POLICIES, build_policy
 
 
 def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
@@ -332,16 +332,17 @@ class ELBV2Response(BaseResponse):
         # marker = self._get_param('Marker')
         # page_size = self._get_int_param('PageSize')
 
-        if names:
-            seen = set()
-            policies = []
+        policies = []
+        seen = set()
 
+        if names:
             for name in names:
                 if name in SSL_POLICIES and name not in seen:
-                    policies.append(SSL_POLICIES[name])
+                    policies.append(build_policy(name, SSL_POLICIES[name]))
                     seen.add(name)
         else:
-            policies = list(SSL_POLICIES.values())
+            for name, data in SSL_POLICIES.items():
+                policies.append(build_policy(name, data))
 
         result = {"SslPolicies": policies}
         return ActionResult(result)
