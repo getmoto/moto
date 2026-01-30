@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from moto.cognitoidp.models import CognitoIdpBackend
     from moto.comprehend.models import ComprehendBackend
     from moto.config.models import ConfigBackend
+    from moto.connect.models import ConnectBackend
     from moto.connectcampaigns.models import ConnectCampaignServiceBackend
     from moto.core.base_backend import SERVICE_BACKEND, BackendDict
     from moto.databrew.models import DataBrewBackend
@@ -230,8 +231,9 @@ SERVICE_NAMES = Union[
     "Literal['cognito-identity']",
     "Literal['cognito-idp']",
     "Literal['comprehend']",
-    "Literal['connectcampaigns']",
     "Literal['config']",
+    "Literal['connect']",
+    "Literal['connectcampaigns']",
     "Literal['databrew']",
     "Literal['datapipeline']",
     "Literal['datasync']",
@@ -445,11 +447,13 @@ def get_backend(name: "Literal['cognito-idp']") -> "BackendDict[CognitoIdpBacken
 @overload
 def get_backend(name: "Literal['comprehend']") -> "BackendDict[ComprehendBackend]": ...
 @overload
+def get_backend(name: "Literal['config']") -> "BackendDict[ConfigBackend]": ...
+@overload
+def get_backend(name: "Literal['connect']") -> "BackendDict[ConnectBackend]": ...
+@overload
 def get_backend(
     name: "Literal['connectcampaigns']",
 ) -> "BackendDict[ConnectCampaignServiceBackend]": ...
-@overload
-def get_backend(name: "Literal['config']") -> "BackendDict[ConfigBackend]": ...
 @overload
 def get_backend(name: "Literal['databrew']") -> "BackendDict[DataBrewBackend]": ...
 @overload

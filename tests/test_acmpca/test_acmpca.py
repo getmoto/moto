@@ -23,7 +23,12 @@ from moto.core.utils import utcnow
 
 @mock_aws
 @pytest.mark.parametrize(
-    "region,partition", [("eu-west-1", "aws"), ("us-gov-east-1", "aws-us-gov")]
+    "region,partition",
+    [
+        ("eu-west-1", "aws"),
+        ("us-gov-east-1", "aws-us-gov"),
+        ("eusc-de-east-1", "aws-eusc"),
+    ],
 )
 def test_create_certificate_authority(region, partition):
     client = boto3.client("acm-pca", region_name=region)

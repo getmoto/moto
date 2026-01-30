@@ -2197,7 +2197,7 @@ class Domain(BaseObject):
             "SecurityGroupIdForDomainBoundary": self.security_group_id_for_domain_boundary,
             "AuthMode": self.auth_mode,
             "DefaultUserSettings": self.default_user_settings,
-            "DomainSetting": self.domain_settings,
+            "DomainSettings": self.domain_settings,
             "AppNetworkAccessType": self.app_network_access_type,
             "HomeEfsFileSystemKmsKeyId": self.home_efs_file_system_kms_key_id,
             "SubnetIds": self.subnet_ids,
