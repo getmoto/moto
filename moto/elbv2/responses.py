@@ -49,6 +49,7 @@ class ELBV2Response(BaseResponse):
         security_groups = params.get("SecurityGroups", [])
         scheme = params.get("Scheme")
         loadbalancer_type = params.get("Type")
+        ip_address_type = params.get("IpAddressType", "ipv4")
         tags = params.get("Tags")
         load_balancer = self.elbv2_backend.create_load_balancer(
             name=load_balancer_name,  # type: ignore
@@ -57,6 +58,7 @@ class ELBV2Response(BaseResponse):
             subnet_mappings=subnet_mappings,
             scheme=scheme,  # type: ignore
             loadbalancer_type=loadbalancer_type,
+            ip_address_type=ip_address_type,
             tags=tags,
         )
         result = {"LoadBalancers": [load_balancer]}

@@ -317,6 +317,18 @@ class S3Response(BaseResponse):
         else:
             return bucketpath_parse_key_name(url)
 
+    @classmethod
+    def ambiguous_dispatch(cls, *args: Any, **kwargs: Any) -> TYPE_RESPONSE:
+        return cls().ambiguous_response(*args, **kwargs)
+
+    @classmethod
+    def bucket_dispatch(cls, *args: Any, **kwargs: Any) -> TYPE_RESPONSE:
+        return cls().bucket_response(*args, **kwargs)
+
+    @classmethod
+    def key_dispatch(cls, *args: Any, **kwargs: Any) -> TYPE_RESPONSE:
+        return cls().key_response(*args, **kwargs)
+
     def ambiguous_response(
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
@@ -341,20 +353,26 @@ class S3Response(BaseResponse):
 
         return self._send_response(response)
 
-    @staticmethod
-    def _send_response(response: Union[TYPE_RESPONSE, str, bytes]) -> TYPE_RESPONSE:  # type: ignore
+    @classmethod
+    def _send_response(
+        cls, response: Union[TYPE_RESPONSE, str, bytes]
+    ) -> TYPE_RESPONSE:  # type: ignore
         if isinstance(response, (str, bytes)):
             status_code = 200
-            headers: dict[str, Any] = {}
+            headers: dict[str, str] = {}
+            body = response
         else:
-            status_code, headers, response = response
-        if not isinstance(response, bytes):
-            response = response.encode("utf-8")
+            status_code, headers, body = response
 
-        if response and "content-type" not in headers:
+        headers, body = cls._enrich_response(headers, body)
+
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+
+        if body and "content-type" not in headers:
             headers["content-type"] = APP_XML
 
-        return status_code, headers, response
+        return status_code, headers, body
 
     def _bucket_response(
         self, request: Any, full_url: str
