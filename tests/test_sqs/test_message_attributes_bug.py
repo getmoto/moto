@@ -15,7 +15,7 @@ def test_message_attributes_should_not_include_system_attributes():
     "MessageAttributes" -> "Attributes", causing the system attributes
     to appear as empty dicts in MessageAttributes.
 
-    See: https://github.com/getmoto/moto/issues/XXXX
+    See: https://github.com/getmoto/moto/issues/9686
     """
     client = boto3.client("sqs", region_name="us-east-1")
 
