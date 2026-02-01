@@ -1293,7 +1293,6 @@ def test_describe_ssl_policies():
     assert len(resp["SslPolicies"]) == 2
 
 
-
 @mock_aws
 def test_set_ip_address_type():
     response, _, security_group, subnet1, subnet2, client = create_load_balancer()
