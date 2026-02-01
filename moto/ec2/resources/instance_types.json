@@ -1915,7 +1915,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -2673,7 +2673,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -10882,6 +10882,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -10998,6 +10999,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -11118,6 +11120,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -11246,6 +11249,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -11355,6 +11359,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -11491,6 +11496,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -11599,6 +11605,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -11711,6 +11718,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -11909,6 +11917,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -12027,6 +12036,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -12155,6 +12165,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12287,6 +12298,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12427,6 +12439,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -12548,6 +12561,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12696,6 +12710,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -12816,6 +12831,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -12940,6 +12956,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -13162,6 +13179,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -13268,6 +13286,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -13396,6 +13415,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -13532,6 +13552,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -13659,6 +13680,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -13770,6 +13792,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -13780,6 +13803,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -13915,6 +13939,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -14027,6 +14052,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -14147,6 +14173,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -14352,6 +14379,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -21203,6 +21231,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -21324,6 +21353,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -21447,6 +21477,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -21574,6 +21605,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -21693,6 +21725,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -21819,6 +21852,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -21936,6 +21970,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -22055,6 +22090,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -22165,6 +22201,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.52,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -22273,6 +22310,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -22372,6 +22410,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -22469,6 +22508,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -24186,6 +24226,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -24339,6 +24380,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 133.333,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -24508,6 +24550,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -24706,6 +24749,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 16.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -24840,6 +24884,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -24850,6 +24895,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -25047,6 +25093,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 33.333,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -25165,6 +25212,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 66.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -25299,6 +25347,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 4.166,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -25403,6 +25452,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 2.083,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -25502,6 +25552,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -25617,6 +25668,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -25627,6 +25679,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -25719,6 +25772,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 8.333,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -27579,6 +27633,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -27732,6 +27787,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -27901,6 +27957,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -28099,6 +28156,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -28212,6 +28270,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -28222,6 +28281,7 @@
      "PeakBandwidthInGbps": 300.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -28419,6 +28479,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -28537,6 +28598,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -28671,6 +28733,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -28775,6 +28838,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -28874,6 +28938,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -28968,6 +29033,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -28978,6 +29044,7 @@
      "PeakBandwidthInGbps": 300.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -29070,6 +29137,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -29181,6 +29249,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 11.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
@@ -29316,6 +29385,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -29459,6 +29529,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -29574,6 +29645,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 32,
@@ -29693,6 +29765,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 64,
@@ -29820,6 +29893,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.468,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -29932,6 +30006,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 8,
@@ -30045,6 +30120,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -30181,6 +30257,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -30325,6 +30402,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -30460,6 +30538,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -30576,6 +30655,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 512,
@@ -30722,6 +30802,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -30865,6 +30946,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -30985,6 +31067,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -31116,6 +31199,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -31259,6 +31343,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -31374,6 +31459,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -31473,6 +31559,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -31570,6 +31657,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -34433,8 +34521,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -34824,8 +34912,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -34955,8 +35043,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -35231,8 +35319,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -35518,8 +35606,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -35655,8 +35743,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -35799,8 +35887,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -36056,8 +36144,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -36446,8 +36534,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -36573,8 +36661,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -36703,8 +36791,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -36830,8 +36918,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -37387,8 +37475,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -37771,8 +37859,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38468,8 +38556,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -38757,8 +38845,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39325,8 +39413,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -39477,8 +39565,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39782,8 +39870,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39923,8 +40011,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40067,8 +40155,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40339,8 +40427,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40480,8 +40568,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40614,8 +40702,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40749,8 +40837,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41101,8 +41189,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41238,8 +41326,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41445,8 +41533,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42024,8 +42112,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -52038,6 +52126,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 45.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -52200,6 +52289,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 67.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 288,
@@ -52386,6 +52476,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 90.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -52596,6 +52687,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 8.4,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -52718,6 +52810,7 @@
    "MaximumNetworkInterfaces": 6,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 48,
@@ -52847,6 +52940,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 180.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -53056,6 +53150,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
@@ -53194,6 +53289,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 2.1,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -53519,6 +53615,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 4.2,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -58743,7 +58840,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": true,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -58832,7 +58929,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -68077,6 +68174,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -68193,6 +68291,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -68313,6 +68412,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -68441,6 +68541,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -68550,6 +68651,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -68686,6 +68788,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -68794,6 +68897,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -68906,6 +69010,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -69104,6 +69209,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -69222,6 +69328,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -69350,6 +69457,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -69482,6 +69590,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -69622,6 +69731,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -69743,6 +69853,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -69891,6 +70002,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -70011,6 +70123,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -70135,6 +70248,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -70357,6 +70471,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -70475,6 +70590,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -70615,6 +70731,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -70763,6 +70880,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -70902,6 +71020,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -71025,6 +71144,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -71035,6 +71155,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -71182,6 +71303,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -71306,6 +71428,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -71438,6 +71561,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -71667,6 +71791,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -71773,6 +71898,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -71901,6 +72027,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -72037,6 +72164,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -72164,6 +72292,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -72275,6 +72404,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -72285,6 +72415,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -72420,6 +72551,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -72532,6 +72664,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -72652,6 +72785,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -72857,6 +72991,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -78644,6 +78779,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -78765,6 +78901,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -78888,6 +79025,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -79015,6 +79153,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -79134,6 +79273,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -79260,6 +79400,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -79377,6 +79518,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -79496,6 +79638,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -79606,6 +79749,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.52,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -79714,6 +79858,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -79813,6 +79958,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -79910,6 +80056,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -81627,6 +81774,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -81780,6 +81928,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 133.333,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -81949,6 +82098,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -82147,6 +82297,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 16.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -82281,6 +82432,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -82291,6 +82443,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -82488,6 +82641,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 33.333,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -82606,6 +82760,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 66.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -82740,6 +82895,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 4.166,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -82844,6 +83000,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 2.083,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -82941,6 +83098,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 8.333,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -84801,6 +84959,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -84954,6 +85113,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -85123,6 +85283,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -85321,6 +85482,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -85434,6 +85596,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -85444,6 +85607,7 @@
      "PeakBandwidthInGbps": 300.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -85641,6 +85805,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -85759,6 +85924,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -85893,6 +86059,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -85997,6 +86164,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -86094,6 +86262,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -86205,6 +86374,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 11.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
@@ -86340,6 +86510,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -86483,6 +86654,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -86598,6 +86770,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 32,
@@ -86717,6 +86890,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 64,
@@ -86844,6 +87018,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.468,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -86956,6 +87131,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 8,
@@ -87069,6 +87245,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -87205,6 +87382,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -87349,6 +87527,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -87484,6 +87663,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -87600,6 +87780,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 512,
@@ -87746,6 +87927,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -87889,6 +88071,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -88009,6 +88192,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -88140,6 +88324,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -88283,6 +88468,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -88398,6 +88584,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -88497,6 +88684,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -88594,6 +88782,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -103576,6 +103765,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -103692,6 +103882,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -103812,6 +104003,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -103940,6 +104132,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -104049,6 +104242,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -104185,6 +104379,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -104293,6 +104488,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -104405,6 +104601,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -104603,6 +104800,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -104721,6 +104919,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -104849,6 +105048,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -104981,6 +105181,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -105121,6 +105322,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -105242,6 +105444,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -105390,6 +105593,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -105510,6 +105714,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -105634,6 +105839,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.781,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -105856,6 +106062,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -105974,6 +106181,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -106114,6 +106322,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -106262,6 +106471,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -106401,6 +106611,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -106524,6 +106735,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -106534,6 +106746,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -106681,6 +106894,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -106805,6 +107019,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -106937,6 +107152,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -107166,6 +107382,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -107272,6 +107489,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 12,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -107400,6 +107618,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -107536,6 +107755,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -107663,6 +107883,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -107774,6 +107995,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -107784,6 +108006,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -107919,6 +108142,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -108031,6 +108255,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -108151,6 +108376,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -108356,6 +108582,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -114446,6 +114673,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -114567,6 +114795,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -114690,6 +114919,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -114817,6 +115047,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -114936,6 +115167,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -115062,6 +115294,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -115179,6 +115412,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -115298,6 +115532,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -115408,6 +115643,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.52,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -115516,6 +115752,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -115615,6 +115852,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -115712,6 +115950,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -117429,6 +117668,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -117582,6 +117822,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 133.333,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -117751,6 +117992,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -117949,6 +118191,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 16.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -118083,6 +118326,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -118093,6 +118337,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -118290,6 +118535,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 33.333,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -118408,6 +118654,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 66.666,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -118542,6 +118789,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 4.166,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -118646,6 +118894,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 2.083,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -118745,6 +118994,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -118860,6 +119110,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -118870,6 +119121,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -118962,6 +119214,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 8.333,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -120822,6 +121075,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -120975,6 +121229,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -121144,6 +121399,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -121342,6 +121598,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -121455,6 +121712,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -121465,6 +121723,7 @@
      "PeakBandwidthInGbps": 300.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -121662,6 +121921,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -121780,6 +122040,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -121914,6 +122175,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 6.25,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -122018,6 +122280,7 @@
    "MaximumNetworkInterfaces": 2,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 2,
@@ -122117,6 +122380,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -122211,6 +122475,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -122221,6 +122486,7 @@
      "PeakBandwidthInGbps": 300.0
     },
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 384,
@@ -122313,6 +122579,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -122424,6 +122691,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 11.25,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
@@ -122559,6 +122827,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -122702,6 +122971,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -122817,6 +123087,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 32,
@@ -122936,6 +123207,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 64,
@@ -123063,6 +123335,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.468,
      "DefaultEnaQueueCountPerInterface": 1,
      "MaximumEnaQueueCount": 3,
@@ -123175,6 +123448,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 8,
@@ -123288,6 +123562,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -123424,6 +123699,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -123568,6 +123844,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -123703,6 +123980,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -123819,6 +124097,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 512,
@@ -123965,6 +124244,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -124108,6 +124388,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -124228,6 +124509,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -124359,6 +124641,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -124502,6 +124785,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -124617,6 +124901,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -124716,6 +125001,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -124813,6 +125099,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -134706,6 +134993,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 192,
@@ -134842,6 +135130,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -134974,6 +135263,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 9.375,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 48,
@@ -135101,6 +135391,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
@@ -135230,6 +135521,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.562,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 8,
@@ -135351,6 +135643,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 192,
@@ -135462,6 +135755,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -135571,6 +135865,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.125,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
@@ -137293,6 +137588,7 @@
    "MaximumNetworkInterfaces": 12,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
@@ -137429,6 +137725,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 256,
@@ -137573,6 +137870,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 40.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
@@ -137708,6 +138006,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 3.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 32,
@@ -137824,6 +138123,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 512,
@@ -137970,6 +138270,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -138113,6 +138414,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 7.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -138236,6 +138538,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 80.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1024,
@@ -138379,6 +138682,7 @@
    "MaximumNetworkInterfaces": 10,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 128,
@@ -138510,6 +138814,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -138653,6 +138958,7 @@
    "MaximumNetworkInterfaces": 3,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 0.937,
      "DefaultEnaQueueCountPerInterface": 2,
      "MaximumEnaQueueCount": 6,
@@ -138768,6 +139074,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
@@ -138867,6 +139174,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 1536,
@@ -138964,6 +139272,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 1.875,
      "DefaultEnaQueueCountPerInterface": 4,
      "MaximumEnaQueueCount": 16,
