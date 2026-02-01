@@ -1,4 +1,5 @@
-from typing import Optional , Any
+from typing import Any, Optional
+
 # AWS Docs: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/describe-ssl-policies.html
 
 SSL_POLICIES = {
