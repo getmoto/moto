@@ -1,5 +1,3 @@
-"""Test for the bug where MessageAttributes was being populated with empty dicts for system attributes."""
-
 import boto3
 
 from moto import mock_aws
@@ -10,12 +8,6 @@ def test_message_attributes_should_not_include_system_attributes():
     """
     Test that receiving a message with AttributeNames=['All'] should NOT
     return empty MessageAttributes for system attributes.
-
-    This was a bug where the ShapePrefixAlias was incorrectly mapping
-    "MessageAttributes" -> "Attributes", causing the system attributes
-    to appear as empty dicts in MessageAttributes.
-
-    See: https://github.com/getmoto/moto/issues/9686
     """
     client = boto3.client("sqs", region_name="us-east-1")
 
