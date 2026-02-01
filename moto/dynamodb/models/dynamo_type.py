@@ -98,6 +98,9 @@ class DynamoType:
         return f"DynamoType: {self.to_json()}"
 
     def __deepcopy__(self, memo: dict[int, Any]) -> "DynamoType":
+        """Custom deepcopy that bypasses the expensive default pickle-based
+        __reduce_ex__ protocol. Safe for DynamoDB AttributeValue trees,
+        which are acyclic."""
         if id(self) in memo:  # pragma: no cover
             return memo[id(self)]  # Circular refs can't occur in DynamoDB data
         result = self.__class__.__new__(self.__class__)
@@ -340,6 +343,9 @@ class Item(BaseModel):
         return f"Item: {self.to_json()}"
 
     def __deepcopy__(self, memo: dict[int, Any]) -> "Item":
+        """Custom deepcopy that bypasses the expensive default pickle-based
+        __reduce_ex__ protocol, and skips LimitedSizeDict size validation
+        during copy (the source item already passed validation on write)."""
         if id(self) in memo:  # pragma: no cover
             return memo[id(self)]  # Circular refs can't occur in DynamoDB data
         result = cast(Item, self.__class__.__new__(self.__class__))
