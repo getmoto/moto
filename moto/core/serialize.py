@@ -1201,18 +1201,10 @@ class ShapePrefixAlias(AttributeAliasProvider):
     def has_alias(self, key: str) -> bool:
         shape = self.context.shape
         if shape is not None:
-            if hasattr(shape, "parent"):
+            if hasattr(shape, "parent") and shape.parent.type_name == "structure":
                 if key.lower().startswith(shape.parent.name.lower()):
-                    # Check if the alias would conflict with another member
-                    # For example, MessageAttributes -> Attributes, but Attributes is also a member
-                    potential_alias = key[len(shape.parent.name) :]
-                    if (
-                        hasattr(shape.parent, "members")
-                        and potential_alias in shape.parent.members
-                    ):
-                        # The alias would conflict with an existing member, so don't use it
-                        return False
-                    return True
+                    # Alias is valid if it doesn't conflict with a sibling key.
+                    return self.get_alias(key) not in shape.parent.members
         return False
 
     def get_alias(self, key: str) -> Any:
