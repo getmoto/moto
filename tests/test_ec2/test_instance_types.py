@@ -59,8 +59,8 @@ def test_describe_instance_types_gpu_instance_types():
                     "MemoryInfo": {"SizeInMiB": 8192},
                     "Name": "Radeon Pro V520",
                     "Workloads": [
-                        "graphics",
                         "ml-ai",
+                        "graphics",
                     ],
                 }
             ],
