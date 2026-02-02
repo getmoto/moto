@@ -6,7 +6,6 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
-    MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_VISIBILITY_TIMEOUT,
 )
 from .exceptions import (
@@ -148,11 +147,6 @@ class SQSResponse(BaseResponse):
         delay_seconds = self._get_param("DelaySeconds")
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
-        if len(message) > MAXIMUM_MESSAGE_LENGTH:
-            raise SQSException(
-                "InvalidParameterValue",
-                "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
-            )
         message_attributes = self._get_param("MessageAttributes", {})
         validate_message_attributes(message_attributes)
         system_message_attributes = self._get_param("MessageSystemAttributes")
