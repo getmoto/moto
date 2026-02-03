@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 
 @mock_aws
@@ -442,6 +442,8 @@ def test_delete_backup_vault_lock_configuration():
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Can't freeze time in server mode"
 @freeze_time("2024-01-01")
 @mock_aws
 def test_backup_vault_lock_immutable():
