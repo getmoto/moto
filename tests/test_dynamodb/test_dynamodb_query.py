@@ -1,3 +1,4 @@
+import copy
 from decimal import Decimal
 from uuid import uuid4
 
@@ -5,7 +6,10 @@ import boto3
 import pytest
 from boto3.dynamodb.conditions import Attr, Key
 
-from moto import mock_aws
+from moto import mock_aws, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.dynamodb import dynamodb_backends
+from moto.dynamodb.models import DynamoType
 
 from . import dynamodb_aws_verified
 
@@ -151,6 +155,91 @@ def test_key_condition_expressions():
         & Key("subject").between("567", "890")
     )
     assert results["Count"] == 1
+
+
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_query_returns_detached_items():
+    if settings.TEST_SERVER_MODE:
+        pytest.skip("Can't access backend directly in server mode")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    table = dynamodb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.put_item(
+        Item={
+            "pk": "hash",
+            "sk": "1",
+            "payload": {"nested": "original"},
+            "tags": ["a", "b"],
+        }
+    )
+
+    # Use backend API to verify Item isolation (boto3 returns plain dicts).
+    backend = dynamodb_backends[ACCOUNT_ID]["us-east-1"]
+    items, _, _ = backend.query(
+        table_name,
+        {"S": "hash"},
+        None,
+        [],
+        limit=10,
+        exclusive_start_key=None,
+        scan_index_forward=True,
+        projection_expressions=None,
+        index_name=None,
+        consistent_read=False,
+        expr_names=None,
+        expr_values=None,
+        filter_expression=None,
+    )
+
+    item = items[0]
+    item.attrs["payload"].value["nested"].value = "changed"
+    item.attrs["tags"].value[0].value = "changed"
+
+    stored_item = backend.get_item(table_name, {"pk": {"S": "hash"}, "sk": {"S": "1"}})
+    assert stored_item is not None
+    assert stored_item is not item
+    assert stored_item.attrs["payload"].value["nested"].value == "original"
+    assert stored_item.attrs["tags"].value[0].value == "a"
+
+
+@pytest.mark.parametrize(
+    "attr_value",
+    [
+        pytest.param({"S": "hello"}, id="string"),
+        pytest.param({"N": "123"}, id="number"),
+        pytest.param({"B": "aGVsbG8="}, id="binary"),
+        pytest.param({"BOOL": True}, id="boolean"),
+        pytest.param({"NULL": True}, id="null"),
+        pytest.param({"SS": ["a", "b", "c"]}, id="string_set"),
+        pytest.param({"NS": ["1", "2", "3"]}, id="number_set"),
+        pytest.param({"BS": ["aGVsbG8=", "d29ybGQ="]}, id="binary_set"),
+        pytest.param({"L": [{"S": "a"}, {"N": "1"}]}, id="list"),
+        pytest.param({"M": {"key": {"S": "value"}}}, id="map"),
+    ],
+)
+def test_dynamotype_deepcopy_all_types(attr_value):
+    original = DynamoType(attr_value)
+    copied = copy.deepcopy(original)
+
+    assert copied == original
+    assert copied is not original
+    assert copied.type == original.type
+    # For mutable containers, verify the value is a different object
+    if original.is_list() or original.is_map() or original.is_set():
+        assert copied.value is not original.value
 
 
 @pytest.mark.aws_verified
