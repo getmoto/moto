@@ -444,6 +444,7 @@ def test_delete_backup_vault_lock_configuration():
 
 @pytest.mark.skipif(
     settings.TEST_SERVER_MODE, reason="Can't freeze time in server mode"
+)
 @freeze_time("2024-01-01")
 @mock_aws
 def test_backup_vault_lock_immutable():
