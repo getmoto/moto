@@ -1,0 +1,146 @@
+# LocalStack specific workflow to implement a fully-integrated continuous integration pipeline for Moto-Ext
+# - Guess next patch semantic version
+# - Build source and wheel distributions
+# - Publish the distributions to PyPi
+# - Tag the commit with the new version
+# - Create a GitHub release for the new version
+
+name: Release moto-ext
+
+on:
+  schedule:
+    - cron: 0 5 * * MON
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run'
+        default: true
+        required: true
+        type: boolean
+
+# Limit concurrency to 1
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  analyse-commit-log:
+    runs-on: ubuntu-latest
+    outputs:
+      is-release-required: ${{ steps.check.outputs.new_commits_made }}
+      last-tag: ${{ steps.last_tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: localstack
+          persist-credentials: false
+
+      - name: Get last tag
+        id: last_tag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check for new commits since the last tag
+        id: check
+        env:
+          LAST_TAG: ${{ steps.last_tag.outputs.tag }}
+        run: |
+          if [ $(git log --oneline $LAST_TAG..HEAD | wc -l) -eq "0" ]; then
+            echo "No commits since the last tag."
+            echo "new_commits_made=false" >> $GITHUB_OUTPUT
+          else
+            echo "new_commits_made=true" >> $GITHUB_OUTPUT
+          fi
+
+  build-release-moto-ext:
+    runs-on: ubuntu-latest
+    needs: analyse-commit-log
+    if: ${{ needs.analyse-commit-log.outputs.is-release-required == 'true' }}
+    environment:
+      name: pypi
+      url: https://pypi.org/project/moto-ext/
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: localstack
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Guess next version
+        id: semver
+        uses: "WyriHaximus/github-action-next-semvers@v1"
+        with:
+          version: ${{ needs.analyse-commit-log.outputs.last-tag }}
+
+      - name: Ensure guessed version does not exist
+        env:
+          NEW_VERSION: ${{ steps.semver.outputs.patch }}
+        run: |
+          ! git rev-parse $NEW_VERSION || { echo "A tag for $NEW_VERSION already exists" ; exit 1; }
+
+      - name: Build Python distributions
+        env:
+          NEW_VERSION: ${{ steps.semver.outputs.patch }}
+        # FYI: Checks in this script only work because the -e flag is enabled by default in GitHub actions
+        run: |
+          python3 -m pip install build
+
+          # make sure setup.cfg is not dirty yet
+          git diff --exit-code setup.cfg
+
+          echo "Setting new version in setup.cfg":
+          sed -i -E 's/^(version\s*=\s*)("?)[^"]+("?)/\1\2'"$NEW_VERSION"'\3/' setup.cfg
+
+          # make sure setup.cfg is dirty now
+          ! git diff --exit-code setup.cfg
+
+          echo "Building distributions"
+          python3 -m build
+
+      - name: Create and push tag
+        env:
+          NEW_VERSION: ${{ steps.semver.outputs.patch }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git tag -a $NEW_VERSION -m $NEW_VERSION
+          git push --tags origin localstack
+
+      - name: Clean up
+        run: |
+          git reset --hard
+          git clean -df
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: moto-ext-dists
+          path: dist/*.*
+
+      # publish the package before pushing the tag (this might fail if the version already exists on PyPI)
+      - name: Publish package distributions to PyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # Add a retry to avoid issues where the GH CLI fails because it does not yet detect the pushed tag.
+      - name: Create Release
+        uses: nick-fields/retry@v3
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          max_attempts: 5
+          retry_wait_seconds: 120
+          timeout_minutes: 5
+          command: gh release create $NEW_VERSION --repo localstack/moto --notes "automatic release"
