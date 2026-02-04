@@ -9,6 +9,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID, aws_verified
+from tests.test_ec2.test_route_tables import setup_vpc
 
 from .helpers import assert_dryrun_error
 
@@ -471,6 +472,27 @@ def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
     eni_ids = [eni["NetworkInterfaceId"] for eni in enis]
     assert eni1.id in eni_ids
 
+@mock_aws
+def test_elastic_network_interfaces_get_by_attachment_id():
+    ec2resource, ec2client, vpc, subnet = setup_vpc()
+
+    eni1 = ec2resource.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.0.10",
+    )
+    
+    instance = ec2resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    
+    attachment = ec2client.attach_network_interface(
+        NetworkInterfaceId=eni1.id, InstanceId=instance.id, DeviceIndex=1
+    )
+    filter_attachment_id = attachment["AttachmentId"]
+    filters = [{"Name": "attachment.attachment-id", "Values": [filter_attachment_id]}]
+    enis = ec2client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
+    eni_ids = [eni["NetworkInterfaceId"] for eni in enis]
+    assert eni1.id in eni_ids
 
 @mock_aws
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
