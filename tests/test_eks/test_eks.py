@@ -1469,3 +1469,133 @@ def test_update_cluster_config_not_found(ClusterBuilder):
         client.update_cluster_config(name=generated_cluster.nonexistent_cluster_name)
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_update_nodegroup_config_labels(NodegroupBuilder):
+    client, generated_test_data = NodegroupBuilder()
+    cluster_name = generated_test_data.cluster_name
+    nodegroup_name = generated_test_data.existing_nodegroup_name
+
+    # Add/update labels
+    result = client.update_nodegroup_config(
+        clusterName=cluster_name,
+        nodegroupName=nodegroup_name,
+        labels={
+            "addOrUpdateLabels": {"env": "test", "team": "platform"},
+        },
+    )
+    assert "update" in result
+    assert result["update"]["status"] == "Successful"
+    assert result["update"]["type"] == "ConfigUpdate"
+
+    # Verify labels were applied
+    nodegroup = client.describe_nodegroup(
+        clusterName=cluster_name, nodegroupName=nodegroup_name
+    )["nodegroup"]
+    assert nodegroup["labels"]["env"] == "test"
+    assert nodegroup["labels"]["team"] == "platform"
+
+    # Remove a label
+    client.update_nodegroup_config(
+        clusterName=cluster_name,
+        nodegroupName=nodegroup_name,
+        labels={"removeLabels": ["env"]},
+    )
+    nodegroup = client.describe_nodegroup(
+        clusterName=cluster_name, nodegroupName=nodegroup_name
+    )["nodegroup"]
+    assert "env" not in nodegroup["labels"]
+    assert nodegroup["labels"]["team"] == "platform"
+
+
+@mock_aws
+def test_update_nodegroup_config_taints(NodegroupBuilder):
+    client, generated_test_data = NodegroupBuilder()
+    cluster_name = generated_test_data.cluster_name
+    nodegroup_name = generated_test_data.existing_nodegroup_name
+
+    # Add taints
+    result = client.update_nodegroup_config(
+        clusterName=cluster_name,
+        nodegroupName=nodegroup_name,
+        taints={
+            "addOrUpdateTaints": [
+                {"key": "dedicated", "value": "gpu", "effect": "NO_SCHEDULE"},
+            ],
+        },
+    )
+    assert result["update"]["status"] == "Successful"
+
+    nodegroup = client.describe_nodegroup(
+        clusterName=cluster_name, nodegroupName=nodegroup_name
+    )["nodegroup"]
+    assert len(nodegroup["taints"]) == 1
+    assert nodegroup["taints"][0]["key"] == "dedicated"
+
+    # Remove taints
+    client.update_nodegroup_config(
+        clusterName=cluster_name,
+        nodegroupName=nodegroup_name,
+        taints={
+            "removeTaints": [
+                {"key": "dedicated", "effect": "NO_SCHEDULE"},
+            ],
+        },
+    )
+    nodegroup = client.describe_nodegroup(
+        clusterName=cluster_name, nodegroupName=nodegroup_name
+    )["nodegroup"]
+    assert len(nodegroup["taints"]) == 0
+
+
+@mock_aws
+def test_update_nodegroup_config_scaling(NodegroupBuilder):
+    client, generated_test_data = NodegroupBuilder()
+    cluster_name = generated_test_data.cluster_name
+    nodegroup_name = generated_test_data.existing_nodegroup_name
+
+    result = client.update_nodegroup_config(
+        clusterName=cluster_name,
+        nodegroupName=nodegroup_name,
+        scalingConfig={"minSize": 1, "maxSize": 5, "desiredSize": 3},
+    )
+    assert result["update"]["status"] == "Successful"
+
+    nodegroup = client.describe_nodegroup(
+        clusterName=cluster_name, nodegroupName=nodegroup_name
+    )["nodegroup"]
+    assert nodegroup["scalingConfig"]["minSize"] == 1
+    assert nodegroup["scalingConfig"]["maxSize"] == 5
+    assert nodegroup["scalingConfig"]["desiredSize"] == 3
+
+
+@mock_aws
+def test_update_nodegroup_config_cluster_not_found():
+    client = boto3.client(SERVICE, region_name=REGION)
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName="nonexistent")
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.update_nodegroup_config(
+            clusterName="nonexistent",
+            nodegroupName="ng-1",
+            labels={"addOrUpdateLabels": {"key": "value"}},
+        )
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_update_nodegroup_config_nodegroup_not_found(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder()
+    cluster_name = generated_test_data.existing_cluster_name
+    expected_exception = ResourceNotFoundException
+    expected_msg = NODEGROUP_NOT_FOUND_MSG.format(nodegroupName="nonexistent")
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.update_nodegroup_config(
+            clusterName=cluster_name,
+            nodegroupName="nonexistent",
+            labels={"addOrUpdateLabels": {"key": "value"}},
+        )
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)

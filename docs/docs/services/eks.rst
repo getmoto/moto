@@ -87,7 +87,7 @@ eks
 - [X] update_cluster_config
 - [ ] update_cluster_version
 - [ ] update_eks_anywhere_subscription
-- [ ] update_nodegroup_config
+- [X] update_nodegroup_config
 - [ ] update_nodegroup_version
 - [ ] update_pod_identity_association
 
