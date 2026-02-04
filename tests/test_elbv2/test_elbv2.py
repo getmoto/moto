@@ -1284,6 +1284,12 @@ def test_describe_ssl_policies():
             "ELBSecurityPolicy-2016-08",
         ]
     )
+
+    first_policy = resp["SslPolicies"][0]
+
+    # Assuming cipher order and priorty may change over time just checking name and protocol
+    assert first_policy["Name"] == "ELBSecurityPolicy-TLS-1-2-2017-01"
+    assert first_policy["SslProtocols"] == ["TLSv1.2"]
     assert len(resp["SslPolicies"]) == 2
 
 
