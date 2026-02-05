@@ -1,4 +1,25 @@
 
+## account
+<details>
+<summary>20% implemented</summary>
+
+- [ ] accept_primary_email_update
+- [X] delete_alternate_contact
+- [ ] disable_region
+- [ ] enable_region
+- [ ] get_account_information
+- [X] get_alternate_contact
+- [ ] get_contact_information
+- [ ] get_gov_cloud_account_information
+- [ ] get_primary_email
+- [ ] get_region_opt_status
+- [ ] list_regions
+- [ ] put_account_name
+- [X] put_alternate_contact
+- [ ] put_contact_information
+- [ ] start_primary_email_update
+</details>
+
 ## acm
 <details>
 <summary>68% implemented</summary>
