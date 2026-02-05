@@ -14,8 +14,14 @@ class EXPRESSION_STAGES(Enum):
 
 
 def get_key(schema: list[dict[str, str]], key_type: str) -> Optional[str]:
-    keys = [key for key in schema if key["KeyType"] == key_type]
-    return keys[0]["AttributeName"] if keys else None
+    """Get the first key of the specified type (for backward compatibility)."""
+    keys = get_keys(schema, key_type)
+    return keys[0] if keys else None
+
+
+def get_keys(schema: list[dict[str, str]], key_type: str) -> list[str]:
+    """Get all keys of the specified type in schema order."""
+    return [key["AttributeName"] for key in schema if key["KeyType"] == key_type]
 
 
 def parse_expression(
@@ -23,7 +29,11 @@ def parse_expression(
     expression_attribute_values: dict[str, dict[str, str]],
     expression_attribute_names: dict[str, str],
     schema: list[dict[str, str]],
-) -> tuple[dict[str, Any], Optional[str], list[dict[str, Any]], list[str]]:
+) -> tuple[
+    list[tuple[str, dict[str, Any]]],
+    list[tuple[str, str, list[dict[str, Any]]]],
+    list[str],
+]:
     """
     Parse a KeyConditionExpression using the provided expression attribute names/values
 
@@ -31,6 +41,11 @@ def parse_expression(
     expression_attribute_names:  {":sk": "sortkey"}
     expression_attribute_values: {":id": {"S": "some hash key"}}
     schema:                      [{'AttributeName': 'hashkey', 'KeyType': 'HASH'}, {"AttributeName": "sortkey", "KeyType": "RANGE"}]
+
+    Returns:
+        - hash_key_conditions: List of (attr_name, value) for all hash keys
+        - range_key_conditions: List of (attr_name, comparison, values) for range keys
+        - expression_attribute_names_used: List of expression attribute names used
     """
 
     current_stage: Optional[EXPRESSION_STAGES] = None
@@ -193,12 +208,11 @@ def parse_expression(
         if current_stage is None:
             current_stage = EXPRESSION_STAGES.INITIAL_STAGE
 
-    hash_value, range_comparison, range_values = validate_schema(results, schema)
+    hash_key_conditions, range_key_conditions = validate_schema(results, schema)
 
     return (
-        hash_value,
-        range_comparison.upper() if range_comparison else None,
-        range_values,
+        hash_key_conditions,
+        range_key_conditions,
         expression_attribute_names_used,
     )
 
@@ -206,45 +220,103 @@ def parse_expression(
 # Validate that the schema-keys are encountered in our query
 def validate_schema(
     results: Any, schema: list[dict[str, str]]
-) -> tuple[dict[str, Any], Optional[str], list[dict[str, Any]]]:
-    index_hash_key = get_key(schema, "HASH")
-    comparison, hash_value = next(
-        (
-            (comparison, value[0])
-            for key, comparison, value in results
-            if key == index_hash_key
-        ),
-        (None, None),
-    )
-    if hash_value is None:
-        raise MockValidationException(
-            f"Query condition missed key schema element: {index_hash_key}"
-        )
-    if comparison != "=":
-        raise MockValidationException("Query key condition not supported")
-    if "S" in hash_value and hash_value["S"] == "":
-        raise KeyIsEmptyStringException(index_hash_key)  # type: ignore[arg-type]
+) -> tuple[
+    list[tuple[str, dict[str, Any]]],
+    list[tuple[str, str, list[dict[str, Any]]]],
+]:
+    """
+    Validate query conditions against the schema and extract key values.
 
-    index_range_key = get_key(schema, "RANGE")
-    range_key, range_comparison, range_values = next(
-        (
-            (key, comparison, values)
-            for key, comparison, values in results
-            if key == index_range_key
-        ),
-        (None, None, []),
-    )
-    if index_range_key:
-        if len(results) > 1 and range_key != index_range_key:
+    For multi-attribute keys:
+    - ALL hash keys must be present with equality (=)
+    - Range keys must be specified left-to-right (cannot skip)
+    - Only the LAST range key in the query can use non-equality operators
+    - Earlier range keys in the query must use equality (=)
+
+    Returns:
+        - hash_key_conditions: List of (attr_name, value) for all hash keys
+        - range_key_conditions: List of (attr_name, comparison, values) for range keys
+    """
+    # Build a lookup from results: {key_name: (comparison, values)}
+    results_by_key: dict[str, tuple[str, list[dict[str, Any]]]] = {
+        key: (comparison, values) for key, comparison, values in results
+    }
+
+    # Get all hash and range keys from schema in order
+    hash_keys = get_keys(schema, "HASH")
+    range_keys = get_keys(schema, "RANGE")
+    provided_keys = set(results_by_key.keys())
+    schema_keys = set(hash_keys + range_keys)
+
+    # === Validate HASH keys ===
+    # All hash keys must be present with equality
+    # Check missing hash keys FIRST (before checking for invalid keys)
+    hash_key_conditions: list[tuple[str, dict[str, Any]]] = []
+
+    for hash_key in hash_keys:
+        if hash_key not in results_by_key:
             raise MockValidationException(
-                f"Query condition missed key schema element: {index_range_key}"
+                f"Query condition missed key schema element: {hash_key}"
             )
-        if {"S": ""} in range_values:
-            raise KeyIsEmptyStringException(index_range_key)
+        comparison, values = results_by_key[hash_key]
+        if comparison != "=":
+            raise MockValidationException("Query key condition not supported")
+        value = values[0]
+        if "S" in value and value["S"] == "":
+            raise KeyIsEmptyStringException(hash_key)  # type: ignore[arg-type]
+        hash_key_conditions.append((hash_key, value))
 
-    provided_keys = [key for key, _, _ in results]
-    schema_keys = [x["AttributeName"] for x in schema]
-    if any(x not in schema_keys for x in provided_keys):
+    # === Validate RANGE keys ===
+    # Range keys must be specified left-to-right, only last can use non-equality
+    range_key_conditions: list[tuple[str, str, list[dict[str, Any]]]] = []
+
+    # Find which range keys are in the query (in schema order)
+    range_keys_in_query: list[str] = [k for k in range_keys if k in results_by_key]
+
+    # Check for unknown keys (keys in query but not in schema)
+    unknown_keys = provided_keys - schema_keys
+    if unknown_keys:
+        # User provided keys not in schema - report first missing range key if any,
+        # otherwise report generic error
+        missing_range_keys = [k for k in range_keys if k not in results_by_key]
+        if missing_range_keys:
+            raise MockValidationException(
+                f"Query condition missed key schema element: {missing_range_keys[0]}"
+            )
         raise MockValidationException("Query key condition not supported")
 
-    return hash_value, range_comparison, range_values
+    for i, range_key in enumerate(range_keys):
+        if range_key not in results_by_key:
+            # This range key is not in the query
+            # Check if any later range keys ARE in the query (would be skipping)
+            later_keys_in_query = [
+                k for k in range_keys[i + 1 :] if k in results_by_key
+            ]
+            if later_keys_in_query:
+                # User skipped this key but specified a later one - error
+                raise MockValidationException(
+                    f"RANGE key attributes {range_key} must have equality conditions "
+                    f"specified in the query because a condition is present on key "
+                    f"attribute {later_keys_in_query[0]}"
+                )
+            # No more range keys in query, we're done
+            break
+
+        comparison, values = results_by_key[range_key]
+        is_last_in_query = range_key == range_keys_in_query[-1]
+
+        if is_last_in_query:
+            # Last range key in query can use any comparison
+            if {"S": ""} in values:
+                raise KeyIsEmptyStringException(range_key)
+            range_key_conditions.append((range_key, comparison.upper(), values))
+        else:
+            # Not last in query - must be equality
+            if comparison != "=":
+                raise MockValidationException("Query key condition not supported")
+            value = values[0]
+            if "S" in value and value["S"] == "":
+                raise KeyIsEmptyStringException(range_key)  # type: ignore[arg-type]
+            range_key_conditions.append((range_key, "=", [value]))
+
+    return hash_key_conditions, range_key_conditions

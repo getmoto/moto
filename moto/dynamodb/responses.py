@@ -19,7 +19,10 @@ from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeValue,
     UpdateExpressionParser,
 )
-from moto.dynamodb.parsing.key_condition_expression import parse_expression
+from moto.dynamodb.parsing.key_condition_expression import (
+    parse_expression,
+    validate_schema,
+)
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from moto.dynamodb.utils import find_duplicates
 from moto.utilities.aws_headers import amz_crc32
@@ -30,7 +33,6 @@ from .exceptions import (
     KeyIsEmptyStringException,
     MockValidationException,
     ProvidedKeyDoesNotExist,
-    ResourceNotFoundException,
     UnknownKeyType,
 )
 
@@ -857,15 +859,18 @@ class DynamoHandler(BaseResponse):
 
         filter_kwargs = {}
 
+        # Initialize key condition variables
+        hash_key_conditions: list[tuple[str, dict[str, Any]]] = []
+        range_key_conditions: list[tuple[str, str, list[dict[str, Any]]]] = []
+
         if key_condition_expression:
             index_name = self.body.get("IndexName")
             schema = self.dynamodb_backend.get_schema(
                 table_name=name, index_name=index_name
             )
             (
-                hash_key,
-                range_comparison,
-                range_values,
+                hash_key_conditions,
+                range_key_conditions,
                 expression_attribute_names_used_by_key_condition,
             ) = parse_expression(
                 key_condition_expression=key_condition_expression,
@@ -876,6 +881,16 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names_used += (
                 expression_attribute_names_used_by_key_condition
             )
+            # Extract primary hash key for backward-compatible interface
+            hash_key = hash_key_conditions[0][1] if hash_key_conditions else None
+            # Extract last range key condition for backward-compatible interface
+            if range_key_conditions:
+                last_range = range_key_conditions[-1]
+                range_comparison = last_range[1]
+                range_values = last_range[2]
+            else:
+                range_comparison = None
+                range_values = []
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get("KeyConditions")
@@ -887,32 +902,46 @@ class DynamoHandler(BaseResponse):
                 )
 
             if key_conditions:
-                (
-                    hash_key_name,
-                    range_key_name,
-                ) = self.dynamodb_backend.get_table_keys_name(
-                    name, key_conditions.keys()
+                index_name = self.body.get("IndexName")
+                schema = self.dynamodb_backend.get_schema(
+                    table_name=name, index_name=index_name
                 )
+                schema_key_names = {
+                    k["AttributeName"] for k in schema
+                }
+
+                # Convert KeyConditions to (key, comparison, values) tuples
+                # for validate_schema, separating non-key conditions into filters
+                results = []
                 for key, value in key_conditions.items():
-                    if key not in (hash_key_name, range_key_name):
+                    if key in schema_key_names:
+                        comparison = value["ComparisonOperator"]
+                        # Map KeyConditions operators to expression-style operators
+                        op_map = {
+                            "EQ": "=", "LE": "<=", "LT": "<",
+                            "GE": ">=", "GT": ">", "BEGINS_WITH": "BEGINS_WITH",
+                            "BETWEEN": "BETWEEN",
+                        }
+                        results.append((
+                            key,
+                            op_map.get(comparison, comparison),
+                            value["AttributeValueList"],
+                        ))
+                    else:
                         filter_kwargs[key] = value
-                if hash_key_name is None:
-                    raise ResourceNotFoundException
-                hash_key = key_conditions[hash_key_name]["AttributeValueList"][0]
-                if len(key_conditions) == 1:
+
+                hash_key_conditions, range_key_conditions = validate_schema(
+                    results, schema
+                )
+
+                hash_key = hash_key_conditions[0][1] if hash_key_conditions else None
+                if range_key_conditions:
+                    last_range = range_key_conditions[-1]
+                    range_comparison = last_range[1]
+                    range_values = last_range[2]
+                else:
                     range_comparison = None
                     range_values = []
-                else:
-                    if range_key_name is None and not filter_kwargs:
-                        raise MockValidationException("Validation Exception")
-                    else:
-                        range_condition = key_conditions.get(range_key_name)
-                        if range_condition:
-                            range_comparison = range_condition["ComparisonOperator"]
-                            range_values = range_condition["AttributeValueList"]
-                        else:
-                            range_comparison = None
-                            range_values = []
             if query_filters:
                 filter_kwargs.update(query_filters)
 
@@ -939,6 +968,8 @@ class DynamoHandler(BaseResponse):
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
             filter_expression=filter_expression,
+            hash_key_conditions=hash_key_conditions,
+            range_key_conditions=range_key_conditions,
             **filter_kwargs,
         )
 

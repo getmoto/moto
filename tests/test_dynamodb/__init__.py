@@ -18,6 +18,7 @@ def dynamodb_aws_verified(
     lsi_projection_type: str = "ALL",
     numeric_gsi_range: bool = False,
     numeric_lsi_range: bool = False,
+    add_multi_attribute_gsi: bool = False,
 ):
     """
     Function that is verified to work against AWS.
@@ -96,6 +97,29 @@ def dynamodb_aws_verified(
                     )
                     db_kwargs["AttributeDefinitions"].append(
                         {"AttributeName": "gsi_sk", "AttributeType": gsi_range_type}
+                    )
+                if add_multi_attribute_gsi:
+                    db_kwargs["GlobalSecondaryIndexes"] = [
+                        {
+                            "IndexName": "test_gsi",
+                            "KeySchema": [
+                                {"AttributeName": "gsi_pk", "KeyType": "HASH"},
+                                {"AttributeName": "gsi_sk", "KeyType": "RANGE"},
+                                {"AttributeName": "gsi_sk2", "KeyType": "RANGE"},
+                            ],
+                            "Projection": {"ProjectionType": gsi_projection_type},
+                            "ProvisionedThroughput": {
+                                "ReadCapacityUnits": 1,
+                                "WriteCapacityUnits": 1,
+                            },
+                        }
+                    ]
+                    db_kwargs["AttributeDefinitions"].extend(
+                        [
+                            {"AttributeName": "gsi_pk", "AttributeType": "S"},
+                            {"AttributeName": "gsi_sk", "AttributeType": "S"},
+                            {"AttributeName": "gsi_sk2", "AttributeType": "N"},
+                        ]
                     )
                 if add_lsi or numeric_lsi_range:
                     db_kwargs["LocalSecondaryIndexes"] = [
