@@ -212,6 +212,8 @@ class Nodegroup:
         capacity_type: Optional[str] = None,
         version: Optional[str] = None,
         release_version: Optional[str] = None,
+        update_config: Optional[dict[str, Any]] = None,
+        node_repair_config: Optional[dict[str, Any]] = None,
     ):
         if tags is None:
             tags = {}
@@ -258,6 +260,8 @@ class Nodegroup:
         self.subnets = subnets
         self.tags = tags
         self.taints = taints
+        self.update_config = update_config
+        self.node_repair_config = node_repair_config
 
         # Determine LaunchTemplateId from Name (and vice versa)
         try:
@@ -729,6 +733,114 @@ class EKSBackend(BaseBackend):
             addonName=None,
             message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
         )
+
+    def update_nodegroup_config(
+        self,
+        cluster_name: str,
+        nodegroup_name: str,
+        labels: Optional[dict[str, Any]] = None,
+        taints: Optional[dict[str, Any]] = None,
+        scaling_config: Optional[dict[str, int]] = None,
+        update_config: Optional[dict[str, Any]] = None,
+        node_repair_config: Optional[dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Validate cluster exists
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        # Validate nodegroup exists
+        try:
+            nodegroup = cluster.nodegroups[nodegroup_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=NODEGROUP_NOT_FOUND_MSG.format(nodegroupName=nodegroup_name),
+            )
+
+        # Update labels
+        if labels:
+            if "addOrUpdateLabels" in labels:
+                nodegroup.labels.update(labels["addOrUpdateLabels"])
+            if "removeLabels" in labels:
+                for key in labels["removeLabels"]:
+                    nodegroup.labels.pop(key, None)
+
+        # Update taints
+        if taints:
+            if "addOrUpdateTaints" in taints:
+                for new_taint in taints["addOrUpdateTaints"]:
+                    # Remove existing taint with same key+effect, then add new one
+                    nodegroup.taints = [
+                        t
+                        for t in nodegroup.taints
+                        if not (
+                            t["key"] == new_taint["key"]
+                            and t.get("effect") == new_taint.get("effect")
+                        )
+                    ]
+                    nodegroup.taints.append(new_taint)
+            if "removeTaints" in taints:
+                for taint_to_remove in taints["removeTaints"]:
+                    nodegroup.taints = [
+                        t
+                        for t in nodegroup.taints
+                        if not (
+                            t["key"] == taint_to_remove["key"]
+                            and t.get("effect") == taint_to_remove.get("effect")
+                        )
+                    ]
+
+        # Update scaling config
+        if scaling_config:
+            nodegroup.scaling_config.update(scaling_config)
+
+        # Update update_config
+        if update_config:
+            nodegroup.update_config = update_config
+
+        # Update node_repair_config
+        if node_repair_config:
+            nodegroup.node_repair_config = node_repair_config
+
+        # Update modified timestamp
+        nodegroup.modified_at = utcnow()
+
+        # Build params list for response
+        params = []
+        if labels:
+            params.append({"type": "Labels", "value": str(labels)})
+        if taints:
+            params.append({"type": "Taints", "value": str(taints)})
+        if scaling_config:
+            params.append({"type": "ScalingConfig", "value": str(scaling_config)})
+        if update_config:
+            params.append({"type": "UpdateConfig", "value": str(update_config)})
+        if node_repair_config:
+            params.append(
+                {"type": "NodeRepairConfig", "value": str(node_repair_config)}
+            )
+
+        # Return update object (not nodegroup)
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "ConfigUpdate",
+            "params": params,
+            "createdAt": utcnow(),
+            "errors": [],
+        }
 
 
 def paginated_list(

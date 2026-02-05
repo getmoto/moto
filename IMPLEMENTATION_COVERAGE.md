@@ -3854,7 +3854,7 @@
 
 ## eks
 <details>
-<summary>27% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] associate_access_policy
 - [ ] associate_encryption_config
@@ -3912,7 +3912,7 @@
 - [X] update_cluster_config
 - [ ] update_cluster_version
 - [ ] update_eks_anywhere_subscription
-- [ ] update_nodegroup_config
+- [X] update_nodegroup_config
 - [ ] update_nodegroup_version
 - [ ] update_pod_identity_association
 </details>
