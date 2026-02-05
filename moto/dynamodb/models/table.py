@@ -788,9 +788,7 @@ class Table(CloudFormationModel):
                 )
 
             # Get ALL hash keys from schema (multi-attribute support)
-            index_hash_keys = [
-                key for key in index.schema if key["KeyType"] == "HASH"
-            ]
+            index_hash_keys = [key for key in index.schema if key["KeyType"] == "HASH"]
             if not index_hash_keys:
                 raise MockValidationException(
                     f"Missing Hash Key. KeySchema: {index.name}"
@@ -817,12 +815,16 @@ class Table(CloudFormationModel):
                 index_range_key = index_range_keys[0]
 
             # Build hash_attrs for sorting: all index hash keys + table hash key
-            hash_attrs = [k["AttributeName"] for k in index_hash_keys] + [self.hash_key_attr]
+            hash_attrs = [k["AttributeName"] for k in index_hash_keys] + [
+                self.hash_key_attr
+            ]
             # Build range_attrs for sorting: all index range keys + table range key
             # Note: For backward compatibility with _generate_attr_to_sort_by, we always
             # include table range key (even if None) when there's only one GSI range key
             if index_range_keys:
-                range_attrs: list[Optional[str]] = [k["AttributeName"] for k in index_range_keys]
+                range_attrs: list[Optional[str]] = [
+                    k["AttributeName"] for k in index_range_keys
+                ]
                 # Always append table range key for backward compatibility with sorting
                 range_attrs.append(self.range_key_attr)
             elif index_range_key:
@@ -877,8 +879,7 @@ class Table(CloudFormationModel):
                 # items that have all key attributes present)
                 if index_range_keys:
                     has_all_range_keys = all(
-                        item.attrs.get(key["AttributeName"])
-                        for key in index_range_keys
+                        item.attrs.get(key["AttributeName"]) for key in index_range_keys
                     )
                     if not has_all_range_keys:
                         continue
@@ -952,7 +953,9 @@ class Table(CloudFormationModel):
                     # Single range key GSI: use the index range key
                     range_attr_for_comparison = index_range_key["AttributeName"]
 
-                if range_attr_for_comparison and result.attrs.get(range_attr_for_comparison):
+                if range_attr_for_comparison and result.attrs.get(
+                    range_attr_for_comparison
+                ):
                     if result.attrs.get(range_attr_for_comparison).compare(  # type: ignore
                         range_comparison, range_objs
                     ):

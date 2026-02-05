@@ -906,9 +906,7 @@ class DynamoHandler(BaseResponse):
                 schema = self.dynamodb_backend.get_schema(
                     table_name=name, index_name=index_name
                 )
-                schema_key_names = {
-                    k["AttributeName"] for k in schema
-                }
+                schema_key_names = {k["AttributeName"] for k in schema}
 
                 # Convert KeyConditions to (key, comparison, values) tuples
                 # for validate_schema, separating non-key conditions into filters
@@ -918,15 +916,21 @@ class DynamoHandler(BaseResponse):
                         comparison = value["ComparisonOperator"]
                         # Map KeyConditions operators to expression-style operators
                         op_map = {
-                            "EQ": "=", "LE": "<=", "LT": "<",
-                            "GE": ">=", "GT": ">", "BEGINS_WITH": "BEGINS_WITH",
+                            "EQ": "=",
+                            "LE": "<=",
+                            "LT": "<",
+                            "GE": ">=",
+                            "GT": ">",
+                            "BEGINS_WITH": "BEGINS_WITH",
                             "BETWEEN": "BETWEEN",
                         }
-                        results.append((
-                            key,
-                            op_map.get(comparison, comparison),
-                            value["AttributeValueList"],
-                        ))
+                        results.append(
+                            (
+                                key,
+                                op_map.get(comparison, comparison),
+                                value["AttributeValueList"],
+                            )
+                        )
                     else:
                         filter_kwargs[key] = value
 
