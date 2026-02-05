@@ -2,6 +2,7 @@
 import re
 
 backend_url_patterns = [
+    ("account", re.compile("https?://account\\.(.+)\\.amazonaws\\.com")),
     ("acm", re.compile("https?://acm\\.(.+)\\.amazonaws\\.com")),
     ("acmpca", re.compile("https?://acm-pca\\.(.+)\\.amazonaws\\.com")),
     ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
