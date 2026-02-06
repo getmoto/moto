@@ -348,8 +348,7 @@ class EventInvokeConfig:
         regex = r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
         pattern = re.compile(regex)
 
-        if self.config["DestinationConfig"]:
-            destination_config = self.config["DestinationConfig"]
+        if destination_config := self.config.get("DestinationConfig"):
             if (
                 "OnSuccess" in destination_config
                 and "Destination" in destination_config["OnSuccess"]
