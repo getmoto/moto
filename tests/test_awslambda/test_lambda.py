@@ -1933,6 +1933,24 @@ def test_put_event_invoke_config(config):
 
 
 @mock_aws
+def test_put_event_invoke_config_without_config():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # Execute
+    result = client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, MaximumRetryAttempts=2
+    )
+
+    # Verify
+    assert result["MaximumRetryAttempts"] == 2
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_aws
 @pytest.mark.parametrize(
     "config",
     [
