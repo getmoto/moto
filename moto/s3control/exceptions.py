@@ -1,6 +1,6 @@
 from typing import Any
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, ServiceException
 
 ERROR_WITH_ACCESS_POINT_NAME = """{% extends 'wrapped_single_error' %}
 {% block extra %}<AccessPointName>{{ name }}</AccessPointName>{% endblock %}
@@ -97,6 +97,16 @@ class MultiRegionAccessPointOperationNotFound(S3ControlError):
             "The specified async request does not exist",
             **kwargs,
         )
+
+
+class NoSuchPublicAccessBlockConfiguration(ServiceException):
+    # Note that this exception is in the different format then the S3 exception with the same name
+    # This exception should return a nested response `<ErrorResponse><Error>..`
+    # The S3 variant uses a flat `<Error>`-response
+    code = "NoSuchPublicAccessBlockConfiguration"
+
+    def __init__(self) -> None:
+        super().__init__("The public access block configuration was not found")
 
 
 class InvalidRequestException(S3ControlError):

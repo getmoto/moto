@@ -9,7 +9,6 @@ from moto.moto_api._internal import mock_random
 from moto.s3 import s3_backends
 from moto.s3.exceptions import (
     InvalidPublicAccessBlockConfiguration,
-    NoSuchPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
 )
 from moto.s3.models import PublicAccessBlock, S3Backend
@@ -24,6 +23,7 @@ from .exceptions import (
     MultiRegionAccessPointNotFound,
     MultiRegionAccessPointOperationNotFound,
     MultiRegionAccessPointPolicyNotFound,
+    NoSuchPublicAccessBlockConfiguration,
     StorageLensConfigurationNotFound,
 )
 
