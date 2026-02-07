@@ -68,6 +68,7 @@ from .models import (
     FakeGrantee,
     FakeKey,
     S3Backend,
+    TransitionDefaultMinimumObjectSize,
     get_canned_acl,
     s3_backends,
 )
@@ -1018,7 +1019,10 @@ class S3Response(BaseResponse):
             template = self.response_template(S3_NO_LIFECYCLE)
             return 404, {}, template.render(bucket_name=self.bucket_name)
         template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
-        return template.render(rules=rules)
+        headers = {
+            "x-amz-transition-default-minimum-object-size": TransitionDefaultMinimumObjectSize.ALL_STORAGE_CLASSES_128K.value
+        }
+        return 200, headers, template.render(rules=rules)
 
     def get_bucket_location(self) -> str:
         location: Optional[str] = self.backend.get_bucket_location(self.bucket_name)
