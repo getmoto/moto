@@ -12,8 +12,6 @@
 account
 =======
 
-.. autoclass:: moto.account.models.AccountBackend
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_primary_email_update

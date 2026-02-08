@@ -40,6 +40,7 @@ ram
 - [ ] list_resource_share_permissions
 - [X] list_resource_types
 - [ ] list_resources
+- [ ] list_source_associations
 - [ ] promote_permission_created_from_policy
 - [ ] promote_resource_share_created_from_policy
 - [ ] reject_resource_share_invitation

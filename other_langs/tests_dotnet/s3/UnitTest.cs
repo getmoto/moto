@@ -20,7 +20,7 @@ public class UnitTest1
         AmazonS3Client s3Client = new AmazonS3Client(config);
 
         var initial_list = await s3Client.ListBucketsAsync();
-        initial_list.Buckets.Count.Should().Be(0);
+        initial_list.Buckets.Should().BeNull();
 
         var putBucketRequest = new PutBucketRequest
         {
