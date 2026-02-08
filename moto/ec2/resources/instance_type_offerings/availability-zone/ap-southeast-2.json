@@ -5388,6 +5388,10 @@
   "Location": "ap-southeast-2b"
  },
  {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
   "InstanceType": "m8i-flex.2xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -5405,6 +5409,58 @@
  },
  {
   "InstanceType": "m8i-flex.xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.12xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.16xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.24xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.2xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.32xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.48xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.4xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.8xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.96xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.large",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.metal-48xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.metal-96xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m8i.xlarge",
   "Location": "ap-southeast-2b"
  },
  {
@@ -7325,6 +7381,46 @@
  },
  {
   "InstanceType": "c8gd.xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "ap-southeast-2c"
  },
  {
