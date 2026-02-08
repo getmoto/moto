@@ -355,7 +355,7 @@ class DynamoDBBackend(BaseBackend):
     def query(
         self,
         table_name: str,
-        hash_key_dict: dict[str, Any],
+        hash_key_dict: Optional[dict[str, Any]],
         range_comparison: Optional[str],
         range_value_dicts: list[dict[str, Any]],
         limit: int,
@@ -367,12 +367,25 @@ class DynamoDBBackend(BaseBackend):
         expr_names: Optional[dict[str, str]] = None,
         expr_values: Optional[dict[str, dict[str, str]]] = None,
         filter_expression: Optional[str] = None,
+        hash_key_conditions: Optional[list[tuple[str, dict[str, Any]]]] = None,
+        range_key_conditions: Optional[
+            list[tuple[str, str, list[dict[str, Any]]]]
+        ] = None,
         **filter_kwargs: Any,
     ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         table = self.get_table(table_name)
 
-        hash_key = DynamoType(hash_key_dict)
+        hash_key = DynamoType(hash_key_dict) if hash_key_dict else None
         range_values = [DynamoType(range_value) for range_value in range_value_dicts]
+
+        # Convert key conditions to DynamoType
+        hash_key_conditions_typed = [
+            (name, DynamoType(value)) for name, value in (hash_key_conditions or [])
+        ]
+        range_key_conditions_typed = [
+            (name, comparison, [DynamoType(v) for v in values])
+            for name, comparison, values in (range_key_conditions or [])
+        ]
 
         filter_expression_op = get_filter_expression(
             filter_expression, expr_names, expr_values
@@ -389,6 +402,8 @@ class DynamoDBBackend(BaseBackend):
             index_name,
             consistent_read,
             filter_expression_op,
+            hash_key_conditions=hash_key_conditions_typed,
+            range_key_conditions=range_key_conditions_typed,
             **filter_kwargs,
         )
 

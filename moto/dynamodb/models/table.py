@@ -748,7 +748,7 @@ class Table(CloudFormationModel):
 
     def query(
         self,
-        hash_key: DynamoType,
+        hash_key: Optional[DynamoType],
         range_comparison: Optional[str],
         range_objs: list[DynamoType],
         limit: int,
@@ -758,9 +758,19 @@ class Table(CloudFormationModel):
         index_name: Optional[str] = None,
         consistent_read: bool = False,
         filter_expression: Any = None,
+        hash_key_conditions: Optional[list[tuple[str, DynamoType]]] = None,
+        range_key_conditions: Optional[list[tuple[str, str, list[DynamoType]]]] = None,
         **filter_kwargs: Any,
     ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         # FIND POSSIBLE RESULTS
+        # Initialize variables for range key handling
+        index_range_key: Optional[dict[str, str]] = None
+        last_range_key_name: Optional[str] = None
+
+        # Extract last_range_key_name from range_key_conditions if present
+        if range_key_conditions:
+            last_range_key_name = range_key_conditions[-1][0]
+
         if index_name:
             all_indexes = self.all_indexes()
             indexes_by_name = {i.name: i for i in all_indexes}
@@ -777,20 +787,19 @@ class Table(CloudFormationModel):
                     "Consistent reads are not supported on global secondary indexes"
                 )
 
-            try:
-                index_hash_key = [
-                    key for key in index.schema if key["KeyType"] == "HASH"
-                ][0]
-            except IndexError:
+            # Get ALL hash keys from schema (multi-attribute support)
+            index_hash_keys = [key for key in index.schema if key["KeyType"] == "HASH"]
+            if not index_hash_keys:
                 raise MockValidationException(
                     f"Missing Hash Key. KeySchema: {index.name}"
                 )
 
-            try:
-                index_range_key = [
-                    key for key in index.schema if key["KeyType"] == "RANGE"
-                ][0]
-            except IndexError:
+            # Get ALL range keys from schema (multi-attribute support)
+            index_range_keys = [
+                key for key in index.schema if key["KeyType"] == "RANGE"
+            ]
+
+            if not index_range_keys:
                 if isinstance(index, GlobalSecondaryIndex) and self.range_key_attr:
                     # If we're querying a GSI that does not have a range key, the main range key acts as a range key
                     index_range_key = {"AttributeName": self.range_key_attr}
@@ -801,28 +810,81 @@ class Table(CloudFormationModel):
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
                     )
+            else:
+                # For backward compatibility with single range key
+                index_range_key = index_range_keys[0]
 
-            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
-            if index_range_key:
-                range_attrs = [
-                    index_range_key["AttributeName"],
-                    self.range_key_attr,
+            # Build hash_attrs for sorting: all index hash keys + table hash key
+            hash_attrs = [k["AttributeName"] for k in index_hash_keys] + [
+                self.hash_key_attr
+            ]
+            # Build range_attrs for sorting: all index range keys + table range key
+            # Note: For backward compatibility with _generate_attr_to_sort_by, we always
+            # include table range key (even if None) when there's only one GSI range key
+            if index_range_keys:
+                range_attrs: list[Optional[str]] = [
+                    k["AttributeName"] for k in index_range_keys
                 ]
+                # Always append table range key for backward compatibility with sorting
+                range_attrs.append(self.range_key_attr)
+            elif index_range_key:
+                range_attrs = [index_range_key["AttributeName"], self.range_key_attr]
             else:
                 range_attrs = [self.range_key_attr]
+
+            # Build a dict of all hash key conditions from new interface
+            all_hash_conditions: dict[str, DynamoType] = {}
+            if hash_key_conditions:
+                for attr_name, value in hash_key_conditions:
+                    all_hash_conditions[attr_name] = value
+            elif hash_key:
+                # Backward compatibility: use legacy hash_key parameter
+                all_hash_conditions[index_hash_keys[0]["AttributeName"]] = hash_key
+
+            # Build a dict of range key equalities (all but last in range_key_conditions)
+            range_equality_conditions: dict[str, DynamoType] = {}
+            if range_key_conditions and len(range_key_conditions) > 1:
+                # All but the last range key condition are equalities
+                for attr_name, _comparison, values in range_key_conditions[:-1]:
+                    range_equality_conditions[attr_name] = values[0]
 
             possible_results = []
             for item in self.all_items():
                 if not isinstance(item, Item):
                     continue
-                item_hash_key = item.attrs.get(hash_attrs[0])
-                if len(range_attrs) == 1:
-                    if item_hash_key and item_hash_key == hash_key:
-                        possible_results.append(item)
-                else:
-                    item_range_key = item.attrs.get(range_attrs[0])  # type: ignore
-                    if item_hash_key and item_hash_key == hash_key and item_range_key:
-                        possible_results.append(item)
+
+                # Check ALL hash key conditions
+                hash_match = True
+                for attr_name, expected_value in all_hash_conditions.items():
+                    item_value = item.attrs.get(attr_name)
+                    if not item_value or item_value != expected_value:
+                        hash_match = False
+                        break
+
+                if not hash_match:
+                    continue
+
+                # Check range key equality conditions (for multi-attribute range keys)
+                range_equality_match = True
+                for attr_name, expected_value in range_equality_conditions.items():
+                    item_value = item.attrs.get(attr_name)
+                    if not item_value or item_value != expected_value:
+                        range_equality_match = False
+                        break
+
+                if not range_equality_match:
+                    continue
+
+                # For GSI, ensure item has ALL range key attributes (DynamoDB only indexes
+                # items that have all key attributes present)
+                if index_range_keys:
+                    has_all_range_keys = all(
+                        item.attrs.get(key["AttributeName"]) for key in index_range_keys
+                    )
+                    if not has_all_range_keys:
+                        continue
+
+                possible_results.append(item)
         else:
             hash_attrs = [self.hash_key_attr]
             range_attrs = [self.range_key_attr]
@@ -882,18 +944,26 @@ class Table(CloudFormationModel):
                 scanned_count += 1
 
             if range_comparison:
-                if (
-                    index_name
-                    and index_range_key
-                    and result.attrs.get(index_range_key["AttributeName"])
+                # Determine which attribute to apply the range comparison to
+                range_attr_for_comparison: Optional[str] = None
+                if last_range_key_name:
+                    # Multi-attribute key: use the specific range key from the query
+                    range_attr_for_comparison = last_range_key_name
+                elif index_name and index_range_key:
+                    # Single range key GSI: use the index range key
+                    range_attr_for_comparison = index_range_key["AttributeName"]
+
+                if range_attr_for_comparison and result.attrs.get(
+                    range_attr_for_comparison
                 ):
-                    if result.attrs.get(index_range_key["AttributeName"]).compare(  # type: ignore
+                    if result.attrs.get(range_attr_for_comparison).compare(  # type: ignore
                         range_comparison, range_objs
                     ):
                         results.append(result)
                         result_size += result.size()
                         scanned_count += 1
-                else:
+                elif not index_name:
+                    # Table query (not GSI): use the table's range key
                     if result.range_key.compare(range_comparison, range_objs):  # type: ignore[union-attr]
                         results.append(result)
                         result_size += result.size()
@@ -1137,21 +1207,31 @@ class Table(CloudFormationModel):
     def _generate_attr_to_sort_by(
         self, hash_key_attrs: list[str], range_key_attrs: list[Optional[str]]
     ) -> list[str]:
-        gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
-        table_hash_key = str(
-            hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
-        )
-        gsi_range_key = range_key_attrs[0] if len(range_key_attrs) == 2 else None
-        table_range_key = str(
-            range_key_attrs[0] if gsi_range_key is None else range_key_attrs[1]
-        )
-        # Gets the GSI and table hash and range keys in the order to try sorting by
-        attrs_to_sort_by = [
-            gsi_hash_key,
-            gsi_range_key,
-            table_hash_key,
-            table_range_key,
-        ]
+        # For GSI queries, hash_key_attrs = [gsi_hash_keys..., table_hash_key]
+        # and range_key_attrs = [gsi_range_keys..., table_range_key]
+        # For table queries, hash_key_attrs = [table_hash_key]
+        # and range_key_attrs = [table_range_key]
+
+        # Extract GSI keys (all but last) and table keys (last)
+        if len(hash_key_attrs) > 1:
+            # GSI query
+            gsi_hash_keys = hash_key_attrs[:-1]
+            table_hash_key = hash_key_attrs[-1]
+            gsi_range_keys = [k for k in range_key_attrs[:-1] if k is not None]
+            table_range_key = range_key_attrs[-1]
+        else:
+            # Table query
+            gsi_hash_keys = []
+            table_hash_key = hash_key_attrs[0]
+            gsi_range_keys = []
+            table_range_key = range_key_attrs[0] if range_key_attrs else None
+
+        # Sort order: GSI hash keys, GSI range keys, table hash key, table range key
+        attrs_to_sort_by: list[Optional[str]] = []
+        attrs_to_sort_by.extend(gsi_hash_keys)
+        attrs_to_sort_by.extend(gsi_range_keys)
+        attrs_to_sort_by.append(table_hash_key)
+        attrs_to_sort_by.append(table_range_key)
         return [
             attr for attr in attrs_to_sort_by if attr is not None and attr != "None"
         ]
