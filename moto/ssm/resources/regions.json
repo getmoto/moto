@@ -517,6 +517,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -1178,6 +1187,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "network-firewall": {
@@ -4410,6 +4428,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "privatelink": {
                 "Value": "privatelink"
               },
@@ -4519,6 +4546,15 @@
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
                   "Value": "route53-recovery-control-config.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53profiles": {
+                "Value": "route53profiles",
+                "endpoint": {
+                  "Value": "route53profiles.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6607,7 +6643,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -9268,7 +9310,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -13541,7 +13589,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -17751,7 +17805,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -25644,7 +25704,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "neptune": {
                 "Value": "neptune",
@@ -25653,6 +25719,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "network-firewall": {
@@ -26814,6 +26889,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "privatelink": {
                 "Value": "privatelink"
               },
@@ -26923,6 +27007,15 @@
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
                   "Value": "route53-recovery-control-config.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53profiles": {
+                "Value": "route53profiles",
+                "endpoint": {
+                  "Value": "route53profiles.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27935,7 +28028,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "network-firewall": {
                 "Value": "network-firewall",
@@ -30083,6 +30182,12 @@
                   "Value": "observabilityadmin.ca-central-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ca-central-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -31772,6 +31877,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -33247,7 +33361,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "neptune": {
                 "Value": "neptune",
@@ -39026,6 +39146,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -41016,7 +41145,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -42969,6 +43104,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -44033,6 +44177,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47202,7 +47355,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -50005,7 +50164,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -52306,7 +52471,13 @@
                 }
               },
               "mwaa": {
-                "Value": "mwaa"
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa-serverless": {
                 "Value": "mwaa-serverless",
@@ -55237,6 +55408,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -56889,6 +57069,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "network-firewall": {
@@ -58610,6 +58799,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -58617,6 +58815,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "network-firewall": {
@@ -73553,6 +73760,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
