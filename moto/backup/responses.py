@@ -3,7 +3,7 @@
 import json
 from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import BackupBackend, backup_backends
 
@@ -33,7 +33,8 @@ class BackupResponse(BaseResponse):
 
     def get_backup_plan(self) -> str:
         params = self._get_params()
-        backup_plan_id = self.path.split("/")[-2]
+        backup_plan_id = self.path.split("/plans/")[-1]
+        backup_plan_id = backup_plan_id.replace("/", "")  # replace any trailing slash
         version_id = params.get("versionId")
         plan = self.backup_backend.get_backup_plan(
             backup_plan_id=backup_plan_id, version_id=version_id
@@ -82,6 +83,16 @@ class BackupResponse(BaseResponse):
             creator_request_id=creator_request_id,
         )
         return json.dumps(dict(backup_vault.to_dict()))
+
+    def delete_backup_vault(self) -> EmptyResult:
+        backup_vault_name = self.path.split("/")[-1]
+        self.backup_backend.delete_backup_vault(backup_vault_name)
+        return EmptyResult()
+
+    def describe_backup_vault(self) -> ActionResult:
+        backup_vault_name = self.path.split("/")[-1]
+        vault = self.backup_backend.describe_backup_vault(backup_vault_name)
+        return ActionResult(result=vault)
 
     def list_backup_vaults(self) -> str:
         backup_vault_list = self.backup_backend.list_backup_vaults()
@@ -140,3 +151,33 @@ class BackupResponse(BaseResponse):
         )
 
         return "{}"
+
+    def list_report_plans(self) -> ActionResult:
+        report_plans = self.backup_backend.list_report_plans()
+        return ActionResult(result={"ReportPlans": report_plans})
+
+    def create_report_plan(self) -> ActionResult:
+        report_plan_name = self._get_param("ReportPlanName")
+        report_plan_description = self._get_param("ReportPlanDescription")
+        report_delivery_channel = self._get_param("ReportDeliveryChannel")
+        report_setting = self._get_param("ReportSetting")
+        report_plan = self.backup_backend.create_report_plan(
+            report_plan_name=report_plan_name,
+            report_plan_description=report_plan_description,
+            report_delivery_channel=report_delivery_channel,
+            report_setting=report_setting,
+        )
+        return ActionResult(result=report_plan)
+
+    def describe_report_plan(self) -> ActionResult:
+        report_plan_name = self._get_param("reportPlanName")
+        report_plan = self.backup_backend.describe_report_plan(
+            report_plan_name=report_plan_name
+        )
+        return ActionResult(result={"ReportPlan": report_plan})
+
+    def delete_report_plan(self) -> EmptyResult:
+        report_plan_name = self.path.split("/report-plans/")[-1]
+        plan_name = report_plan_name.replace("/", "")  # replace any trailing slash
+        self.backup_backend.delete_report_plan(report_plan_name=plan_name)
+        return EmptyResult()

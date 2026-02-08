@@ -112,6 +112,8 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
         if service_name == "opensearch" and request_uri.endswith("/tags/"):
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
+        if service_name == "backup" and request_uri.endswith("/"):
+            request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
 
