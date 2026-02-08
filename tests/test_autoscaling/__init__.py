@@ -14,7 +14,6 @@ pytest.register_assert_rewrite("tests.test_ec2.helpers")
 def autoscaling_aws_verified(
     create_auto_scaling_group: bool = False,
     get_group_name: bool = False,
-    wait_for_instance_termination: bool = True,
 ):
     def inner(func):
         @wraps(func)
@@ -25,7 +24,6 @@ def autoscaling_aws_verified(
                 return _invoke_func(
                     create_auto_scaling_group=create_auto_scaling_group,
                     get_group_name=get_group_name,
-                    wait_for_instance_termination=wait_for_instance_termination,
                     func=func,
                     kwargs=kwargs,
                 )
@@ -38,7 +36,6 @@ def autoscaling_aws_verified(
 def _invoke_func(
     create_auto_scaling_group: bool,
     get_group_name: bool,
-    wait_for_instance_termination: bool,
     func,
     kwargs,
 ):
@@ -67,18 +64,8 @@ def _invoke_func(
                 # group was never created in the first place
                 pass
             else:
-                group = groups[0]
                 autoscaling_client.delete_auto_scaling_group(
                     AutoScalingGroupName=autoscaling_group_name,
                     # Delete underlying instances as well
                     ForceDelete=True,
                 )
-
-                if wait_for_instance_termination:
-                    ec2_client = boto3.client("ec2", "us-east-1")
-                    waiter = ec2_client.get_waiter("instance_terminated")
-                    waiter.wait(
-                        # Delay to get around https://github.com/boto/boto3/issues/176
-                        WaiterConfig={"Delay": 10},
-                        InstanceIds=[inst["InstanceId"] for inst in group["Instances"]],
-                    )

@@ -144,8 +144,7 @@ def test_create_autoscaling_group_from_invalid_instance_id():
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
     return_launch_template_details=True,
 )
-# Instances are created in the Subnet - wait until the instances are terminated at the end, otherwise subsequent Subnet deletion fails (because of dangling resources)
-@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=True)
+@autoscaling_aws_verified(get_group_name=True)
 @pytest.mark.aws_verified
 def test_create_autoscaling_group_from_template(
     autoscaling_client=None,
@@ -1217,7 +1216,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides(
     create_launch_template=True,
     launch_template_data={"ImageId": get_valid_ami(), "InstanceType": "t2.medium"},
 )
-@autoscaling_aws_verified(get_group_name=True, wait_for_instance_termination=False)
+@autoscaling_aws_verified(get_group_name=True)
 @pytest.mark.aws_verified
 def test_update_mixed_instances_policy(
     autoscaling_client=None,

@@ -190,6 +190,7 @@ s3
 
 - [ ] update_bucket_metadata_inventory_table_configuration
 - [ ] update_bucket_metadata_journal_table_configuration
+- [ ] update_object_encryption
 - [X] upload_file
 - [X] upload_fileobj
 - [X] upload_part

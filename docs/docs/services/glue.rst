@@ -77,6 +77,7 @@ glue
 - [ ] delete_column_statistics_for_table
 - [ ] delete_column_statistics_task_settings
 - [ ] delete_connection
+- [ ] delete_connection_type
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
@@ -235,6 +236,7 @@ glue
 - [X] put_schema_version_metadata
 - [X] put_workflow_run_properties
 - [ ] query_schema_version_metadata
+- [ ] register_connection_type
 - [X] register_schema_version
 - [ ] remove_schema_version_metadata
 - [ ] reset_job_bookmark

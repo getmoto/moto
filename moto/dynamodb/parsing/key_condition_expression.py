@@ -13,12 +13,6 @@ class EXPRESSION_STAGES(Enum):
     EOF = "EOF"
 
 
-def get_key(schema: list[dict[str, str]], key_type: str) -> Optional[str]:
-    """Get the first key of the specified type (for backward compatibility)."""
-    keys = get_keys(schema, key_type)
-    return keys[0] if keys else None
-
-
 def get_keys(schema: list[dict[str, str]], key_type: str) -> list[str]:
     """Get all keys of the specified type in schema order."""
     return [key["AttributeName"] for key in schema if key["KeyType"] == key_type]

@@ -18,11 +18,7 @@ jobs:
     - uses: actions/setup-node@v6
     - name: Install dependencies
       run: |
-        pwd
-        ls -la
-        cd other_langs/tests_js && npm install
+        cd other_langs/tests_js && npm install && npm list
     - name: Run tests
       run: |
-        pwd
-        ls -la
         cd other_langs/tests_js && npm test

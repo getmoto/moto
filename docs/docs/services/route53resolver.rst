@@ -63,7 +63,9 @@ route53resolver
 - [X] get_resolver_query_log_config
   Get information about a resolver query log config.
 
-- [ ] get_resolver_query_log_config_association
+- [X] get_resolver_query_log_config_association
+  Get information about a resolver query log config association.
+
 - [ ] get_resolver_query_log_config_policy
 - [X] get_resolver_rule
   Return info for specified resolver rule.
@@ -82,8 +84,8 @@ route53resolver
 - [X] list_resolver_dnssec_configs
 - [X] list_resolver_endpoint_ip_addresses
 - [X] list_resolver_endpoints
-- [ ] list_resolver_query_log_config_associations
-- [ ] list_resolver_query_log_configs
+- [X] list_resolver_query_log_config_associations
+- [X] list_resolver_query_log_configs
 - [X] list_resolver_rule_associations
 - [X] list_resolver_rules
 - [X] list_tags_for_resource

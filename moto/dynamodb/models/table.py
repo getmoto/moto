@@ -837,9 +837,6 @@ class Table(CloudFormationModel):
             if hash_key_conditions:
                 for attr_name, value in hash_key_conditions:
                     all_hash_conditions[attr_name] = value
-            elif hash_key:
-                # Backward compatibility: use legacy hash_key parameter
-                all_hash_conditions[index_hash_keys[0]["AttributeName"]] = hash_key
 
             # Build a dict of range key equalities (all but last in range_key_conditions)
             range_equality_conditions: dict[str, DynamoType] = {}

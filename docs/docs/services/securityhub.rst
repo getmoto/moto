@@ -89,7 +89,7 @@ securityhub
 - [ ] get_insight_results
 - [ ] get_insights
 - [ ] get_invitations_count
-- [ ] get_master_account
+- [X] get_master_account
 - [X] get_members
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2

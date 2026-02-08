@@ -1,6 +1,61 @@
 Moto Changelog
 ==============
 
+5.1.21
+-----
+Docker Digest for 5.1.21: <autopopulateddigest>
+
+    General:
+        * Moto now supports the new AWS partition for the EU sovereign cloud ('eusc-de-east-1')
+
+    New Services:
+        * Account:
+            * delete_alternate_contact()
+            * get_alternate_contact()
+            * put_alternate_contact()
+
+        * Connect:
+            * associate_analytics_data_set()
+            * create_instance()
+            * delete_instance()
+            * describe_instance()
+            * disassociate_analytics_data_set()
+            * list_analytics_data_associations()
+            * list_instances()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * Backup:
+            * create_report_plan()
+            * delete_backup_vault()
+            * delete_backup_vault_lock_configuration()
+            * describe_backup_vault()
+            * describe_report_plan()
+            * list_report_plans()
+            * put_backup_vault_lock_configuration()
+
+        * EKS:
+            * update_nodegroup_config()
+
+        * Route53Resolver:
+            * get_resolver_query_log_config_association()
+            * list_resolver_query_log_configs()
+            * list_resolver_query_log_config_associations()
+
+        * SecurityHub:
+            * get_master_account()
+
+    Miscellaneous:
+        * DynamoDB now supports multi-attribute composite key support for GSIs
+        * ELBv2: Internal load balancers can now be `dualstack`
+        * IAM: Policy validation now correctly validates Boolean conditions and NULL-resources
+        * Lambda: put_function_event_invoke_config() no longer requires the DestinationConfig-parameter
+        * ResourceGroupsTaggingAPI: tag_resources() and untag_resources() now supports CloudFront resources
+        * SageMaker: describe_domain() now returns the DomainSetting-attribute
+
+
 5.1.20
 -----
 Docker Digest for 5.1.20: _sha256:d2711655244df58411ce0be34236c95736390db17886370d21e12ae2b1e36f79_
