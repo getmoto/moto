@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -14,6 +14,24 @@ from .exceptions import (
     InvalidRequestException,
     ResourceNotFoundException,
 )
+
+
+class ReportPlan(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        report_plan_description: Optional[str],
+        report_delivery_channel: dict[str, Any],
+        report_setting: dict[str, Any],
+        backend: "BackupBackend",
+    ):
+        self.report_plan_name = name
+        self.report_plan_description = report_plan_description
+        self.report_plan_arn = f"arn:{get_partition(backend.region_name)}:backup:{backend.region_name}:{backend.account_id}:report-plan:{name}"
+        self.creation_time = utcnow()
+        self.report_setting = report_setting
+        self.report_delivery_channel = report_delivery_channel
+        self.deployment_status = "COMPLETED"
 
 
 class Plan(BaseModel):
@@ -111,7 +129,6 @@ class Vault(BaseModel):
 
     def to_list_dict(self) -> dict[str, Any]:
         dct = self.to_dict()
-        dct_options: dict[str, Any] = {}
         dct_options = {
             "EncryptionKeyArn": self.encryption_key_arn,
             "CreatorRequestId": self.creator_request_id,
@@ -135,6 +152,7 @@ class BackupBackend(BaseBackend):
 
         self.vaults: dict[str, Vault] = {}
         self.plans: dict[str, Plan] = {}
+        self.report_plans: dict[str, ReportPlan] = {}
         self.tagger = TaggingService()
 
     def create_backup_plan(
@@ -216,6 +234,14 @@ class BackupBackend(BaseBackend):
             self.tag_resource(vault.backup_vault_arn, backup_vault_tags)
         self.vaults[backup_vault_name] = vault
         return vault
+
+    def describe_backup_vault(self, backup_vault_name: str) -> Vault:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(backup_vault_name)
+        return self.vaults[backup_vault_name]
+
+    def delete_backup_vault(self, backup_vault_name: str) -> None:
+        self.vaults.pop(backup_vault_name, None)
 
     def put_backup_vault_lock_configuration(
         self,
@@ -308,6 +334,42 @@ class BackupBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_key_list: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_key_list)
+
+    def create_report_plan(
+        self,
+        report_plan_name: str,
+        report_plan_description: Optional[str],
+        report_delivery_channel: dict[str, Any],
+        report_setting: dict[str, Any],
+    ) -> ReportPlan:
+        """
+        The parameters ReportPlanTags and IdempotencyToken are not yet supported
+        """
+        report_plan = ReportPlan(
+            name=report_plan_name,
+            report_setting=report_setting,
+            report_plan_description=report_plan_description,
+            report_delivery_channel=report_delivery_channel,
+            backend=self,
+        )
+        self.report_plans[report_plan_name] = report_plan
+        return report_plan
+
+    def describe_report_plan(self, report_plan_name: str) -> ReportPlan:
+        if report_plan_name not in self.report_plans:
+            raise ResourceNotFoundException(
+                msg=f"Report Plan {report_plan_name} not found"
+            )
+        return self.report_plans[report_plan_name]
+
+    def delete_report_plan(self, report_plan_name: str) -> None:
+        self.report_plans.pop(report_plan_name, None)
+
+    def list_report_plans(self) -> list[ReportPlan]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.report_plans.values())
 
 
 backup_backends = BackendDict(BackupBackend, "backup")

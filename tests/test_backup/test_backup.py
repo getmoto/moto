@@ -260,6 +260,23 @@ def test_create_backup_vault():
     assert "BackupVaultArn" in resp
     assert "CreationDate" in resp
 
+    describe = client.describe_backup_vault(BackupVaultName="backupvault-foobar")
+    assert describe["BackupVaultName"] == "backupvault-foobar"
+    assert describe["BackupVaultArn"] == resp["BackupVaultArn"]
+
+
+@mock_aws
+def test_delete_backup_vault():
+    client = boto3.client("backup", region_name="eu-west-1")
+    client.create_backup_vault(BackupVaultName="backupvault-foobar")
+
+    client.delete_backup_vault(BackupVaultName="backupvault-foobar")
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_backup_vault(BackupVaultName="backupvault-foobar")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_create_backup_vault_already_exists():
