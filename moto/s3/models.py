@@ -14,6 +14,7 @@ import threading
 import urllib.parse
 from bisect import insort
 from collections.abc import Iterator
+from enum import Enum
 from importlib import reload
 from io import BytesIO
 from typing import Any, Optional, Union
@@ -89,6 +90,11 @@ MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
+
+
+class TransitionDefaultMinimumObjectSize(Enum):
+    ALL_STORAGE_CLASSES_128K = "all_storage_classes_128K"
+    VARIES_BY_STORAGE_CLASS = "varies_by_storage_class"
 
 
 class FakeDeleteMarker(BaseModel):
