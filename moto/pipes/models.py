@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -119,32 +119,13 @@ class EventBridgePipesBackend(BaseBackend):
             raise NotFoundException(f"Pipe {name} not found")
         return self.pipes[name]
 
-    def delete_pipe(self, name: str) -> tuple[str, str, str, str, str, str]:
+    def delete_pipe(self, name: str) -> Pipe:
         if name not in self.pipes:
             raise NotFoundException(f"Pipe {name} not found")
-        pipe = self.pipes[name]
+        pipe = self.pipes.pop(name)
         pipe.desired_state = "DELETED"
         pipe.current_state = "DELETING"
-
-        arn = pipe.arn
-        pipe_name = pipe.name
-        desired_state = pipe.desired_state
-        current_state = pipe.current_state
-        creation_time = iso_8601_datetime_without_milliseconds(pipe.creation_time)
-        last_modified_time = iso_8601_datetime_without_milliseconds(
-            pipe.last_modified_time
-        )
-
-        del self.pipes[name]
-
-        return (
-            arn,
-            pipe_name,
-            desired_state,
-            current_state,
-            creation_time,
-            last_modified_time,
-        )
+        return pipe
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         pipe = None
@@ -228,12 +209,8 @@ class EventBridgePipesBackend(BaseBackend):
                 "CurrentState": pipe.current_state,
                 "Source": pipe.source,
                 "Target": pipe.target,
-                "CreationTime": iso_8601_datetime_without_milliseconds(
-                    pipe.creation_time
-                ),
-                "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                    pipe.last_modified_time
-                ),
+                "CreationTime": pipe.creation_time,
+                "LastModifiedTime": pipe.last_modified_time,
             }
             if pipe.enrichment:
                 summary["Enrichment"] = pipe.enrichment
