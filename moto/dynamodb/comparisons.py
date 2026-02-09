@@ -1,6 +1,7 @@
 import re
 from collections import deque, namedtuple
 from collections.abc import Iterable
+from decimal import Decimal
 from typing import Any, Optional, Union
 
 from moto.dynamodb.exceptions import ConditionAttributeIsReservedKeyword
@@ -963,12 +964,8 @@ class AttributeValue(Operand):
         self.value = value[self.type]
 
     def expr(self, item: Optional[Item]) -> Any:
-        # TODO: Reuse DynamoType code
         if self.type == "N":
-            try:
-                return int(self.value)
-            except ValueError:
-                return float(self.value)
+            return Decimal(self.value)
         elif self.type in ["SS", "NS", "BS"]:
             sub_type = self.type[0]
             return {AttributeValue({sub_type: v}).expr(item) for v in self.value}
@@ -1209,9 +1206,9 @@ class FuncBetween(Func):
         attr = self.attr.expr(item)
         end = self.end.expr(item)
         # Need to verify whether start has a valid value
-        # Can't just check  'if start', because start could be 0, which is a valid integer
-        start_has_value = start is not None and (isinstance(start, int) or start)
-        end_has_value = end is not None and (isinstance(end, int) or end)
+        # Can't just check  'if start', because start could be 0, which is a valid number
+        start_has_value = start is not None and (isinstance(start, (int, Decimal)) or start)
+        end_has_value = end is not None and (isinstance(end, (int, Decimal)) or end)
         if start_has_value and attr and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:
