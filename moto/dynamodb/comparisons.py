@@ -1207,8 +1207,8 @@ class FuncBetween(Func):
         end = self.end.expr(item)
         # Need to verify whether start has a valid value
         # Can't just check  'if start', because start could be 0, which is a valid number
-        start_has_value = start is not None and (isinstance(start, (int, Decimal)) or start)
-        end_has_value = end is not None and (isinstance(end, (int, Decimal)) or end)
+        start_has_value = start is not None and (isinstance(start, Decimal) or start)
+        end_has_value = end is not None and (isinstance(end, Decimal) or end)
         if start_has_value and attr and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:
