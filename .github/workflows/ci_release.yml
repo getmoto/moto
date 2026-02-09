@@ -108,6 +108,13 @@ jobs:
           echo "Building distributions"
           python3 -m build
 
+      - name: Configure Git
+        run: |
+          git config --global user.name 'LocalStack Bot'
+          git config --global user.email 'localstack-bot@users.noreply.github.com'
+          git remote set-url origin https://git:${{ secrets.PRO_ACCESS_TOKEN }}@github.com/${{ github.repository }}
+          git switch localstack
+
       - name: Create and push tag
         env:
           NEW_VERSION: ${{ steps.semver.outputs.patch }}
