@@ -614,7 +614,9 @@ def test_query_gsi_pagination_with_numeric_range(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(numeric_range=True)
-def test_query_pagination_with_float_numeric_key_in_exclusive_start_key(table_name=None):
+def test_query_pagination_with_float_numeric_key_in_exclusive_start_key(
+    table_name=None,
+):
     """Pagination works when ExclusiveStartKey uses float-style numeric representation.
 
     DynamoDB treats {"N": "100"} and {"N": "100.0"} as the same number.
@@ -666,7 +668,9 @@ def test_query_pagination_with_float_numeric_key_in_exclusive_start_key(table_na
     # Verify no duplicates across pages
     page1_sks = {item["sk"]["N"] for item in page1["Items"]}
     page2_sks = {item["sk"]["N"] for item in page2["Items"]}
-    assert len(page1_sks & page2_sks) == 0, f"Duplicate items found: {page1_sks & page2_sks}"
+    assert len(page1_sks & page2_sks) == 0, (
+        f"Duplicate items found: {page1_sks & page2_sks}"
+    )
 
     # All items returned
     all_items = page1["Items"] + page2["Items"]
