@@ -489,8 +489,9 @@ def test_elastic_network_interfaces_get_by_attachment_id():
     filter_attachment_id = attachment["AttachmentId"]
     filters = [{"Name": "attachment.attachment-id", "Values": [filter_attachment_id]}]
     enis = ec2client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
-    eni_ids = [eni["NetworkInterfaceId"] for eni in enis]
-    assert eni1.id in eni_ids
+    assert len(enis) == 1
+    assert enis[0]["NetworkInterfaceId"] == eni1.id
+    assert enis[0]["Attachment"]["AttachmentId"] == filter_attachment_id
 
 
 @mock_aws
