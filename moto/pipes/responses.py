@@ -151,6 +151,11 @@ class EventBridgePipesResponse(BaseResponse):
         )
         return EmptyResult()
 
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = unquote(self.uri.split("/tags/")[-1])
+        tags = self.pipes_backend.list_tags_for_resource(resource_arn)
+        return ActionResult({"tags": tags})
+
     def list_pipes(self) -> ActionResult:
         params = json.loads(self.body) if self.body else {}
         if not params and self.querystring:

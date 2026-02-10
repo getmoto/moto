@@ -6,7 +6,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
-from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import NotFoundException
@@ -74,7 +73,6 @@ class EventBridgePipesBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.pipes: dict[str, Pipe] = {}
-        self.tagger = TaggingService()
 
     def create_pipe(
         self,
@@ -137,9 +135,6 @@ class EventBridgePipesBackend(BaseBackend):
         if pipe is None:
             raise NotFoundException(f"Resource {resource_arn} not found")
 
-        tag_list = TaggingService.convert_dict_to_tags_input(tags)
-        self.tagger.tag_resource(resource_arn, tag_list)
-
         pipe.tags.update(tags)
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
@@ -152,10 +147,20 @@ class EventBridgePipesBackend(BaseBackend):
         if pipe is None:
             raise NotFoundException(f"Resource {resource_arn} not found")
 
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
         for tag_key in tag_keys:
             pipe.tags.pop(tag_key, None)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        pipe = None
+        for p in self.pipes.values():
+            if p.arn == resource_arn:
+                pipe = p
+                break
+
+        if pipe is None:
+            raise NotFoundException(f"Resource {resource_arn} not found")
+
+        return pipe.tags
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_pipes(  # type: ignore[misc]
