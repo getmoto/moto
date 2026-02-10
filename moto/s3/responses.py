@@ -2893,6 +2893,8 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         {% else %}
             {% if rule.prefix != None %}
             <Prefix>{{ rule.prefix }}</Prefix>
+            {% else %}
+            <Filter/>
             {% endif %}
         {% endif %}
         <Status>{{ rule.status }}</Status>
