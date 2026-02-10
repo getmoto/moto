@@ -146,6 +146,7 @@ jobs:
         if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.semver.outputs.patch }}
         with:
           max_attempts: 5
           retry_wait_seconds: 120
