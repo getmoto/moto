@@ -433,7 +433,7 @@ class VPCLatticeBackend(BaseBackend):
         return [
             sub
             for sub in self.access_log_subscriptions.values()
-            if sub.resourceId == resourceIdentifier
+            if sub.resourceId == resourceIdentifier or sub.resourceArn == resourceIdentifier
         ][:maxResults]
 
     def update_access_log_subscription(
