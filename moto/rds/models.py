@@ -3909,10 +3909,7 @@ class RDSBackend(BaseBackend):
             "db_cluster_parameter_group_name"
         ]
         if db_cluster_parameter_group_id in self.db_cluster_parameter_groups:
-            raise RDSClientError(
-                "DBClusterParameterGroupAlreadyExists",
-                f"A DB parameter group named {db_cluster_parameter_group_id} already exists.",
-            )
+            raise DBParameterGroupAlreadyExistsFault(db_cluster_parameter_group_id)
         if not db_cluster_parameter_group_kwargs.get("description"):
             raise RDSClientError(
                 "InvalidParameterValue",
