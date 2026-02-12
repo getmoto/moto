@@ -71,3 +71,26 @@ def test_list_tags_for_resource():
     )
 
     assert {"Key": "environment", "Value": "test"} in tags["TagList"]
+
+@mock_aws
+def test_copy():
+    client = boto3.client("rds", "us-east-2")
+
+    source_group = client.create_db_cluster_parameter_group(
+        DBClusterParameterGroupName="groupname",
+        DBParameterGroupFamily="aurora5.6",
+        Description="familia",
+    )["DBClusterParameterGroup"]
+
+    client.copy_db_cluster_parameter_group(
+        SourceDBClusterParameterGroupIdentifier=source_group["DBClusterParameterGroupName"],
+        TargetDBClusterParameterGroupIdentifier="targetgroup",
+        TargetDBClusterParameterGroupDescription='familia target',
+    )
+
+    target_group = client.describe_db_cluster_parameter_groups(
+        DBClusterParameterGroupName="targetgroup",
+    )["DBClusterParameterGroups"][0]
+
+    assert target_group["DBParameterGroupFamily"] == "aurora5.6"
+    assert target_group["Description"] == "familia target"

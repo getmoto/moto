@@ -46,6 +46,7 @@ from .exceptions import (
     DBInstanceNotFoundError,
     DBInstanceRoleAlreadyExists,
     DBParameterGroupAlreadyExistsError,
+    DBParameterGroupAlreadyExistsFault,
     DBParameterGroupNotFoundError,
     DBParameterGroupNotFoundFault,
     DBProxyAlreadyExistsFault,
@@ -3379,6 +3380,49 @@ class RDSBackend(BaseBackend):
         )
 
         return db_cluster_parameter_group
+
+    def copy_db_cluster_parameter_group(
+        self,
+        source_db_cluster_parameter_group_identifier: str,
+        target_db_cluster_parameter_group_identifier: str,
+        target_db_cluster_parameter_group_description: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBClusterParameterGroup:
+        if source_db_cluster_parameter_group_identifier.startswith("arn:aws:rds:"):
+            source_db_cluster_parameter_group_identifier = (
+                source_db_cluster_parameter_group_identifier.split(":")[-1]
+            )
+        if source_db_cluster_parameter_group_identifier not in self.db_cluster_parameter_groups:
+            raise DBParameterGroupNotFoundFault(source_db_cluster_parameter_group_identifier)
+        if target_db_cluster_parameter_group_identifier in self.db_cluster_parameter_groups:
+            raise DBParameterGroupAlreadyExistsFault(
+                target_db_cluster_parameter_group_identifier
+            )
+        source_db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            source_db_cluster_parameter_group_identifier
+        ]
+
+        target_db_cluster_parameter_group = DBClusterParameterGroup(
+            backend=self,
+            db_cluster_parameter_group_name=target_db_cluster_parameter_group_identifier,
+            db_parameter_group_family=source_db_cluster_parameter_group.db_parameter_group_family,
+            description=target_db_cluster_parameter_group_description,
+            tags=tags,
+        )
+        self.db_cluster_parameter_groups[target_db_cluster_parameter_group_identifier] = (
+            target_db_cluster_parameter_group
+        )
+
+        iterable_source_parameters = [
+            {"ParameterName": name, **values}
+            for name, values in source_db_cluster_parameter_group.parameters.items()
+        ]
+        self.modify_db_cluster_parameter_group(
+            db_cluster_parameter_group_name=target_db_cluster_parameter_group_identifier,
+            db_cluster_parameter_group_parameters=iterable_source_parameters,
+        )
+        return target_db_cluster_parameter_group
+
 
     def describe_db_cluster_parameters(
         self, db_cluster_parameter_group_name: str
