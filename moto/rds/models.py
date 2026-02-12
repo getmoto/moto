@@ -47,6 +47,7 @@ from .exceptions import (
     DBInstanceRoleAlreadyExists,
     DBParameterGroupAlreadyExistsError,
     DBParameterGroupNotFoundError,
+    DBParameterGroupNotFoundFault,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
@@ -3888,8 +3889,14 @@ class RDSBackend(BaseBackend):
             return [self.db_cluster_parameter_groups[group_name]]
         return list(self.db_cluster_parameter_groups.values())
 
-    def delete_db_cluster_parameter_group(self, group_name: str) -> None:
-        self.db_cluster_parameter_groups.pop(group_name)
+
+    def delete_db_cluster_parameter_group(
+        self, db_cluster_parameter_group_name: str
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
+            return self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
+        else:
+            raise DBParameterGroupNotFoundFault(db_cluster_parameter_group_name)
 
     def create_global_cluster(
         self,
@@ -4498,6 +4505,10 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend = rds_backends[account_id][region_name]
+        backend.delete_db_clsuter_parameter_group(self.name)
 
     def update_cluster_parameters(
         self, new_parameters: Iterable[dict[str, Any]]
