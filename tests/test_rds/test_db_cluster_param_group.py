@@ -72,6 +72,7 @@ def test_list_tags_for_resource():
 
     assert {"Key": "environment", "Value": "test"} in tags["TagList"]
 
+
 @mock_aws
 def test_copy():
     client = boto3.client("rds", "us-east-2")
@@ -83,9 +84,11 @@ def test_copy():
     )["DBClusterParameterGroup"]
 
     client.copy_db_cluster_parameter_group(
-        SourceDBClusterParameterGroupIdentifier=source_group["DBClusterParameterGroupName"],
+        SourceDBClusterParameterGroupIdentifier=source_group[
+            "DBClusterParameterGroupName"
+        ],
         TargetDBClusterParameterGroupIdentifier="targetgroup",
-        TargetDBClusterParameterGroupDescription='familia target',
+        TargetDBClusterParameterGroupDescription="familia target",
     )
 
     target_group = client.describe_db_cluster_parameter_groups(

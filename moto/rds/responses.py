@@ -559,7 +559,7 @@ class RDSResponse(BaseResponse):
 
     def copy_db_cluster_parameter_group(self) -> ActionResult:
         source_group_name = self.params.get("SourceDBClusterParameterGroupIdentifier")
-        target_group_name= self.params.get("TargetDBClusterParameterGroupIdentifier")
+        target_group_name = self.params.get("TargetDBClusterParameterGroupIdentifier")
         target_description = self.params.get("TargetDBClusterParameterGroupDescription")
         tags = self.params.get("Tags")
 
@@ -569,12 +569,14 @@ class RDSResponse(BaseResponse):
             target_db_cluster_parameter_group_description=target_description,
             tags=tags,
         )
-        result = {"DBClusterParameterGroup": {
-            'DBClusterParameterGroupName': target_group.name,
-            'DBParameterGroupFamily': target_group.db_parameter_group_family,
-            'Description': target_group.description,
-            'DBClusterParameterGroupArn': target_group.arn,
-        }}
+        result = {
+            "DBClusterParameterGroup": {
+                "DBClusterParameterGroupName": target_group.name,
+                "DBParameterGroupFamily": target_group.db_parameter_group_family,
+                "Description": target_group.description,
+                "DBClusterParameterGroupArn": target_group.arn,
+            }
+        }
         return ActionResult(result)
 
     def promote_read_replica_db_cluster(self) -> ActionResult:
