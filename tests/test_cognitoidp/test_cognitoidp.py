@@ -3525,6 +3525,8 @@ def test_token_legitimacy():
             f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
         id_claims = jwt.decode(id_token, json_web_key, ["RS256"]).claims
+        assert "exp" in id_claims
+        assert "iat" in id_claims
         assert id_claims["iss"] == issuer
         assert id_claims["aud"] == client_id
         assert id_claims["token_use"] == "id"
@@ -3532,6 +3534,8 @@ def test_token_legitimacy():
         for k, v in outputs["additional_fields"].items():
             assert id_claims[k] == v
         access_claims = jwt.decode(access_token, json_web_key, ["RS256"]).claims
+        assert "exp" in access_claims
+        assert "iat" in access_claims
         assert access_claims["iss"] == issuer
         assert access_claims["client_id"] == client_id
         assert access_claims["token_use"] == "access"
