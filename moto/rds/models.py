@@ -3392,9 +3392,17 @@ class RDSBackend(BaseBackend):
             source_db_cluster_parameter_group_identifier = (
                 source_db_cluster_parameter_group_identifier.split(":")[-1]
             )
-        if source_db_cluster_parameter_group_identifier not in self.db_cluster_parameter_groups:
-            raise DBParameterGroupNotFoundFault(source_db_cluster_parameter_group_identifier)
-        if target_db_cluster_parameter_group_identifier in self.db_cluster_parameter_groups:
+        if (
+            source_db_cluster_parameter_group_identifier
+            not in self.db_cluster_parameter_groups
+        ):
+            raise DBParameterGroupNotFoundFault(
+                source_db_cluster_parameter_group_identifier
+            )
+        if (
+            target_db_cluster_parameter_group_identifier
+            in self.db_cluster_parameter_groups
+        ):
             raise DBParameterGroupAlreadyExistsFault(
                 target_db_cluster_parameter_group_identifier
             )
@@ -3409,9 +3417,9 @@ class RDSBackend(BaseBackend):
             description=target_db_cluster_parameter_group_description,
             tags=tags,
         )
-        self.db_cluster_parameter_groups[target_db_cluster_parameter_group_identifier] = (
-            target_db_cluster_parameter_group
-        )
+        self.db_cluster_parameter_groups[
+            target_db_cluster_parameter_group_identifier
+        ] = target_db_cluster_parameter_group
 
         iterable_source_parameters = [
             {"ParameterName": name, **values}
@@ -3422,7 +3430,6 @@ class RDSBackend(BaseBackend):
             db_cluster_parameter_group_parameters=iterable_source_parameters,
         )
         return target_db_cluster_parameter_group
-
 
     def describe_db_cluster_parameters(
         self, db_cluster_parameter_group_name: str
@@ -3932,7 +3939,6 @@ class RDSBackend(BaseBackend):
                 raise DBClusterParameterGroupNotFoundError(group_name)
             return [self.db_cluster_parameter_groups[group_name]]
         return list(self.db_cluster_parameter_groups.values())
-
 
     def delete_db_cluster_parameter_group(
         self, db_cluster_parameter_group_name: str
