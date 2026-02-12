@@ -535,13 +535,9 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def create_db_cluster_parameter_group(self) -> ActionResult:
-        group_name = self.params.get("DBClusterParameterGroupName")
-        family = self.params.get("DBParameterGroupFamily")
-        desc = self.params.get("Description")
+        kwargs = self.params
         db_cluster_parameter_group = self.backend.create_db_cluster_parameter_group(
-            group_name=group_name,
-            family=family,
-            description=desc,
+            kwargs
         )
         result = {"DBClusterParameterGroup": db_cluster_parameter_group}
         return ActionResult(result)
