@@ -4558,7 +4558,7 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_clsuter_parameter_group(self.name)
+        backend.delete_db_cluster_parameter_group(self.name)
 
     def update_cluster_parameters(
         self, new_parameters: Iterable[dict[str, Any]]
