@@ -557,6 +557,26 @@ class RDSResponse(BaseResponse):
         )
         return EmptyResult()
 
+    def copy_db_cluster_parameter_group(self) -> ActionResult:
+        source_group_name = self.params.get("SourceDBClusterParameterGroupIdentifier")
+        target_group_name= self.params.get("TargetDBClusterParameterGroupIdentifier")
+        target_description = self.params.get("TargetDBClusterParameterGroupDescription")
+        tags = self.params.get("Tags")
+
+        target_group = self.backend.copy_db_cluster_parameter_group(
+            source_db_cluster_parameter_group_identifier=source_group_name,
+            target_db_cluster_parameter_group_identifier=target_group_name,
+            target_db_cluster_parameter_group_description=target_description,
+            tags=tags,
+        )
+        result = {"DBClusterParameterGroup": {
+            'DBClusterParameterGroupName': target_group.name,
+            'DBParameterGroupFamily': target_group.db_parameter_group_family,
+            'Description': target_group.description,
+            'DBClusterParameterGroupArn': target_group.arn,
+        }}
+        return ActionResult(result)
+
     def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")
         cluster = self.backend.promote_read_replica_db_cluster(db_cluster_identifier)
