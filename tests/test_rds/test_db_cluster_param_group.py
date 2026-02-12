@@ -53,3 +53,21 @@ def test_create_describe_delete():
     err = exc.value.response["Error"]
     assert err["Code"] == "DBParameterGroupNotFound"
     assert err["Message"] == "DBClusterParameterGroup not found: groupname"
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("rds", "us-east-2")
+
+    group = client.create_db_cluster_parameter_group(
+        DBClusterParameterGroupName="groupname",
+        DBParameterGroupFamily="aurora5.6",
+        Description="familia",
+        Tags=[{"Key": "environment", "Value": "test"}],
+    )["DBClusterParameterGroup"]
+
+    tags = client.list_tags_for_resource(
+        ResourceName=group["DBClusterParameterGroupArn"]
+    )
+
+    assert {"Key": "environment", "Value": "test"} in tags["TagList"]
