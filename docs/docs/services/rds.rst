@@ -22,7 +22,7 @@ rds
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
 - [X] cancel_export_task
-- [ ] copy_db_cluster_parameter_group
+- [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
 - [X] copy_db_parameter_group
 - [X] copy_db_snapshot
@@ -185,4 +185,3 @@ rds
 - [X] switchover_blue_green_deployment
 - [ ] switchover_global_cluster
 - [ ] switchover_read_replica
-
