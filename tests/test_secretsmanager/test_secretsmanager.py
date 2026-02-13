@@ -16,7 +16,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.secretsmanager.models import secretsmanager_backends
 from moto.secretsmanager.utils import SecretsManagerSecretIdentifier
 from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
-from tests import allow_aws_request
+from tests import allow_aws_request, aws_verified
 from tests.test_awslambda import lambda_aws_verified
 from tests.test_awslambda.utilities import _process_lambda
 from tests.test_dynamodb import dynamodb_aws_verified
@@ -1658,83 +1658,179 @@ def test_can_list_secret_version_ids():
     assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
 
 
-@mock_aws
-def test_managing_secrets_versions_with_client_request_tokens():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-    # Create a secret with a specific client request token
-    crt = uuid4()
-    response = conn.create_secret(
-        Name=DEFAULT_SECRET_NAME,
-        SecretString="first_secret_string",
-        ClientRequestToken=str(crt),
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert response["VersionId"] == str(crt)
-    secret_arn = response["ARN"]
-    # Trying to create this secret again with the same ClientRequestToken AND the same secret value should
-    # result in the request just being ignored
-    response = conn.create_secret(
-        Name=DEFAULT_SECRET_NAME,
-        SecretString="first_secret_string",
-        ClientRequestToken=str(crt),
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert response["VersionId"] == str(crt)
-    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
-    # in a ResourceExistsException
-    with pytest.raises(ClientError) as exc:
-        conn.create_secret(
-            Name=DEFAULT_SECRET_NAME,
-            SecretString="first_secret_string-new",
-            ClientRequestToken=str(crt),
-        )
-    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
-    assert exc.value.response["Error"]["Message"] == (
-        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
-    )
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_duplicate_secret_without_specifying_token():
+    secret_name = str(uuid4())
 
-    # The same applies when using PutSecret as well
-    # Trying to use the same ClientRequestToken AND the same secret value should result in the request just being ignored
-    response = conn.put_secret_value(
-        SecretId=DEFAULT_SECRET_NAME,
-        SecretString="first_secret_string",
-        ClientRequestToken=str(crt),
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert response["VersionId"] == str(crt)
-    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
-    # in a ResourceExistsException
-    with pytest.raises(ClientError) as exc:
-        conn.put_secret_value(
-            SecretId=DEFAULT_SECRET_NAME,
-            SecretString="first_secret_string-new",
-            ClientRequestToken=str(crt),
-        )
-    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
-    assert exc.value.response["Error"]["Message"] == (
-        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
-    )
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {"Name": secret_name, "SecretString": "Hello"}
+    try:
+        client.create_secret(**input_kwargs)
 
-    # And finally, we repeat the set of steps with UpdateSecret
-    response = conn.update_secret(
-        SecretId=DEFAULT_SECRET_NAME,
-        SecretString="first_secret_string",
-        ClientRequestToken=str(crt),
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert response["VersionId"] == str(crt)
-    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
-    # in a ResourceExistsException
-    with pytest.raises(ClientError) as exc:
-        conn.update_secret(
-            SecretId=DEFAULT_SECRET_NAME,
-            SecretString="first_secret_string-new",
-            ClientRequestToken=str(crt),
+        with pytest.raises(ClientError) as exc:
+            client.create_secret(**input_kwargs)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceExistsException"
+        assert (
+            err["Message"]
+            == f"The operation failed because the secret {secret_name} already exists."
         )
-    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
-    assert exc.value.response["Error"]["Message"] == (
-        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
-    )
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_duplicate_secret_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {
+        "Name": secret_name,
+        "SecretString": "Hello",
+        "ClientRequestToken": client_request_token,
+    }
+    try:
+        secret1 = client.create_secret(**input_kwargs)
+        secret1.pop("ResponseMetadata")
+
+        secret2 = client.create_secret(**input_kwargs)
+        secret2.pop("ResponseMetadata")
+
+        assert secret1 == secret2
+        assert secret1["VersionId"] == client_request_token
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_different_secret_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {
+        "Name": secret_name,
+        "SecretString": "Hello",
+        "ClientRequestToken": client_request_token,
+    }
+    try:
+        secret = client.create_secret(**input_kwargs)
+
+        input_kwargs["SecretString"] = "Hi"
+        with pytest.raises(ClientError) as exc:
+            client.create_secret(**input_kwargs)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceExistsException"
+        assert (
+            err["Message"]
+            == f"You can't use ClientRequestToken {client_request_token} because that value is already in use for a version of secret {secret['ARN']}."
+        )
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_put_same_secret_value_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {"SecretString": "Hello", "ClientRequestToken": client_request_token}
+    try:
+        secret1 = client.create_secret(Name=secret_name, **input_kwargs)
+        secret1.pop("ResponseMetadata")
+
+        secret2 = client.put_secret_value(SecretId=secret1["ARN"], **input_kwargs)
+        secret2.pop("ResponseMetadata")
+
+        assert secret2.pop("VersionStages") == ["AWSCURRENT"]
+        assert secret1 == secret2
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_put_different_secret_value_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {
+        "Name": secret_name,
+        "SecretString": "Hello",
+        "ClientRequestToken": client_request_token,
+    }
+    try:
+        secret = client.create_secret(**input_kwargs)
+
+        with pytest.raises(ClientError) as exc:
+            client.put_secret_value(
+                SecretId=secret["ARN"],
+                SecretString="Hi",
+                ClientRequestToken=client_request_token,
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceExistsException"
+        assert (
+            err["Message"]
+            == f"You can't use ClientRequestToken {client_request_token} because that value is already in use for a version of secret {secret['ARN']}."
+        )
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_update_same_secret_value_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {"SecretString": "Hello", "ClientRequestToken": client_request_token}
+    try:
+        client.create_secret(Name=secret_name, **input_kwargs)
+
+        response = client.update_secret(SecretId=secret_name, **input_kwargs)
+        assert response["VersionId"] == client_request_token
+    finally:
+        client.delete_secret(SecretId=secret_name)
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_update_different_secret_value_with_same_token():
+    secret_name = str(uuid4())
+    client_request_token = str(uuid4())
+
+    client = boto3.client("secretsmanager", "us-east-1")
+    input_kwargs = {
+        "Name": secret_name,
+        "SecretString": "Hello",
+        "ClientRequestToken": client_request_token,
+    }
+    try:
+        secret = client.create_secret(**input_kwargs)
+
+        with pytest.raises(ClientError) as exc:
+            client.update_secret(
+                SecretId=secret["ARN"],
+                SecretString="Hi",
+                ClientRequestToken=client_request_token,
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceExistsException"
+        assert (
+            err["Message"]
+            == f"You can't use ClientRequestToken {client_request_token} because that value is already in use for a version of secret {secret['ARN']}."
+        )
+    finally:
+        client.delete_secret(SecretId=secret_name)
 
 
 @mock_aws
