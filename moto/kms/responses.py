@@ -277,22 +277,21 @@ class KmsResponse(BaseResponse):
 
         response_aliases = []
 
-        backend_aliases = self.kms_backend.list_aliases()
-        for target_key_id, aliases in backend_aliases.items():
-            for alias_name in aliases:
-                # TODO: add creation date and last updated in response_aliases
-                response_aliases.append(
-                    {
-                        "AliasArn": f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{alias_name}",
-                        "AliasName": alias_name,
-                        "TargetKeyId": target_key_id,
-                    }
-                )
+        aliases = self.kms_backend.list_aliases(key_id=key_id)
+        for alias in aliases:
+            # TODO: add creation date and last updated in response_aliases
+            response_aliases.append(
+                {
+                    "AliasArn": alias.alias_arn,
+                    "AliasName": alias.alias_name,
+                    "TargetKeyId": alias.target_key_id,
+                }
+            )
         for reserved_alias, target_key_id in RESERVED_ALIASE_TARGET_KEY_IDS.items():
-            exsisting = [
-                a for a in response_aliases if a["AliasName"] == reserved_alias
-            ]
-            if not exsisting:
+            if key_id and target_key_id != key_id:
+                continue
+            existing = [a for a in response_aliases if a["AliasName"] == reserved_alias]
+            if not existing:
                 arn = f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
@@ -301,11 +300,6 @@ class KmsResponse(BaseResponse):
                         "AliasName": reserved_alias,
                     }
                 )
-
-        if key_id is not None:
-            response_aliases = list(
-                filter(lambda alias: alias["TargetKeyId"] == key_id, response_aliases)
-            )
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 
