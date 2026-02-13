@@ -63,11 +63,65 @@ class Grant(BaseModel):
         }
 
 
-class Alias(BaseModel):
+class Alias(CloudFormationModel):
     def __init__(self, account_id: str, region: str, name: str, key: "Key"):
         self.alias_arn = f"arn:{get_partition(region)}:kms:{region}:{account_id}:{name}"
         self.alias_name = name
         self.target_key_id = key.id
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.alias_name
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend: KmsBackend = kms_backends[account_id][region_name]
+        backend.delete_alias(self.alias_name)
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kms-key.html
+        return "AWS::KMS::Alias"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.create_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.update_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return False
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        raise UnformattedGetAttTemplateException()
 
 
 class Key(CloudFormationModel):
@@ -445,7 +499,7 @@ class KmsBackend(BaseBackend):
 
         return False
 
-    def create_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> Alias:
         raw_key_id = self.get_key_id(target_key_id)
         key = self.keys[raw_key_id]
         key.aliases[alias_name] = Alias(
@@ -454,9 +508,17 @@ class KmsBackend(BaseBackend):
             name=alias_name,
             key=key,
         )
+        return key.aliases[alias_name]
 
-    def update_alias(self, target_key_id: str, alias_name: str) -> None:
-        self.create_alias(target_key_id, alias_name)
+    def update_alias(self, target_key_id: str, alias_name: str) -> Alias:
+        for key in self.keys.values():
+            if alias_name in key.aliases and target_key_id != key.id:
+                # Updating the Key that this is an alias of
+                alias = key.aliases.pop(alias_name)
+                self.keys[target_key_id].aliases[alias_name] = alias
+                return alias
+        # TargetKeyId hasn't changed - nothing to update
+        return self.keys[target_key_id].aliases[alias_name]
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
