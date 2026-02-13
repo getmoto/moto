@@ -532,6 +532,7 @@ class CognitoIdpUserPool(BaseModel):
             "sub": self._get_user(username).id,
             "client_id" if token_use == "access" else "aud": client_id,
             "token_use": token_use,
+            "iat": now,
             "auth_time": now,
             "exp": now + expires_in,
             "jti": str(random.uuid4()),
