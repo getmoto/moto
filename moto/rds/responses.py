@@ -535,13 +535,9 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def create_db_cluster_parameter_group(self) -> ActionResult:
-        group_name = self.params.get("DBClusterParameterGroupName")
-        family = self.params.get("DBParameterGroupFamily")
-        desc = self.params.get("Description")
+        kwargs = self.params
         db_cluster_parameter_group = self.backend.create_db_cluster_parameter_group(
-            group_name=group_name,
-            family=family,
-            description=desc,
+            kwargs
         )
         result = {"DBClusterParameterGroup": db_cluster_parameter_group}
         return ActionResult(result)
@@ -557,9 +553,31 @@ class RDSResponse(BaseResponse):
     def delete_db_cluster_parameter_group(self) -> ActionResult:
         group_name = self.params.get("DBClusterParameterGroupName")
         self.backend.delete_db_cluster_parameter_group(
-            group_name=group_name,
+            db_cluster_parameter_group_name=group_name,
         )
         return EmptyResult()
+
+    def copy_db_cluster_parameter_group(self) -> ActionResult:
+        source_group_name = self.params.get("SourceDBClusterParameterGroupIdentifier")
+        target_group_name = self.params.get("TargetDBClusterParameterGroupIdentifier")
+        target_description = self.params.get("TargetDBClusterParameterGroupDescription")
+        tags = self.params.get("Tags")
+
+        target_group = self.backend.copy_db_cluster_parameter_group(
+            source_db_cluster_parameter_group_identifier=source_group_name,
+            target_db_cluster_parameter_group_identifier=target_group_name,
+            target_db_cluster_parameter_group_description=target_description,
+            tags=tags,
+        )
+        result = {
+            "DBClusterParameterGroup": {
+                "DBClusterParameterGroupName": target_group.name,
+                "DBParameterGroupFamily": target_group.db_parameter_group_family,
+                "Description": target_group.description,
+                "DBClusterParameterGroupArn": target_group.arn,
+            }
+        }
+        return ActionResult(result)
 
     def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.params.get("DBClusterIdentifier")

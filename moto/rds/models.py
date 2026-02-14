@@ -46,7 +46,9 @@ from .exceptions import (
     DBInstanceNotFoundError,
     DBInstanceRoleAlreadyExists,
     DBParameterGroupAlreadyExistsError,
+    DBParameterGroupAlreadyExistsFault,
     DBParameterGroupNotFoundError,
+    DBParameterGroupNotFoundFault,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
@@ -2334,7 +2336,7 @@ class RDSBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
             ARN_PARTITION_REGEX
-            + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
+            + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy|cluster-pg):.*$"
         )
         self.clusters: MutableMapping[str, DBCluster] = CaseInsensitiveDict()
         self.global_clusters: MutableMapping[str, GlobalCluster] = CaseInsensitiveDict()
@@ -3379,6 +3381,56 @@ class RDSBackend(BaseBackend):
 
         return db_cluster_parameter_group
 
+    def copy_db_cluster_parameter_group(
+        self,
+        source_db_cluster_parameter_group_identifier: str,
+        target_db_cluster_parameter_group_identifier: str,
+        target_db_cluster_parameter_group_description: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBClusterParameterGroup:
+        if source_db_cluster_parameter_group_identifier.startswith("arn:aws:rds:"):
+            source_db_cluster_parameter_group_identifier = (
+                source_db_cluster_parameter_group_identifier.split(":")[-1]
+            )
+        if (
+            source_db_cluster_parameter_group_identifier
+            not in self.db_cluster_parameter_groups
+        ):
+            raise DBParameterGroupNotFoundFault(
+                source_db_cluster_parameter_group_identifier
+            )
+        if (
+            target_db_cluster_parameter_group_identifier
+            in self.db_cluster_parameter_groups
+        ):
+            raise DBParameterGroupAlreadyExistsFault(
+                target_db_cluster_parameter_group_identifier
+            )
+        source_db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            source_db_cluster_parameter_group_identifier
+        ]
+
+        target_db_cluster_parameter_group = DBClusterParameterGroup(
+            backend=self,
+            db_cluster_parameter_group_name=target_db_cluster_parameter_group_identifier,
+            db_parameter_group_family=source_db_cluster_parameter_group.db_parameter_group_family,
+            description=target_db_cluster_parameter_group_description,
+            tags=tags,
+        )
+        self.db_cluster_parameter_groups[
+            target_db_cluster_parameter_group_identifier
+        ] = target_db_cluster_parameter_group
+
+        iterable_source_parameters = [
+            {"ParameterName": name, **values}
+            for name, values in source_db_cluster_parameter_group.parameters.items()
+        ]
+        self.modify_db_cluster_parameter_group(
+            db_cluster_parameter_group_name=target_db_cluster_parameter_group_identifier,
+            db_cluster_parameter_group_parameters=iterable_source_parameters,
+        )
+        return target_db_cluster_parameter_group
+
     def describe_db_cluster_parameters(
         self, db_cluster_parameter_group_name: str
     ) -> list[dict[str, Any]]:
@@ -3851,19 +3903,30 @@ class RDSBackend(BaseBackend):
         return []
 
     def create_db_cluster_parameter_group(
-        self,
-        group_name: str,
-        family: str,
-        description: str,
+        self, db_cluster_parameter_group_kwargs: dict[str, Any]
     ) -> DBClusterParameterGroup:
-        group = DBClusterParameterGroup(
-            backend=self,
-            name=group_name,
-            family=family,
-            description=description,
+        db_cluster_parameter_group_id = db_cluster_parameter_group_kwargs[
+            "db_cluster_parameter_group_name"
+        ]
+        if db_cluster_parameter_group_id in self.db_cluster_parameter_groups:
+            raise DBParameterGroupAlreadyExistsFault(db_cluster_parameter_group_id)
+        if not db_cluster_parameter_group_kwargs.get("description"):
+            raise RDSClientError(
+                "InvalidParameterValue",
+                "The parameter Description must be provided and must not be blank.",
+            )
+        if not db_cluster_parameter_group_kwargs.get("db_parameter_group_family"):
+            raise RDSClientError(
+                "InvalidParameterValue",
+                "The parameter DBParameterGroupFamily must be provided and must not be blank.",
+            )
+        db_cluster_parameter_group = DBClusterParameterGroup(
+            self, **db_cluster_parameter_group_kwargs
         )
-        self.db_cluster_parameter_groups[group_name] = group
-        return group
+        self.db_cluster_parameter_groups[db_cluster_parameter_group_id] = (
+            db_cluster_parameter_group
+        )
+        return db_cluster_parameter_group
 
     def describe_db_cluster_parameter_groups(
         self, group_name: str
@@ -3874,8 +3937,13 @@ class RDSBackend(BaseBackend):
             return [self.db_cluster_parameter_groups[group_name]]
         return list(self.db_cluster_parameter_groups.values())
 
-    def delete_db_cluster_parameter_group(self, group_name: str) -> None:
-        self.db_cluster_parameter_groups.pop(group_name)
+    def delete_db_cluster_parameter_group(
+        self, db_cluster_parameter_group_name: str
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
+            return self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
+        else:
+            raise DBParameterGroupNotFoundFault(db_cluster_parameter_group_name)
 
     def create_global_cluster(
         self,
@@ -4458,12 +4526,20 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
 class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "cluster-pg"
 
-    def __init__(self, backend: RDSBackend, name: str, description: str, family: str):
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_cluster_parameter_group_name: str,
+        description: str,
+        db_parameter_group_family: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
         super().__init__(backend)
-        self.name = name
+        self.name = db_cluster_parameter_group_name
         self.description = description
-        self.db_parameter_group_family = family
+        self.db_parameter_group_family = db_parameter_group_family
         self.parameters: dict[str, Any] = defaultdict(dict)
+        self.tags = tags or []
 
     @property
     def name(self) -> str:
@@ -4476,6 +4552,10 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend = rds_backends[account_id][region_name]
+        backend.delete_db_cluster_parameter_group(self.name)
 
     def update_cluster_parameters(
         self, new_parameters: Iterable[dict[str, Any]]
