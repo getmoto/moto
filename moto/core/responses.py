@@ -272,6 +272,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.allow_request_decompression = True
         self.automated_parameter_parsing = False
 
+    @property
+    def boto3_service_name(self) -> str:
+        if self.service_name is None:
+            return ""
+        return boto3_service_name.get(self.service_name, self.service_name)
+
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         return cls()._dispatch(*args, **kwargs)
@@ -522,7 +528,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         assert isinstance(request, (AWSPreparedRequest, Request)), str(request)
         normalized_request = normalize_request(request)
-        service_model = get_service_model(self.service_name)
+        service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = determine_request_protocol(
             service_model, normalized_request.content_type
@@ -547,7 +553,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return protocol
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
-        service_model = get_service_model(self.service_name)
+        service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
