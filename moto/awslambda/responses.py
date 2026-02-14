@@ -4,7 +4,7 @@ import sys
 from typing import Any, Union
 from urllib.parse import unquote
 
-from moto.core.responses import TYPE_RESPONSE, BaseResponse
+from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse
 from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.utils import ARN_PARTITION_REGEX
 
@@ -420,17 +420,17 @@ class LambdaResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(alias.to_json())
 
-    def put_function_event_invoke_config(self) -> str:
+    def put_function_event_invoke_config(self) -> ActionResult:
         function_name = unquote(self.path.rsplit("/", 2)[1])
         response = self.backend.put_function_event_invoke_config(
             function_name, self.json_body
         )
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def get_function_event_invoke_config(self) -> str:
+    def get_function_event_invoke_config(self) -> ActionResult:
         function_name = unquote(self.path.rsplit("/", 2)[1])
         response = self.backend.get_function_event_invoke_config(function_name)
-        return json.dumps(response)
+        return ActionResult(response)
 
     def delete_function_event_invoke_config(self) -> TYPE_RESPONSE:
         function_name = unquote(self.path.rsplit("/", 2)[1])
