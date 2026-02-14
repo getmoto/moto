@@ -5,8 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       ref:
+        default: "master"
         description: "The branch, tag or SHA to checkout, e.g. master or refs/pull/<pr_number>/merge"
-        required: true
+        required: false
         type: string
       tests_specifier:
         default: "tests"
