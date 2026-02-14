@@ -3,6 +3,16 @@ on:
   schedule:
     - cron: '00 6 * * 0'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, tag or SHA to checkout, e.g. master or refs/pull/<pr_number>/merge"
+        required: true
+        type: string
+      tests_specifier:
+        default: "tests"
+        description: "pytest test(s) specifier"
+        required: false
+        type: string
 
 jobs:
   test:
@@ -13,9 +23,13 @@ jobs:
       id-token: write
 
     steps:
+    - name: Set git ref for `workflow_dispatch` event
+      if: github.event_name == 'workflow_dispatch'
+      run: echo "GITHUB_REF=${{ inputs.ref }}" >> $GITHUB_ENV
     - uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        ref: ${{ env.GITHUB_REF }}
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -44,5 +58,7 @@ jobs:
     - name: Test with pytest
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
+        TESTS_SPECIFIER: ${{ github.event_name == 'workflow_dispatch' && inputs.tests_specifier || 'tests' }}
       run: |
-        pytest -sv -n auto --dist loadfile tests -m aws_verified --durations 100
+        pytest -sv -n auto --dist loadfile ${{ env.TESTS_SPECIFIER }} -m aws_verified --durations 100
+      
