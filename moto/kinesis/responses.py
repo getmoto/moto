@@ -1,6 +1,6 @@
 import json
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 
 from .models import KinesisBackend, kinesis_backends
 
@@ -29,11 +29,11 @@ class KinesisResponse(BaseResponse):
         stream = self.kinesis_backend.describe_stream(stream_arn, stream_name)
         return json.dumps(stream.to_json(shard_limit=limit))
 
-    def describe_stream_summary(self) -> str:
+    def describe_stream_summary(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         stream = self.kinesis_backend.describe_stream_summary(stream_arn, stream_name)
-        return json.dumps(stream.to_json_summary())
+        return ActionResult(stream.to_json_summary())
 
     def list_streams(self) -> str:
         streams = self.kinesis_backend.list_streams()
