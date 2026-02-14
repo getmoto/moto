@@ -26,7 +26,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         target_type = self._get_param("TargetType")
         tags = self._get_param("Tags")
 
-        result = self.ssm_backend.create_document(
+        document = self.ssm_backend.create_document(
             content=content,
             requires=requires,
             attachments=attachments,
@@ -38,7 +38,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             tags=tags,
         )
 
-        return json.dumps({"DocumentDescription": result})
+        return json.dumps({"DocumentDescription": document.describe(tags=tags)})
 
     def delete_document(self) -> str:
         name = self._get_param("Name")

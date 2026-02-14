@@ -593,7 +593,7 @@ class Documents(BaseModel):
         return len(self.permissions) > 0
 
 
-class Document(BaseModel):
+class Document(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
@@ -686,6 +686,74 @@ class Document(BaseModel):
             base["Tags"] = tags
 
         return base
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::SSM::Document"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Document":
+        ssm_backend: SimpleSystemManagerBackend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        documents = ssm_backend.create_document(
+            content=properties.get("Content"),
+            requires=properties.get("Requires"),
+            attachments=properties.get("Attachments"),
+            name=properties.get("Name"),
+            version_name=properties.get("VersionName"),
+            document_type=properties.get("DocumentType"),
+            document_format=properties.get("DocumentFormat"),
+            target_type=properties.get("TargetType"),
+            tags=properties.get("Tags"),
+        )
+        return documents.get_default_version()
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "Document":
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        resource = resource_name
+        ssm_backend: SimpleSystemManagerBackend = ssm_backends[account_id][region_name]
+        if not resource:
+            properties = cloudformation_json["Properties"]
+            resource = properties.get("Name")
+        ssm_backend.delete_document(
+            name=resource_name,
+            document_version="",
+            version_name=cloudformation_json.get("VersionName") or "",
+            force=True,
+        )
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
 
 
 class Command(BaseModel):
@@ -1286,7 +1354,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         document_format: str,
         target_type: str,
         tags: list[dict[str, str]],
-    ) -> dict[str, Any]:
+    ) -> Documents:
         ssm_document = Document(
             account_id=self.account_id,
             name=name,
@@ -1316,7 +1384,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             document_tags = {t["Key"]: t["Value"] for t in tags}
             self.add_tags_to_resource("Document", name, document_tags)
 
-        return documents.describe(tags=tags)
+        return documents
 
     def delete_document(
         self, name: str, document_version: str, version_name: str, force: bool
