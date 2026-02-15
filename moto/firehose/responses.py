@@ -10,6 +10,7 @@ class FirehoseResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="firehose")
+        self.automated_parameter_parsing = True
 
     @property
     def firehose_backend(self) -> FirehoseBackend:
