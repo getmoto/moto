@@ -15,7 +15,6 @@ Incomplete list of unfinished items:
 import io
 import json
 import warnings
-from base64 import b64decode, b64encode
 from datetime import datetime, timezone
 from gzip import GzipFile
 from time import time
@@ -25,6 +24,7 @@ import requests
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
@@ -429,7 +429,10 @@ class FirehoseBackend(BaseBackend):
         record_to_send = {
             "requestId": str(mock_random.uuid4()),
             "timestamp": int(time()),
-            "records": [{"data": record["Data"]} for record in records],
+            "records": [
+                {"data": str(Base64EncodedString.from_raw_bytes(record["Data"]))}
+                for record in records
+            ],
         }
         try:
             requests.post(url, json=record_to_send, headers=headers)
@@ -473,7 +476,7 @@ class FirehoseBackend(BaseBackend):
             delivery_stream_name, version_id, prefix
         )
 
-        batched_data = b"".join([b64decode(r["Data"]) for r in records])
+        batched_data = b"".join([r["Data"] for r in records])
         try:
             s3_backends[self.account_id][self.partition].put_object(
                 bucket_name, object_path, batched_data
@@ -717,7 +720,7 @@ class FirehoseBackend(BaseBackend):
         output = io.BytesIO()
         with GzipFile(fileobj=output, mode="w") as fhandle:
             fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
-        gzipped_payload = b64encode(output.getvalue())
+        gzipped_payload = output.getvalue()
 
         delivery_stream: DeliveryStream = self.lookup_name_from_arn(delivery_stream_arn)  # type: ignore[assignment]
         self.put_s3_records(
