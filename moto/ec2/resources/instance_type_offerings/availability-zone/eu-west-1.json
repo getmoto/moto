@@ -3176,6 +3176,10 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-1a"
  },
@@ -6537,6 +6541,10 @@
  },
  {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "eu-west-1b"
  },
  {
