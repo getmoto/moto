@@ -1684,6 +1684,58 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "m8id.12xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.32xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.48xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.96xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.large",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.metal-48xl",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.metal-96xl",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m8id.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "eu-south-2"
  },
@@ -2257,6 +2309,58 @@
  },
  {
   "InstanceType": "r8i.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.12xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.32xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.48xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.96xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.large",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.metal-48xl",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.metal-96xl",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r8id.xlarge",
   "Location": "eu-south-2"
  },
  {

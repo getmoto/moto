@@ -2672,6 +2672,10 @@
   "Location": "eu-west-2a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-2a"
  },
