@@ -3941,9 +3941,9 @@ class RDSBackend(BaseBackend):
             return [self.db_cluster_parameter_groups[group_name]]
         return list(self.db_cluster_parameter_groups.values())
 
-    def delete_db_cluster_parameter_group(self, db_cluster_parameter_group_name: str):
+    def delete_db_cluster_parameter_group(self, db_cluster_parameter_group_name: str) -> None:
         if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
-            return self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
+            self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
 
         raise DBParameterGroupNotFoundError(db_cluster_parameter_group_name)
 
