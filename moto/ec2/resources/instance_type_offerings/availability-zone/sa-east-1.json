@@ -6932,6 +6932,10 @@
   "Location": "sa-east-1c"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "sa-east-1c"
  },

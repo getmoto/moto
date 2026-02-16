@@ -2592,6 +2592,42 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "m8azn.12xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.24xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.3xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.6xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.large",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.medium",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.metal-12xl",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.metal-24xl",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "m8azn.xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "m8g.12xlarge",
   "Location": "usw2-az1"
  },
@@ -7144,6 +7180,42 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "m8azn.12xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.24xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.3xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.6xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.large",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.medium",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.metal-12xl",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.metal-24xl",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "m8azn.xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "m8g.12xlarge",
   "Location": "usw2-az2"
  },
@@ -8757,6 +8829,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "usw2-az2"
  },
  {
@@ -11653,6 +11729,42 @@
  },
  {
   "InstanceType": "m8a.xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.12xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.24xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.3xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.6xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.large",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.medium",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.metal-12xl",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.metal-24xl",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "m8azn.xlarge",
   "Location": "usw2-az3"
  },
  {
