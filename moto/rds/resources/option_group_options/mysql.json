@@ -1,0 +1,876 @@
+[
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"5.6",
+  "MinimumRequiredMinorEngineVersion":"29",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,QUERY_DDL,QUERY_DML,QUERY_DCL",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MEMCACHED",
+  "Description":"Innodb Memcached for MySQL",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"5.6",
+  "MinimumRequiredMinorEngineVersion":"12",
+  "PortRequired":true,
+  "DefaultPort":11211,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"DAEMON_MEMCACHED_R_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"DAEMON_MEMCACHED_W_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_BK_COMMIT_INTERVAL",
+    "SettingDescription":"Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.",
+    "DefaultValue":"5",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1073741824",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_DISABLE_ROWLOCK",
+    "SettingDescription":"Disables the use of row locks when using the InnoDB memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_ENABLE_MDL",
+    "SettingDescription":"Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_TRX_LEVEL",
+    "SettingDescription":"Lets you control the transaction isolation level on queries processed by the memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0-3",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BINDING_PROTOCOL",
+    "SettingDescription":"The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.",
+    "DefaultValue":"auto",
+    "ApplyType":"STATIC",
+    "AllowedValues":"auto,ascii,binary",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BACKLOG_QUEUE_LIMIT",
+    "SettingDescription":"The backlog queue configures how many network connections can be waiting to be processed by memcached",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2048",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CAS_DISABLED",
+    "SettingDescription":"Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CHUNK_SIZE",
+    "SettingDescription":"Minimum chunk size in bytes to allocate for the smallest item's key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.",
+    "DefaultValue":"48",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-48",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CHUNK_SIZE_GROWTH_FACTOR",
+    "SettingDescription":"Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.",
+    "DefaultValue":"1.25",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"ERROR_ON_MEMORY_EXHAUSTED",
+    "SettingDescription":"If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"MAX_SIMULTANEOUS_CONNECTIONS",
+    "SettingDescription":"Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"10-1024",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"VERBOSITY",
+    "SettingDescription":"Verbose level for memcached.",
+    "DefaultValue":"v",
+    "ApplyType":"STATIC",
+    "AllowedValues":"v,vv,vvv",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"5.7",
+  "MinimumRequiredMinorEngineVersion":"11",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MEMCACHED",
+  "Description":"Innodb Memcached for MySQL",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"5.7",
+  "MinimumRequiredMinorEngineVersion":"10",
+  "PortRequired":true,
+  "DefaultPort":11211,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"DAEMON_MEMCACHED_R_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"DAEMON_MEMCACHED_W_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_BK_COMMIT_INTERVAL",
+    "SettingDescription":"Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.",
+    "DefaultValue":"5",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1073741824",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_DISABLE_ROWLOCK",
+    "SettingDescription":"Disables the use of row locks when using the InnoDB memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_ENABLE_MDL",
+    "SettingDescription":"Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_TRX_LEVEL",
+    "SettingDescription":"Lets you control the transaction isolation level on queries processed by the memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0-3",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BINDING_PROTOCOL",
+    "SettingDescription":"The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.",
+    "DefaultValue":"auto",
+    "ApplyType":"STATIC",
+    "AllowedValues":"auto,ascii,binary",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BACKLOG_QUEUE_LIMIT",
+    "SettingDescription":"The backlog queue configures how many network connections can be waiting to be processed by memcached",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2048",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CAS_DISABLED",
+    "SettingDescription":"Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CHUNK_SIZE",
+    "SettingDescription":"Minimum chunk size in bytes to allocate for the smallest item's key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.",
+    "DefaultValue":"48",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-48",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CHUNK_SIZE_GROWTH_FACTOR",
+    "SettingDescription":"Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.",
+    "DefaultValue":"1.25",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"ERROR_ON_MEMORY_EXHAUSTED",
+    "SettingDescription":"If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"MAX_SIMULTANEOUS_CONNECTIONS",
+    "SettingDescription":"Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"10-1024",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"VERBOSITY",
+    "SettingDescription":"Verbose level for memcached.",
+    "DefaultValue":"v",
+    "ApplyType":"STATIC",
+    "AllowedValues":"v,vv,vvv",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"8.0",
+  "MinimumRequiredMinorEngineVersion":"25",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MEMCACHED",
+  "Description":"Innodb Memcached for MySQL",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"8.0",
+  "MinimumRequiredMinorEngineVersion":"11",
+  "PortRequired":true,
+  "DefaultPort":11211,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"CHUNK_SIZE",
+    "SettingDescription":"Minimum chunk size in bytes to allocate for the smallest item's key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.",
+    "DefaultValue":"48",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-48",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CHUNK_SIZE_GROWTH_FACTOR",
+    "SettingDescription":"Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.",
+    "DefaultValue":"1.25",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"ERROR_ON_MEMORY_EXHAUSTED",
+    "SettingDescription":"If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"DAEMON_MEMCACHED_R_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"DAEMON_MEMCACHED_W_BATCH_SIZE",
+    "SettingDescription":"Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction",
+    "DefaultValue":"1",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-4294967295",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_BK_COMMIT_INTERVAL",
+    "SettingDescription":"Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.",
+    "DefaultValue":"5",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1073741824",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_DISABLE_ROWLOCK",
+    "SettingDescription":"Disables the use of row locks when using the InnoDB memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_ENABLE_MDL",
+    "SettingDescription":"Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"INNODB_API_TRX_LEVEL",
+    "SettingDescription":"Lets you control the transaction isolation level on queries processed by the memcached interface.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0-3",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BINDING_PROTOCOL",
+    "SettingDescription":"The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.",
+    "DefaultValue":"auto",
+    "ApplyType":"STATIC",
+    "AllowedValues":"auto,ascii,binary",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"BACKLOG_QUEUE_LIMIT",
+    "SettingDescription":"The backlog queue configures how many network connections can be waiting to be processed by memcached",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"1-2048",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"CAS_DISABLED",
+    "SettingDescription":"Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.",
+    "DefaultValue":"0",
+    "ApplyType":"STATIC",
+    "AllowedValues":"0,1",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"MAX_SIMULTANEOUS_CONNECTIONS",
+    "SettingDescription":"Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.",
+    "DefaultValue":"1024",
+    "ApplyType":"STATIC",
+    "AllowedValues":"10-1024",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"VERBOSITY",
+    "SettingDescription":"Verbose level for memcached.",
+    "DefaultValue":"v",
+    "ApplyType":"STATIC",
+    "AllowedValues":"v,vv,vvv",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mysql",
+  "MajorEngineVersion":"8.4",
+  "MinimumRequiredMinorEngineVersion":"3",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"100000-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ }
+]

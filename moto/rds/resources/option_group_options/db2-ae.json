@@ -1,0 +1,35 @@
+[
+ {
+  "Name":"DB2_AUDIT",
+  "Description":"Enable Db2 Audit",
+  "EngineName":"db2-ae",
+  "MajorEngineVersion":"11.5",
+  "MinimumRequiredMinorEngineVersion":"8.0",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"S3_BUCKET_ARN",
+    "SettingDescription":"Specifies the customer S3 bucket ARN to upload audit logs",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":true,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"IAM_ROLE_ARN",
+    "SettingDescription":"Specifies the IAM role ARN used by RDS to upload log to the desired S3 bucket",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":true,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ }
+]
