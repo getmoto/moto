@@ -46,9 +46,7 @@ from .exceptions import (
     DBInstanceNotFoundError,
     DBInstanceRoleAlreadyExists,
     DBParameterGroupAlreadyExistsError,
-    DBParameterGroupAlreadyExistsFault,
     DBParameterGroupNotFoundError,
-    DBParameterGroupNotFoundFault,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
@@ -3396,16 +3394,17 @@ class RDSBackend(BaseBackend):
             source_db_cluster_parameter_group_identifier
             not in self.db_cluster_parameter_groups
         ):
-            raise DBParameterGroupNotFoundFault(
+            raise DBParameterGroupNotFoundError(
                 source_db_cluster_parameter_group_identifier
             )
         if (
             target_db_cluster_parameter_group_identifier
             in self.db_cluster_parameter_groups
         ):
-            raise DBParameterGroupAlreadyExistsFault(
+            raise DBParameterGroupAlreadyExistsError(
                 target_db_cluster_parameter_group_identifier
             )
+
         source_db_cluster_parameter_group = self.db_cluster_parameter_groups[
             source_db_cluster_parameter_group_identifier
         ]
@@ -3903,27 +3902,32 @@ class RDSBackend(BaseBackend):
         return []
 
     def create_db_cluster_parameter_group(
-        self, db_cluster_parameter_group_kwargs: dict[str, Any]
+        self,
+        db_cluster_parameter_group_name: str,
+        description: str,
+        db_parameter_group_family: str,
+        tags: Optional[list[dict[str, str]]],
     ) -> DBClusterParameterGroup:
-        db_cluster_parameter_group_id = db_cluster_parameter_group_kwargs[
-            "db_cluster_parameter_group_name"
-        ]
-        if db_cluster_parameter_group_id in self.db_cluster_parameter_groups:
-            raise DBParameterGroupAlreadyExistsFault(db_cluster_parameter_group_id)
-        if not db_cluster_parameter_group_kwargs.get("description"):
+        if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
+            raise DBParameterGroupAlreadyExistsError(db_cluster_parameter_group_name)
+        if not description:
             raise RDSClientError(
                 "InvalidParameterValue",
                 "The parameter Description must be provided and must not be blank.",
             )
-        if not db_cluster_parameter_group_kwargs.get("db_parameter_group_family"):
+        if not db_parameter_group_family:
             raise RDSClientError(
                 "InvalidParameterValue",
                 "The parameter DBParameterGroupFamily must be provided and must not be blank.",
             )
         db_cluster_parameter_group = DBClusterParameterGroup(
-            self, **db_cluster_parameter_group_kwargs
+            self,
+            db_cluster_parameter_group_name=db_cluster_parameter_group_name,
+            description=description,
+            db_parameter_group_family=db_parameter_group_family,
+            tags=tags,
         )
-        self.db_cluster_parameter_groups[db_cluster_parameter_group_id] = (
+        self.db_cluster_parameter_groups[db_cluster_parameter_group_name] = (
             db_cluster_parameter_group
         )
         return db_cluster_parameter_group
@@ -3937,13 +3941,11 @@ class RDSBackend(BaseBackend):
             return [self.db_cluster_parameter_groups[group_name]]
         return list(self.db_cluster_parameter_groups.values())
 
-    def delete_db_cluster_parameter_group(
-        self, db_cluster_parameter_group_name: str
-    ) -> DBClusterParameterGroup:
+    def delete_db_cluster_parameter_group(self, db_cluster_parameter_group_name: str):
         if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
             return self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
-        else:
-            raise DBParameterGroupNotFoundFault(db_cluster_parameter_group_name)
+
+        raise DBParameterGroupNotFoundError(db_cluster_parameter_group_name)
 
     def create_global_cluster(
         self,
@@ -4552,10 +4554,6 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
-
-    def delete(self, account_id: str, region_name: str) -> None:
-        backend = rds_backends[account_id][region_name]
-        backend.delete_db_cluster_parameter_group(self.name)
 
     def update_cluster_parameters(
         self, new_parameters: Iterable[dict[str, Any]]

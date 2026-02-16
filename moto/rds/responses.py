@@ -535,9 +535,13 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def create_db_cluster_parameter_group(self) -> ActionResult:
-        kwargs = self.params
         db_cluster_parameter_group = self.backend.create_db_cluster_parameter_group(
-            kwargs
+            db_cluster_parameter_group_name=self.params.get(
+                "DBClusterParameterGroupName"
+            ),
+            description=self.params.get("Description"),
+            db_parameter_group_family=self.params.get("DBParameterGroupFamily"),
+            tags=self.params.get("Tags"),
         )
         result = {"DBClusterParameterGroup": db_cluster_parameter_group}
         return ActionResult(result)
@@ -551,23 +555,25 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_db_cluster_parameter_group(self) -> ActionResult:
-        group_name = self.params.get("DBClusterParameterGroupName")
         self.backend.delete_db_cluster_parameter_group(
-            db_cluster_parameter_group_name=group_name,
+            db_cluster_parameter_group_name=self.params.get(
+                "DBClusterParameterGroupName"
+            ),
         )
         return EmptyResult()
 
     def copy_db_cluster_parameter_group(self) -> ActionResult:
-        source_group_name = self.params.get("SourceDBClusterParameterGroupIdentifier")
-        target_group_name = self.params.get("TargetDBClusterParameterGroupIdentifier")
-        target_description = self.params.get("TargetDBClusterParameterGroupDescription")
-        tags = self.params.get("Tags")
-
         target_group = self.backend.copy_db_cluster_parameter_group(
-            source_db_cluster_parameter_group_identifier=source_group_name,
-            target_db_cluster_parameter_group_identifier=target_group_name,
-            target_db_cluster_parameter_group_description=target_description,
-            tags=tags,
+            source_db_cluster_parameter_group_identifier=self.params.get(
+                "SourceDBClusterParameterGroupIdentifier"
+            ),
+            target_db_cluster_parameter_group_identifier=self.params.get(
+                "TargetDBClusterParameterGroupIdentifier"
+            ),
+            target_db_cluster_parameter_group_description=self.params.get(
+                "TargetDBClusterParameterGroupDescription"
+            ),
+            tags=self.params.get("Tags"),
         )
         result = {
             "DBClusterParameterGroup": {
