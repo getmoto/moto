@@ -4827,11 +4827,6 @@
             "geolocationRegion": {
               "Value": "JP-13"
             },
-            "local-zones": {
-              "apne1-tpe1-az1": {
-                "Value": "apne1-tpe1-az1"
-              }
-            },
             "longName": {
               "Value": "Asia Pacific (Tokyo)"
             },
@@ -13741,6 +13736,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.ap-south-1.amazonaws.com"
+                }
+              },
               "personalize": {
                 "Value": "personalize",
                 "endpoint": {
@@ -18849,9 +18850,6 @@
               "Value": "AU-NSW"
             },
             "local-zones": {
-              "apse2-akl1-az1": {
-                "Value": "apse2-akl1-az1"
-              },
               "apse2-per1-az1": {
                 "Value": "apse2-per1-az1"
               }
@@ -19749,6 +19747,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-southeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23713,6 +23720,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "drs": {
                 "Value": "drs",
                 "endpoint": {
@@ -23726,6 +23742,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-southeast-4.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29279,6 +29304,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -31425,6 +31459,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ca-west-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38637,6 +38680,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52614,6 +52666,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.eu-west-3.amazonaws.com"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -62735,6 +62793,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -74647,9 +74714,6 @@
               },
               "usw2-lax1-az2": {
                 "Value": "usw2-lax1-az2"
-              },
-              "usw2-pdx1-az1": {
-                "Value": "usw2-pdx1-az1"
               },
               "usw2-phx2-az1": {
                 "Value": "usw2-phx2-az1"
