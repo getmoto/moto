@@ -3911,14 +3911,12 @@ class RDSBackend(BaseBackend):
         if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
             raise DBParameterGroupAlreadyExistsError(db_cluster_parameter_group_name)
         if not description:
-            raise RDSClientError(
-                "InvalidParameterValue",
-                "The parameter Description must be provided and must not be blank.",
+            raise InvalidParameterValue(
+                "The parameter Description must be provided and must not be blank."
             )
         if not db_parameter_group_family:
-            raise RDSClientError(
-                "InvalidParameterValue",
-                "The parameter DBParameterGroupFamily must be provided and must not be blank.",
+            raise InvalidParameterValue(
+                "The parameter DBParameterGroupFamily must be provided and must not be blank."
             )
         db_cluster_parameter_group = DBClusterParameterGroup(
             self,
