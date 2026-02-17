@@ -294,12 +294,13 @@ class RDSResponse(BaseResponse):
         result = {"OptionGroupsList": option_groups}
         return PaginatedResult(result)
 
-    def describe_option_group_options(self) -> str:
+    def describe_option_group_options(self) -> ActionResult:
         engine_name = self.params.get("EngineName")
         major_engine_version = self.params.get("MajorEngineVersion")
-        return self.backend.describe_option_group_options(
+        options = self.backend.describe_option_group_options(
             engine_name, major_engine_version
         )
+        return ActionResult({"OptionGroupOptions": options})
 
     def modify_option_group(self) -> ActionResult:
         option_group_name = self.params.get("OptionGroupName")
