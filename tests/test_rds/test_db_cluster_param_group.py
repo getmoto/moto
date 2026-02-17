@@ -85,7 +85,7 @@ def test_copy():
 
     client.copy_db_cluster_parameter_group(
         SourceDBClusterParameterGroupIdentifier=source_group[
-            "DBClusterParameterGroupName"
+            "DBClusterParameterGroupArn"
         ],
         TargetDBClusterParameterGroupIdentifier="targetgroup",
         TargetDBClusterParameterGroupDescription="familia target",
@@ -145,9 +145,22 @@ def test_not_found():
 def test_create_validation():
     client = boto3.client("rds", "us-east-2")
 
-    with pytest.raises(client.exceptions.ClientError):
+    with pytest.raises(client.exceptions.ClientError) as exc:
         client.create_db_cluster_parameter_group(
             DBClusterParameterGroupName="groupname",
             DBParameterGroupFamily="",
+            Description="familia",
+        )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"
+    assert "DBParameterGroupFamily" in error["Message"]
+
+    with pytest.raises(client.exceptions.ClientError) as exc:
+        client.create_db_cluster_parameter_group(
+            DBClusterParameterGroupName="groupname",
+            DBParameterGroupFamily="aurora5.6",
             Description="",
         )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"
+    assert "Description" in error["Message"]
