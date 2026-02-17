@@ -558,10 +558,9 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_db_cluster_parameter_group(self) -> ActionResult:
+        db_cluster_parameter_group_name = self.params.get("DBClusterParameterGroupName")
         self.backend.delete_db_cluster_parameter_group(
-            db_cluster_parameter_group_name=self.params.get(
-                "DBClusterParameterGroupName"
-            ),
+            db_cluster_parameter_group_name=db_cluster_parameter_group_name,
         )
         return EmptyResult()
 

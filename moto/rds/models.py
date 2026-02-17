@@ -3883,8 +3883,8 @@ class RDSBackend(BaseBackend):
     def create_db_cluster_parameter_group(
         self,
         db_cluster_parameter_group_name: str,
-        description: str,
         db_parameter_group_family: str,
+        description: str,
         tags: Optional[list[dict[str, str]]],
     ) -> DBClusterParameterGroup:
         if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
