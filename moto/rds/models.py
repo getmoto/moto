@@ -3898,10 +3898,10 @@ class RDSBackend(BaseBackend):
                 "The parameter DBParameterGroupFamily must be provided and must not be blank."
             )
         db_cluster_parameter_group = DBClusterParameterGroup(
-            self,
+            backend=self,
             db_cluster_parameter_group_name=db_cluster_parameter_group_name,
-            description=description,
             db_parameter_group_family=db_parameter_group_family,
+            description=description,
             tags=tags,
         )
         self.db_cluster_parameter_groups[db_cluster_parameter_group_name] = (
