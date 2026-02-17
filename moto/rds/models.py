@@ -3942,11 +3942,9 @@ class RDSBackend(BaseBackend):
     def delete_db_cluster_parameter_group(
         self, db_cluster_parameter_group_name: str
     ) -> None:
-        if db_cluster_parameter_group_name in self.db_cluster_parameter_groups:
-            self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
-            return
-
-        raise DBParameterGroupNotFoundError(db_cluster_parameter_group_name)
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBParameterGroupNotFoundError(db_cluster_parameter_group_name)
+        self.db_cluster_parameter_groups.pop(db_cluster_parameter_group_name)
 
     def create_global_cluster(
         self,
