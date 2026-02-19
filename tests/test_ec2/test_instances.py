@@ -15,6 +15,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
+from tests.test_ec2 import ec2_aws_verified
 
 from .helpers import assert_dryrun_error
 
@@ -2230,22 +2231,22 @@ def test_describe_instance_attribute():
         assert ex.value.response["Error"]["Message"] == message
 
 
-@mock_aws
+@ec2_aws_verified()
+@pytest.mark.aws_verified
 @mock.patch(
     "moto.ec2.models.instances.settings.ENABLE_AMI_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
 )
-def test_error_on_invalid_ami(m_flag):
+def test_error_on_invalid_ami(m_flag, ec2_client=None):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't capture warnings in server mode.")
-    ec2 = boto3.resource("ec2", "us-east-1")
     with pytest.raises(ClientError) as ex:
-        ec2.create_instances(ImageId="ami-invalid", MinCount=1, MaxCount=1)
+        ec2_client.run_instances(ImageId="ami-abcd1234", MinCount=1, MaxCount=1)
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
     assert (
         ex.value.response["Error"]["Message"]
-        == "The image id '[['ami-invalid']]' does not exist"
+        == "The image id '[ami-abcd1234]' does not exist"
     )
 
     assert m_flag is True
@@ -2268,7 +2269,7 @@ def test_error_on_invalid_ami_format(m_flag):
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.Malformed"
     assert (
         ex.value.response["Error"]["Message"]
-        == 'Invalid id: "[\'invalid-ami-format\']" (expecting "ami-...")'
+        == 'Invalid id: "invalid-ami-format" (expecting "ami-...")'
     )
 
     assert m_flag is True
