@@ -411,6 +411,7 @@ def test_invoke_function_from_sns():
 @pytest.mark.network
 @mock_aws
 @requires_docker
+@pytest.mark.skip(reason="Service not whitelisted")
 def test_invoke_function_from_kinesis():
     logs_conn = boto3.client("logs", region_name=_lambda_region)
     kinesis = boto3.client("kinesis", region_name=_lambda_region)

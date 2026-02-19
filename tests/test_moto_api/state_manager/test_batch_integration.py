@@ -1,10 +1,14 @@
 from unittest import SkipTest
 
+import pytest
+
 from moto import mock_aws, settings
 from moto.moto_api import state_manager
 from tests.markers import requires_docker
 from tests.test_batch import _get_clients, _setup
 from tests.test_batch.test_batch_jobs import _wait_for_job_status, prepare_job
+
+pytest.skip(reason="Service not whitelisted", allow_module_level=True)
 
 
 @mock_aws

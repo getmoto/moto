@@ -260,6 +260,7 @@ def test_subscription_filter_applies_to_new_streams():
 
 @mock_aws
 @pytest.mark.network
+@pytest.mark.skip(reason="Service not whitelisted")
 def test_put_subscription_filter_with_firehose():
     # given
     region_name = "us-east-1"
@@ -345,6 +346,7 @@ def test_put_subscription_filter_with_firehose():
 
 
 @mock_aws
+@pytest.mark.skip(reason="Service not whitelisted")
 def test_put_subscription_filter_with_kinesis():
     logs = boto3.client("logs", "ap-southeast-2")
     logs.create_log_group(logGroupName="lg1")

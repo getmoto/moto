@@ -177,6 +177,7 @@ class TestWithSetupMethod:
 
 
 @mock_aws
+@pytest.mark.skip(reason="Service not whitelisted")
 class TestKinesisUsingSetupMethod:
     def setup_method(self, *args: Any) -> None:
         self.stream_name = "test_stream"

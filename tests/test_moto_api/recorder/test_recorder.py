@@ -4,6 +4,7 @@ import os
 from unittest import SkipTest, TestCase
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -81,6 +82,7 @@ class TestRecorder(TestCase):
         assert "Action=RunInstances" in body
         assert f"ImageId={EXAMPLE_AMI_ID}" in body
 
+    @pytest.mark.skip(reason="Service not whitelisted")
     def test_multiple_services(self):
         self._start_recording()
         ddb = boto3.client(

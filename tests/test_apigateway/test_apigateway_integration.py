@@ -2,6 +2,7 @@ import json
 from unittest import SkipTest
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -86,6 +87,7 @@ def test_aws_integration_dynamodb():
 
 
 @mock_aws
+@pytest.mark.skip(reason="Service not whitelisted")
 def test_aws_integration_dynamodb_multiple_stages():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")

@@ -50,7 +50,71 @@ default_user_config: DefaultConfig = {
         "mock_credentials": True,
         "passthrough": {"urls": [], "services": []},
         "reset_boto3_session": True,
-        "service_whitelist": None,
+        # Important: When whitelisting a new service, make sure to unskip the service test suite in Makefile
+        "service_whitelist": [
+            "acm",
+            "acmpca",
+            "apigateway",
+            "applicationautoscaling",
+            "autoscaling",
+            "awslambda",  # Not used by LocalStack but has cross-service dependency within Moto
+            "ce",
+            "cloudformation",  # Not used by LocalStack but has cross-service dependency within Moto
+            "cloudwatch",
+            "codebuild",
+            "codecommit",
+            "codedeploy",
+            "codepipeline",
+            "cognitoidentity",
+            "cognitoidp",  # Not used by LocalStack but has cross-service dependency within Moto
+            "config",
+            "dynamodb",  # Not used by LocalStack but has cross-service dependency within Moto
+            "ec2",
+            "ecr",
+            "ecs",  # Not used by LocalStack but has cross-service dependency within Moto
+            "efs",
+            "elb",
+            "elbv2",
+            "emr",
+            "events",
+            "glacier",
+            "iam",
+            "identitystore",
+            "instance_metadata",  # Not used by LocalStack but has cross-service dependency within Moto
+            "iot",
+            "iotdata",
+            "kms",  # Not used by LocalStack but has cross-service dependency within Moto
+            "logs",
+            "managedblockchain",
+            "moto_api._internal",  # Not used by LocalStack but has cross-service dependency within Moto
+            "organizations",  # Not used by LocalStack but has cross-service dependency within Moto
+            "pinpoint",
+            "ram",
+            "rds",  # Not used by LocalStack but has cross-service dependency within Moto
+            "redshift",
+            "resourcegroups",
+            "resourcegroupstaggingapi",
+            "route53",
+            "route53resolver",
+            "s3",  # Not used by LocalStack but has cross-service dependency within Moto
+            "s3control",
+            "sagemaker",
+            "scheduler",
+            "secretsmanager",
+            "ses",
+            "shield",
+            "sns",  # Not used by LocalStack but has cross-service dependency within Moto
+            "sqs",  # Not used by LocalStack but has cross-service dependency within Moto
+            "ssm",
+            "ssoadmin",
+            "sts",
+            "support",
+            "swf",
+            "textract",
+            "transcribe",
+            "wafv2",
+            "xray",
+        ],
     },
     "iam": {"load_aws_managed_policies": False},
     "stepfunctions": {"execute_state_machine": False},

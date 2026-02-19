@@ -13,6 +13,7 @@ state_machine_definition = {
 }
 
 
+@pytest.mark.skip(reason="Service not whitelisted")
 @pytest.mark.parametrize("mocked_sfn", [True, False], ids=["Mocked", "Parsed"])
 def test_create_bucket_invokes_stepfunction(mocked_sfn):
     with mock_aws(config={"stepfunctions": {"execute_state_machine": mocked_sfn}}):
