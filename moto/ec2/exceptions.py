@@ -332,9 +332,17 @@ class InvalidInstanceTypeError(EC2ClientError):
 
 class InvalidAMIIdError(EC2ClientError):
     def __init__(self, ami_id: Union[list[str], str]):
+        if isinstance(ami_id, str):
+            message = f"The image id '[{ami_id}]' does not exist"
+        elif len(ami_id) > 1:
+            amis = ", ".join(ami_id)
+            message = f"The image ids '[{amis}]' do not exist"
+        else:
+            message = f"The image id '[{ami_id[0]}]' does not exist"
+
         super().__init__(
             "InvalidAMIID.NotFound",
-            f"The image id '[{ami_id}]' does not exist",
+            message,
         )
 
 
@@ -356,8 +364,9 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
 
 class MalformedAMIIdError(EC2ClientError):
     def __init__(self, ami_id: list[str]):
+        # AWS only lists the first bad AMI in the error message
         super().__init__(
-            "InvalidAMIID.Malformed", f'Invalid id: "{ami_id}" (expecting "ami-...")'
+            "InvalidAMIID.Malformed", f'Invalid id: "{ami_id[0]}" (expecting "ami-...")'
         )
 
 
