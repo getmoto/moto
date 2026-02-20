@@ -122,6 +122,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             tags = convert_tag_spec(tag_spec_set)
             instance_tags = tags.get("instance", {})
             self.add_tags(instance_tags)
+            # Add AWS-managed launch template tags
+            self.add_tags(
+                {
+                    "aws:ec2launchtemplate:id": template_version.template.id,
+                    "aws:ec2launchtemplate:version": str(template_version.number),
+                }
+            )
 
         self._state = InstanceState("running", 16)
         self._reason = ""
@@ -1098,6 +1105,6 @@ class InstanceBackend:
                 template_names=[launch_template_arg["LaunchTemplateName"]]
             )[0]
         )
-        version = launch_template_arg.get("Version", template.latest_version_number)
+        version = launch_template_arg.get("Version", template.default_version_number)
         template_version = template.get_version(version)
         return template_version
