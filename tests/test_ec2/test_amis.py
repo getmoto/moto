@@ -12,6 +12,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import RFC3339_DATETIME_PATTERN
 from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
+from tests.test_ec2 import ec2_aws_verified
 from tests.test_ec2.helpers import assert_dryrun_error
 
 
@@ -1077,17 +1078,48 @@ def test_ami_attribute_error_cases():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
 
 
-@mock_aws
-def test_ami_describe_non_existent():
-    ec2 = boto3.resource("ec2", region_name="us-west-1")
+@ec2_aws_verified()
+@pytest.mark.aws_verified
+def test_ami_describe_non_existent(ec2_client=None):
     # Valid pattern but non-existent id
-    img = ec2.Image("ami-abcd1234")
-    with pytest.raises(ClientError):
-        img.load()
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_images(ImageIds=["ami-abcd1234"])
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The image id '[ami-abcd1234]' does not exist"
+    )
+
+    # Valid pattern but non-existent id: With multiple IDs
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_images(ImageIds=["ami-abcd1234", "ami-1234abcd"])
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The image ids '[ami-abcd1234, ami-1234abcd]' do not exist"
+    )
+
     # Invalid ami pattern
-    img = ec2.Image("not_an_ami_id")
-    with pytest.raises(ClientError):
-        img.load()
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_images(ImageIds=["not_an_ami_id"])
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc.value.response["Error"]["Code"] == "InvalidAMIID.Malformed"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == 'Invalid id: "not_an_ami_id" (expecting "ami-...")'
+    )
+
+    # Invalid ami pattern: With multiple IDs
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_images(ImageIds=["not_an_ami_id", "another_bad_ami_id"])
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc.value.response["Error"]["Code"] == "InvalidAMIID.Malformed"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == 'Invalid id: "not_an_ami_id" (expecting "ami-...")'
+    )
 
 
 @mock_aws
