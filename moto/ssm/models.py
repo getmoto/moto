@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Optional
+from uuid import uuid4
 
 import yaml
 
@@ -621,7 +622,10 @@ class Document(CloudFormationModel):
         self.owner = account_id
         self.created_date = utcnow()
 
-        if document_format == "JSON":
+        if isinstance(content, dict):
+            # Terraform may send this content as an already-parsed dict
+            content_json = content
+        elif document_format == "JSON":
             try:
                 content_json = json.loads(content)
             except json.decoder.JSONDecodeError:
@@ -702,11 +706,12 @@ class Document(CloudFormationModel):
     ) -> "Document":
         ssm_backend: SimpleSystemManagerBackend = ssm_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
+
         documents = ssm_backend.create_document(
             content=properties.get("Content"),
             requires=properties.get("Requires"),
             attachments=properties.get("Attachments"),
-            name=properties.get("Name"),
+            name=properties.get("Name") or str(uuid4()),
             version_name=properties.get("VersionName"),
             document_type=properties.get("DocumentType"),
             document_format=properties.get("DocumentFormat"),
@@ -745,7 +750,7 @@ class Document(CloudFormationModel):
             properties = cloudformation_json["Properties"]
             resource = properties.get("Name")
         ssm_backend.delete_document(
-            name=resource_name,
+            name=resource,
             document_version="",
             version_name=cloudformation_json.get("VersionName") or "",
             force=True,
