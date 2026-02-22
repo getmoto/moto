@@ -447,7 +447,7 @@ def test_put_item_with_streams():
         assert len(table.stream_shard.items) == 1
         stream_record = table.stream_shard.items[0].record
         assert stream_record["eventName"] == "INSERT"
-        assert stream_record["dynamodb"]["SizeBytes"] == 447
+        assert stream_record["dynamodb"]["SizeBytes"] == 436
 
 
 @mock_aws

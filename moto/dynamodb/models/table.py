@@ -181,7 +181,7 @@ class StreamRecord(BaseModel):
             "awsRegion": "us-east-1",
             "dynamodb": {
                 "StreamViewType": stream_type,
-                "ApproximateCreationDateTime": utcnow().isoformat(),
+                "ApproximateCreationDateTime": unix_time(),
                 "SequenceNumber": str(seq),
                 "SizeBytes": 1,
                 "Keys": keys,
