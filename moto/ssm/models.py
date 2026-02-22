@@ -14,7 +14,7 @@ import yaml
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.secretsmanager import secretsmanager_backends
@@ -531,7 +531,7 @@ class Documents(BaseModel):
             "HashType": "Sha256",
             "Name": document.name,
             "Owner": document.owner,
-            "CreatedDate": document.created_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "CreatedDate": unix_time(document.created_date),
             "Status": document.status,
             "DocumentVersion": document.document_version,
             "Description": document.description,

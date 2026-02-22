@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ssm.models import ssm_backends
 
 
 def _get_yaml_template():
@@ -140,6 +141,9 @@ def test_create_document():
     _validate_document_description(
         "TestDocument", doc_description, json_doc, "1", "1", "1", "YAML"
     )
+    # Verify internal model stores CreatedDate as epoch seconds (float)
+    doc = ssm_backends[ACCOUNT_ID]["us-east-1"]._documents["TestDocument"]
+    assert isinstance(doc.describe()["CreatedDate"], (int, float))
 
     response = client.create_document(
         Content=json.dumps(json_doc),
