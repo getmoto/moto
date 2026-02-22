@@ -13,6 +13,7 @@ from moto.core import set_initial_no_auth_action_count
 from ..markers import requires_docker
 from .test_lambda import LooseVersion, boto3_version
 from .utilities import (
+    PYTHON_VERSION,
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
     get_proxy_zip_file,
@@ -24,7 +25,6 @@ from .utilities import (
     get_zip_with_multiple_files,
 )
 
-PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 
 
@@ -278,7 +278,7 @@ def test_invoke_function_with_multiple_files_in_zip():
     }
 
 
-if settings.TEST_SERVER_MODE:
+if not settings.TEST_DECORATOR_MODE:
 
     @mock_aws
     def test_invoke_function_get_ec2_volume():

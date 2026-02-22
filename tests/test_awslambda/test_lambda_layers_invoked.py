@@ -9,7 +9,7 @@ from tests.markers import requires_docker
 
 from .utilities import _process_lambda, get_role_name
 
-PYTHON_VERSION = "python3.11"
+PYTHON_VERSION = "python3.13"
 _lambda_region = "us-west-2"
 
 
@@ -56,7 +56,7 @@ def test_invoke_local_lambda_layers():
 
     function_arn = conn.create_function(
         FunctionName=lambda_name,
-        Runtime="python3.11",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_requests_zip_file()},

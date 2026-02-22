@@ -126,8 +126,8 @@ def moto_server_host() -> str:
         return "http://host.docker.internal"
 
 
-def moto_lambda_image() -> str:
-    return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "mlupin/docker-lambda")
+def moto_lambda_image() -> Optional[str]:
+    return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE")
 
 
 def moto_network_name() -> Optional[str]:

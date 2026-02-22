@@ -14,9 +14,8 @@ from moto.utilities.distutils_version import LooseVersion
 from tests.test_awslambda import delete_all_layer_versions
 from tests.test_s3 import s3_aws_verified
 
-from .utilities import get_role_name, get_test_zip_file1
+from .utilities import PYTHON_VERSION, get_role_name, get_test_zip_file1
 
-PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 
 boto3_version = sys.modules["botocore"].__version__
