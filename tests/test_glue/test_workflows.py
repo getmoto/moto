@@ -108,7 +108,7 @@ def test_update_workflow_updated_timestamp():
     client.update_workflow(Name=workflow_name)
 
     workflow_response = client.get_workflow(Name=workflow_name)
-    assert workflow_response["Workflow"]["LastModifiedOn"] >= before_update
+    assert workflow_response["Workflow"]["LastModifiedOn"].replace(tzinfo=None) >= before_update
 
 
 @mock_aws

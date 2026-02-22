@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from typing import Any, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -15,13 +14,6 @@ from .models import (
     glue_backends,
 )
 from .utils import Action, Predicate, validate_crawl_filters
-
-
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if isinstance(o, datetime):
-            return o.isoformat()
-        return super().default(o)
 
 
 class GlueResponse(BaseResponse):
@@ -953,7 +945,7 @@ class GlueResponse(BaseResponse):
             enable_hybrid=enable_hybrid,
         )
 
-        return json.dumps(policy_hash, cls=DateTimeEncoder)
+        return json.dumps(policy_hash)
 
     def get_resource_policy(self) -> str:
         params = json.loads(self.body)
@@ -962,7 +954,7 @@ class GlueResponse(BaseResponse):
             resource_arn=resource_arn,
         )
 
-        return json.dumps(response, cls=DateTimeEncoder)
+        return json.dumps(response)
 
     def delete_resource_policy(self) -> str:
         params = json.loads(self.body)

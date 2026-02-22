@@ -141,8 +141,8 @@ class FakeDevEndpoint(BaseModel):
             "VpcId": self.vpc_id,
             "ExtraPythonLibsS3Path": self.extra_python_libs_s3_path,
             "ExtraJarsS3Path": self.extra_jars_s3_path,
-            "CreatedTimestamp": self.created_timestamp.isoformat(),
-            "LastModifiedTimestamp": self.last_modified_timestamp.isoformat(),
+            "CreatedTimestamp": unix_time(self.created_timestamp),
+            "LastModifiedTimestamp": unix_time(self.last_modified_timestamp),
             "PublicKey": self.public_key,
             "PublicKeys": self.public_keys,
             "SecurityConfiguration": self.security_configuration,
@@ -1473,12 +1473,12 @@ class GlueBackend(BaseBackend):
             "PolicyInJson": policy["PolicyInJson"],
             "PolicyHash": policy["PolicyHash"],
             "CreateTime": (
-                policy["CreateTime"].isoformat()
+                unix_time(policy["CreateTime"])
                 if isinstance(policy["CreateTime"], datetime)
                 else policy["CreateTime"]
             ),
             "UpdateTime": (
-                policy["UpdateTime"].isoformat()
+                unix_time(policy["UpdateTime"])
                 if isinstance(policy["UpdateTime"], datetime)
                 else policy["UpdateTime"]
             ),
@@ -1866,8 +1866,8 @@ class FakeCrawler(BaseModel):
             "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
-            "CreationTime": self.creation_time.isoformat(),
-            "LastUpdated": self.last_updated.isoformat(),
+            "CreationTime": unix_time(self.creation_time),
+            "LastUpdated": unix_time(self.last_updated),
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1885,7 +1885,7 @@ class FakeCrawler(BaseModel):
                 "LogGroup": last_crawl.log_group,
                 "LogStream": last_crawl.log_stream,
                 "MessagePrefix": last_crawl.message_prefix,
-                "StartTime": last_crawl.start_time.isoformat(),
+                "StartTime": unix_time(last_crawl.start_time),
                 "Status": last_crawl.status,
             }
 
@@ -1950,7 +1950,7 @@ class FakeCrawl(ManagedState):
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time.isoformat(),
+            "StartTime": unix_time(self.start_time),
         }
         if self.status:
             # "STOPPING" isn't a real status for crawl, but we need to introduce
@@ -1960,7 +1960,7 @@ class FakeCrawl(ManagedState):
                 "RUNNING" if self.status == "STOPPING" else self.status
             )
         if self.end_time:
-            response_dict["EndTime"] = self.end_time.isoformat()
+            response_dict["EndTime"] = unix_time(self.end_time)
         return response_dict
 
     def advance(self) -> None:
@@ -2037,8 +2037,8 @@ class FakeJob:
             "Description": self.description,
             "LogUri": self.log_uri,
             "Role": self.role,
-            "CreatedOn": self.created_on.isoformat(),
-            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "CreatedOn": unix_time(self.created_on),
+            "LastModifiedOn": unix_time(self.last_modified_on),
             "ExecutionProperty": self.execution_property,
             "Command": self.command,
             "DefaultArguments": self.default_arguments,
@@ -2153,9 +2153,9 @@ class FakeJobRun(ManagedState):
             "Id": self.job_run_id,
             "Attempt": 0,
             "JobName": self.job_name,
-            "StartedOn": self.started_on.isoformat(),
-            "LastModifiedOn": self.modified_on.isoformat(),
-            "CompletedOn": self.completed_on.isoformat(),
+            "StartedOn": unix_time(self.started_on),
+            "LastModifiedOn": unix_time(self.modified_on),
+            "CompletedOn": unix_time(self.completed_on),
             "JobRunState": self.status,
             "PredecessorRuns": [],
             "ExecutionTime": 123,
@@ -2359,7 +2359,7 @@ class FakeSession(BaseModel):
     def as_dict(self) -> dict[str, Any]:
         return {
             "Id": self.session_id,
-            "CreatedOn": self.creation_time.isoformat(),
+            "CreatedOn": unix_time(self.creation_time),
             "Status": self.state,
             "ErrorMessage": "string",
             "Description": self.description,
@@ -2479,8 +2479,8 @@ class FakeConnection(BaseModel):
             "AthenaProperties": self.athena_properties,
             "SparkProperties": self.spark_properties,
             "PythonProperties": self.python_properties,
-            "CreationTime": self.created_time.isoformat(),
-            "LastUpdatedTime": self.updated_time.isoformat(),
+            "CreationTime": unix_time(self.created_time),
+            "LastUpdatedTime": unix_time(self.updated_time),
             "CatalogId": self.catalog_id,
             "Status": self.status,
             "PhysicalConnectionRequirements": self.connection_input.get(
@@ -2508,11 +2508,11 @@ class FakeWorkflowRun:
         return_dict: dict[str, Union[str, dict[str, str]]] = {
             "Name": self.workflow_name,
             "WorkflowRunId": self.run_id,
-            "StartedOn": self.started_on.isoformat(),
+            "StartedOn": unix_time(self.started_on),
             "Status": self.status,
         }
         if self.completed_on:
-            return_dict["CompletedOn"] = self.completed_on.isoformat()
+            return_dict["CompletedOn"] = unix_time(self.completed_on)
         if self.previous_run_id:
             return_dict["PreviousRunId"] = self.previous_run_id
         if self.properties:
@@ -2540,8 +2540,8 @@ class FakeWorkflow:
 
     def as_dict(self) -> dict[str, Any]:
         return_dict: dict[str, Any] = {
-            "CreatedOn": self.created_on.isoformat(),
-            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "CreatedOn": unix_time(self.created_on),
+            "LastModifiedOn": unix_time(self.last_modified_on),
             "Name": self.name,
         }
         if self.default_run_properties:
