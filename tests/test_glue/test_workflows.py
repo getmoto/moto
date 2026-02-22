@@ -3,7 +3,7 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
-from moto.core.utils import utcnow
+from moto.core.utils import unix_time
 
 
 @mock_aws
@@ -103,12 +103,13 @@ def test_update_workflow_updated_timestamp():
     client = boto3.client("glue", region_name="us-east-1")
     workflow_name = "test"
     client.create_workflow(Name=workflow_name)
-    before_update = utcnow()
+    before_update = unix_time()
 
     client.update_workflow(Name=workflow_name)
 
     workflow_response = client.get_workflow(Name=workflow_name)
-    assert workflow_response["Workflow"]["LastModifiedOn"].replace(tzinfo=None) >= before_update
+    # boto3 returns timezone-aware datetime; convert to epoch for comparison
+    assert workflow_response["Workflow"]["LastModifiedOn"].timestamp() >= before_update
 
 
 @mock_aws

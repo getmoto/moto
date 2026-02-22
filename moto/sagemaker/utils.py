@@ -19,6 +19,7 @@ def _to_epoch(x: Any) -> float:
         return x.timestamp()
     return unix_time(x)
 
+
 if typing.TYPE_CHECKING:
     from .models import FakeModelCard, FakePipeline, FakePipelineExecution
 

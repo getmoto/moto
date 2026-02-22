@@ -24,6 +24,7 @@ from .exceptions import (
     ValidationError,
 )
 from .utils import (
+    _to_epoch,
     arn_formatter,
     filter_model_cards,
     get_pipeline_execution_from_arn,
@@ -32,7 +33,6 @@ from .utils import (
     load_pipeline_definition_from_s3,
     validate_model_approval_status,
 )
-from .utils import _to_epoch
 
 
 PAGINATION_MODEL = {
