@@ -206,9 +206,7 @@ class Stream(CloudFormationModel):
         region_name: str,
     ):
         self.stream_name = stream_name
-        self.creation_datetime = datetime.datetime.now().strftime(
-            "%Y-%m-%dT%H:%M:%S.%f000"
-        )
+        self.creation_datetime = unix_time()
         self.region = region_name
         self.account_id = account_id
         self.arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}"
