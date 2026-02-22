@@ -58,10 +58,10 @@ class GlueResponse(BaseResponse):
         self.glue_backend.update_database(database_name, database_input)  # type: ignore[arg-type]
         return EmptyResult()
 
-    def delete_database(self) -> ActionResult:
+    def delete_database(self) -> EmptyResult:
         name = self.parameters.get("Name")
         self.glue_backend.delete_database(name)  # type: ignore[arg-type]
-        return ActionResult({})
+        return EmptyResult()
 
     def create_table(self) -> ActionResult:
         database_name = self.parameters.get("DatabaseName")
