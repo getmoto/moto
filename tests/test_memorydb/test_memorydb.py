@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.memorydb.models import memorydb_backends
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -40,6 +41,12 @@ def test_create_cluster():
     assert "Name" in cluster
     assert "Status" in cluster
     assert "NumberOfShards" in cluster
+
+    # Verify internal model stores Node CreateTime as epoch seconds (float)
+    backend = memorydb_backends[ACCOUNT_ID]["ap-southeast-1"]
+    cluster_model = backend.clusters["test-memory-db"]
+    node_create_time = cluster_model.shards[0]["Nodes"][0]["CreateTime"]
+    assert isinstance(node_create_time, (int, float))
 
 
 @mock_aws
