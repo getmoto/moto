@@ -1,6 +1,4 @@
-import json
-
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import KinesisVideoBackend, kinesisvideo_backends
 
@@ -13,7 +11,7 @@ class KinesisVideoResponse(BaseResponse):
     def kinesisvideo_backend(self) -> KinesisVideoBackend:
         return kinesisvideo_backends[self.current_account][self.region]
 
-    def create_stream(self) -> str:
+    def create_stream(self) -> ActionResult:
         device_name = self._get_param("DeviceName")
         stream_name = self._get_param("StreamName")
         media_type = self._get_param("MediaType")
@@ -28,30 +26,30 @@ class KinesisVideoResponse(BaseResponse):
             data_retention_in_hours=data_retention_in_hours,
             tags=tags,
         )
-        return json.dumps({"StreamARN": stream_arn})
+        return ActionResult({"StreamARN": stream_arn})
 
-    def describe_stream(self) -> str:
+    def describe_stream(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         stream_info = self.kinesisvideo_backend.describe_stream(
             stream_name=stream_name, stream_arn=stream_arn
         )
-        return json.dumps({"StreamInfo": stream_info})
+        return ActionResult({"StreamInfo": stream_info})
 
-    def list_streams(self) -> str:
+    def list_streams(self) -> ActionResult:
         stream_info_list = self.kinesisvideo_backend.list_streams()
-        return json.dumps({"StreamInfoList": stream_info_list, "NextToken": None})
+        return ActionResult({"StreamInfoList": stream_info_list, "NextToken": None})
 
-    def delete_stream(self) -> str:
+    def delete_stream(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         self.kinesisvideo_backend.delete_stream(stream_arn=stream_arn)
-        return json.dumps({})
+        return EmptyResult()
 
-    def get_data_endpoint(self) -> str:
+    def get_data_endpoint(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         api_name = self._get_param("APIName")
         data_endpoint = self.kinesisvideo_backend.get_data_endpoint(
             stream_name=stream_name, stream_arn=stream_arn, api_name=api_name
         )
-        return json.dumps({"DataEndpoint": data_endpoint})
+        return ActionResult({"DataEndpoint": data_endpoint})

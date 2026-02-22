@@ -48,7 +48,7 @@ class Stream(BaseModel):
             "KmsKeyId": self.kms_key_id,
             "Version": self.version,
             "Status": self.status,
-            "CreationTime": self.creation_time.isoformat(),
+            "CreationTime": self.creation_time,
             "DataRetentionInHours": self.data_retention_in_hours,
         }
 
