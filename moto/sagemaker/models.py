@@ -5144,7 +5144,7 @@ class SageMakerModelBackend(BaseBackend):
                 for i in compilation_jobs
                 if i.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None)
             ]
-        if creation_time_after:
+        if last_modified_time_after:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
