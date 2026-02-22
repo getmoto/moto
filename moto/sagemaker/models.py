@@ -223,10 +223,10 @@ class FakePipelineExecution(BaseObject):
         self.pipeline_definition_for_execution = pipeline_definition
         self.client_request_token = client_request_token
 
-        now_string = unix_time()
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.start_time = now_string
+        now = unix_time()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.start_time = now
 
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
@@ -271,9 +271,9 @@ class FakePipeline(BaseObject):
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
 
-        now_string = unix_time()
-        self.creation_time = now_string
-        self.last_modified_time = now_string
+        now = unix_time()
+        self.creation_time = now
+        self.last_modified_time = now
         self.last_execution_time: Optional[str] = None
 
         self.pipeline_status = "Active"
@@ -316,10 +316,10 @@ class FakeProcessingJob(BaseObject):
         self.arn = FakeProcessingJob.arn_formatter(
             processing_job_name, account_id, region_name
         )
-        now_string = unix_time()
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.processing_end_time = now_string
+        now = unix_time()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.processing_end_time = now
         self.tags = tags or []
         self.role_arn = role_arn
         self.app_specification = app_specification
@@ -413,11 +413,11 @@ class FakeTrainingJob(BaseObject):
                 "Regex": "#quality_metric: host=\\S+, test dcg <score>=(\\S+)",
             }
         ]
-        now_string = unix_time()
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.training_start_time = now_string
-        self.training_end_time = now_string
+        now = unix_time()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.training_start_time = now
+        self.training_end_time = now
         self.secondary_status_transitions = [
             {
                 "Status": "Starting",
@@ -900,11 +900,11 @@ class FakeTransformJob(BaseObject):
         self.failure_reason = ""
         self.labeling_job_arn = ""
         self.auto_ml_job_arn = ""
-        now_string = unix_time()
-        self.creation_time = now_string
-        self.transform_start_time = now_string
-        self.transform_end_time = now_string
-        self.last_modified_time = now_string
+        now = unix_time()
+        self.creation_time = now
+        self.transform_start_time = now
+        self.transform_end_time = now
+        self.last_modified_time = now
 
     # Override title case
     def camelCase(self, key: str) -> str:
@@ -5880,8 +5880,8 @@ class FakeTrialComponent(BaseObject):
         self.trial_name = trial_name
         self.start_time = start_time
         self.end_time = end_time
-        now_string = unix_time()
-        self.creation_time = self.last_modified_time = now_string
+        now = unix_time()
+        self.creation_time = self.last_modified_time = now
         self.created_by: dict[str, Union[dict[str, str], str]] = {}
         self.last_modified_by: dict[str, Union[dict[str, str], str]] = {}
         self.parameters = parameters if parameters is not None else {}
