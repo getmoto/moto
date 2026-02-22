@@ -1073,7 +1073,7 @@ class FakeJobTemplate(CloudFormationModel):
         self.timeout_config = timeout_config
         self.created_at = utcnow()
 
-    def to_dict(self) -> dict[str, Union[str, float]]:
+    def to_dict(self) -> dict[str, Union[str, datetime]]:
         return {
             "jobTemplateArn": self.job_template_arn,
             "jobTemplateId": self.job_template_id,
@@ -2860,7 +2860,7 @@ class IoTBackend(BaseBackend):
         return job_template
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_templates(self) -> list[dict[str, Union[str, float]]]:
+    def list_job_templates(self) -> list[dict[str, Union[str, datetime]]]:
         return [_.to_dict() for _ in self.jobs_templates.values()]
 
     def delete_job_template(self, job_template_id: str) -> None:

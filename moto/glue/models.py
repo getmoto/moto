@@ -1569,7 +1569,7 @@ class GlueBackend(BaseBackend):
     def get_workflow_runs(
         self,
         workflow_name: str,
-    ) -> list[dict[str, Union[str, dict[str, str]]]]:
+    ) -> list[dict[str, Union[str, datetime, dict[str, str]]]]:
         workflow = self.workflows.get(workflow_name)
         if not workflow:
             raise EntityNotFoundException("Entity not found")
@@ -1931,8 +1931,8 @@ class FakeCrawl(ManagedState):
         self.message_prefix = self.crawl_id
         self.start_time = utcnow()
 
-    def as_dict(self) -> dict[str, Union[str, int]]:
-        response_dict: dict[str, Union[str, int]] = {
+    def as_dict(self) -> dict[str, Union[str, int, datetime]]:
+        response_dict: dict[str, Union[str, int, datetime]] = {
             "CrawlId": self.crawl_id,
             "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
@@ -2492,8 +2492,8 @@ class FakeWorkflowRun:
         self.started_on = utcnow()
         self.completed_on: Optional[datetime] = None
 
-    def as_dict(self) -> dict[str, Union[str, dict[str, str]]]:
-        return_dict: dict[str, Union[str, dict[str, str]]] = {
+    def as_dict(self) -> dict[str, Union[str, datetime, dict[str, str]]]:
+        return_dict: dict[str, Union[str, datetime, dict[str, str]]] = {
             "Name": self.workflow_name,
             "WorkflowRunId": self.run_id,
             "StartedOn": self.started_on,

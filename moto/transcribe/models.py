@@ -1,5 +1,5 @@
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -72,8 +72,8 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self.media_format = media_format
         self.media = media
         self.transcript: Optional[dict[str, str]] = None
-        self.start_time: Optional[str] = None
-        self.completion_time: Optional[str] = None
+        self.start_time: Optional[datetime] = None
+        self.completion_time: Optional[datetime] = None
         self.creation_time = utcnow()
         self.failure_reason = None
         self.settings = settings or {
@@ -268,7 +268,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.language_code = language_code
         self.phrases = phrases
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.last_modified_time: Optional[str] = None
+        self.last_modified_time: Optional[datetime] = None
         self.failure_reason = None
         self.download_uri = f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/{vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
@@ -345,8 +345,8 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         self.media_format = media_format
         self.media = media
         self.transcript: Optional[dict[str, str]] = None
-        self.start_time: Optional[str] = None
-        self.completion_time: Optional[str] = None
+        self.start_time: Optional[datetime] = None
+        self.completion_time: Optional[datetime] = None
         self.creation_time = utcnow()
         self.failure_reason = None
         self.settings = settings or {

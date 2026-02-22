@@ -264,7 +264,7 @@ class FakePipeline(BaseObject):
         now = utcnow()
         self.creation_time = now
         self.last_modified_time = now
-        self.last_execution_time: Optional[str] = None
+        self.last_execution_time: Optional[datetime] = None
 
         self.pipeline_status = "Active"
         fake_user_profile_name = "fake-user-profile-name"
@@ -5533,8 +5533,8 @@ class SageMakerModelBackend(BaseBackend):
         model_card_status: str,
         tags: Optional[list[dict[str, str]]],
         model_card_version: Optional[int] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[datetime] = None,
+        last_modified_time: Optional[datetime] = None,
     ) -> str:
         if model_card_name in self.model_cards:
             raise ConflictException(f"Modelcard {model_card_name} already exists")
