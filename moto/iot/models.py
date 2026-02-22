@@ -359,8 +359,10 @@ class FakeThingType(CloudFormationModel):
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
         self.thing_type_id = str(random.uuid4())  # I don't know the rule of id
-        t = time.time()
-        self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
+        self.metadata: dict[str, Any] = {
+            "deprecated": False,
+            "creationDate": utcnow(),
+        }
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:thingtype/{thing_type_name}"
 
     def to_dict(self) -> dict[str, Any]:
@@ -464,8 +466,7 @@ class FakeThingGroup(BaseModel):
         self.version = 1  # TODO: tmp
         self.parent_group_name = parent_group_name
         self.thing_group_properties = thing_group_properties or {}
-        t = time.time()
-        self.metadata: dict[str, Any] = {"creationDate": int(t * 1000) / 1000.0}
+        self.metadata: dict[str, Any] = {"creationDate": utcnow()}
         if parent_group_name:
             self.metadata["parentGroupName"] = parent_group_name
             # initilize rootToParentThingGroups
@@ -521,7 +522,7 @@ class FakeBillingGroup(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:billinggroup/{billing_group_name}"
         self.version = 1
         self.things: list[str] = []
-        self.metadata = {"creationDate": utcnow().isoformat()}
+        self.metadata: dict[str, Any] = {"creationDate": utcnow()}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -643,10 +644,10 @@ class FakeCertificate(BaseModel):
 
         self.owner = account_id
         self.transfer_data: dict[str, str] = {}
-        self.creation_date = time.time()
+        self.creation_date = utcnow()
         self.last_modified_date = self.creation_date
-        self.validity_not_before = time.time() - 86400
-        self.validity_not_after = time.time() + 86400
+        self.validity_not_before = utcnow() - timedelta(days=1)
+        self.validity_not_after = utcnow() + timedelta(days=1)
         self.ca_certificate_id = ca_certificate_id
 
     def compute_cert_id(self, certificate_pem: str) -> str:
@@ -863,8 +864,8 @@ class FakePolicyVersion:
         self.is_default = is_default
         self._version_id = version_id
 
-        self.create_datetime = time.mktime(datetime(2015, 1, 1).timetuple())
-        self.last_modified_datetime = time.mktime(datetime(2015, 1, 2).timetuple())
+        self.create_datetime = utcnow()
+        self.last_modified_datetime = utcnow()
 
     @property
     def version_id(self) -> str:
@@ -942,8 +943,8 @@ class FakeJob(BaseModel):
         self.status = "QUEUED"  # IN_PROGRESS | CANCELED | COMPLETED
         self.comment: Optional[str] = None
         self.reason_code: Optional[str] = None
-        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
-        self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.created_at = utcnow()
+        self.last_updated_at = utcnow()
         self.completed_at = None
         self.job_process_details = {
             "processingTargets": targets,
@@ -1001,9 +1002,9 @@ class FakeJobExecution(BaseModel):
         self.force_canceled = force_canceled
         self.status_details_map = status_details_map or {}
         self.thing_arn = thing_arn
-        self.queued_at = time.mktime(datetime(2015, 1, 1).timetuple())
-        self.started_at = time.mktime(datetime(2015, 1, 1).timetuple())
-        self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.queued_at = utcnow()
+        self.started_at = utcnow()
+        self.last_updated_at = utcnow()
         self.execution_number = 123
         self.version_number = 123
         self.approximate_seconds_before_time_out = 123
@@ -1070,7 +1071,7 @@ class FakeJobTemplate(CloudFormationModel):
         self.abort_config = abort_config
         self.job_execution_retry_config = job_execution_retry_config
         self.timeout_config = timeout_config
-        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.created_at = utcnow()
 
     def to_dict(self) -> dict[str, Union[str, float]]:
         return {
@@ -1212,7 +1213,7 @@ class FakeRule(BaseModel):
         self,
         rule_name: str,
         description: str,
-        created_at: int,
+        created_at: datetime,
         rule_disabled: bool,
         topic_pattern: Optional[str],
         actions: list[dict[str, Any]],
@@ -1291,7 +1292,7 @@ class FakeDomainConfiguration(BaseModel):
         self.service_type = service_type
         self.authorizer_config = authorizer_config
         self.domain_type = domain_type
-        self.last_status_change_date = time.time()
+        self.last_status_change_date = utcnow()
 
     def to_description_dict(self) -> dict[str, Any]:
         return {
@@ -1327,7 +1328,7 @@ class FakeRoleAlias(CloudFormationModel):
         self.credential_duration_seconds = credential_duration_seconds
         self.account_id = account_id
         self.region_name = region_name
-        self.creation_date = time.time()
+        self.creation_date = utcnow()
         self.last_modified_date = self.creation_date
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:rolealias/{role_alias}"
 
@@ -2652,7 +2653,7 @@ class IoTBackend(BaseBackend):
         topic = result.group(1).strip("'") if result else None
         self.rules[rule_name] = FakeRule(
             rule_name=rule_name,
-            created_at=int(time.time()),
+            created_at=utcnow(),
             topic_pattern=topic,
             sql=sql,
             account_id=self.account_id,

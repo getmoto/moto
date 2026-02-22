@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
 
@@ -750,8 +750,7 @@ def test_create_job_template_with_simple_cloudformation():
     assert job_template["description"] == "Job template Description"
     assert job_template["document"] == '{"field": "value"}'
     assert job_template["documentSource"] == "a document source link"
-    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
-    assert job_template["createdAt"] == datetime(2015, 1, 1, 0, 0, tzinfo=tzlocal)
+    assert isinstance(job_template["createdAt"], datetime)
     assert job_template["presignedUrlConfig"] == {
         "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
         "expiresInSec": 123,
