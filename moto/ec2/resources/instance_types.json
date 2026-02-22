@@ -36710,8 +36710,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -37514,8 +37514,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38086,8 +38086,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38210,8 +38210,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38345,8 +38345,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -38476,8 +38476,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -39125,8 +39125,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -39256,8 +39256,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40929,8 +40929,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41802,8 +41802,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42111,8 +42111,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42400,8 +42400,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42676,8 +42676,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42819,8 +42819,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43448,8 +43448,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43939,8 +43939,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44093,8 +44093,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -44236,8 +44236,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45919,6 +45919,133 @@
    "DefaultCores": 32,
    "DefaultThreadsPerCore": 1,
    "DefaultVCpus": 32
+  }
+ },
+ "hpc8a.96xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 87,
+    "BaselineIops": 500,
+    "BaselineThroughputInMBps": 10.875,
+    "MaximumBandwidthInMbps": 2085,
+    "MaximumIops": 11000,
+    "MaximumThroughputInMBps": 260.625
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 27,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "hpc8a.96xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 786432
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 2
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "supported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv4AddressesPerSecondaryInterface": 0,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 2,
+   "MaximumNetworkInterfaces": 4,
+   "NetworkCards": [
+    {
+     "AdditionalFlexibleNetworkInterfaces": 0,
+     "BaselineBandwidthInGbps": 300.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 256,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "300 Gigabit",
+     "PeakBandwidthInGbps": 300.0
+    },
+    {
+     "AdditionalFlexibleNetworkInterfaces": 0,
+     "BaselineBandwidthInGbps": 300.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 256,
+     "MaximumEnaQueueCountPerInterface": 128,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "300 Gigabit",
+     "PeakBandwidthInGbps": 300.0
+    }
+   ],
+   "NetworkPerformance": "300 Gigabit",
+   "SecondaryNetworkSupported": false
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AMD",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 4.5
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    24,
+    48,
+    72,
+    96,
+    120,
+    144,
+    168,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
   }
  },
  "i2.2xlarge": {
@@ -53028,7 +53155,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 22.5,
+     "BaselineBandwidthInGbps": 28.125,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
@@ -53190,7 +53317,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 30.0,
+     "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -53368,7 +53495,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 45.0,
+     "BaselineBandwidthInGbps": 56.25,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -53703,7 +53830,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 90.0,
+     "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -54042,7 +54169,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 15.0,
+     "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
@@ -54303,7 +54430,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 45.0,
+     "BaselineBandwidthInGbps": 56.25,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -54526,7 +54653,7 @@
    "NetworkCards": [
     {
      "AdditionalFlexibleNetworkInterfaces": 0,
-     "BaselineBandwidthInGbps": 45.0,
+     "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 192,
      "MaximumEnaQueueCountPerInterface": 64,
@@ -54691,7 +54818,7 @@
    "NetworkCards": [
     {
      "AdditionalFlexibleNetworkInterfaces": 0,
-     "BaselineBandwidthInGbps": 67.5,
+     "BaselineBandwidthInGbps": 112.5,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 288,
      "MaximumEnaQueueCountPerInterface": 128,
@@ -54880,7 +55007,7 @@
    "NetworkCards": [
     {
      "AdditionalFlexibleNetworkInterfaces": 0,
-     "BaselineBandwidthInGbps": 90.0,
+     "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
      "MaximumEnaQueueCountPerInterface": 128,
@@ -55350,7 +55477,7 @@
    "NetworkCards": [
     {
      "AdditionalFlexibleNetworkInterfaces": 0,
-     "BaselineBandwidthInGbps": 180.0,
+     "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
      "MaximumEnaQueueCountPerInterface": 128,
@@ -55562,7 +55689,7 @@
    "NetworkCards": [
     {
      "AdditionalFlexibleNetworkInterfaces": 0,
-     "BaselineBandwidthInGbps": 22.5,
+     "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 96,
      "MaximumEnaQueueCountPerInterface": 32,
@@ -55820,7 +55947,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 90.0,
+     "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 384,
      "MaximumEnaQueueCountPerInterface": 128,
@@ -55928,7 +56055,7 @@
    "MaximumNetworkInterfaces": 24,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 180.0,
+     "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 768,
      "MaximumEnaQueueCountPerInterface": 128,
