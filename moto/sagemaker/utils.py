@@ -13,6 +13,13 @@ if typing.TYPE_CHECKING:
     from .models import FakeModelCard, FakePipeline, FakePipelineExecution
 
 
+def _epoch_to_datetime(value: Optional[float]) -> Optional[datetime]:
+    """Convert an epoch-seconds float (from _get_param) to a naive UTC datetime."""
+    if value is None:
+        return None
+    return datetime.fromtimestamp(value, tz=timezone.utc).replace(tzinfo=None)
+
+
 def get_pipeline_from_name(
     pipelines: dict[str, "FakePipeline"], pipeline_name: str
 ) -> "FakePipeline":
@@ -70,8 +77,8 @@ def validate_model_approval_status(model_approval_status: typing.Optional[str]) 
 
 def filter_model_cards(
     model_cards: defaultdict[str, list["FakeModelCard"]],
-    creation_time_after: Optional[Any],
-    creation_time_before: Optional[Any],
+    creation_time_after: Optional[datetime],
+    creation_time_before: Optional[datetime],
     name_contains: Optional[str],
     model_card_status: Optional[str],
     sort_by: Optional[str],
@@ -92,10 +99,6 @@ def filter_model_cards(
         filtered_versions = versions
 
         if creation_time_after:
-            if isinstance(creation_time_after, (int, float)):
-                creation_time_after = datetime.fromtimestamp(
-                    creation_time_after, tz=timezone.utc
-                ).replace(tzinfo=None)
             filtered_versions = [
                 v
                 for v in filtered_versions
@@ -103,10 +106,6 @@ def filter_model_cards(
             ]
 
         if creation_time_before:
-            if isinstance(creation_time_before, (int, float)):
-                creation_time_before = datetime.fromtimestamp(
-                    creation_time_before, tz=timezone.utc
-                ).replace(tzinfo=None)
             filtered_versions = [
                 v
                 for v in filtered_versions

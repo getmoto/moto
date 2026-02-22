@@ -4,6 +4,7 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.sagemaker.exceptions import AWSValidationException
 
 from .models import SageMakerModelBackend, sagemaker_backends
+from .utils import _epoch_to_datetime
 
 
 def format_enum_error(value: str, attribute: str, allowed: Any) -> str:
@@ -553,8 +554,8 @@ class SageMakerResponse(BaseResponse):
         allowed_sort_order = ("Ascending", "Descending")
 
         pipeline_name_prefix = self._get_param("PipelineNamePrefix")
-        created_after = self._get_param("CreatedAfter")
-        created_before = self._get_param("CreatedBefore")
+        created_after = _epoch_to_datetime(self._get_param("CreatedAfter"))
+        created_before = _epoch_to_datetime(self._get_param("CreatedBefore"))
         sort_by = self._get_param("SortBy", "CreationTime")
         sort_order = self._get_param("SortOrder", "Descending")
         next_token = self._get_param("NextToken")
@@ -632,10 +633,10 @@ class SageMakerResponse(BaseResponse):
         response = self.sagemaker_backend.list_processing_jobs(
             next_token=next_token,
             max_results=max_results,
-            creation_time_after=self._get_param("CreationTimeAfter"),
-            creation_time_before=self._get_param("CreationTimeBefore"),
-            last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+            creation_time_after=_epoch_to_datetime(self._get_param("CreationTimeAfter")),
+            creation_time_before=_epoch_to_datetime(self._get_param("CreationTimeBefore")),
+            last_modified_time_after=_epoch_to_datetime(self._get_param("LastModifiedTimeAfter")),
+            last_modified_time_before=_epoch_to_datetime(self._get_param("LastModifiedTimeBefore")),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -684,10 +685,10 @@ class SageMakerResponse(BaseResponse):
         response = self.sagemaker_backend.list_transform_jobs(
             next_token=next_token,
             max_results=max_results,
-            creation_time_after=self._get_param("CreationTimeAfter"),
-            creation_time_before=self._get_param("CreationTimeBefore"),
-            last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+            creation_time_after=_epoch_to_datetime(self._get_param("CreationTimeAfter")),
+            creation_time_before=_epoch_to_datetime(self._get_param("CreationTimeBefore")),
+            last_modified_time_after=_epoch_to_datetime(self._get_param("LastModifiedTimeAfter")),
+            last_modified_time_before=_epoch_to_datetime(self._get_param("LastModifiedTimeBefore")),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -736,10 +737,10 @@ class SageMakerResponse(BaseResponse):
         response = self.sagemaker_backend.list_training_jobs(
             next_token=next_token,
             max_results=max_results,
-            creation_time_after=self._get_param("CreationTimeAfter"),
-            creation_time_before=self._get_param("CreationTimeBefore"),
-            last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+            creation_time_after=_epoch_to_datetime(self._get_param("CreationTimeAfter")),
+            creation_time_before=_epoch_to_datetime(self._get_param("CreationTimeBefore")),
+            last_modified_time_after=_epoch_to_datetime(self._get_param("LastModifiedTimeAfter")),
+            last_modified_time_before=_epoch_to_datetime(self._get_param("LastModifiedTimeBefore")),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -755,8 +756,8 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"EndpointArn": endpoint_arn})
 
     def list_model_package_groups(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
         next_token = self._get_param("NextToken")
@@ -785,8 +786,8 @@ class SageMakerResponse(BaseResponse):
         )
 
     def list_model_packages(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
         model_approval_status = self._get_param("ModelApprovalStatus")
@@ -972,8 +973,8 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"NodeDetails": node_details})
 
     def list_clusters(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
         next_token = self._get_param("NextToken")
@@ -995,8 +996,8 @@ class SageMakerResponse(BaseResponse):
 
     def list_cluster_nodes(self) -> ActionResult:
         cluster_name = self._get_param("ClusterName")
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         instance_group_name_contains = self._get_param("InstanceGroupNameContains")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
@@ -1142,10 +1143,10 @@ class SageMakerResponse(BaseResponse):
         return ActionResult(auto_ml_job_description)
 
     def list_auto_ml_jobs(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
-        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        last_modified_time_after = _epoch_to_datetime(self._get_param("LastModifiedTimeAfter"))
+        last_modified_time_before = _epoch_to_datetime(self._get_param("LastModifiedTimeBefore"))
         name_contains = self._get_param("NameContains")
         status_equals = self._get_param("StatusEquals")
         sort_order = self._get_param("SortOrder")
@@ -1182,10 +1183,10 @@ class SageMakerResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        creation_time_after = self._get_param("CreationTimeAfter")
-        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
-        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        last_modified_time_before = _epoch_to_datetime(self._get_param("LastModifiedTimeBefore"))
+        last_modified_time_after = _epoch_to_datetime(self._get_param("LastModifiedTimeAfter"))
         status_equals = self._get_param("StatusEquals")
         endpoints, next_token = self.sagemaker_backend.list_endpoints(
             sort_by=sort_by,
@@ -1208,8 +1209,8 @@ class SageMakerResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
         endpoint_configs, next_token = self.sagemaker_backend.list_endpoint_configs(
             sort_by=sort_by,
             sort_order=sort_order,
@@ -1257,10 +1258,10 @@ class SageMakerResponse(BaseResponse):
     def list_compilation_jobs(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
-        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        last_modified_time_after = _epoch_to_datetime(self._get_param("LastModifiedTimeAfter"))
+        last_modified_time_before = _epoch_to_datetime(self._get_param("LastModifiedTimeBefore"))
         name_contains = self._get_param("NameContains")
         status_equals = self._get_param("StatusEquals")
         sort_by = self._get_param("SortBy")
@@ -1394,8 +1395,8 @@ class SageMakerResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
         job_definitions, next_token = (
             self.sagemaker_backend.list_model_explainability_job_definitions(
                 endpoint_name=endpoint_name,
@@ -1463,10 +1464,10 @@ class SageMakerResponse(BaseResponse):
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
         name_contains = self._get_param("NameContains")
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
-        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        last_modified_time_after = _epoch_to_datetime(self._get_param("LastModifiedTimeAfter"))
+        last_modified_time_before = _epoch_to_datetime(self._get_param("LastModifiedTimeBefore"))
         status_equals = self._get_param("StatusEquals")
         hyper_parameter_tuning_jobs, next_token = (
             self.sagemaker_backend.list_hyper_parameter_tuning_jobs(
@@ -1540,8 +1541,8 @@ class SageMakerResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
-        creation_time_before = self._get_param("CreationTimeBefore")
-        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
         job_definitions, next_token = (
             self.sagemaker_backend.list_model_quality_job_definitions(
                 endpoint_name=endpoint_name,
@@ -1585,8 +1586,8 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"ModelCardArn": model_card_arn})
 
     def list_model_cards(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         max_results = self._get_param("MaxResults")
         name_contains = self._get_param("NameContains")
         model_card_status = self._get_param("ModelCardStatus")
@@ -1609,8 +1610,8 @@ class SageMakerResponse(BaseResponse):
         )
 
     def list_model_card_versions(self) -> ActionResult:
-        creation_time_after = self._get_param("CreationTimeAfter")
-        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = _epoch_to_datetime(self._get_param("CreationTimeAfter"))
+        creation_time_before = _epoch_to_datetime(self._get_param("CreationTimeBefore"))
         max_results = self._get_param("MaxResults")
         model_card_name = self._get_param("ModelCardName")
         model_card_status = self._get_param("ModelCardStatus")

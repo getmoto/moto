@@ -3894,8 +3894,8 @@ class SageMakerModelBackend(BaseBackend):
     def list_pipelines(
         self,
         pipeline_name_prefix: str,
-        created_after: str,
-        created_before: str,
+        created_after: Optional[datetime],
+        created_before: Optional[datetime],
         next_token: str,
         max_results: int,
         sort_by: str,
@@ -3930,22 +3930,15 @@ class SageMakerModelBackend(BaseBackend):
                 pipelines_fetched,
             )
 
-        def format_time(x: Any) -> Any:
-            return (
-                x
-                if isinstance(x, (str, datetime))
-                else datetime.fromtimestamp(x, tz=timezone.utc).replace(tzinfo=None)
-            )
-
         if created_after is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time > format_time(created_after),
+                lambda x: x.creation_time > created_after,
                 pipelines_fetched,
             )
 
         if created_before is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time < format_time(created_before),
+                lambda x: x.creation_time < created_before,
                 pipelines_fetched,
             )
 
@@ -3979,10 +3972,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4017,24 +4010,24 @@ class SageMakerModelBackend(BaseBackend):
 
         if creation_time_after is not None:
             processing_jobs_fetched = filter(
-                lambda x: x.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None), processing_jobs_fetched
+                lambda x: x.creation_time > creation_time_after, processing_jobs_fetched
             )
 
         if creation_time_before is not None:
             processing_jobs_fetched = filter(
-                lambda x: x.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.creation_time < creation_time_before,
                 processing_jobs_fetched,
             )
 
         if last_modified_time_after is not None:
             processing_jobs_fetched = filter(
-                lambda x: x.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time > last_modified_time_after,
                 processing_jobs_fetched,
             )
 
         if last_modified_time_before is not None:
             processing_jobs_fetched = filter(
-                lambda x: x.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time < last_modified_time_before,
                 processing_jobs_fetched,
             )
         if status_equals is not None:
@@ -4102,10 +4095,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4139,23 +4132,23 @@ class SageMakerModelBackend(BaseBackend):
 
         if creation_time_after is not None:
             transform_jobs_fetched = filter(
-                lambda x: x.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None), transform_jobs_fetched
+                lambda x: x.creation_time > creation_time_after, transform_jobs_fetched
             )
 
         if creation_time_before is not None:
             transform_jobs_fetched = filter(
-                lambda x: x.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None), transform_jobs_fetched
+                lambda x: x.creation_time < creation_time_before, transform_jobs_fetched
             )
 
         if last_modified_time_after is not None:
             transform_jobs_fetched = filter(
-                lambda x: x.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time > last_modified_time_after,
                 transform_jobs_fetched,
             )
 
         if last_modified_time_before is not None:
             transform_jobs_fetched = filter(
-                lambda x: x.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time < last_modified_time_before,
                 transform_jobs_fetched,
             )
         if status_equals is not None:
@@ -4251,10 +4244,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4288,23 +4281,23 @@ class SageMakerModelBackend(BaseBackend):
 
         if creation_time_after is not None:
             training_jobs_fetched = filter(
-                lambda x: x.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None), training_jobs_fetched
+                lambda x: x.creation_time > creation_time_after, training_jobs_fetched
             )
 
         if creation_time_before is not None:
             training_jobs_fetched = filter(
-                lambda x: x.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None), training_jobs_fetched
+                lambda x: x.creation_time < creation_time_before, training_jobs_fetched
             )
 
         if last_modified_time_after is not None:
             training_jobs_fetched = filter(
-                lambda x: x.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time > last_modified_time_after,
                 training_jobs_fetched,
             )
 
         if last_modified_time_before is not None:
             training_jobs_fetched = filter(
-                lambda x: x.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None),
+                lambda x: x.last_modified_time < last_modified_time_before,
                 training_jobs_fetched,
             )
         if status_equals is not None:
@@ -4407,29 +4400,21 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_package_groups(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
     ) -> list[ModelPackageGroup]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=timezone.utc
-            ).replace(tzinfo=None)
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=timezone.utc
-            ).replace(tzinfo=None)
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
                     creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4468,8 +4453,8 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         model_approval_status: Optional[str],
         model_package_group_name: Optional[str],
@@ -4477,14 +4462,6 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
     ) -> list[ModelPackage]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=timezone.utc
-            ).replace(tzinfo=None)
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=timezone.utc
-            ).replace(tzinfo=None)
         if model_package_group_name is not None:
             model_package_type = "Versioned"
             if re.match(ARN_PARTITION_REGEX, model_package_group_name):
@@ -4493,11 +4470,11 @@ class SageMakerModelBackend(BaseBackend):
             filter(
                 lambda x: (
                     creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4776,11 +4753,11 @@ class SageMakerModelBackend(BaseBackend):
             clusters = [i for i in clusters if name_contains in i.cluster_name]
         if creation_time_before:
             clusters = [
-                i for i in clusters if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                i for i in clusters if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             clusters = [
-                i for i in clusters if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                i for i in clusters if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -4793,8 +4770,8 @@ class SageMakerModelBackend(BaseBackend):
     def list_cluster_nodes(
         self,
         cluster_name: str,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         instance_group_name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
@@ -4814,11 +4791,11 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             nodes_list = [
-                i for i in nodes_list if i.launch_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                i for i in nodes_list if i.launch_time < creation_time_before
             ]
         if creation_time_after:
             nodes_list = [
-                i for i in nodes_list if i.launch_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                i for i in nodes_list if i.launch_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -4924,10 +4901,10 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_auto_ml_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_order: Optional[str],
@@ -4944,23 +4921,23 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                i for i in auto_ml_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                i for i in auto_ml_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Status":
@@ -4992,10 +4969,10 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
         status_equals: Optional[str],
     ) -> list[FakeEndpoint]:
         endpoints = list(self.endpoints.values())
@@ -5005,23 +4982,23 @@ class SageMakerModelBackend(BaseBackend):
             endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
         if creation_time_before:
             endpoints = [
-                i for i in endpoints if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                i for i in endpoints if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             endpoints = [
-                i for i in endpoints if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                i for i in endpoints if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             endpoints = [
                 i
                 for i in endpoints
-                if i.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             endpoints = [
                 i
                 for i in endpoints
-                if i.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5044,8 +5021,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[FakeEndpointConfig]:
         endpoint_configs = list(self.endpoint_configs.values())
         if name_contains:
@@ -5056,13 +5033,13 @@ class SageMakerModelBackend(BaseBackend):
             endpoint_configs = [
                 i
                 for i in endpoint_configs
-                if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             endpoint_configs = [
                 i
                 for i in endpoint_configs
-                if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5112,10 +5089,10 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_compilation_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_by: Optional[str],
@@ -5130,25 +5107,25 @@ class SageMakerModelBackend(BaseBackend):
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time > last_modified_time_after
             ]
         if status_equals:
             compilation_jobs = [
@@ -5277,8 +5254,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[ModelExplainabilityJobDefinition]:
         model_explainability_job_definitions = list(
             self.model_explainability_job_definitions.values()
@@ -5299,13 +5276,13 @@ class SageMakerModelBackend(BaseBackend):
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5375,10 +5352,10 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         status_equals: Optional[str],
     ) -> list[HyperParameterTuningJob]:
         hyper_parameter_tuning_jobs = list(self.hyper_parameter_tuning_jobs.values())
@@ -5398,25 +5375,25 @@ class SageMakerModelBackend(BaseBackend):
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time < datetime.fromtimestamp(last_modified_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time > datetime.fromtimestamp(last_modified_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5496,8 +5473,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[ModelQualityJobDefinition]:
         model_quality_job_definitions = list(
             self.model_quality_job_definitions.values()
@@ -5518,13 +5495,13 @@ class SageMakerModelBackend(BaseBackend):
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5650,11 +5627,11 @@ class SageMakerModelBackend(BaseBackend):
         versions = self.model_cards[model_card_name]
         if creation_time_after:
             versions = [
-                v for v in versions if v.last_modified_time > datetime.fromtimestamp(creation_time_after, tz=timezone.utc).replace(tzinfo=None)
+                v for v in versions if v.last_modified_time > creation_time_after
             ]
         if creation_time_before:
             versions = [
-                v for v in versions if v.last_modified_time < datetime.fromtimestamp(creation_time_before, tz=timezone.utc).replace(tzinfo=None)
+                v for v in versions if v.last_modified_time < creation_time_before
             ]
         if model_card_status:
             versions = [v for v in versions if v.model_card_status == model_card_status]
