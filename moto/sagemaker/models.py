@@ -1084,9 +1084,6 @@ class ModelPackageGroup(BaseObject):
 
     def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = unix_time(v)
         response_values = [
             "ModelPackageGroupName",
             "Arn",
@@ -1316,9 +1313,6 @@ class ModelPackage(BaseObject):
 
     def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = unix_time(v)
         response_values = [
             "ModelPackageName",
             "ModelPackageGroupName",
