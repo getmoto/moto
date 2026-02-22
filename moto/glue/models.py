@@ -1,6 +1,5 @@
 import hashlib
 import re
-import time
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Optional, Union
@@ -1780,7 +1779,7 @@ class FakePartition(BaseModel):
     def __init__(
         self, database_name: str, table_name: str, partiton_input: dict[str, Any]
     ):
-        self.creation_time = time.time()
+        self.creation_time = utcnow()
         self.database_name = database_name
         self.table_name = table_name
         self.partition_input = partiton_input

@@ -221,7 +221,7 @@ class Parameter(CloudFormationModel):
         description: Optional[str],
         allowed_pattern: Optional[str],
         keyid: Optional[str],
-        last_modified_date: Any,
+        last_modified_date: datetime.datetime,
         version: int,
         data_type: str,
         labels: Optional[list[str]] = None,
