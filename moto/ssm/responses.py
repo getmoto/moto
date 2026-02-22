@@ -1,9 +1,8 @@
-import json
-from typing import Any, Union
+from typing import Any
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
-from .exceptions import ValidationException
+from .exceptions import ParameterNotFound, ValidationException
 from .models import SimpleSystemManagerBackend, ssm_backends
 
 
@@ -147,15 +146,9 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def delete_parameter(self) -> Union[ActionResult, tuple[str, dict[str, int]]]:
+    def delete_parameter(self) -> ActionResult:
         name = self._get_param("Name")
-        result = self.ssm_backend.delete_parameter(name)
-        if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), {"status": 400}
+        self.ssm_backend.delete_parameter(name)
         return EmptyResult()
 
     def delete_parameters(self) -> ActionResult:
@@ -171,7 +164,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response["InvalidParameters"].append(name)
         return ActionResult(response)
 
-    def get_parameter(self) -> Union[ActionResult, tuple[str, dict[str, int]]]:
+    def get_parameter(self) -> ActionResult:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
@@ -186,11 +179,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         result = self.ssm_backend.get_parameter(name)
 
         if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), {"status": 400}
+            raise ParameterNotFound(f"Parameter {name} not found.")
 
         response = {"Parameter": result.response_object(with_decryption, self.region)}
         return ActionResult(response)
@@ -293,7 +282,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Version": param.version, "Tier": param.tier}
         return ActionResult(response)
 
-    def get_parameter_history(self) -> Union[ActionResult, tuple[str, dict[str, int]]]:
+    def get_parameter_history(self) -> ActionResult:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
         next_token = self._get_param("NextToken")
@@ -304,11 +293,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
 
         if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), {"status": 400}
+            raise ParameterNotFound(f"Parameter {name} not found.")
 
         response = {
             "Parameters": [
