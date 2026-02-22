@@ -3,7 +3,9 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import unix_time
+from moto.glue.models import glue_backends
 
 
 @mock_aws
@@ -15,6 +17,13 @@ def test_create_workflow():
     workflow_names_response = client.list_workflows()
 
     assert workflow_names_response["Workflows"][0] == workflow_name
+
+    # Verify as_dict() returns timestamps as epoch seconds (float)
+    backend = glue_backends[ACCOUNT_ID]["us-east-1"]
+    wf = backend.workflows[workflow_name]
+    wf_dict = wf.as_dict()
+    assert isinstance(wf_dict["CreatedOn"], (int, float))
+    assert isinstance(wf_dict["LastModifiedOn"], (int, float))
 
 
 workflow_properties_and_values = [

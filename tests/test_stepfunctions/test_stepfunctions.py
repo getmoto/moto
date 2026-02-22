@@ -515,6 +515,11 @@ def test_state_machine_start_execution():
     )
     assert re.match(expected_exec_name, execution["executionArn"])
     assert isinstance(execution["startDate"], datetime)
+    # Verify internal model stores start_date as epoch seconds (float)
+    exec_obj = stepfunctions_backends[ACCOUNT_ID][region].describe_execution(
+        execution["executionArn"]
+    )
+    assert isinstance(exec_obj.start_date, (int, float))
 
 
 @mock_aws
@@ -1120,6 +1125,9 @@ def test_create_activity():
 
     assert "creationDate" in response
     assert "activityArn" in response
+    # Verify internal model stores creation_date as epoch seconds (float)
+    activity = stepfunctions_backends[ACCOUNT_ID][region].activities[response["activityArn"]]
+    assert isinstance(activity.creation_date, (int, float))
 
 
 @mock_aws

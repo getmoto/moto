@@ -2073,6 +2073,7 @@ def test_send_command():
     assert cmd["OutputS3KeyPrefix"] == "pref"
 
     # boto3 converts epoch seconds to timezone-aware datetime; convert back for comparison
+    assert cmd["RequestedDateTime"].timestamp() >= before
     assert cmd["ExpiresAfter"].timestamp() > before
     assert cmd["DeliveryTimedOutCount"] == 0
 

@@ -346,6 +346,7 @@ def test_run_transcription_job_minimal_params():
     assert "StartTime" in transcription_job
     assert "CompletionTime" not in transcription_job
     assert "Transcript" not in transcription_job
+    assert isinstance(job.start_time, (int, float))
 
     # IN_PROGESS
     resp = client.get_transcription_job(TranscriptionJobName=job_name)
@@ -356,6 +357,7 @@ def test_run_transcription_job_minimal_params():
     assert "StartTime" in transcription_job
     assert "CompletionTime" in transcription_job
     assert "Transcript" in transcription_job
+    assert isinstance(job.completion_time, (int, float))
     # Check aws hosted bucket
     assert (
         f"https://s3.{region_name}.amazonaws.com/aws-transcribe-{region_name}-prod/"
