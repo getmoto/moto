@@ -25,7 +25,7 @@ import requests
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.types import Base64EncodedString
-from moto.core.utils import utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,
@@ -164,11 +164,11 @@ class DeliveryStream(BaseModel):
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
-        self.create_timestamp = datetime.now(timezone.utc).isoformat()
+        self.create_timestamp = unix_time()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        self.last_update_timestamp = unix_time()
 
 
 class FirehoseBackend(BaseBackend):
@@ -688,7 +688,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        delivery_stream.last_update_timestamp = unix_time()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon
