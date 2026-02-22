@@ -5372,6 +5372,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "hpc8a.96xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "use2-az2"
  },
