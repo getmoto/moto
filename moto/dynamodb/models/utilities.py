@@ -1,12 +1,17 @@
 import base64
 import json
 import re
+from datetime import datetime
 from typing import Any, Optional
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
-        if hasattr(o, "to_json"):
+        if isinstance(o, datetime):
+            from moto.core.utils import unix_time
+
+            return unix_time(o)
+        elif hasattr(o, "to_json"):
             return o.to_json()
         elif isinstance(o, bytes):
             return base64.b64encode(o).decode("utf-8")
@@ -14,6 +19,44 @@ class DynamoJsonEncoder(json.JSONEncoder):
 
 def dynamo_json_dump(dynamo_object: Any) -> str:
     return json.dumps(dynamo_object, cls=DynamoJsonEncoder)
+
+
+def dynamo_to_dict(obj: Any) -> Any:
+    """Recursively convert DynamoDB model objects to plain Python types.
+
+    DynamoType objects are expanded to {type: value} dicts directly (without
+    calling to_json()) so that binary values stay as raw bytes that the
+    ActionResult serializer can base64-encode correctly.
+
+    - DynamoType B/BS: base64-decoded to raw bytes for the serializer
+    - DynamoType (other): expanded to {type: value} with recursive processing
+    - Other objects with to_json(): recursively resolved via to_json()
+    - datetime objects: preserved for ActionResult timestamp serialization
+    - dicts and lists: recursively processed
+    """
+    # Lazy import to avoid circular dependency
+    from moto.dynamodb.models.dynamo_type import DynamoType
+
+    # Check datetime before to_json to prevent datetime subclasses
+    # from being incorrectly routed through the to_json() path
+    if isinstance(obj, datetime):
+        return obj
+    if isinstance(obj, DynamoType):
+        if obj.type == "B":
+            # Value may be raw bytes (after projection round-trip) or base64 str (from wire)
+            if isinstance(obj.value, bytes):
+                return {"B": obj.value}
+            return {"B": base64.b64decode(obj.value)}
+        if obj.type == "BS":
+            return {"BS": [v if isinstance(v, bytes) else base64.b64decode(v) for v in obj.value]}
+        return {obj.type: dynamo_to_dict(obj.value)}
+    if hasattr(obj, "to_json"):
+        return dynamo_to_dict(obj.to_json())
+    if isinstance(obj, dict):
+        return {k: dynamo_to_dict(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [dynamo_to_dict(item) for item in obj]
+    return obj
 
 
 def bytesize(val: str) -> int:
