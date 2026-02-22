@@ -12,7 +12,9 @@ that go above and beyond the specification(s) for a number of reasons:
 
 """
 
+import json
 import time
+from datetime import datetime
 
 from xmltodict import parse
 
@@ -153,6 +155,50 @@ def test_datetime_with_microseconds() -> None:
     time_str = parsed["TestOperationResponse"]["OutputShapeResult"]["microseconds"]
     assert "." in time_str
     assert time_str[-1] == "Z"
+
+
+def test_unixtimestamp_preserves_microsecond_precision() -> None:
+    """Verify that unixtimestamp serialization preserves microsecond precision."""
+    model = {
+        "metadata": {"protocol": "json", "apiVersion": "2014-01-01"},
+        "documentation": "",
+        "operations": {
+            "TestOperation": {
+                "name": "TestOperation",
+                "http": {"method": "POST", "requestUri": "/"},
+                "output": {"shape": "OutputShape"},
+            }
+        },
+        "shapes": {
+            "OutputShape": {
+                "type": "structure",
+                "members": {
+                    "Timestamp": {
+                        "shape": "TimestampType",
+                        "timestampFormat": "unixTimestamp",
+                    },
+                },
+            },
+            "TimestampType": {"type": "timestamp"},
+        },
+    }
+
+    # Use a datetime with known microseconds
+    test_dt = datetime(2024, 1, 1, 12, 30, 45, 123456)
+
+    class TestObject:
+        Timestamp = test_dt
+
+    service_model = ServiceModel(model)
+    operation_model = service_model.operation_model("TestOperation")
+    serializer = JSONSerializer(operation_model)
+    serialized = serializer.serialize(TestObject())
+    body = json.loads(serialized["body"])
+    timestamp = body["Timestamp"]
+
+    # Microsecond precision: 123456 µs = 0.123456 s
+    fractional = timestamp - int(timestamp)
+    assert abs(fractional - 0.123456) < 1e-6
 
 
 def test_pretty_print_with_short_elements_and_list() -> None:
