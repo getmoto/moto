@@ -796,11 +796,11 @@ class Command(BaseModel):
 
         self.timeout_seconds = timeout_seconds or MAX_TIMEOUT_SECONDS
         self.requested_date_time = datetime.datetime.now()
-        self.requested_date_time_iso = self.requested_date_time.isoformat()
+        self.requested_date_time_epoch = unix_time(self.requested_date_time)
         expires_after = self.requested_date_time + datetime.timedelta(
             0, self.timeout_seconds
         )
-        self.expires_after = expires_after.isoformat()
+        self.expires_after = unix_time(expires_after)
 
         self.comment = comment
         self.document_name = document_name
@@ -867,7 +867,7 @@ class Command(BaseModel):
             "OutputS3BucketName": self.output_s3_bucket_name,
             "OutputS3KeyPrefix": self.output_s3_key_prefix,
             "Parameters": self.parameters,
-            "RequestedDateTime": self.requested_date_time_iso,
+            "RequestedDateTime": self.requested_date_time_epoch,
             "ServiceRole": self.service_role_arn,
             "Status": self.status,
             "StatusDetails": self.status_details,
@@ -891,7 +891,7 @@ class Command(BaseModel):
             "DocumentName": self.document_name,
             "PluginName": plugin_name,
             "ResponseCode": 0,
-            "ExecutionStartDateTime": self.requested_date_time_iso,
+            "ExecutionStartDateTime": self.requested_date_time.isoformat(),
             "ExecutionElapsedTime": elapsed_time_iso,
             "ExecutionEndDateTime": end_time.isoformat(),
             "Status": "Success",

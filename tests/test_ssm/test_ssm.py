@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import unix_time
 from moto.ssm.models import (
     PARAMETER_BY_PATH_MAX_RESULTS,
     PARAMETER_HISTORY_MAX_RESULTS,
@@ -2046,7 +2047,7 @@ def test_send_command():
 
     client = boto3.client("ssm", region_name=SSM_REGION)
     # note the timeout is determined server side, so this is a simpler check.
-    before = datetime.datetime.now()
+    before = unix_time()
 
     response = client.send_command(
         Comment="some comment",
@@ -2071,7 +2072,8 @@ def test_send_command():
     assert cmd["OutputS3BucketName"] == "the-bucket"
     assert cmd["OutputS3KeyPrefix"] == "pref"
 
-    assert cmd["ExpiresAfter"] > before
+    # boto3 converts epoch seconds to timezone-aware datetime; convert back for comparison
+    assert cmd["ExpiresAfter"].timestamp() > before
     assert cmd["DeliveryTimedOutCount"] == 0
 
     assert cmd["TimeoutSeconds"] == 42

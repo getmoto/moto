@@ -3,6 +3,7 @@ from typing import Any, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.utils import unix_time
 
 from .exceptions import EntityNotFoundException, InvalidInputException
 from .models import (
@@ -1103,7 +1104,7 @@ class GlueResponse(BaseResponse):
 
         sc = self.glue_backend.create_security_configuration(name, configuration)
         return json.dumps(
-            {"Name": sc.name, "CreatedTimestamp": sc.created_time.isoformat()}
+            {"Name": sc.name, "CreatedTimestamp": unix_time(sc.created_time)}
         )
 
     def get_security_configuration(self) -> str:
