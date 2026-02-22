@@ -5,6 +5,8 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.servicecatalog.models import servicecatalog_backends
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -42,6 +44,12 @@ def test_create_portfolio():
     assert len(tags) == 1
     assert tags[0]["Key"] == "testkey"
     assert tags[0]["Value"] == "testvalue"
+
+    # Verify internal model stores CreatedTime as epoch seconds (float)
+    portfolio_id = portfolio_detail["Id"]
+    backend = servicecatalog_backends[ACCOUNT_ID]["us-east-1"]
+    portfolio = backend.portfolios[portfolio_id]
+    assert isinstance(portfolio.to_dict()["CreatedTime"], (int, float))
 
     response2 = client.create_portfolio(
         DisplayName="Different Name",

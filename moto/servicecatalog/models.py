@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -61,7 +62,7 @@ class Portfolio(BaseModel):
             "ARN": self.arn,
             "DisplayName": self.display_name,
             "Description": self.description,
-            "CreatedTime": self.created_time.isoformat(),
+            "CreatedTime": unix_time(self.created_time),
             "ProviderName": self.provider_name,
         }
 
