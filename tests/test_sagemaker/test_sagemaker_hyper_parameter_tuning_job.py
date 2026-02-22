@@ -118,7 +118,9 @@ def test_describe_hyper_parameter_tuning_job_defaults():
     }
     assert resp["FailureReason"] == ""
     completion_details = resp["TuningJobCompletionDetails"]
-    assert isinstance(completion_details.pop("ConvergenceDetectedTime"), datetime.datetime)
+    assert isinstance(
+        completion_details.pop("ConvergenceDetectedTime"), datetime.datetime
+    )
     assert completion_details == {
         "NumberOfTrainingJobsObjectiveNotImproving": 123,
     }
@@ -784,7 +786,9 @@ def test_describe_hyper_parameter_tuning_job():
     assert resp["Autotune"] == {"Mode": "Enabled"}
     assert resp["FailureReason"] == ""
     completion_details = resp["TuningJobCompletionDetails"]
-    assert isinstance(completion_details.pop("ConvergenceDetectedTime"), datetime.datetime)
+    assert isinstance(
+        completion_details.pop("ConvergenceDetectedTime"), datetime.datetime
+    )
     assert completion_details == {
         "NumberOfTrainingJobsObjectiveNotImproving": 123,
     }

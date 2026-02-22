@@ -488,9 +488,7 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name
         )
 
-        return ActionResult(
-            {"policyVersions": [_.to_dict() for _ in policiy_versions]}
-        )
+        return ActionResult({"policyVersions": [_.to_dict() for _ in policiy_versions]})
 
     def delete_policy_version(self) -> ActionResult:
         policy_name = self._get_param("policyName")

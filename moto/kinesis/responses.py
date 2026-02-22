@@ -162,7 +162,9 @@ class KinesisResponse(BaseResponse):
             limit=max_results,
             next_token=next_token,
         )
-        return ActionResult({"Shards": [s.to_json() for s in shards], "NextToken": token})
+        return ActionResult(
+            {"Shards": [s.to_json() for s in shards], "NextToken": token}
+        )
 
     def update_shard_count(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")

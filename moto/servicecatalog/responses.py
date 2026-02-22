@@ -41,7 +41,9 @@ class ServiceCatalogResponse(BaseResponse):
 
         account_ids = [obj["account_id"] for obj in account_id_objects]
 
-        return ActionResult({"AccountIds": account_ids, "NextPageToken": next_page_token})
+        return ActionResult(
+            {"AccountIds": account_ids, "NextPageToken": next_page_token}
+        )
 
     def delete_portfolio(self) -> ActionResult:
         params = json.loads(self.body)

@@ -112,7 +112,10 @@ def test_update_workflow_updated_timestamp():
     client.update_workflow(Name=workflow_name)
 
     workflow_response = client.get_workflow(Name=workflow_name)
-    assert workflow_response["Workflow"]["LastModifiedOn"].timestamp() == FROZEN_CREATE_TIME.timestamp()
+    assert (
+        workflow_response["Workflow"]["LastModifiedOn"].timestamp()
+        == FROZEN_CREATE_TIME.timestamp()
+    )
 
 
 @mock_aws
