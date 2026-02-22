@@ -34,7 +34,6 @@ from .utils import (
     validate_model_approval_status,
 )
 
-
 PAGINATION_MODEL = {
     "list_experiments": {
         "input_token": "NextToken",

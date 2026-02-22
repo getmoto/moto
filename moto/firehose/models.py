@@ -15,7 +15,6 @@ Incomplete list of unfinished items:
 import io
 import json
 import warnings
-from datetime import datetime, timezone
 from gzip import GzipFile
 from time import time
 from typing import Any, Optional
