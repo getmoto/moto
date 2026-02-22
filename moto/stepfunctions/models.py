@@ -345,6 +345,7 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
+        # Hardcoded timestamps as epoch seconds (UTC) for static mock data
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
