@@ -1,11 +1,11 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 
 import uuid
-from datetime import datetime
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -43,7 +43,7 @@ class Portfolio(BaseModel):
         self.display_name = display_name
         self.description = description
         self.provider_name = provider_name
-        self.created_time = datetime.now()
+        self.created_time = utcnow()
         self.tags = tags
         self.region_name = region_name
         self.account_id = account_id
@@ -61,7 +61,7 @@ class Portfolio(BaseModel):
             "ARN": self.arn,
             "DisplayName": self.display_name,
             "Description": self.description,
-            "CreatedTime": self.created_time.isoformat(),
+            "CreatedTime": self.created_time,
             "ProviderName": self.provider_name,
         }
 
@@ -100,7 +100,7 @@ class Product(BaseModel):
         self.provisioning_artifact_parameters = provisioning_artifact_parameters or {}
         self.source_connection = source_connection or {}
         self.accept_language = accept_language
-        self.created_time = datetime.now()
+        self.created_time = utcnow()
         self.region_name = region_name
         self.account_id = account_id
         self.backend = backend
