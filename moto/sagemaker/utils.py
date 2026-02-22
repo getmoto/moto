@@ -2,7 +2,7 @@ import json
 import typing
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from moto.core.utils import unix_time
 from moto.s3.models import s3_backends
@@ -129,7 +129,7 @@ def filter_model_cards(
     if not result:
         return []
 
-    def sort_key(x: "FakeModelCard") -> str:
+    def sort_key(x: "FakeModelCard") -> Union[str, float]:
         if sort_by == "Name":
             return x.model_card_name
         return x.creation_time
