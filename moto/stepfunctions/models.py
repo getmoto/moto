@@ -7,7 +7,7 @@ from typing import Any, Optional
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -41,7 +41,7 @@ class StateMachineInstance:
         loggingConfiguration: Optional[dict[str, Any]] = None,
         tracingConfiguration: Optional[dict[str, Any]] = None,
     ):
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = utcnow()
         self.update_date = self.creation_date
         self.arn = arn
         self.name = name
@@ -148,7 +148,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        execution.stop(stop_date=datetime.now(), error="", cause="")
+        execution.stop(stop_date=utcnow(), error="", cause="")
         return execution
 
     def _handle_name_input_idempotency(
@@ -181,7 +181,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
-        self.update_date = iso_8601_datetime_with_milliseconds()
+        self.update_date = utcnow()
 
     @property
     def physical_resource_id(self) -> str:
@@ -327,7 +327,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = datetime.now()
+        self.start_date = utcnow()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -345,13 +345,11 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
-        tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+        tz = timezone.utc
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tz),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -362,9 +360,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "PassStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -375,9 +371,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "PassStateExited",
                     "id": 3,
                     "previousEventId": 2,
@@ -388,9 +382,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 20, tzinfo=tz),
                     "type": "ExecutionSucceeded",
                     "id": 4,
                     "previousEventId": 3,
@@ -403,9 +395,7 @@ class Execution:
         elif sf_execution_history_type == "FAILURE":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tz),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -416,9 +406,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "FailStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -429,9 +417,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "ExecutionFailed",
                     "id": 3,
                     "previousEventId": 2,
@@ -445,7 +431,7 @@ class Execution:
 
     def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
-        self.stop_date = datetime.now()
+        self.stop_date = utcnow()
 
 
 class Activity:
@@ -459,7 +445,7 @@ class Activity:
         self.name = name
         self.encryption_configuration = encryption_configuration
 
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = utcnow()
         self.update_date = self.creation_date
 
 
