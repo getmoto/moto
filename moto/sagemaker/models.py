@@ -1112,8 +1112,8 @@ class FakeModelCard(BaseObject):
         model_card_status: str,
         security_config: Optional[dict[str, str]] = None,
         tags: Optional[list[dict[str, Any]]] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[float] = None,
+        last_modified_time: Optional[float] = None,
     ) -> None:
         now = unix_time()
         self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
@@ -5537,8 +5537,8 @@ class SageMakerModelBackend(BaseBackend):
         model_card_status: str,
         tags: Optional[list[dict[str, str]]],
         model_card_version: Optional[int] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[float] = None,
+        last_modified_time: Optional[float] = None,
     ) -> str:
         if model_card_name in self.model_cards:
             raise ConflictException(f"Modelcard {model_card_name} already exists")
