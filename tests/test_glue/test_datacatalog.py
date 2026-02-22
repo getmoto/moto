@@ -535,6 +535,7 @@ def test_get_partitions_empty():
 
 
 @mock_aws
+@freeze_time(FROZEN_CREATE_TIME)
 def test_create_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -544,14 +545,10 @@ def test_create_partition():
 
     helpers.create_table(client, database_name, table_name)
 
-    before = datetime.now(timezone.utc)
-
     part_input = helpers.create_partition_input(
         database_name, table_name, values=values
     )
     helpers.create_partition(client, database_name, table_name, part_input)
-
-    after = datetime.now(timezone.utc)
 
     response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
 
@@ -564,8 +561,7 @@ def test_create_partition():
     assert partition["TableName"] == table_name
     assert partition["StorageDescriptor"] == part_input["StorageDescriptor"]
     assert partition["Values"] == values
-    assert partition["CreationTime"] > before
-    assert partition["CreationTime"] < after
+    assert partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
 
 
 @mock_aws
@@ -604,6 +600,7 @@ def test_get_partition_not_found():
 
 
 @mock_aws
+@freeze_time(FROZEN_CREATE_TIME)
 def test_batch_create_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -611,8 +608,6 @@ def test_batch_create_partition():
     helpers.create_database(client, database_name)
 
     helpers.create_table(client, database_name, table_name)
-
-    before = datetime.now(timezone.utc)
 
     partition_inputs = []
     for i in range(0, 20):
@@ -628,8 +623,6 @@ def test_batch_create_partition():
         PartitionInputList=partition_inputs,
     )
 
-    after = datetime.now(timezone.utc)
-
     response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
 
     partitions = response["Partitions"]
@@ -642,8 +635,7 @@ def test_batch_create_partition():
         assert partition["TableName"] == table_name
         assert partition["StorageDescriptor"] == partition_input["StorageDescriptor"]
         assert partition["Values"] == partition_input["Values"]
-        assert partition["CreationTime"] > before
-        assert partition["CreationTime"] < after
+        assert partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
 
 
 @mock_aws
