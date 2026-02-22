@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.firehose.models import DeliveryStream
+from moto.firehose.models import DeliveryStream, firehose_backends
 from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -239,6 +239,9 @@ def test_describe_delivery_stream():
     assert description["DeliveryStreamStatus"] == "ACTIVE"
     assert description["DeliveryStreamType"] == "KinesisStreamAsSource"
     assert description["VersionId"] == "1"
+    ds = firehose_backends[ACCOUNT_ID][TEST_REGION].delivery_streams[stream_name]
+    assert isinstance(ds.create_timestamp, (int, float))
+    assert isinstance(ds.last_update_timestamp, (int, float))
     assert (
         description["Source"]["KinesisStreamSourceDescription"]["RoleARN"] == role_arn
     )
