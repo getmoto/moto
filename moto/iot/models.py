@@ -23,7 +23,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.settings import iot_use_valid_cert
 from moto.utilities.paginator import paginate
@@ -521,7 +521,7 @@ class FakeBillingGroup(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:billinggroup/{billing_group_name}"
         self.version = 1
         self.things: list[str] = []
-        self.metadata = {"creationDate": utcnow().isoformat()}
+        self.metadata = {"creationDate": unix_time()}
 
     def to_dict(self) -> dict[str, Any]:
         return {

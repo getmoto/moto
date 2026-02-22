@@ -3,6 +3,8 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.iot.models import iot_backends
 
 
 @mock_aws
@@ -19,6 +21,11 @@ def test_create_billing_group():
     assert response["billingGroupName"] == billing_group_name
     assert "billingGroupArn" in response
     assert "billingGroupId" in response
+
+    # Verify internal model stores creationDate as epoch seconds (float)
+    backend = iot_backends[ACCOUNT_ID]["us-east-1"]
+    bg = backend.billing_groups[billing_group_name]
+    assert isinstance(bg.metadata["creationDate"], (int, float))
 
     # Test creating a billing group that already exists
     with pytest.raises(ClientError) as exc:
