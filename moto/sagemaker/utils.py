@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from moto.core.utils import unix_time
 from moto.s3.models import s3_backends
 from moto.utilities.utils import get_partition
 
@@ -92,25 +93,29 @@ def filter_model_cards(
         filtered_versions = versions
 
         if creation_time_after:
-            if isinstance(creation_time_after, int):
-                creation_time_after = datetime.fromtimestamp(
-                    creation_time_after, tz=timezone.utc
-                )
+            if isinstance(creation_time_after, datetime) and creation_time_after.tzinfo is not None:
+                after = creation_time_after.timestamp()
+            elif isinstance(creation_time_after, (int, float)):
+                after = float(creation_time_after)
+            else:
+                after = unix_time(creation_time_after)
             filtered_versions = [
                 v
                 for v in filtered_versions
-                if v.last_modified_time > str(creation_time_after)
+                if v.last_modified_time > after
             ]
 
         if creation_time_before:
-            if isinstance(creation_time_before, int):
-                creation_time_before = datetime.fromtimestamp(
-                    creation_time_before, tz=timezone.utc
-                )
+            if isinstance(creation_time_before, datetime) and creation_time_before.tzinfo is not None:
+                before = creation_time_before.timestamp()
+            elif isinstance(creation_time_before, (int, float)):
+                before = float(creation_time_before)
+            else:
+                before = unix_time(creation_time_before)
             filtered_versions = [
                 v
                 for v in filtered_versions
-                if v.last_modified_time < str(creation_time_before)
+                if v.last_modified_time < before
             ]
 
         if model_card_status:
