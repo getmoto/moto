@@ -11,7 +11,7 @@ class KinesisResponse(BaseResponse):
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.current_account][self.region]
 
-    def create_stream(self) -> EmptyResult:
+    def create_stream(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         shard_count = self._get_param("ShardCount")
         stream_mode = self._get_param("StreamModeDetails")
@@ -61,7 +61,7 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def delete_stream(self) -> EmptyResult:
+    def delete_stream(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         self.kinesis_backend.delete_stream(stream_arn, stream_name)
@@ -131,7 +131,7 @@ class KinesisResponse(BaseResponse):
 
         return ActionResult(response)
 
-    def split_shard(self) -> EmptyResult:
+    def split_shard(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_to_split = self._get_param("ShardToSplit")
@@ -141,7 +141,7 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def merge_shards(self) -> EmptyResult:
+    def merge_shards(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_to_merge = self._get_param("ShardToMerge")
@@ -181,7 +181,7 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def increase_stream_retention_period(self) -> EmptyResult:
+    def increase_stream_retention_period(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         retention_period_hours = self._get_param("RetentionPeriodHours")
@@ -190,7 +190,7 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def decrease_stream_retention_period(self) -> EmptyResult:
+    def decrease_stream_retention_period(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         retention_period_hours = self._get_param("RetentionPeriodHours")
@@ -199,7 +199,7 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def add_tags_to_stream(self) -> EmptyResult:
+    def add_tags_to_stream(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         tags = self._get_param("Tags")
@@ -216,7 +216,7 @@ class KinesisResponse(BaseResponse):
         )
         return ActionResult(response)
 
-    def remove_tags_from_stream(self) -> EmptyResult:
+    def remove_tags_from_stream(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         tag_keys = self._get_param("TagKeys")
@@ -285,7 +285,7 @@ class KinesisResponse(BaseResponse):
             {"ConsumerDescription": consumer.to_json(include_stream_arn=True)}
         )
 
-    def deregister_stream_consumer(self) -> EmptyResult:
+    def deregister_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         consumer_name = self._get_param("ConsumerName")
         consumer_arn = self._get_param("ConsumerARN")
@@ -296,7 +296,7 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def start_stream_encryption(self) -> EmptyResult:
+    def start_stream_encryption(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         encryption_type = self._get_param("EncryptionType")
@@ -309,7 +309,7 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def stop_stream_encryption(self) -> EmptyResult:
+    def stop_stream_encryption(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         self.kinesis_backend.stop_stream_encryption(
@@ -317,13 +317,13 @@ class KinesisResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def update_stream_mode(self) -> EmptyResult:
+    def update_stream_mode(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_mode = self._get_param("StreamModeDetails")
         self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
         return EmptyResult()
 
-    def put_resource_policy(self) -> EmptyResult:
+    def put_resource_policy(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         policy = self._get_param("Policy")
         self.kinesis_backend.put_resource_policy(
@@ -337,7 +337,7 @@ class KinesisResponse(BaseResponse):
         policy = self.kinesis_backend.get_resource_policy(resource_arn=resource_arn)
         return ActionResult({"Policy": policy})
 
-    def delete_resource_policy(self) -> EmptyResult:
+    def delete_resource_policy(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         self.kinesis_backend.delete_resource_policy(
             resource_arn=resource_arn,
