@@ -562,9 +562,7 @@ class Documents(BaseModel):
                 self.permissions.pop("all", None)
 
             new_permissions = {
-                account_id: AccountPermission(
-                    account_id, version, utcnow()
-                )
+                account_id: AccountPermission(account_id, version, utcnow())
                 for account_id in accounts_to_add
             }
             self.permissions.update(**new_permissions)
@@ -1643,13 +1641,12 @@ class SimpleSystemManagerBackend(BaseBackend):
             account_ids_to_add, account_ids_to_remove, shared_document_version
         )
 
-    def delete_parameter(self, name: str) -> Parameter:
+    def delete_parameter(self, name: str) -> None:
         normalized_parameter_name = self._parameters.normalize_name(name)
         result = self._parameters.pop(normalized_parameter_name, None)  # type: ignore
         if result is None:
             raise ParameterNotFound(f"Parameter {name} not found.")
         self._resource_tags.get("Parameter", {}).pop(normalized_parameter_name, None)  # type: ignore
-        return result
 
     def delete_parameters(self, names: list[str]) -> list[str]:
         result = []

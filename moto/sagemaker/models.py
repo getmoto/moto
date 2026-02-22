@@ -2064,7 +2064,9 @@ class AutoMLJob(BaseObject):
             ]["CompletionCriteria"],
         }
         if self.auto_ml_problem_type_resolved_attributes is not None:
-            resolved["AutoMLProblemTypeResolvedAttributes"] = self.auto_ml_problem_type_resolved_attributes
+            resolved["AutoMLProblemTypeResolvedAttributes"] = (
+                self.auto_ml_problem_type_resolved_attributes
+            )
         self.resolved_attributes = resolved
 
         self.model_deploy_result = {
@@ -4409,8 +4411,7 @@ class SageMakerModelBackend(BaseBackend):
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
@@ -4469,8 +4470,7 @@ class SageMakerModelBackend(BaseBackend):
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
@@ -4752,13 +4752,9 @@ class SageMakerModelBackend(BaseBackend):
         if name_contains:
             clusters = [i for i in clusters if name_contains in i.cluster_name]
         if creation_time_before:
-            clusters = [
-                i for i in clusters if i.creation_time < creation_time_before
-            ]
+            clusters = [i for i in clusters if i.creation_time < creation_time_before]
         if creation_time_after:
-            clusters = [
-                i for i in clusters if i.creation_time > creation_time_after
-            ]
+            clusters = [i for i in clusters if i.creation_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             clusters = sorted(clusters, key=lambda x: x.cluster_name, reverse=reverse)
@@ -4790,13 +4786,9 @@ class SageMakerModelBackend(BaseBackend):
                 if instance_group_name_contains in i.instance_group_name
             ]
         if creation_time_before:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time < creation_time_before
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time < creation_time_before]
         if creation_time_after:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time > creation_time_after
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             nodes_list = sorted(
@@ -4981,24 +4973,16 @@ class SageMakerModelBackend(BaseBackend):
         if status_equals:
             endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
         if creation_time_before:
-            endpoints = [
-                i for i in endpoints if i.creation_time < creation_time_before
-            ]
+            endpoints = [i for i in endpoints if i.creation_time < creation_time_before]
         if creation_time_after:
-            endpoints = [
-                i for i in endpoints if i.creation_time > creation_time_after
-            ]
+            endpoints = [i for i in endpoints if i.creation_time > creation_time_after]
         if last_modified_time_before:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time < last_modified_time_before
+                i for i in endpoints if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time > last_modified_time_after
+                i for i in endpoints if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5031,15 +5015,11 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time < creation_time_before
+                i for i in endpoint_configs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time > creation_time_after
+                i for i in endpoint_configs if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5105,15 +5085,11 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time < creation_time_before
+                i for i in compilation_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time > creation_time_after
+                i for i in compilation_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             compilation_jobs = [
@@ -5771,7 +5747,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         return arn_formatter("data-quality-job-definition", name, account_id, region)
 
     @property
-    def summary_object(self) -> dict[str, str]:
+    def summary_object(self) -> dict[str, Any]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,
@@ -5914,9 +5890,7 @@ class FakeTrialComponent(BaseObject):
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.arn,
-                "TimeStamp": datetime.fromtimestamp(
-                    timestamp_int, tz=timezone.utc
-                ),
+                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=timezone.utc),
                 "Max": max(metrics_steps_values),
                 "Min": min(metrics_steps_values),
                 "Last": metrics_steps[max_step]["Value"],

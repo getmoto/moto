@@ -55,7 +55,7 @@ class Portfolio(BaseModel):
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:portfolio/{self.id}"
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Id": self.id,
             "ARN": self.arn,

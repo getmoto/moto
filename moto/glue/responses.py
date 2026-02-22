@@ -101,7 +101,9 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
         ver_id = self.parameters.get("VersionId")
-        return ActionResult(self.glue_backend.get_table_version(database_name, table_name, ver_id))  # type: ignore[arg-type]
+        return ActionResult(
+            self.glue_backend.get_table_version(database_name, table_name, ver_id)  # type: ignore[arg-type]
+        )
 
     def delete_table_version(self) -> ActionResult:
         database_name = self.parameters.get("DatabaseName")
@@ -902,7 +904,9 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         connection_list = [connection.as_dict() for connection in connections]
-        return ActionResult({"ConnectionList": connection_list, "NextToken": next_token})
+        return ActionResult(
+            {"ConnectionList": connection_list, "NextToken": next_token}
+        )
 
     def put_data_catalog_encryption_settings(self) -> ActionResult:
         params = self.parameters
@@ -1101,9 +1105,7 @@ class GlueResponse(BaseResponse):
         configuration = self._get_param("EncryptionConfiguration")
 
         sc = self.glue_backend.create_security_configuration(name, configuration)
-        return ActionResult(
-            {"Name": sc.name, "CreatedTimestamp": sc.created_time}
-        )
+        return ActionResult({"Name": sc.name, "CreatedTimestamp": sc.created_time})
 
     def get_security_configuration(self) -> ActionResult:
         name = self._get_param("Name")
