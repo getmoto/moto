@@ -1492,6 +1492,7 @@ def test_ami_describe_image_attribute_block_device_fail():
         e.value.response["Error"]["Message"]
         == "Unauthorized attempt to access restricted resource"
     )
+    assert e.value.response["ResponseMetadata"]["HTTPStatusCode"] == 401
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
