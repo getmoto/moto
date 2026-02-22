@@ -3,6 +3,7 @@
 import datetime
 
 import boto3
+from freezegun import freeze_time
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -434,6 +435,46 @@ def test_list_compilation_jobs_filters():
         resp["CompilationJobSummaries"][1]["LastModifiedTime"], datetime.datetime
     )
     assert resp["CompilationJobSummaries"][1]["CompilationJobStatus"] == "COMPLETED"
+
+
+@mock_aws
+def test_list_compilation_jobs_time_filters():
+    """Verify that LastModifiedTimeAfter/Before filters actually exclude jobs."""
+    client = boto3.client("sagemaker", region_name="us-east-2")
+
+    def _create_job(name: str) -> None:
+        client.create_compilation_job(
+            CompilationJobName=name,
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+            ModelPackageVersionArn=f"arn:aws:sagemaker:us-east-2:{ACCOUNT_ID}:model-package/FakeModelPackage",
+            OutputConfig={
+                "S3OutputLocation": "s3://MyBucket/output",
+                "TargetDevice": "lambda",
+            },
+            StoppingCondition={"MaxRuntimeInSeconds": 60},
+        )
+
+    with freeze_time("2024-01-01 00:00:00"):
+        _create_job("job-old")
+
+    with freeze_time("2024-06-01 00:00:00"):
+        _create_job("job-new")
+
+    # LastModifiedTimeAfter should exclude the old job
+    resp = client.list_compilation_jobs(
+        LastModifiedTimeAfter=datetime.datetime(2024, 3, 1),
+    )
+    names = [s["CompilationJobName"] for s in resp["CompilationJobSummaries"]]
+    assert "job-new" in names
+    assert "job-old" not in names
+
+    # LastModifiedTimeBefore should exclude the new job
+    resp = client.list_compilation_jobs(
+        LastModifiedTimeBefore=datetime.datetime(2024, 3, 1),
+    )
+    names = [s["CompilationJobName"] for s in resp["CompilationJobSummaries"]]
+    assert "job-old" in names
+    assert "job-new" not in names
 
 
 @mock_aws

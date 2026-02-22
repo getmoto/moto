@@ -1,7 +1,8 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
+from freezegun import freeze_time
 
 from moto import mock_aws
 
@@ -688,6 +689,7 @@ def test_delete_role_alias_with_cloudformation():
     assert iot_conn.list_role_aliases()["roleAliases"] == []
 
 
+@freeze_time("2024-01-01 00:00:00")
 @mock_aws
 def test_create_job_template_with_simple_cloudformation():
     # given
@@ -750,7 +752,7 @@ def test_create_job_template_with_simple_cloudformation():
     assert job_template["description"] == "Job template Description"
     assert job_template["document"] == '{"field": "value"}'
     assert job_template["documentSource"] == "a document source link"
-    assert isinstance(job_template["createdAt"], datetime)
+    assert job_template["createdAt"] == datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
     assert job_template["presignedUrlConfig"] == {
         "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
         "expiresInSec": 123,
