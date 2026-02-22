@@ -1,6 +1,4 @@
-import json
-
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import KinesisBackend, kinesis_backends
 
@@ -13,21 +11,21 @@ class KinesisResponse(BaseResponse):
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.current_account][self.region]
 
-    def create_stream(self) -> str:
+    def create_stream(self) -> EmptyResult:
         stream_name = self._get_param("StreamName")
         shard_count = self._get_param("ShardCount")
         stream_mode = self._get_param("StreamModeDetails")
         self.kinesis_backend.create_stream(
             stream_name, shard_count, stream_mode=stream_mode
         )
-        return ""
+        return EmptyResult()
 
-    def describe_stream(self) -> str:
+    def describe_stream(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         limit = self._get_param("Limit")
         stream = self.kinesis_backend.describe_stream(stream_arn, stream_name)
-        return json.dumps(stream.to_json(shard_limit=limit))
+        return ActionResult(stream.to_json(shard_limit=limit))
 
     def describe_stream_summary(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
@@ -35,7 +33,7 @@ class KinesisResponse(BaseResponse):
         stream = self.kinesis_backend.describe_stream_summary(stream_arn, stream_name)
         return ActionResult(stream.to_json_summary())
 
-    def list_streams(self) -> str:
+    def list_streams(self) -> ActionResult:
         streams = self.kinesis_backend.list_streams()
         stream_names = [stream.stream_name for stream in streams]
         max_streams = self._get_param("Limit", 10)
@@ -52,7 +50,7 @@ class KinesisResponse(BaseResponse):
         if start + max_streams < len(stream_names):
             has_more_streams = True
 
-        return json.dumps(
+        return ActionResult(
             {
                 "HasMoreStreams": has_more_streams,
                 "StreamNames": streams_resp,
@@ -63,13 +61,13 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def delete_stream(self) -> str:
+    def delete_stream(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         self.kinesis_backend.delete_stream(stream_arn, stream_name)
-        return ""
+        return EmptyResult()
 
-    def get_shard_iterator(self) -> str:
+    def get_shard_iterator(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_id = self._get_param("ShardId")
@@ -86,9 +84,9 @@ class KinesisResponse(BaseResponse):
             at_timestamp,
         )
 
-        return json.dumps({"ShardIterator": shard_iterator})
+        return ActionResult({"ShardIterator": shard_iterator})
 
-    def get_records(self) -> str:
+    def get_records(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         shard_iterator = self._get_param("ShardIterator")
         limit = self._get_param("Limit")
@@ -99,7 +97,7 @@ class KinesisResponse(BaseResponse):
             millis_behind_latest,
         ) = self.kinesis_backend.get_records(stream_arn, shard_iterator, limit)
 
-        return json.dumps(
+        return ActionResult(
             {
                 "NextShardIterator": next_shard_iterator,
                 "Records": [record.to_json() for record in records],
@@ -107,7 +105,7 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def put_record(self) -> str:
+    def put_record(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         partition_key = self._get_param("PartitionKey")
@@ -122,18 +120,18 @@ class KinesisResponse(BaseResponse):
             data,
         )
 
-        return json.dumps({"SequenceNumber": sequence_number, "ShardId": shard_id})
+        return ActionResult({"SequenceNumber": sequence_number, "ShardId": shard_id})
 
-    def put_records(self) -> str:
+    def put_records(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         records = self._get_param("Records")
 
         response = self.kinesis_backend.put_records(stream_arn, stream_name, records)
 
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def split_shard(self) -> str:
+    def split_shard(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_to_split = self._get_param("ShardToSplit")
@@ -141,9 +139,9 @@ class KinesisResponse(BaseResponse):
         self.kinesis_backend.split_shard(
             stream_arn, stream_name, shard_to_split, new_starting_hash_key
         )
-        return ""
+        return EmptyResult()
 
-    def merge_shards(self) -> str:
+    def merge_shards(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_to_merge = self._get_param("ShardToMerge")
@@ -151,9 +149,9 @@ class KinesisResponse(BaseResponse):
         self.kinesis_backend.merge_shards(
             stream_arn, stream_name, shard_to_merge, adjacent_shard_to_merge
         )
-        return ""
+        return EmptyResult()
 
-    def list_shards(self) -> str:
+    def list_shards(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         next_token = self._get_param("NextToken")
@@ -164,10 +162,9 @@ class KinesisResponse(BaseResponse):
             limit=max_results,
             next_token=next_token,
         )
-        res = {"Shards": [s.to_json() for s in shards], "NextToken": token}
-        return json.dumps(res)
+        return ActionResult({"Shards": [s.to_json() for s in shards], "NextToken": token})
 
-    def update_shard_count(self) -> str:
+    def update_shard_count(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         target_shard_count = self._get_param("TargetShardCount")
@@ -176,7 +173,7 @@ class KinesisResponse(BaseResponse):
             stream_name=stream_name,
             target_shard_count=target_shard_count,
         )
-        return json.dumps(
+        return ActionResult(
             {
                 "StreamName": stream_name,
                 "CurrentShardCount": current_shard_count,
@@ -184,32 +181,32 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def increase_stream_retention_period(self) -> str:
+    def increase_stream_retention_period(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         retention_period_hours = self._get_param("RetentionPeriodHours")
         self.kinesis_backend.increase_stream_retention_period(
             stream_arn, stream_name, retention_period_hours
         )
-        return ""
+        return EmptyResult()
 
-    def decrease_stream_retention_period(self) -> str:
+    def decrease_stream_retention_period(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         retention_period_hours = self._get_param("RetentionPeriodHours")
         self.kinesis_backend.decrease_stream_retention_period(
             stream_arn, stream_name, retention_period_hours
         )
-        return ""
+        return EmptyResult()
 
-    def add_tags_to_stream(self) -> str:
+    def add_tags_to_stream(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         tags = self._get_param("Tags")
         self.kinesis_backend.add_tags_to_stream(stream_arn, stream_name, tags)
-        return json.dumps({})
+        return EmptyResult()
 
-    def list_tags_for_stream(self) -> str:
+    def list_tags_for_stream(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         exclusive_start_tag_key = self._get_param("ExclusiveStartTagKey")
@@ -217,16 +214,16 @@ class KinesisResponse(BaseResponse):
         response = self.kinesis_backend.list_tags_for_stream(
             stream_arn, stream_name, exclusive_start_tag_key, limit
         )
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def remove_tags_from_stream(self) -> str:
+    def remove_tags_from_stream(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         tag_keys = self._get_param("TagKeys")
         self.kinesis_backend.remove_tags_from_stream(stream_arn, stream_name, tag_keys)
-        return json.dumps({})
+        return EmptyResult()
 
-    def enable_enhanced_monitoring(self) -> str:
+    def enable_enhanced_monitoring(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_level_metrics = self._get_param("ShardLevelMetrics")
@@ -235,7 +232,7 @@ class KinesisResponse(BaseResponse):
             stream_name=stream_name,
             shard_level_metrics=shard_level_metrics,
         )
-        return json.dumps(
+        return ActionResult(
             {
                 "StreamName": name,
                 "CurrentShardLevelMetrics": current,
@@ -244,7 +241,7 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def disable_enhanced_monitoring(self) -> str:
+    def disable_enhanced_monitoring(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         shard_level_metrics = self._get_param("ShardLevelMetrics")
@@ -253,7 +250,7 @@ class KinesisResponse(BaseResponse):
             stream_name=stream_name,
             to_be_disabled=shard_level_metrics,
         )
-        return json.dumps(
+        return ActionResult(
             {
                 "StreamName": name,
                 "CurrentShardLevelMetrics": current,
@@ -262,20 +259,20 @@ class KinesisResponse(BaseResponse):
             }
         )
 
-    def list_stream_consumers(self) -> str:
+    def list_stream_consumers(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
-        return json.dumps({"Consumers": [c.to_json() for c in consumers]})
+        return ActionResult({"Consumers": [c.to_json() for c in consumers]})
 
-    def register_stream_consumer(self) -> str:
+    def register_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         consumer_name = self._get_param("ConsumerName")
         consumer = self.kinesis_backend.register_stream_consumer(
             stream_arn=stream_arn, consumer_name=consumer_name
         )
-        return json.dumps({"Consumer": consumer.to_json()})
+        return ActionResult({"Consumer": consumer.to_json()})
 
-    def describe_stream_consumer(self) -> str:
+    def describe_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         consumer_name = self._get_param("ConsumerName")
         consumer_arn = self._get_param("ConsumerARN")
@@ -284,11 +281,11 @@ class KinesisResponse(BaseResponse):
             consumer_name=consumer_name,
             consumer_arn=consumer_arn,
         )
-        return json.dumps(
+        return ActionResult(
             {"ConsumerDescription": consumer.to_json(include_stream_arn=True)}
         )
 
-    def deregister_stream_consumer(self) -> str:
+    def deregister_stream_consumer(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         consumer_name = self._get_param("ConsumerName")
         consumer_arn = self._get_param("ConsumerARN")
@@ -297,9 +294,9 @@ class KinesisResponse(BaseResponse):
             consumer_name=consumer_name,
             consumer_arn=consumer_arn,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def start_stream_encryption(self) -> str:
+    def start_stream_encryption(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         encryption_type = self._get_param("EncryptionType")
@@ -310,43 +307,43 @@ class KinesisResponse(BaseResponse):
             encryption_type=encryption_type,
             key_id=key_id,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def stop_stream_encryption(self) -> str:
+    def stop_stream_encryption(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
         self.kinesis_backend.stop_stream_encryption(
             stream_arn=stream_arn, stream_name=stream_name
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def update_stream_mode(self) -> str:
+    def update_stream_mode(self) -> EmptyResult:
         stream_arn = self._get_param("StreamARN")
         stream_mode = self._get_param("StreamModeDetails")
         self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
-        return "{}"
+        return EmptyResult()
 
-    def put_resource_policy(self) -> str:
+    def put_resource_policy(self) -> EmptyResult:
         resource_arn = self._get_param("ResourceARN")
         policy = self._get_param("Policy")
         self.kinesis_backend.put_resource_policy(
             resource_arn=resource_arn,
             policy_doc=policy,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def get_resource_policy(self) -> str:
+    def get_resource_policy(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         policy = self.kinesis_backend.get_resource_policy(resource_arn=resource_arn)
-        return json.dumps({"Policy": policy})
+        return ActionResult({"Policy": policy})
 
-    def delete_resource_policy(self) -> str:
+    def delete_resource_policy(self) -> EmptyResult:
         resource_arn = self._get_param("ResourceARN")
         self.kinesis_backend.delete_resource_policy(
             resource_arn=resource_arn,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def describe_limits(self) -> str:
+    def describe_limits(self) -> ActionResult:
         limits = self.kinesis_backend.describe_limits()
-        return json.dumps(limits)
+        return ActionResult(limits)
