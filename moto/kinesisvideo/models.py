@@ -2,7 +2,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
 
@@ -48,7 +48,7 @@ class Stream(BaseModel):
             "KmsKeyId": self.kms_key_id,
             "Version": self.version,
             "Status": self.status,
-            "CreationTime": self.creation_time.isoformat(),
+            "CreationTime": unix_time(self.creation_time),
             "DataRetentionInHours": self.data_retention_in_hours,
         }
 

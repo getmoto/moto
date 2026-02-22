@@ -3,6 +3,8 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.kinesisvideo.models import kinesisvideo_backends
 
 
 @mock_aws
@@ -14,6 +16,10 @@ def test_create_stream():
     # stream can be created
     res = client.create_stream(StreamName=stream_name, DeviceName=device_name)
     assert stream_name in res["StreamARN"]
+
+    # Verify internal model stores CreationTime as epoch seconds (float)
+    stream = kinesisvideo_backends[ACCOUNT_ID]["ap-northeast-1"].streams[res["StreamARN"]]
+    assert isinstance(stream.to_dict()["CreationTime"], (int, float))
 
 
 @mock_aws
