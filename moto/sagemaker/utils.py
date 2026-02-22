@@ -1,7 +1,7 @@
 import json
 import typing
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 from moto.core.utils import unix_time
@@ -9,6 +9,15 @@ from moto.s3.models import s3_backends
 from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationError
+
+
+def _to_epoch(x: Any) -> float:
+    """Convert a timestamp value to epoch seconds for comparison."""
+    if isinstance(x, (int, float)):
+        return float(x)
+    if isinstance(x, datetime) and x.tzinfo is not None:
+        return x.timestamp()
+    return unix_time(x)
 
 if typing.TYPE_CHECKING:
     from .models import FakeModelCard, FakePipeline, FakePipelineExecution
@@ -93,12 +102,7 @@ def filter_model_cards(
         filtered_versions = versions
 
         if creation_time_after:
-            if isinstance(creation_time_after, datetime) and creation_time_after.tzinfo is not None:
-                after = creation_time_after.timestamp()
-            elif isinstance(creation_time_after, (int, float)):
-                after = float(creation_time_after)
-            else:
-                after = unix_time(creation_time_after)
+            after = _to_epoch(creation_time_after)
             filtered_versions = [
                 v
                 for v in filtered_versions
@@ -106,12 +110,7 @@ def filter_model_cards(
             ]
 
         if creation_time_before:
-            if isinstance(creation_time_before, datetime) and creation_time_before.tzinfo is not None:
-                before = creation_time_before.timestamp()
-            elif isinstance(creation_time_before, (int, float)):
-                before = float(creation_time_before)
-            else:
-                before = unix_time(creation_time_before)
+            before = _to_epoch(creation_time_before)
             filtered_versions = [
                 v
                 for v in filtered_versions

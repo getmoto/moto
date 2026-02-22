@@ -5,7 +5,7 @@ import re
 import string
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional, Union, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -32,15 +32,7 @@ from .utils import (
     load_pipeline_definition_from_s3,
     validate_model_approval_status,
 )
-
-
-def _to_epoch(x: Any) -> float:
-    """Convert a timestamp value to epoch seconds for comparison."""
-    if isinstance(x, (int, float)):
-        return float(x)
-    if isinstance(x, datetime) and x.tzinfo is not None:
-        return x.timestamp()
-    return unix_time(x)
+from .utils import _to_epoch
 
 
 PAGINATION_MODEL = {
