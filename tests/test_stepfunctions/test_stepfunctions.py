@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.stepfunctions.models import stepfunctions_backends
 from tests.test_stepfunctions.parser import sfn_role_policy
 
 region = "us-east-1"
@@ -31,10 +32,15 @@ def test_state_machine_creation_succeeds():
         name=name, definition=str(simple_definition), roleArn=_get_default_role()
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # boto3 converts epoch seconds back to datetime objects
     assert isinstance(response["creationDate"], datetime)
     assert response["stateMachineArn"] == (
         "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:" + name
     )
+    # Verify internal model stores timestamps as epoch seconds (float)
+    sm = stepfunctions_backends[ACCOUNT_ID][region].state_machines[0]
+    assert isinstance(sm.creation_date, (int, float))
+    assert isinstance(sm.update_date, (int, float))
 
 
 @mock_aws

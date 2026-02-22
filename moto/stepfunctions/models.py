@@ -1,13 +1,13 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from re import Pattern
 from typing import Any, Optional
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -41,7 +41,7 @@ class StateMachineInstance:
         loggingConfiguration: Optional[dict[str, Any]] = None,
         tracingConfiguration: Optional[dict[str, Any]] = None,
     ):
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = unix_time()
         self.update_date = self.creation_date
         self.arn = arn
         self.name = name
@@ -181,7 +181,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
-        self.update_date = iso_8601_datetime_with_milliseconds()
+        self.update_date = unix_time()
 
     @property
     def physical_resource_id(self) -> str:
@@ -327,7 +327,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = datetime.now()
+        self.start_date = unix_time()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -335,7 +335,7 @@ class Execution:
             if settings.get_sf_execution_history_type() == "SUCCESS"
             else "FAILED"
         )
-        self.stop_date: Optional[datetime] = None
+        self.stop_date: Optional[float] = None
         self.account_id = account_id
         self.region_name = region_name
         self.output: Optional[str] = None
@@ -345,13 +345,10 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
-        tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 0)),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -362,9 +359,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 10)),
                     "type": "PassStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -375,9 +370,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 10)),
                     "type": "PassStateExited",
                     "id": 3,
                     "previousEventId": 2,
@@ -388,9 +381,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 20)),
                     "type": "ExecutionSucceeded",
                     "id": 4,
                     "previousEventId": 3,
@@ -403,9 +394,7 @@ class Execution:
         elif sf_execution_history_type == "FAILURE":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 0)),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -416,9 +405,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 10)),
                     "type": "FailStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -429,9 +416,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": unix_time(datetime(2020, 1, 1, 0, 0, 10)),
                     "type": "ExecutionFailed",
                     "id": 3,
                     "previousEventId": 2,
@@ -445,7 +430,7 @@ class Execution:
 
     def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
-        self.stop_date = datetime.now()
+        self.stop_date = unix_time()
 
 
 class Activity:
@@ -459,7 +444,7 @@ class Activity:
         self.name = name
         self.encryption_configuration = encryption_configuration
 
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = unix_time()
         self.update_date = self.creation_date
 
 

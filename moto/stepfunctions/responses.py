@@ -3,8 +3,6 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import default_user_config
 from moto.core.responses import BaseResponse
-from moto.core.utils import iso_8601_datetime_with_milliseconds
-
 from .exceptions import ValidationException
 from .models import StepFunctionBackend, stepfunctions_backends
 from .parser.api import ExecutionStatus
@@ -165,7 +163,7 @@ class StepFunctionResponse(BaseResponse):
         )
         response = {
             "executionArn": execution.execution_arn,
-            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+            "startDate": execution.start_date,
         }
         return 200, {}, json.dumps(response)
 
@@ -186,7 +184,7 @@ class StepFunctionResponse(BaseResponse):
             result = {
                 "executionArn": execution.execution_arn,
                 "name": execution.name,
-                "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+                "startDate": execution.start_date,
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
@@ -195,9 +193,7 @@ class StepFunctionResponse(BaseResponse):
                 ExecutionStatus.FAILED,
                 ExecutionStatus.ABORTED,
             ]:
-                result["stopDate"] = iso_8601_datetime_with_milliseconds(
-                    execution.stop_date
-                )
+                result["stopDate"] = execution.stop_date
             executions.append(result)
         response = {"executions": executions, "nextToken": next_token}
         return 200, {}, json.dumps(response)
@@ -209,7 +205,7 @@ class StepFunctionResponse(BaseResponse):
             "executionArn": arn,
             "input": execution.execution_input,
             "name": execution.name,
-            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+            "startDate": execution.start_date,
             "stateMachineArn": execution.state_machine_arn,
             "status": execution.status,
         }
@@ -218,9 +214,7 @@ class StepFunctionResponse(BaseResponse):
             ExecutionStatus.ABORTED,
             ExecutionStatus.FAILED,
         ]:
-            response["stopDate"] = iso_8601_datetime_with_milliseconds(
-                execution.stop_date
-            )
+            response["stopDate"] = execution.stop_date
         if execution.status in [
             ExecutionStatus.SUCCEEDED,
             ExecutionStatus.SUCCEEDED.value,
@@ -245,7 +239,7 @@ class StepFunctionResponse(BaseResponse):
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.stop_execution(arn)
         response = {
-            "stopDate": iso_8601_datetime_with_milliseconds(execution.stop_date)
+            "stopDate": execution.stop_date
         }
         return 200, {}, json.dumps(response)
 
