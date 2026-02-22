@@ -266,7 +266,7 @@ class FakePipeline(BaseObject):
         now = unix_time()
         self.creation_time = now
         self.last_modified_time = now
-        self.last_execution_time: Optional[str] = None
+        self.last_execution_time: Optional[float] = None
 
         self.pipeline_status = "Active"
         fake_user_profile_name = "fake-user-profile-name"
