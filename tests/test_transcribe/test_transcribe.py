@@ -2,6 +2,8 @@ import boto3
 import pytest
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.transcribe.models import transcribe_backends
 
 
 @mock_aws
@@ -330,6 +332,10 @@ def test_run_transcription_job_minimal_params():
     assert "StartTime" not in transcription_job
     assert "CompletionTime" not in transcription_job
     assert "Transcript" not in transcription_job
+    # Verify internal model stores CreationTime as epoch seconds (float)
+    backend = transcribe_backends[ACCOUNT_ID][region_name]
+    job = backend.transcriptions[job_name]
+    assert isinstance(job.creation_time, (int, float))
 
     # QUEUED
     resp = client.get_transcription_job(TranscriptionJobName=job_name)
