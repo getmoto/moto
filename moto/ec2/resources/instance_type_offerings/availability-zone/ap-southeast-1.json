@@ -1996,6 +1996,34 @@
   "Location": "ap-southeast-1a"
  },
  {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
   "InstanceType": "m8i.12xlarge",
   "Location": "ap-southeast-1a"
  },
@@ -5160,6 +5188,34 @@
   "Location": "ap-southeast-1b"
  },
  {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "ap-southeast-1b"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
+  "Location": "ap-southeast-1b"
+ },
+ {
   "InstanceType": "m8i.12xlarge",
   "Location": "ap-southeast-1b"
  },
@@ -8133,6 +8189,34 @@
  },
  {
   "InstanceType": "m8g.xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "ap-southeast-1c"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
   "Location": "ap-southeast-1c"
  },
  {
