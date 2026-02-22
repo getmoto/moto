@@ -556,7 +556,7 @@ class Service(CloudFormationModel, BaseModel):
         except InvalidSubnetIdError as exc:
             subnet_id = exc.message.split("'")[1]
             raise InvalidParameterException(
-                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.error_type})"
+                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.code})"
             )
 
         try:
