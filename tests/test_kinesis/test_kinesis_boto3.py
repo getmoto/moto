@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.kinesis.models import kinesis_backends
 
 from .test_kinesis import get_stream_arn
 
@@ -134,7 +135,8 @@ def test_create_shard():
     assert desc["StreamStatus"] == "ACTIVE"
     assert desc["HasMoreShards"] is False
     assert desc["RetentionPeriodHours"] == 24
-    assert "StreamCreationTimestamp" in desc
+    stream = kinesis_backends[ACCOUNT_ID]["us-west-2"].streams["my-stream"]
+    assert isinstance(stream.creation_datetime, (int, float))
     assert desc["EnhancedMonitoring"] == [{"ShardLevelMetrics": []}]
     assert desc["EncryptionType"] == "NONE"
 
