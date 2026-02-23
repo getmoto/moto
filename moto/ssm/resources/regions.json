@@ -6169,15 +6169,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdeviceadvisor": {
                 "Value": "iotdeviceadvisor",
                 "endpoint": {
@@ -13185,15 +13176,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20241,15 +20223,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -25692,6 +25665,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "medialive": {
+                "Value": "medialive",
+                "endpoint": {
+                  "Value": "medialive.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediapackagev2": {
                 "Value": "mediapackagev2",
                 "endpoint": {
@@ -26740,6 +26722,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "identitystore": {
                 "Value": "identitystore",
                 "endpoint": {
@@ -27167,6 +27158,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33196,15 +33196,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -36756,15 +36747,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46897,15 +46879,6 @@
                 "Value": "iot-managed-integrations",
                 "endpoint": {
                   "Value": "api.iotmanagedintegrations.eu-west-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64526,15 +64499,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdeviceadvisor": {
                 "Value": "iotdeviceadvisor",
                 "endpoint": {
@@ -67658,15 +67622,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -70125,6 +70080,12 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-gov-east-1.amazonaws.com"
+                }
+              },
               "quicksight": {
                 "Value": "quicksight",
                 "endpoint": {
@@ -71949,6 +71910,12 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-gov-west-1.amazonaws.com"
+                }
               },
               "quicksight": {
                 "Value": "quicksight",
@@ -76140,15 +76107,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
