@@ -8900,6 +8900,34 @@
   "Location": "apse2-az3"
  },
  {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
+  "Location": "apse2-az3"
+ },
+ {
   "InstanceType": "m8i.12xlarge",
   "Location": "apse2-az3"
  },

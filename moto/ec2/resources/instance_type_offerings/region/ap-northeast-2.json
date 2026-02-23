@@ -1720,6 +1720,34 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "m8i.12xlarge",
   "Location": "ap-northeast-2"
  },
