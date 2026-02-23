@@ -846,8 +846,6 @@ class CognitoIdpUser(BaseModel):
         self.enabled = True
         self.attributes = attributes
         self.attribute_lookup = flatten_attrs(attributes)
-        self.create_date = utcnow()
-        self.last_modified_date = utcnow()
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False
@@ -859,6 +857,9 @@ class CognitoIdpUser(BaseModel):
         self.groups: set[CognitoIdpGroup] = set()
 
         self.update_attributes([{"Name": "sub", "Value": self.id}])
+        now = utcnow()
+        self.create_date = now
+        self.last_modified_date = now
 
     def _base_json(self) -> dict[str, Any]:
         return {

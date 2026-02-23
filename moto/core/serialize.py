@@ -130,9 +130,11 @@ class TimestampSerializer:
         return value.strftime(self.ISO8601_MICRO_ZEROED)
 
     @staticmethod
-    def _timestamp_unixtimestamp(value: datetime) -> float:
+    def _timestamp_unixtimestamp(value: datetime) -> Union[int, float]:
         base_timestamp = calendar.timegm(value.timetuple())
-        return base_timestamp + value.microsecond / 1_000_000.0
+        if value.microsecond:
+            return base_timestamp + value.microsecond / 1_000_000.0
+        return base_timestamp
 
     def _timestamp_rfc822(self, value: Union[datetime, float]) -> str:
         if isinstance(value, datetime):
