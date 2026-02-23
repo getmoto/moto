@@ -1894,7 +1894,7 @@ class AutoMLJob(BaseObject):
         self.role_arn = role_arn
         self.security_config = security_config
         self.auto_ml_job_objective = auto_ml_job_objective
-        self.auto_ml_problem_type_resolved_attributes: dict[str, Any] | None = None
+        self.auto_ml_problem_type_resolved_attributes: Optional[dict[str, Any]] = None
         if "ImageClassificationJobConfig" in self.auto_ml_problem_type_config:
             self.auto_ml_job_objective = (
                 {"MetricName": "Accuracy"}
