@@ -341,6 +341,56 @@ class BedrockAgentCoreControlResponse(BaseResponse):
             }
         )
 
+    def create_memory(self) -> ActionResult:
+        params = json.loads(self.body)
+        memory = self.backend.create_memory(
+            name=params["name"],
+            event_expiry_duration=params["eventExpiryDuration"],
+            description=params.get("description"),
+            encryption_key_arn=params.get("encryptionKeyArn"),
+            memory_execution_role_arn=params.get("memoryExecutionRoleArn"),
+            memory_strategies=params.get("memoryStrategies"),
+            tags=params.get("tags"),
+        )
+        result = memory.to_dict()
+        result["status"] = "CREATING"
+        return ActionResult({"memory": result})
+
+    def get_memory(self) -> ActionResult:
+        memory_id = self._get_path_param("memoryId")
+        memory = self.backend.get_memory(memory_id)
+        return ActionResult({"memory": memory.to_dict()})
+
+    def update_memory(self) -> ActionResult:
+        memory_id = self._get_path_param("memoryId")
+        params = json.loads(self.body)
+        memory = self.backend.update_memory(
+            memory_id=memory_id,
+            description=params.get("description"),
+            event_expiry_duration=params.get("eventExpiryDuration"),
+            memory_execution_role_arn=params.get("memoryExecutionRoleArn"),
+            memory_strategies=params.get("memoryStrategies"),
+        )
+        return ActionResult({"memory": memory.to_dict()})
+
+    def delete_memory(self) -> ActionResult:
+        memory_id = self._get_path_param("memoryId")
+        memory = self.backend.delete_memory(memory_id)
+        return ActionResult(
+            {
+                "memoryId": memory.memory_id,
+                "status": "DELETING",
+            }
+        )
+
+    def list_memories(self) -> ActionResult:
+        memories = self.backend.list_memories()
+        return ActionResult(
+            {
+                "memories": [m.to_summary() for m in memories],
+            }
+        )
+
     def tag_resource(self) -> ActionResult:
         resource_arn = unquote(self._get_path_param("resourceArn"))
         params = json.loads(self.body)
@@ -372,6 +422,9 @@ class BedrockAgentCoreControlResponse(BaseResponse):
             return parts[idx]
         elif name == "targetId":
             idx = parts.index("targets") + 1
+            return parts[idx]
+        elif name == "memoryId":
+            idx = parts.index("memories") + 1
             return parts[idx]
         elif name == "resourceArn":
             idx = parts.index("tags") + 1
