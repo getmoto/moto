@@ -388,6 +388,131 @@ class GatewayTarget(BaseModel, ManagedState):
         return result
 
 
+class Memory(BaseModel, ManagedState):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        name: str,
+        event_expiry_duration: int,
+        description: Optional[str],
+        encryption_key_arn: Optional[str],
+        memory_execution_role_arn: Optional[str],
+        memory_strategies: Optional[list[dict[str, Any]]],
+    ):
+        ManagedState.__init__(
+            self,
+            "bedrock-agentcore-control::memory",
+            transitions=[("CREATING", "ACTIVE")],
+        )
+        self.region_name = region_name
+        self.account_id = account_id
+        self.name = name
+        self.memory_id = (
+            f"m{mock_random.get_random_hex(9)}-{mock_random.get_random_hex(10)}"
+        )
+        self.memory_arn = f"arn:{get_partition(region_name)}:bedrock-agentcore:{region_name}:{account_id}:memory/{self.memory_id}"
+        self.event_expiry_duration = event_expiry_duration
+        self.description = description or ""
+        self.encryption_key_arn = encryption_key_arn
+        self.memory_execution_role_arn = memory_execution_role_arn
+        self.strategies: list[dict[str, Any]] = []
+        if memory_strategies:
+            for strategy_input in memory_strategies:
+                self._add_strategy(strategy_input)
+        now = utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+    def _add_strategy(self, strategy_input: dict[str, Any]) -> None:
+        strategy_id = (
+            f"s{mock_random.get_random_hex(9)}-{mock_random.get_random_hex(10)}"
+        )
+        strategy_type_key = next(iter(strategy_input))
+        strategy_data = strategy_input[strategy_type_key]
+        type_map = {
+            "semanticMemoryStrategy": "SEMANTIC",
+            "summaryMemoryStrategy": "SUMMARIZATION",
+            "userPreferenceMemoryStrategy": "USER_PREFERENCE",
+            "customMemoryStrategy": "CUSTOM",
+            "episodicMemoryStrategy": "EPISODIC",
+        }
+        now = utcnow()
+        self.strategies.append(
+            {
+                "strategyId": strategy_id,
+                "name": strategy_data.get("name", ""),
+                "description": strategy_data.get("description", ""),
+                "type": type_map.get(strategy_type_key, "CUSTOM"),
+                "namespaces": strategy_data.get("namespaces", []),
+                "status": "ACTIVE",
+                "createdAt": now,
+                "updatedAt": now,
+            }
+        )
+
+    def update(
+        self,
+        description: Optional[str],
+        event_expiry_duration: Optional[int],
+        memory_execution_role_arn: Optional[str],
+        memory_strategies: Optional[dict[str, Any]],
+    ) -> None:
+        if description is not None:
+            self.description = description
+        if event_expiry_duration is not None:
+            self.event_expiry_duration = event_expiry_duration
+        if memory_execution_role_arn is not None:
+            self.memory_execution_role_arn = memory_execution_role_arn
+        if memory_strategies:
+            for strategy_input in memory_strategies.get("addMemoryStrategies", []):
+                self._add_strategy(strategy_input)
+            for modify in memory_strategies.get("modifyMemoryStrategies", []):
+                sid = modify["memoryStrategyId"]
+                for s in self.strategies:
+                    if s["strategyId"] == sid:
+                        if "description" in modify:
+                            s["description"] = modify["description"]
+                        if "namespaces" in modify:
+                            s["namespaces"] = modify["namespaces"]
+                        s["updatedAt"] = utcnow()
+                        break
+            for delete in memory_strategies.get("deleteMemoryStrategies", []):
+                sid = delete["memoryStrategyId"]
+                self.strategies = [s for s in self.strategies if s["strategyId"] != sid]
+        self.updated_at = utcnow()
+        self.status = "ACTIVE"
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "arn": self.memory_arn,
+            "id": self.memory_id,
+            "name": self.name,
+            "eventExpiryDuration": self.event_expiry_duration,
+            "status": self.status,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+        }
+        if self.description:
+            result["description"] = self.description
+        if self.encryption_key_arn:
+            result["encryptionKeyArn"] = self.encryption_key_arn
+        if self.memory_execution_role_arn:
+            result["memoryExecutionRoleArn"] = self.memory_execution_role_arn
+        if self.strategies:
+            result["strategies"] = self.strategies
+        return result
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "arn": self.memory_arn,
+            "id": self.memory_id,
+            "status": self.status,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+        }
+
+
 class BedrockAgentCoreControlBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -398,6 +523,7 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         )
         self.gateways: dict[str, Gateway] = OrderedDict()
         self.gateway_targets: dict[tuple[str, str], GatewayTarget] = OrderedDict()
+        self.memories: dict[str, Memory] = OrderedDict()
         self.tagger = TaggingService()
 
     def _get_runtime(self, agent_runtime_id: str) -> AgentRuntime:
@@ -742,6 +868,71 @@ class BedrockAgentCoreControlBackend(BaseBackend):
             for (gid, _), t in self.gateway_targets.items()
             if gid == gateway.gateway_id
         ]
+
+    def _get_memory(self, memory_id: str) -> Memory:
+        if memory_id not in self.memories:
+            raise ResourceNotFoundException(
+                f"Could not find Memory with ID {memory_id}"
+            )
+        return self.memories[memory_id]
+
+    def create_memory(
+        self,
+        name: str,
+        event_expiry_duration: int,
+        description: Optional[str],
+        encryption_key_arn: Optional[str],
+        memory_execution_role_arn: Optional[str],
+        memory_strategies: Optional[list[dict[str, Any]]],
+        tags: Optional[dict[str, str]],
+    ) -> Memory:
+        memory = Memory(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            name=name,
+            event_expiry_duration=event_expiry_duration,
+            description=description,
+            encryption_key_arn=encryption_key_arn,
+            memory_execution_role_arn=memory_execution_role_arn,
+            memory_strategies=memory_strategies,
+        )
+        self.memories[memory.memory_id] = memory
+        if tags:
+            self.tagger.tag_resource(
+                memory.memory_arn,
+                [{"Key": k, "Value": v} for k, v in tags.items()],
+            )
+        return memory
+
+    def get_memory(self, memory_id: str) -> Memory:
+        memory = self._get_memory(memory_id)
+        memory.advance()
+        return memory
+
+    def update_memory(
+        self,
+        memory_id: str,
+        description: Optional[str],
+        event_expiry_duration: Optional[int],
+        memory_execution_role_arn: Optional[str],
+        memory_strategies: Optional[dict[str, Any]],
+    ) -> Memory:
+        memory = self._get_memory(memory_id)
+        memory.update(
+            description=description,
+            event_expiry_duration=event_expiry_duration,
+            memory_execution_role_arn=memory_execution_role_arn,
+            memory_strategies=memory_strategies,
+        )
+        return memory
+
+    def delete_memory(self, memory_id: str) -> Memory:
+        memory = self._get_memory(memory_id)
+        self.memories.pop(memory_id)
+        return memory
+
+    def list_memories(self) -> list[Memory]:
+        return list(self.memories.values())
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(

@@ -833,3 +833,120 @@ def test_delete_gateway_removes_targets():
     with pytest.raises(ClientError) as exc:
         client.get_gateway(gatewayIdentifier=gateway_id)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_create_memory():
+    client = _create_client()
+    resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        description="Test memory",
+    )
+    memory = resp["memory"]
+    assert memory["id"] is not None
+    assert memory["name"] == "my_memory"
+    assert memory["eventExpiryDuration"] == 30
+    assert memory["status"] == "CREATING"
+    assert "arn" in memory
+    assert "createdAt" in memory
+
+
+@mock_aws
+def test_create_memory_with_strategies():
+    client = _create_client()
+    resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        memoryStrategies=[
+            {"semanticMemoryStrategy": {"name": "semantic_strat"}},
+            {"summaryMemoryStrategy": {"name": "summary_strat"}},
+        ],
+    )
+    memory = resp["memory"]
+    assert len(memory["strategies"]) == 2
+    types = {s["type"] for s in memory["strategies"]}
+    assert types == {"SEMANTIC", "SUMMARIZATION"}
+
+
+@mock_aws
+def test_get_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        description="Test memory",
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    get_resp = client.get_memory(memoryId=memory_id)
+    memory = get_resp["memory"]
+    assert memory["id"] == memory_id
+    assert memory["name"] == "my_memory"
+    assert memory["description"] == "Test memory"
+    assert memory["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_memory_not_found():
+    client = _create_client()
+    with pytest.raises(ClientError) as exc:
+        client.get_memory(memoryId="mnonexist00-abcdef0123")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_update_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    update_resp = client.update_memory(
+        memoryId=memory_id,
+        description="Updated memory",
+        eventExpiryDuration=60,
+    )
+    memory = update_resp["memory"]
+    assert memory["description"] == "Updated memory"
+    assert memory["eventExpiryDuration"] == 60
+
+
+@mock_aws
+def test_delete_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    del_resp = client.delete_memory(memoryId=memory_id)
+    assert del_resp["status"] == "DELETING"
+    assert del_resp["memoryId"] == memory_id
+
+    with pytest.raises(ClientError) as exc:
+        client.get_memory(memoryId=memory_id)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_memories():
+    client = _create_client()
+
+    resp = client.list_memories()
+    assert resp["memories"] == []
+
+    client.create_memory(
+        name="memory_one",
+        eventExpiryDuration=30,
+    )
+    client.create_memory(
+        name="memory_two",
+        eventExpiryDuration=60,
+    )
+
+    resp = client.list_memories()
+    assert len(resp["memories"]) == 2
