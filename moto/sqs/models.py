@@ -326,7 +326,7 @@ class Queue(CloudFormationModel):
 
         integer_fields = (
             "DelaySeconds",
-            "KmsDataKeyreusePeriodSeconds",
+            "KmsDataKeyReusePeriodSeconds",
             "MaximumMessageSize",
             "MessageRetentionPeriod",
             "ReceiveMessageWaitTimeSeconds",
