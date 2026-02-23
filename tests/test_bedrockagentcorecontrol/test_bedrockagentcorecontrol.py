@@ -265,6 +265,7 @@ def test_get_agent_runtime_endpoint():
     )
     assert get_resp["name"] == "my_endpoint"
     assert get_resp["status"] == "READY"  # ManagedState advances
+    assert get_resp["description"] == "Test endpoint"
     assert "id" in get_resp
     assert "agentRuntimeEndpointArn" in get_resp
 
@@ -425,3 +426,77 @@ def test_delete_agent_runtime_removes_endpoints():
     with pytest.raises(ClientError) as exc:
         client.get_agent_runtime(agentRuntimeId=runtime_id)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_create_agent_runtime_with_optional_fields():
+    client = _create_client()
+    protocol_config = {"serverProtocol": "HTTP_2"}
+    env_vars = {"VAR1": "value1", "VAR2": "value2"}
+    auth_config = {
+        "customJWTAuthorizer": {
+            "discoveryUrl": "https://example.com/.well-known/jwks.json"
+        }
+    }
+    header_config = {"requestHeaderAllowlist": ["Authorization", "X-Custom-Header"]}
+
+    create_resp = client.create_agent_runtime(
+        agentRuntimeName="my_runtime",
+        agentRuntimeArtifact=RUNTIME_ARTIFACT,
+        roleArn=ROLE_ARN,
+        networkConfiguration=NETWORK_CONFIG,
+        protocolConfiguration=protocol_config,
+        environmentVariables=env_vars,
+        authorizerConfiguration=auth_config,
+        requestHeaderConfiguration=header_config,
+    )
+    runtime_id = create_resp["agentRuntimeId"]
+
+    get_resp = client.get_agent_runtime(agentRuntimeId=runtime_id)
+    assert get_resp["protocolConfiguration"] == protocol_config
+    assert get_resp["environmentVariables"] == env_vars
+    assert get_resp["authorizerConfiguration"] == auth_config
+    assert get_resp["requestHeaderConfiguration"] == header_config
+
+
+@mock_aws
+def test_update_agent_runtime_with_optional_fields():
+    client = _create_client()
+    create_resp = client.create_agent_runtime(
+        agentRuntimeName="my_runtime",
+        agentRuntimeArtifact=RUNTIME_ARTIFACT,
+        roleArn=ROLE_ARN,
+        networkConfiguration=NETWORK_CONFIG,
+    )
+    runtime_id = create_resp["agentRuntimeId"]
+
+    protocol_config = {"serverProtocol": "HTTP_2"}
+    env_vars = {"ENV1": "val1"}
+    auth_config = {
+        "customJWTAuthorizer": {
+            "discoveryUrl": "https://example.com/.well-known/jwks.json"
+        }
+    }
+    header_config = {"requestHeaderAllowlist": ["X-API-Key"]}
+    lifecycle_config = {"idleRuntimeSessionTimeout": 1800}
+
+    client.update_agent_runtime(
+        agentRuntimeId=runtime_id,
+        agentRuntimeArtifact=RUNTIME_ARTIFACT,
+        roleArn=ROLE_ARN,
+        networkConfiguration=NETWORK_CONFIG,
+        description="Updated with all fields",
+        protocolConfiguration=protocol_config,
+        environmentVariables=env_vars,
+        authorizerConfiguration=auth_config,
+        requestHeaderConfiguration=header_config,
+        lifecycleConfiguration=lifecycle_config,
+    )
+
+    get_resp = client.get_agent_runtime(agentRuntimeId=runtime_id)
+    assert get_resp["description"] == "Updated with all fields"
+    assert get_resp["protocolConfiguration"] == protocol_config
+    assert get_resp["environmentVariables"] == env_vars
+    assert get_resp["authorizerConfiguration"] == auth_config
+    assert get_resp["requestHeaderConfiguration"] == header_config
+    assert get_resp["lifecycleConfiguration"] == lifecycle_config
