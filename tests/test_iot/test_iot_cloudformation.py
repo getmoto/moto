@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import boto3
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 TEST_REGION = "us-west-1"
 
@@ -752,7 +752,10 @@ def test_create_job_template_with_simple_cloudformation():
     assert job_template["description"] == "Job template Description"
     assert job_template["document"] == '{"field": "value"}'
     assert job_template["documentSource"] == "a document source link"
-    assert job_template["createdAt"] == datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
+    if not settings.TEST_SERVER_MODE:
+        assert job_template["createdAt"] == datetime(
+            2024, 1, 1, 0, 0, tzinfo=timezone.utc
+        )
     assert job_template["presignedUrlConfig"] == {
         "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
         "expiresInSec": 123,

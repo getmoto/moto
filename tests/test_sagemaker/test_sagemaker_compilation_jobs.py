@@ -3,9 +3,10 @@
 import datetime
 
 import boto3
+import pytest
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -437,6 +438,9 @@ def test_list_compilation_jobs_filters():
     assert resp["CompilationJobSummaries"][1]["CompilationJobStatus"] == "COMPLETED"
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_list_compilation_jobs_time_filters():
     """Verify that LastModifiedTimeAfter/Before filters actually exclude jobs."""

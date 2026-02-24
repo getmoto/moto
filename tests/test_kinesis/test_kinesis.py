@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -406,6 +406,9 @@ def test_get_records_latest():
     assert resp["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_at_timestamp():
     # AT_TIMESTAMP - Read the first record at or after the specified timestamp
@@ -475,6 +478,9 @@ def test_get_records_at_very_old_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_timestamp_filtering():
     conn = boto3.client("kinesis", region_name="us-west-2")
@@ -506,6 +512,9 @@ def test_get_records_timestamp_filtering():
     assert response["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_millis_behind_latest():
     conn = boto3.client("kinesis", region_name="us-west-2")

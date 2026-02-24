@@ -561,7 +561,8 @@ def test_create_partition():
     assert partition["TableName"] == table_name
     assert partition["StorageDescriptor"] == part_input["StorageDescriptor"]
     assert partition["Values"] == values
-    assert partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
+    if not settings.TEST_SERVER_MODE:
+        assert partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
 
 
 @mock_aws
@@ -635,7 +636,10 @@ def test_batch_create_partition():
         assert partition["TableName"] == table_name
         assert partition["StorageDescriptor"] == partition_input["StorageDescriptor"]
         assert partition["Values"] == partition_input["Values"]
-        assert partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
+        if not settings.TEST_SERVER_MODE:
+            assert (
+                partition["CreationTime"].timestamp() == FROZEN_CREATE_TIME.timestamp()
+            )
 
 
 @mock_aws
