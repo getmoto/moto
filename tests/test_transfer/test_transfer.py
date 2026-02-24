@@ -286,8 +286,8 @@ def test_list_servers(client, server):
 
 
 def test_list_servers_multiple(client):
-    server1 = client.create_server(Domain="S3")
-    server2 = client.create_server(Domain="EFS")
+    client.create_server(Domain="S3")
+    client.create_server(Domain="EFS")
 
     response = client.list_servers()
     assert len(response["Servers"]) == 2
