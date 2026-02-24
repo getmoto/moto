@@ -48,7 +48,12 @@ def dynamo_to_dict(obj: Any) -> Any:
                 return {"B": obj.value}
             return {"B": base64.b64decode(obj.value)}
         if obj.type == "BS":
-            return {"BS": [v if isinstance(v, bytes) else base64.b64decode(v) for v in obj.value]}
+            return {
+                "BS": [
+                    v if isinstance(v, bytes) else base64.b64decode(v)
+                    for v in obj.value
+                ]
+            }
         return {obj.type: dynamo_to_dict(obj.value)}
     if hasattr(obj, "to_json"):
         return dynamo_to_dict(obj.to_json())
