@@ -45,6 +45,8 @@ class TransferBackend(BaseBackend):
         s3_storage_options: Optional[dict[str, Optional[str]]],
     ) -> str:
         server = Server(
+            region_name=self.region_name,
+            account_id=self.account_id,
             certificate=certificate,
             domain=domain,
             endpoint_type=endpoint_type,
@@ -143,6 +145,9 @@ class TransferBackend(BaseBackend):
         if server_id not in self.servers:
             ServerNotFound(server_id=server_id)
         user = User(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            server_id=server_id,
             home_directory=home_directory,
             home_directory_type=home_directory_type,
             policy=policy,
@@ -237,6 +242,10 @@ class TransferBackend(BaseBackend):
                     ssh_public_key_id=ssh_public_key_id,
                 )
         raise UserNotFound(user_name=user_name, server_id=server_id)
+
+    # TODO: implement pagination
+    def list_servers(self) -> list[Server]:
+        return list(self.servers.values())
 
 
 transfer_backends = BackendDict(TransferBackend, "transfer")
