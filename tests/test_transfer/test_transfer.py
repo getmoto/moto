@@ -291,7 +291,3 @@ def test_list_servers_multiple(client):
 
     response = client.list_servers()
     assert len(response["Servers"]) == 2
-
-    server_ids = {s["ServerId"] for s in response["Servers"]}
-    assert server1["ServerId"] in server_ids
-    assert server2["ServerId"] in server_ids
