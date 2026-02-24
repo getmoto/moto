@@ -247,3 +247,55 @@ def test_import_and_delete_ssh_public_key(client, server):
     )
     connection = client.describe_user(UserName=user_name, ServerId=server_id)
     assert connection["User"]["SshPublicKeys"][-1]["SshPublicKeyBody"] == "ED25519"
+
+
+@mock_aws
+def test_create_multiple_servers():
+    """Test that creating multiple servers results in unique entries."""
+    client = boto3.client("transfer", region_name="us-east-1")
+
+    client.create_server()
+    client.create_server()
+
+    response = client.list_servers()
+    assert len(response["Servers"]) == 2
+
+
+@mock_aws
+def test_list_servers_empty(client):
+    response = client.list_servers()
+    assert response["Servers"] == []
+
+
+@mock_aws
+def test_list_servers(client, server):
+    server_id = server["ServerId"]
+    response = client.list_servers()
+
+    assert len(response["Servers"]) == 1
+    listed_server = response["Servers"][0]
+
+    assert listed_server["ServerId"] == server_id
+    assert listed_server["Domain"] == "S3"
+    assert listed_server["EndpointType"] == "VPC"
+    assert listed_server["IdentityProviderType"] == "AWS_DIRECTORY_SERVICE"
+    assert listed_server["LoggingRole"] == "mock_logging_role"
+    assert listed_server["State"] == "ONLINE"
+    assert listed_server["UserCount"] == 0
+    assert "Arn" in listed_server
+
+
+@mock_aws
+def test_list_servers_multiple():
+    """Test listing multiple servers."""
+    client = boto3.client("transfer", region_name="us-east-1")
+
+    server1 = client.create_server(Domain="S3")
+    server2 = client.create_server(Domain="EFS")
+
+    response = client.list_servers()
+    assert len(response["Servers"]) == 2
+
+    server_ids = {s["ServerId"] for s in response["Servers"]}
+    assert server1["ServerId"] in server_ids
+    assert server2["ServerId"] in server_ids
