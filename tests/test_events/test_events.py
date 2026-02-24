@@ -308,6 +308,39 @@ def test_list_rule_names_by_target_using_limit():
 
 
 @mock_aws
+def test_list_rule_names_by_target_with_duplicate_target_arn():
+    """Test that list_rule_names_by_target returns each rule name only once,
+    even when a rule has multiple targets with the same ARN.
+    
+    Regression test for: https://github.com/getmoto/moto/issues/9761
+    """
+    client = boto3.client("events", "us-west-2")
+    rule_name = "test-duplicate-target-rule"
+    target_arn = "arn:aws:lambda:us-west-2:111111111111:function:test-function"
+    
+    # Create a rule
+    client.put_rule(Name=rule_name, ScheduleExpression="rate(5 minutes)")
+    
+    # Add multiple targets with the same ARN but different IDs
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {"Id": "target-1", "Arn": target_arn},
+            {"Id": "target-2", "Arn": target_arn},
+            {"Id": "target-3", "Arn": target_arn},
+        ],
+    )
+    
+    # Query by target ARN - should return the rule name only once
+    response = client.list_rule_names_by_target(TargetArn=target_arn)
+    
+    assert len(response["RuleNames"]) == 1, (
+        f"Expected 1 rule name, got {len(response['RuleNames'])}: {response['RuleNames']}"
+    )
+    assert response["RuleNames"][0] == rule_name
+
+
+@mock_aws
 def test_delete_rule():
     client = generate_environment(add_targets=False)
 
