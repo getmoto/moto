@@ -68,6 +68,8 @@ class Fleets(EC2BaseResponse):
 
         tag_specifications = self._get_param("TagSpecifications", [])
 
+        self.error_on_dryrun()
+
         request = self.ec2_backend.create_fleet(
             on_demand_options=on_demand_options,
             spot_options=spot_options,

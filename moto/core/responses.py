@@ -15,7 +15,7 @@ from typing import (
     Union,
     cast,
 )
-from urllib.parse import parse_qs, parse_qsl, urlparse
+from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
 from xml.dom.minidom import parseString as parseXML
 
 import boto3
@@ -659,7 +659,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # try to get path parameter
         if self.uri_match:
             try:
-                return self.uri_match.group(param_name)
+                val = self.uri_match.group(param_name)
+                return unquote(val)
             except IndexError:
                 # do nothing if param is not found
                 pass
