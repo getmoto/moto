@@ -2,10 +2,12 @@ from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
+from tests.test_ec2.helpers import assert_dryrun_error
 
 from . import ec2_aws_verified
 
@@ -66,6 +68,52 @@ def test_launch_template_is_created_properly(ec2_client=None):
         template = ctxt.ec2.describe_launch_templates()["LaunchTemplates"][0]
         assert template["DefaultVersionNumber"] == 1
         assert template["LatestVersionNumber"] == 1
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_create_fleet_dryrun(ec2_client=None):
+    with launch_template_context() as ctxt:
+        # Attempting to create a fleet with DryRun=True should raise an error
+        with pytest.raises(ClientError) as ex:
+            fleets_before = len(ctxt.ec2.describe_fleets()["Fleets"])
+            reservations_before = len(ctxt.ec2.describe_instances()["Reservations"])
+
+            ctxt.ec2.create_fleet(
+                DryRun=True,
+                ExcessCapacityTerminationPolicy="terminate",
+                LaunchTemplateConfigs=[
+                    {
+                        "LaunchTemplateSpecification": {
+                            "LaunchTemplateId": ctxt.lt_id,
+                            "Version": "1",
+                        },
+                    },
+                ],
+                TargetCapacitySpecification={
+                    "DefaultTargetCapacityType": "spot",
+                    "OnDemandTargetCapacity": 0,
+                    "SpotTargetCapacity": 1,
+                    "TotalTargetCapacity": 1,
+                },
+                SpotOptions={
+                    "AllocationStrategy": "lowest-price",
+                },
+                Type="maintain",
+                ValidFrom="2020-01-01T00:00:00Z",
+                ValidUntil="2020-12-31T00:00:00Z",
+            )
+
+        # Verify the error is the expected DryRun error
+        assert_dryrun_error(ex)
+
+        # Verify no fleets were created
+        fleets_res = ctxt.ec2.describe_fleets()
+        assert len(fleets_res["Fleets"]) == fleets_before
+
+        # Verify no instances were created
+        instances_res = ctxt.ec2.describe_instances()
+        assert len(instances_res["Reservations"]) == reservations_before
 
 
 @mock_aws
