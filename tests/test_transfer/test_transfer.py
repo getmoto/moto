@@ -285,11 +285,7 @@ def test_list_servers(client, server):
     assert "Arn" in listed_server
 
 
-@mock_aws
-def test_list_servers_multiple():
-    """Test listing multiple servers."""
-    client = boto3.client("transfer", region_name="us-east-1")
-
+def test_list_servers_multiple(client):
     server1 = client.create_server(Domain="S3")
     server2 = client.create_server(Domain="EFS")
 
