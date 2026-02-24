@@ -330,10 +330,10 @@ def test_list_rule_names_by_target_with_duplicate_target_arn():
             {"Id": "target-3", "Arn": target_arn},
         ],
     )
-    
+
     # Query by target ARN - should return the rule name only once
     response = client.list_rule_names_by_target(TargetArn=target_arn)
-    
+
     assert len(response["RuleNames"]) == 1, (
         f"Expected 1 rule name, got {len(response['RuleNames'])}: {response['RuleNames']}"
     )
