@@ -32,6 +32,7 @@ from .exceptions import (
 from .utils import (
     PAGINATION_MODEL,
     check_secret_hash,
+    cognito_totp,
     expand_attrs,
     flatten_attrs,
     generate_id,
@@ -2187,16 +2188,22 @@ class CognitoIdpBackend(BaseBackend):
 
         raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
+    def verify_software_token(
+        self, access_token: str, session: str, user_code: str
+    ) -> dict[str, str]:
         """
         The parameter UserCode has not yet been implemented
         """
+        totp = cognito_totp("asdfasdfasdf")
         if session:
             if session not in self.sessions:
                 raise ResourceNotFoundError(session)
 
             username, user_pool = self.sessions[session]
             user = self.admin_get_user(user_pool.id, username)
+
+            totp.verify(user_code.encode("utf-8"), int(time.time()))
+
             user.token_verified = True
 
             session = str(random.uuid4())
@@ -2207,6 +2214,8 @@ class CognitoIdpBackend(BaseBackend):
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
+
+                totp.verify(user_code.encode("utf-8"), int(time.time()))
 
                 user.token_verified = True
 
@@ -2453,9 +2462,11 @@ class RegionAgnosticBackend:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
         return backend.associate_software_token(access_token, session)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
+    def verify_software_token(
+        self, access_token: str, session: str, user_code: str
+    ) -> dict[str, str]:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
-        return backend.verify_software_token(access_token, session)
+        return backend.verify_software_token(access_token, session, user_code)
 
     def set_user_mfa_preference(
         self,

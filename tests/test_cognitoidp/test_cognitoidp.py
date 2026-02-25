@@ -5248,9 +5248,13 @@ def test_setting_mfa():
         result = authentication_flow(conn, auth_flow)
 
         # Set MFA method
-        conn.associate_software_token(AccessToken=result["access_token"])
+        resp = conn.associate_software_token(AccessToken=result["access_token"])
+        secret_code = resp["SecretCode"]
+        totp = pyotp.TOTP(secret_code)
+        user_code = totp.now()
+
         conn.verify_software_token(
-            AccessToken=result["access_token"], UserCode="123456"
+            AccessToken=result["access_token"], UserCode=user_code
         )
         conn.set_user_mfa_preference(
             AccessToken=result["access_token"],
@@ -5332,8 +5336,12 @@ def test_admin_setting_mfa_totp_and_sms():
     access_token = result["access_token"]
     user_pool_id = result["user_pool_id"]
     username = result["username"]
-    conn.associate_software_token(AccessToken=access_token)
-    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+    resp = conn.associate_software_token(AccessToken=access_token)
+    secret_code = resp["SecretCode"]
+    totp = pyotp.TOTP(secret_code)
+    user_code = totp.now()
+
+    conn.verify_software_token(AccessToken=access_token, UserCode=user_code)
 
     # Set MFA TOTP and SMS methods
     conn.admin_set_user_mfa_preference(
@@ -5368,8 +5376,11 @@ def test_admin_initiate_auth_when_token_totp_enabled():
     username = result["username"]
     client_id = result["client_id"]
     password = result["password"]
-    conn.associate_software_token(AccessToken=access_token)
-    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+    resp = conn.associate_software_token(AccessToken=access_token)
+    secret_code = resp["SecretCode"]
+    totp = pyotp.TOTP(secret_code)
+    user_code = totp.now()
+    conn.verify_software_token(AccessToken=access_token, UserCode=user_code)
 
     # Set MFA TOTP and SMS methods
     conn.admin_set_user_mfa_preference(
