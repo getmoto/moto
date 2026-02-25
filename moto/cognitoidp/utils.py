@@ -5,6 +5,9 @@ import re
 import string
 from typing import Any, Optional
 
+from cryptography.hazmat.primitives.hashes import SHA1
+from cryptography.hazmat.primitives.twofactor.totp import TOTP
+
 from moto.moto_api._internal import mock_random as random
 
 FORMATS = {
@@ -120,3 +123,19 @@ def _generate_id_hash(args: Any) -> str:
         hasher.update(str(arg).encode())
 
     return hasher.hexdigest()
+
+
+def cognito_totp(key: str) -> TOTP:
+    key_padded = key
+    # Pad the secret if required before converting it to bytes
+    padding = len(key) % 8
+    if padding != 0:
+        key_padded += "=" * (8 - padding)
+    # https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-mfa-totp.html
+    return TOTP(
+        key=base64.b32decode(key_padded, casefold=True),
+        length=6,
+        algorithm=SHA1(),
+        time_step=30,
+        enforce_key_length=False,
+    )
