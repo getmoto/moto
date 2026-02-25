@@ -336,6 +336,9 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
 )
 def test_set_attributes_integer_fields_conversion(attribute_name, attribute_value):
     """Test that integer fields are properly converted from strings to integers."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+
     client = boto3.client("sqs", region_name=REGION)
     queue_name = str(uuid4())[0:6]
 
