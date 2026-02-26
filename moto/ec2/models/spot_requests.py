@@ -67,6 +67,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         tags: dict[str, dict[str, str]],
         spot_fleet_id: Optional[str],
         instance_interruption_behaviour: Optional[str],
+        launch_spec: Optional["SpotFleetLaunchSpec"] = None,
     ):
         super().__init__()
         self.ec2_backend = ec2_backend
@@ -97,6 +98,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         )
         self.user_data = user_data  # NOT
         self.spot_fleet_id = spot_fleet_id
+        self.launch_spec = launch_spec  # Track which launch spec created this request
         tag_map = tags.get("spot-instances-request", {})
         self.add_tags(tag_map)
         self.all_tags = tags
@@ -174,6 +176,8 @@ class SpotFleetLaunchSpec:
         tag_specifications: dict[str, dict[str, str]],
         user_data: Any,
         weighted_capacity: float,
+        launch_template_spec: Optional[dict[str, Any]] = None,
+        overrides: Optional[dict[str, Any]] = None,
     ):
         self.ebs_optimized = ebs_optimized
         self.group_set = group_set
@@ -187,6 +191,8 @@ class SpotFleetLaunchSpec:
         self.tag_specifications = tag_specifications
         self.user_data = user_data
         self.weighted_capacity = float(weighted_capacity)
+        self.launch_template_spec = launch_template_spec
+        self.overrides = overrides
 
 
 class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
@@ -422,6 +428,7 @@ class SpotRequestBackend:
         tags: Optional[dict[str, dict[str, str]]] = None,
         spot_fleet_id: Optional[str] = None,
         instance_interruption_behaviour: Optional[str] = None,
+        launch_spec: Optional[SpotFleetLaunchSpec] = None,
     ) -> list[SpotInstanceRequest]:
         requests = []
         tags = tags or {}
@@ -449,6 +456,7 @@ class SpotRequestBackend:
                 tags,
                 spot_fleet_id,
                 instance_interruption_behaviour,
+                launch_spec,
             )
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)

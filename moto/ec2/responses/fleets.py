@@ -70,7 +70,7 @@ class Fleets(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        request = self.ec2_backend.create_fleet(
+        fleet = self.ec2_backend.create_fleet(
             on_demand_options=on_demand_options,
             spot_options=spot_options,
             target_capacity_specification=target_capacity_specification,
@@ -83,26 +83,7 @@ class Fleets(EC2BaseResponse):
             valid_until=valid_until,
             tag_specifications=tag_specifications,
         )
-        result = {"FleetId": request.id}
-        if request.fleet_type == "instant":
-            # On Demand and Spot Instances are stored as incompatible types on the backend,
-            # so we have to do some extra work here.
-            # TODO: This should be addressed on the backend.
-            on_demand_instances = [
-                {
-                    "Lifecycle": "on-demand",
-                    "InstanceIds": [instance["instance"].id],
-                    "InstanceType": instance["instance"].instance_type,
-                }
-                for instance in request.on_demand_instances
-            ]
-            spot_requests = [
-                {
-                    "Lifecycle": "spot",
-                    "InstanceIds": [instance.instance.id],
-                    "InstanceType": instance.instance.instance_type,
-                }
-                for instance in request.spot_requests
-            ]
-            result["Instances"] = on_demand_instances + spot_requests
+        result = {"FleetId": fleet.id}
+        if fleet.instances is not None:
+            result["Instances"] = fleet.instances
         return ActionResult(result)

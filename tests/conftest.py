@@ -1,8 +1,12 @@
+import logging
+
 import boto3
 import pytest
 
 from moto import mock_aws
 from moto.utilities.id_generator import ResourceIdentifier, moto_id_manager
+
+LOG = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="function")
@@ -33,3 +37,20 @@ def set_custom_id():
 
     for resource_identifier in set_ids:
         moto_id_manager.unset_custom_id(resource_identifier)
+
+
+@pytest.fixture
+def cleanups():
+    cleanup_fns = []
+
+    yield cleanup_fns
+
+    for cleanup_callback in cleanup_fns[::-1]:
+        try:
+            cleanup_callback()
+        except Exception as e:
+            LOG.warning(
+                "Failed to execute cleanup due to unexpected error: %s",
+                str(e),
+                exc_info=e,
+            )
