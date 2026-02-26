@@ -152,6 +152,7 @@ class SQSResponse(BaseResponse):
         system_message_attributes = self._get_param("MessageSystemAttributes")
         validate_message_attributes(system_message_attributes)
         queue_name = self._get_queue_name()
+        queue = self.sqs_backend.get_queue(queue_name)
         message = self.sqs_backend.send_message(
             queue_name,
             message,
@@ -167,11 +168,13 @@ class SQSResponse(BaseResponse):
         }
         if len(message.message_attributes) > 0:
             resp["MD5OfMessageAttributes"] = message.attribute_md5
+        if queue.fifo_queue and message.sequence_number:
+            resp["SequenceNumber"] = message.sequence_number
         return ActionResult(resp)
 
     def send_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        self.sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.get_queue(queue_name)
         entries = self._get_param("Entries", [])
         entries = {str(idx): entry for idx, entry in enumerate(entries)}
         for entry in entries.values():
@@ -209,6 +212,8 @@ class SQSResponse(BaseResponse):
             }
             if len(msg.message_attributes) > 0:
                 msg_dict["MD5OfMessageAttributes"] = msg.attribute_md5
+            if queue.fifo_queue:
+                msg_dict["SequenceNumber"] = msg.sequence_number
             resp["Successful"].append(msg_dict)
         return ActionResult(resp)
 
