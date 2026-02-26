@@ -1,6 +1,7 @@
 """Handles incoming osis requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -131,14 +132,14 @@ class OpenSearchIngestionResponse(BaseResponse):
         return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def get_resource_policy(self) -> str:
-        resource_arn = self._get_param("ResourceArn")
+        resource_arn = unquote(self._get_param("ResourceArn"))
         policy = self.osis_backend.get_resource_policy(
             resource_arn=resource_arn,
         )
         return json.dumps({"ResourceArn": resource_arn, "Policy": policy})
 
     def put_resource_policy(self) -> str:
-        resource_arn = self._get_param("ResourceArn")
+        resource_arn = unquote(self._get_param("ResourceArn"))
         policy = self._get_param("Policy")
         self.osis_backend.put_resource_policy(
             resource_arn=resource_arn,
@@ -147,7 +148,7 @@ class OpenSearchIngestionResponse(BaseResponse):
         return json.dumps({"ResourceArn": resource_arn, "Policy": policy})
 
     def delete_resource_policy(self) -> str:
-        resource_arn = self._get_param("ResourceArn")
+        resource_arn = unquote(self._get_param("ResourceArn"))
         self.osis_backend.delete_resource_policy(
             resource_arn=resource_arn,
         )
