@@ -1,5 +1,6 @@
 """OpenSearchIngestionBackend class with methods for supported APIs."""
 
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
@@ -18,8 +19,10 @@ from .exceptions import (
     PipelineAlreadyExistsException,
     PipelineInvalidStateException,
     PipelineNotFoundException,
+    ResourceNotFoundException,
     SecurityGroupNotFoundException,
     SubnetNotFoundException,
+    ValidationException,
 )
 
 if TYPE_CHECKING:
@@ -291,6 +294,7 @@ class OpenSearchIngestionBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._pipelines: dict[str, Pipeline] = {}
         self.tagger = TaggingService()
+        self.resource_policies: dict[str, str] = {}
 
     @property
     def ec2_backend(self) -> "EC2Backend":  # type: ignore[misc]
@@ -500,6 +504,26 @@ class OpenSearchIngestionBackend(BaseBackend):
 
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def get_resource_policy(self, resource_arn: str) -> str:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundException(resource_arn)
+        return self.resource_policies[resource_arn]
+
+    def put_resource_policy(self, resource_arn: str, policy: str) -> None:
+        pipeline_name = resource_arn.split("/")[-1]
+        if pipeline_name not in self.pipelines:
+            raise ResourceNotFoundException(resource_arn)
+        try:
+            json.loads(policy)
+        except ValueError:
+            raise ValidationException("Invalid policy")
+        self.resource_policies[resource_arn] = policy
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundException(resource_arn)
+        del self.resource_policies[resource_arn]
 
 
 osis_backends = BackendDict(OpenSearchIngestionBackend, "osis")
