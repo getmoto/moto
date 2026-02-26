@@ -15,11 +15,13 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import camelcase_to_underscores
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     Queue,
+    sqs_backends,
 )
 from moto.utilities.distutils_version import LooseVersion
 from tests import aws_verified
@@ -318,6 +320,64 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
         json.dumps({"deadLetterTargetArn": test_dlq_arn, "maxReceiveCount": 5})
     )
     assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "attribute_name,attribute_value",
+    [
+        ("DelaySeconds", "5"),
+        ("KmsDataKeyReusePeriodSeconds", "300"),
+        ("MaximumMessageSize", "262144"),
+        ("MessageRetentionPeriod", "345600"),
+        ("ReceiveMessageWaitTimeSeconds", "10"),
+        ("VisibilityTimeout", "30"),
+    ],
+)
+def test_set_attributes_integer_fields_conversion(attribute_name, attribute_value):
+    """Test that integer fields are properly converted from strings to integers."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+
+    client = boto3.client("sqs", region_name=REGION)
+    queue_name = str(uuid4())[0:6]
+
+    # KMS attributes require KmsMasterKeyId to be set
+    attributes = {attribute_name: attribute_value}
+    if attribute_name == "KmsDataKeyReusePeriodSeconds":
+        attributes["KmsMasterKeyId"] = "alias/MyKey"
+
+    q_resp = client.create_queue(QueueName=queue_name, Attributes=attributes)
+    queue_url = q_resp["QueueUrl"]
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == attribute_value
+
+    # Verify internal value is stored as integer
+    backend = sqs_backends[ACCOUNT_ID][REGION]
+    queue = backend.get_queue(queue_name)
+    internal_attr_name = camelcase_to_underscores(attribute_name)
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(attribute_value)
+
+    # Update attribute
+    new_value = str(int(attribute_value) + 1)
+    client.set_queue_attributes(
+        QueueUrl=queue_url, Attributes={attribute_name: new_value}
+    )
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == new_value
+
+    # Verify updated value is still integer internally
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(new_value)
 
 
 @mock_aws

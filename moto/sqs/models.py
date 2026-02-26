@@ -326,10 +326,10 @@ class Queue(CloudFormationModel):
 
         integer_fields = (
             "DelaySeconds",
-            "KmsDataKeyreusePeriodSeconds",
+            "KmsDataKeyReusePeriodSeconds",
             "MaximumMessageSize",
             "MessageRetentionPeriod",
-            "ReceiveMessageWaitTime",
+            "ReceiveMessageWaitTimeSeconds",
             "VisibilityTimeout",
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
