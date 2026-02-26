@@ -6,5 +6,5 @@ dispatch = SQSResponse().dispatch
 
 url_paths = {
     "{0}/$": dispatch,
-    r"{0}/(?P<account_id>\d+)/(?P<queue_name>[a-zA-Z0-9\-_\.]+)": dispatch,
+    r"{0}/(?P<account_id>\d+)/(?P<queue_name>[a-zA-Z0-9\-_\.]+)/?": dispatch,
 }
