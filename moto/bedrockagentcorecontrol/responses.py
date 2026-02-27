@@ -1,0 +1,249 @@
+"""BedrockAgentCoreControl responses."""
+
+import json
+from typing import Any
+from urllib.parse import parse_qs, unquote
+
+from moto.core.responses import ActionResult, BaseResponse
+
+from .models import BedrockAgentCoreControlBackend, bedrockagentcorecontrol_backends
+
+
+class BedrockAgentCoreControlResponse(BaseResponse):
+    def __init__(self) -> None:
+        super().__init__(service_name="bedrock-agentcore-control")
+
+    @property
+    def backend(self) -> BedrockAgentCoreControlBackend:
+        return bedrockagentcorecontrol_backends[self.current_account][self.region]
+
+    def create_agent_runtime(self) -> ActionResult:
+        params = json.loads(self.body)
+        runtime = self.backend.create_agent_runtime(
+            agent_runtime_name=params["agentRuntimeName"],
+            agent_runtime_artifact=params["agentRuntimeArtifact"],
+            role_arn=params["roleArn"],
+            network_configuration=params["networkConfiguration"],
+            description=params.get("description"),
+            authorizer_configuration=params.get("authorizerConfiguration"),
+            request_header_configuration=params.get("requestHeaderConfiguration"),
+            protocol_configuration=params.get("protocolConfiguration"),
+            lifecycle_configuration=params.get("lifecycleConfiguration"),
+            environment_variables=params.get("environmentVariables"),
+            tags=params.get("tags"),
+        )
+        return ActionResult(
+            {
+                "agentRuntimeArn": runtime.agent_runtime_arn,
+                "workloadIdentityDetails": runtime.workload_identity_details,
+                "agentRuntimeId": runtime.agent_runtime_id,
+                "agentRuntimeVersion": runtime.agent_runtime_version,
+                "createdAt": runtime.created_at,
+                "status": "CREATING",
+            }
+        )
+
+    def get_agent_runtime(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        runtime = self.backend.get_agent_runtime(agent_runtime_id)
+        result: dict[str, Any] = {
+            "agentRuntimeArn": runtime.agent_runtime_arn,
+            "agentRuntimeName": runtime.agent_runtime_name,
+            "agentRuntimeId": runtime.agent_runtime_id,
+            "agentRuntimeVersion": runtime.agent_runtime_version,
+            "createdAt": runtime.created_at,
+            "lastUpdatedAt": runtime.last_updated_at,
+            "roleArn": runtime.role_arn,
+            "networkConfiguration": runtime.network_configuration,
+            "status": runtime.status,
+            "lifecycleConfiguration": runtime.lifecycle_configuration,
+            "description": runtime.description,
+            "workloadIdentityDetails": runtime.workload_identity_details,
+            "agentRuntimeArtifact": runtime.agent_runtime_artifact,
+        }
+        if runtime.protocol_configuration:
+            result["protocolConfiguration"] = runtime.protocol_configuration
+        if runtime.environment_variables:
+            result["environmentVariables"] = runtime.environment_variables
+        if runtime.authorizer_configuration:
+            result["authorizerConfiguration"] = runtime.authorizer_configuration
+        if runtime.request_header_configuration:
+            result["requestHeaderConfiguration"] = runtime.request_header_configuration
+        return ActionResult(result)
+
+    def update_agent_runtime(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        params = json.loads(self.body)
+        runtime = self.backend.update_agent_runtime(
+            agent_runtime_id=agent_runtime_id,
+            agent_runtime_artifact=params["agentRuntimeArtifact"],
+            role_arn=params["roleArn"],
+            network_configuration=params["networkConfiguration"],
+            description=params.get("description"),
+            authorizer_configuration=params.get("authorizerConfiguration"),
+            request_header_configuration=params.get("requestHeaderConfiguration"),
+            protocol_configuration=params.get("protocolConfiguration"),
+            lifecycle_configuration=params.get("lifecycleConfiguration"),
+            environment_variables=params.get("environmentVariables"),
+        )
+        return ActionResult(
+            {
+                "agentRuntimeArn": runtime.agent_runtime_arn,
+                "agentRuntimeId": runtime.agent_runtime_id,
+                "workloadIdentityDetails": runtime.workload_identity_details,
+                "agentRuntimeVersion": runtime.agent_runtime_version,
+                "createdAt": runtime.created_at,
+                "lastUpdatedAt": runtime.last_updated_at,
+                "status": "UPDATING",
+            }
+        )
+
+    def delete_agent_runtime(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        runtime = self.backend.delete_agent_runtime(agent_runtime_id)
+        return ActionResult(
+            {
+                "status": "DELETING",
+                "agentRuntimeId": runtime.agent_runtime_id,
+            }
+        )
+
+    def list_agent_runtimes(self) -> ActionResult:
+        runtimes = self.backend.list_agent_runtimes()
+        return ActionResult(
+            {
+                "agentRuntimes": [r.to_summary() for r in runtimes],
+            }
+        )
+
+    def list_agent_runtime_versions(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        versions = self.backend.list_agent_runtime_versions(agent_runtime_id)
+        return ActionResult(
+            {
+                "agentRuntimes": versions,
+            }
+        )
+
+    def create_agent_runtime_endpoint(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        params = json.loads(self.body)
+        endpoint = self.backend.create_agent_runtime_endpoint(
+            agent_runtime_id=agent_runtime_id,
+            name=params["name"],
+            agent_runtime_version=params.get("agentRuntimeVersion"),
+            description=params.get("description"),
+            tags=params.get("tags"),
+        )
+        return ActionResult(
+            {
+                "targetVersion": endpoint.target_version,
+                "agentRuntimeEndpointArn": endpoint.agent_runtime_endpoint_arn,
+                "agentRuntimeArn": endpoint.agent_runtime_arn,
+                "agentRuntimeId": endpoint.agent_runtime_id,
+                "endpointName": endpoint.name,
+                "status": "CREATING",
+                "createdAt": endpoint.created_at,
+            }
+        )
+
+    def get_agent_runtime_endpoint(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        endpoint_name = self._get_path_param("endpointName")
+        endpoint = self.backend.get_agent_runtime_endpoint(
+            agent_runtime_id, endpoint_name
+        )
+        result: dict[str, Any] = {
+            "agentRuntimeEndpointArn": endpoint.agent_runtime_endpoint_arn,
+            "agentRuntimeArn": endpoint.agent_runtime_arn,
+            "status": endpoint.status,
+            "createdAt": endpoint.created_at,
+            "lastUpdatedAt": endpoint.last_updated_at,
+            "name": endpoint.name,
+            "id": endpoint.endpoint_id,
+            "targetVersion": endpoint.target_version,
+            "liveVersion": endpoint.live_version,
+        }
+        if endpoint.description:
+            result["description"] = endpoint.description
+        return ActionResult(result)
+
+    def update_agent_runtime_endpoint(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        endpoint_name = self._get_path_param("endpointName")
+        params = json.loads(self.body)
+        endpoint = self.backend.update_agent_runtime_endpoint(
+            agent_runtime_id=agent_runtime_id,
+            endpoint_name=endpoint_name,
+            agent_runtime_version=params.get("agentRuntimeVersion"),
+            description=params.get("description"),
+        )
+        return ActionResult(
+            {
+                "agentRuntimeEndpointArn": endpoint.agent_runtime_endpoint_arn,
+                "agentRuntimeArn": endpoint.agent_runtime_arn,
+                "status": "UPDATING",
+                "createdAt": endpoint.created_at,
+                "lastUpdatedAt": endpoint.last_updated_at,
+                "liveVersion": endpoint.live_version,
+                "targetVersion": endpoint.target_version,
+            }
+        )
+
+    def delete_agent_runtime_endpoint(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        endpoint_name = self._get_path_param("endpointName")
+        endpoint = self.backend.delete_agent_runtime_endpoint(
+            agent_runtime_id, endpoint_name
+        )
+        return ActionResult(
+            {
+                "status": "DELETING",
+                "agentRuntimeId": endpoint.agent_runtime_id,
+                "endpointName": endpoint.name,
+            }
+        )
+
+    def list_agent_runtime_endpoints(self) -> ActionResult:
+        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        endpoints = self.backend.list_agent_runtime_endpoints(agent_runtime_id)
+        return ActionResult(
+            {
+                "runtimeEndpoints": [ep.to_summary() for ep in endpoints],
+            }
+        )
+
+    def tag_resource(self) -> ActionResult:
+        resource_arn = unquote(self._get_path_param("resourceArn"))
+        params = json.loads(self.body)
+        self.backend.tag_resource(resource_arn, params["tags"])
+        return ActionResult({})
+
+    def untag_resource(self) -> ActionResult:
+        resource_arn = unquote(self._get_path_param("resourceArn"))
+        qs = parse_qs(self.parsed_url.query)
+        tag_keys = qs.get("tagKeys", [])
+        self.backend.untag_resource(resource_arn, tag_keys)
+        return ActionResult({})
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = unquote(self._get_path_param("resourceArn"))
+        tags = self.backend.list_tags_for_resource(resource_arn)
+        return ActionResult({"tags": tags})
+
+    def _get_path_param(self, name: str) -> str:
+        parts = self.parsed_url.path.rstrip("/").split("/")
+        if name == "agentRuntimeId":
+            # /runtimes/{agentRuntimeId}
+            # /runtimes/{agentRuntimeId}/versions
+            # /runtimes/{agentRuntimeId}/runtime-endpoints
+            # /runtimes/{agentRuntimeId}/runtime-endpoints/{endpointName}
+            idx = parts.index("runtimes") + 1
+            return parts[idx]
+        elif name == "endpointName":
+            idx = parts.index("runtime-endpoints") + 1
+            return parts[idx]
+        elif name == "resourceArn":
+            idx = parts.index("tags") + 1
+            return "/".join(parts[idx:])
+        raise ValueError(f"Unknown path parameter: {name}")
