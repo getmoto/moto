@@ -759,3 +759,64 @@ def set_transition(transition=None):
             "http://localhost:5000/moto-api/state-manager/set-transition",
             data=json.dumps(post_body),
         )
+
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("osis", region_name="eu-west-1")
+    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
+    client.put_resource_policy(
+        ResourceArn=resp["PipelineArn"],
+        Policy=json.dumps({"Version": "2012-10-17", "Statement": []}),
+    )
+    resp = client.get_resource_policy(ResourceArn=resp["PipelineArn"])["Policy"]
+    assert resp == json.dumps({"Version": "2012-10-17", "Statement": []})
+
+
+@mock_aws
+def test_get_resource_policy():
+    client = boto3.client("osis", region_name="eu-west-1")
+    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
+    client.put_resource_policy(
+        ResourceArn=resp["PipelineArn"],
+        Policy=json.dumps({"Version": "2012-10-17", "Statement": []}),
+    )
+    resp = client.get_resource_policy(ResourceArn=resp["PipelineArn"])["Policy"]
+    assert resp == json.dumps({"Version": "2012-10-17", "Statement": []})
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("osis", region_name="eu-west-1")
+    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
+    client.put_resource_policy(
+        ResourceArn=resp["PipelineArn"],
+        Policy=json.dumps({"Version": "2012-10-17", "Statement": []}),
+    )
+    client.delete_resource_policy(ResourceArn=resp["PipelineArn"])
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_policy(ResourceArn=resp["PipelineArn"])
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_resource_not_found_policy_error():
+    client = boto3.client("osis", region_name="eu-west-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_policy(
+            ResourceArn="arn:aws:osis:eu-west-1:123456789012:pipeline/test"
+        )
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_invalid_policy_error():
+    client = boto3.client("osis", region_name="eu-west-1")
+    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
+    with pytest.raises(ClientError) as ex:
+        client.put_resource_policy(
+            ResourceArn=resp["PipelineArn"],
+            Policy="invalid-json-policy",
+        )
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Invalid policy"

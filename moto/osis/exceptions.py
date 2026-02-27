@@ -56,3 +56,17 @@ class SubnetNotFoundException(InvalidVPCOptionsException):
 class SecurityGroupNotFoundException(InvalidVPCOptionsException):
     def __init__(self, sg_id: str) -> None:
         super().__init__(f"The security group {sg_id} does not exist")
+
+
+class ResourceNotFoundException(OpensearchIngestionExceptions):
+    def __init__(self, resource_arn: str):
+        super().__init__(
+            "ResourceNotFoundException", f"Resource {resource_arn} could not be found."
+        )
+        self.description = json.dumps({"message": self.message})
+
+
+class ValidationException(OpensearchIngestionExceptions):
+    def __init__(self, message: str):
+        super().__init__("ValidationException", message)
+        self.description = json.dumps({"message": self.message})
