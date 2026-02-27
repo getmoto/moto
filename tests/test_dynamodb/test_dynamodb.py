@@ -2012,6 +2012,7 @@ def test_put_return_attributes():
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
+    # Test 1: Put a NEW item with ReturnValues='NONE' - should not return Attributes
     r = dynamodb.put_item(
         TableName=table_name,
         Item={"id": {"S": "foo"}, "col1": {"S": "val1"}},
@@ -2019,6 +2020,7 @@ def test_put_return_attributes():
     )
     assert "Attributes" not in r
 
+    # Test 2: Put an EXISTING item with ReturnValues='ALL_OLD' - should return old item
     r = dynamodb.put_item(
         TableName=table_name,
         Item={"id": {"S": "foo"}, "col1": {"S": "val2"}},
@@ -2026,6 +2028,18 @@ def test_put_return_attributes():
     )
     assert r["Attributes"] == {"id": {"S": "foo"}, "col1": {"S": "val1"}}
 
+    # Test 3: Put a NEW item with ReturnValues='ALL_OLD' - should return empty Attributes map
+    # This is the correct AWS behavior: when putting a new item that doesn't exist,
+    # ReturnValues='ALL_OLD' should return {"Attributes": {}} not omit the key
+    r = dynamodb.put_item(
+        TableName=table_name,
+        Item={"id": {"S": "bar"}, "col1": {"S": "val3"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert "Attributes" in r, "Attributes key should be present even for new items"
+    assert r["Attributes"] == {}, "Attributes should be empty map for new items"
+
+    # Test 4: Invalid ReturnValues should raise error
     with pytest.raises(ClientError) as ex:
         dynamodb.put_item(
             TableName=table_name,
