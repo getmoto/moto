@@ -3,17 +3,17 @@ import itertools
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 from moto.dynamodb.comparisons import create_condition_expression_parser
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.table import (
     DEFAULT_WARM_THROUGHPUT_RCU,
     DEFAULT_WARM_THROUGHPUT_WCU,
 )
-from moto.dynamodb.models.utilities import dynamo_json_dump
+from moto.dynamodb.models.utilities import dynamo_to_dict
 from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeName,
     ExpressionAttributeValue,
@@ -42,34 +42,25 @@ TRANSACTION_MAX_ITEMS = 25
 def include_consumed_capacity(
     val: float = 1.0,
 ) -> Callable[
-    [Callable[["DynamoHandler"], str]],
-    Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]],
+    [Callable[["DynamoHandler"], ActionResult]],
+    Callable[["DynamoHandler"], ActionResult],
 ]:
     def _inner(
-        f: Callable[["DynamoHandler"], str],
-    ) -> Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]]:
+        f: Callable[["DynamoHandler"], ActionResult],
+    ) -> Callable[["DynamoHandler"], ActionResult]:
         @wraps(f)
-        def _wrapper(
-            *args: "DynamoHandler", **kwargs: None
-        ) -> Union[str, TYPE_RESPONSE]:
+        def _wrapper(*args: "DynamoHandler", **kwargs: None) -> ActionResult:
             (handler,) = args
             expected_capacity = handler.body.get("ReturnConsumedCapacity", "NONE")
             if expected_capacity not in ["NONE", "TOTAL", "INDEXES"]:
-                type_ = "ValidationException"
-                headers = handler.response_headers.copy()
-                headers["status"] = "400"
-                message = f"1 validation error detected: Value '{expected_capacity}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
-                return (
-                    400,
-                    headers,
-                    dynamo_json_dump({"__type": type_, "message": message}),
+                raise MockValidationException(
+                    f"1 validation error detected: Value '{expected_capacity}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
                 )
             table_name = handler.body.get("TableName", "")
             index_name = handler.body.get("IndexName", None)
 
-            response = f(*args, **kwargs)
-
-            body = json.loads(response)
+            result = f(*args, **kwargs)
+            body: dict[str, Any] = result.result  # type: ignore[assignment]
 
             if expected_capacity == "TOTAL":
                 body["ConsumedCapacity"] = {
@@ -87,7 +78,7 @@ def include_consumed_capacity(
                         index_name: {"CapacityUnits": val}
                     }
 
-            return dynamo_json_dump(body)
+            return result
 
         return _wrapper
 
@@ -260,7 +251,7 @@ class DynamoHandler(BaseResponse):
         self.body = json.loads(self.body or "{}")
         return super().call_action()
 
-    def list_tables(self) -> str:
+    def list_tables(self) -> ActionResult:
         body = self.body
         limit = body.get("Limit", 100)
         exclusive_start_table_name = body.get("ExclusiveStartTableName")
@@ -272,9 +263,9 @@ class DynamoHandler(BaseResponse):
         if last_eval:
             response["LastEvaluatedTableName"] = last_eval
 
-        return dynamo_json_dump(response)
+        return ActionResult(response)
 
-    def create_table(self) -> str:
+    def create_table(self) -> ActionResult:
         body = self.body
         table_name = body["TableName"]
         # check billing mode and get the throughput
@@ -317,7 +308,7 @@ class DynamoHandler(BaseResponse):
             deletion_protection_enabled=deletion_protection_enabled,
             warm_throughput=warm_throughput,
         )
-        return dynamo_json_dump(table.describe())
+        return ActionResult(dynamo_to_dict(table.describe()))
 
     def _validate_table_creation(
         self,
@@ -534,28 +525,28 @@ class DynamoHandler(BaseResponse):
             )
         return expression
 
-    def delete_table(self) -> str:
+    def delete_table(self) -> ActionResult:
         name = self.body["TableName"]
         table = self.dynamodb_backend.delete_table(name)
-        return dynamo_json_dump(table.describe())
+        return ActionResult(dynamo_to_dict(table.describe()))
 
-    def describe_endpoints(self) -> str:
+    def describe_endpoints(self) -> ActionResult:
         response = {"Endpoints": self.dynamodb_backend.describe_endpoints()}
-        return dynamo_json_dump(response)
+        return ActionResult(response)
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
         tags = self.body["Tags"]
         self.dynamodb_backend.tag_resource(table_arn, tags)
-        return ""
+        return ActionResult({})
 
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
         tags = self.body["TagKeys"]
         self.dynamodb_backend.untag_resource(table_arn, tags)
-        return ""
+        return ActionResult({})
 
-    def list_tags_of_resource(self) -> str:
+    def list_tags_of_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
         all_tags = self.dynamodb_backend.list_tags_of_resource(table_arn)
         all_tag_keys = [tag["Key"] for tag in all_tags]
@@ -569,11 +560,12 @@ class DynamoHandler(BaseResponse):
         next_marker = None
         if len(all_tags) > start + max_items:
             next_marker = tags_resp[-1]["Key"]
+        response: dict[str, Any] = {"Tags": tags_resp}
         if next_marker:
-            return json.dumps({"Tags": tags_resp, "NextToken": next_marker})
-        return json.dumps({"Tags": tags_resp})
+            response["NextToken"] = next_marker
+        return ActionResult(response)
 
-    def update_table(self) -> str:
+    def update_table(self) -> ActionResult:
         name = self.body["TableName"]
         attr_definitions = self.body.get("AttributeDefinitions", None)
         global_index = self.body.get("GlobalSecondaryIndexUpdates", None)
@@ -592,15 +584,15 @@ class DynamoHandler(BaseResponse):
             deletion_protection_enabled=deletion_protection_enabled,
             warm_throughput=warm_throughput,
         )
-        return dynamo_json_dump(table.describe())
+        return ActionResult(dynamo_to_dict(table.describe()))
 
-    def describe_table(self) -> str:
+    def describe_table(self) -> ActionResult:
         name = self.body["TableName"]
         table = self.dynamodb_backend.describe_table(name)
-        return dynamo_json_dump(table)
+        return ActionResult(dynamo_to_dict(table))
 
     @include_consumed_capacity()
-    def put_item(self) -> str:
+    def put_item(self) -> ActionResult:
         name = self.body["TableName"]
         item = self.body["Item"]
         return_values = self.body.get("ReturnValues", "NONE")
@@ -625,7 +617,7 @@ class DynamoHandler(BaseResponse):
         if return_values == "ALL_OLD":
             existing_item = self.dynamodb_backend.get_item(name, item)
             if existing_item:
-                existing_attributes = existing_item.to_json()["Attributes"]
+                existing_attributes = dynamo_to_dict(existing_item.attrs)
             else:
                 existing_attributes = {}
 
@@ -648,7 +640,7 @@ class DynamoHandler(BaseResponse):
         if condition_expression:
             overwrite = False
 
-        result = self.dynamodb_backend.put_item(
+        self.dynamodb_backend.put_item(
             name,
             item,
             expected,
@@ -659,14 +651,12 @@ class DynamoHandler(BaseResponse):
             return_values_on_condition_check_failure,
         )
 
-        item_dict = result.to_json()
+        item_dict: dict[str, Any] = {}
         if return_values == "ALL_OLD":
             item_dict["Attributes"] = existing_attributes
-        else:
-            item_dict.pop("Attributes", None)
-        return dynamo_json_dump(item_dict)
+        return ActionResult(item_dict)
 
-    def batch_write_item(self) -> str:
+    def batch_write_item(self) -> ActionResult:
         table_batches = self.body["RequestItems"]
         put_requests = []
         delete_requests = []
@@ -710,10 +700,10 @@ class DynamoHandler(BaseResponse):
             "UnprocessedItems": {},
         }
 
-        return dynamo_json_dump(response)
+        return ActionResult(response)
 
     @include_consumed_capacity(0.5)
-    def get_item(self) -> str:
+    def get_item(self) -> ActionResult:
         name = self.body["TableName"]
         table = self.dynamodb_backend.get_table(name)
         key = self.body["Key"]
@@ -752,12 +742,12 @@ class DynamoHandler(BaseResponse):
         item = self.dynamodb_backend.get_item(name, key, projection_expressions)
         if item:
             item_dict = item.describe_attrs(attributes=None)
-            return dynamo_json_dump(item_dict)
+            return ActionResult(dynamo_to_dict(item_dict))
         else:
             # Item not found
-            return dynamo_json_dump({})
+            return ActionResult({})
 
-    def batch_get_item(self) -> str:
+    def batch_get_item(self) -> ActionResult:
         table_batches = self.body["RequestItems"]
 
         results: dict[str, Any] = {
@@ -825,7 +815,7 @@ class DynamoHandler(BaseResponse):
             results["ConsumedCapacity"].append(
                 {"CapacityUnits": len(keys), "TableName": table_name}
             )
-        return dynamo_json_dump(results)
+        return ActionResult(dynamo_to_dict(results))
 
     def _contains_duplicates(self, keys: list[str]) -> bool:
         unique_keys = []
@@ -837,7 +827,7 @@ class DynamoHandler(BaseResponse):
         return False
 
     @include_consumed_capacity()
-    def query(self) -> str:
+    def query(self) -> ActionResult:
         name = self.body["TableName"]
         key_condition_expression = self.body.get("KeyConditionExpression")
         projection_expression = self._get_projection_expression()
@@ -988,10 +978,10 @@ class DynamoHandler(BaseResponse):
         if last_evaluated_key is not None:
             result["LastEvaluatedKey"] = last_evaluated_key
 
-        return dynamo_json_dump(result)
+        return ActionResult(dynamo_to_dict(result))
 
     @include_consumed_capacity()
-    def scan(self) -> str:
+    def scan(self) -> ActionResult:
         name = self.body["TableName"]
 
         filters = {}
@@ -1076,10 +1066,10 @@ class DynamoHandler(BaseResponse):
         }
         if last_evaluated_key is not None:
             result["LastEvaluatedKey"] = last_evaluated_key
-        return dynamo_json_dump(result)
+        return ActionResult(dynamo_to_dict(result))
 
     @include_consumed_capacity()
-    def delete_item(self) -> str:
+    def delete_item(self) -> ActionResult:
         name = self.body["TableName"]
         key = self.body["Key"]
         return_values = self.body.get("ReturnValues", "NONE")
@@ -1119,13 +1109,13 @@ class DynamoHandler(BaseResponse):
         )
 
         if item and return_values == "ALL_OLD":
-            item_dict = item.to_json()
+            item_dict: dict[str, Any] = {"Attributes": dynamo_to_dict(item.attrs)}
         else:
-            item_dict = {"Attributes": {}}
+            item_dict = {}
         item_dict["ConsumedCapacityUnits"] = 0.5
-        return dynamo_json_dump(item_dict)
+        return ActionResult(item_dict)
 
-    def update_item(self) -> str:
+    def update_item(self) -> ActionResult:
         name = self.body["TableName"]
         key = self.body["Key"]
         return_values = self.body.get("ReturnValues", "NONE")
@@ -1171,7 +1161,7 @@ class DynamoHandler(BaseResponse):
         # We need to copy the item in order to avoid it being modified by the update_item operation
         existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:
-            existing_attributes = existing_item.to_json()["Attributes"]
+            existing_attributes = dynamo_to_dict(existing_item.attrs)
         else:
             existing_attributes = {}
 
@@ -1221,22 +1211,22 @@ class DynamoHandler(BaseResponse):
             return_values_on_condition_check_failure=return_values_on_condition_check_failure,
         )
 
-        item_dict = item.to_json()
-        item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 0.5}
+        new_attributes = dynamo_to_dict(item.attrs)
+        item_dict: dict[str, Any] = {
+            "ConsumedCapacity": {"TableName": name, "CapacityUnits": 0.5},
+        }
         unchanged_attributes = {
             k
             for k in existing_attributes.keys()
-            if existing_attributes[k] == item_dict["Attributes"].get(k)
+            if existing_attributes[k] == new_attributes.get(k)
         }
         changed_attributes = (
             set(existing_attributes.keys())
-            .union(item_dict["Attributes"].keys())
+            .union(new_attributes.keys())
             .difference(unchanged_attributes)
         )
 
-        if return_values == "NONE":
-            item_dict["Attributes"] = {}
-        elif return_values == "ALL_OLD":
+        if return_values == "ALL_OLD":
             item_dict["Attributes"] = existing_attributes
         elif return_values == "UPDATED_OLD":
             item_dict["Attributes"] = {
@@ -1244,9 +1234,11 @@ class DynamoHandler(BaseResponse):
             }
         elif return_values == "UPDATED_NEW":
             item_dict["Attributes"] = self._build_updated_new_attributes(
-                existing_attributes, item_dict["Attributes"]
+                existing_attributes, new_attributes
             )
-        return dynamo_json_dump(item_dict)
+        elif return_values == "ALL_NEW":
+            item_dict["Attributes"] = new_attributes
+        return ActionResult(item_dict)
 
     def _get_expr_attr_values(self) -> dict[str, dict[str, str]]:
         values = self.body.get("ExpressionAttributeValues")
@@ -1289,8 +1281,8 @@ class DynamoHandler(BaseResponse):
             else:
                 return changed
 
-    def describe_limits(self) -> str:
-        return json.dumps(
+    def describe_limits(self) -> ActionResult:
+        return ActionResult(
             {
                 "AccountMaxReadCapacityUnits": 20000,
                 "TableMaxWriteCapacityUnits": 10000,
@@ -1299,22 +1291,22 @@ class DynamoHandler(BaseResponse):
             }
         )
 
-    def update_time_to_live(self) -> str:
+    def update_time_to_live(self) -> ActionResult:
         name = self.body["TableName"]
         ttl_spec = self.body["TimeToLiveSpecification"]
 
         self.dynamodb_backend.update_time_to_live(name, ttl_spec)
 
-        return json.dumps({"TimeToLiveSpecification": ttl_spec})
+        return ActionResult({"TimeToLiveSpecification": ttl_spec})
 
-    def describe_time_to_live(self) -> str:
+    def describe_time_to_live(self) -> ActionResult:
         name = self.body["TableName"]
 
         ttl_spec = self.dynamodb_backend.describe_time_to_live(name)
 
-        return json.dumps({"TimeToLiveDescription": ttl_spec})
+        return ActionResult({"TimeToLiveDescription": ttl_spec})
 
-    def transact_get_items(self) -> str:
+    def transact_get_items(self) -> ActionResult:
         transact_items = self.body["TransactItems"]
         responses: list[dict[str, Any]] = []
 
@@ -1370,9 +1362,9 @@ class DynamoHandler(BaseResponse):
         if ret_consumed_capacity != "NONE":
             result.update({"ConsumedCapacity": list(consumed_capacity.values())})
 
-        return dynamo_json_dump(result)
+        return ActionResult(dynamo_to_dict(result))
 
-    def transact_write_items(self) -> str:
+    def transact_write_items(self) -> ActionResult:
         transact_items = self.body["TransactItems"]
         # Validate first - we should error before we start the transaction
         for item in transact_items:
@@ -1429,16 +1421,16 @@ class DynamoHandler(BaseResponse):
 
         self.dynamodb_backend.transact_write_items(transact_items)
         response: dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
-        return dynamo_json_dump(response)
+        return ActionResult(response)
 
-    def describe_continuous_backups(self) -> str:
+    def describe_continuous_backups(self) -> ActionResult:
         name = self.body["TableName"]
 
         response = self.dynamodb_backend.describe_continuous_backups(name)
 
-        return json.dumps({"ContinuousBackupsDescription": response})
+        return ActionResult({"ContinuousBackupsDescription": response})
 
-    def update_continuous_backups(self) -> str:
+    def update_continuous_backups(self) -> ActionResult:
         name = self.body["TableName"]
         point_in_time_spec = self.body["PointInTimeRecoverySpecification"]
 
@@ -1446,74 +1438,74 @@ class DynamoHandler(BaseResponse):
             name, point_in_time_spec
         )
 
-        return json.dumps({"ContinuousBackupsDescription": response})
+        return ActionResult({"ContinuousBackupsDescription": response})
 
-    def list_backups(self) -> str:
+    def list_backups(self) -> ActionResult:
         body = self.body
         table_name = body.get("TableName")
         backups = self.dynamodb_backend.list_backups(table_name)
         response = {"BackupSummaries": [backup.summary for backup in backups]}
-        return dynamo_json_dump(response)
+        return ActionResult(dynamo_to_dict(response))
 
-    def create_backup(self) -> str:
+    def create_backup(self) -> ActionResult:
         body = self.body
         table_name = body.get("TableName")
         backup_name = body.get("BackupName")
         backup = self.dynamodb_backend.create_backup(table_name, backup_name)
         response = {"BackupDetails": backup.details}
-        return dynamo_json_dump(response)
+        return ActionResult(dynamo_to_dict(response))
 
-    def delete_backup(self) -> str:
+    def delete_backup(self) -> ActionResult:
         body = self.body
         backup_arn = body.get("BackupArn")
         backup = self.dynamodb_backend.delete_backup(backup_arn)
         response = {"BackupDescription": backup.description}
-        return dynamo_json_dump(response)
+        return ActionResult(dynamo_to_dict(response))
 
-    def describe_backup(self) -> str:
+    def describe_backup(self) -> ActionResult:
         body = self.body
         backup_arn = body.get("BackupArn")
         backup = self.dynamodb_backend.describe_backup(backup_arn)
         response = {"BackupDescription": backup.description}
-        return dynamo_json_dump(response)
+        return ActionResult(dynamo_to_dict(response))
 
-    def restore_table_from_backup(self) -> str:
+    def restore_table_from_backup(self) -> ActionResult:
         body = self.body
         target_table_name = body.get("TargetTableName")
         backup_arn = body.get("BackupArn")
         restored_table = self.dynamodb_backend.restore_table_from_backup(
             target_table_name, backup_arn
         )
-        return dynamo_json_dump(restored_table.describe())
+        return ActionResult(dynamo_to_dict(restored_table.describe()))
 
-    def restore_table_to_point_in_time(self) -> str:
+    def restore_table_to_point_in_time(self) -> ActionResult:
         body = self.body
         target_table_name = body.get("TargetTableName")
         source_table_name = body.get("SourceTableName")
         restored_table = self.dynamodb_backend.restore_table_to_point_in_time(
             target_table_name, source_table_name
         )
-        return dynamo_json_dump(restored_table.describe())
+        return ActionResult(dynamo_to_dict(restored_table.describe()))
 
-    def execute_statement(self) -> str:
+    def execute_statement(self) -> ActionResult:
         stmt = self.body.get("Statement", "")
         parameters = self.body.get("Parameters", [])
         items = self.dynamodb_backend.execute_statement(
             statement=stmt, parameters=parameters
         )
-        return dynamo_json_dump({"Items": items})
+        return ActionResult(dynamo_to_dict({"Items": items}))
 
-    def execute_transaction(self) -> str:
+    def execute_transaction(self) -> ActionResult:
         stmts = self.body.get("TransactStatements", [])
         items = self.dynamodb_backend.execute_transaction(stmts)
-        return dynamo_json_dump({"Responses": items})
+        return ActionResult(dynamo_to_dict({"Responses": items}))
 
-    def batch_execute_statement(self) -> str:
+    def batch_execute_statement(self) -> ActionResult:
         stmts = self.body.get("Statements", [])
         items = self.dynamodb_backend.batch_execute_statement(stmts)
-        return dynamo_json_dump({"Responses": items})
+        return ActionResult(dynamo_to_dict({"Responses": items}))
 
-    def import_table(self) -> str:
+    def import_table(self) -> ActionResult:
         params = self.body
         s3_source = params.get("S3BucketSource")
         input_format = params.get("InputFormat") or "DYNAMODB_JSON"
@@ -1547,14 +1539,14 @@ class DynamoHandler(BaseResponse):
             global_indexes=global_indexes,
             attrs=table_attrs,
         )
-        return json.dumps({"ImportTableDescription": import_table.response()})
+        return ActionResult({"ImportTableDescription": import_table.response()})
 
-    def describe_import(self) -> str:
+    def describe_import(self) -> ActionResult:
         import_arn = self.body["ImportArn"]
         import_table = self.dynamodb_backend.describe_import(import_arn)
-        return json.dumps({"ImportTableDescription": import_table.response()})
+        return ActionResult({"ImportTableDescription": import_table.response()})
 
-    def export_table_to_point_in_time(self) -> str:
+    def export_table_to_point_in_time(self) -> ActionResult:
         table_arn = self.body["TableArn"]
         s3_bucket = self.body["S3Bucket"]
         s3_prefix = self.body["S3Prefix"]
@@ -1571,14 +1563,14 @@ class DynamoHandler(BaseResponse):
             s3_bucket_owner=s3_bucket_owner,
         )
 
-        return dynamo_json_dump({"ExportDescription": export_table.response()})
+        return ActionResult({"ExportDescription": export_table.response()})
 
-    def describe_export(self) -> str:
+    def describe_export(self) -> ActionResult:
         export_arn = self.body["ExportArn"]
         export_table = self.dynamodb_backend.describe_export(export_arn)
-        return json.dumps({"ExportDescription": export_table.response()})
+        return ActionResult({"ExportDescription": export_table.response()})
 
-    def list_exports(self) -> str:
+    def list_exports(self) -> ActionResult:
         table_arn = self.body["TableArn"]
         exports = self.dynamodb_backend.list_exports(table_arn)
         response = []
@@ -1590,27 +1582,27 @@ class DynamoHandler(BaseResponse):
                     "ExportType": export_table.export_type,
                 }
             )
-        return json.dumps({"ExportSummaries": response})
+        return ActionResult({"ExportSummaries": response})
 
-    def put_resource_policy(self) -> str:
+    def put_resource_policy(self) -> ActionResult:
         policy = self.dynamodb_backend.put_resource_policy(
             resource_arn=self.body.get("ResourceArn"),
             policy_doc=self.body.get("Policy"),
             expected_revision_id=self.body.get("ExpectedRevisionId"),
         )
-        return json.dumps({"RevisionId": policy.revision_id})
+        return ActionResult({"RevisionId": policy.revision_id})
 
-    def get_resource_policy(self) -> str:
+    def get_resource_policy(self) -> ActionResult:
         policy = self.dynamodb_backend.get_resource_policy(
             resource_arn=self.body.get("ResourceArn")
         )
-        return json.dumps(
+        return ActionResult(
             {"Policy": policy.policy_doc, "RevisionId": policy.revision_id}
         )
 
-    def delete_resource_policy(self) -> str:
+    def delete_resource_policy(self) -> ActionResult:
         self.dynamodb_backend.delete_resource_policy(
             resource_arn=self.body.get("ResourceArn"),
             expected_revision_id=self.body.get("ExpectedRevisionId"),
         )
-        return "{}"
+        return ActionResult({})
