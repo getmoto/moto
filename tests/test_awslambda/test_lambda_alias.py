@@ -10,6 +10,7 @@ from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .utilities import (
+    PYTHON_VERSION,
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
@@ -17,7 +18,6 @@ from .utilities import (
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
-PYTHON_VERSION = "python3.11"
 
 
 @mock_aws

@@ -5,9 +5,8 @@ import pytest
 
 from moto import mock_aws
 
-from .utilities import get_role_name, get_test_zip_file1
+from .utilities import PYTHON_VERSION, get_role_name, get_test_zip_file1
 
-PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 
 
