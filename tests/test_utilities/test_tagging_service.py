@@ -8,6 +8,26 @@ def test_list_empty():
     assert {"Tags": []} == result
 
 
+def test_has_tags():
+    svc = TaggingService()
+    svc.tag_resource("test", [{"Key": "key_key"}])
+
+    assert svc.has_tags("test")
+
+
+def test_has_tags_when_empty():
+    svc = TaggingService()
+    svc.tag_resource("test", [])
+
+    assert svc.has_tags("test")
+
+
+def test_has_tags_false_when_missing():
+    svc = TaggingService()
+
+    assert not svc.has_tags("test")
+
+
 def test_create_tag():
     svc = TaggingService("TheTags", "TagKey", "TagValue")
     tags = [{"TagKey": "key_key", "TagValue": "value_value"}]

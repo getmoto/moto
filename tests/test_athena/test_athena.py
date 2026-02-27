@@ -393,7 +393,7 @@ def test_list_tags_for_resource():
 
 
 @mock_aws
-def test_list_tags_for_resource_without_no_tags():
+def test_list_tags_for_resource_with_no_tags():
     client = boto3.client("athena", region_name="us-east-1")
     tags = []
     resource_name = "athena_datacatalog"
