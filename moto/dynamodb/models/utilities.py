@@ -58,7 +58,7 @@ def find_nested_key(
             if (
                 current_key in dct
                 and isinstance(dct[current_key], list)
-                and len(dct[current_key]) >= idx
+                and len(dct[current_key]) > idx
             ):
                 value = [dct[current_key][idx]]
             else:
@@ -96,7 +96,7 @@ def find_nested_key(
             if (
                 current_key in dct
                 and isinstance(dct[current_key], list)
-                and len(dct[current_key]) >= idx
+                and len(dct[current_key]) > idx
             ):
                 pass
             else:
