@@ -393,6 +393,25 @@ def test_list_tags_for_resource():
 
 
 @mock_aws
+def test_list_tags_for_resource_without_no_tags():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = []
+    resource_name = "athena_datacatalog"
+    client.create_data_catalog(
+        Name=resource_name,
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=tags,
+    )
+    resource_arn = (
+        "arn:aws:athena:us-east-1:123456789012:datacatalog/athena_datacatalog"
+    )
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
 def test_list_tags_for_resource_not_found():
     client = boto3.client("athena", region_name="us-east-1")
     nonexistent_resource_arn = "NONEXISTENTRESOURCEARN"

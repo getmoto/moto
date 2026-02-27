@@ -49,7 +49,7 @@ class TaggingService:
 
         Note: the storage is internal to this class instance.
         """
-        if not tags:
+        if tags is None:
             return
         if arn not in self.tags:
             self.tags[arn] = {}
