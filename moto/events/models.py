@@ -1346,11 +1346,13 @@ class EventsBackend(BaseBackend):
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         matching_rules = []
+        seen_rule_names = set()
 
         for _, rule in event_bus.rules.items():
             for target in rule.targets:
-                if target["Arn"] == target_arn:
+                if target["Arn"] == target_arn and rule.name not in seen_rule_names:
                     matching_rules.append(rule)
+                    seen_rule_names.add(rule.name)
 
         return matching_rules
 
