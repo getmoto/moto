@@ -1,7 +1,7 @@
 import json
 import typing
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 from moto.s3.models import s3_backends
@@ -11,13 +11,6 @@ from .exceptions import ValidationError
 
 if typing.TYPE_CHECKING:
     from .models import FakeModelCard, FakePipeline, FakePipelineExecution
-
-
-def _epoch_to_datetime(value: Optional[float]) -> Optional[datetime]:
-    """Convert an epoch-seconds float (from _get_param) to a naive UTC datetime."""
-    if value is None:
-        return None
-    return datetime.fromtimestamp(value, tz=timezone.utc).replace(tzinfo=None)
 
 
 def get_pipeline_from_name(
