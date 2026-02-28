@@ -497,7 +497,7 @@ class Item(BaseModel):
             range_key=self.range_key,
             # 'result' is a normal Python dictionary ({'key': 'value'}
             # We need to convert that into DynamoDB dictionary ({'M': {'key': {'S': 'value'}}})
-            attrs=serializer.serialize(result)["M"],
+            attrs=serializer.serialize(result)["M"],  # type: ignore
         )
 
     def is_within_segment(

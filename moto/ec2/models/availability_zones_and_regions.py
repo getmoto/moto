@@ -52,7 +52,7 @@ class RegionsAndZonesBackend:
         "us-west-2",
     ]
 
-    regions = []
+    regions: list[Region] = []
     for region in Session().get_available_regions("ec2"):
         if region in regions_opt_in_not_required:
             regions.append(
@@ -186,9 +186,9 @@ class RegionsAndZonesBackend:
         ],
     }
     # Regularized region->zone mapping for all regions not defined above
-    for region in regions:
-        if region.name not in zones:
-            name = region.name
+    for the_region in regions:
+        if the_region.name not in zones:
+            name = the_region.name
             region_parts = name.split("-")
             shorthand = "usg" if name.startswith("us-gov") else region_parts[0]
             # North and south first - this also handles combinations like northeast -> ne
@@ -196,7 +196,7 @@ class RegionsAndZonesBackend:
                 if cardinal in name:
                     shorthand += cardinal[0]
             shorthand += region_parts[-1]
-            zones[region.name] = [
+            zones[the_region.name] = [
                 Zone(region_name=name, name=f"{name}a", zone_id=f"{shorthand}-az1"),
                 Zone(region_name=name, name=f"{name}b", zone_id=f"{shorthand}-az2"),
                 Zone(region_name=name, name=f"{name}c", zone_id=f"{shorthand}-az3"),

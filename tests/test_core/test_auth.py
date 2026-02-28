@@ -20,7 +20,7 @@ boto3_version = sys.modules["botocore"].__version__
 def create_user_with_access_key(user_name: str = "test-user") -> dict[str, str]:
     client = boto3.client("iam", region_name="us-east-1")
     client.create_user(UserName=user_name)
-    return client.create_access_key(UserName=user_name)["AccessKey"]
+    return client.create_access_key(UserName=user_name)["AccessKey"]  # type: ignore
 
 
 @mock_aws
@@ -37,7 +37,7 @@ def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
         PolicyName=policy_name,
         PolicyDocument=json.dumps(policy_document),
     )
-    return client.create_access_key(UserName=user_name)["AccessKey"]
+    return client.create_access_key(UserName=user_name)["AccessKey"]  # type: ignore
 
 
 @mock_aws
@@ -50,7 +50,7 @@ def create_user_with_access_key_and_attached_policy(  # type: ignore[misc]
         PolicyName=policy_name, PolicyDocument=json.dumps(policy_document)
     )["Policy"]["Arn"]
     client.attach_user_policy(UserName=user_name, PolicyArn=policy_arn)
-    return client.create_access_key(UserName=user_name)["AccessKey"]
+    return client.create_access_key(UserName=user_name)["AccessKey"]  # type: ignore
 
 
 @mock_aws
@@ -73,7 +73,7 @@ def create_user_with_access_key_and_multiple_policies(  # type: ignore[misc]
         PolicyName=inline_policy_name,
         PolicyDocument=json.dumps(inline_policy_document),
     )
-    return client.create_access_key(UserName=user_name)["AccessKey"]
+    return client.create_access_key(UserName=user_name)["AccessKey"]  # type: ignore
 
 
 def create_group_with_attached_policy_and_add_user(
@@ -151,7 +151,7 @@ def create_role_with_attached_policy_and_assume_it(  # type: ignore[misc]
         PolicyName=policy_name, PolicyDocument=json.dumps(policy_document)
     )["Policy"]["Arn"]
     iam_client.attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
-    return sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)[
+    return sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)[  # type: ignore
         "Credentials"
     ]
 
@@ -174,7 +174,7 @@ def create_role_with_inline_policy_and_assume_it(  # type: ignore[misc]
         PolicyName=policy_name,
         PolicyDocument=json.dumps(policy_document),
     )
-    return sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)[
+    return sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)[  # type: ignore
         "Credentials"
     ]
 
@@ -881,7 +881,8 @@ def test_allow_bucket_access_using_resource_arn(region: str, partition: str) -> 
     )
 
     s3_client.create_bucket(
-        Bucket="my_bucket", CreateBucketConfiguration={"LocationConstraint": region}
+        Bucket="my_bucket",
+        CreateBucketConfiguration={"LocationConstraint": region},  # type: ignore
     )
     with pytest.raises(ClientError):
         s3_client.create_bucket(Bucket="my_bucket2")

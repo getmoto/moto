@@ -88,7 +88,7 @@ def _decode_dict(d: dict[Any, Any]) -> dict[str, Any]:
 def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]]:
     method_urls: dict[str, dict[str, str]] = defaultdict(dict)
     service_name = boto3_service_name.get(service_name) or service_name  # type: ignore
-    conn = boto3.client(service_name, region_name=region)
+    conn = boto3.client(service_name, region_name=region)  # type: ignore
     op_names = conn._service_model.operation_names
     for op_name in op_names:
         op_model = conn._service_model.operation_model(op_name)

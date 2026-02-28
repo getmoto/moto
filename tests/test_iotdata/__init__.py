@@ -46,6 +46,9 @@ def iot_aws_verified() -> "Callable[[Callable[P, T]], Callable[P, T]]":
 def _create_thing_and_execute_test(
     func: "Callable[P, T]", *args: "P.args", **kwargs: "P.kwargs"
 ) -> T:
+    # this is a concession to the type signature of all the iotdata tests
+    # which have (name: str)
+    kwargs.pop("name")
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     name = str(uuid4())
 

@@ -118,7 +118,7 @@ class ImportantBusinessLogic:
         self._s3 = boto3.client("s3", region_name="us-east-1")
 
     def do_important_things(self) -> list[str]:
-        return self._s3.list_buckets()["Buckets"]
+        return self._s3.list_buckets()["Buckets"]  # type: ignore
 
 
 def test_mock_works_when_replacing_client(

@@ -16,9 +16,9 @@ from typing import (
 )
 from unittest.mock import patch
 
-import boto3
-import botocore
 import responses
+from boto3.resources.base import ResourceMeta
+from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
@@ -268,7 +268,7 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
-def patch_client(client: botocore.client.BaseClient) -> None:
+def patch_client(client: BaseClient) -> None:
     """
     Explicitly patch a boto3-client
     """
@@ -284,7 +284,7 @@ def patch_client(client: botocore.client.BaseClient) -> None:
     :param client:
     :return:
     """
-    if isinstance(client, botocore.client.BaseClient):
+    if isinstance(client, BaseClient):
         # Check if our event handler was already registered
         try:
             event_emitter = client._ruleset_resolver._event_emitter._emitter  # type: ignore[attr-defined]
@@ -310,9 +310,7 @@ def patch_resource(resource: Any) -> None:
     """
     Explicitly patch a boto3-resource
     """
-    if hasattr(resource, "meta") and isinstance(
-        resource.meta, boto3.resources.factory.ResourceMeta
-    ):
+    if hasattr(resource, "meta") and isinstance(resource.meta, ResourceMeta):
         patch_client(resource.meta.client)
     else:
         raise Exception(f"Argument {resource} should be of type boto3.resource")
@@ -360,7 +358,7 @@ class ServerModeMockAWS(MockAWS):
         from boto3 import client as real_boto3_client
         from boto3 import resource as real_boto3_resource
 
-        def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
+        def fake_boto3_client(*args: Any, **kwargs: Any) -> BaseClient:
             region = self._get_region(*args, **kwargs)
             if region:
                 if "config" in kwargs:
@@ -426,7 +424,7 @@ class ProxyModeMockAWS(MockAWS):
         from boto3 import client as real_boto3_client
         from boto3 import resource as real_boto3_resource
 
-        def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
+        def fake_boto3_client(*args: Any, **kwargs: Any) -> BaseClient:
             kwargs["verify"] = False
             proxy_endpoint = (
                 f"http://localhost:{os.environ.get('MOTO_PROXY_PORT', 5005)}"

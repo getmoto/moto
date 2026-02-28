@@ -17,9 +17,18 @@ from . import iot_aws_verified
 boto3_version = sys.modules["botocore"].__version__
 
 
+@pytest.fixture(scope="function")
+def name() -> str:
+    """
+    This is a concession to pytest not seeing the wrapper in iot_aws_verified
+    which implicitly passes in a generated name= for the IoT thing it created
+    """
+    return "this is kwargs.pop'ed in __init__.py"
+
+
 @iot_aws_verified()
 @pytest.mark.aws_verified
-def test_basic(name: Optional[str] = None) -> None:
+def test_basic(name: str) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
 
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
@@ -51,7 +60,7 @@ def test_basic(name: Optional[str] = None) -> None:
 
 @iot_aws_verified()
 @pytest.mark.aws_verified
-def test_update(name: Optional[str] = None) -> None:
+def test_update(name: str) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
 
@@ -99,7 +108,7 @@ def test_update(name: Optional[str] = None) -> None:
 
 @iot_aws_verified()
 @pytest.mark.aws_verified
-def test_create_named_shadows(name: Optional[str] = None) -> None:
+def test_create_named_shadows(name: str) -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameter only available in newer versions")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
@@ -165,7 +174,7 @@ def test_publish() -> None:
 
 @iot_aws_verified()
 @pytest.mark.aws_verified
-def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
+def test_delete_field_from_device_shadow(name: str) -> None:
     iot = boto3.client("iot-data", region_name="ap-northeast-1")
 
     iot.update_thing_shadow(
@@ -326,7 +335,7 @@ def test_delta_calculation(
     initial_delta: dict[str, dict[str, Optional[bool]]],
     reported: dict[str, dict[str, Optional[bool]]],
     delta_after_report: dict[str, dict[str, Optional[bool]]],
-    name: Optional[str] = None,
+    name: str,
 ) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     desired_payload = json.dumps({"state": desired}).encode("utf-8")
@@ -369,7 +378,7 @@ def test_delta_calculation(
 def test_update_desired(
     initial_state: dict[str, str],
     updated_state: dict[str, str],
-    name: Optional[str] = None,
+    name: str,
 ) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
 
@@ -391,7 +400,7 @@ def test_update_desired(
 
 @iot_aws_verified()
 @pytest.mark.aws_verified
-def test_update_empty_state(name: Optional[str] = None) -> None:
+def test_update_empty_state(name: str) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
 
     # CREATE
