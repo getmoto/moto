@@ -2,7 +2,6 @@ import datetime
 import hashlib
 import json
 import re
-import time
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -114,7 +113,7 @@ class ParameterDict(defaultdict[str, list["Parameter"]]):
             params = []
 
         for param in params:
-            last_modified_date = time.time()
+            last_modified_date = utcnow()
             name = param["Name"]
             value = param["Value"]
             # Following were lost in translation/conversion - using sensible defaults
@@ -222,7 +221,7 @@ class Parameter(CloudFormationModel):
         description: Optional[str],
         allowed_pattern: Optional[str],
         keyid: Optional[str],
-        last_modified_date: float,
+        last_modified_date: datetime.datetime,
         version: int,
         data_type: str,
         labels: Optional[list[str]] = None,
@@ -272,7 +271,7 @@ class Parameter(CloudFormationModel):
             "Type": self.parameter_type,
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
-            "LastModifiedDate": round(self.last_modified_date, 3),
+            "LastModifiedDate": self.last_modified_date,
             "DataType": self.data_type,
             "Tier": self.tier,
         }
@@ -297,7 +296,7 @@ class Parameter(CloudFormationModel):
         self, decrypt: bool = False, include_labels: bool = False
     ) -> dict[str, Any]:
         r: dict[str, Any] = self.response_object(decrypt)
-        r["LastModifiedDate"] = round(self.last_modified_date, 3)
+        r["LastModifiedDate"] = self.last_modified_date
         r["LastModifiedUser"] = "N/A"
 
         if self.description:
@@ -531,7 +530,7 @@ class Documents(BaseModel):
             "HashType": "Sha256",
             "Name": document.name,
             "Owner": document.owner,
-            "CreatedDate": document.created_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "CreatedDate": document.created_date,
             "Status": document.status,
             "DocumentVersion": document.document_version,
             "Description": document.description,
@@ -563,9 +562,7 @@ class Documents(BaseModel):
                 self.permissions.pop("all", None)
 
             new_permissions = {
-                account_id: AccountPermission(
-                    account_id, version, datetime.datetime.now()
-                )
+                account_id: AccountPermission(account_id, version, utcnow())
                 for account_id in accounts_to_add
             }
             self.permissions.update(**new_permissions)
@@ -795,12 +792,10 @@ class Command(BaseModel):
         self.account_id = account_id
 
         self.timeout_seconds = timeout_seconds or MAX_TIMEOUT_SECONDS
-        self.requested_date_time = datetime.datetime.now()
-        self.requested_date_time_iso = self.requested_date_time.isoformat()
-        expires_after = self.requested_date_time + datetime.timedelta(
+        self.requested_date_time = utcnow()
+        self.expires_after = self.requested_date_time + datetime.timedelta(
             0, self.timeout_seconds
         )
-        self.expires_after = expires_after.isoformat()
 
         self.comment = comment
         self.document_name = document_name
@@ -867,7 +862,7 @@ class Command(BaseModel):
             "OutputS3BucketName": self.output_s3_bucket_name,
             "OutputS3KeyPrefix": self.output_s3_key_prefix,
             "Parameters": self.parameters,
-            "RequestedDateTime": self.requested_date_time_iso,
+            "RequestedDateTime": self.requested_date_time,
             "ServiceRole": self.service_role_arn,
             "Status": self.status,
             "StatusDetails": self.status_details,
@@ -891,7 +886,7 @@ class Command(BaseModel):
             "DocumentName": self.document_name,
             "PluginName": plugin_name,
             "ResponseCode": 0,
-            "ExecutionStartDateTime": self.requested_date_time_iso,
+            "ExecutionStartDateTime": self.requested_date_time.isoformat(),
             "ExecutionElapsedTime": elapsed_time_iso,
             "ExecutionEndDateTime": end_time.isoformat(),
             "Status": "Success",
@@ -1646,10 +1641,12 @@ class SimpleSystemManagerBackend(BaseBackend):
             account_ids_to_add, account_ids_to_remove, shared_document_version
         )
 
-    def delete_parameter(self, name: str) -> Optional[Parameter]:
+    def delete_parameter(self, name: str) -> None:
         normalized_parameter_name = self._parameters.normalize_name(name)
+        result = self._parameters.pop(normalized_parameter_name, None)  # type: ignore
+        if result is None:
+            raise ParameterNotFound(f"Parameter {name} not found.")
         self._resource_tags.get("Parameter", {}).pop(normalized_parameter_name, None)  # type: ignore
-        return self._parameters.pop(normalized_parameter_name, None)  # type: ignore
 
     def delete_parameters(self, names: list[str]) -> list[str]:
         result = []
@@ -2297,7 +2294,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             policies = policies if policies is not None else previous_parameter.policies
         if tier is None:
             tier = self.default_parameter_tier
-        last_modified_date = time.time()
+        last_modified_date = utcnow()
         new_param = Parameter(
             account_id=self.account_id,
             name=name,

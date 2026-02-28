@@ -15,7 +15,6 @@ Incomplete list of unfinished items:
 import io
 import json
 import warnings
-from datetime import datetime, timezone
 from gzip import GzipFile
 from time import time
 from typing import Any, Optional
@@ -164,11 +163,11 @@ class DeliveryStream(BaseModel):
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
-        self.create_timestamp = datetime.now(timezone.utc).isoformat()
+        self.create_timestamp = utcnow()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        self.last_update_timestamp = utcnow()
 
 
 class FirehoseBackend(BaseBackend):
@@ -688,7 +687,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        delivery_stream.last_update_timestamp = utcnow()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon

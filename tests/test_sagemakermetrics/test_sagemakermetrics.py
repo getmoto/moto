@@ -41,7 +41,8 @@ def test_batch_put_metrics():
         describe_after_metrics["Metrics"][0]["SourceArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:experiment-trial-component/some-trial-component-name"
     )
-    assert describe_after_metrics["Metrics"][0]["TimeStamp"] == given_datetime
+    actual_ts = describe_after_metrics["Metrics"][0]["TimeStamp"]
+    assert actual_ts == given_datetime.replace(tzinfo=datetime.timezone.utc)
     assert describe_after_metrics["Metrics"][0]["Max"] == 123.0
     assert describe_after_metrics["Metrics"][0]["Min"] == 123.0
     assert describe_after_metrics["Metrics"][0]["Last"] == 123.0

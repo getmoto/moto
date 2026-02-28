@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
@@ -71,9 +72,9 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self.media_format = media_format
         self.media = media
         self.transcript: Optional[dict[str, str]] = None
-        self.start_time: Optional[str] = None
-        self.completion_time: Optional[str] = None
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.start_time: Optional[datetime] = None
+        self.completion_time: Optional[datetime] = None
+        self.creation_time = utcnow()
         self.failure_reason = None
         self.settings = settings or {
             "ChannelIdentification": False,
@@ -180,7 +181,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
             return
 
         if new_status == "IN_PROGRESS":
-            self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.start_time = utcnow()
             if not self.media_sample_rate_hertz:
                 self.media_sample_rate_hertz = 44100
             if not self.media_format:
@@ -220,9 +221,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                             }
                         )
         elif new_status == "COMPLETED":
-            self.completion_time = (datetime.now() + timedelta(seconds=10)).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            self.completion_time = utcnow() + timedelta(seconds=10)
             if self._output_bucket_name:
                 remove_json_extension = re.compile("\\.json$")
                 transcript_file_prefix = (
@@ -269,7 +268,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.language_code = language_code
         self.phrases = phrases
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.last_modified_time: Optional[str] = None
+        self.last_modified_time: Optional[datetime] = None
         self.failure_reason = None
         self.download_uri = f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/{vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
@@ -312,7 +311,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         new_status = self.status
 
         if old_status != new_status:
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.last_modified_time = utcnow()
 
 
 class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
@@ -346,9 +345,9 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         self.media_format = media_format
         self.media = media
         self.transcript: Optional[dict[str, str]] = None
-        self.start_time: Optional[str] = None
-        self.completion_time: Optional[str] = None
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.start_time: Optional[datetime] = None
+        self.completion_time: Optional[datetime] = None
+        self.creation_time = utcnow()
         self.failure_reason = None
         self.settings = settings or {
             "ChannelIdentification": False,
@@ -428,7 +427,7 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
             return
 
         if new_status == "IN_PROGRESS":
-            self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.start_time = utcnow()
             if not self.media_sample_rate_hertz:
                 self.media_sample_rate_hertz = 44100
             if not self.media_format:
@@ -437,9 +436,7 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
                     file_ext if file_ext in ["mp3", "mp4", "wav", "flac"] else "mp3"
                 )
         elif new_status == "COMPLETED":
-            self.completion_time = (datetime.now() + timedelta(seconds=10)).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            self.completion_time = utcnow() + timedelta(seconds=10)
             self.transcript = {
                 "TranscriptFileUri": f"https://s3.{self._region_name}.amazonaws.com/{self._output_bucket_name}/medical/{self.medical_transcription_job_name}.json"
             }

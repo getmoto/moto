@@ -1,9 +1,7 @@
 import json
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import default_user_config
-from moto.core.responses import BaseResponse
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import ValidationException
 from .models import StepFunctionBackend, stepfunctions_backends
@@ -28,7 +26,7 @@ class StepFunctionResponse(BaseResponse):
     def stepfunction_backend(self) -> StepFunctionBackend:
         return get_backend(self.current_account, self.region)
 
-    def create_state_machine(self) -> TYPE_RESPONSE:
+    def create_state_machine(self) -> ActionResult:
         name = self._get_param("name")
         definition = self._get_param("definition")
         roleArn = self._get_param("roleArn")
@@ -61,9 +59,9 @@ class StepFunctionResponse(BaseResponse):
         }
         if state_machine.latest_version:
             response["stateMachineVersionArn"] = state_machine.latest_version.arn
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def list_state_machines(self) -> TYPE_RESPONSE:
+    def list_state_machines(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         results, next_token = self.stepfunction_backend.list_state_machines(
@@ -78,13 +76,13 @@ class StepFunctionResponse(BaseResponse):
             for sm in results
         ]
         response = {"stateMachines": state_machines, "nextToken": next_token}
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def describe_state_machine(self) -> TYPE_RESPONSE:
+    def describe_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         return self._describe_state_machine(arn)
 
-    def _describe_state_machine(self, state_machine_arn: str) -> TYPE_RESPONSE:
+    def _describe_state_machine(self, state_machine_arn: str) -> ActionResult:
         state_machine = self.stepfunction_backend.describe_state_machine(
             state_machine_arn
         )
@@ -102,14 +100,14 @@ class StepFunctionResponse(BaseResponse):
         }
         if state_machine.description:
             response["description"] = state_machine.description
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def delete_state_machine(self) -> TYPE_RESPONSE:
+    def delete_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         self.stepfunction_backend.delete_state_machine(arn)
-        return 200, {}, json.dumps("{}")
+        return EmptyResult()
 
-    def update_state_machine(self) -> TYPE_RESPONSE:
+    def update_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         definition = self._get_param("definition")
         role_arn = self._get_param("roleArn")
@@ -137,26 +135,26 @@ class StepFunctionResponse(BaseResponse):
         response = {"updateDate": state_machine.update_date}
         if publish:
             response["stateMachineVersionArn"] = state_machine.latest_version.arn  # type: ignore
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
         response = self.stepfunction_backend.list_tags_for_resource(arn)
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
         tags = self._get_param("tags", [])
         self.stepfunction_backend.tag_resource(arn, tags)
-        return 200, {}, json.dumps({})
+        return EmptyResult()
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
         self.stepfunction_backend.untag_resource(arn, tag_keys)
-        return 200, {}, json.dumps({})
+        return EmptyResult()
 
-    def start_execution(self) -> TYPE_RESPONSE:
+    def start_execution(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         name = self._get_param("name")
         execution_input = self._get_param("input", if_none="{}")
@@ -165,11 +163,11 @@ class StepFunctionResponse(BaseResponse):
         )
         response = {
             "executionArn": execution.execution_arn,
-            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+            "startDate": execution.start_date,
         }
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def list_executions(self) -> TYPE_RESPONSE:
+    def list_executions(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         arn = self._get_param("stateMachineArn")
@@ -186,7 +184,7 @@ class StepFunctionResponse(BaseResponse):
             result = {
                 "executionArn": execution.execution_arn,
                 "name": execution.name,
-                "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+                "startDate": execution.start_date,
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
@@ -195,21 +193,19 @@ class StepFunctionResponse(BaseResponse):
                 ExecutionStatus.FAILED,
                 ExecutionStatus.ABORTED,
             ]:
-                result["stopDate"] = iso_8601_datetime_with_milliseconds(
-                    execution.stop_date
-                )
+                result["stopDate"] = execution.stop_date
             executions.append(result)
         response = {"executions": executions, "nextToken": next_token}
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def describe_execution(self) -> TYPE_RESPONSE:
+    def describe_execution(self) -> ActionResult:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.describe_execution(arn)
         response = {
             "executionArn": arn,
             "input": execution.execution_input,
             "name": execution.name,
-            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
+            "startDate": execution.start_date,
             "stateMachineArn": execution.state_machine_arn,
             "status": execution.status,
         }
@@ -218,9 +214,7 @@ class StepFunctionResponse(BaseResponse):
             ExecutionStatus.ABORTED,
             ExecutionStatus.FAILED,
         ]:
-            response["stopDate"] = iso_8601_datetime_with_milliseconds(
-                execution.stop_date
-            )
+            response["stopDate"] = execution.stop_date
         if execution.status in [
             ExecutionStatus.SUCCEEDED,
             ExecutionStatus.SUCCEEDED.value,
@@ -234,56 +228,54 @@ class StepFunctionResponse(BaseResponse):
             response["error"] = execution.error
         if execution.cause is not None:
             response["cause"] = execution.cause
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def describe_state_machine_for_execution(self) -> TYPE_RESPONSE:
+    def describe_state_machine_for_execution(self) -> ActionResult:
         arn = self._get_param("executionArn")
         sm = self.stepfunction_backend.describe_state_machine_for_execution(arn)
         return self._describe_state_machine(sm.arn)
 
-    def stop_execution(self) -> TYPE_RESPONSE:
+    def stop_execution(self) -> ActionResult:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.stop_execution(arn)
-        response = {
-            "stopDate": iso_8601_datetime_with_milliseconds(execution.stop_date)
-        }
-        return 200, {}, json.dumps(response)
+        response = {"stopDate": execution.stop_date}
+        return ActionResult(response)
 
-    def get_execution_history(self) -> TYPE_RESPONSE:
+    def get_execution_history(self) -> ActionResult:
         execution_arn = self._get_param("executionArn")
         execution_history = self.stepfunction_backend.get_execution_history(
             execution_arn
         )
-        return 200, {}, json.dumps(execution_history)
+        return ActionResult(execution_history)
 
-    def send_task_failure(self) -> TYPE_RESPONSE:
+    def send_task_failure(self) -> ActionResult:
         task_token = self._get_param("taskToken")
         error = self._get_param("error")
         self.stepfunction_backend.send_task_failure(task_token, error=error)
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def send_task_heartbeat(self) -> TYPE_RESPONSE:
+    def send_task_heartbeat(self) -> ActionResult:
         task_token = self._get_param("taskToken")
         self.stepfunction_backend.send_task_heartbeat(task_token)
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def send_task_success(self) -> TYPE_RESPONSE:
+    def send_task_success(self) -> ActionResult:
         task_token = self._get_param("taskToken")
         output = self._get_param("output")
         self.stepfunction_backend.send_task_success(task_token, output)
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def list_map_runs(self) -> TYPE_RESPONSE:
+    def list_map_runs(self) -> ActionResult:
         execution_arn = self._get_param("executionArn")
         runs = self.stepfunction_backend.list_map_runs(execution_arn)
-        return 200, {}, json.dumps(runs)
+        return ActionResult(runs)
 
-    def describe_map_run(self) -> TYPE_RESPONSE:
+    def describe_map_run(self) -> ActionResult:
         map_run_arn = self._get_param("mapRunArn")
         run = self.stepfunction_backend.describe_map_run(map_run_arn)
-        return 200, {}, json.dumps(run)
+        return ActionResult(run)
 
-    def update_map_run(self) -> TYPE_RESPONSE:
+    def update_map_run(self) -> ActionResult:
         map_run_arn = self._get_param("mapRunArn")
         max_concurrency = self._get_param("maxConcurrency")
         tolerated_failure_count = self._get_param("toleratedFailureCount")
@@ -294,9 +286,9 @@ class StepFunctionResponse(BaseResponse):
             tolerated_failure_count=tolerated_failure_count,
             tolerated_failure_percentage=tolerated_failure_percentage,
         )
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def create_activity(self) -> TYPE_RESPONSE:
+    def create_activity(self) -> ActionResult:
         name = self._get_param("name")
         tags = self._get_param("tags")
         encryption_configuration = self._get_param("encryptionConfiguration")
@@ -307,9 +299,9 @@ class StepFunctionResponse(BaseResponse):
             "creationDate": activity.creation_date,
             "activityArn": activity.arn,
         }
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def describe_activity(self) -> TYPE_RESPONSE:
+    def describe_activity(self) -> ActionResult:
         activity_arn = self._get_param("activityArn")
         activity = self.stepfunction_backend.describe_activity(activity_arn)
 
@@ -319,14 +311,14 @@ class StepFunctionResponse(BaseResponse):
             "creationDate": activity.creation_date,
             "encryptionConfiguration": activity.encryption_configuration,
         }
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)
 
-    def delete_activity(self) -> TYPE_RESPONSE:
+    def delete_activity(self) -> ActionResult:
         activity_arn = self._get_param("activityArn")
         self.stepfunction_backend.delete_activity(activity_arn)
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def list_activities(self) -> TYPE_RESPONSE:
+    def list_activities(self) -> ActionResult:
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
         results, next_token = self.stepfunction_backend.list_activities(
@@ -342,4 +334,4 @@ class StepFunctionResponse(BaseResponse):
             for activity in results
         ]
         response = {"activities": activities, "nextToken": next_token}
-        return 200, {}, json.dumps(response)
+        return ActionResult(response)

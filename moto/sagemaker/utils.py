@@ -1,7 +1,7 @@
 import json
 import typing
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 from moto.s3.models import s3_backends
@@ -92,25 +92,17 @@ def filter_model_cards(
         filtered_versions = versions
 
         if creation_time_after:
-            if isinstance(creation_time_after, int):
-                creation_time_after = datetime.fromtimestamp(
-                    creation_time_after, tz=timezone.utc
-                )
             filtered_versions = [
                 v
                 for v in filtered_versions
-                if v.last_modified_time > str(creation_time_after)
+                if v.last_modified_time > creation_time_after
             ]
 
         if creation_time_before:
-            if isinstance(creation_time_before, int):
-                creation_time_before = datetime.fromtimestamp(
-                    creation_time_before, tz=timezone.utc
-                )
             filtered_versions = [
                 v
                 for v in filtered_versions
-                if v.last_modified_time < str(creation_time_before)
+                if v.last_modified_time < creation_time_before
             ]
 
         if model_card_status:
@@ -125,7 +117,7 @@ def filter_model_cards(
     if not result:
         return []
 
-    def sort_key(x: "FakeModelCard") -> str:
+    def sort_key(x: "FakeModelCard") -> Any:
         if sort_by == "Name":
             return x.model_card_name
         return x.creation_time

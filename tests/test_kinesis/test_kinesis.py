@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta, timezone
 
 import boto3
@@ -6,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -407,6 +406,9 @@ def test_get_records_latest():
     assert resp["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_at_timestamp():
     # AT_TIMESTAMP - Read the first record at or after the specified timestamp
@@ -415,22 +417,18 @@ def test_get_records_at_timestamp():
     conn.create_stream(StreamName=stream_name, ShardCount=1)
 
     # Create some data
-    for index in range(1, 5):
-        conn.put_record(
-            StreamName=stream_name, Data=str(index), PartitionKey=str(index)
-        )
+    with freeze_time("2024-01-01 00:00:00"):
+        for index in range(1, 5):
+            conn.put_record(
+                StreamName=stream_name, Data=str(index), PartitionKey=str(index)
+            )
 
-    # When boto3 floors the timestamp that we pass to get_shard_iterator to
-    # second precision even though AWS supports ms precision:
-    # http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html
-    # To test around this limitation we wait until we well into the next second
-    # before capturing the time and storing the records we expect to retrieve.
-    time.sleep(1.0)
-    timestamp = utcnow()
+    timestamp = datetime(2024, 1, 1, 0, 0, 1, tzinfo=timezone.utc)
 
-    keys = [str(i) for i in range(5, 10)]
-    for k in keys:
-        conn.put_record(StreamName=stream_name, Data=k, PartitionKey=k)
+    with freeze_time("2024-01-01 00:00:02"):
+        keys = [str(i) for i in range(5, 10)]
+        for k in keys:
+            conn.put_record(StreamName=stream_name, Data=k, PartitionKey=k)
 
     # Get a shard iterator
     response = conn.describe_stream(StreamName=stream_name)
@@ -480,19 +478,22 @@ def test_get_records_at_very_old_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_timestamp_filtering():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
 
-    conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
+    with freeze_time("2024-01-01 00:00:00"):
+        conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
 
-    time.sleep(1.0)
-    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
-    timestamp = datetime.now(tz=tzlocal)
+    timestamp = datetime(2024, 1, 1, 0, 0, 1, tzinfo=timezone.utc)
 
-    conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
+    with freeze_time("2024-01-01 00:00:02"):
+        conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
 
     response = conn.describe_stream(StreamName=stream_name)
     shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
@@ -511,15 +512,19 @@ def test_get_records_timestamp_filtering():
     assert response["MillisBehindLatest"] == 0
 
 
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
 @mock_aws
 def test_get_records_millis_behind_latest():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
 
-    conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
-    time.sleep(1.0)
-    conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
+    with freeze_time("2024-01-01 00:00:00"):
+        conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
+    with freeze_time("2024-01-01 00:00:01"):
+        conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
 
     response = conn.describe_stream(StreamName=stream_name)
     shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
@@ -530,7 +535,7 @@ def test_get_records_millis_behind_latest():
 
     response = conn.get_records(ShardIterator=shard_iterator, Limit=1)
     assert len(response["Records"]) == 1
-    assert response["MillisBehindLatest"] > 0
+    assert response["MillisBehindLatest"] == 1000
 
 
 @mock_aws

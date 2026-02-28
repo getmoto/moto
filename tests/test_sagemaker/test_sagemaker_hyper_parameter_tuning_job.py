@@ -78,14 +78,15 @@ def test_describe_hyper_parameter_tuning_job_defaults():
         "Pending": 0,
         "Succeeded": 1,
     }
-    assert resp["BestTrainingJob"] == {
+    best_job = resp["BestTrainingJob"]
+    assert isinstance(best_job.pop("CreationTime"), datetime.datetime)
+    assert isinstance(best_job.pop("TrainingStartTime"), datetime.datetime)
+    assert isinstance(best_job.pop("TrainingEndTime"), datetime.datetime)
+    assert best_job == {
         "TrainingJobDefinitionName": "string",
         "TrainingJobName": "FakeTrainingJobName",
         "TrainingJobArn": "FakeTrainingJobArn",
         "TuningJobName": "FakeTuningJobName",
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "TrainingStartTime": datetime.datetime(2024, 1, 1),
-        "TrainingEndTime": datetime.datetime(2024, 1, 1),
         "TrainingJobStatus": "Completed",
         "TunedHyperParameters": {"string": "TunedHyperParameters"},
         "FailureReason": "string",
@@ -96,14 +97,15 @@ def test_describe_hyper_parameter_tuning_job_defaults():
         },
         "ObjectiveStatus": "Succeeded",
     }
-    assert resp["OverallBestTrainingJob"] == {
+    overall_best = resp["OverallBestTrainingJob"]
+    assert isinstance(overall_best.pop("CreationTime"), datetime.datetime)
+    assert isinstance(overall_best.pop("TrainingStartTime"), datetime.datetime)
+    assert isinstance(overall_best.pop("TrainingEndTime"), datetime.datetime)
+    assert overall_best == {
         "TrainingJobDefinitionName": "FakeTrainingJobDefinitionName",
         "TrainingJobName": "FakeTrainingJobName",
         "TrainingJobArn": "FakeTrainingJobArn",
         "TuningJobName": "FakeTuningJobName",
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "TrainingStartTime": datetime.datetime(2024, 1, 1),
-        "TrainingEndTime": datetime.datetime(2024, 1, 1),
         "TrainingJobStatus": "Completed",
         "TunedHyperParameters": {"string": "FakeTunedHyperParameters"},
         "FailureReason": "FakeFailureReason",
@@ -115,9 +117,12 @@ def test_describe_hyper_parameter_tuning_job_defaults():
         "ObjectiveStatus": "Succeeded",
     }
     assert resp["FailureReason"] == ""
-    assert resp["TuningJobCompletionDetails"] == {
+    completion_details = resp["TuningJobCompletionDetails"]
+    assert isinstance(
+        completion_details.pop("ConvergenceDetectedTime"), datetime.datetime
+    )
+    assert completion_details == {
         "NumberOfTrainingJobsObjectiveNotImproving": 123,
-        "ConvergenceDetectedTime": datetime.datetime(2024, 1, 1),
     }
     assert resp["ConsumedResources"] == {"RuntimeInSeconds": 123}
 
@@ -734,14 +739,15 @@ def test_describe_hyper_parameter_tuning_job():
         "Pending": 0,
         "Succeeded": 1,
     }
-    assert resp["BestTrainingJob"] == {
+    best_job = resp["BestTrainingJob"]
+    assert isinstance(best_job.pop("CreationTime"), datetime.datetime)
+    assert isinstance(best_job.pop("TrainingStartTime"), datetime.datetime)
+    assert isinstance(best_job.pop("TrainingEndTime"), datetime.datetime)
+    assert best_job == {
         "TrainingJobDefinitionName": "string",
         "TrainingJobName": "FakeTrainingJobName",
         "TrainingJobArn": "FakeTrainingJobArn",
         "TuningJobName": "FakeTuningJobName",
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "TrainingStartTime": datetime.datetime(2024, 1, 1),
-        "TrainingEndTime": datetime.datetime(2024, 1, 1),
         "TrainingJobStatus": "Completed",
         "TunedHyperParameters": {"string": "TunedHyperParameters"},
         "FailureReason": "string",
@@ -752,14 +758,15 @@ def test_describe_hyper_parameter_tuning_job():
         },
         "ObjectiveStatus": "Succeeded",
     }
-    assert resp["OverallBestTrainingJob"] == {
+    overall_best = resp["OverallBestTrainingJob"]
+    assert isinstance(overall_best.pop("CreationTime"), datetime.datetime)
+    assert isinstance(overall_best.pop("TrainingStartTime"), datetime.datetime)
+    assert isinstance(overall_best.pop("TrainingEndTime"), datetime.datetime)
+    assert overall_best == {
         "TrainingJobDefinitionName": "FakeTrainingJobDefinitionName",
         "TrainingJobName": "FakeTrainingJobName",
         "TrainingJobArn": "FakeTrainingJobArn",
         "TuningJobName": "FakeTuningJobName",
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "TrainingStartTime": datetime.datetime(2024, 1, 1),
-        "TrainingEndTime": datetime.datetime(2024, 1, 1),
         "TrainingJobStatus": "Completed",
         "TunedHyperParameters": {"string": "FakeTunedHyperParameters"},
         "FailureReason": "FakeFailureReason",
@@ -778,9 +785,12 @@ def test_describe_hyper_parameter_tuning_job():
     }
     assert resp["Autotune"] == {"Mode": "Enabled"}
     assert resp["FailureReason"] == ""
-    assert resp["TuningJobCompletionDetails"] == {
+    completion_details = resp["TuningJobCompletionDetails"]
+    assert isinstance(
+        completion_details.pop("ConvergenceDetectedTime"), datetime.datetime
+    )
+    assert completion_details == {
         "NumberOfTrainingJobsObjectiveNotImproving": 123,
-        "ConvergenceDetectedTime": datetime.datetime(2024, 1, 1),
     }
     assert resp["ConsumedResources"] == {"RuntimeInSeconds": 123}
 
