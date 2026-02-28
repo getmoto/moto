@@ -393,6 +393,36 @@ def test_list_tags_for_resource():
 
 
 @mock_aws
+def test_tag_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    resource_arn = "arn:aws:athena:us-east-1:123456789012:workgroup/athena_workgroup"
+
+    client.tag_resource(ResourceARN=resource_arn, Tags=tags)
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    client.create_work_group(
+        Name="athena_workgroup",
+        Description="Test work group",
+        Configuration={
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/"}
+        },
+        Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}],
+    )
+    resource_arn = "arn:aws:athena:us-east-1:123456789012:workgroup/athena_workgroup"
+
+    client.untag_resource(ResourceARN=resource_arn, TagKeys=["key1"])
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == [{"Key": "key2", "Value": "value2"}]
+
+
+@mock_aws
 def test_list_tags_for_resource_not_found():
     client = boto3.client("athena", region_name="us-east-1")
     nonexistent_resource_arn = "NONEXISTENTRESOURCEARN"
