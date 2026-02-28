@@ -157,8 +157,8 @@ def test_datetime_with_microseconds() -> None:
     assert time_str[-1] == "Z"
 
 
-def test_unixtimestamp_preserves_microsecond_precision() -> None:
-    """Verify that unixtimestamp serialization preserves microsecond precision."""
+def test_unixtimestamp_truncates_to_millisecond_precision() -> None:
+    """Verify that unixtimestamp serialization truncates to millisecond precision."""
     model = {
         "metadata": {"protocol": "json", "apiVersion": "2014-01-01"},
         "documentation": "",
@@ -196,9 +196,9 @@ def test_unixtimestamp_preserves_microsecond_precision() -> None:
     body = json.loads(serialized["body"])
     timestamp = body["Timestamp"]
 
-    # Microsecond precision: 123456 µs = 0.123456 s
+    # Millisecond precision: 123456 µs truncated to 123 ms = 0.123 s
     fractional = timestamp - int(timestamp)
-    assert abs(fractional - 0.123456) < 1e-6
+    assert abs(fractional - 0.123) < 1e-6
 
 
 def test_pretty_print_with_short_elements_and_list() -> None:
