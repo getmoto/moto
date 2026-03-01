@@ -1332,6 +1332,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-central-1a"
  },
@@ -2201,6 +2205,54 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.24xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.48xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.metal-24xl",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.metal-48xl",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "m8a.xlarge",
   "Location": "eu-central-1a"
  },
  {
@@ -5340,6 +5392,10 @@
   "Location": "eu-central-1b"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-central-1b"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-central-1b"
  },
@@ -6209,6 +6265,54 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.16xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.24xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.48xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.large",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.medium",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.metal-24xl",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.metal-48xl",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "m8a.xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -9209,6 +9313,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "eu-central-1c"
  },
  {

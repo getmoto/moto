@@ -1216,6 +1216,10 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -4609,6 +4613,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "ap-southeast-2b"
  },
  {
@@ -8045,6 +8053,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "ap-southeast-2c"
  },
  {

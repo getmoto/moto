@@ -976,6 +976,10 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-south-2"
  },
