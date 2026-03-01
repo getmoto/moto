@@ -1416,6 +1416,10 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "apne1-az1"
  },
@@ -5044,6 +5048,10 @@
   "Location": "apne1-az2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "apne1-az2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "apne1-az2"
  },
@@ -8649,6 +8657,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "apne1-az4"
  },
  {
