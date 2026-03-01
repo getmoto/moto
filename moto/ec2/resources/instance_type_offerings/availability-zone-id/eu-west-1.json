@@ -1352,6 +1352,10 @@
   "Location": "euw1-az1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "euw1-az1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "euw1-az1"
  },
@@ -3029,6 +3033,54 @@
  },
  {
   "InstanceType": "r7iz.xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.12xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.16xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.24xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.2xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.48xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.4xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.8xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.large",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.medium",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.metal-24xl",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.metal-48xl",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r8a.xlarge",
   "Location": "euw1-az1"
  },
  {
@@ -4784,6 +4836,10 @@
   "Location": "euw1-az2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "euw1-az2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "euw1-az2"
  },
@@ -6480,6 +6536,54 @@
   "Location": "euw1-az2"
  },
  {
+  "InstanceType": "r8a.12xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.16xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.24xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.2xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.48xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.4xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.8xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.large",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.medium",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.metal-24xl",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.metal-48xl",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r8a.xlarge",
+  "Location": "euw1-az2"
+ },
+ {
   "InstanceType": "r8g.12xlarge",
   "Location": "euw1-az2"
  },
@@ -8165,6 +8269,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "euw1-az3"
  },
  {

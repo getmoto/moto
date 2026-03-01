@@ -1188,6 +1188,10 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "ap-southeast-1"
  },

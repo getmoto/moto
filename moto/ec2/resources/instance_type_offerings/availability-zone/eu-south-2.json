@@ -944,6 +944,10 @@
   "Location": "eu-south-2a"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-south-2a"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-south-2a"
  },
@@ -3396,6 +3400,10 @@
   "Location": "eu-south-2b"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-south-2b"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-south-2b"
  },
@@ -5769,6 +5777,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "eu-south-2c"
  },
  {

@@ -1464,6 +1464,10 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "ap-northeast-1"
  },
