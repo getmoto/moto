@@ -2,8 +2,9 @@ import enum
 import re
 import time
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
+from cryptography.hazmat.primitives.twofactor import InvalidToken
 from joserfc import jwk, jwt
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -15,10 +16,12 @@ from moto.utilities.utils import get_partition, load_resource, md5_hash
 
 from ..settings import (
     get_cognito_idp_user_pool_client_id_strategy,
+    get_cognito_idp_user_pool_enable_totp,
     get_cognito_idp_user_pool_id_strategy,
 )
 from .exceptions import (
     AliasExistsException,
+    CodeMismatchException,
     ExpiredCodeException,
     GroupExistsException,
     InvalidParameterException,
@@ -38,6 +41,9 @@ from .utils import (
     generate_id,
     validate_username_format,
 )
+
+# FIXME: Should be per user and stored in the user's profile
+COGNITO_TOTP_MFA_SECRET: Final[str] = "asdfasdfasdf"
 
 
 class UserStatus(str, enum.Enum):
@@ -971,8 +977,12 @@ class CognitoIdpBackend(BaseBackend):
     In some cases, you need to have reproducible IDs for the user pool.
     For example, a single initialization before the start of integration tests.
 
-    This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
-    Passing MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH enables the same logic for user pool clients.
+    This behavior can be enabled by passing the environment variable: `MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH`.
+    Passing `MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH` enables the same logic for user pool clients.
+
+    Support for MFA TOTP can be enabled by setting `MOTO_COGNITO_IDP_USER_POOL_ENABLE_TOTP=true`.
+    Moto will validate the TOTP MFA provided by the user when registering MFA or subsequently authenticating.
+    At this time, Moto uses a single fixed secret across all users.
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1721,6 +1731,16 @@ class CognitoIdpBackend(BaseBackend):
                 ):
                     raise NotAuthorizedError(secret_hash)
 
+            if (
+                challenge_name == "SOFTWARE_TOKEN_MFA"
+                and get_cognito_idp_user_pool_enable_totp()
+            ):
+                totp = cognito_totp(COGNITO_TOTP_MFA_SECRET)
+                try:
+                    totp.verify(mfa_code.encode("utf-8"), int(time.time()))
+                except InvalidToken:
+                    raise CodeMismatchException("MFA Code Mismatch")
+
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
 
@@ -2174,7 +2194,7 @@ class CognitoIdpBackend(BaseBackend):
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
-        secret_code = "asdfasdfasdf"
+        secret_code = COGNITO_TOTP_MFA_SECRET
         if session:
             if session in self.sessions:
                 return {"SecretCode": secret_code, "Session": session}
@@ -2190,12 +2210,9 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError(access_token)
 
     def verify_software_token(
-        self, access_token: str, session: str, user_code: str
+        self, access_token: str, session: str, user_code: str, friendly_device_name: str
     ) -> dict[str, str]:
-        """
-        The parameter UserCode has not yet been implemented
-        """
-        totp = cognito_totp("asdfasdfasdf")
+        totp = cognito_totp(COGNITO_TOTP_MFA_SECRET)
         if session:
             if session not in self.sessions:
                 raise ResourceNotFoundError(session)
@@ -2203,7 +2220,13 @@ class CognitoIdpBackend(BaseBackend):
             username, user_pool = self.sessions[session]
             user = self.admin_get_user(user_pool.id, username)
 
-            totp.verify(user_code.encode("utf-8"), int(time.time()))
+            if get_cognito_idp_user_pool_enable_totp():
+                try:
+                    totp.verify(user_code.encode("utf-8"), int(time.time()))
+                except InvalidToken:
+                    raise CodeMismatchException(
+                        f"Code mismatch ({friendly_device_name})"
+                    )
 
             user.token_verified = True
 
@@ -2216,7 +2239,13 @@ class CognitoIdpBackend(BaseBackend):
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
-                totp.verify(user_code.encode("utf-8"), int(time.time()))
+                if get_cognito_idp_user_pool_enable_totp():
+                    try:
+                        totp.verify(user_code.encode("utf-8"), int(time.time()))
+                    except InvalidToken:
+                        raise CodeMismatchException(
+                            f"Code mismatch ({friendly_device_name})"
+                        )
 
                 user.token_verified = True
 
@@ -2464,10 +2493,16 @@ class RegionAgnosticBackend:
         return backend.associate_software_token(access_token, session)
 
     def verify_software_token(
-        self, access_token: str, session: str, user_code: str
+        self,
+        access_token: str,
+        session: str,
+        user_code: str,
+        friendly_device_name: str,
     ) -> dict[str, str]:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
-        return backend.verify_software_token(access_token, session, user_code)
+        return backend.verify_software_token(
+            access_token, session, user_code, friendly_device_name
+        )
 
     def set_user_mfa_preference(
         self,
