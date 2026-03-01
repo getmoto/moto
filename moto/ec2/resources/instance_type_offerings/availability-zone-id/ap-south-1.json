@@ -1080,6 +1080,10 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "aps1-az1"
  },
@@ -3752,6 +3756,10 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "aps1-az2"
  },
@@ -6353,6 +6361,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "aps1-az3"
  },
  {

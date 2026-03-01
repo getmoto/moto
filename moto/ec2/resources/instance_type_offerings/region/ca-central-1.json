@@ -1208,6 +1208,10 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "ca-central-1"
  },
