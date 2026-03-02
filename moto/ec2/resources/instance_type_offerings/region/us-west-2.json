@@ -1672,6 +1672,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "us-west-2"
  },

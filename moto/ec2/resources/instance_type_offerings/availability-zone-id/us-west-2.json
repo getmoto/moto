@@ -1644,6 +1644,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "usw2-az1"
  },
@@ -6232,6 +6236,10 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "usw2-az2"
  },
@@ -10784,6 +10792,10 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "usw2-az3"
  },
@@ -15089,6 +15101,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "usw2-az4"
  },
  {

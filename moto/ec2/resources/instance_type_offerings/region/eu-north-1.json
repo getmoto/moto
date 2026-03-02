@@ -1012,6 +1012,10 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "eu-north-1"
  },
