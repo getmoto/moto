@@ -131,9 +131,7 @@ class Fleet(TaggedEC2Resource):
         if self.spot_target_capacity > 0:
             self.create_spot_requests(self.spot_target_capacity)
         self.on_demand_target_capacity = int(
-            target_capacity_specification.get(
-                "OnDemandTargetCapacity", self.target_capacity
-            )
+            target_capacity_specification.get("OnDemandTargetCapacity", 0)
         )
         if self.on_demand_target_capacity > 0:
             self.create_on_demand_requests(self.on_demand_target_capacity)
@@ -267,15 +265,14 @@ class Fleet(TaggedEC2Resource):
                 tags=launch_spec.tag_specifications,
             )
 
-            # get the instance from the reservation
-            instance = reservation.instances[0]
-            self.on_demand_instances.append(
-                {
-                    "id": reservation.id,
-                    "instance": instance,
-                    "launch_spec": launch_spec,
-                }
-            )
+            for instance in reservation.instances:
+                self.on_demand_instances.append(
+                    {
+                        "id": reservation.id,
+                        "instance": instance,
+                        "launch_spec": launch_spec,
+                    }
+                )
         self.fulfilled_capacity += added_weight
 
     def get_launch_spec_counts(
