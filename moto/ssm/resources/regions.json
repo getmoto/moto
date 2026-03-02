@@ -3927,6 +3927,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -5163,6 +5172,15 @@
               },
               "bedrock-agentcore": {
                 "Value": "bedrock-agentcore"
+              },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
@@ -25665,6 +25683,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mediaconvert": {
+                "Value": "mediaconvert",
+                "endpoint": {
+                  "Value": "mediaconvert.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "medialive": {
                 "Value": "medialive",
                 "endpoint": {
@@ -26467,6 +26494,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -27068,6 +27104,15 @@
                 "Value": "sagemaker-metrics",
                 "endpoint": {
                   "Value": "metrics.sagemaker.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47475,6 +47520,12 @@
                   "Value": "observabilityadmin.eu-west-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-west-1.amazonaws.com"
+                }
+              },
               "omics": {
                 "Value": "omics"
               },
@@ -54275,6 +54326,15 @@
                 "Value": "sagemaker-metrics",
                 "endpoint": {
                   "Value": "metrics.sagemaker.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66670,6 +66730,15 @@
               },
               "bedrock-agentcore": {
                 "Value": "bedrock-agentcore"
+              },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
