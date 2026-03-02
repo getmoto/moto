@@ -114,6 +114,131 @@ def test_create_fleet_dryrun(ec2_client=None):
         assert len(instances_res["Reservations"]) == reservations_before
 
 
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+@pytest.mark.parametrize(
+    ["target_capacity_specification", "expected_on_demand", "expected_spot"],
+    [
+        pytest.param(
+            {"TotalTargetCapacity": 2, "DefaultTargetCapacityType": "on-demand"},
+            2,
+            0,
+            id="default-on-demand-only",
+        ),
+        pytest.param(
+            {"TotalTargetCapacity": 2, "DefaultTargetCapacityType": "spot"},
+            0,
+            2,
+            id="default-spot-only",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 2,
+                "OnDemandTargetCapacity": 2,
+                "SpotTargetCapacity": 0,
+                "DefaultTargetCapacityType": "on-demand",
+            },
+            2,
+            0,
+            id="explicit-on-demand-only",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 2,
+                "OnDemandTargetCapacity": 0,
+                "SpotTargetCapacity": 2,
+                "DefaultTargetCapacityType": "spot",
+            },
+            0,
+            2,
+            id="explicit-spot-only",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 2,
+                "OnDemandTargetCapacity": 1,
+                "SpotTargetCapacity": 1,
+                "DefaultTargetCapacityType": "on-demand",
+            },
+            1,
+            1,
+            id="explicit-mixed-default-on-demand",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 2,
+                "OnDemandTargetCapacity": 1,
+                "SpotTargetCapacity": 1,
+                "DefaultTargetCapacityType": "spot",
+            },
+            1,
+            1,
+            id="explicit-mixed-default-spot",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 3,
+                "OnDemandTargetCapacity": 1,
+                "DefaultTargetCapacityType": "spot",
+            },
+            1,
+            2,
+            id="partial-on-demand-remainder-to-spot",
+        ),
+        pytest.param(
+            {
+                "TotalTargetCapacity": 3,
+                "SpotTargetCapacity": 1,
+                "DefaultTargetCapacityType": "on-demand",
+            },
+            2,
+            1,
+            id="partial-spot-remainder-to-on-demand",
+        ),
+    ],
+)
+def test_create_instant_fleet_target_capacity_combinations(
+    target_capacity_specification,
+    expected_on_demand,
+    expected_spot,
+    ec2_client=None,
+):
+    with launch_template_context(region=ec2_client.meta.region_name) as ctxt:
+        fleet_res = ctxt.ec2.create_fleet(
+            LaunchTemplateConfigs=[
+                {
+                    "LaunchTemplateSpecification": {
+                        "LaunchTemplateId": ctxt.lt_id,
+                        "Version": "1",
+                    },
+                },
+            ],
+            TargetCapacitySpecification=target_capacity_specification,
+            Type="instant",
+        )
+        fleet_id = fleet_res["FleetId"]
+        instances = fleet_res.get("Instances", [])
+
+        on_demand_ids = [
+            iid
+            for entry in instances
+            if entry.get("Lifecycle") == "on-demand"
+            for iid in entry.get("InstanceIds", [])
+        ]
+        spot_ids = [
+            iid
+            for entry in instances
+            if entry.get("Lifecycle") == "spot"
+            for iid in entry.get("InstanceIds", [])
+        ]
+
+        try:
+            assert len(on_demand_ids) == expected_on_demand
+            assert len(spot_ids) == expected_spot
+        finally:
+            ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
+
+
 @mock_aws
 def test_create_spot_fleet_with_lowest_price():
     conn = boto3.client("ec2", region_name="us-west-2")
