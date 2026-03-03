@@ -862,7 +862,7 @@ class GlueResponse(BaseResponse):
     def delete_dev_endpoint(self) -> ActionResult:
         endpoint_name = self._get_param("EndpointName")
         self.glue_backend.delete_dev_endpoint(endpoint_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_connection(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId")
@@ -920,7 +920,7 @@ class GlueResponse(BaseResponse):
             data_catalog_encryption_settings=data_catalog_encryption_settings,
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def get_data_catalog_encryption_settings(self) -> ActionResult:
         params = self.parameters
@@ -1079,7 +1079,7 @@ class GlueResponse(BaseResponse):
         run_id = self._get_param("RunId")
 
         self.glue_backend.stop_workflow_run(workflow_name, run_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_workflow_run_properties(self) -> ActionResult:
         workflow_name = self._get_param("Name")
@@ -1098,7 +1098,7 @@ class GlueResponse(BaseResponse):
         self.glue_backend.put_workflow_run_properties(
             workflow_name, run_id, run_properties
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def create_security_configuration(self) -> ActionResult:
         name = self._get_param("Name")
