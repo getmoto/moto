@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult
+from moto.core.responses import ActionResult, EmptyResult
 
 from ._base_response import EC2BaseResponse
 
@@ -18,7 +18,7 @@ class CustomerGateways(EC2BaseResponse):
     def delete_customer_gateway(self) -> ActionResult:
         customer_gateway_id = self._get_param("CustomerGatewayId")
         self.ec2_backend.delete_customer_gateway(customer_gateway_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_customer_gateways(self) -> ActionResult:
         self.error_on_dryrun()

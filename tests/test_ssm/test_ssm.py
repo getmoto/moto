@@ -2046,7 +2046,7 @@ def test_send_command():
 
     client = boto3.client("ssm", region_name=SSM_REGION)
     # note the timeout is determined server side, so this is a simpler check.
-    before = datetime.datetime.now()
+    before = datetime.datetime.now(datetime.timezone.utc)
 
     response = client.send_command(
         Comment="some comment",

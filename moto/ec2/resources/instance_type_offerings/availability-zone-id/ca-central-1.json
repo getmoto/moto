@@ -1196,6 +1196,10 @@
   "Location": "cac1-az1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "cac1-az1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "cac1-az1"
  },
@@ -1901,6 +1905,34 @@
  },
  {
   "InstanceType": "m8gd.xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "cac1-az1"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
   "Location": "cac1-az1"
  },
  {
@@ -3976,6 +4008,10 @@
   "Location": "cac1-az2"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "cac1-az2"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "cac1-az2"
  },
@@ -4681,6 +4717,34 @@
  },
  {
   "InstanceType": "m8gd.xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "cac1-az2"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
   "Location": "cac1-az2"
  },
  {
@@ -6560,6 +6624,10 @@
   "Location": "cac1-az4"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "cac1-az4"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "cac1-az4"
  },
@@ -7193,6 +7261,34 @@
  },
  {
   "InstanceType": "m8gd.xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "cac1-az4"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
   "Location": "cac1-az4"
  },
  {

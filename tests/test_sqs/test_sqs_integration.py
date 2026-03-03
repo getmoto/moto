@@ -80,7 +80,9 @@ def test_invoke_fake_function_from_sqs_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue_name = str(uuid.uuid4())[0:6]
     queue = sqs.create_queue(QueueName=queue_name)
-
+    queue.set_attributes(
+        Attributes={"ReceiveMessageWaitTimeSeconds": "2"}  # Coverage for Moto #9759
+    )
     fn_name = str(uuid.uuid4())[0:6]
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
@@ -119,7 +121,11 @@ def test_invoke_function_from_sqs_fifo_queue():
     queue_name = str(uuid.uuid4())[0:6] + ".fifo"
     queue = sqs.create_queue(
         QueueName=queue_name,
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+            "ReceiveMessageWaitTimeSeconds": "2",  # Coverage for Moto #9759
+        },
     )
 
     fn_name = str(uuid.uuid4())[0:6]
