@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, BaseResponse, PaginatedResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .exceptions import (
     InvalidParameterCombinationException,
@@ -187,13 +187,13 @@ class ElastiCacheResponse(BaseResponse):
         arn = self._get_param("ResourceName")
         tags = self._get_param("Tags", [])
         self.elasticache_backend.add_tags_to_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_tags_from_resource(self) -> ActionResult:
         arn = self._get_param("ResourceName")
         tags = self._get_param("TagKeys", [])
         self.elasticache_backend.remove_tags_from_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_cache_subnet_group(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")

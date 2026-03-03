@@ -2,7 +2,7 @@ from typing import Any
 from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import IoTBackend, iot_backends
 
@@ -120,12 +120,12 @@ class IoTResponse(BaseResponse):
     def delete_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         self.iot_backend.delete_thing(thing_name=thing_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_thing_type(self) -> ActionResult:
         thing_type_name = self._get_param("thingTypeName")
         self.iot_backend.delete_thing_type(thing_type_name=thing_type_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def deprecate_thing_type(self) -> ActionResult:
         thing_type_name = self._get_param("thingTypeName")
@@ -146,7 +146,7 @@ class IoTResponse(BaseResponse):
             attribute_payload=attribute_payload,
             remove_thing_type=remove_thing_type,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def create_job(self) -> ActionResult:
         job_arn, job_id, description = self.iot_backend.create_job(
@@ -205,7 +205,7 @@ class IoTResponse(BaseResponse):
 
         self.iot_backend.delete_job(job_id=job_id, force=force)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def cancel_job(self) -> ActionResult:
         job_id = self._get_param("jobId")
@@ -260,7 +260,7 @@ class IoTResponse(BaseResponse):
             job_id=job_id, thing_name=thing_name, force=force
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_job_execution(self) -> ActionResult:
         job_id = self._get_param("jobId")
@@ -275,7 +275,7 @@ class IoTResponse(BaseResponse):
             force=force,
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_job_executions_for_job(self) -> ActionResult:
         job_id = self._get_param("jobId")
@@ -333,13 +333,13 @@ class IoTResponse(BaseResponse):
     def delete_ca_certificate(self) -> ActionResult:
         certificate_id = self.path.split("/")[-1]
         self.iot_backend.delete_ca_certificate(certificate_id=certificate_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_certificate(self) -> ActionResult:
         certificate_id = self._get_param("certificateId")
         force_delete = self._get_bool_param("forceDelete", False)
         self.iot_backend.delete_certificate(certificate_id, force_delete)
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_ca_certificate(self) -> ActionResult:
         certificate_id = self.path.split("/")[-1]
@@ -426,7 +426,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.update_ca_certificate(
             certificate_id=certificate_id, new_status=new_status, config=config
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def update_certificate(self) -> ActionResult:
         certificate_id = self._get_param("certificateId")
@@ -434,7 +434,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.update_certificate(
             certificate_id=certificate_id, new_status=new_status
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def create_policy(self) -> ActionResult:
         policy_name = self._get_param("policyName")
@@ -457,7 +457,7 @@ class IoTResponse(BaseResponse):
     def delete_policy(self) -> ActionResult:
         policy_name = self._get_param("policyName")
         self.iot_backend.delete_policy(policy_name=policy_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_policy_version(self) -> ActionResult:
         policy_name = self._get_param("policyName")
@@ -474,7 +474,7 @@ class IoTResponse(BaseResponse):
         version_id = self._get_param("policyVersionId")
         self.iot_backend.set_default_policy_version(policy_name, version_id)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def get_policy_version(self) -> ActionResult:
         policy_name = self._get_param("policyName")
@@ -495,13 +495,13 @@ class IoTResponse(BaseResponse):
         version_id = self._get_param("policyVersionId")
         self.iot_backend.delete_policy_version(policy_name, version_id)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def attach_policy(self) -> ActionResult:
         policy_name = self._get_param("policyName")
         target = self._get_param("target")
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
-        return ActionResult({})
+        return EmptyResult()
 
     @staticmethod
     def dispatch_attached_policies(  # type: ignore
@@ -531,13 +531,13 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_principal_policy(
             policy_name=policy_name, principal_arn=principal
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_policy(self) -> ActionResult:
         policy_name = self._get_param("policyName")
         target = self._get_param("target")
         self.iot_backend.detach_policy(policy_name=policy_name, target=target)
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_principal_policy(self) -> ActionResult:
         policy_name = self._get_param("policyName")
@@ -545,7 +545,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.detach_principal_policy(
             policy_name=policy_name, principal_arn=principal
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def list_principal_policies(self) -> ActionResult:
         principal = self.headers.get("x-amzn-iot-principal")
@@ -569,7 +569,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_thing_principal(
             thing_name=thing_name, principal_arn=principal
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_thing_principal(self) -> ActionResult:
         thing_name = self._get_param("thingName")
@@ -577,7 +577,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.detach_thing_principal(
             thing_name=thing_name, principal_arn=principal
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def list_principal_things(self) -> ActionResult:
         next_token = self._get_param("nextToken")
@@ -638,7 +638,7 @@ class IoTResponse(BaseResponse):
     def delete_thing_group(self) -> ActionResult:
         thing_group_name = unquote(self.path.split("/thing-groups/")[-1])
         self.iot_backend.delete_thing_group(thing_group_name=thing_group_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_thing_groups(self) -> ActionResult:
         # next_token = self._get_param("nextToken")
@@ -680,7 +680,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_thing_from_thing_group(self) -> ActionResult:
         thing_group_name = self._get_param("thingGroupName")
@@ -693,7 +693,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def list_things_in_thing_group(self) -> ActionResult:
         thing_group_name = self._get_param("thingGroupName")
@@ -723,7 +723,7 @@ class IoTResponse(BaseResponse):
             thing_groups_to_add=thing_groups_to_add,
             thing_groups_to_remove=thing_groups_to_remove,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def list_topic_rules(self) -> ActionResult:
         return ActionResult({"rules": self.iot_backend.list_topic_rules()})
@@ -743,7 +743,7 @@ class IoTResponse(BaseResponse):
             sql=self._get_param("sql"),
             aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def replace_topic_rule(self) -> ActionResult:
         self.iot_backend.replace_topic_rule(
@@ -755,19 +755,19 @@ class IoTResponse(BaseResponse):
             sql=self._get_param("sql"),
             aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_topic_rule(self) -> ActionResult:
         self.iot_backend.delete_topic_rule(rule_name=self._get_param("ruleName"))
-        return ActionResult({})
+        return EmptyResult()
 
     def enable_topic_rule(self) -> ActionResult:
         self.iot_backend.enable_topic_rule(rule_name=self._get_param("ruleName"))
-        return ActionResult({})
+        return EmptyResult()
 
     def disable_topic_rule(self) -> ActionResult:
         self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
-        return ActionResult({})
+        return EmptyResult()
 
     def create_domain_configuration(self) -> ActionResult:
         domain_configuration = self.iot_backend.create_domain_configuration(
@@ -783,7 +783,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_domain_configuration(
             domain_configuration_name=self._get_param("domainConfigurationName")
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_domain_configuration(self) -> ActionResult:
         domain_configuration = self.iot_backend.describe_domain_configuration(
@@ -867,7 +867,7 @@ class IoTResponse(BaseResponse):
     def delete_role_alias(self) -> ActionResult:
         role_alias_name = self._get_param("roleAlias")
         self.iot_backend.delete_role_alias(role_alias_name=role_alias_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_indexing_configuration(self) -> ActionResult:
         return ActionResult(self.iot_backend.get_indexing_configuration())
@@ -877,7 +877,7 @@ class IoTResponse(BaseResponse):
             self._get_param("thingIndexingConfiguration", {}),
             self._get_param("thingGroupIndexingConfiguration", {}),
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def create_job_template(self) -> ActionResult:
         job_template = self.iot_backend.create_job_template(
@@ -915,7 +915,7 @@ class IoTResponse(BaseResponse):
 
         self.iot_backend.delete_job_template(job_template_id=job_template_id)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_job_template(self) -> ActionResult:
         job_template_id = self._get_param("jobTemplateId")
@@ -957,7 +957,7 @@ class IoTResponse(BaseResponse):
         billing_group_name = self._get_param("billingGroupName")
 
         self.iot_backend.delete_billing_group(billing_group_name=billing_group_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_billing_groups(self) -> ActionResult:
         name_prefix_filter = self._get_param("namePrefixFilter")
@@ -991,7 +991,7 @@ class IoTResponse(BaseResponse):
             thing_arn=self._get_param("thingArn"),
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_thing_from_billing_group(self) -> ActionResult:
         self.iot_backend.remove_thing_from_billing_group(
@@ -1001,7 +1001,7 @@ class IoTResponse(BaseResponse):
             thing_arn=self._get_param("thingArn"),
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_things_in_billing_group(self) -> ActionResult:
         billing_group_name = self._get_param("billingGroupName")
