@@ -1,7 +1,5 @@
-from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import IoTBackend, iot_backends
@@ -502,23 +500,6 @@ class IoTResponse(BaseResponse):
         target = self._get_param("target")
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return EmptyResult()
-
-    @staticmethod
-    def dispatch_attached_policies(  # type: ignore
-        request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        response = IoTResponse()
-        # This endpoint requires specialized handling because it has
-        # a uri parameter containing forward slashes that is not
-        # correctly url encoded when we're running in server mode.
-        # https://github.com/pallets/flask/issues/900
-        response.setup_class(request, full_url, headers)
-        response.querystring["Action"] = ["ListAttachedPolicies"]
-        target = response.path.partition("/attached-policies/")[-1]
-        response.querystring["target"] = (
-            [unquote(target)] if "%" in target else [target]
-        )
-        return response.call_action()
 
     def list_attached_policies(self) -> ActionResult:
         principal = self._get_param("target")
