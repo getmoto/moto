@@ -311,16 +311,16 @@ def test_list_rule_names_by_target_using_limit():
 def test_list_rule_names_by_target_with_duplicate_target_arn():
     """Test that list_rule_names_by_target returns each rule name only once,
     even when a rule has multiple targets with the same ARN.
-    
+
     Regression test for: https://github.com/getmoto/moto/issues/9761
     """
     client = boto3.client("events", "us-west-2")
     rule_name = "test-duplicate-target-rule"
     target_arn = "arn:aws:lambda:us-west-2:111111111111:function:test-function"
-    
+
     # Create a rule
     client.put_rule(Name=rule_name, ScheduleExpression="rate(5 minutes)")
-    
+
     # Add multiple targets with the same ARN but different IDs
     client.put_targets(
         Rule=rule_name,
