@@ -300,6 +300,41 @@ def test_publish_to_sqs_msg_attr_byte_value():
 
 
 @mock_aws
+def test_publish_to_sqs_with_custom_data_type():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]["TopicArn"]
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+    conn.subscribe(
+        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.attributes["QueueArn"]
+    )
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
+    conn.subscribe(
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
+    conn.publish(
+        TopicArn=topic_arn,
+        Message="my message",
+        MessageAttributes={
+            "store": {"DataType": "Number.java.lang.Long", "StringValue": "42"}
+        },
+    )
+    message = json.loads(queue.receive_messages()[0].body)
+    assert message["Message"] == "my message"
+    assert message["MessageAttributes"] == {
+        "store": {
+            "Type": "Number.java.lang.Long",
+            "Value": "42",
+        }
+    }
+
+
+@mock_aws
 def test_publish_to_sqs_msg_attr_number_type():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="test-topic")

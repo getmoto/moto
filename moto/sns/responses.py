@@ -84,7 +84,7 @@ class SNSResponse(BaseResponse):
                 )
 
             data_type_parts = data_type.split(".")
-            if len(data_type_parts) > 2 or data_type_parts[0] not in [
+            if data_type_parts[0] not in [
                 "String",
                 "Binary",
                 "Number",
