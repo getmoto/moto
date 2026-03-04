@@ -476,15 +476,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 # We don't want to our regex to think this marks an end-of-line, so let's escape it
                 return elem.replace("$", r"\$")
 
-            # When the element ends with +} the parameter can contain a / otherwise not.
-            slash_allowed = elem.endswith("+}")
+            # In the Smithy specification, a plus sign indicates a greedy label, which
+            # allows the label to match multiple path segments, including forward slashes.
+            # If a label is the last segment of a uri, we default it to greedy as well.
+            greedy = elem.endswith("+}") or uri.endswith(elem)
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if slash_allowed:
+            if greedy:
                 return f"(?P<{name}>.+)"
             return f"(?P<{name}>[^/]+)"
 
