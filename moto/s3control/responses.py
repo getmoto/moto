@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any
 from urllib.parse import unquote
 
@@ -10,7 +9,6 @@ from moto.core.responses import (
     ActionResult,
     BaseResponse,
     EmptyResult,
-    _get_method_urls,
 )
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 
@@ -20,31 +18,6 @@ from .models import S3ControlBackend, s3control_backends
 class S3ControlResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3control")
-
-    def _get_action_from_method_and_request_uri(
-        self, method: str, request_uri: str
-    ) -> str:
-        """
-        Override to sort patterns by length (descending) so more specific
-        patterns match before more general ones.
-
-        This fixes issues where patterns like:
-        - /mrap/instances/{name+} (GetMultiRegionAccessPoint)
-        - /mrap/instances/{name+}/policy (GetMultiRegionAccessPointPolicy)
-
-        Both match the same URL, but we want the more specific one to win.
-        """
-        methods_url = _get_method_urls(self.service_name, self.region)
-        regexp_and_names = methods_url[method]
-        sorted_patterns = sorted(
-            regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
-        )
-        for regexp, name in sorted_patterns:
-            match = re.match(regexp, request_uri)
-            self.uri_match = match
-            if match:
-                return name
-        return None  # type: ignore[return-value]
 
     @property
     def backend(self) -> S3ControlBackend:
