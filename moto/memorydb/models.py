@@ -2,11 +2,11 @@
 
 import copy
 import random
-from datetime import datetime
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.utilities.tagging_service import TaggingService
 
@@ -126,9 +126,7 @@ class MemoryDBCluster(BaseModel):
                     "Name": node_name,
                     "Status": "available",
                     "AvailabilityZone": f"{self.region}{random.choice(azs)}",
-                    "CreateTime": datetime.now().strftime(
-                        "%Y-%m-%dT%H:%M:%S.000%f+0000"
-                    ),
+                    "CreateTime": utcnow(),
                     "Endpoint": {
                         "Address": f"{node_name}.{self.cluster_name}.aoneci.memorydb.{self.region}.amazonaws.com",
                         "Port": self.port,
@@ -302,9 +300,7 @@ class MemoryDBSnapshot(BaseModel):
                     "ReplicaCount": self.cluster.num_replicas_per_shard,
                 },
                 "Size": "11 MB",
-                "SnapshotCreationTime": datetime.now().strftime(
-                    "%Y-%m-%dT%H:%M:%S.000%f+0000"
-                ),
+                "SnapshotCreationTime": utcnow(),
             }
             self.shards.append(shard)
 
