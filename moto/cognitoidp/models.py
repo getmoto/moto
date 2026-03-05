@@ -1542,7 +1542,7 @@ class CognitoIdpBackend(BaseBackend):
             if (
                 user.software_token_mfa_enabled
                 and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
-            ):
+            ) or (user_pool.mfa_config == "ON" and user.token_verified):
                 session = str(random.uuid4())
                 self.sessions[session] = (username, user_pool)
 
@@ -1559,6 +1559,22 @@ class CognitoIdpBackend(BaseBackend):
                 return {
                     "ChallengeName": "SMS_MFA",
                     "ChallengeParameters": {},
+                    "Session": session,
+                }
+                
+            if user_pool.mfa_config == "ON" and not user.token_verified and not user.sms_mfa_enabled:
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                session = str(random.uuid4())
+                self.sessions[session] = (username, user_pool)
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
                     "Session": session,
                 }
 
@@ -2113,6 +2129,19 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if user_pool.mfa_config == "ON" and not user.token_verified and not user.sms_mfa_enabled:
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                    "Session": session,
+                }
+
             new_refresh_token, origin_jti = user_pool.create_refresh_token(
                 client_id, username
             )
@@ -2173,7 +2202,7 @@ class CognitoIdpBackend(BaseBackend):
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
-        secret_code = "asdfasdfasdf"
+        secret_code = "JBSWY3DPEHPK3PXP"
         if session:
             if session in self.sessions:
                 return {"SecretCode": secret_code, "Session": session}

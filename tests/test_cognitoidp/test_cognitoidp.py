@@ -5465,6 +5465,46 @@ def test_admin_initiate_auth_when_sms_mfa_enabled():
 
 
 @mock_aws
+def test_admin_initiate_auth_mfa_setup_challenge_when_mfa_on():
+    client = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    
+    client.set_user_pool_mfa_config(
+        UserPoolId=user_pool_id,
+        MfaConfiguration="ON",
+        SoftwareTokenMfaConfiguration={"Enabled": True}
+    )
+    
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    
+    username = str(uuid.uuid4())
+    password = "P2$Sword!2"
+    
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=password
+    )
+    client.admin_set_user_password(
+        UserPoolId=user_pool_id,
+        Username=username,
+        Password=password,
+        Permanent=True
+    )
+    
+    result = client.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )
+    
+    assert result["ChallengeName"] == "MFA_SETUP"
+    assert "MFAS_CAN_SETUP" in result["ChallengeParameters"]
+    assert "SOFTWARE_TOKEN_MFA" in result["ChallengeParameters"]["MFAS_CAN_SETUP"]
+
+
+@mock_aws
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
