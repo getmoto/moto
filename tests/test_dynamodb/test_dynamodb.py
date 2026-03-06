@@ -8,6 +8,7 @@ import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 import moto.dynamodb.comparisons
 import moto.dynamodb.models
@@ -400,6 +401,7 @@ def test_put_item_with_special_chars():
     )
 
 
+@freeze_time("2024-01-01")
 @mock_aws
 def test_put_item_with_streams():
     name = f"T{uuid4()}"
@@ -447,7 +449,7 @@ def test_put_item_with_streams():
         assert len(table.stream_shard.items) == 1
         stream_record = table.stream_shard.items[0].record
         assert stream_record["eventName"] == "INSERT"
-        assert stream_record["dynamodb"]["SizeBytes"] == 447
+        assert stream_record["dynamodb"]["SizeBytes"] == 431
 
 
 @mock_aws
@@ -1495,9 +1497,9 @@ def test_delete_item():
     response = table.scan()
     assert response["Count"] == 1
 
-    # Test deletion returning nothing
+    # Test deletion returning nothing (NONE is default, no Attributes key)
     response = table.delete_item(Key={"client": "client1", "app": "app2"})
-    assert len(response["Attributes"]) == 0
+    assert "Attributes" not in response
 
     response = table.scan()
     assert response["Count"] == 0
@@ -1950,7 +1952,7 @@ def test_update_return_attributes():
     assert r["Attributes"] == {"col2": {"S": "val3"}}
 
     r = update("col1", "val5", "NONE")
-    assert r["Attributes"] == {}
+    assert "Attributes" not in r
 
     with pytest.raises(ClientError) as ex:
         update("col1", "val6", "WRONG")
@@ -4628,6 +4630,70 @@ def test_projection_expression_with_binary_attr():
 
     item = table.query(KeyConditionExpression=Key("pk").eq("pk"))["Items"][0]
     assert item["key"] == Binary(b"value\xbf")
+
+
+@mock_aws
+def test_binary_attr_put_delete_update_return_values():
+    """Binary (B) and Binary Set (BS) values must survive the ActionResult
+    serialization round-trip when returned via ReturnValues=ALL_OLD / ALL_NEW."""
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    bin_val = b"value\xbf"
+    bin_set = {b"one\x00", b"two\xff"}
+
+    # --- put_item: ReturnValues=ALL_OLD ---
+    client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k1"}, "b": {"B": bin_val}, "bs": {"BS": list(bin_set)}},
+    )
+    r = client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k1"}, "b": {"B": b"new"}, "bs": {"BS": [b"x"]}},
+        ReturnValues="ALL_OLD",
+    )
+    assert r["Attributes"]["b"] == {"B": bin_val}
+    assert set(r["Attributes"]["bs"]["BS"]) == bin_set
+
+    # --- delete_item: ReturnValues=ALL_OLD ---
+    r = client.delete_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k1"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert r["Attributes"]["b"] == {"B": b"new"}
+    assert r["Attributes"]["bs"] == {"BS": [b"x"]}
+
+    # --- update_item: ReturnValues=ALL_NEW ---
+    client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k2"}, "b": {"B": bin_val}},
+    )
+    r = client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k2"}},
+        UpdateExpression="SET bs = :bs",
+        ExpressionAttributeValues={":bs": {"BS": list(bin_set)}},
+        ReturnValues="ALL_NEW",
+    )
+    assert r["Attributes"]["b"] == {"B": bin_val}
+    assert set(r["Attributes"]["bs"]["BS"]) == bin_set
+
+    # --- update_item: ReturnValues=UPDATED_OLD ---
+    r = client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k2"}},
+        UpdateExpression="SET b = :b",
+        ExpressionAttributeValues={":b": {"B": b"changed"}},
+        ReturnValues="UPDATED_OLD",
+    )
+    assert r["Attributes"] == {"b": {"B": bin_val}}
 
 
 @mock_aws
