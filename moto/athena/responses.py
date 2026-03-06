@@ -198,6 +198,20 @@ class AthenaResponse(BaseResponse):
             return self.error(f"Athena Resource, {resource_arn} Does Not Exist", 400)
         return json.dumps(tags)
 
+    def tag_resource(self) -> str:
+        """Handler for tag_resource API call."""
+        resource_arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+        response = self.athena_backend.tag_resource(resource_arn, tags)
+        return json.dumps(response)
+
+    def untag_resource(self) -> str:
+        """Handler for untag_resource API call."""
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_param("TagKeys")
+        response = self.athena_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps(response)
+
     def get_data_catalog(self) -> str:
         name = self._get_param("Name")
         return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
