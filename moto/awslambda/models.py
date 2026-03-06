@@ -964,7 +964,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, event: Optional[str] = None) -> tuple[str, bool, str]:
-        import docker
         import docker.errors
 
         # Create the LogGroup if necessary, to write the result to
@@ -1000,6 +999,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
                 env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
+            else:
+                # When the proxy is active, we should keep the original URL
+                # Else: redirect requests to our server
+                env_vars["AWS_ENDPOINT_URL"] = env_vars["MOTO_HTTP_ENDPOINT"]
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
@@ -1017,9 +1020,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     elif network_mode:
                         run_kwargs["network_mode"] = network_mode
                     elif settings.TEST_SERVER_MODE:
-                        # AWSLambda can make HTTP requests to a Docker container called 'motoserver'
                         # Only works if our Docker-container is named 'motoserver'
-                        # TODO: should remove this and rely on 'network_mode' instead, as this is too tightly coupled with our own test setup
+                        # TODO: should remove this in 6.x - it's no longer necessary for internal tests, but users may rely on it
                         run_kwargs["links"] = {"motoserver": "motoserver"}
 
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
@@ -1039,12 +1041,19 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # - lambci/lambda (the repo with older/outdated AWSLambda images
                     #
                     # We'll cycle through all of them - when we find the repo that contains our image, we use it
+
+                    idx = re.search("[0-9]", self.run_time).start()  # type: ignore[union-attr,arg-type]
+                    language, version = self.run_time[:idx], self.run_time[idx:]  # type: ignore[index]
+
                     image_repos = {  # dict maintains insertion order
                         settings.moto_lambda_image(): None,
+                        f"ghcr.io/shogo82148/lambda-{language}:{version}": None,
                         "mlupin/docker-lambda": None,
                         "lambci/lambda": None,
                     }
                     for image_repo in image_repos:
+                        if not image_repo:
+                            continue
                         image_ref = (
                             image_repo
                             if ":" in image_repo
@@ -1809,7 +1818,7 @@ class LambdaStorage:
             else:
                 self._functions[name]["versions"].remove(function)
 
-            # If theres no functions left
+            # If there are no functions left
             if (
                 not self._functions[name]["versions"]
                 and not self._functions[name]["latest"]
@@ -1907,9 +1916,11 @@ class LambdaBackend(BaseBackend):
 
     It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer in a Docker container.
 
-    When running the MotoProxy, calls to other AWS services are automatically proxied.
+    Moto injects the `AWS_ENDPOINT_URL` environment variable into every Lambda, which means that calls to other AWS services are automatically intercepted.
 
-    When running MotoServer, the Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to build the url that MotoServer runs on:
+    Note that, if you use a non-standard or older Docker image, the `AWS_ENDPOINT_URL` may not be supported.
+
+    If that is the case, use the environment variables `MOTO_HOST` and `MOTO_PORT` to build the AWS endpoint url and point it to Moto:
 
     .. sourcecode:: python
 
@@ -1949,8 +1960,9 @@ class LambdaBackend(BaseBackend):
 
     The Docker images used by Moto are taken from the following repositories:
 
-    - `mlupin/docker-lambda` (for recent versions)
-    - `lambci/lambda` (for older/outdated versions)
+    - `shogo82148/lambda-python`  (for recent versions)
+    - `mlupin/docker-lambda` (for older/outdated versions)
+    - `lambci/lambda` (for even older/outdated versions)
 
     Use the following environment variable to configure Moto to look for images in an additional repository:
 
