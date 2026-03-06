@@ -269,4 +269,4 @@ def test_associate_software_token():
             "X-Amz-Target": "AWSCognitoIdentityProviderService.AssociateSoftwareToken"
         },
     )
-    assert json.loads(res.data.decode("utf-8")) == {"SecretCode": "asdfasdfasdf"}
+    assert len(json.loads(res.data.decode("utf-8"))["SecretCode"]) == 16

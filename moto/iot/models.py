@@ -1657,26 +1657,32 @@ class IoTBackend(BaseBackend):
         if attribute_name is not None and thing_type_name is not None:
             filtered_things = list(
                 filter(
-                    lambda elem: attribute_name in elem["attributes"]
-                    and elem["attributes"][attribute_name] == attribute_value
-                    and "thingTypeName" in elem
-                    and elem["thingTypeName"] == thing_type_name,
+                    lambda elem: (
+                        attribute_name in elem["attributes"]
+                        and elem["attributes"][attribute_name] == attribute_value
+                        and "thingTypeName" in elem
+                        and elem["thingTypeName"] == thing_type_name
+                    ),
                     all_things,
                 )
             )
         elif attribute_name is not None and thing_type_name is None:
             filtered_things = list(
                 filter(
-                    lambda elem: attribute_name in elem["attributes"]
-                    and elem["attributes"][attribute_name] == attribute_value,
+                    lambda elem: (
+                        attribute_name in elem["attributes"]
+                        and elem["attributes"][attribute_name] == attribute_value
+                    ),
                     all_things,
                 )
             )
         elif attribute_name is None and thing_type_name is not None:
             filtered_things = list(
                 filter(
-                    lambda elem: "thingTypeName" in elem
-                    and elem["thingTypeName"] == thing_type_name,
+                    lambda elem: (
+                        "thingTypeName" in elem
+                        and elem["thingTypeName"] == thing_type_name
+                    ),
                     all_things,
                 )
             )

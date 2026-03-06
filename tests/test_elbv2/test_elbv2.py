@@ -1495,8 +1495,9 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
     response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     routing_http_drop_invalid_header_fields_enabled = list(
         filter(
-            lambda item: item["Key"]
-            == "routing.http.drop_invalid_header_fields.enabled",
+            lambda item: (
+                item["Key"] == "routing.http.drop_invalid_header_fields.enabled"
+            ),
             response["Attributes"],
         )
     )[0]

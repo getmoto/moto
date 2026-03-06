@@ -192,8 +192,8 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
         # custom configuration recorders, we'll just behave as default.
         policy_list = list(
             filter(
-                lambda policy: not re.match(
-                    ARN_PARTITION_REGEX + ":iam::aws", policy.arn
+                lambda policy: (
+                    not re.match(ARN_PARTITION_REGEX + ":iam::aws", policy.arn)
                 ),
                 policy_list,
             )

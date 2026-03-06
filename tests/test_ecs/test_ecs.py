@@ -3159,8 +3159,9 @@ def test_attributes():
         len(
             list(
                 filter(
-                    lambda item: item["name"] == "attr1"
-                    and item["value"] == "instance1",
+                    lambda item: (
+                        item["name"] == "attr1" and item["value"] == "instance1"
+                    ),
                     attrs,
                 )
             )

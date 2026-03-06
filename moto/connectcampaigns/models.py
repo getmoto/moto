@@ -243,8 +243,9 @@ class ConnectCampaignServiceBackend(BaseBackend):
             operator_logic = {
                 "Eq": lambda campaign: campaign.connect_instance_id == filter_value,
                 "Ne": lambda campaign: campaign.connect_instance_id != filter_value,
-                "Contains": lambda campaign: filter_value
-                in campaign.connect_instance_id,
+                "Contains": lambda campaign: (
+                    filter_value in campaign.connect_instance_id
+                ),
                 "StartsWith": lambda campaign: campaign.connect_instance_id.startswith(
                     filter_value
                 ),

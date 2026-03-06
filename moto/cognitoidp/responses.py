@@ -585,8 +585,9 @@ class CognitoIdpResponse(BaseResponse):
     def verify_software_token(self) -> ActionResult:
         access_token = self._get_param("AccessToken")
         session = self._get_param("Session")
+        user_code = self._get_param("UserCode")
         result = self._get_region_agnostic_backend().verify_software_token(
-            access_token, session
+            access_token, session, user_code
         )
         return ActionResult(result)
 
