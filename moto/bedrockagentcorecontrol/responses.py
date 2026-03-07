@@ -246,4 +246,3 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         elif name == "resourceArn":
             idx = parts.index("tags") + 1
             return "/".join(parts[idx:])
-        raise ValueError(f"Unknown path parameter: {name}")

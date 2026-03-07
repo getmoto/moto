@@ -220,6 +220,30 @@ def test_create_agent_runtime_endpoint():
 
 
 @mock_aws
+def test_create_agent_runtime_endpoint_with_version_and_tags():
+    client = _create_client()
+    runtime = client.create_agent_runtime(
+        agentRuntimeName="my_runtime",
+        agentRuntimeArtifact=RUNTIME_ARTIFACT,
+        roleArn=ROLE_ARN,
+        networkConfiguration=NETWORK_CONFIG,
+    )
+    runtime_id = runtime["agentRuntimeId"]
+
+    resp = client.create_agent_runtime_endpoint(
+        agentRuntimeId=runtime_id,
+        name="versioned_endpoint",
+        agentRuntimeVersion="1",
+        tags={"env": "test"},
+    )
+    assert resp["targetVersion"] == "1"
+    tags = client.list_tags_for_resource(
+        resourceArn=resp["agentRuntimeEndpointArn"]
+    )["tags"]
+    assert tags == {"env": "test"}
+
+
+@mock_aws
 def test_create_agent_runtime_endpoint_conflict():
     client = _create_client()
     runtime = client.create_agent_runtime(
@@ -309,6 +333,7 @@ def test_update_agent_runtime_endpoint():
         agentRuntimeId=runtime_id,
         endpointName="my_endpoint",
         description="Updated endpoint",
+        agentRuntimeVersion="1",
     )
     assert update_resp["status"] == "UPDATING"
 
