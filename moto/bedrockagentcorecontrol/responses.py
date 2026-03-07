@@ -213,6 +213,134 @@ class BedrockAgentCoreControlResponse(BaseResponse):
             }
         )
 
+    def create_gateway(self) -> ActionResult:
+        params = json.loads(self.body)
+        gateway = self.backend.create_gateway(
+            name=params["name"],
+            role_arn=params["roleArn"],
+            protocol_type=params["protocolType"],
+            authorizer_type=params["authorizerType"],
+            description=params.get("description"),
+            protocol_configuration=params.get("protocolConfiguration"),
+            authorizer_configuration=params.get("authorizerConfiguration"),
+            kms_key_arn=params.get("kmsKeyArn"),
+            interceptor_configurations=params.get("interceptorConfigurations"),
+            policy_engine_configuration=params.get("policyEngineConfiguration"),
+            exception_level=params.get("exceptionLevel"),
+            tags=params.get("tags"),
+        )
+        result = gateway.to_dict()
+        result["status"] = "CREATING"
+        return ActionResult(result)
+
+    def get_gateway(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        gateway = self.backend.get_gateway(gateway_identifier)
+        return ActionResult(gateway.to_dict())
+
+    def update_gateway(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        params = json.loads(self.body)
+        gateway = self.backend.update_gateway(
+            gateway_identifier=gateway_identifier,
+            name=params["name"],
+            role_arn=params["roleArn"],
+            protocol_type=params["protocolType"],
+            authorizer_type=params["authorizerType"],
+            description=params.get("description"),
+            protocol_configuration=params.get("protocolConfiguration"),
+            authorizer_configuration=params.get("authorizerConfiguration"),
+            kms_key_arn=params.get("kmsKeyArn"),
+            interceptor_configurations=params.get("interceptorConfigurations"),
+            policy_engine_configuration=params.get("policyEngineConfiguration"),
+            exception_level=params.get("exceptionLevel"),
+        )
+        result = gateway.to_dict()
+        result["status"] = "UPDATING"
+        return ActionResult(result)
+
+    def delete_gateway(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        gateway = self.backend.delete_gateway(gateway_identifier)
+        return ActionResult(
+            {
+                "gatewayId": gateway.gateway_id,
+                "status": "DELETING",
+            }
+        )
+
+    def list_gateways(self) -> ActionResult:
+        gateways = self.backend.list_gateways()
+        return ActionResult(
+            {
+                "items": [g.to_summary() for g in gateways],
+            }
+        )
+
+    def create_gateway_target(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        params = json.loads(self.body)
+        target = self.backend.create_gateway_target(
+            gateway_identifier=gateway_identifier,
+            name=params["name"],
+            target_configuration=params["targetConfiguration"],
+            description=params.get("description"),
+            credential_provider_configurations=params.get(
+                "credentialProviderConfigurations"
+            ),
+            metadata_configuration=params.get("metadataConfiguration"),
+            tags=params.get("tags"),
+        )
+        result = target.to_dict()
+        result["status"] = "CREATING"
+        return ActionResult(result)
+
+    def get_gateway_target(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        target_id = self._get_path_param("targetId")
+        target = self.backend.get_gateway_target(gateway_identifier, target_id)
+        return ActionResult(target.to_dict())
+
+    def update_gateway_target(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        target_id = self._get_path_param("targetId")
+        params = json.loads(self.body)
+        target = self.backend.update_gateway_target(
+            gateway_identifier=gateway_identifier,
+            target_id=target_id,
+            name=params["name"],
+            target_configuration=params["targetConfiguration"],
+            description=params.get("description"),
+            credential_provider_configurations=params.get(
+                "credentialProviderConfigurations"
+            ),
+            metadata_configuration=params.get("metadataConfiguration"),
+        )
+        result = target.to_dict()
+        result["status"] = "UPDATING"
+        return ActionResult(result)
+
+    def delete_gateway_target(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        target_id = self._get_path_param("targetId")
+        target = self.backend.delete_gateway_target(gateway_identifier, target_id)
+        return ActionResult(
+            {
+                "gatewayArn": target.gateway_arn,
+                "targetId": target.target_id,
+                "status": "DELETING",
+            }
+        )
+
+    def list_gateway_targets(self) -> ActionResult:
+        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        targets = self.backend.list_gateway_targets(gateway_identifier)
+        return ActionResult(
+            {
+                "items": [t.to_summary() for t in targets],
+            }
+        )
+
     def tag_resource(self) -> ActionResult:
         resource_arn = unquote(self._get_path_param("resourceArn"))
         params = json.loads(self.body)
@@ -234,14 +362,16 @@ class BedrockAgentCoreControlResponse(BaseResponse):
     def _get_path_param(self, name: str) -> str:
         parts = self.parsed_url.path.rstrip("/").split("/")
         if name == "agentRuntimeId":
-            # /runtimes/{agentRuntimeId}
-            # /runtimes/{agentRuntimeId}/versions
-            # /runtimes/{agentRuntimeId}/runtime-endpoints
-            # /runtimes/{agentRuntimeId}/runtime-endpoints/{endpointName}
             idx = parts.index("runtimes") + 1
             return parts[idx]
         elif name == "endpointName":
             idx = parts.index("runtime-endpoints") + 1
+            return parts[idx]
+        elif name == "gatewayIdentifier":
+            idx = parts.index("gateways") + 1
+            return parts[idx]
+        elif name == "targetId":
+            idx = parts.index("targets") + 1
             return parts[idx]
         elif name == "resourceArn":
             idx = parts.index("tags") + 1

@@ -182,6 +182,212 @@ class AgentRuntimeEndpoint(BaseModel, ManagedState):
         }
 
 
+class Gateway(BaseModel, ManagedState):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        name: str,
+        role_arn: str,
+        protocol_type: str,
+        authorizer_type: str,
+        description: Optional[str],
+        protocol_configuration: Optional[dict[str, Any]],
+        authorizer_configuration: Optional[dict[str, Any]],
+        kms_key_arn: Optional[str],
+        interceptor_configurations: Optional[list[dict[str, Any]]],
+        policy_engine_configuration: Optional[dict[str, Any]],
+        exception_level: Optional[str],
+    ):
+        ManagedState.__init__(
+            self,
+            "bedrock-agentcore-control::gateway",
+            transitions=[("CREATING", "READY")],
+        )
+        self.region_name = region_name
+        self.account_id = account_id
+        self.name = name
+        self.gateway_id = mock_random.get_random_hex(10)
+        self.gateway_arn = f"arn:{get_partition(region_name)}:bedrock-agentcore:{region_name}:{account_id}:gateway/{self.gateway_id}"
+        self.gateway_url = f"https://{self.gateway_id}.gateway.bedrock-agentcore.{region_name}.amazonaws.com"
+        self.role_arn = role_arn
+        self.protocol_type = protocol_type
+        self.authorizer_type = authorizer_type
+        self.description = description or ""
+        self.protocol_configuration = protocol_configuration
+        self.authorizer_configuration = authorizer_configuration
+        self.kms_key_arn = kms_key_arn
+        self.interceptor_configurations = interceptor_configurations
+        self.policy_engine_configuration = policy_engine_configuration
+        self.exception_level = exception_level
+        now = utcnow()
+        self.created_at = now
+        self.updated_at = now
+        self.workload_identity_details = {
+            "workloadIdentityArn": f"arn:{get_partition(region_name)}:bedrock-agentcore:{region_name}:{account_id}:workload-identity-directory/default/workload-identity/{self.gateway_id}"
+        }
+
+    def update(
+        self,
+        name: str,
+        role_arn: str,
+        protocol_type: str,
+        authorizer_type: str,
+        description: Optional[str],
+        protocol_configuration: Optional[dict[str, Any]],
+        authorizer_configuration: Optional[dict[str, Any]],
+        kms_key_arn: Optional[str],
+        interceptor_configurations: Optional[list[dict[str, Any]]],
+        policy_engine_configuration: Optional[dict[str, Any]],
+        exception_level: Optional[str],
+    ) -> None:
+        self.name = name
+        self.role_arn = role_arn
+        self.protocol_type = protocol_type
+        self.authorizer_type = authorizer_type
+        if description is not None:
+            self.description = description
+        if protocol_configuration is not None:
+            self.protocol_configuration = protocol_configuration
+        if authorizer_configuration is not None:
+            self.authorizer_configuration = authorizer_configuration
+        if kms_key_arn is not None:
+            self.kms_key_arn = kms_key_arn
+        if interceptor_configurations is not None:
+            self.interceptor_configurations = interceptor_configurations
+        if policy_engine_configuration is not None:
+            self.policy_engine_configuration = policy_engine_configuration
+        if exception_level is not None:
+            self.exception_level = exception_level
+        self.updated_at = utcnow()
+        self.status = "UPDATING"
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "gatewayArn": self.gateway_arn,
+            "gatewayId": self.gateway_id,
+            "gatewayUrl": self.gateway_url,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+            "status": self.status,
+            "name": self.name,
+            "roleArn": self.role_arn,
+            "protocolType": self.protocol_type,
+            "authorizerType": self.authorizer_type,
+            "description": self.description,
+            "workloadIdentityDetails": self.workload_identity_details,
+        }
+        if self.protocol_configuration:
+            result["protocolConfiguration"] = self.protocol_configuration
+        if self.authorizer_configuration:
+            result["authorizerConfiguration"] = self.authorizer_configuration
+        if self.kms_key_arn:
+            result["kmsKeyArn"] = self.kms_key_arn
+        if self.interceptor_configurations:
+            result["interceptorConfigurations"] = self.interceptor_configurations
+        if self.policy_engine_configuration:
+            result["policyEngineConfiguration"] = self.policy_engine_configuration
+        if self.exception_level:
+            result["exceptionLevel"] = self.exception_level
+        return result
+
+    def to_summary(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "gatewayId": self.gateway_id,
+            "name": self.name,
+            "status": self.status,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+            "authorizerType": self.authorizer_type,
+            "protocolType": self.protocol_type,
+        }
+        if self.description:
+            result["description"] = self.description
+        return result
+
+
+class GatewayTarget(BaseModel, ManagedState):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        gateway: Gateway,
+        name: str,
+        target_configuration: dict[str, Any],
+        description: Optional[str],
+        credential_provider_configurations: Optional[list[dict[str, Any]]],
+        metadata_configuration: Optional[dict[str, Any]],
+    ):
+        ManagedState.__init__(
+            self,
+            "bedrock-agentcore-control::gateway_target",
+            transitions=[("CREATING", "READY")],
+        )
+        self.region_name = region_name
+        self.account_id = account_id
+        self.name = name
+        self.target_id = mock_random.get_random_hex(10)
+        self.gateway_arn = gateway.gateway_arn
+        self.gateway_id = gateway.gateway_id
+        self.target_configuration = target_configuration
+        self.description = description or ""
+        self.credential_provider_configurations = (
+            credential_provider_configurations or []
+        )
+        self.metadata_configuration = metadata_configuration
+        now = utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+    def update(
+        self,
+        name: str,
+        target_configuration: dict[str, Any],
+        description: Optional[str],
+        credential_provider_configurations: Optional[list[dict[str, Any]]],
+        metadata_configuration: Optional[dict[str, Any]],
+    ) -> None:
+        self.name = name
+        self.target_configuration = target_configuration
+        if description is not None:
+            self.description = description
+        if credential_provider_configurations is not None:
+            self.credential_provider_configurations = credential_provider_configurations
+        if metadata_configuration is not None:
+            self.metadata_configuration = metadata_configuration
+        self.updated_at = utcnow()
+        self.status = "UPDATING"
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "gatewayArn": self.gateway_arn,
+            "targetId": self.target_id,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+            "status": self.status,
+            "name": self.name,
+            "targetConfiguration": self.target_configuration,
+            "credentialProviderConfigurations": self.credential_provider_configurations,
+        }
+        if self.description:
+            result["description"] = self.description
+        if self.metadata_configuration:
+            result["metadataConfiguration"] = self.metadata_configuration
+        return result
+
+    def to_summary(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "targetId": self.target_id,
+            "name": self.name,
+            "status": self.status,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
+        }
+        if self.description:
+            result["description"] = self.description
+        return result
+
+
 class BedrockAgentCoreControlBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -190,6 +396,8 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         self.agent_runtime_endpoints: dict[tuple[str, str], AgentRuntimeEndpoint] = (
             OrderedDict()
         )
+        self.gateways: dict[str, Gateway] = OrderedDict()
+        self.gateway_targets: dict[tuple[str, str], GatewayTarget] = OrderedDict()
         self.tagger = TaggingService()
 
     def _get_runtime(self, agent_runtime_id: str) -> AgentRuntime:
@@ -359,6 +567,180 @@ class BedrockAgentCoreControlBackend(BaseBackend):
             ep
             for (rid, _), ep in self.agent_runtime_endpoints.items()
             if rid == agent_runtime_id
+        ]
+
+    def _get_gateway(self, gateway_identifier: str) -> Gateway:
+        if gateway_identifier not in self.gateways:
+            raise ResourceNotFoundException(
+                f"Could not find Gateway with ID {gateway_identifier}"
+            )
+        return self.gateways[gateway_identifier]
+
+    def create_gateway(
+        self,
+        name: str,
+        role_arn: str,
+        protocol_type: str,
+        authorizer_type: str,
+        description: Optional[str],
+        protocol_configuration: Optional[dict[str, Any]],
+        authorizer_configuration: Optional[dict[str, Any]],
+        kms_key_arn: Optional[str],
+        interceptor_configurations: Optional[list[dict[str, Any]]],
+        policy_engine_configuration: Optional[dict[str, Any]],
+        exception_level: Optional[str],
+        tags: Optional[dict[str, str]],
+    ) -> Gateway:
+        gateway = Gateway(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            name=name,
+            role_arn=role_arn,
+            protocol_type=protocol_type,
+            authorizer_type=authorizer_type,
+            description=description,
+            protocol_configuration=protocol_configuration,
+            authorizer_configuration=authorizer_configuration,
+            kms_key_arn=kms_key_arn,
+            interceptor_configurations=interceptor_configurations,
+            policy_engine_configuration=policy_engine_configuration,
+            exception_level=exception_level,
+        )
+        self.gateways[gateway.gateway_id] = gateway
+        if tags:
+            self.tagger.tag_resource(
+                gateway.gateway_arn,
+                [{"Key": k, "Value": v} for k, v in tags.items()],
+            )
+        return gateway
+
+    def get_gateway(self, gateway_identifier: str) -> Gateway:
+        gateway = self._get_gateway(gateway_identifier)
+        gateway.advance()
+        return gateway
+
+    def update_gateway(
+        self,
+        gateway_identifier: str,
+        name: str,
+        role_arn: str,
+        protocol_type: str,
+        authorizer_type: str,
+        description: Optional[str],
+        protocol_configuration: Optional[dict[str, Any]],
+        authorizer_configuration: Optional[dict[str, Any]],
+        kms_key_arn: Optional[str],
+        interceptor_configurations: Optional[list[dict[str, Any]]],
+        policy_engine_configuration: Optional[dict[str, Any]],
+        exception_level: Optional[str],
+    ) -> Gateway:
+        gateway = self._get_gateway(gateway_identifier)
+        gateway.update(
+            name=name,
+            role_arn=role_arn,
+            protocol_type=protocol_type,
+            authorizer_type=authorizer_type,
+            description=description,
+            protocol_configuration=protocol_configuration,
+            authorizer_configuration=authorizer_configuration,
+            kms_key_arn=kms_key_arn,
+            interceptor_configurations=interceptor_configurations,
+            policy_engine_configuration=policy_engine_configuration,
+            exception_level=exception_level,
+        )
+        return gateway
+
+    def delete_gateway(self, gateway_identifier: str) -> Gateway:
+        gateway = self._get_gateway(gateway_identifier)
+        keys_to_remove = [k for k in self.gateway_targets if k[0] == gateway.gateway_id]
+        for key in keys_to_remove:
+            self.gateway_targets.pop(key)
+        self.gateways.pop(gateway.gateway_id)
+        return gateway
+
+    def list_gateways(self) -> list[Gateway]:
+        return list(self.gateways.values())
+
+    def _get_gateway_target(self, gateway_id: str, target_id: str) -> GatewayTarget:
+        key = (gateway_id, target_id)
+        if key not in self.gateway_targets:
+            raise ResourceNotFoundException(
+                f"Could not find Target {target_id} for Gateway {gateway_id}"
+            )
+        return self.gateway_targets[key]
+
+    def create_gateway_target(
+        self,
+        gateway_identifier: str,
+        name: str,
+        target_configuration: dict[str, Any],
+        description: Optional[str],
+        credential_provider_configurations: Optional[list[dict[str, Any]]],
+        metadata_configuration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, str]],
+    ) -> GatewayTarget:
+        gateway = self._get_gateway(gateway_identifier)
+        target = GatewayTarget(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            gateway=gateway,
+            name=name,
+            target_configuration=target_configuration,
+            description=description,
+            credential_provider_configurations=credential_provider_configurations,
+            metadata_configuration=metadata_configuration,
+        )
+        self.gateway_targets[(gateway.gateway_id, target.target_id)] = target
+        if tags:
+            self.tagger.tag_resource(
+                target.gateway_arn,
+                [{"Key": k, "Value": v} for k, v in tags.items()],
+            )
+        return target
+
+    def get_gateway_target(
+        self, gateway_identifier: str, target_id: str
+    ) -> GatewayTarget:
+        gateway = self._get_gateway(gateway_identifier)
+        target = self._get_gateway_target(gateway.gateway_id, target_id)
+        target.advance()
+        return target
+
+    def update_gateway_target(
+        self,
+        gateway_identifier: str,
+        target_id: str,
+        name: str,
+        target_configuration: dict[str, Any],
+        description: Optional[str],
+        credential_provider_configurations: Optional[list[dict[str, Any]]],
+        metadata_configuration: Optional[dict[str, Any]],
+    ) -> GatewayTarget:
+        gateway = self._get_gateway(gateway_identifier)
+        target = self._get_gateway_target(gateway.gateway_id, target_id)
+        target.update(
+            name=name,
+            target_configuration=target_configuration,
+            description=description,
+            credential_provider_configurations=credential_provider_configurations,
+            metadata_configuration=metadata_configuration,
+        )
+        return target
+
+    def delete_gateway_target(
+        self, gateway_identifier: str, target_id: str
+    ) -> GatewayTarget:
+        gateway = self._get_gateway(gateway_identifier)
+        target = self._get_gateway_target(gateway.gateway_id, target_id)
+        self.gateway_targets.pop((gateway.gateway_id, target_id))
+        return target
+
+    def list_gateway_targets(self, gateway_identifier: str) -> list[GatewayTarget]:
+        gateway = self._get_gateway(gateway_identifier)
+        return [
+            t
+            for (gid, _), t in self.gateway_targets.items()
+            if gid == gateway.gateway_id
         ]
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
