@@ -2426,8 +2426,6 @@ class APIGatewayBackend(BaseBackend):
             return model
 
     def delete_model(self, rest_api_id: str, model_name: str) -> None:
-        if not rest_api_id:
-            raise InvalidRestApiId
         api = self.get_rest_api(rest_api_id)
         if model_name not in api.models:
             raise ModelNotFound
