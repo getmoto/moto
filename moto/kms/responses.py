@@ -603,6 +603,8 @@ class KmsResponse(BaseResponse):
         dry_run = self._get_param("DryRun")
 
         self._validate_key_id(key_id)
+        if "alias/" in key_id:
+            key_id = self.kms_backend.get_key_id_from_alias(key_id)
 
         mac_algorithms = {
             "HMAC_SHA_224",
