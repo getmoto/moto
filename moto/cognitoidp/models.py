@@ -1,5 +1,6 @@
 import enum
 import re
+import string
 import time
 from collections import OrderedDict
 from typing import Any, Optional
@@ -36,6 +37,7 @@ from .utils import (
     flatten_attrs,
     generate_id,
     validate_username_format,
+    verify_totp,
 )
 
 
@@ -849,6 +851,7 @@ class CognitoIdpUser(BaseModel):
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False
+        self.mfa_secret: Optional[str] = None
         self.confirmation_code: Optional[str] = None
         self.preferred_mfa_setting: Optional[str] = None
 
@@ -1542,7 +1545,7 @@ class CognitoIdpBackend(BaseBackend):
             if (
                 user.software_token_mfa_enabled
                 and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
-            ):
+            ) or (user_pool.mfa_config == "ON" and user.token_verified):
                 session = str(random.uuid4())
                 self.sessions[session] = (username, user_pool)
 
@@ -1559,6 +1562,26 @@ class CognitoIdpBackend(BaseBackend):
                 return {
                     "ChallengeName": "SMS_MFA",
                     "ChallengeParameters": {},
+                    "Session": session,
+                }
+
+            if (
+                user_pool.mfa_config == "ON"
+                and not user.token_verified
+                and not user.sms_mfa_enabled
+            ):
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                session = str(random.uuid4())
+                self.sessions[session] = (username, user_pool)
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
                     "Session": session,
                 }
 
@@ -1707,11 +1730,17 @@ class CognitoIdpBackend(BaseBackend):
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "SOFTWARE_TOKEN_MFA" or challenge_name == "SMS_MFA":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
-            self.admin_get_user(user_pool.id, username)
+            user = self.admin_get_user(user_pool.id, username)
 
             mfa_code = challenge_responses.get(f"{challenge_name}_CODE")
             if not mfa_code:
                 raise ResourceNotFoundError(mfa_code)
+
+            if challenge_name == "SOFTWARE_TOKEN_MFA":
+                if not user.mfa_secret or not verify_totp(user.mfa_secret, mfa_code):
+                    from .exceptions import CodeMismatchException
+
+                    raise CodeMismatchException()
 
             if client.generate_secret:
                 secret_hash = challenge_responses.get("SECRET_HASH")
@@ -2113,6 +2142,23 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if (
+                user_pool.mfa_config == "ON"
+                and not user.token_verified
+                and not user.sms_mfa_enabled
+            ):
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                    "Session": session,
+                }
+
             new_refresh_token, origin_jti = user_pool.create_refresh_token(
                 client_id, username
             )
@@ -2173,49 +2219,61 @@ class CognitoIdpBackend(BaseBackend):
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
-        secret_code = "asdfasdfasdf"
         if session:
             if session in self.sessions:
-                return {"SecretCode": secret_code, "Session": session}
+                username, user_pool = self.sessions[session]
+                user = self.admin_get_user(user_pool.id, username)
+                if not user.mfa_secret:
+                    chars = string.ascii_uppercase + "234567"
+                    user.mfa_secret = "".join(random.choice(chars) for _ in range(16))
+                return {"SecretCode": user.mfa_secret, "Session": session}
             raise NotAuthorizedError(session)
 
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                self.admin_get_user(user_pool.id, username)
+                user = self.admin_get_user(user_pool.id, username)
+                if not user.mfa_secret:
+                    chars = string.ascii_uppercase + "234567"
+                    user.mfa_secret = "".join(random.choice(chars) for _ in range(16))
 
-                return {"SecretCode": secret_code}
+                return {"SecretCode": user.mfa_secret}
 
         raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
-        """
-        The parameter UserCode has not yet been implemented
-        """
+    def verify_software_token(
+        self, access_token: str, session: str, user_code: str
+    ) -> dict[str, str]:
+        user = None
+        user_pool = None
         if session:
             if session not in self.sessions:
                 raise ResourceNotFoundError(session)
-
             username, user_pool = self.sessions[session]
             user = self.admin_get_user(user_pool.id, username)
-            user.token_verified = True
+        else:
+            for pool in self.user_pools.values():
+                if access_token in pool.access_tokens:
+                    _, username = pool.access_tokens[access_token]
+                    user = self.admin_get_user(pool.id, username)
+                    user_pool = pool
+                    break
 
-            session = str(random.uuid4())
-            self.sessions[session] = (username, user_pool)
-            return {"Status": "SUCCESS", "Session": session}
+        if not user:
+            raise NotAuthorizedError(access_token or session)
 
-        for user_pool in self.user_pools.values():
-            if access_token in user_pool.access_tokens:
-                _, username = user_pool.access_tokens[access_token]
-                user = self.admin_get_user(user_pool.id, username)
+        if not user.mfa_secret or not verify_totp(user.mfa_secret, user_code):
+            # In a real scenario, we should probably raise an error here if we want to be strict.
+            # But tests might be using dummy codes if not updated.
+            # However, the user explicitly asked to "really validate against it".
+            from .exceptions import CodeMismatchException
 
-                user.token_verified = True
+            raise CodeMismatchException()
 
-                session = str(random.uuid4())
-                self.sessions[session] = (username, user_pool)
-                return {"Status": "SUCCESS", "Session": session}
-
-        raise NotAuthorizedError(access_token)
+        user.token_verified = True
+        session = str(random.uuid4())
+        self.sessions[session] = (user.username, user_pool)
+        return {"Status": "SUCCESS", "Session": session}
 
     def set_user_mfa_preference(
         self,
@@ -2454,9 +2512,11 @@ class RegionAgnosticBackend:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
         return backend.associate_software_token(access_token, session)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
+    def verify_software_token(
+        self, access_token: str, session: str, user_code: str
+    ) -> dict[str, str]:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
-        return backend.verify_software_token(access_token, session)
+        return backend.verify_software_token(access_token, session, user_code)
 
     def set_user_mfa_preference(
         self,

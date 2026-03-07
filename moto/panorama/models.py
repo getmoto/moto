@@ -434,10 +434,12 @@ class PanoramaBackend(BaseBackend):
     ) -> list[Device]:
         devices_list = list(
             filter(
-                lambda x: (name_filter is None or x.name.startswith(name_filter))
-                and (
-                    device_aggregated_status_filter is None
-                    or x.device_aggregated_status == device_aggregated_status_filter
+                lambda x: (
+                    (name_filter is None or x.name.startswith(name_filter))
+                    and (
+                        device_aggregated_status_filter is None
+                        or x.device_aggregated_status == device_aggregated_status_filter
+                    )
                 ),
                 self.devices_memory.values(),
             )
@@ -570,9 +572,9 @@ class PanoramaBackend(BaseBackend):
         filtered_application_instances = filter(
             lambda x: x.status == status_filter if status_filter else True,
             filter(
-                lambda x: x.default_runtime_context_device == device_id
-                if device_id
-                else True,
+                lambda x: (
+                    x.default_runtime_context_device == device_id if device_id else True
+                ),
                 self.application_instances_memory.values(),
             ),
         )

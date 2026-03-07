@@ -122,8 +122,9 @@ class TestAutoScalingScheduledActions(TestCase):
 
         desired_capacity_action = next(
             filter(
-                lambda action: action["ScheduledActionName"]
-                == "desired-capacity-with-start-time",
+                lambda action: (
+                    action["ScheduledActionName"] == "desired-capacity-with-start-time"
+                ),
                 actions,
             )
         )
@@ -139,8 +140,9 @@ class TestAutoScalingScheduledActions(TestCase):
 
         min_size_action = next(
             filter(
-                lambda action: action["ScheduledActionName"]
-                == "min-size-with-recurrence",
+                lambda action: (
+                    action["ScheduledActionName"] == "min-size-with-recurrence"
+                ),
                 actions,
             )
         )

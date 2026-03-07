@@ -4411,15 +4411,18 @@ class SageMakerModelBackend(BaseBackend):
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None or x.creation_time > creation_time_after
-                )
-                and (
-                    creation_time_before is None
-                    or x.creation_time < creation_time_before
-                )
-                and (
-                    name_contains is None
-                    or x.model_package_group_name.find(name_contains) != -1
+                    (
+                        creation_time_after is None
+                        or x.creation_time > creation_time_after
+                    )
+                    and (
+                        creation_time_before is None
+                        or x.creation_time < creation_time_before
+                    )
+                    and (
+                        name_contains is None
+                        or x.model_package_group_name.find(name_contains) != -1
+                    )
                 ),
                 self.model_package_groups.values(),
             )
@@ -4470,26 +4473,29 @@ class SageMakerModelBackend(BaseBackend):
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None or x.creation_time > creation_time_after
-                )
-                and (
-                    creation_time_before is None
-                    or x.creation_time < creation_time_before
-                )
-                and (
-                    name_contains is None
-                    or x.model_package_name.find(name_contains) != -1
-                )
-                and (
-                    model_approval_status is None
-                    or x.model_approval_status == model_approval_status
-                )
-                and (
-                    model_package_group_name is None
-                    or x.model_package_group_name == model_package_group_name
-                )
-                and self._get_versioned_or_not(
-                    model_package_type, x.model_package_version
+                    (
+                        creation_time_after is None
+                        or x.creation_time > creation_time_after
+                    )
+                    and (
+                        creation_time_before is None
+                        or x.creation_time < creation_time_before
+                    )
+                    and (
+                        name_contains is None
+                        or x.model_package_name.find(name_contains) != -1
+                    )
+                    and (
+                        model_approval_status is None
+                        or x.model_approval_status == model_approval_status
+                    )
+                    and (
+                        model_package_group_name is None
+                        or x.model_package_group_name == model_package_group_name
+                    )
+                    and self._get_versioned_or_not(
+                        model_package_type, x.model_package_version
+                    )
                 ),
                 self.model_packages.values(),
             )

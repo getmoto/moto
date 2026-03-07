@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import re
 import string
+import struct
+import time
 from typing import Any, Optional
 
 from moto.moto_api._internal import mock_random as random
@@ -120,3 +122,26 @@ def _generate_id_hash(args: Any) -> str:
         hasher.update(str(arg).encode())
 
     return hasher.hexdigest()
+
+
+def verify_totp(secret: str, user_code: str) -> bool:
+    """Implement pure-Python TOTP verification.
+    Secret is expected to be a Base32 string.
+    """
+    try:
+        # Pad secret if necessary
+        missing_padding = len(secret) % 8
+        if missing_padding:
+            secret += "=" * (8 - missing_padding)
+        key = base64.b32decode(secret, casefold=True)
+        # Check current, previous, and next window to be forgiving with time drift in tests
+        for i in [-1, 0, 1]:
+            msg = struct.pack(">Q", int(time.time() / 30) + i)
+            digest = hmac.new(key, msg, hashlib.sha1).digest()
+            ob = digest[19] & 15
+            code = (struct.unpack(">I", digest[ob : ob + 4])[0] & 0x7FFFFFFF) % 1000000
+            if f"{code:06d}" == user_code:
+                return True
+    except Exception:
+        pass
+    return False

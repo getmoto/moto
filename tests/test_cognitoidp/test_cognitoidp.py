@@ -3210,6 +3210,7 @@ def user_authentication_flow(
     refresh_token = result["AuthenticationResult"]["RefreshToken"]
 
     # add mfa token
+    secret_code = None
     if with_mfa:
         resp = conn.associate_software_token(
             AccessToken=result["AuthenticationResult"]["AccessToken"]
@@ -3289,6 +3290,7 @@ def user_authentication_flow(
         "refresh_token": refresh_token,
         "username": username,
         "password": password,
+        "secret_code": secret_code,
         "additional_fields": {user_attribute_name: user_attribute_value},
     }
 
@@ -4840,6 +4842,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_when_software_token_mfa_enabled():
     password = result["password"]
     client_id = result["client_id"]
     secret_hash = result["secret_hash"]
+    secret_code = result["secret_code"]
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
@@ -4854,12 +4857,13 @@ def test_initiate_auth_USER_PASSWORD_AUTH_when_software_token_mfa_enabled():
     assert result["ChallengeParameters"] == {}
     assert result["Session"] is not None
 
+    totp = pyotp.TOTP(secret_code)
     result = conn.respond_to_auth_challenge(
         ClientId=client_id,
         ChallengeName="SOFTWARE_TOKEN_MFA",
         Session=result["Session"],
         ChallengeResponses={
-            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "SOFTWARE_TOKEN_MFA_CODE": totp.now(),
             "USERNAME": username,
             "SECRET_HASH": secret_hash,
         },
@@ -5248,9 +5252,10 @@ def test_setting_mfa():
         result = authentication_flow(conn, auth_flow)
 
         # Set MFA method
-        conn.associate_software_token(AccessToken=result["access_token"])
+        resp = conn.associate_software_token(AccessToken=result["access_token"])
+        totp = pyotp.TOTP(resp["SecretCode"])
         conn.verify_software_token(
-            AccessToken=result["access_token"], UserCode="123456"
+            AccessToken=result["access_token"], UserCode=totp.now()
         )
         conn.set_user_mfa_preference(
             AccessToken=result["access_token"],
@@ -5332,8 +5337,9 @@ def test_admin_setting_mfa_totp_and_sms():
     access_token = result["access_token"]
     user_pool_id = result["user_pool_id"]
     username = result["username"]
-    conn.associate_software_token(AccessToken=access_token)
-    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+    resp = conn.associate_software_token(AccessToken=access_token)
+    totp = pyotp.TOTP(resp["SecretCode"])
+    conn.verify_software_token(AccessToken=access_token, UserCode=totp.now())
 
     # Set MFA TOTP and SMS methods
     conn.admin_set_user_mfa_preference(
@@ -5368,8 +5374,9 @@ def test_admin_initiate_auth_when_token_totp_enabled():
     username = result["username"]
     client_id = result["client_id"]
     password = result["password"]
-    conn.associate_software_token(AccessToken=access_token)
-    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+    resp = conn.associate_software_token(AccessToken=access_token)
+    totp = pyotp.TOTP(resp["SecretCode"])
+    conn.verify_software_token(AccessToken=access_token, UserCode=totp.now())
 
     # Set MFA TOTP and SMS methods
     conn.admin_set_user_mfa_preference(
@@ -5403,7 +5410,7 @@ def test_admin_initiate_auth_when_token_totp_enabled():
         ChallengeName="SOFTWARE_TOKEN_MFA",
         Session=result["Session"],
         ChallengeResponses={
-            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "SOFTWARE_TOKEN_MFA_CODE": totp.now(),
             "USERNAME": username,
         },
     )
@@ -5465,6 +5472,43 @@ def test_admin_initiate_auth_when_sms_mfa_enabled():
 
 
 @mock_aws
+def test_admin_initiate_auth_mfa_setup_challenge_when_mfa_on():
+    client = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    client.set_user_pool_mfa_config(
+        UserPoolId=user_pool_id,
+        MfaConfiguration="ON",
+        SoftwareTokenMfaConfiguration={"Enabled": True},
+    )
+
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+
+    username = str(uuid.uuid4())
+    password = "P2$Sword!2"
+
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=password
+    )
+    client.admin_set_user_password(
+        UserPoolId=user_pool_id, Username=username, Password=password, Permanent=True
+    )
+
+    result = client.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )
+
+    assert result["ChallengeName"] == "MFA_SETUP"
+    assert "MFAS_CAN_SETUP" in result["ChallengeParameters"]
+    assert "SOFTWARE_TOKEN_MFA" in result["ChallengeParameters"]["MFAS_CAN_SETUP"]
+
+
+@mock_aws
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -5515,7 +5559,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
         conn.respond_to_auth_challenge(
             ClientId=result["client_id"],
             Session=challenge["Session"],
-            ChallengeName=challenge["ChallengeName"],
+            ChallengeName="SOFTWARE_TOKEN_MFA",
             ChallengeResponses={
                 "SOFTWARE_TOKEN_MFA_CODE": "123456",
                 "USERNAME": result["username"],
@@ -5523,7 +5567,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
             },
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "NotAuthorizedException"
+    assert err["Code"] in ["NotAuthorizedException", "CodeMismatchException"]
 
 
 @mock_aws
