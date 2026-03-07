@@ -753,6 +753,13 @@ class APIGatewayResponse(BaseResponse):
         model_info = self.backend.get_model(rest_api_id, model_name)
         return json.dumps(model_info.to_json())
 
+    def delete_model(self) -> TYPE_RESPONSE:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        model_name = url_path_parts[4]
+        self.backend.delete_model(rest_api_id, model_name)
+        return 202, {}, "{}"
+
     def create_base_path_mapping(self) -> TYPE_RESPONSE:
         domain_name = self.path.split("/")[2]
         base_path = self._get_param("basePath")
