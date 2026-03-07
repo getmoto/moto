@@ -122,9 +122,9 @@ athena
 - [ ] start_session
 - [ ] stop_calculation_execution
 - [X] stop_query_execution
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] terminate_session
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
