@@ -34,7 +34,7 @@ HEADER_LEN = KEY_ID_LEN + IV_LEN + TAG_LEN
 CIPHERTEXT_HEADER_FORMAT = f">{KEY_ID_LEN}s{IV_LEN}s{TAG_LEN}s"
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
-RESERVED_ALIASE_TARGET_KEY_IDS = {
+RESERVED_ALIAS_TARGET_KEY_IDS = {
     # NOTE: These would technically differ across account, but in that they are
     # out of customer control, testing that they are different would be redundant.
     "alias/aws/acm": "4f58743d-e279-4214-9270-8cc28277958d",
@@ -52,8 +52,10 @@ RESERVED_ALIASE_TARGET_KEY_IDS = {
     "alias/aws/ssm": "cb3f6250-5078-48c0-a75f-0290bf47694e",
     "alias/aws/xray": "e9b758eb-6230-4744-93d1-ad3b7d71f2f6",
 }
+"""Maps from the key alias to the KeyId"""
 
-RESERVED_ALIASES = list(RESERVED_ALIASE_TARGET_KEY_IDS.keys())
+RESERVED_ALIASES = list(RESERVED_ALIAS_TARGET_KEY_IDS.keys())
+"""The list of `create-alias` that should not succeed since they are reserved"""
 
 
 class KeySpec(str, Enum):
@@ -137,7 +139,7 @@ def generate_data_key(number_of_bytes: int) -> bytes:
 
 
 def generate_master_key() -> bytes:
-    """Generate a master key."""
+    """Generate a master key which is ``MASTER_KEY_LEN`` bytes long"""
     return generate_data_key(MASTER_KEY_LEN)
 
 

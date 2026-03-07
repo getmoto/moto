@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from moto.core.responses import BaseResponse
-from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
+from moto.kms.utils import RESERVED_ALIAS_TARGET_KEY_IDS, RESERVED_ALIASES
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -287,7 +287,7 @@ class KmsResponse(BaseResponse):
                     "TargetKeyId": alias.target_key_id,
                 }
             )
-        for reserved_alias, target_key_id in RESERVED_ALIASE_TARGET_KEY_IDS.items():
+        for reserved_alias, target_key_id in RESERVED_ALIAS_TARGET_KEY_IDS.items():
             if key_id and target_key_id != key_id:
                 continue
             existing = [a for a in response_aliases if a["AliasName"] == reserved_alias]
