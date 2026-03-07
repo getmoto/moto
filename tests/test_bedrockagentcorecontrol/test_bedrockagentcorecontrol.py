@@ -237,9 +237,9 @@ def test_create_agent_runtime_endpoint_with_version_and_tags():
         tags={"env": "test"},
     )
     assert resp["targetVersion"] == "1"
-    tags = client.list_tags_for_resource(resourceArn=resp["agentRuntimeEndpointArn"])[
-        "tags"
-    ]
+    tags = client.list_tags_for_resource(
+        resourceArn=resp["agentRuntimeEndpointArn"]
+    )["tags"]
     assert tags == {"env": "test"}
 
 
@@ -858,3 +858,122 @@ def test_delete_gateway_removes_targets():
     with pytest.raises(ClientError) as exc:
         client.get_gateway(gatewayIdentifier=gateway_id)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_create_gateway_with_optional_fields_and_tags():
+    client = _create_client()
+    resp = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+        description="Tagged gateway",
+        tags={"env": "test"},
+    )
+    gateway_id = resp["gatewayId"]
+
+    tags = client.list_tags_for_resource(resourceArn=resp["gatewayArn"])["tags"]
+    assert tags == {"env": "test"}
+
+    gateways = client.list_gateways()["items"]
+    described = [g for g in gateways if g["gatewayId"] == gateway_id]
+    assert described[0]["description"] == "Tagged gateway"
+
+
+@mock_aws
+def test_update_gateway_with_optional_fields():
+    client = _create_client()
+    create_resp = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = create_resp["gatewayId"]
+
+    update_resp = client.update_gateway(
+        gatewayIdentifier=gateway_id,
+        name="updated-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+        description="Updated",
+        authorizerConfiguration={"customJWTAuthorizer": {"discoveryUrl": "https://example.com/.well-known/jwks.json"}},
+        kmsKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123",
+        exceptionLevel="DEBUG",
+    )
+    assert update_resp["status"] == "UPDATING"
+    assert update_resp["authorizerConfiguration"]["customJWTAuthorizer"] is not None
+    assert update_resp["kmsKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert update_resp["exceptionLevel"] == "DEBUG"
+
+
+@mock_aws
+def test_create_gateway_target_with_optional_fields_and_tags():
+    client = _create_client()
+    gw = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = gw["gatewayId"]
+
+    metadata_config = {"customMetadataField": "value"}
+    resp = client.create_gateway_target(
+        gatewayIdentifier=gateway_id,
+        name="my-target",
+        targetConfiguration=TARGET_CONFIG,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+        description="Tagged target",
+        metadataConfiguration=metadata_config,
+        tags={"env": "prod"},
+    )
+    target_id = resp["targetId"]
+    assert resp["metadataConfiguration"] == metadata_config
+
+    tags = client.list_tags_for_resource(resourceArn=resp["gatewayArn"])["tags"]
+    assert tags == {"env": "prod"}
+
+    targets = client.list_gateway_targets(gatewayIdentifier=gateway_id)["items"]
+    described = [t for t in targets if t["targetId"] == target_id]
+    assert described[0]["description"] == "Tagged target"
+
+
+@mock_aws
+def test_update_gateway_target_with_optional_fields():
+    client = _create_client()
+    gw = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = gw["gatewayId"]
+
+    create_resp = client.create_gateway_target(
+        gatewayIdentifier=gateway_id,
+        name="my-target",
+        targetConfiguration=TARGET_CONFIG,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+    )
+    target_id = create_resp["targetId"]
+
+    new_config = {"mcp": {"mcpServer": {"endpoint": "https://example.com/mcp-v2"}}}
+    metadata_config = {"field": "value"}
+    update_resp = client.update_gateway_target(
+        gatewayIdentifier=gateway_id,
+        targetId=target_id,
+        name="updated-target",
+        targetConfiguration=new_config,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+        metadataConfiguration=metadata_config,
+    )
+    assert update_resp["status"] == "UPDATING"
+
+    get_resp = client.get_gateway_target(
+        gatewayIdentifier=gateway_id,
+        targetId=target_id,
+    )
+    assert get_resp["metadataConfiguration"] == metadata_config
