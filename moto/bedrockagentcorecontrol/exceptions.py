@@ -21,6 +21,3 @@ class ConflictException(BedrockAgentCoreControlClientError):
         super().__init__("ConflictException", message)
 
 
-class ValidationException(BedrockAgentCoreControlClientError):
-    def __init__(self, message: str) -> None:
-        super().__init__("ValidationException", message)
