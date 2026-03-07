@@ -775,3 +775,23 @@ def test_sts_regions(region):
         assert resp["Arn"] == f"arn:aws-cn:sts::{ACCOUNT_ID}:user/moto"
     if region == "us-isob-east-1":
         assert resp["Arn"] == f"arn:aws-iso-b:sts::{ACCOUNT_ID}:user/moto"
+
+
+@mock_aws
+def test_get_access_key_info_default():
+    """GetAccessKeyInfo returns the account ID for the calling account."""
+    client = boto3.client("sts", region_name="us-east-1")
+    resp = client.get_access_key_info(AccessKeyId="AKIAIOSFODNN7EXAMPLE")
+    assert resp["Account"] == str(ACCOUNT_ID)
+
+
+@mock_aws
+def test_get_access_key_info_with_iam_user():
+    """GetAccessKeyInfo returns the correct account for an IAM user's key."""
+    iam = boto3.client("iam", region_name="us-east-1")
+    iam.create_user(UserName="testuser")
+    key = iam.create_access_key(UserName="testuser")["AccessKey"]
+
+    client = boto3.client("sts", region_name="us-east-1")
+    resp = client.get_access_key_info(AccessKeyId=key["AccessKeyId"])
+    assert resp["Account"] == str(ACCOUNT_ID)
