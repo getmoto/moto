@@ -220,6 +220,30 @@ def test_create_agent_runtime_endpoint():
 
 
 @mock_aws
+def test_create_agent_runtime_endpoint_with_version_and_tags():
+    client = _create_client()
+    runtime = client.create_agent_runtime(
+        agentRuntimeName="my_runtime",
+        agentRuntimeArtifact=RUNTIME_ARTIFACT,
+        roleArn=ROLE_ARN,
+        networkConfiguration=NETWORK_CONFIG,
+    )
+    runtime_id = runtime["agentRuntimeId"]
+
+    resp = client.create_agent_runtime_endpoint(
+        agentRuntimeId=runtime_id,
+        name="versioned_endpoint",
+        agentRuntimeVersion="1",
+        tags={"env": "test"},
+    )
+    assert resp["targetVersion"] == "1"
+    tags = client.list_tags_for_resource(
+        resourceArn=resp["agentRuntimeEndpointArn"]
+    )["tags"]
+    assert tags == {"env": "test"}
+
+
+@mock_aws
 def test_create_agent_runtime_endpoint_conflict():
     client = _create_client()
     runtime = client.create_agent_runtime(
@@ -309,6 +333,7 @@ def test_update_agent_runtime_endpoint():
         agentRuntimeId=runtime_id,
         endpointName="my_endpoint",
         description="Updated endpoint",
+        agentRuntimeVersion="1",
     )
     assert update_resp["status"] == "UPDATING"
 
@@ -836,6 +861,123 @@ def test_delete_gateway_removes_targets():
 
 
 @mock_aws
+def test_create_gateway_with_optional_fields_and_tags():
+    client = _create_client()
+    resp = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+        description="Tagged gateway",
+        tags={"env": "test"},
+    )
+    gateway_id = resp["gatewayId"]
+
+    tags = client.list_tags_for_resource(resourceArn=resp["gatewayArn"])["tags"]
+    assert tags == {"env": "test"}
+
+    gateways = client.list_gateways()["items"]
+    described = [g for g in gateways if g["gatewayId"] == gateway_id]
+    assert described[0]["description"] == "Tagged gateway"
+
+
+@mock_aws
+def test_update_gateway_with_optional_fields():
+    client = _create_client()
+    create_resp = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = create_resp["gatewayId"]
+
+    update_resp = client.update_gateway(
+        gatewayIdentifier=gateway_id,
+        name="updated-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+        description="Updated",
+        authorizerConfiguration={"customJWTAuthorizer": {"discoveryUrl": "https://example.com/.well-known/jwks.json"}},
+        kmsKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123",
+        exceptionLevel="DEBUG",
+    )
+    assert update_resp["status"] == "UPDATING"
+    assert update_resp["kmsKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+
+
+@mock_aws
+def test_create_gateway_target_with_optional_fields_and_tags():
+    client = _create_client()
+    gw = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = gw["gatewayId"]
+
+    metadata_config = {"customMetadataField": "value"}
+    resp = client.create_gateway_target(
+        gatewayIdentifier=gateway_id,
+        name="my-target",
+        targetConfiguration=TARGET_CONFIG,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+        description="Tagged target",
+        metadataConfiguration=metadata_config,
+        tags={"env": "prod"},
+    )
+    target_id = resp["targetId"]
+    assert resp["metadataConfiguration"] == metadata_config
+
+    tags = client.list_tags_for_resource(resourceArn=resp["gatewayArn"])["tags"]
+    assert tags == {"env": "prod"}
+
+    targets = client.list_gateway_targets(gatewayIdentifier=gateway_id)["items"]
+    described = [t for t in targets if t["targetId"] == target_id]
+    assert described[0]["description"] == "Tagged target"
+
+
+@mock_aws
+def test_update_gateway_target_with_optional_fields():
+    client = _create_client()
+    gw = client.create_gateway(
+        name="my-gateway",
+        roleArn=GATEWAY_ROLE_ARN,
+        protocolType="MCP",
+        authorizerType="NONE",
+    )
+    gateway_id = gw["gatewayId"]
+
+    create_resp = client.create_gateway_target(
+        gatewayIdentifier=gateway_id,
+        name="my-target",
+        targetConfiguration=TARGET_CONFIG,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+    )
+    target_id = create_resp["targetId"]
+
+    new_config = {"mcp": {"mcpServer": {"endpoint": "https://example.com/mcp-v2"}}}
+    metadata_config = {"field": "value"}
+    update_resp = client.update_gateway_target(
+        gatewayIdentifier=gateway_id,
+        targetId=target_id,
+        name="updated-target",
+        targetConfiguration=new_config,
+        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
+        metadataConfiguration=metadata_config,
+    )
+    assert update_resp["status"] == "UPDATING"
+
+    get_resp = client.get_gateway_target(
+        gatewayIdentifier=gateway_id,
+        targetId=target_id,
+    )
+    assert get_resp["metadataConfiguration"] == metadata_config
+
+
+@mock_aws
 def test_create_memory():
     client = _create_client()
     resp = client.create_memory(
@@ -950,3 +1092,58 @@ def test_list_memories():
 
     resp = client.list_memories()
     assert len(resp["memories"]) == 2
+
+
+@mock_aws
+def test_create_memory_with_all_optional_fields_and_tags():
+    client = _create_client()
+    resp = client.create_memory(
+        name="full_memory",
+        eventExpiryDuration=30,
+        description="Full memory",
+        encryptionKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123",
+        memoryExecutionRoleArn="arn:aws:iam::123456789012:role/MemoryRole",
+        tags={"env": "prod"},
+    )
+    memory = resp["memory"]
+    assert memory["encryptionKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert memory["memoryExecutionRoleArn"] == "arn:aws:iam::123456789012:role/MemoryRole"
+
+    tags = client.list_tags_for_resource(resourceArn=memory["arn"])["tags"]
+    assert tags == {"env": "prod"}
+
+
+@mock_aws
+def test_update_memory_with_strategies():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        memoryStrategies=[
+            {"semanticMemoryStrategy": {"name": "strat_one"}},
+        ],
+    )
+    memory_id = create_resp["memory"]["id"]
+    strat_id = create_resp["memory"]["strategies"][0]["strategyId"]
+
+    # Add a strategy, modify the existing one, then delete it
+    update_resp = client.update_memory(
+        memoryId=memory_id,
+        memoryExecutionRoleArn="arn:aws:iam::123456789012:role/MemoryRole",
+        memoryStrategies={
+            "addMemoryStrategies": [
+                {"summaryMemoryStrategy": {"name": "strat_two"}},
+            ],
+            "modifyMemoryStrategies": [
+                {"memoryStrategyId": strat_id, "description": "Modified", "namespaces": ["ns1"]},
+            ],
+            "deleteMemoryStrategies": [
+                {"memoryStrategyId": strat_id},
+            ],
+        },
+    )
+    memory = update_resp["memory"]
+    assert memory["memoryExecutionRoleArn"] == "arn:aws:iam::123456789012:role/MemoryRole"
+    # After delete, only strat_two remains
+    assert len(memory["strategies"]) == 1
+    assert memory["strategies"][0]["name"] == "strat_two"
