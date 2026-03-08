@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.22
 -----
-Docker Digest for 5.1.22: <autopopulateddigest>
+Docker Digest for 5.1.22: _sha256:1e3802c95726373544967b428201c548f0247c15b00db2d96a5ba0a77d8643b8_
 
     New Methods:
         * APIGateway:
