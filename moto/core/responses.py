@@ -192,8 +192,11 @@ class ActionContext:
 class ActionResult:
     """Wrapper class for serializable results returned from `responses.py` methods."""
 
-    def __init__(self, result: object) -> None:
+    def __init__(
+        self, result: object, headers: Optional[dict[str, Union[str, int]]] = None
+    ) -> None:
         self._result = result
+        self._headers = headers or {}
 
     @property
     def result(self) -> object:
@@ -218,7 +221,13 @@ class ActionResult:
             value_picker=value_picker,
         )
         serialized = serializer.serialize(self.result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+        status_code, headers, body = (
+            serialized["status_code"],
+            serialized["headers"],
+            serialized["body"],
+        )
+        headers.update(self._headers)
+        return status_code, headers, body
 
 
 class PaginatedResult(ActionResult):
@@ -456,6 +465,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
+        action = self._get_action()
         return self.call_action()
 
     @staticmethod
@@ -650,6 +660,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         except Exception:  # Will just ignore if it cant work
             pass
         return headers, body
+
+    def _get_header(self, header_name: str, if_none: Any = None) -> Any:
+        header_name = header_name.lower()
+        for k, v in self.headers.items():
+            if k.lower() == header_name:
+                return v
+        return if_none
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         if self.automated_parameter_parsing:

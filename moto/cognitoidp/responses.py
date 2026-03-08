@@ -330,7 +330,7 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         message_action = self._get_param("MessageAction")
         temporary_password = self._get_param("TemporaryPassword")
-        user = self.backend.admin_create_user(
+        user, temp_password = self.backend.admin_create_user(
             user_pool_id,
             username,
             message_action,
@@ -338,7 +338,12 @@ class CognitoIdpResponse(BaseResponse):
             self._get_param("UserAttributes", []),
         )
 
-        return ActionResult({"User": user.to_json(extended=True)})
+        return_temp_pass = self._get_header("x-amz-moto-return-temporary-password") == "true"
+        headers = {}
+        if return_temp_pass and temp_password:
+            headers["x-moto-temporary-password"] = temp_password
+
+        return ActionResult({"User": user.to_json(extended=True)}, headers=headers)
 
     def admin_confirm_sign_up(self) -> ActionResult:
         user_pool_id = self._get_param("UserPoolId")

@@ -3,7 +3,7 @@ import re
 import string
 import time
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from joserfc import jwk, jwt
 
@@ -1298,8 +1298,11 @@ class CognitoIdpBackend(BaseBackend):
         message_action: str,
         temporary_password: str,
         attributes: list[dict[str, str]],
-    ) -> CognitoIdpUser:
+    ) -> Tuple["CognitoIdpUser", str]:
         user_pool = self.describe_user_pool(user_pool_id)
+        if not temporary_password:
+            # Cognito default policy: 8 chars, 1 upper, 1 lower, 1 number, 1 special
+            temporary_password = f"Moto123!{random.get_random_string(length=8)}"
 
         if message_action and message_action == "RESEND":
             self.admin_get_user(user_pool_id, username)
@@ -1357,7 +1360,7 @@ class CognitoIdpBackend(BaseBackend):
         )
 
         user_pool.users[user.username] = user
-        return user
+        return user, temporary_password
 
     def admin_confirm_sign_up(self, user_pool_id: str, username: str) -> str:
         user = self.admin_get_user(user_pool_id, username)
