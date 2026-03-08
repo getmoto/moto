@@ -23,7 +23,14 @@ sts
 - [X] assume_role_with_web_identity
 - [ ] assume_root
 - [ ] decode_authorization_message
-- [ ] get_access_key_info
+- [X] get_access_key_info
+  Return the account ID associated with the given access key.
+
+        In real AWS, this looks up the owning account. In moto, we check
+        IAM users/access keys across known accounts; if nothing matches,
+        we return the current account.
+        
+
 - [X] get_caller_identity
 - [ ] get_delegated_access_token
 - [X] get_federation_token

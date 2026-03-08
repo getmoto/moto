@@ -17,6 +17,7 @@ cognito-idp
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_custom_attributes
+- [ ] add_user_pool_client_secret
 - [X] admin_add_user_to_group
 - [X] admin_confirm_sign_up
 - [X] admin_create_user
@@ -67,6 +68,7 @@ cognito-idp
 - [ ] delete_user_attributes
 - [X] delete_user_pool
 - [X] delete_user_pool_client
+- [ ] delete_user_pool_client_secret
 - [X] delete_user_pool_domain
 - [ ] delete_web_authn_credential
 - [X] describe_identity_provider
@@ -112,6 +114,7 @@ cognito-idp
 - [ ] list_tags_for_resource
 - [ ] list_terms
 - [ ] list_user_import_jobs
+- [ ] list_user_pool_client_secrets
 - [X] list_user_pool_clients
 - [X] list_user_pools
 - [X] list_users

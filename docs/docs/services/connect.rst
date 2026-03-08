@@ -34,6 +34,7 @@ connect
 - [ ] associate_lambda_function
 - [ ] associate_lex_bot
 - [ ] associate_phone_number_contact_flow
+- [ ] associate_queue_email_addresses
 - [ ] associate_queue_quick_connects
 - [ ] associate_routing_profile_queues
 - [ ] associate_security_key
@@ -69,6 +70,7 @@ connect
   Create a new Connect instance.
 
 - [ ] create_integration_association
+- [ ] create_notification
 - [ ] create_participant
 - [ ] create_persistent_contact_association
 - [ ] create_predefined_attribute
@@ -106,6 +108,7 @@ connect
 - [ ] delete_hours_of_operation_override
 - [X] delete_instance
 - [ ] delete_integration_association
+- [ ] delete_notification
 - [ ] delete_predefined_attribute
 - [ ] delete_prompt
 - [ ] delete_push_notification_registration
@@ -144,6 +147,7 @@ connect
 
 - [ ] describe_instance_attribute
 - [ ] describe_instance_storage_config
+- [ ] describe_notification
 - [ ] describe_phone_number
 - [ ] describe_predefined_attribute
 - [ ] describe_prompt
@@ -172,6 +176,7 @@ connect
 - [ ] disassociate_lambda_function
 - [ ] disassociate_lex_bot
 - [ ] disassociate_phone_number_contact_flow
+- [ ] disassociate_queue_email_addresses
 - [ ] disassociate_queue_quick_connects
 - [ ] disassociate_routing_profile_queues
 - [ ] disassociate_security_key
@@ -231,10 +236,12 @@ connect
 - [ ] list_integration_associations
 - [ ] list_lambda_functions
 - [ ] list_lex_bots
+- [ ] list_notifications
 - [ ] list_phone_numbers
 - [ ] list_phone_numbers_v2
 - [ ] list_predefined_attributes
 - [ ] list_prompts
+- [ ] list_queue_email_addresses
 - [ ] list_queue_quick_connects
 - [ ] list_queues
 - [ ] list_quick_connects
@@ -257,6 +264,7 @@ connect
 - [ ] list_traffic_distribution_groups
 - [ ] list_use_cases
 - [ ] list_user_hierarchy_groups
+- [ ] list_user_notifications
 - [ ] list_user_proficiencies
 - [ ] list_users
 - [ ] list_view_versions
@@ -282,6 +290,7 @@ connect
 - [ ] search_evaluation_forms
 - [ ] search_hours_of_operation_overrides
 - [ ] search_hours_of_operations
+- [ ] search_notifications
 - [ ] search_predefined_attributes
 - [ ] search_prompts
 - [ ] search_queues
@@ -346,6 +355,7 @@ connect
 - [ ] update_hours_of_operation_override
 - [ ] update_instance_attribute
 - [ ] update_instance_storage_config
+- [ ] update_notification_content
 - [ ] update_participant_authentication
 - [ ] update_participant_role_config
 - [ ] update_phone_number
@@ -370,10 +380,12 @@ connect
 - [ ] update_task_template
 - [ ] update_test_case
 - [ ] update_traffic_distribution
+- [ ] update_user_config
 - [ ] update_user_hierarchy
 - [ ] update_user_hierarchy_group_name
 - [ ] update_user_hierarchy_structure
 - [ ] update_user_identity_info
+- [ ] update_user_notification_status
 - [ ] update_user_phone_config
 - [ ] update_user_proficiencies
 - [ ] update_user_routing_profile
