@@ -6,6 +6,9 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.kms.models import TAG_KEY_CUSTOM_KEY_MATERIAL, Key
+from moto.kms.utils import encrypt
+from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
 from tests import aws_verified
 
 from .test_kms import PLAINTEXT_VECTORS, _get_encoded_value
@@ -213,3 +216,49 @@ def test_re_encrypt_to_invalid_destination():
             CiphertextBlob=encrypt_response["CiphertextBlob"],
             DestinationKeyId="alias/DoesNotExist",
         )
+
+
+@mock_aws
+def test_create_key_custom_key_material_symmetric_decrypt():
+    # Arrange
+    custom_key_material = b"editor dog green pencils"
+    custom_key_tag_value = base64.b64encode(custom_key_material).decode("utf-8")
+    algo = "SYMMETRIC_DEFAULT"
+    message = b"test message 123 !%$@ 1234567890"
+
+    # thanks to the deterministic behavior, we can actually make our own Key for use in encrypt()
+    # regrettably this needs to test the custom KeyId behavior, too, since encrypt()
+    # includes the KeyId in the ciphertext
+    tmp_key = Key(
+        policy=None,
+        key_usage="",
+        key_spec="",
+        description="",
+        account_id="",
+        region="",
+    )
+    tmp_key.id = "00000001-0002-0003-0004-000000000005"
+    tmp_key.key_material = custom_key_material
+    expected_ciphertext_blob = encrypt(
+        master_keys={tmp_key.id: tmp_key},
+        key_id=tmp_key.id,
+        plaintext=message,
+        encryption_context={},
+    )
+
+    # Act
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(
+        Tags=[
+            {"TagKey": TAG_KEY_CUSTOM_ID, "TagValue": tmp_key.id},
+            {"TagKey": TAG_KEY_CUSTOM_KEY_MATERIAL, "TagValue": custom_key_tag_value},
+        ]
+    )["KeyMetadata"]["KeyId"]
+
+    plaintext = client.decrypt(
+        KeyId=key_id,
+        CiphertextBlob=expected_ciphertext_blob,
+        EncryptionAlgorithm=algo,
+    )["Plaintext"]
+
+    assert plaintext == message
