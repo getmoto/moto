@@ -138,6 +138,27 @@ def test_verify_mac_fails_for_another_key_id():
 
 
 @mock_aws
+def test_generate_mac_allows_aliases():
+    # Arrange
+    my_alias = "alias/test-1234"
+    key_id = create_hmac_key()
+
+    # Act + Assert
+    client = boto3.client("kms", region_name="eu-central-1")
+    client.create_alias(
+        AliasName=my_alias,
+        TargetKeyId=key_id,
+    )
+    mac_key_id = client.generate_mac(
+        KeyId=my_alias,
+        MacAlgorithm="HMAC_SHA_256",
+        Message=base64.b64encode(b"aliases work fine"),
+    )["KeyId"]
+
+    assert mac_key_id == key_id
+
+
+@mock_aws
 def test_create_key_custom_key_material_hmac():
     # Arrange
     custom_key_material = b"custom test key material"
