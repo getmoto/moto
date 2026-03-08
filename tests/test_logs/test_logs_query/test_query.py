@@ -44,7 +44,7 @@ class TestLogsQueries(TestCase):
                 "@logStream": self.stream_1_name,
                 "@log": "test",
             }
-            for event in self.events
+            for event in reversed(self.events)
         ]
 
     def test_simplified_query(self):
@@ -58,5 +58,5 @@ class TestLogsQueries(TestCase):
             event.pop("@ptr")
         assert resp == [
             {"@timestamp": event["timestamp"], "@message": event["message"]}
-            for event in reversed(self.events)
+            for event in self.events
         ]
