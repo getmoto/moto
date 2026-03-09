@@ -1140,6 +1140,42 @@
   "Location": "euw3-az1"
  },
  {
+  "InstanceType": "m7gd.12xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.16xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.2xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.4xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.8xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.large",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.medium",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.metal",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "m7gd.xlarge",
+  "Location": "euw3-az1"
+ },
+ {
   "InstanceType": "m7i-flex.12xlarge",
   "Location": "euw3-az1"
  },
