@@ -81,11 +81,11 @@ def test_get_query_results():
         if row["field"] == "@message"
     ]
     assert messages == [
-        "event nr 4",
-        "event nr 3",
-        "event nr 2",
-        "event nr 1",
         "event nr 0",
+        "event nr 1",
+        "event nr 2",
+        "event nr 3",
+        "event nr 4",
     ]
 
     # Only find events from last 2 minutes
