@@ -1080,6 +1080,48 @@ def test_version_resolves_to_actual_version_number(
             assert lt_spec_response["Version"] == "1"
 
 
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_fleet_uses_data_from_specified_template_version(cleanups, ec2_client=None):
+    with launch_template_context() as ctxt:
+        # Version 1 was created by the context manager with t2.micro;
+        # add version 2 with a different instance type
+        ctxt.ec2.create_launch_template_version(
+            LaunchTemplateId=ctxt.lt_id,
+            LaunchTemplateData={"InstanceType": "t3.medium"},
+        )
+
+        fleet = ctxt.ec2.create_fleet(
+            LaunchTemplateConfigs=[
+                {
+                    "LaunchTemplateSpecification": {
+                        "LaunchTemplateId": ctxt.lt_id,
+                        "Version": "1",
+                    },
+                }
+            ],
+            TargetCapacitySpecification={
+                "TotalTargetCapacity": 1,
+                "OnDemandTargetCapacity": 1,
+                "DefaultTargetCapacityType": "on-demand",
+            },
+            OnDemandOptions={"AllocationStrategy": "lowest-price"},
+            Type="instant",
+        )
+        fleet_id = fleet["FleetId"]
+        cleanups.append(
+            lambda: ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
+        )
+
+        instance_id = fleet["Instances"][0]["InstanceIds"][0]
+        cleanups.append(lambda: ctxt.ec2.terminate_instances(InstanceIds=[instance_id]))
+
+        instance = ctxt.ec2.describe_instances(InstanceIds=[instance_id])[
+            "Reservations"
+        ][0]["Instances"][0]
+        assert instance["InstanceType"] == "t2.micro"
+
+
 @ec2_aws_verified()
 @pytest.mark.parametrize(
     "use_template_name", [False, True], ids=["template-id", "template-name"]
@@ -1105,6 +1147,7 @@ def test_version_resolves_to_actual_version_number(
         ),
     ],
 )
+@pytest.mark.aws_verified
 def test_create_instant_fleet_with_launch_template_overrides(
     use_template_name,
     overrides,
