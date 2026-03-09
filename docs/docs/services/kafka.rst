@@ -22,11 +22,13 @@ kafka
 - [X] create_cluster_v2
 - [ ] create_configuration
 - [ ] create_replicator
+- [ ] create_topic
 - [ ] create_vpc_connection
 - [X] delete_cluster
 - [ ] delete_cluster_policy
 - [ ] delete_configuration
 - [ ] delete_replicator
+- [ ] delete_topic
 - [ ] delete_vpc_connection
 - [X] describe_cluster
 - [ ] describe_cluster_operation
@@ -72,4 +74,5 @@ kafka
 - [ ] update_replication_info
 - [ ] update_security
 - [ ] update_storage
+- [ ] update_topic
 

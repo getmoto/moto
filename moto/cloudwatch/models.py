@@ -3,9 +3,15 @@ import math
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any, Optional, SupportsFloat
+from uuid import uuid4
 
 from moto.core.base_backend import BaseBackend
-from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
+from moto.core.common_models import (
+    BackendDict,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
@@ -302,7 +308,7 @@ class MetricAggregatedDatum(MetricDatumBase):
         self.sum = sum_stat
 
 
-class Dashboard(BaseModel):
+class Dashboard(CloudFormationModel):
     def __init__(self, account_id: str, region_name: str, name: str, body: str):
         # Guaranteed to be unique for now as the name is also the key of a dictionary where they are stored
         self.arn = make_arn_for_dashboard(account_id, region_name, name)
@@ -319,6 +325,57 @@ class Dashboard(BaseModel):
 
     def __repr__(self) -> str:
         return f"<CloudWatchDashboard {self.name}>"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::CloudWatch::Dashboard"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Dashboard":
+        backend: CloudWatchBackend = cloudwatch_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        name = properties.get("DashboardName") or str(uuid4())
+
+        return backend.put_dashboard(name=name, body=properties["DashboardBody"])
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "Dashboard":
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        backend: CloudWatchBackend = cloudwatch_backends[account_id][region_name]
+
+        backend.delete_dashboards(dashboards=[resource_name])
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
 
 
 class Statistics:
@@ -870,8 +927,9 @@ class CloudWatchBackend(BaseBackend):
     def get_all_metrics(self) -> list[MetricDatumBase]:
         return self.metric_data + self.aws_metric_data
 
-    def put_dashboard(self, name: str, body: str) -> None:
+    def put_dashboard(self, name: str, body: str) -> Dashboard:
         self.dashboards[name] = Dashboard(self.account_id, self.region_name, name, body)
+        return self.dashboards[name]
 
     def list_dashboards(self, prefix: str = "") -> Iterable[Dashboard]:
         for key, value in self.dashboards.items():

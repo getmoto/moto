@@ -2425,6 +2425,12 @@ class APIGatewayBackend(BaseBackend):
         else:
             return model
 
+    def delete_model(self, rest_api_id: str, model_name: str) -> None:
+        api = self.get_rest_api(rest_api_id)
+        if model_name not in api.models:
+            raise ModelNotFound
+        del api.models[model_name]
+
     def get_request_validators(self, restapi_id: str) -> list[RequestValidator]:
         restApi = self.get_rest_api(restapi_id)
         return restApi.get_request_validators()

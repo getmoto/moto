@@ -46,6 +46,7 @@ wafv2
 - [X] get_regex_pattern_set
 - [X] get_rule_group
 - [ ] get_sampled_requests
+- [ ] get_top_path_statistics_by_traffic
 - [X] get_web_acl
 - [X] get_web_acl_for_resource
 - [ ] list_api_keys

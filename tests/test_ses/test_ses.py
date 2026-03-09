@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -2022,3 +2023,32 @@ def test_get_identity_dkim_attributes():
     assert unverified_attrs["DkimEnabled"] is True
     assert unverified_attrs["DkimVerificationStatus"] == "NotStarted"
     assert "DkimTokens" not in unverified_attrs
+
+
+@mock_aws
+def test_send_raw_email_single_large_attachment():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    message = MIMEMultipart()
+    message["Subject"] = "Test"
+    message["From"] = "test@example.com"
+    message["To"] = "to@example.com, foo@example.com"
+
+    # Message body
+    part = MIMEText("test file attached")
+    message.attach(part)
+
+    # Attachment
+    file_size = 5_000_000
+    part = MIMEApplication(b"A" * file_size)
+    part.add_header("Content-Disposition", "attachment", filename="large-file.bin")
+    message.attach(part)
+
+    conn.verify_email_identity(EmailAddress=message["From"])
+    conn.send_raw_email(
+        RawMessage={"Data": message.as_string()}, Source=message["From"]
+    )
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    assert sent_count == 2

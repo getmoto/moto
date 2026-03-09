@@ -1208,6 +1208,10 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "ca-central-1"
  },
@@ -1913,6 +1917,34 @@
  },
  {
   "InstanceType": "m8gd.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.12xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.16xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m8i-flex.xlarge",
   "Location": "ca-central-1"
  },
  {

@@ -113,3 +113,8 @@ class TransferResponse(BaseResponse):
             server_id=params.get("ServerId"),
         )
         return json.dumps({})
+
+    # TODO: implement pagination
+    def list_servers(self) -> str:
+        servers = self.transfer_backend.list_servers()
+        return json.dumps({"Servers": [s.to_short_dict() for s in servers]})

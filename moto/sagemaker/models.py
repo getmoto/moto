@@ -10,7 +10,7 @@ from typing import Any, Optional, Union, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
@@ -213,10 +213,10 @@ class FakePipelineExecution(BaseObject):
         self.pipeline_definition_for_execution = pipeline_definition
         self.client_request_token = client_request_token
 
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.start_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.start_time = now
 
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
@@ -261,10 +261,10 @@ class FakePipeline(BaseObject):
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
 
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.last_execution_time: Optional[str] = None
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.last_execution_time: Optional[datetime] = None
 
         self.pipeline_status = "Active"
         fake_user_profile_name = "fake-user-profile-name"
@@ -306,10 +306,10 @@ class FakeProcessingJob(BaseObject):
         self.arn = FakeProcessingJob.arn_formatter(
             processing_job_name, account_id, region_name
         )
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.processing_end_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.processing_end_time = now
         self.tags = tags or []
         self.role_arn = role_arn
         self.app_specification = app_specification
@@ -386,9 +386,7 @@ class FakeTrainingJob(BaseObject):
         self.arn = FakeTrainingJob.arn_formatter(
             training_job_name, account_id, region_name
         )
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
         self.model_artifacts = {
             "S3ModelArtifacts": os.path.join(
                 self.output_data_config["S3OutputPath"],
@@ -405,11 +403,11 @@ class FakeTrainingJob(BaseObject):
                 "Regex": "#quality_metric: host=\\S+, test dcg <score>=(\\S+)",
             }
         ]
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.training_start_time = now_string
-        self.training_end_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.training_start_time = now
+        self.training_end_time = now
         self.secondary_status_transitions = [
             {
                 "Status": "Starting",
@@ -466,9 +464,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.tags = tags or []
         self.endpoint_status = "InService"
         self.failure_reason = None
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     def _process_production_variants(
         self, production_variants: list[dict[str, Any]]
@@ -643,7 +639,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
         self.kms_key_id = kms_key_id
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
 
     def validate_production_variants(
         self, production_variants: list[dict[str, Any]]
@@ -894,11 +890,11 @@ class FakeTransformJob(BaseObject):
         self.failure_reason = ""
         self.labeling_job_arn = ""
         self.auto_ml_job_arn = ""
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.transform_start_time = now_string
-        self.transform_end_time = now_string
-        self.last_modified_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.transform_start_time = now
+        self.transform_end_time = now
+        self.last_modified_time = now
 
     # Override title case
     def camelCase(self, key: str) -> str:
@@ -941,7 +937,7 @@ class Model(BaseObject, CloudFormationModel):
         tags: Optional[list[dict[str, str]]] = None,
     ):
         self.model_name = model_name
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.containers = containers or []
         self.tags = tags or []
         self.enable_network_isolation = False
@@ -1072,7 +1068,7 @@ class ModelPackageGroup(BaseObject):
             account_id=account_id,
             region_name=region_name,
         )
-        datetime_now = datetime.now(timezone.utc)
+        datetime_now = utcnow()
         self.model_package_group_name = model_package_group_name
         self.arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
@@ -1087,9 +1083,6 @@ class ModelPackageGroup(BaseObject):
 
     def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = v.isoformat()
         response_values = [
             "ModelPackageGroupName",
             "Arn",
@@ -1115,10 +1108,10 @@ class FakeModelCard(BaseObject):
         model_card_status: str,
         security_config: Optional[dict[str, str]] = None,
         tags: Optional[list[dict[str, Any]]] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[datetime] = None,
+        last_modified_time: Optional[datetime] = None,
     ) -> None:
-        datetime_now = str(datetime.now(timezone.utc))
+        datetime_now = utcnow()
         self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
         self.model_card_name = model_card_name
         self.model_card_version = model_card_version
@@ -1184,7 +1177,7 @@ class FeatureGroup(BaseObject):
         self.feature_definitions = feature_definitions
 
         table_name = (
-            f"{feature_group_name.replace('-', '_')}_{int(datetime.now().timestamp())}"
+            f"{feature_group_name.replace('-', '_')}_{int(utcnow().timestamp())}"
         )
         offline_store_config["DataCatalogConfig"] = {
             "TableName": table_name,
@@ -1192,13 +1185,13 @@ class FeatureGroup(BaseObject):
             "Database": "sagemaker_featurestore",
         }
         offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
-            f"{offline_store_config['S3StorageConfig']['S3Uri']}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data"
+            f"{offline_store_config['S3StorageConfig']['S3Uri']}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(utcnow().timestamp())}/data"
         )
 
         self.offline_store_config = offline_store_config
         self.role_arn = role_arn
 
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.arn = arn_formatter(
             region_name=region_name,
             account_id=account_id,
@@ -1267,7 +1260,7 @@ class ModelPackage(BaseObject):
                 else model_package_name.lower()
             ),
         )
-        datetime_now = datetime.now(timezone.utc)
+        datetime_now = utcnow()
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
@@ -1320,9 +1313,6 @@ class ModelPackage(BaseObject):
 
     def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = v.isoformat()
         response_values = [
             "ModelPackageName",
             "ModelPackageGroupName",
@@ -1366,7 +1356,7 @@ class ModelPackage(BaseObject):
         return response
 
     def modifications_done(self) -> None:
-        self.last_modified_time = datetime.now(timezone.utc)
+        self.last_modified_time = utcnow()
         self.last_modified_by = self.created_by
 
     def set_model_approval_status(self, model_approval_status: Optional[str]) -> None:
@@ -1653,7 +1643,7 @@ class Cluster(BaseObject):
         self.tags = tags or []
         self.arn = arn_formatter("cluster", self.cluster_name, account_id, region_name)
         self.status = "InService"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.failure_message = ""
         self.nodes: dict[str, ClusterNode] = {}
         for instance_group in self.instance_groups:
@@ -1752,7 +1742,7 @@ class ClusterNode(BaseObject):
         self.execution_role = execution_role
         self.threads_per_core = threads_per_core
         self.status = "Running"
-        self.launch_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.launch_time = utcnow()
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -1801,13 +1791,13 @@ class CompilationJob(BaseObject):
             "compilation-job", self.compilation_job_name, account_id, region_name
         )
         self.compilation_job_status = "COMPLETED"
-        self.compilation_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.compilation_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.compilation_start_time = utcnow()
+        self.compilation_end_time = utcnow()
         self.stopping_condition = stopping_condition
         self.inference_image = "InferenceImage"
         self.model_package_version_arn = model_package_version_arn
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.model_artifacts = {"S3ModelArtifacts": output_config["S3OutputLocation"]}
         self.model_digests = {
@@ -1904,9 +1894,7 @@ class AutoMLJob(BaseObject):
         self.role_arn = role_arn
         self.security_config = security_config
         self.auto_ml_job_objective = auto_ml_job_objective
-        self.auto_ml_problem_type_resolved_attributes = {
-            "SDK_UNKNOWN_MEMBER": {"name": "UnknownMemberName"}
-        }
+        self.auto_ml_problem_type_resolved_attributes: Optional[dict[str, Any]] = None
         if "ImageClassificationJobConfig" in self.auto_ml_problem_type_config:
             self.auto_ml_job_objective = (
                 {"MetricName": "Accuracy"}
@@ -2002,9 +1990,9 @@ class AutoMLJob(BaseObject):
         self.arn = arn_formatter(
             "automl-job", self.auto_ml_job_name, account_id, region_name
         )
-        self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.end_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.last_modified_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.creation_time = utcnow()
+        self.end_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.partial_failure_reasons = [{"PartialFailureMessage": ""}]
         self.best_candidate = {
@@ -2033,9 +2021,9 @@ class AutoMLJob(BaseObject):
                     "Environment": {"string": "string"},
                 },
             ],
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "EndTime": str(datetime(2024, 1, 1)),
-            "LastModifiedTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "EndTime": datetime(2024, 1, 1),
+            "LastModifiedTime": datetime(2024, 1, 1),
             "FailureReason": "string",
             "CandidateProperties": {
                 "CandidateArtifactLocations": {
@@ -2069,13 +2057,17 @@ class AutoMLJob(BaseObject):
             "DataExplorationNotebookLocation": "data/notebook/location",
         }
 
-        self.resolved_attributes = {
+        resolved = {
             "AutoMLJobObjective": self.auto_ml_job_objective,
             "CompletionCriteria": self.auto_ml_problem_type_config[
                 self.auto_ml_problem_type_config_name + "JobConfig"
             ]["CompletionCriteria"],
-            "AutoMLProblemTypeResolvedAttributes": self.auto_ml_problem_type_resolved_attributes,
         }
+        if self.auto_ml_problem_type_resolved_attributes is not None:
+            resolved["AutoMLProblemTypeResolvedAttributes"] = (
+                self.auto_ml_problem_type_resolved_attributes
+            )
+        self.resolved_attributes = resolved
 
         self.model_deploy_result = {
             "EndpointName": (
@@ -2176,8 +2168,8 @@ class Domain(BaseObject):
             "sso", f"application/{domain_name}/apl-{domain_name}", account_id, ""
         )
         self.status = "InService"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.security_group_id_for_domain_boundary = f"sg-{domain_name}"
         self.url = f"{domain_name}.{region_name}.sagemaker.test.com"
@@ -2268,7 +2260,7 @@ class ModelExplainabilityJobDefinition(BaseObject):
             self.account_id,
             self.region_name,
         )
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.endpoint_name = model_explainability_job_input["EndpointInput"][
             "EndpointName"
         ]
@@ -2330,11 +2322,9 @@ class HyperParameterTuningJob(BaseObject):
         self.training_job_definition = training_job_definition
         self.training_job_definitions = training_job_definitions
         self.hyper_parameter_tuning_job_status = "Completed"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.hyper_parameter_tuning_end_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.hyper_parameter_tuning_end_time = utcnow()
         self.training_job_status_counters = {
             "Completed": 1,
             "InProgress": 0,
@@ -2352,9 +2342,9 @@ class HyperParameterTuningJob(BaseObject):
             "TrainingJobName": "FakeTrainingJobName",
             "TrainingJobArn": "FakeTrainingJobArn",
             "TuningJobName": "FakeTuningJobName",
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "TrainingStartTime": str(datetime(2024, 1, 1)),
-            "TrainingEndTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "TrainingStartTime": datetime(2024, 1, 1),
+            "TrainingEndTime": datetime(2024, 1, 1),
             "TrainingJobStatus": "Completed",
             "TunedHyperParameters": {"string": "TunedHyperParameters"},
             "FailureReason": "string",
@@ -2370,9 +2360,9 @@ class HyperParameterTuningJob(BaseObject):
             "TrainingJobName": "FakeTrainingJobName",
             "TrainingJobArn": "FakeTrainingJobArn",
             "TuningJobName": "FakeTuningJobName",
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "TrainingStartTime": str(datetime(2024, 1, 1)),
-            "TrainingEndTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "TrainingStartTime": datetime(2024, 1, 1),
+            "TrainingEndTime": datetime(2024, 1, 1),
             "TrainingJobStatus": "Completed",
             "TunedHyperParameters": {"string": "FakeTunedHyperParameters"},
             "FailureReason": "FakeFailureReason",
@@ -2387,7 +2377,7 @@ class HyperParameterTuningJob(BaseObject):
         self.failure_reason = ""
         self.tuning_job_completion_details = {
             "NumberOfTrainingJobsObjectiveNotImproving": 123,
-            "ConvergenceDetectedTime": str(datetime(2024, 1, 1)),
+            "ConvergenceDetectedTime": datetime(2024, 1, 1),
         }
         self.consumed_resources = {"RuntimeInSeconds": 123}
         self.tags = tags
@@ -2471,7 +2461,7 @@ class ModelQualityJobDefinition(BaseObject):
             account_id,
             region_name,
         )
-        self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.creation_time = utcnow()
         self.endpoint_name = self.model_quality_job_input["EndpointInput"][
             "EndpointName"
         ]
@@ -2568,7 +2558,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         self.additional_code_repositories = additional_code_repositories
         self.root_access = root_access
         self.status = "Pending"
-        self.creation_time = self.last_modified_time = datetime.now()
+        self.creation_time = self.last_modified_time = utcnow()
         self.arn = arn_formatter(
             "notebook-instance", notebook_instance_name, account_id, region_name
         )
@@ -2736,8 +2726,8 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             "RoleArn": self.role_arn,
             "KmsKeyId": self.kms_key_id,
             # ToDo: NetworkInterfaceId
-            "LastModifiedTime": str(self.last_modified_time),
-            "CreationTime": str(self.creation_time),
+            "LastModifiedTime": self.last_modified_time,
+            "CreationTime": self.creation_time,
             "NotebookInstanceLifecycleConfigName": self.lifecycle_config_name,
             "DirectInternetAccess": self.direct_internet_access,
             "VolumeSizeInGB": self.volume_size_in_gb,
@@ -2763,9 +2753,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         )
         self.on_create = on_create
         self.on_start = on_start
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
         self.arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
             self.notebook_instance_lifecycle_config_name, account_id, region_name
         )
@@ -3376,9 +3364,7 @@ class SageMakerModelBackend(BaseBackend):
         if output_artifacts:
             trial_component.output_artifacts = output_artifacts
 
-        trial_component.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        trial_component.last_modified_time = utcnow()
 
         for parameter_to_remove in parameters_to_remove or []:
             trial_component.parameters.pop(parameter_to_remove)
@@ -3910,8 +3896,8 @@ class SageMakerModelBackend(BaseBackend):
     def list_pipelines(
         self,
         pipeline_name_prefix: str,
-        created_after: str,
-        created_before: str,
+        created_after: Optional[datetime],
+        created_before: Optional[datetime],
         next_token: str,
         max_results: int,
         sort_by: str,
@@ -3946,22 +3932,15 @@ class SageMakerModelBackend(BaseBackend):
                 pipelines_fetched,
             )
 
-        def format_time(x: Any) -> str:
-            return (
-                x
-                if isinstance(x, str)
-                else datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
-            )
-
         if created_after is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time > format_time(created_after),
+                lambda x: x.creation_time > created_after,
                 pipelines_fetched,
             )
 
         if created_before is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time < format_time(created_before),
+                lambda x: x.creation_time < created_before,
                 pipelines_fetched,
             )
 
@@ -3995,10 +3974,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4118,10 +4097,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4267,10 +4246,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
     ) -> dict[str, Any]:
@@ -4423,29 +4402,20 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_package_groups(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
     ) -> list[ModelPackageGroup]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=timezone.utc
-            )
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=timezone.utc
-            )
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4484,8 +4454,8 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         model_approval_status: Optional[str],
         model_package_group_name: Optional[str],
@@ -4493,14 +4463,6 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
     ) -> list[ModelPackage]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=timezone.utc
-            )
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=timezone.utc
-            )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
             if re.match(ARN_PARTITION_REGEX, model_package_group_name):
@@ -4508,12 +4470,11 @@ class SageMakerModelBackend(BaseBackend):
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4791,13 +4752,9 @@ class SageMakerModelBackend(BaseBackend):
         if name_contains:
             clusters = [i for i in clusters if name_contains in i.cluster_name]
         if creation_time_before:
-            clusters = [
-                i for i in clusters if i.creation_time < str(creation_time_before)
-            ]
+            clusters = [i for i in clusters if i.creation_time < creation_time_before]
         if creation_time_after:
-            clusters = [
-                i for i in clusters if i.creation_time > str(creation_time_after)
-            ]
+            clusters = [i for i in clusters if i.creation_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             clusters = sorted(clusters, key=lambda x: x.cluster_name, reverse=reverse)
@@ -4809,8 +4766,8 @@ class SageMakerModelBackend(BaseBackend):
     def list_cluster_nodes(
         self,
         cluster_name: str,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         instance_group_name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
@@ -4829,13 +4786,9 @@ class SageMakerModelBackend(BaseBackend):
                 if instance_group_name_contains in i.instance_group_name
             ]
         if creation_time_before:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time < str(creation_time_before)
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time < creation_time_before]
         if creation_time_after:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time > str(creation_time_after)
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             nodes_list = sorted(
@@ -4940,10 +4893,10 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_auto_ml_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_order: Optional[str],
@@ -4960,23 +4913,23 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time < str(creation_time_before)
+                i for i in auto_ml_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time > str(creation_time_after)
+                i for i in auto_ml_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Status":
@@ -5008,10 +4961,10 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
         status_equals: Optional[str],
     ) -> list[FakeEndpoint]:
         endpoints = list(self.endpoints.values())
@@ -5020,24 +4973,16 @@ class SageMakerModelBackend(BaseBackend):
         if status_equals:
             endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
         if creation_time_before:
-            endpoints = [
-                i for i in endpoints if i.creation_time < str(creation_time_before)
-            ]
+            endpoints = [i for i in endpoints if i.creation_time < creation_time_before]
         if creation_time_after:
-            endpoints = [
-                i for i in endpoints if i.creation_time > str(creation_time_after)
-            ]
+            endpoints = [i for i in endpoints if i.creation_time > creation_time_after]
         if last_modified_time_before:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time < str(last_modified_time_before)
+                i for i in endpoints if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time > str(last_modified_time_after)
+                i for i in endpoints if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5060,8 +5005,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[FakeEndpointConfig]:
         endpoint_configs = list(self.endpoint_configs.values())
         if name_contains:
@@ -5070,15 +5015,11 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time < str(creation_time_before)
+                i for i in endpoint_configs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time > str(creation_time_after)
+                i for i in endpoint_configs if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5128,10 +5069,10 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_compilation_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_by: Optional[str],
@@ -5144,27 +5085,23 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time < str(creation_time_before)
+                i for i in compilation_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time > str(creation_time_after)
+                i for i in compilation_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
-        if creation_time_after:
+        if last_modified_time_after:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         if status_equals:
             compilation_jobs = [
@@ -5293,8 +5230,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[ModelExplainabilityJobDefinition]:
         model_explainability_job_definitions = list(
             self.model_explainability_job_definitions.values()
@@ -5315,13 +5252,13 @@ class SageMakerModelBackend(BaseBackend):
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5391,10 +5328,10 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         status_equals: Optional[str],
     ) -> list[HyperParameterTuningJob]:
         hyper_parameter_tuning_jobs = list(self.hyper_parameter_tuning_jobs.values())
@@ -5414,25 +5351,25 @@ class SageMakerModelBackend(BaseBackend):
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5512,8 +5449,8 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
     ) -> list[ModelQualityJobDefinition]:
         model_quality_job_definitions = list(
             self.model_quality_job_definitions.values()
@@ -5534,13 +5471,13 @@ class SageMakerModelBackend(BaseBackend):
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5572,8 +5509,8 @@ class SageMakerModelBackend(BaseBackend):
         model_card_status: str,
         tags: Optional[list[dict[str, str]]],
         model_card_version: Optional[int] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[datetime] = None,
+        last_modified_time: Optional[datetime] = None,
     ) -> str:
         if model_card_name in self.model_cards:
             raise ConflictException(f"Modelcard {model_card_name} already exists")
@@ -5602,7 +5539,7 @@ class SageMakerModelBackend(BaseBackend):
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist.")
 
-        datetime_now = str(datetime.now(timezone.utc))
+        datetime_now = utcnow()
 
         first_version = self.model_cards[model_card_name][0]
         creation_time = first_version.creation_time
@@ -5666,11 +5603,11 @@ class SageMakerModelBackend(BaseBackend):
         versions = self.model_cards[model_card_name]
         if creation_time_after:
             versions = [
-                v for v in versions if v.last_modified_time > str(creation_time_after)
+                v for v in versions if v.last_modified_time > creation_time_after
             ]
         if creation_time_before:
             versions = [
-                v for v in versions if v.last_modified_time < str(creation_time_before)
+                v for v in versions if v.last_modified_time < creation_time_before
             ]
         if model_card_status:
             versions = [v for v in versions if v.model_card_status == model_card_status]
@@ -5790,9 +5727,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         self.data_quality_app_specification = data_quality_app_specification or {}
         self.data_quality_job_input = data_quality_job_input or {}
         self.data_quality_job_output_config = data_quality_job_output_config or {}
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
     def response_object(self) -> dict[str, str]:
@@ -5812,7 +5747,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         return arn_formatter("data-quality-job-definition", name, account_id, region)
 
     @property
-    def summary_object(self) -> dict[str, str]:
+    def summary_object(self) -> dict[str, Any]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,
@@ -5832,9 +5767,7 @@ class FakeExperiment(BaseObject):
         self.experiment_name = experiment_name
         self.arn = arn_formatter("experiment", experiment_name, account_id, region_name)
         self.tags = tags
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
     def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -5863,9 +5796,7 @@ class FakeTrial(BaseObject):
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
     def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -5915,8 +5846,8 @@ class FakeTrialComponent(BaseObject):
         self.trial_name = trial_name
         self.start_time = start_time
         self.end_time = end_time
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = self.last_modified_time = now_string
+        now = utcnow()
+        self.creation_time = self.last_modified_time = now
         self.created_by: dict[str, Union[dict[str, str], str]] = {}
         self.last_modified_by: dict[str, Union[dict[str, str], str]] = {}
         self.parameters = parameters if parameters is not None else {}
@@ -5959,9 +5890,7 @@ class FakeTrialComponent(BaseObject):
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.arn,
-                "TimeStamp": datetime.fromtimestamp(
-                    timestamp_int, tz=timezone.utc
-                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=timezone.utc),
                 "Max": max(metrics_steps_values),
                 "Min": min(metrics_steps_values),
                 "Last": metrics_steps[max_step]["Value"],
@@ -6016,9 +5945,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         self.model_bias_app_specification = model_bias_app_specification or {}
         self.model_bias_job_input = model_bias_job_input or {}
         self.model_bias_job_output_config = model_bias_job_output_config or {}
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
     def response_object(self) -> dict[str, str]:

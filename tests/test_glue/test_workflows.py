@@ -1,9 +1,13 @@
+from datetime import datetime, timezone
+
 import boto3
 import pytest
 from botocore.client import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
-from moto.core.utils import utcnow
+from moto import mock_aws, settings
+
+FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @mock_aws
@@ -99,16 +103,20 @@ def test_batch_get_nonexistent_workflow():
 
 
 @mock_aws
+@freeze_time(FROZEN_CREATE_TIME)
 def test_update_workflow_updated_timestamp():
     client = boto3.client("glue", region_name="us-east-1")
     workflow_name = "test"
     client.create_workflow(Name=workflow_name)
-    before_update = utcnow()
 
     client.update_workflow(Name=workflow_name)
 
     workflow_response = client.get_workflow(Name=workflow_name)
-    assert workflow_response["Workflow"]["LastModifiedOn"] >= before_update
+    if not settings.TEST_SERVER_MODE:
+        assert (
+            workflow_response["Workflow"]["LastModifiedOn"].timestamp()
+            == FROZEN_CREATE_TIME.timestamp()
+        )
 
 
 @mock_aws

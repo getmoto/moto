@@ -1180,6 +1180,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -1241,6 +1250,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.af-south-1.amazonaws.com"
                 }
               },
               "organizations": {
@@ -2999,6 +3014,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -3925,6 +3949,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "config": {
@@ -5164,6 +5206,15 @@
               "bedrock-agentcore": {
                 "Value": "bedrock-agentcore"
               },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -6164,15 +6215,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13190,15 +13232,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -15556,6 +15589,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-south-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -20241,15 +20280,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -22756,6 +22786,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-3.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -24323,6 +24359,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-4.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -25692,6 +25734,24 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mediaconvert": {
+                "Value": "mediaconvert",
+                "endpoint": {
+                  "Value": "mediaconvert.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "medialive": {
+                "Value": "medialive",
+                "endpoint": {
+                  "Value": "medialive.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediapackagev2": {
                 "Value": "mediapackagev2",
                 "endpoint": {
@@ -25732,6 +25792,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-5.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26485,6 +26554,24 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -26713,6 +26800,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fms": {
+                "Value": "fms",
+                "endpoint": {
+                  "Value": "fms.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -26735,6 +26831,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27082,6 +27187,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "scheduler": {
                 "Value": "scheduler",
                 "endpoint": {
@@ -27167,6 +27281,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28056,6 +28179,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-7.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31965,6 +32097,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ca-west-1.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -33191,15 +33329,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.cn-north-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36761,15 +36890,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdevicedefender": {
                 "Value": "iotdevicedefender",
                 "endpoint": {
@@ -39189,6 +39309,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -39250,6 +39379,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-central-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -43210,6 +43345,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-south-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -44868,6 +45009,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46902,15 +47052,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdeviceadvisor": {
                 "Value": "iotdeviceadvisor",
                 "endpoint": {
@@ -47500,6 +47641,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-west-1.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-west-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -54307,6 +54454,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "savingsplans": {
                 "Value": "savingsplans",
                 "endpoint": {
@@ -55518,6 +55674,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.il-central-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -64526,15 +64688,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotdeviceadvisor": {
                 "Value": "iotdeviceadvisor",
                 "endpoint": {
@@ -64747,15 +64900,6 @@
               },
               "launchwizard": {
                 "Value": "launchwizard"
-              },
-              "lex-models": {
-                "Value": "lex-models",
-                "endpoint": {
-                  "Value": "models.lex.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "lex-runtime": {
                 "Value": "lex-runtime",
@@ -66707,6 +66851,15 @@
               "bedrock-agentcore": {
                 "Value": "bedrock-agentcore"
               },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -67653,15 +67806,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -70125,6 +70269,12 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-gov-east-1.amazonaws.com"
+                }
+              },
               "quicksight": {
                 "Value": "quicksight",
                 "endpoint": {
@@ -71949,6 +72099,12 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-gov-west-1.amazonaws.com"
+                }
               },
               "quicksight": {
                 "Value": "quicksight",
@@ -76140,15 +76296,6 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotanalytics": {
-                "Value": "iotanalytics",
-                "endpoint": {
-                  "Value": "iotanalytics.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
