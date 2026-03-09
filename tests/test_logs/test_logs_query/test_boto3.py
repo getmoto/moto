@@ -106,7 +106,7 @@ def test_get_query_results():
         for row in field
         if row["field"] == "@message"
     ]
-    assert messages == ["event nr 2", "event nr 1"]
+    assert messages == ["event nr 1", "event nr 2"]
 
 
 @mock_aws
