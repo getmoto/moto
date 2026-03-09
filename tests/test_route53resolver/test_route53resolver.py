@@ -212,6 +212,32 @@ def test_list_resolver_query_log_configs_with_filters():
 
 
 @mock_aws
+def test_list_resolver_query_log_configs_filter_by_id():
+    client = boto3.client("route53resolver", region_name="us-east-1")
+
+    config1 = client.create_resolver_query_log_config(
+        Name="first-logs",
+        DestinationArn="arn:aws:s3:::first-bucket",
+        CreatorRequestId="first-request-id",
+    )
+    config1_id = config1["ResolverQueryLogConfig"]["Id"]
+
+    client.create_resolver_query_log_config(
+        Name="second-logs",
+        DestinationArn="arn:aws:s3:::second-bucket",
+        CreatorRequestId="second-request-id",
+    )
+
+    response = client.list_resolver_query_log_configs(
+        Filters=[{"Name": "Id", "Values": [config1_id]}]
+    )
+
+    assert len(response["ResolverQueryLogConfigs"]) == 1
+    assert response["ResolverQueryLogConfigs"][0]["Id"] == config1_id
+    assert response["ResolverQueryLogConfigs"][0]["Name"] == "first-logs"
+
+
+@mock_aws
 def test_list_resolver_query_log_configs_empty():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
