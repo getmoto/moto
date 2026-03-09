@@ -511,14 +511,16 @@ class KmsBackend(BaseBackend):
         return key.aliases[alias_name]
 
     def update_alias(self, target_key_id: str, alias_name: str) -> Alias:
+        raw_key_id = self.get_key_id(target_key_id)
         for key in self.keys.values():
-            if alias_name in key.aliases and target_key_id != key.id:
+            if alias_name in key.aliases and raw_key_id != key.id:
                 # Updating the Key that this is an alias of
                 alias = key.aliases.pop(alias_name)
-                self.keys[target_key_id].aliases[alias_name] = alias
+                alias.target_key_id = raw_key_id
+                self.keys[raw_key_id].aliases[alias_name] = alias
                 return alias
         # TargetKeyId hasn't changed - nothing to update
-        return self.keys[target_key_id].aliases[alias_name]
+        return self.keys[raw_key_id].aliases[alias_name]
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
