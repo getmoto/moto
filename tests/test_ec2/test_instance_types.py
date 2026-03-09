@@ -48,6 +48,10 @@ def test_describe_instance_types_gpu_instance_types():
         instance_info["InstanceType"]: instance_info["GpuInfo"]
         for instance_info in instance_types["InstanceTypes"]
     }
+    for itype in instance_type_to_gpu_info.values():
+        for gpu in itype["Gpus"]:
+            # AWS seems to re-order these attributes every week
+            gpu["Workloads"] = sorted(gpu["Workloads"])
     assert instance_type_to_gpu_info == {
         "g4ad.8xlarge": {
             "Gpus": [
