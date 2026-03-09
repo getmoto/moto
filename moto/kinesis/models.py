@@ -49,7 +49,7 @@ class Consumer(BaseModel):
         self, consumer_name: str, account_id: str, region_name: str, stream_arn: str
     ):
         self.consumer_name = consumer_name
-        self.created = unix_time()
+        self.created = utcnow()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
         self.consumer_arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
@@ -83,10 +83,10 @@ class Record(BaseModel):
 
     def to_json(self) -> dict[str, Any]:
         return {
-            "Data": self.data,
+            "Data": b64decode(self.data),
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
-            "ApproximateArrivalTimestamp": self.created_at,
+            "ApproximateArrivalTimestamp": self.created_at_datetime,
         }
 
 
@@ -206,9 +206,7 @@ class Stream(CloudFormationModel):
         region_name: str,
     ):
         self.stream_name = stream_name
-        self.creation_datetime = datetime.datetime.now().strftime(
-            "%Y-%m-%dT%H:%M:%S.%f000"
-        )
+        self.creation_datetime = utcnow()
         self.region = region_name
         self.account_id = account_id
         self.arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}"
@@ -486,7 +484,7 @@ class Stream(CloudFormationModel):
     ) -> "Stream":
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
-        retention_period_hours = properties.get("RetentionPeriodHours", resource_name)
+        retention_period_hours = properties.get("RetentionPeriodHours")
         tags = {
             tag_item["Key"]: tag_item["Value"]
             for tag_item in properties.get("Tags", [])

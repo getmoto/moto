@@ -157,7 +157,11 @@ def test_describe_auto_ml_job_v2():
     assert isinstance(desc["LastModifiedTime"], datetime.datetime)
     assert desc["FailureReason"] == ""
     assert desc["PartialFailureReasons"] == [{"PartialFailureMessage": ""}]
-    assert desc["BestCandidate"] == {
+    best_candidate = desc["BestCandidate"]
+    assert isinstance(best_candidate.pop("CreationTime"), datetime.datetime)
+    assert isinstance(best_candidate.pop("EndTime"), datetime.datetime)
+    assert isinstance(best_candidate.pop("LastModifiedTime"), datetime.datetime)
+    assert best_candidate == {
         "CandidateName": "best_candidate",
         "FinalAutoMLJobObjectiveMetric": {
             "Type": "Maximize",
@@ -181,9 +185,6 @@ def test_describe_auto_ml_job_v2():
                 "Environment": {"string": "string"},
             },
         ],
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "EndTime": datetime.datetime(2024, 1, 1),
-        "LastModifiedTime": datetime.datetime(2024, 1, 1),
         "FailureReason": "string",
         "CandidateProperties": {
             "CandidateArtifactLocations": {
@@ -224,9 +225,6 @@ def test_describe_auto_ml_job_v2():
             "MaxCandidates": 123,
             "MaxRuntimePerTrainingJobInSeconds": 123,
             "MaxAutoMLJobRuntimeInSeconds": 123,
-        },
-        "AutoMLProblemTypeResolvedAttributes": {
-            "SDK_UNKNOWN_MEMBER": {"name": "SDK_UNKNOWN_MEMBER"}
         },
     }
     assert desc["ModelDeployConfig"] == {
@@ -316,7 +314,11 @@ def test_describe_auto_ml_job_v2_defaults():
     assert isinstance(desc["LastModifiedTime"], datetime.datetime)
     assert desc["FailureReason"] == ""
     assert desc["PartialFailureReasons"] == [{"PartialFailureMessage": ""}]
-    assert desc["BestCandidate"] == {
+    best_candidate = desc["BestCandidate"]
+    assert isinstance(best_candidate.pop("CreationTime"), datetime.datetime)
+    assert isinstance(best_candidate.pop("EndTime"), datetime.datetime)
+    assert isinstance(best_candidate.pop("LastModifiedTime"), datetime.datetime)
+    assert best_candidate == {
         "CandidateName": "best_candidate",
         "FinalAutoMLJobObjectiveMetric": {
             "Type": "Maximize",
@@ -340,9 +342,6 @@ def test_describe_auto_ml_job_v2_defaults():
                 "Environment": {"string": "string"},
             },
         ],
-        "CreationTime": datetime.datetime(2024, 1, 1),
-        "EndTime": datetime.datetime(2024, 1, 1),
-        "LastModifiedTime": datetime.datetime(2024, 1, 1),
         "FailureReason": "string",
         "CandidateProperties": {
             "CandidateArtifactLocations": {
@@ -383,9 +382,6 @@ def test_describe_auto_ml_job_v2_defaults():
             "MaxCandidates": 123,
             "MaxRuntimePerTrainingJobInSeconds": 123,
             "MaxAutoMLJobRuntimeInSeconds": 123,
-        },
-        "AutoMLProblemTypeResolvedAttributes": {
-            "SDK_UNKNOWN_MEMBER": {"name": "SDK_UNKNOWN_MEMBER"}
         },
     }
     assert desc["ModelDeployConfig"] == {

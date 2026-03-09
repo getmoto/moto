@@ -121,6 +121,7 @@ logs
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
+- [ ] put_bearer_token_authentication
 - [ ] put_data_protection_policy
 - [X] put_delivery_destination
 - [X] put_delivery_destination_policy

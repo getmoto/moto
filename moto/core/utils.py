@@ -84,6 +84,9 @@ def convert_regex_to_flask_path(url_path: str) -> str:
     for token in ["$"]:
         url_path = url_path.replace(token, "")
 
+    if url_path == "/.*":
+        url_path = "/<path:route>"
+
     def caller(reg: Any) -> str:
         match_name, match_pattern = reg.groups()
         return f'<regex("{match_pattern}"):{match_name}>'

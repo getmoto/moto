@@ -1,14 +1,12 @@
 import hashlib
-import json
 import re
-import time
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time, utcnow
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
@@ -141,8 +139,8 @@ class FakeDevEndpoint(BaseModel):
             "VpcId": self.vpc_id,
             "ExtraPythonLibsS3Path": self.extra_python_libs_s3_path,
             "ExtraJarsS3Path": self.extra_jars_s3_path,
-            "CreatedTimestamp": self.created_timestamp.isoformat(),
-            "LastModifiedTimestamp": self.last_modified_timestamp.isoformat(),
+            "CreatedTimestamp": self.created_timestamp,
+            "LastModifiedTimestamp": self.last_modified_timestamp,
             "PublicKey": self.public_key,
             "PublicKeys": self.public_keys,
             "SecurityConfiguration": self.security_configuration,
@@ -350,17 +348,15 @@ class GlueBackend(BaseBackend):
 
     def get_table_version(
         self, database_name: str, table_name: str, ver_id: str
-    ) -> str:
+    ) -> dict[str, Any]:
         table = self.get_table(database_name, table_name)
 
-        return json.dumps(
-            {
-                "TableVersion": {
-                    "Table": table.as_dict(version=ver_id),
-                    "VersionId": ver_id,
-                }
+        return {
+            "TableVersion": {
+                "Table": table.as_dict(version=ver_id),
+                "VersionId": ver_id,
             }
-        )
+        }
 
     def get_table_versions(
         self, database_name: str, table_name: str
@@ -1472,16 +1468,8 @@ class GlueBackend(BaseBackend):
         response = {
             "PolicyInJson": policy["PolicyInJson"],
             "PolicyHash": policy["PolicyHash"],
-            "CreateTime": (
-                policy["CreateTime"].isoformat()
-                if isinstance(policy["CreateTime"], datetime)
-                else policy["CreateTime"]
-            ),
-            "UpdateTime": (
-                policy["UpdateTime"].isoformat()
-                if isinstance(policy["UpdateTime"], datetime)
-                else policy["UpdateTime"]
-            ),
+            "CreateTime": policy["CreateTime"],
+            "UpdateTime": policy["UpdateTime"],
         }
 
         return response
@@ -1581,7 +1569,7 @@ class GlueBackend(BaseBackend):
     def get_workflow_runs(
         self,
         workflow_name: str,
-    ) -> list[dict[str, Union[str, dict[str, str]]]]:
+    ) -> list[dict[str, Union[str, datetime, dict[str, str]]]]:
         workflow = self.workflows.get(workflow_name)
         if not workflow:
             raise EntityNotFoundException("Entity not found")
@@ -1661,7 +1649,7 @@ class FakeSecurityConfiguration(BaseModel):
     def as_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
-            "CreatedTime": unix_time(self.created_time),
+            "CreatedTime": self.created_time,
             "EncryptionConfiguration": self.configuration,
         }
 
@@ -1682,7 +1670,7 @@ class FakeDatabase(BaseModel):
             "Description": self.input.get("Description"),
             "LocationUri": self.input.get("LocationUri"),
             "Parameters": self.input.get("Parameters"),
-            "CreateTime": unix_time(self.created_time),
+            "CreateTime": self.created_time,
             "CreateTableDefaultPermissions": self.input.get(
                 "CreateTableDefaultPermissions"
             ),
@@ -1734,14 +1722,14 @@ class FakeTable(BaseModel):
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
-            "CreateTime": unix_time(self.created_time),
+            "CreateTime": self.created_time,
             **self.get_version(str(version)),
             # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
             "VersionId": str(version),
             "CatalogId": self.catalog_id,
         }
         if self.updated_time is not None:
-            obj["UpdateTime"] = unix_time(self.updated_time)
+            obj["UpdateTime"] = self.updated_time
         return obj
 
     def create_partition(self, partiton_input: dict[str, Any]) -> None:
@@ -1791,7 +1779,7 @@ class FakePartition(BaseModel):
     def __init__(
         self, database_name: str, table_name: str, partiton_input: dict[str, Any]
     ):
-        self.creation_time = time.time()
+        self.creation_time = utcnow()
         self.database_name = database_name
         self.table_name = table_name
         self.partition_input = partiton_input
@@ -1866,8 +1854,8 @@ class FakeCrawler(BaseModel):
             "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
-            "CreationTime": self.creation_time.isoformat(),
-            "LastUpdated": self.last_updated.isoformat(),
+            "CreationTime": self.creation_time,
+            "LastUpdated": self.last_updated,
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1885,7 +1873,7 @@ class FakeCrawler(BaseModel):
                 "LogGroup": last_crawl.log_group,
                 "LogStream": last_crawl.log_stream,
                 "MessagePrefix": last_crawl.message_prefix,
-                "StartTime": last_crawl.start_time.isoformat(),
+                "StartTime": last_crawl.start_time,
                 "Status": last_crawl.status,
             }
 
@@ -1943,14 +1931,14 @@ class FakeCrawl(ManagedState):
         self.message_prefix = self.crawl_id
         self.start_time = utcnow()
 
-    def as_dict(self) -> dict[str, Union[str, int]]:
-        response_dict: dict[str, Union[str, int]] = {
+    def as_dict(self) -> dict[str, Union[str, int, datetime]]:
+        response_dict: dict[str, Union[str, int, datetime]] = {
             "CrawlId": self.crawl_id,
             "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time.isoformat(),
+            "StartTime": self.start_time,
         }
         if self.status:
             # "STOPPING" isn't a real status for crawl, but we need to introduce
@@ -1960,7 +1948,7 @@ class FakeCrawl(ManagedState):
                 "RUNNING" if self.status == "STOPPING" else self.status
             )
         if self.end_time:
-            response_dict["EndTime"] = self.end_time.isoformat()
+            response_dict["EndTime"] = self.end_time
         return response_dict
 
     def advance(self) -> None:
@@ -2037,8 +2025,8 @@ class FakeJob:
             "Description": self.description,
             "LogUri": self.log_uri,
             "Role": self.role,
-            "CreatedOn": self.created_on.isoformat(),
-            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
             "ExecutionProperty": self.execution_property,
             "Command": self.command,
             "DefaultArguments": self.default_arguments,
@@ -2153,9 +2141,9 @@ class FakeJobRun(ManagedState):
             "Id": self.job_run_id,
             "Attempt": 0,
             "JobName": self.job_name,
-            "StartedOn": self.started_on.isoformat(),
-            "LastModifiedOn": self.modified_on.isoformat(),
-            "CompletedOn": self.completed_on.isoformat(),
+            "StartedOn": self.started_on,
+            "LastModifiedOn": self.modified_on,
+            "CompletedOn": self.completed_on,
             "JobRunState": self.status,
             "PredecessorRuns": [],
             "ExecutionTime": 123,
@@ -2359,7 +2347,7 @@ class FakeSession(BaseModel):
     def as_dict(self) -> dict[str, Any]:
         return {
             "Id": self.session_id,
-            "CreatedOn": self.creation_time.isoformat(),
+            "CreatedOn": self.creation_time,
             "Status": self.state,
             "ErrorMessage": "string",
             "Description": self.description,
@@ -2479,8 +2467,8 @@ class FakeConnection(BaseModel):
             "AthenaProperties": self.athena_properties,
             "SparkProperties": self.spark_properties,
             "PythonProperties": self.python_properties,
-            "CreationTime": self.created_time.isoformat(),
-            "LastUpdatedTime": self.updated_time.isoformat(),
+            "CreationTime": self.created_time,
+            "LastUpdatedTime": self.updated_time,
             "CatalogId": self.catalog_id,
             "Status": self.status,
             "PhysicalConnectionRequirements": self.connection_input.get(
@@ -2504,15 +2492,15 @@ class FakeWorkflowRun:
         self.started_on = utcnow()
         self.completed_on: Optional[datetime] = None
 
-    def as_dict(self) -> dict[str, Union[str, dict[str, str]]]:
-        return_dict: dict[str, Union[str, dict[str, str]]] = {
+    def as_dict(self) -> dict[str, Union[str, datetime, dict[str, str]]]:
+        return_dict: dict[str, Union[str, datetime, dict[str, str]]] = {
             "Name": self.workflow_name,
             "WorkflowRunId": self.run_id,
-            "StartedOn": self.started_on.isoformat(),
+            "StartedOn": self.started_on,
             "Status": self.status,
         }
         if self.completed_on:
-            return_dict["CompletedOn"] = self.completed_on.isoformat()
+            return_dict["CompletedOn"] = self.completed_on
         if self.previous_run_id:
             return_dict["PreviousRunId"] = self.previous_run_id
         if self.properties:
@@ -2540,8 +2528,8 @@ class FakeWorkflow:
 
     def as_dict(self) -> dict[str, Any]:
         return_dict: dict[str, Any] = {
-            "CreatedOn": self.created_on.isoformat(),
-            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
             "Name": self.name,
         }
         if self.default_run_properties:
