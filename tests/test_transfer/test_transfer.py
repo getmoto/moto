@@ -69,7 +69,6 @@ def fixture_transfer_mock_server(client):
     )
 
 
-@mock_aws
 def test_create_describe_and_delete_server(client, server):
     assert "ServerId" in server
     server_id = server["ServerId"]
@@ -157,7 +156,6 @@ def test_create_describe_and_delete_server(client, server):
     assert server_id not in connection
 
 
-@mock_aws
 def test_create_describe_and_delete_user(client, server):
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",
@@ -209,7 +207,6 @@ def test_create_describe_and_delete_user(client, server):
         client.describe_user(UserName=user_name, ServerId=server_id)
 
 
-@mock_aws
 def test_import_and_delete_ssh_public_key(client, server):
     server_id = server["ServerId"]
     user_name = "test_user"
@@ -261,13 +258,11 @@ def test_create_multiple_servers():
     assert len(response["Servers"]) == 2
 
 
-@mock_aws
 def test_list_servers_empty(client):
     response = client.list_servers()
     assert response["Servers"] == []
 
 
-@mock_aws
 def test_list_servers(client, server):
     server_id = server["ServerId"]
     response = client.list_servers()
@@ -291,3 +286,171 @@ def test_list_servers_multiple(client):
 
     response = client.list_servers()
     assert len(response["Servers"]) == 2
+
+
+def test_create_and_describe_connector_with_sftp_config(client):
+    create_response = client.create_connector(
+        Url="sftp://example.com",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+        LoggingRole="arn:aws:iam::123456789012:role/TransferLoggingRole",
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+        SftpConfig={
+            "UserSecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret",
+            "TrustedHostKeys": ["mock_trusted_host_key"],
+        },
+        SecurityPolicyName="TransferSFTPConnectorSecurityPolicy-2024-01",
+    )
+
+    assert "ConnectorId" in create_response
+    connector_id = create_response["ConnectorId"]
+    assert connector_id.startswith("c-")
+
+    response = client.describe_connector(ConnectorId=connector_id)
+    connector = response["Connector"]
+
+    assert connector["ConnectorId"] == connector_id
+    assert connector["Url"] == "sftp://example.com"
+    assert (
+        connector["AccessRole"] == "arn:aws:iam::123456789012:role/TransferAccessRole"
+    )
+    assert (
+        connector["LoggingRole"] == "arn:aws:iam::123456789012:role/TransferLoggingRole"
+    )
+    assert connector["Tags"] == [{"Key": "Environment", "Value": "Test"}]
+    assert (
+        connector["SftpConfig"]["UserSecretId"]
+        == "arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret"
+    )
+    assert connector["SftpConfig"]["TrustedHostKeys"] == ["mock_trusted_host_key"]
+    assert (
+        connector["SecurityPolicyName"] == "TransferSFTPConnectorSecurityPolicy-2024-01"
+    )
+    assert "Arn" in connector
+    assert "ServiceManagedEgressIpAddresses" in connector
+
+
+def test_create_and_describe_connector_with_as2_config(client):
+    create_response = client.create_connector(
+        Url="http://partner.example.com/as2",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+        As2Config={
+            "LocalProfileId": "p-mock_local_profile",
+            "PartnerProfileId": "p-mock_partner_profile",
+            "MessageSubject": "mock_message_subject",
+            "Compression": "ZLIB",
+            "EncryptionAlgorithm": "AES256_CBC",
+            "SigningAlgorithm": "SHA256",
+            "MdnSigningAlgorithm": "SHA256",
+            "MdnResponse": "SYNC",
+            "BasicAuthSecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret:mock-auth",
+        },
+    )
+
+    assert "ConnectorId" in create_response
+    connector_id = create_response["ConnectorId"]
+    assert connector_id.startswith("c-")
+
+    response = client.describe_connector(ConnectorId=connector_id)
+    connector = response["Connector"]
+
+    assert connector["As2Config"]["LocalProfileId"] == "p-mock_local_profile"
+    assert connector["As2Config"]["PartnerProfileId"] == "p-mock_partner_profile"
+    assert connector["As2Config"]["MessageSubject"] == "mock_message_subject"
+    assert connector["As2Config"]["Compression"] == "ZLIB"
+    assert connector["As2Config"]["EncryptionAlgorithm"] == "AES256_CBC"
+    assert connector["As2Config"]["SigningAlgorithm"] == "SHA256"
+    assert connector["As2Config"]["MdnSigningAlgorithm"] == "SHA256"
+    assert connector["As2Config"]["MdnResponse"] == "SYNC"
+
+
+def test_describe_connector_not_found(client):
+    with pytest.raises(ClientError) as exc:
+        client.describe_connector(ConnectorId="c-01234567890abcdef")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def test_delete_connector(client):
+    create_response = client.create_connector(
+        Url="sftp://example.com",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+    )
+    connector_id = create_response["ConnectorId"]
+
+    client.delete_connector(ConnectorId=connector_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_connector(ConnectorId=connector_id)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def test_delete_connector_not_found(client):
+    with pytest.raises(ClientError) as exc:
+        client.delete_connector(ConnectorId="c-12345678901abcdef")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def test_list_connectors_empty(client):
+    response = client.list_connectors()
+    assert response["Connectors"] == []
+
+
+def test_list_connectors(client):
+    client.create_connector(
+        Url="sftp://server1.example.com",
+        AccessRole="arn:aws:iam::123456789012:role/Role1",
+    )
+    client.create_connector(
+        Url="sftp://server2.example.com",
+        AccessRole="arn:aws:iam::123456789012:role/Role2",
+    )
+
+    response = client.list_connectors()
+
+    assert len(response["Connectors"]) == 2
+    urls = [c["Url"] for c in response["Connectors"]]
+    assert "sftp://server1.example.com" in urls
+    assert "sftp://server2.example.com" in urls
+    for connector in response["Connectors"]:
+        assert "Arn" in connector
+        assert "ConnectorId" in connector
+        assert "Url" in connector
+
+
+def test_update_connector(client):
+    create_response = client.create_connector(
+        Url="sftp://example.com",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+        SftpConfig={
+            "UserSecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret:old-secret",
+            "TrustedHostKeys": ["mock_old_host_key"],
+        },
+    )
+    connector_id = create_response["ConnectorId"]
+
+    client.update_connector(
+        ConnectorId=connector_id,
+        Url="sftp://updated.example.com",
+        SftpConfig={
+            "UserSecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret:new-secret",
+            "TrustedHostKeys": ["mock_new_host_key"],
+        },
+    )
+
+    describe_response = client.describe_connector(ConnectorId=connector_id)
+    connector = describe_response["Connector"]
+
+    assert connector["Url"] == "sftp://updated.example.com"
+    assert (
+        connector["SftpConfig"]["UserSecretId"]
+        == "arn:aws:secretsmanager:us-east-1:123456789012:secret:new-secret"
+    )
+    assert connector["SftpConfig"]["TrustedHostKeys"] == ["mock_new_host_key"]
+
+
+def test_update_connector_not_found(client):
+    with pytest.raises(ClientError) as exc:
+        client.update_connector(
+            ConnectorId="c-01234567890abcdef",
+            Url="sftp://example.com",
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
