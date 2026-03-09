@@ -1180,6 +1180,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -1241,6 +1250,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.af-south-1.amazonaws.com"
                 }
               },
               "organizations": {
@@ -2999,6 +3014,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -3925,6 +3949,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "cognito-idp": {
@@ -15558,6 +15591,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-south-2.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -22747,6 +22786,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-3.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -24314,6 +24359,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-4.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -25746,6 +25797,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -26494,6 +26554,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-idp": {
                 "Value": "cognito-idp",
                 "endpoint": {
@@ -26726,6 +26795,15 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fms": {
+                "Value": "fms",
+                "endpoint": {
+                  "Value": "fms.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28101,6 +28179,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-7.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32008,6 +32095,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ca-west-1.amazonaws.com"
                 }
               },
               "organizations": {
@@ -39216,6 +39309,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -39277,6 +39379,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-central-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -43237,6 +43345,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-south-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -44895,6 +45009,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55553,6 +55676,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.il-central-1.amazonaws.com"
+                }
+              },
               "omics": {
                 "Value": "omics"
               },
@@ -64771,15 +64900,6 @@
               },
               "launchwizard": {
                 "Value": "launchwizard"
-              },
-              "lex-models": {
-                "Value": "lex-models",
-                "endpoint": {
-                  "Value": "models.lex.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "lex-runtime": {
                 "Value": "lex-runtime",

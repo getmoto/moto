@@ -16130,6 +16130,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -16215,6 +16224,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "cognito-identity.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30896,6 +30914,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fms.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -43338,23 +43365,6 @@
               }
             }
           },
-          "lex-models": {
-            "Value": "lex-models",
-            "longName": {
-              "Value": "Amazon Lex Model Building Service"
-            },
-            "regions": {
-              "us-east-1": {
-                "Value": "us-east-1",
-                "endpoint": {
-                  "Value": "models.lex.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              }
-            }
-          },
           "lex-runtime": {
             "Value": "lex-runtime",
             "longName": {
@@ -49775,6 +49785,24 @@
               "Value": "AmazonMWAAServerless"
             },
             "regions": {
+              "af-south-1": {
+                "Value": "af-south-1",
+                "endpoint": {
+                  "Value": "airflow-serverless.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-east-1": {
+                "Value": "ap-east-1",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -49820,6 +49848,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-7.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -49838,10 +49884,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-north-1": {
                 "Value": "eu-north-1",
                 "endpoint": {
                   "Value": "airflow-serverless.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-2": {
+                "Value": "eu-south-2",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52269,6 +52333,12 @@
               "Value": "CloudWatch Observability Admin Service"
             },
             "regions": {
+              "af-south-1": {
+                "Value": "af-south-1",
+                "endpoint": {
+                  "Value": "observabilityadmin.af-south-1.amazonaws.com"
+                }
+              },
               "ap-east-1": {
                 "Value": "ap-east-1",
                 "endpoint": {
@@ -52299,6 +52369,12 @@
                   "Value": "observabilityadmin.ap-south-1.amazonaws.com"
                 }
               },
+              "ap-south-2": {
+                "Value": "ap-south-2",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-south-2.amazonaws.com"
+                }
+              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
@@ -52309,6 +52385,18 @@
                 "Value": "ap-southeast-2",
                 "endpoint": {
                   "Value": "observabilityadmin.ap-southeast-2.amazonaws.com"
+                }
+              },
+              "ap-southeast-3": {
+                "Value": "ap-southeast-3",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-3.amazonaws.com"
+                }
+              },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-4.amazonaws.com"
                 }
               },
               "ap-southeast-5": {
@@ -52329,16 +52417,34 @@
                   "Value": "observabilityadmin.ca-central-1.amazonaws.com"
                 }
               },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "observabilityadmin.ca-west-1.amazonaws.com"
+                }
+              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-central-1.amazonaws.com"
                 }
               },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-central-2.amazonaws.com"
+                }
+              },
               "eu-north-1": {
                 "Value": "eu-north-1",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-north-1.amazonaws.com"
+                }
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-south-1.amazonaws.com"
                 }
               },
               "eu-south-2": {
@@ -52363,6 +52469,12 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-west-3.amazonaws.com"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "observabilityadmin.il-central-1.amazonaws.com"
                 }
               },
               "sa-east-1": {
