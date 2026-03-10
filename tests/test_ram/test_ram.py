@@ -120,6 +120,51 @@ def test_create_resource_share_errors():
 
 
 @mock_aws
+def test_create_resource_share_with_service_principal():
+    client = boto3.client("ram", region_name="us-east-1")
+
+    response = client.create_resource_share(
+        name="test-service-principal",
+        principals=["backup.amazonaws.com"],
+        resourceArns=[
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+        ],
+    )
+    resource_share = response["resourceShare"]
+    assert resource_share["name"] == "test-service-principal"
+
+    associations = client.get_resource_share_associations(
+        associationType="PRINCIPAL",
+        resourceShareArns=[resource_share["resourceShareArn"]],
+    )["resourceShareAssociations"]
+    assert len(associations) == 1
+    assert associations[0]["associatedEntity"] == "backup.amazonaws.com"
+
+
+@mock_aws
+def test_create_resource_share_with_iam_role_principal():
+    client = boto3.client("ram", region_name="us-east-1")
+
+    role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/MyRole"
+    response = client.create_resource_share(
+        name="test-iam-role",
+        principals=[role_arn],
+        resourceArns=[
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+        ],
+    )
+    resource_share = response["resourceShare"]
+    assert resource_share["name"] == "test-iam-role"
+
+    associations = client.get_resource_share_associations(
+        associationType="PRINCIPAL",
+        resourceShareArns=[resource_share["resourceShareArn"]],
+    )["resourceShareAssociations"]
+    assert len(associations) == 1
+    assert associations[0]["associatedEntity"] == role_arn
+
+
+@mock_aws
 def test_create_resource_share_with_organization():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
