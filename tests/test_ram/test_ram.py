@@ -165,6 +165,78 @@ def test_create_resource_share_with_iam_role_principal():
 
 
 @mock_aws
+def test_create_resource_share_with_iam_user_principal():
+    client = boto3.client("ram", region_name="us-east-1")
+
+    user_arn = f"arn:aws:iam::{ACCOUNT_ID}:user/MyUser"
+    response = client.create_resource_share(
+        name="test-iam-user",
+        principals=[user_arn],
+        resourceArns=[
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+        ],
+    )
+    resource_share = response["resourceShare"]
+    assert resource_share["name"] == "test-iam-user"
+
+    associations = client.get_resource_share_associations(
+        associationType="PRINCIPAL",
+        resourceShareArns=[resource_share["resourceShareArn"]],
+    )["resourceShareAssociations"]
+    assert len(associations) == 1
+    assert associations[0]["associatedEntity"] == user_arn
+
+
+@mock_aws
+def test_create_resource_share_with_root_principal():
+    client = boto3.client("ram", region_name="us-east-1")
+
+    root_arn = f"arn:aws:iam::{ACCOUNT_ID}:root"
+    response = client.create_resource_share(
+        name="test-root",
+        principals=[root_arn],
+        resourceArns=[
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+        ],
+    )
+    resource_share = response["resourceShare"]
+    assert resource_share["name"] == "test-root"
+
+    associations = client.get_resource_share_associations(
+        associationType="PRINCIPAL",
+        resourceShareArns=[resource_share["resourceShareArn"]],
+    )["resourceShareAssociations"]
+    assert len(associations) == 1
+    assert associations[0]["associatedEntity"] == root_arn
+
+
+@mock_aws
+def test_create_resource_share_rejects_invalid_principal():
+    client = boto3.client("ram", region_name="us-east-1")
+
+    invalid_principals = [
+        "not-a-valid-principal",
+        "arn:aws:iam::not-account:role/Foo",
+        "UPPERCASE.amazonaws.com",
+        "under_score.amazonaws.com",
+    ]
+
+    for principal in invalid_principals:
+        with pytest.raises(ClientError) as e:
+            client.create_resource_share(
+                name="test-invalid",
+                principals=[principal],
+                resourceArns=[
+                    f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+                ],
+            )
+        ex = e.value
+        assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "InvalidParameterException" in ex.response["Error"]["Code"]
+        assert "is malformed" in ex.response["Error"]["Message"]
+
+
+@mock_aws
 def test_create_resource_share_with_organization():
     # given
     client = boto3.client("organizations", region_name="us-east-1")

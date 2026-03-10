@@ -111,7 +111,7 @@ class ResourceShare(BaseModel):
                 )
 
             if not re.match(
-                r"^(\d{12}|arn:aws:iam::\d{12}:(root|role/.+|user/.+)|[\w.-]+\.amazonaws\.com)$",
+                r"^(\d{12}|arn:aws(-cn|-us-gov)?:iam::\d{12}:(root|role/.+|user/.+)|[a-z0-9-]+\.amazonaws\.com)$",
                 principal,
             ):
                 raise InvalidParameterException(
