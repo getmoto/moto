@@ -237,9 +237,9 @@ def test_create_agent_runtime_endpoint_with_version_and_tags():
         tags={"env": "test"},
     )
     assert resp["targetVersion"] == "1"
-    tags = client.list_tags_for_resource(
-        resourceArn=resp["agentRuntimeEndpointArn"]
-    )["tags"]
+    tags = client.list_tags_for_resource(resourceArn=resp["agentRuntimeEndpointArn"])[
+        "tags"
+    ]
     assert tags == {"env": "test"}
 
 
@@ -899,7 +899,11 @@ def test_update_gateway_with_optional_fields():
         protocolType="MCP",
         authorizerType="NONE",
         description="Updated",
-        authorizerConfiguration={"customJWTAuthorizer": {"discoveryUrl": "https://example.com/.well-known/jwks.json"}},
+        authorizerConfiguration={
+            "customJWTAuthorizer": {
+                "discoveryUrl": "https://example.com/.well-known/jwks.json"
+            }
+        },
         kmsKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123",
         exceptionLevel="DEBUG",
     )
