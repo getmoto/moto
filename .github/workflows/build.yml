@@ -92,7 +92,7 @@ jobs:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Build Docker Image
         uses: docker/build-push-action@v7
         with:
