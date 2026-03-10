@@ -237,9 +237,9 @@ def test_create_agent_runtime_endpoint_with_version_and_tags():
         tags={"env": "test"},
     )
     assert resp["targetVersion"] == "1"
-    tags = client.list_tags_for_resource(
-        resourceArn=resp["agentRuntimeEndpointArn"]
-    )["tags"]
+    tags = client.list_tags_for_resource(resourceArn=resp["agentRuntimeEndpointArn"])[
+        "tags"
+    ]
     assert tags == {"env": "test"}
 
 
