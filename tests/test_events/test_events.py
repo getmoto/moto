@@ -292,6 +292,27 @@ def test_list_rule_names_by_target():
 
 
 @mock_aws
+def test_list_rule_names_by_target_deduplicates_rule_names_for_same_target_arn():
+    client = boto3.client("events", region_name="us-east-1")
+
+    rule_name = "rule-with-duplicate-target-arn"
+    target_arn = "arn:aws:lambda:us-east-1:123456789012:function:test"
+
+    client.put_rule(Name=rule_name, EventPattern='{"source": ["test-source"]}')
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {"Id": "target-1", "Arn": target_arn},
+            {"Id": "target-2", "Arn": target_arn},
+        ],
+    )
+
+    response = client.list_rule_names_by_target(TargetArn=target_arn)
+
+    assert response["RuleNames"] == [rule_name]
+
+
+@mock_aws
 def test_list_rule_names_by_target_using_limit():
     test_1_target = TARGETS["test-target-1"]
     client = generate_environment()
