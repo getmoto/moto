@@ -834,6 +834,7 @@ class KmsBackend(BaseBackend):
         grant_tokens: list[str],
         dry_run: bool,
     ) -> tuple[str, str, str]:
+        key_id = self.any_id_to_key_id(key_id)
         key = self.keys[key_id]
 
         if (
