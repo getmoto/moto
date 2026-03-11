@@ -12,8 +12,9 @@ class ParsedQuery:
     def sort_reversed(self) -> bool:
         # Descending is the default
         if self.sort:
-            # sort_reversed is True if we want to sort in ascending order
-            return self.sort[-1][-1] == "asc"
+            # sorted(..., reverse=True) returns values in descending order.
+            # Keep reverse=True only when query explicitly requests descending.
+            return self.sort[-1][-1] == "desc"
         return False
 
 
