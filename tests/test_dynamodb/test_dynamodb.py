@@ -666,7 +666,7 @@ def test_nested_projection_expression_using_get_item():
 )
 def test_projection_expression_accessing_list_elements(projection_expression, item):
     client = boto3.client("dynamodb", region_name="us-east-1")
-    table_name = "test-array-access"
+    table_name = f"T{uuid4()}"
     client.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "Id", "KeyType": "HASH"}],
