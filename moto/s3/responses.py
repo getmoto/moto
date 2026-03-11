@@ -2569,6 +2569,15 @@ class S3Response(BaseResponse):
         bypass = self.headers.get("X-Amz-Bypass-Governance-Retention")
         key_name = self.parse_key_name()
         version_id = self._get_param("versionId")
+        if_match = self.headers.get("If-Match")
+
+        if if_match:
+            if not (obj := self.backend.get_object(self.bucket_name, key_name)):
+                raise MissingKey
+            # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
+            elif if_match.replace('"', "") != obj.etag.replace('"', ""):
+                raise PreconditionFailed("If-Match")
+
         _, response_meta = self.backend.delete_object(
             self.bucket_name, key_name, version_id=version_id, bypass=bypass
         )
@@ -2893,6 +2902,8 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         {% else %}
             {% if rule.prefix != None %}
             <Prefix>{{ rule.prefix }}</Prefix>
+            {% else %}
+            <Filter/>
             {% endif %}
         {% endif %}
         <Status>{{ rule.status }}</Status>

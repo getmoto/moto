@@ -74,13 +74,13 @@ class DynamoType:
             self.value = {k: DynamoType(v) for k, v in self.value.items()}
 
     def __hash__(self) -> int:
-        return hash((self.type, self.value))
+        return hash((self.type, self.cast_value))
 
     def __eq__(self, other: "DynamoType") -> bool:  # type: ignore[override]
-        return self.type == other.type and self.value == other.value
+        return self.type == other.type and self.cast_value == other.cast_value
 
     def __ne__(self, other: "DynamoType") -> bool:  # type: ignore[override]
-        return self.type != other.type or self.value != other.value
+        return self.type != other.type or self.cast_value != other.cast_value
 
     def __lt__(self, other: "DynamoType") -> bool:
         return self.cast_value < other.cast_value
@@ -176,10 +176,7 @@ class DynamoType:
     @property
     def cast_value(self) -> Any:  # type: ignore[misc]
         if self.is_number():
-            try:
-                return int(self.value)
-            except ValueError:
-                return float(self.value)
+            return Decimal(self.value)
         elif self.is_set():
             sub_type = self.type[0]
             return {DynamoType({sub_type: v}).cast_value for v in self.value}

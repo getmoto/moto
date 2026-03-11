@@ -772,3 +772,19 @@ def test_delete_resource_policy():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == f"Resource {arn} not found"
+
+
+@mock_aws
+def test_list_access_log_subscriptions_with_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service(name="my-service", authType="NONE")
+    client.create_access_log_subscription(
+        resourceIdentifier=resp["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        serviceNetworkLogType="SERVICE",
+    )
+    results = client.list_access_log_subscriptions(
+        resourceIdentifier=resp["arn"],
+        maxResults=12,
+    )
+    assert len(results["items"]) == 1

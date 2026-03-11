@@ -4,9 +4,8 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
-from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import NotFoundException
@@ -74,7 +73,6 @@ class EventBridgePipesBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.pipes: dict[str, Pipe] = {}
-        self.tagger = TaggingService()
 
     def create_pipe(
         self,
@@ -119,32 +117,13 @@ class EventBridgePipesBackend(BaseBackend):
             raise NotFoundException(f"Pipe {name} not found")
         return self.pipes[name]
 
-    def delete_pipe(self, name: str) -> tuple[str, str, str, str, str, str]:
+    def delete_pipe(self, name: str) -> Pipe:
         if name not in self.pipes:
             raise NotFoundException(f"Pipe {name} not found")
-        pipe = self.pipes[name]
+        pipe = self.pipes.pop(name)
         pipe.desired_state = "DELETED"
         pipe.current_state = "DELETING"
-
-        arn = pipe.arn
-        pipe_name = pipe.name
-        desired_state = pipe.desired_state
-        current_state = pipe.current_state
-        creation_time = iso_8601_datetime_without_milliseconds(pipe.creation_time)
-        last_modified_time = iso_8601_datetime_without_milliseconds(
-            pipe.last_modified_time
-        )
-
-        del self.pipes[name]
-
-        return (
-            arn,
-            pipe_name,
-            desired_state,
-            current_state,
-            creation_time,
-            last_modified_time,
-        )
+        return pipe
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         pipe = None
@@ -155,9 +134,6 @@ class EventBridgePipesBackend(BaseBackend):
 
         if pipe is None:
             raise NotFoundException(f"Resource {resource_arn} not found")
-
-        tag_list = TaggingService.convert_dict_to_tags_input(tags)
-        self.tagger.tag_resource(resource_arn, tag_list)
 
         pipe.tags.update(tags)
 
@@ -171,10 +147,20 @@ class EventBridgePipesBackend(BaseBackend):
         if pipe is None:
             raise NotFoundException(f"Resource {resource_arn} not found")
 
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
         for tag_key in tag_keys:
             pipe.tags.pop(tag_key, None)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        pipe = None
+        for p in self.pipes.values():
+            if p.arn == resource_arn:
+                pipe = p
+                break
+
+        if pipe is None:
+            raise NotFoundException(f"Resource {resource_arn} not found")
+
+        return pipe.tags
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_pipes(  # type: ignore[misc]
@@ -228,12 +214,8 @@ class EventBridgePipesBackend(BaseBackend):
                 "CurrentState": pipe.current_state,
                 "Source": pipe.source,
                 "Target": pipe.target,
-                "CreationTime": iso_8601_datetime_without_milliseconds(
-                    pipe.creation_time
-                ),
-                "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                    pipe.last_modified_time
-                ),
+                "CreationTime": pipe.creation_time,
+                "LastModifiedTime": pipe.last_modified_time,
             }
             if pipe.enrichment:
                 summary["Enrichment"] = pipe.enrichment

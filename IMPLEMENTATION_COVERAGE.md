@@ -155,7 +155,7 @@
 - [X] delete_integration_response
 - [X] delete_method
 - [X] delete_method_response
-- [ ] delete_model
+- [X] delete_model
 - [X] delete_request_validator
 - [X] delete_resource
 - [X] delete_rest_api
@@ -566,7 +566,7 @@
 
 ## athena
 <details>
-<summary>32% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -628,9 +628,9 @@
 - [ ] start_session
 - [ ] stop_calculation_execution
 - [X] stop_query_execution
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] terminate_session
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
@@ -1571,8 +1571,9 @@
 
 ## cloudwatch
 <details>
-<summary>51% implemented</summary>
+<summary>46% implemented</summary>
 
+- [ ] delete_alarm_mute_rule
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
 - [X] delete_dashboards
@@ -1588,17 +1589,20 @@
 - [X] disable_insight_rules
 - [ ] enable_alarm_actions
 - [X] enable_insight_rules
+- [ ] get_alarm_mute_rule
 - [X] get_dashboard
 - [ ] get_insight_rule_report
 - [X] get_metric_data
 - [X] get_metric_statistics
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
+- [ ] list_alarm_mute_rules
 - [X] list_dashboards
 - [ ] list_managed_insight_rules
 - [ ] list_metric_streams
 - [X] list_metrics
 - [X] list_tags_for_resource
+- [ ] put_alarm_mute_rule
 - [ ] put_anomaly_detector
 - [ ] put_composite_alarm
 - [X] put_dashboard
@@ -1898,9 +1902,10 @@
 
 ## cognito-idp
 <details>
-<summary>52% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] add_custom_attributes
+- [ ] add_user_pool_client_secret
 - [X] admin_add_user_to_group
 - [X] admin_confirm_sign_up
 - [X] admin_create_user
@@ -1951,6 +1956,7 @@
 - [ ] delete_user_attributes
 - [X] delete_user_pool
 - [X] delete_user_pool_client
+- [ ] delete_user_pool_client_secret
 - [X] delete_user_pool_domain
 - [ ] delete_web_authn_credential
 - [X] describe_identity_provider
@@ -1986,6 +1992,7 @@
 - [ ] list_tags_for_resource
 - [ ] list_terms
 - [ ] list_user_import_jobs
+- [ ] list_user_pool_client_secrets
 - [X] list_user_pool_clients
 - [X] list_user_pools
 - [X] list_users
@@ -2232,6 +2239,7 @@
 - [ ] associate_lambda_function
 - [ ] associate_lex_bot
 - [ ] associate_phone_number_contact_flow
+- [ ] associate_queue_email_addresses
 - [ ] associate_queue_quick_connects
 - [ ] associate_routing_profile_queues
 - [ ] associate_security_key
@@ -2265,6 +2273,7 @@
 - [ ] create_hours_of_operation_override
 - [X] create_instance
 - [ ] create_integration_association
+- [ ] create_notification
 - [ ] create_participant
 - [ ] create_persistent_contact_association
 - [ ] create_predefined_attribute
@@ -2302,6 +2311,7 @@
 - [ ] delete_hours_of_operation_override
 - [X] delete_instance
 - [ ] delete_integration_association
+- [ ] delete_notification
 - [ ] delete_predefined_attribute
 - [ ] delete_prompt
 - [ ] delete_push_notification_registration
@@ -2338,6 +2348,7 @@
 - [X] describe_instance
 - [ ] describe_instance_attribute
 - [ ] describe_instance_storage_config
+- [ ] describe_notification
 - [ ] describe_phone_number
 - [ ] describe_predefined_attribute
 - [ ] describe_prompt
@@ -2364,6 +2375,7 @@
 - [ ] disassociate_lambda_function
 - [ ] disassociate_lex_bot
 - [ ] disassociate_phone_number_contact_flow
+- [ ] disassociate_queue_email_addresses
 - [ ] disassociate_queue_quick_connects
 - [ ] disassociate_routing_profile_queues
 - [ ] disassociate_security_key
@@ -2421,10 +2433,12 @@
 - [ ] list_integration_associations
 - [ ] list_lambda_functions
 - [ ] list_lex_bots
+- [ ] list_notifications
 - [ ] list_phone_numbers
 - [ ] list_phone_numbers_v2
 - [ ] list_predefined_attributes
 - [ ] list_prompts
+- [ ] list_queue_email_addresses
 - [ ] list_queue_quick_connects
 - [ ] list_queues
 - [ ] list_quick_connects
@@ -2447,6 +2461,7 @@
 - [ ] list_traffic_distribution_groups
 - [ ] list_use_cases
 - [ ] list_user_hierarchy_groups
+- [ ] list_user_notifications
 - [ ] list_user_proficiencies
 - [ ] list_users
 - [ ] list_view_versions
@@ -2472,6 +2487,7 @@
 - [ ] search_evaluation_forms
 - [ ] search_hours_of_operation_overrides
 - [ ] search_hours_of_operations
+- [ ] search_notifications
 - [ ] search_predefined_attributes
 - [ ] search_prompts
 - [ ] search_queues
@@ -2536,6 +2552,7 @@
 - [ ] update_hours_of_operation_override
 - [ ] update_instance_attribute
 - [ ] update_instance_storage_config
+- [ ] update_notification_content
 - [ ] update_participant_authentication
 - [ ] update_participant_role_config
 - [ ] update_phone_number
@@ -2560,10 +2577,12 @@
 - [ ] update_task_template
 - [ ] update_test_case
 - [ ] update_traffic_distribution
+- [ ] update_user_config
 - [ ] update_user_hierarchy
 - [ ] update_user_hierarchy_group_name
 - [ ] update_user_hierarchy_structure
 - [ ] update_user_identity_info
+- [ ] update_user_notification_status
 - [ ] update_user_phone_config
 - [ ] update_user_proficiencies
 - [ ] update_user_routing_profile
@@ -3150,7 +3169,7 @@
 
 ## ec2
 <details>
-<summary>29% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -3274,6 +3293,8 @@
 - [ ] create_route_server_endpoint
 - [ ] create_route_server_peer
 - [X] create_route_table
+- [ ] create_secondary_network
+- [ ] create_secondary_subnet
 - [X] create_security_group
 - [X] create_snapshot
 - [X] create_snapshots
@@ -3366,6 +3387,8 @@
 - [ ] delete_route_server_endpoint
 - [ ] delete_route_server_peer
 - [X] delete_route_table
+- [ ] delete_secondary_network
+- [ ] delete_secondary_subnet
 - [X] delete_security_group
 - [X] delete_snapshot
 - [ ] delete_spot_datafeed_subscription
@@ -3534,6 +3557,9 @@
 - [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
+- [ ] describe_secondary_interfaces
+- [ ] describe_secondary_networks
+- [ ] describe_secondary_subnets
 - [ ] describe_security_group_references
 - [X] describe_security_group_rules
 - [ ] describe_security_group_vpc_associations
@@ -5880,7 +5906,7 @@
 
 ## kafka
 <details>
-<summary>17% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] batch_associate_scram_secret
 - [ ] batch_disassociate_scram_secret
@@ -5888,11 +5914,13 @@
 - [X] create_cluster_v2
 - [ ] create_configuration
 - [ ] create_replicator
+- [ ] create_topic
 - [ ] create_vpc_connection
 - [X] delete_cluster
 - [ ] delete_cluster_policy
 - [ ] delete_configuration
 - [ ] delete_replicator
+- [ ] delete_topic
 - [ ] delete_vpc_connection
 - [X] describe_cluster
 - [ ] describe_cluster_operation
@@ -5938,6 +5966,7 @@
 - [ ] update_replication_info
 - [ ] update_security
 - [ ] update_storage
+- [ ] update_topic
 </details>
 
 ## kinesis
@@ -6481,6 +6510,7 @@
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
+- [ ] put_bearer_token_authentication
 - [ ] put_data_protection_policy
 - [X] put_delivery_destination
 - [X] put_delivery_destination_policy
@@ -7041,13 +7071,13 @@
 
 ## neptune
 <details>
-<summary>65% implemented</summary>
+<summary>67% implemented</summary>
 
 - [X] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
-- [ ] copy_db_cluster_parameter_group
+- [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
 - [X] copy_db_parameter_group
 - [X] create_db_cluster
@@ -7512,23 +7542,23 @@
 
 ## osis
 <details>
-<summary>45% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] create_pipeline
 - [ ] create_pipeline_endpoint
 - [X] delete_pipeline
 - [ ] delete_pipeline_endpoint
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] get_pipeline
 - [ ] get_pipeline_blueprint
 - [ ] get_pipeline_change_progress
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [ ] list_pipeline_blueprints
 - [ ] list_pipeline_endpoint_connections
 - [ ] list_pipeline_endpoints
 - [X] list_pipelines
 - [X] list_tags_for_resource
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [ ] revoke_pipeline_endpoint_connections
 - [X] start_pipeline
 - [X] stop_pipeline
@@ -7785,13 +7815,13 @@
 
 ## pipes
 <details>
-<summary>60% implemented</summary>
+<summary>70% implemented</summary>
 
 - [X] create_pipe
 - [X] delete_pipe
 - [X] describe_pipe
 - [X] list_pipes
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] start_pipe
 - [ ] stop_pipe
 - [X] tag_resource
@@ -8093,7 +8123,7 @@
 
 ## rds
 <details>
-<summary>51% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] add_role_to_db_cluster
 - [X] add_role_to_db_instance
@@ -8103,7 +8133,7 @@
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
 - [X] cancel_export_task
-- [ ] copy_db_cluster_parameter_group
+- [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
 - [X] copy_db_parameter_group
 - [X] copy_db_snapshot
@@ -10514,14 +10544,14 @@
 
 ## sts
 <details>
-<summary>54% implemented</summary>
+<summary>63% implemented</summary>
 
 - [X] assume_role
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
 - [ ] assume_root
 - [ ] decode_authorization_message
-- [ ] get_access_key_info
+- [X] get_access_key_info
 - [X] get_caller_identity
 - [ ] get_delegated_access_token
 - [X] get_federation_token
@@ -10777,7 +10807,7 @@
 
 ## transfer
 <details>
-<summary>11% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] create_access
 - [ ] create_agreement
@@ -10824,7 +10854,7 @@
 - [ ] list_host_keys
 - [ ] list_profiles
 - [ ] list_security_policies
-- [ ] list_servers
+- [X] list_servers
 - [ ] list_tags_for_resource
 - [ ] list_users
 - [ ] list_web_apps
@@ -10933,7 +10963,7 @@
 
 ## wafv2
 <details>
-<summary>55% implemented</summary>
+<summary>54% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
@@ -10965,6 +10995,7 @@
 - [X] get_regex_pattern_set
 - [X] get_rule_group
 - [ ] get_sampled_requests
+- [ ] get_top_path_statistics_by_traffic
 - [X] get_web_acl
 - [X] get_web_acl_for_resource
 - [ ] list_api_keys
@@ -11238,6 +11269,7 @@
 - connect-contact-lens
 - connectcampaignsv2
 - connectcases
+- connecthealth
 - connectparticipant
 - controlcatalog
 - controltower
@@ -11258,8 +11290,8 @@
 - ds-data
 - ecr-public
 - eks-auth
+- elementalinference
 - entityresolution
-- evidently
 - evs
 - finspace
 - finspace-data
@@ -11287,7 +11319,6 @@
 - invoicing
 - iot-jobs-data
 - iot-managed-integrations
-- iotanalytics
 - iotdeviceadvisor
 - iotevents
 - iotevents-data
@@ -11396,6 +11427,7 @@
 - security-ir
 - securitylake
 - serverlessrepo
+- signer-data
 - signin
 - simspaceweaver
 - sms-voice

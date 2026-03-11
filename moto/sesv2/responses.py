@@ -2,7 +2,6 @@
 
 import base64
 import json
-from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -83,7 +82,7 @@ class SESV2Response(BaseResponse):
         return json.dumps({})
 
     def get_contact(self) -> str:
-        email = unquote(self._get_param("EmailAddress"))
+        email = self._get_param("EmailAddress")
         contact_list_name = self._get_param("ContactListName")
         contact = self.sesv2_backend.get_contact(email, contact_list_name)
         return json.dumps(contact.response_object)
@@ -96,7 +95,7 @@ class SESV2Response(BaseResponse):
     def delete_contact(self) -> str:
         email = self._get_param("EmailAddress")
         contact_list_name = self._get_param("ContactListName")
-        self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
+        self.sesv2_backend.delete_contact(email, contact_list_name)
         return json.dumps({})
 
     def create_email_identity(self) -> str:

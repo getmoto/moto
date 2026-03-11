@@ -955,6 +955,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     networks = network_settings["Networks"]
                     if network_name in networks:
                         ip = networks[network_name]["IPAddress"]
+                    elif "bridge" in networks:
+                        # Bridge is the usual network name
+                        ip = networks["bridge"]["IPAddress"]
                     else:
                         ip = network_settings["IPAddress"]
                     env["AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS"] = ip

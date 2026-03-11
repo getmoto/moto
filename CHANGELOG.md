@@ -1,6 +1,50 @@
 Moto Changelog
 ==============
 
+5.1.22
+-----
+Docker Digest for 5.1.22: _sha256:1e3802c95726373544967b428201c548f0247c15b00db2d96a5ba0a77d8643b8_
+
+    New Methods:
+        * APIGateway:
+            * delete_model()
+
+        * Athena:
+            * tag_resource()
+            * untag_resource()
+
+        * Pipes:
+            * list_tags_for_resource()
+
+        * OSIS:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * RDS:
+            * copy_db_cluster_parameter_group()
+
+        * STS:
+            * get_access_key_info()
+
+        * Transfer:
+            * list_servers()
+
+    Miscellaneous:
+        * CloudFormation now supports the creation/update/deletion of AWS::CloudWatch::Dashboard resources
+        * CloudFormation now supports the creation/update/deletion of AWS::KMS::Alias resources
+        * CloudFormation now supports the creation/update/deletion of AWS::SSM::Document resources
+        * EC2: create_fleet() now supports the parameters DryRun and LaunchTemplateConfigs.Overrides
+        * EC2: describe_network_interfaces() now supports the 'attachment.attachment-id'-filter
+        * EC2: Instances created from a LaunchTemplate now have the 'aws:ec2launchtemplate:id' and 'aws:ec2launchtemplate:version' tags
+        * RDS: create_db_cluster_parameter_group() now validates the provided group name/description/familiy
+        * RDS: delete_db_cluster_parameter_group() now validates that the provided group exists
+        * S3: delete_object() now supports IfMatch
+        * SecretsManager: create-secret() now throw ResourceExistsException for duplicate requests with different token (broken since 5.1.11)
+        * SQS: send_message() now returns the SequenceNumber-attribute
+        * VPCLattice: list_access_log_subscriptions() now also supports arns as resourceIdentifiers
+
+
 5.1.21
 -----
 Docker Digest for 5.1.21: _sha256:93ad54da7badce7f9c13e5e6439c93564c764663c42872d2c39f718aa484047a_

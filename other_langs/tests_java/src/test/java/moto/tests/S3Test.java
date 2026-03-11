@@ -1,23 +1,22 @@
 package moto.tests;
 
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit test for simple App.
  */
-public class S3Test
+class S3Test
 {
 
     @Test
-    public void put_object_string() {
+    void put_object_string() {
         String bucketName = "bucket" + System.currentTimeMillis();
         String keyName = "mykey";
         S3Client s3Client = DependencyFactory.s3Client();
@@ -50,7 +49,7 @@ public class S3Test
     }
 
     @Test
-    public void create_and_delete_bucket() {
+    void create_and_delete_bucket() {
         String bucketName = "bucket" + System.currentTimeMillis();
         S3Client s3Client = DependencyFactory.s3Client();
 

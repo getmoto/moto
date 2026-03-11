@@ -354,3 +354,29 @@ def test_multipart_upload__if_none_match__another_multipart(bucket_name=None):
         == "At least one of the pre-conditions you specified did not hold"
     )
     assert err["Condition"] == "If-None-Match"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_object_if_match(bucket_name=None):
+    s3 = boto3.client("s3", region_name="us-east-1")
+    etag = s3.put_object(Bucket=bucket_name, Key="test_key", Body=b"test")["ETag"]
+
+    with pytest.raises(ClientError) as exc:
+        s3.delete_object(Bucket=bucket_name, Key="test_key", IfMatch="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-Match"
+
+    # We can if we match the etag
+    s3.delete_object(Bucket=bucket_name, Key="test_key", IfMatch=etag)
+
+    # It will fail when specifying an unknown key though
+    with pytest.raises(ClientError) as exc:
+        s3.delete_object(Bucket=bucket_name, Key="unknown", IfMatch="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchKey"

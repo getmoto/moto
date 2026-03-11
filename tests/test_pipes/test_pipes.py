@@ -118,6 +118,13 @@ def test_tag_resource():
         "Team": "backend",
     }
 
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {
+        "Environment": "test",
+        "Project": "moto",
+        "Team": "backend",
+    }
+
 
 @mock_aws
 def test_tag_resource_updates_existing_tags():
@@ -138,6 +145,13 @@ def test_tag_resource_updates_existing_tags():
 
     describe_resp = client.describe_pipe(Name="test-pipe-tag-update")
     assert describe_resp["Tags"] == {
+        "Environment": "prod",
+        "Project": "old-project",
+        "Team": "backend",
+    }
+
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {
         "Environment": "prod",
         "Project": "old-project",
         "Team": "backend",
@@ -166,6 +180,9 @@ def test_untag_resource():
     describe_resp = client.describe_pipe(Name="test-pipe-untag")
     assert describe_resp["Tags"] == {"Project": "moto"}
 
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {"Project": "moto"}
+
 
 @mock_aws
 def test_untag_resource_all_tags():
@@ -186,6 +203,9 @@ def test_untag_resource_all_tags():
 
     describe_resp = client.describe_pipe(Name="test-pipe-untag-all")
     assert describe_resp.get("Tags") is None or describe_resp["Tags"] == {}
+
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {}
 
 
 @mock_aws

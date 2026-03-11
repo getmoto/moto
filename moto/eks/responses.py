@@ -1,6 +1,6 @@
 from urllib.parse import unquote
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import EKSBackend, eks_backends
 
@@ -239,14 +239,14 @@ class EKSResponse(BaseResponse):
             self._extract_arn_from_path(), self._get_param("tags")
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         self.eks_backend.untag_resource(
             self._extract_arn_from_path(), self._get_param("tagKeys")
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_tags_for_resource(self) -> ActionResult:
         tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())

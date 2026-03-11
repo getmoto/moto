@@ -15,8 +15,6 @@ Incomplete list of unfinished items:
 import io
 import json
 import warnings
-from base64 import b64decode, b64encode
-from datetime import datetime, timezone
 from gzip import GzipFile
 from time import time
 from typing import Any, Optional
@@ -25,6 +23,7 @@ import requests
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
@@ -164,11 +163,11 @@ class DeliveryStream(BaseModel):
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
-        self.create_timestamp = datetime.now(timezone.utc).isoformat()
+        self.create_timestamp = utcnow()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        self.last_update_timestamp = utcnow()
 
 
 class FirehoseBackend(BaseBackend):
@@ -429,7 +428,10 @@ class FirehoseBackend(BaseBackend):
         record_to_send = {
             "requestId": str(mock_random.uuid4()),
             "timestamp": int(time()),
-            "records": [{"data": record["Data"]} for record in records],
+            "records": [
+                {"data": str(Base64EncodedString.from_raw_bytes(record["Data"]))}
+                for record in records
+            ],
         }
         try:
             requests.post(url, json=record_to_send, headers=headers)
@@ -473,7 +475,7 @@ class FirehoseBackend(BaseBackend):
             delivery_stream_name, version_id, prefix
         )
 
-        batched_data = b"".join([b64decode(r["Data"]) for r in records])
+        batched_data = b"".join([r["Data"] for r in records])
         try:
             s3_backends[self.account_id][self.partition].put_object(
                 bucket_name, object_path, batched_data
@@ -685,7 +687,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = datetime.now(timezone.utc).isoformat()
+        delivery_stream.last_update_timestamp = utcnow()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon
@@ -717,7 +719,7 @@ class FirehoseBackend(BaseBackend):
         output = io.BytesIO()
         with GzipFile(fileobj=output, mode="w") as fhandle:
             fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
-        gzipped_payload = b64encode(output.getvalue())
+        gzipped_payload = output.getvalue()
 
         delivery_stream: DeliveryStream = self.lookup_name_from_arn(delivery_stream_arn)  # type: ignore[assignment]
         self.put_s3_records(
