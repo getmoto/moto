@@ -10,10 +10,9 @@ class ParsedQuery:
         self.sort: list[tuple[str, str]] = []
 
     def sort_reversed(self) -> bool:
-        # Descending is the default
         if self.sort:
-            # sort_reversed is True if we want to sort in ascending order
-            return self.sort[-1][-1] == "asc"
+            # Python's sorted(reverse=True) yields descending order.
+            return self.sort[-1][-1] == "desc"
         return False
 
 
