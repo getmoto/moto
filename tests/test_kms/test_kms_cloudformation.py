@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from uuid import uuid4
 
 import boto3
@@ -27,7 +28,7 @@ def test_alias_create_and_delete():
     kms_key_id1 = kms_client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
     kms_key_id2 = kms_client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
 
-    template = CF_KMS_ALIAS_TEMPLATE.copy()
+    template = deepcopy(CF_KMS_ALIAS_TEMPLATE)
     template["Resources"]["MyFirstAlias"]["Properties"]["TargetKeyId"] = kms_key_id1
     template["Resources"]["MyFirstAlias"]["Properties"]["AliasName"] = alias_name
 
@@ -58,3 +59,28 @@ def test_alias_create_and_delete():
     # VERIFY
     assert not kms_client.list_aliases(KeyId=kms_key_id1)["Aliases"]
     assert not kms_client.list_aliases(KeyId=kms_key_id2)["Aliases"]
+
+
+@mock_aws
+def test_alias_update_accepts_target_key_arn():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    kms_client = boto3.client("kms", region_name="us-east-1")
+
+    alias_name = "alias/my_arn_alias"
+    stack_name = f"Stack{str(uuid4())[0:6]}"
+    key_1 = kms_client.create_key(Policy="my policy")["KeyMetadata"]
+    key_2 = kms_client.create_key(Policy="my policy")["KeyMetadata"]
+
+    template = deepcopy(CF_KMS_ALIAS_TEMPLATE)
+    template["Resources"]["MyFirstAlias"]["Properties"]["AliasName"] = alias_name
+    template["Resources"]["MyFirstAlias"]["Properties"]["TargetKeyId"] = key_1["KeyId"]
+
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    template["Resources"]["MyFirstAlias"]["Properties"]["TargetKeyId"] = key_2["Arn"]
+    cf.update_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    assert not kms_client.list_aliases(KeyId=key_1["KeyId"])["Aliases"]
+
+    aliases = kms_client.list_aliases(KeyId=key_2["KeyId"])["Aliases"]
+    assert [alias["AliasName"] for alias in aliases] == [alias_name]
