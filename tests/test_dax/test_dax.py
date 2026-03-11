@@ -454,3 +454,70 @@ def test_decrease_replication_factor_specific_nodeids():
     node_ids = {node["NodeId"] for node in described_cluster["Nodes"]}
 
     assert node_ids == ({f"{name}-a", f"{name}-d", f"{name}-e"})
+
+
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("dax", region_name="ap-southeast-1")
+    name = "daxcluster"
+    client.create_cluster(
+        ClusterName=name,
+        NodeType="dax.t3.small",
+        ReplicationFactor=5,
+        IamRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX",
+    )
+
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+    client.tag_resource(ResourceName=name, Tags=tags)
+    listed_tags = client.list_tags(ResourceName=name)
+
+    assert listed_tags["Tags"] == tags
+
+
+@mock_aws
+def test_tag_resource_unknown():
+    client = boto3.client("dax", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.tag_resource(ResourceName="unknown", Tags=[])
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "ClusterNotFoundFault"
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("dax", region_name="ap-southeast-1")
+    name = "daxcluster"
+    client.create_cluster(
+        ClusterName=name,
+        NodeType="dax.t3.small",
+        ReplicationFactor=5,
+        IamRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX",
+    )
+
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+    client.tag_resource(ResourceName=name, Tags=tags)
+
+    tag_keys = ["Moto"]
+
+    client.untag_resource(ResourceName=name, TagKeys=tag_keys)
+
+    listed_tags = client.list_tags(ResourceName=name)
+    assert len(listed_tags["Tags"]) == 1
+    assert listed_tags["Tags"] == [{"Key": "Environment", "Value": "Dev"}]
+
+
+@mock_aws
+def test_untag_resource_unknown():
+    client = boto3.client("dax", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.untag_resource(ResourceName="unknown", TagKeys=[])
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "ClusterNotFoundFault"
