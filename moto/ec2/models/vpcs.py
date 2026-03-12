@@ -98,6 +98,7 @@ AWS_ENDPOINT_SERVICES = [
     "batch",
     "bedrock",
     "bedrock-agent",
+    "bedrock-agentcore",
     "bedrock-agent-runtime",
     "bedrock-runtime",
     "billingconductor",

@@ -1,6 +1,7 @@
 """bedrock base URL and path."""
 
 from ..bedrockagent.responses import AgentsforBedrockResponse
+from ..bedrockagentcore.responses import BedrockAgentCoreResponse
 from .responses import BedrockResponse
 
 url_bases = [
@@ -19,6 +20,7 @@ url_paths = {
     "{0}/knowledgebases/(?P<kb_name>[^/]+)/$": AgentsforBedrockResponse.dispatch,
     "{0}/listTagsForResource$": BedrockResponse.dispatch,
     "{0}/logging/modelinvocations$": BedrockResponse.dispatch,
+    "{0}/memories/(?P<memory_id>[^/]+)/events$": BedrockAgentCoreResponse.dispatch,
     "{0}/model-customization-jobs$": BedrockResponse.dispatch,
     "{0}/model-customization-jobs/(?P<jobIdentifier>[^/]+)$": BedrockResponse.dispatch,
     "{0}/model-customization-jobs/(?P<jobIdentifier>[^/]+)/stop$": BedrockResponse.dispatch,
