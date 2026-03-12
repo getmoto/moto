@@ -524,8 +524,16 @@ class Service(CloudFormationModel, BaseModel):
 
         if self.deployment_controller["type"] == "ECS":
             deployment_id = f"ecs-svc/{mock_random.randint(0, 32**12)}"
-            rollout_state = "COMPLETED" if ecs_running_count >= self.desired_count else "IN_PROGRESS"
-            rollout_state_reason = f"ECS deployment {deployment_id} completed." if rollout_state == "COMPLETED" else f"ECS deployment {deployment_id} in progress."
+            rollout_state = (
+                "COMPLETED"
+                if ecs_running_count >= self.desired_count
+                else "IN_PROGRESS"
+            )
+            rollout_state_reason = (
+                f"ECS deployment {deployment_id} completed."
+                if rollout_state == "COMPLETED"
+                else f"ECS deployment {deployment_id} in progress."
+            )
             self.deployments = [
                 {
                     "createdAt": utcnow(),
