@@ -644,14 +644,53 @@ def test_publish_group_id_to_non_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="topic")
 
+    # MessageGroupId is allowed on standard topics (forwarded to SQS for fair queues)
+    topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    # message group not included - also OK
+    topic.publish(Message="message")
+
+
+@mock_aws
+def test_publish_deduplication_id_to_non_fifo():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="topic")
+
     with pytest.raises(
         ClientError,
-        match="The request includes MessageGroupId parameter that is not valid for this topic type",
+        match="The request includes MessageDeduplicationId parameter that is not valid for this topic type",
     ):
-        topic.publish(Message="message", MessageGroupId="message_group_id")
+        topic.publish(
+            Message="message", MessageDeduplicationId="message_deduplication_id"
+        )
 
-    # message group not included - OK
-    topic.publish(Message="message")
+
+@mock_aws
+def test_publish_group_id_to_standard_topic_delivers_to_sqs():
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    sns = boto3.client("sns", region_name="us-east-1")
+
+    topic_arn = sns.create_topic(Name="standard-topic")["TopicArn"]
+
+    queue_url = sqs.create_queue(QueueName="standard-queue")["QueueUrl"]
+    queue_arn = sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+
+    sns.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn)
+
+    sns.publish(
+        TopicArn=topic_arn,
+        Message="hello fair queues",
+        MessageGroupId="group-1",
+    )
+
+    messages = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)[
+        "Messages"
+    ]
+    assert len(messages) == 1
+    body = json.loads(messages[0]["Body"])
+    assert body["Message"] == "hello fair queues"
 
 
 @mock_aws
