@@ -886,6 +886,31 @@ def test_create_service_failed_tasks_env_var():
 
 
 @mock_aws
+def test_create_service_failed_tasks_invalid_env_var():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Can't set environment variables in server mode for a single test"
+        )
+    with mock.patch.dict(os.environ, {"MOTO_ECS_SERVICE_FAILED_TASKS": "invalid"}):
+        client = boto3.client("ecs", region_name=ECS_REGION)
+        ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+        setup_ecs(client, ec2)
+
+        client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+        )
+        response = client.describe_services(
+            cluster="test_ecs_cluster",
+            services=["test_ecs_service"],
+        )
+        deployment = response["services"][0]["deployments"][0]
+        assert deployment["failedTasks"] == 0
+
+
+@mock_aws
 def test_create_service_errors():
     # given
     client = boto3.client("ecs", region_name=ECS_REGION)
