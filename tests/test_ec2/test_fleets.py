@@ -914,7 +914,7 @@ def test_user_data():
 @pytest.mark.parametrize("version_specified", ["$Latest", "$Default"])
 def test_version_resolves_to_actual_version_number(version_specified, ec2_client=None):
     """Test that $Latest or $Default in a fleet LaunchTemplateSpecification resolves to the actual version number"""
-    with launch_template_context() as ctxt:
+    with launch_template_context(region=ec2_client.meta.region_name) as ctxt:
         fleet_response = ctxt.ec2.create_fleet(
             LaunchTemplateConfigs=[
                 {
@@ -942,6 +942,45 @@ def test_version_resolves_to_actual_version_number(version_specified, ec2_client
                     "LaunchTemplateSpecification"
                 ]
                 assert lt_spec_response["Version"] == "1"
+        finally:
+            ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_fleet_uses_data_from_specified_template_version(ec2_client=None):
+    with launch_template_context(region=ec2_client.meta.region_name) as ctxt:
+        # Version 1 was created by the context manager with t2.micro;
+        # add version 2 with a different instance type
+        ctxt.ec2.create_launch_template_version(
+            LaunchTemplateId=ctxt.lt_id,
+            LaunchTemplateData={"InstanceType": "t3.medium"},
+        )
+
+        fleet = ctxt.ec2.create_fleet(
+            LaunchTemplateConfigs=[
+                {
+                    "LaunchTemplateSpecification": {
+                        "LaunchTemplateId": ctxt.lt_id,
+                        "Version": "1",
+                    },
+                }
+            ],
+            TargetCapacitySpecification={
+                "TotalTargetCapacity": 1,
+                "OnDemandTargetCapacity": 1,
+                "DefaultTargetCapacityType": "on-demand",
+            },
+            OnDemandOptions={"AllocationStrategy": "lowest-price"},
+            Type="instant",
+        )
+        fleet_id = fleet["FleetId"]
+        instance_id = fleet["Instances"][0]["InstanceIds"][0]
+        try:
+            instance = ctxt.ec2.describe_instances(InstanceIds=[instance_id])[
+                "Reservations"
+            ][0]["Instances"][0]
+            assert instance["InstanceType"] == "t2.micro"
         finally:
             ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
 
