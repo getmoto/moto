@@ -110,7 +110,10 @@ class ResourceShare(BaseModel):
                     f"OrganizationalUnit {match.group(2)} in unknown organization could not be found."
                 )
 
-            if not re.match(r"^\d{12}$", principal):
+            if not re.match(
+                r"^(\d{12}|arn:aws(-cn|-us-gov)?:iam::\d{12}:(root|role/.+|user/.+)|[a-z0-9-]+\.amazonaws\.com)$",
+                principal,
+            ):
                 raise InvalidParameterException(
                     f"Principal ID {principal} is malformed. Verify the ID and try again."
                 )
