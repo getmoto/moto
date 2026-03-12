@@ -3,6 +3,7 @@ import ipaddress
 import json
 import os
 import warnings
+from typing import Optional
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -3123,199 +3124,430 @@ def test_block_device_status_conversion():
     assert Instance.get_block_device_status("deleting") == "deleting"
 
 
-def _get_ami_id(ec2_client):
-    if not allow_aws_request():
-        # Running in mock mode - use test AMI
-        return EXAMPLE_AMI_ID
+class TestCreateInstanceFromLaunchTemplate:
+    _LT_USER_DATA_SCRIPT = b"#!/bin/bash\necho from-template"
+    _LT_USER_DATA_B64 = base64.b64encode(_LT_USER_DATA_SCRIPT).decode()
 
-    # Running against real AWS - get latest Amazon Linux AMI
-    ssm_client = boto3.client("ssm", region_name=ec2_client.meta.region_name)
-    kernel_61 = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
-    return ssm_client.get_parameter(Name=kernel_61)["Parameter"]["Value"]
+    def _create_default_launch_template(self, ec2_client):
+        template_name = str(uuid4())
+        ami_id = self._get_ami_id(ec2_client)
+        return ec2_client.create_launch_template(
+            LaunchTemplateName=template_name,
+            LaunchTemplateData={
+                "ImageId": ami_id,
+                "TagSpecifications": [
+                    {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v1"}]}
+                ],
+            },
+        )["LaunchTemplate"]
 
+    @staticmethod
+    def _verify_instance_tags(
+        instance, expected_template_id, expected_template_version, expected_user_tags
+    ):
+        tags = {tag["Key"]: tag["Value"] for tag in instance["Tags"]}
+        assert tags["aws:ec2launchtemplate:id"] == expected_template_id
+        assert tags["aws:ec2launchtemplate:version"] == expected_template_version
+        for key, value in expected_user_tags.items():
+            assert tags[key] == value
 
-def _create_default_launch_template(ec2_client):
-    template_name = str(uuid4())
-    ami_id = _get_ami_id(ec2_client)
-    return ec2_client.create_launch_template(
-        LaunchTemplateName=template_name,
-        LaunchTemplateData={
-            "ImageId": ami_id,
-            "TagSpecifications": [
-                {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v1"}]}
-            ],
-        },
-    )["LaunchTemplate"]
+    @staticmethod
+    def _run_instance_from_template(
+        ec2_client,
+        template_id: Optional[str] = None,
+        template_name: Optional[str] = None,
+        version: Optional[str] = None,
+        **instance_kwargs,
+    ):
+        launch_template_spec = {}
+        if template_id:
+            launch_template_spec["LaunchTemplateId"] = template_id
+        elif template_name:
+            launch_template_spec["LaunchTemplateName"] = template_name
+        else:
+            raise ValueError("Either template_id or template_name must be provided.")
 
+        if version:
+            launch_template_spec["Version"] = version
 
-def _verify_instance_tags(
-    instance, expected_template_id, expected_template_version, expected_user_tags
-):
-    tags = {tag["Key"]: tag["Value"] for tag in instance["Tags"]}
-    assert tags["aws:ec2launchtemplate:id"] == expected_template_id
-    assert tags["aws:ec2launchtemplate:version"] == expected_template_version
-    for key, value in expected_user_tags.items():
-        assert tags[key] == value
+        instance = ec2_client.run_instances(
+            MinCount=1,
+            MaxCount=1,
+            LaunchTemplate=launch_template_spec,
+            **instance_kwargs,
+        )["Instances"][0]
+        return instance
 
+    @staticmethod
+    def _get_ami_id(ec2_client):
+        if not allow_aws_request():
+            # Running in mock mode - use test AMI
+            return EXAMPLE_AMI_ID
 
-def _run_instance_from_template(ec2_client, template_id, version=None):
-    launch_template_spec = {"LaunchTemplateId": template_id}
-    if version:
-        launch_template_spec["Version"] = version
+        # Running against real AWS - get latest Amazon Linux AMI
+        ssm_client = boto3.client("ssm", region_name=ec2_client.meta.region_name)
+        kernel_61 = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+        return ssm_client.get_parameter(Name=kernel_61)["Parameter"]["Value"]
 
-    instance = ec2_client.run_instances(
-        MinCount=1,
-        MaxCount=1,
-        LaunchTemplate=launch_template_spec,
-    )["Instances"][0]
-    return instance
-
-
-@ec2_aws_verified()
-@pytest.mark.aws_verified
-def test_create_instance_from_launch_template_single_template_version(
-    cleanups, ec2_client=None
-):
-    template = _create_default_launch_template(ec2_client)
-    template_id = template["LaunchTemplateId"]
-
-    instance = _run_instance_from_template(ec2_client, template_id)
-    instance_id = instance["InstanceId"]
-
-    cleanups.append(lambda: ec2_client.terminate_instances(InstanceIds=[instance_id]))
-    cleanups.append(
-        lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
-    )
-
-    _verify_instance_tags(
-        instance,
-        expected_template_id=template_id,
-        expected_template_version="1",
-        expected_user_tags={"k": "v1"},
-    )
-
-
-@ec2_aws_verified()
-@pytest.mark.aws_verified
-@pytest.mark.parametrize("version_specified", ["2", "$Latest"])
-def test_create_instance_from_launch_template_latest_non_default_version(
-    version_specified, cleanups, ec2_client=None
-):
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ami_id = _get_ami_id(ec2_client)
-
-    template = _create_default_launch_template(ec2_client)
-    template_id = template["LaunchTemplateId"]
-
-    # Create a new version of the launch template with different user tags
-    ec2_client.create_launch_template_version(
-        LaunchTemplateId=template_id,
-        LaunchTemplateData={
-            "ImageId": ami_id,
-            "TagSpecifications": [
-                {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
-            ],
+    @ec2_aws_verified(
+        create_launch_template=True,
+        launch_template_data={
+            "InstanceType": "t2.micro",
+            "UserData": _LT_USER_DATA_B64,
         },
     )
+    def test_run_instances__user_data_from_launch_template(
+        self, valid_ami, cleanups, ec2_client=None, launch_template_name=None
+    ):
+        """UserData in a launch template is applied when not supplied in RunInstances."""
+        instance = self._run_instance_from_template(
+            ec2_client, ImageId=valid_ami, template_name=launch_template_name
+        )
+        instance_id = instance["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
 
-    instance = _run_instance_from_template(
-        ec2_client, template_id, version=version_specified
-    )
-    instance_id = instance["InstanceId"]
+        # boto3 returns UserData as-is (already base64) from describe_instance_attribute
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="userData"
+        )
+        assert attr["UserData"]["Value"] == self._LT_USER_DATA_B64
 
-    cleanups.append(lambda: ec2_client.terminate_instances(InstanceIds=[instance_id]))
-    cleanups.append(
-        lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
-    )
-
-    _verify_instance_tags(
-        instance,
-        expected_template_id=template_id,
-        expected_template_version="2",
-        expected_user_tags={"k": "v2"},
-    )
-
-
-@ec2_aws_verified()
-@pytest.mark.aws_verified
-@pytest.mark.parametrize("version_specified", ["1", "$Default"])
-def test_create_instance_from_launch_template_default_version(
-    version_specified, cleanups, ec2_client=None
-):
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ami_id = _get_ami_id(ec2_client)
-
-    template = _create_default_launch_template(ec2_client)
-    template_id = template["LaunchTemplateId"]
-
-    # Create a new version of the launch template with different user tags
-    ec2_client.create_launch_template_version(
-        LaunchTemplateId=template_id,
-        LaunchTemplateData={
-            "ImageId": ami_id,
-            "TagSpecifications": [
-                {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
-            ],
+    @ec2_aws_verified(
+        create_launch_template=True,
+        launch_template_data={
+            "InstanceType": "t2.micro",
+            "UserData": _LT_USER_DATA_B64,
         },
     )
+    @pytest.mark.aws_verified
+    def test_run_instances__user_data_override_takes_priority(
+        self, valid_ami, cleanups, ec2_client=None, launch_template_name=None
+    ):
+        """Explicit UserData in RunInstances overrides the launch template value."""
+        # boto3 auto-encodes UserData blobs; pass raw string, compare against base64 of it
+        request_script = "#!/bin/bash\necho from-request"
+        expected_b64 = base64.b64encode(request_script.encode()).decode()
 
-    instance = _run_instance_from_template(
-        ec2_client, template_id, version=version_specified
+        instance = self._run_instance_from_template(
+            ec2_client,
+            template_name=launch_template_name,
+            ImageId=valid_ami,
+            UserData=request_script,
+        )
+        instance_id = instance["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="userData"
+        )
+        assert attr["UserData"]["Value"] == expected_b64
+
+    @ec2_aws_verified(
+        create_launch_template=True,
+        launch_template_data={"InstanceType": "t2.micro"},
     )
-    instance_id = instance["InstanceId"]
+    @pytest.mark.aws_verified
+    def test_run_instances__instance_type_from_launch_template(
+        self, valid_ami, cleanups, ec2_client=None, launch_template_name=None
+    ):
+        """InstanceType in a launch template is applied when not supplied in RunInstances."""
+        instance = self._run_instance_from_template(
+            ec2_client, template_name=launch_template_name, ImageId=valid_ami
+        )
+        instance_id = instance["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
 
-    cleanups.append(lambda: ec2_client.terminate_instances(InstanceIds=[instance_id]))
-    cleanups.append(
-        lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        assert instance["InstanceType"] == "t2.micro"
+
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="instanceType"
+        )
+        assert attr["InstanceType"]["Value"] == "t2.micro"
+
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["InstanceType"]
+            == "t2.micro"
+        )
+
+    @ec2_aws_verified(
+        create_launch_template=True,
+        launch_template_data={"InstanceType": "t2.micro"},
     )
+    @pytest.mark.aws_verified
+    def test_run_instances__instance_type_override_takes_priority(
+        self, valid_ami, cleanups, ec2_client=None, launch_template_name=None
+    ):
+        """Explicit InstanceType in RunInstances overrides the launch template value."""
+        resp = ec2_client.run_instances(
+            MinCount=1,
+            MaxCount=1,
+            ImageId=valid_ami,
+            LaunchTemplate={"LaunchTemplateName": launch_template_name},
+            InstanceType="t2.small",
+        )
+        instance_id = resp["Instances"][0]["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
 
-    _verify_instance_tags(
-        instance,
-        expected_template_id=template_id,
-        expected_template_version="1",
-        expected_user_tags={"k": "v1"},
-    )
+        assert resp["Instances"][0]["InstanceType"] == "t2.small"
 
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="instanceType"
+        )
+        assert attr["InstanceType"]["Value"] == "t2.small"
 
-@ec2_aws_verified()
-@pytest.mark.aws_verified
-@pytest.mark.parametrize("version_specified", ["2", "$Latest", "$Default"])
-def test_create_instance_from_launch_template_latest_and_default_version(
-    version_specified, cleanups, ec2_client=None
-):
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ami_id = _get_ami_id(ec2_client)
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["InstanceType"]
+            == "t2.small"
+        )
 
-    template = _create_default_launch_template(ec2_client)
-    template_id = template["LaunchTemplateId"]
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    def test_run_instances__key_name_from_launch_template(
+        self, valid_ami, cleanups, ec2_client=None
+    ):
+        """KeyName in a launch template is applied when not supplied in RunInstances."""
+        key_name = f"test-key-{str(uuid4())[0:8]}"
+        lt_name = str(uuid4())
+        ec2_client.create_key_pair(KeyName=key_name)
+        cleanups.append(lambda: ec2_client.delete_key_pair(KeyName=key_name))
 
-    # Create a new version of the launch template with different user tags
-    ec2_client.create_launch_template_version(
-        LaunchTemplateId=template_id,
-        LaunchTemplateData={
-            "ImageId": ami_id,
-            "TagSpecifications": [
-                {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
-            ],
-        },
-    )
+        ec2_client.create_launch_template(
+            LaunchTemplateName=lt_name,
+            LaunchTemplateData={"InstanceType": "t2.micro", "KeyName": key_name},
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
+        )
 
-    # Set the default version to be the second version, so that both $Latest and $Default point to the same version
-    ec2_client.modify_launch_template(LaunchTemplateId=template_id, DefaultVersion="2")
+        instance = self._run_instance_from_template(
+            ec2_client, template_name=lt_name, ImageId=valid_ami
+        )
+        instance_id = instance["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
 
-    instance = _run_instance_from_template(
-        ec2_client, template_id, version=version_specified
-    )
-    instance_id = instance["InstanceId"]
+        assert instance["KeyName"] == key_name
 
-    cleanups.append(lambda: ec2_client.terminate_instances(InstanceIds=[instance_id]))
-    cleanups.append(
-        lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
-    )
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["KeyName"] == key_name
+        )
 
-    _verify_instance_tags(
-        instance,
-        expected_template_id=template_id,
-        expected_template_version="2",
-        expected_user_tags={"k": "v2"},
-    )
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    def test_run_instances__security_group_ids_from_launch_template(
+        self, valid_ami, cleanups, ec2_client=None
+    ):
+        """SecurityGroupIds in a launch template are applied when not supplied in RunInstances."""
+        vpc_id = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+        cleanups.append(lambda: ec2_client.delete_vpc(VpcId=vpc_id))
+
+        subnet_id = ec2_client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.1.0/24",
+            AvailabilityZone=ec2_client.meta.region_name + "a",
+        )["Subnet"]["SubnetId"]
+        cleanups.append(lambda: ec2_client.delete_subnet(SubnetId=subnet_id))
+
+        sg_id = ec2_client.create_security_group(
+            GroupName=f"test-sg-{str(uuid4())[0:6]}",
+            Description="test",
+            VpcId=vpc_id,
+        )["GroupId"]
+        cleanups.append(lambda: ec2_client.delete_security_group(GroupId=sg_id))
+
+        lt_name = str(uuid4())
+        ec2_client.create_launch_template(
+            LaunchTemplateName=lt_name,
+            LaunchTemplateData={
+                "InstanceType": "t2.micro",
+                "SecurityGroupIds": [sg_id],
+            },
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
+        )
+
+        instance = self._run_instance_from_template(
+            ec2_client, template_name=lt_name, ImageId=valid_ami, SubnetId=subnet_id
+        )
+        instance_id = instance["InstanceId"]
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+
+        instance_sg_ids = [g["GroupId"] for g in instance["SecurityGroups"]]
+        assert sg_id in instance_sg_ids
+
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="groupSet"
+        )
+        attr_sg_ids = [g["GroupId"] for g in attr["Groups"]]
+        assert sg_id in attr_sg_ids
+
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        instance_sg_ids = [
+            g["GroupId"]
+            for g in describe_instances["Reservations"][0]["Instances"][0][
+                "SecurityGroups"
+            ]
+        ]
+        assert sg_id in instance_sg_ids
+
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    def test_create_instance_from_launch_template_single_template_version(
+        self, cleanups, ec2_client=None
+    ):
+        template = self._create_default_launch_template(ec2_client)
+        template_id = template["LaunchTemplateId"]
+
+        instance = self._run_instance_from_template(ec2_client, template_id)
+        instance_id = instance["InstanceId"]
+
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        )
+
+        self._verify_instance_tags(
+            instance,
+            expected_template_id=template_id,
+            expected_template_version="1",
+            expected_user_tags={"k": "v1"},
+        )
+
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    @pytest.mark.parametrize("version_specified", ["2", "$Latest"])
+    def test_create_instance_from_launch_template_latest_non_default_version(
+        self, valid_ami, version_specified, cleanups, ec2_client=None
+    ):
+        template = self._create_default_launch_template(ec2_client)
+        template_id = template["LaunchTemplateId"]
+
+        # Create a new version of the launch template with different user tags
+        ec2_client.create_launch_template_version(
+            LaunchTemplateId=template_id,
+            LaunchTemplateData={
+                "ImageId": valid_ami,
+                "TagSpecifications": [
+                    {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
+                ],
+            },
+        )
+
+        instance = self._run_instance_from_template(
+            ec2_client, template_id, version=version_specified
+        )
+        instance_id = instance["InstanceId"]
+
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        )
+
+        self._verify_instance_tags(
+            instance,
+            expected_template_id=template_id,
+            expected_template_version="2",
+            expected_user_tags={"k": "v2"},
+        )
+
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    @pytest.mark.parametrize("version_specified", ["1", "$Default"])
+    def test_create_instance_from_launch_template_default_version(
+        self, version_specified, valid_ami, cleanups, ec2_client=None
+    ):
+        template = self._create_default_launch_template(ec2_client)
+        template_id = template["LaunchTemplateId"]
+
+        # Create a new version of the launch template with different user tags
+        ec2_client.create_launch_template_version(
+            LaunchTemplateId=template_id,
+            LaunchTemplateData={
+                "ImageId": valid_ami,
+                "TagSpecifications": [
+                    {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
+                ],
+            },
+        )
+
+        instance = self._run_instance_from_template(
+            ec2_client, template_id, version=version_specified
+        )
+        instance_id = instance["InstanceId"]
+
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        )
+
+        self._verify_instance_tags(
+            instance,
+            expected_template_id=template_id,
+            expected_template_version="1",
+            expected_user_tags={"k": "v1"},
+        )
+
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    @pytest.mark.parametrize("version_specified", ["2", "$Latest", "$Default"])
+    def test_create_instance_from_launch_template_latest_and_default_version(
+        self, version_specified, valid_ami, cleanups, ec2_client=None
+    ):
+        template = self._create_default_launch_template(ec2_client)
+        template_id = template["LaunchTemplateId"]
+
+        # Create a new version of the launch template with different user tags
+        ec2_client.create_launch_template_version(
+            LaunchTemplateId=template_id,
+            LaunchTemplateData={
+                "ImageId": valid_ami,
+                "TagSpecifications": [
+                    {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v2"}]}
+                ],
+            },
+        )
+
+        # Set the default version to be the second version, so that both $Latest and $Default point to the same version
+        ec2_client.modify_launch_template(
+            LaunchTemplateId=template_id, DefaultVersion="2"
+        )
+
+        instance = self._run_instance_from_template(
+            ec2_client, template_id, version=version_specified
+        )
+        instance_id = instance["InstanceId"]
+
+        cleanups.append(
+            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        )
+
+        self._verify_instance_tags(
+            instance,
+            expected_template_id=template_id,
+            expected_template_version="2",
+            expected_user_tags={"k": "v2"},
+        )

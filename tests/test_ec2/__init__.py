@@ -52,7 +52,7 @@ def ec2_aws_verified(
 
     def inner(func):
         @wraps(func)
-        def pagination_wrapper(**kwargs):
+        def pagination_wrapper(*args, **kwargs):
             context = nullcontext() if allow_aws_request() else mock_aws()
 
             with context:
@@ -66,6 +66,7 @@ def ec2_aws_verified(
                     return_launch_template_details=return_launch_template_details,
                     launch_template_data=launch_template_data,
                     func=func,
+                    args=args,
                     kwargs=kwargs,
                 )
 
@@ -84,6 +85,7 @@ def _invoke_func(
     return_launch_template_details: bool,
     launch_template_data: Optional[dict],
     func,
+    args,
     kwargs,
 ):
     ec2_client = boto3.client("ec2", "us-east-1")
@@ -139,7 +141,7 @@ def _invoke_func(
             kwargs["launch_template_details"] = creation
 
     try:
-        func(**kwargs)
+        func(*args, **kwargs)
     finally:
         if lt_name:
             ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
