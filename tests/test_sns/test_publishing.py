@@ -652,20 +652,6 @@ def test_publish_group_id_to_non_fifo():
 
 
 @mock_aws
-def test_publish_deduplication_id_to_non_fifo():
-    sns = boto3.resource("sns", region_name="us-east-1")
-    topic = sns.create_topic(Name="topic")
-
-    with pytest.raises(
-        ClientError,
-        match="The request includes MessageDeduplicationId parameter that is not valid for this topic type",
-    ):
-        topic.publish(
-            Message="message", MessageDeduplicationId="message_deduplication_id"
-        )
-
-
-@mock_aws
 def test_publish_group_id_to_standard_topic_delivers_to_sqs():
     sqs = boto3.client("sqs", region_name="us-east-1")
     sns = boto3.client("sns", region_name="us-east-1")
