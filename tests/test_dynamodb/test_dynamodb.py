@@ -2080,7 +2080,7 @@ def test_update_return_attributes():
     assert r["Attributes"] == {"col2": {"S": "val3"}}
 
     r = update("col1", "val5", "NONE")
-    assert r["Attributes"] == {}
+    assert "Attributes" not in r
 
     with pytest.raises(ClientError) as ex:
         update("col1", "val6", "WRONG")
