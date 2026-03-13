@@ -59,6 +59,10 @@ def test_stop_pipe_on_running_pipe():
     assert resp["DesiredState"] == "STOPPED"
     assert resp["CurrentState"] == "STOPPING"
 
+    # Describe must show this as stopped
+    descr_resp = client.describe_pipe(Name="test-pipe")
+    assert descr_resp["CurrentState"] == "STOPPED"
+
 
 @mock_aws
 def test_stop_pipe_on_stopped_pipe():
@@ -93,6 +97,10 @@ def test_start_pipe_on_stopped_pipe():
     assert resp["Name"] == "test-pipe"
     assert resp["DesiredState"] == "RUNNING"
     assert resp["CurrentState"] == "STARTING"
+
+    # Describe must show this as running
+    descr_resp = client.describe_pipe(Name="test-pipe")
+    assert descr_resp["CurrentState"] == "RUNNING"
 
 
 @mock_aws
