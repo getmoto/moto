@@ -1,5 +1,7 @@
 import json
 import re
+from re import Match
+from typing import cast
 
 from moto.core.responses import BaseResponse
 
@@ -31,7 +33,8 @@ class BedrockAgentCoreResponse(BaseResponse):
 
     def create_event(self) -> str:
         # Memory is not part of the body
-        memory_id = MEMORY_PATH_RE.match(self.path).group("memory_id")
+        match = cast(Match[str], MEMORY_PATH_RE.match(self.path))
+        memory_id = match.group("memory_id")
         params = json.loads(self.body)
         event = self.backend.create_event(
             memory_id=memory_id,
@@ -47,7 +50,7 @@ class BedrockAgentCoreResponse(BaseResponse):
 
     def get_event(self) -> str:
         # Memory, event, actor and session are not part of the body
-        match = GET_METHOD_RE.match(self.path)
+        match = cast(Match[str], GET_METHOD_RE.match(self.path))
         memory_id = match.group("memory_id")
         actor_id = match.group("actor_id")
         session_id = match.group("session_id")
@@ -62,7 +65,7 @@ class BedrockAgentCoreResponse(BaseResponse):
 
     def list_events(self) -> str:
         # Memory, actor and session are not part of the body
-        match = LIST_METHOD_RE.match(self.path)
+        match = cast(Match[str], LIST_METHOD_RE.match(self.path))
         memory_id = match.group("memory_id")
         actor_id = match.group("actor_id")
         session_id = match.group("session_id")
@@ -88,7 +91,7 @@ class BedrockAgentCoreResponse(BaseResponse):
 
     def delete_event(self) -> str:
         # Memory, event, actor and session are not part of the body
-        match = GET_METHOD_RE.match(self.path)
+        match = cast(Match[str], GET_METHOD_RE.match(self.path))
         memory_id = match.group("memory_id")
         actor_id = match.group("actor_id")
         session_id = match.group("session_id")

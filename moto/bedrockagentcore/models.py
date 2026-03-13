@@ -24,7 +24,7 @@ class Event(BaseModel):
         event_timestamp: float,
         payload: list[dict[str, Any]],
         branch: Optional[dict[str, str]],
-        client_token: Optional[str],
+        client_token: str,
         metadata: Optional[dict[str, dict[str, str]]],
     ) -> None:
         self.region_name = region_name
@@ -92,7 +92,7 @@ class BedrockAgentCoreBackend(BaseBackend):
         event_timestamp: float,
         payload: list[dict[str, Any]],
         branch: Optional[dict[str, str]],
-        client_token: Optional[str],
+        client_token: str,
         metadata: Optional[dict[str, dict[str, str]]],
     ) -> Event:
         """Create an event and return the Event model"""
@@ -125,7 +125,7 @@ class BedrockAgentCoreBackend(BaseBackend):
         self, event_id: str, memory_id: str, actor_id: str, session_id: str
     ) -> Event:
         """
-        Return a single event by its event_id.
+        Return a single event by its event_id, memory_id, actor_id and session_id.
         Raises ResourceNotFoundException if it does not exist.
         """
         event = self.events.get(event_id)
@@ -241,7 +241,6 @@ class BedrockAgentCoreBackend(BaseBackend):
         session_id: str,
         actor_id: str,
         filter: Optional[dict[str, Any]] = None,
-        includePayloads: bool = True,
     ) -> list[Event]:
         ids = list(self.events_by_memory.get(memory_id, []))
         items = [self.events[eid] for eid in ids]
