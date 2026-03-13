@@ -23,7 +23,6 @@ class EventBridgePipesResponse(BaseResponse):
 
     def create_pipe(self) -> ActionResult:
         body_params = json.loads(self.body) if self.body else {}
-
         name = body_params.get("Name") or self.uri.split("/")[-1]
         description = body_params.get("Description")
         desired_state = body_params.get("DesiredState")
@@ -191,4 +190,34 @@ class EventBridgePipesResponse(BaseResponse):
         if next_token:
             response_dict["NextToken"] = next_token
 
+        return ActionResult(response_dict)
+
+    def start_pipe(self) -> ActionResult:
+        name = self.uri.split("?")[0].split("/")[-2]
+        pipe = self.pipes_backend.start_pipe(name=name)
+        response_dict: dict[str, Any] = {
+            "Arn": pipe.arn,
+            "Name": pipe.name,
+            "DesiredState": pipe.desired_state,
+            "CurrentState": pipe.current_state,
+            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
+            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
+                pipe.last_modified_time
+            ),
+        }
+        return ActionResult(response_dict)
+
+    def stop_pipe(self) -> ActionResult:
+        name = self.uri.split("?")[0].split("/")[-2]
+        pipe = self.pipes_backend.stop_pipe(name=name)
+        response_dict: dict[str, Any] = {
+            "Arn": pipe.arn,
+            "Name": pipe.name,
+            "DesiredState": pipe.desired_state,
+            "CurrentState": pipe.current_state,
+            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
+            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
+                pipe.last_modified_time
+            ),
+        }
         return ActionResult(response_dict)
