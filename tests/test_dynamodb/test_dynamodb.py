@@ -1269,6 +1269,36 @@ def test_put_item_nonexisting_range_key():
     assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
+@mock_aws
+def test_put_item_returns_no_attributes_for_new_item():
+    """When putting a new item with ReturnValues=ALL_OLD, the response should
+    not contain the Attributes key since there was no previous item."""
+    name = f"T{uuid4()}"
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Put a brand new item with ReturnValues=ALL_OLD
+    response = client.put_item(
+        TableName=name,
+        Item={"pk": {"S": "new-key"}, "data": {"S": "hello"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert "Attributes" not in response
+
+    # Now overwrite the item; this time Attributes should be present
+    response = client.put_item(
+        TableName=name,
+        Item={"pk": {"S": "new-key"}, "data": {"S": "world"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert response["Attributes"] == {"pk": {"S": "new-key"}, "data": {"S": "hello"}}
+
+
 def test_filter_expression():
     row1 = moto.dynamodb.models.Item(
         hash_key=None,

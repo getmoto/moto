@@ -660,7 +660,7 @@ class DynamoHandler(BaseResponse):
         )
 
         item_dict = result.to_json()
-        if return_values == "ALL_OLD":
+        if return_values == "ALL_OLD" and existing_attributes:
             item_dict["Attributes"] = existing_attributes
         else:
             item_dict.pop("Attributes", None)
