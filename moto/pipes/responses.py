@@ -23,6 +23,7 @@ class EventBridgePipesResponse(BaseResponse):
 
     def create_pipe(self) -> ActionResult:
         body_params = json.loads(self.body) if self.body else {}
+
         name = body_params.get("Name") or self.uri.split("/")[-1]
         description = body_params.get("Description")
         desired_state = body_params.get("DesiredState")
