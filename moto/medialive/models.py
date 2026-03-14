@@ -4,23 +4,7 @@ from typing import Any, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
-from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
-
-PAGINATION_MODEL = {
-    "list_channels": {
-        "input_token": "next_token",
-        "limit_key": "max_results",
-        "limit_default": 100,
-        "unique_attribute": "arn",
-    },
-    "list_inputs": {
-        "input_token": "next_token",
-        "limit_key": "max_results",
-        "limit_default": 100,
-        "unique_attribute": "arn",
-    },
-}
 
 
 class Input(BaseModel):
@@ -173,7 +157,6 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_channels(self) -> list[Channel]:
         return list(self._channels.values())
 
@@ -264,7 +247,6 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input
 
-    @paginate(PAGINATION_MODEL)
     def list_inputs(self) -> list[Input]:
         return list(self._inputs.values())
 

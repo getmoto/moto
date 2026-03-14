@@ -13,6 +13,7 @@ include moto/emr/*/*.json
 include moto/emr/resources/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
+include moto/medialive/*/*.json
 include moto/moto_api/_internal/*
 include moto/moto_proxy/*
 include moto/moto_proxy/certs/__init__.py
