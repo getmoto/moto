@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .models import MediaLiveBackend, medialive_backends
 
@@ -41,16 +41,11 @@ class MediaLiveResponse(BaseResponse):
         )
 
     def list_channels(self) -> ActionResult:
-        max_results = self._get_int_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        channels, next_token = self.medialive_backend.list_channels(
-            max_results=max_results, next_token=next_token
-        )
+        channels = self.medialive_backend.list_channels()
         channel_dicts = [
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
-
-        return ActionResult({"channels": channel_dicts, "nextToken": next_token})
+        return PaginatedResult({"Channels": channel_dicts})
 
     def describe_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
@@ -124,15 +119,8 @@ class MediaLiveResponse(BaseResponse):
         return ActionResult(a_input.to_dict())
 
     def list_inputs(self) -> ActionResult:
-        max_results = self._get_int_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        inputs, next_token = self.medialive_backend.list_inputs(
-            max_results=max_results, next_token=next_token
-        )
-
-        return ActionResult(
-            {"inputs": [i.to_dict() for i in inputs], "nextToken": next_token}
-        )
+        inputs = self.medialive_backend.list_inputs()
+        return PaginatedResult({"Inputs": [i.to_dict() for i in inputs]})
 
     def delete_input(self) -> ActionResult:
         input_id = self._get_param("InputId")
