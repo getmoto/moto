@@ -28,7 +28,7 @@ from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.parse import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -476,15 +476,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 # We don't want to our regex to think this marks an end-of-line, so let's escape it
                 return elem.replace("$", r"\$")
 
-            # When the element ends with +} the parameter can contain a / otherwise not.
-            slash_allowed = elem.endswith("+}")
+            # In the Smithy specification, a plus sign indicates a greedy label, which
+            # allows the label to match multiple path segments, including forward slashes.
+            # If a label is the last segment of a uri, we default it to greedy as well.
+            greedy = elem.endswith("+}") or uri.endswith(elem)
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if slash_allowed:
+            if greedy:
                 return f"(?P<{name}>.+)"
             return f"(?P<{name}>[^/]+)"
 
@@ -495,13 +497,20 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _get_action_from_method_and_request_uri(
         self, method: str, request_uri: str
     ) -> str:
-        """basically used for `rest-json` APIs
-        You can refer to example from link below
-        https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
-        """
+        """Used for AWS restJson1 and restXml API protocols"""
         methods_url = _get_method_urls(self.service_name, self.region)
         regexp_and_names = methods_url[method]
-        for regexp, name in regexp_and_names.items():
+        # Sort patterns by length (descending) so more specific patterns match before more general ones.
+        #
+        # This fixes problems with service definitions that contain uris like:
+        # - /mrap/instances/{name+} (GetMultiRegionAccessPoint)
+        # - /mrap/instances/{name+}/policy (GetMultiRegionAccessPointPolicy)
+        #
+        # Both urls match the regex for the first url, but we want to ensure we match the more specific pattern.
+        sorted_patterns = sorted(
+            regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
+        )
+        for regexp, name in sorted_patterns:
             match = re.match(regexp, request_uri)
             self.uri_match = match
             if match:
@@ -534,15 +543,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             service_model, normalized_request.content_type
         )
         parser_cls = PROTOCOL_PARSERS[protocol]
-        parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
+        parser = parser_cls(operation_model, map_type=self.PROTOCOL_PARSER_MAP_TYPE)
         parsed = parser.parse(
             {
-                "query_params": normalized_request.values,
+                "method": normalized_request.method,
+                "values": normalized_request.values,
                 "headers": normalized_request.headers,
                 "body": normalized_request.data,
-            },
-            operation_model,
-        )  # type: ignore[no-untyped-call]
+                "url_path": normalized_request.path,
+                "url_params": self.uri_match.groupdict() if self.uri_match else {},
+            }
+        )
         self.params = cast(Any, parsed)
 
     def determine_response_protocol(self, service_model: ServiceModel) -> str:

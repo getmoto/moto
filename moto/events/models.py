@@ -1348,9 +1348,8 @@ class EventsBackend(BaseBackend):
         matching_rules = []
 
         for _, rule in event_bus.rules.items():
-            for target in rule.targets:
-                if target["Arn"] == target_arn:
-                    matching_rules.append(rule)
+            if any(target["Arn"] == target_arn for target in rule.targets):
+                matching_rules.append(rule)
 
         return matching_rules
 

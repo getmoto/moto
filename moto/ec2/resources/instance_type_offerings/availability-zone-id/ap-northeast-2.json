@@ -5788,6 +5788,10 @@
   "Location": "apne2-az3"
  },
  {
+  "InstanceType": "inf2.xlarge",
+  "Location": "apne2-az3"
+ },
+ {
   "InstanceType": "m4.10xlarge",
   "Location": "apne2-az3"
  },

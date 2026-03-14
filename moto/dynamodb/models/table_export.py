@@ -80,6 +80,10 @@ class TableExport(Thread):
         return {
             "ExportArn": self.arn,
             "ExportStatus": self.status,
+            "TableArn": self.table.table_arn,
+            "S3Bucket": self.s3_bucket,
+            "S3BucketOwner": self.account_id,
+            "S3Prefix": self.s3_prefix,
             "FailureCode": self.failure_code,
             "FailureMessage": self.failure_message,
             "ExportFormat": self.export_format,

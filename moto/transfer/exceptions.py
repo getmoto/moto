@@ -29,3 +29,11 @@ class PublicKeyNotFound(TransferError):
             "PublicKeyNotFound",
             f"{ssh_public_key_id} does not match any keys associated with user {user_name} for server {server_id}.",
         )
+
+
+class ConnectorNotFound(TransferError):
+    def __init__(self, connector_id: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"Connector {connector_id} does not exist.",
+        )

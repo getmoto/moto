@@ -138,6 +138,8 @@ ec2
 - [ ] create_route_server_endpoint
 - [ ] create_route_server_peer
 - [X] create_route_table
+- [ ] create_secondary_network
+- [ ] create_secondary_subnet
 - [X] create_security_group
 - [X] create_snapshot
 - [X] create_snapshots
@@ -234,6 +236,8 @@ ec2
 - [ ] delete_route_server_endpoint
 - [ ] delete_route_server_peer
 - [X] delete_route_table
+- [ ] delete_secondary_network
+- [ ] delete_secondary_subnet
 - [X] delete_security_group
 - [X] delete_snapshot
 - [ ] delete_spot_datafeed_subscription
@@ -419,6 +423,9 @@ ec2
 - [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
+- [ ] describe_secondary_interfaces
+- [ ] describe_secondary_networks
+- [ ] describe_secondary_subnets
 - [ ] describe_security_group_references
 - [X] describe_security_group_rules
 - [ ] describe_security_group_vpc_associations

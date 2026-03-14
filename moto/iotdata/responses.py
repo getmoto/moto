@@ -16,12 +16,6 @@ class IoTDataPlaneResponse(BaseResponse):
     ) -> None:
         super().setup_class(request, full_url, headers, use_raw_body=True)
 
-    def _get_action(self) -> str:
-        if self.path and self.path.startswith("/topics/"):
-            # Special usecase - there is no way identify this action, besides the URL
-            return "publish"
-        return super()._get_action()
-
     @property
     def iotdata_backend(self) -> IoTDataPlaneBackend:
         return iotdata_backends[self.current_account][self.region]
