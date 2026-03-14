@@ -331,6 +331,15 @@ class BaseJSONParser(RequestParser):
 
     _parse_double = _parse_float
 
+    def _parse_integer(self, _, value):
+        if value is UNDEFINED:
+            return value
+        return int(value)
+
+    _parse_byte = _parse_integer
+    _parse_short = _parse_integer
+    _parse_long = _parse_integer
+
     def _parse_body_as_json(self, body_contents):
         if not body_contents:
             return {}
