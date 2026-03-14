@@ -2079,6 +2079,9 @@ def test_update_return_attributes():
     r = update("col2", "val4", "UPDATED_OLD")
     assert r["Attributes"] == {"col2": {"S": "val3"}}
 
+    r = update("col3", "new_val", "UPDATED_OLD")
+    assert "Attributes" not in r
+
     r = update("col1", "val5", "NONE")
     assert "Attributes" not in r
 
