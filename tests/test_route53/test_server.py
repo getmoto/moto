@@ -21,7 +21,7 @@ def test_list_recordset():
     # list record set
     res = test_client.get(f"2013-04-01/hostedzone/{zone_id}/rrset")
     # Ampersand should be properly encoded
-    assert "<Value><![CDATA[val&sth]]></Value>" in res.data.decode("utf-8")
+    assert "<Value>val&amp;sth</Value>" in res.data.decode("utf-8")
 
 
 def parse_xml(body):
