@@ -21,6 +21,7 @@ include moto/moto_proxy/certs/req.conf.tmpl
 include moto/rds/*/*.json
 include moto/rds/resources/cluster_options/*.json
 include moto/rds/resources/option_group_options/*.json
+include moto/route53/*/*.json
 include moto/sqs/*/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json
