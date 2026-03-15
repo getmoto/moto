@@ -284,7 +284,7 @@ class Subscription(BaseModel):
                 )
             else:
                 raw_message_attributes = {}
-                for key, value in message_attributes.items():  # type: ignore
+                for key, value in (message_attributes or {}).items():
                     attr_type = "StringValue"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
