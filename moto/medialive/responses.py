@@ -36,7 +36,7 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
         )
 
-        return ActionResult({"channel": channel})
+        return ActionResult({"Channel": channel})
 
     def list_channels(self) -> ActionResult:
         channels = self.medialive_backend.list_channels()
@@ -83,7 +83,7 @@ class MediaLiveResponse(BaseResponse):
             name=name,
             role_arn=role_arn,
         )
-        return ActionResult({"channel": channel})
+        return ActionResult({"Channel": channel})
 
     def create_input(self) -> ActionResult:
         destinations = self._get_param("Destinations")
@@ -106,7 +106,7 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
             input_type=input_type,
         )
-        return ActionResult({"input": a_input})
+        return ActionResult({"Input": a_input})
 
     def describe_input(self) -> ActionResult:
         input_id = self._get_param("InputId")
@@ -141,4 +141,4 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
         )
-        return ActionResult({"input": a_input})
+        return ActionResult({"Input": a_input})
