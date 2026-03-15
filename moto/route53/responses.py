@@ -5,8 +5,6 @@ from moto.core.utils import utcnow
 from moto.route53.exceptions import InvalidChangeBatch, InvalidInput
 from moto.route53.models import Route53Backend, route53_backends
 
-XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
-
 
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
