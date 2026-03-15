@@ -330,6 +330,52 @@ def test_create_existing_bucket_in_us_east_1():
 
 
 @mock_aws
+def test_create_bucket_account_regional_namespace():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = f"my-bucket-{DEFAULT_ACCOUNT_ID}-{DEFAULT_REGION_NAME}-an"
+    response = client.create_bucket(
+        Bucket=bucket_name,
+        BucketNamespace="account-regional",
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["BucketArn"] == f"arn:aws:s3:::{bucket_name}"
+
+    # Verify bucket exists
+    head = client.head_bucket(Bucket=bucket_name)
+    assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    client.delete_bucket(Bucket=bucket_name)
+
+
+@mock_aws
+def test_create_bucket_account_regional_namespace_other_region():
+    region = "us-west-2"
+    client = boto3.client("s3", region_name=region)
+    bucket_name = f"my-bucket-{DEFAULT_ACCOUNT_ID}-{region}-an"
+    response = client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": region},
+        BucketNamespace="account-regional",
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["BucketArn"] == f"arn:aws:s3:::{bucket_name}"
+
+    client.delete_bucket(Bucket=bucket_name)
+
+
+@mock_aws
+def test_create_bucket_account_regional_namespace_invalid_name():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    with pytest.raises(ClientError) as ex:
+        client.create_bucket(
+            Bucket="my-bucket-wrong-suffix",
+            BucketNamespace="account-regional",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidNamespaceHeader"
+
+
+@mock_aws
 def test_bucket_deletion():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

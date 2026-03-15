@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidLocationConstraintException,
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
+    InvalidNamespaceHeaderException,
     InvalidNotificationARN,
     InvalidObjectState,
     InvalidPartOrder,
@@ -947,8 +948,17 @@ class S3Response(BaseResponse):
             bucket_region = (
                 location_constraint if location_constraint else DEFAULT_REGION_NAME
             )
+            bucket_namespace = request.headers.get("x-amz-bucket-namespace")
+            if bucket_namespace == "account-regional":
+                expected_suffix = f"-{self.get_current_account()}-{bucket_region}-an"
+                if not bucket_name.endswith(expected_suffix):
+                    raise InvalidNamespaceHeaderException(
+                        self.get_current_account(), bucket_region
+                    )
             try:
-                new_bucket = self.backend.create_bucket(bucket_name, bucket_region)
+                new_bucket = self.backend.create_bucket(
+                    bucket_name, bucket_region, bucket_namespace=bucket_namespace
+                )
             except BucketAlreadyExists:
                 new_bucket = self.backend.get_bucket(bucket_name)
                 if new_bucket.account_id == self.get_current_account():
@@ -983,7 +993,10 @@ class S3Response(BaseResponse):
                 new_bucket.ownership_rule = ownership_rule
 
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
-            return template.render(bucket=new_bucket)
+            headers: dict[str, str] = {}
+            if new_bucket.bucket_namespace == "account-regional":
+                headers["x-amz-bucket-arn"] = new_bucket.arn
+            return 200, headers, template.render(bucket=new_bucket)
 
     def get_bucket_accelerate_configuration(self) -> str:
         accelerate_configuration = self.backend.get_bucket_accelerate_configuration(
@@ -2850,6 +2863,7 @@ S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.
     <Bucket>{{ bucket.name }}</Bucket>
   </CreateBucketResponse>
 </CreateBucketResponse>"""
+
 
 S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <DeleteBucketResponse>
