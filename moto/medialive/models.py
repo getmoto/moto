@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -12,7 +12,7 @@ class Input(BaseModel):
         self.arn = kwargs.get("arn")
         self.attached_channels = kwargs.get("attached_channels", [])
         self.destinations = kwargs.get("destinations", [])
-        self.input_id = kwargs.get("input_id")
+        self.id = kwargs.get("input_id")
         self.input_class = kwargs.get("input_class", "STANDARD")
         self.input_devices = kwargs.get("input_devices", [])
         self.input_source_type = kwargs.get("input_source_type", "STATIC")
@@ -24,26 +24,7 @@ class Input(BaseModel):
         # Possible states: 'CREATING'|'DETACHED'|'ATTACHED'|'DELETING'|'DELETED'
         self.state = kwargs.get("state")
         self.tags = kwargs.get("tags")
-        self.input_type = kwargs.get("input_type")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "arn": self.arn,
-            "attachedChannels": self.attached_channels,
-            "destinations": self.destinations,
-            "id": self.input_id,
-            "inputClass": self.input_class,
-            "inputDevices": self.input_devices,
-            "inputSourceType": self.input_source_type,
-            "mediaConnectFlows": self.media_connect_flows,
-            "name": self.name,
-            "roleArn": self.role_arn,
-            "securityGroups": self.security_groups,
-            "sources": self.sources,
-            "state": self.state,
-            "tags": self.tags,
-            "type": self.input_type,
-        }
+        self.type = kwargs.get("input_type")
 
     def _resolve_transient_states(self) -> None:
         # Resolve transient states before second call
@@ -62,7 +43,7 @@ class Channel(BaseModel):
         self.destinations = kwargs.get("destinations")
         self.egress_endpoints = kwargs.get("egress_endpoints", [])
         self.encoder_settings = kwargs.get("encoder_settings")
-        self.channel_id = kwargs.get("channel_id")
+        self.id = kwargs.get("channel_id")
         self.input_attachments = kwargs.get("input_attachments")
         self.input_specification = kwargs.get("input_specification")
         self.log_level = kwargs.get("log_level")
@@ -73,31 +54,9 @@ class Channel(BaseModel):
         self.tags = kwargs.get("tags")
         self._previous_state = None
 
-    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
-        data = {
-            "arn": self.arn,
-            "cdiInputSpecification": self.cdi_input_specification,
-            "channelClass": self.channel_class,
-            "destinations": self.destinations,
-            "egressEndpoints": self.egress_endpoints,
-            "encoderSettings": self.encoder_settings,
-            "id": self.channel_id,
-            "inputAttachments": self.input_attachments,
-            "inputSpecification": self.input_specification,
-            "logLevel": self.log_level,
-            "name": self.name,
-            "pipelineDetails": self.pipeline_details,
-            "pipelinesRunningCount": 1
-            if self.channel_class == "SINGLE_PIPELINE"
-            else 2,
-            "roleArn": self.role_arn,
-            "state": self.state,
-            "tags": self.tags,
-        }
-        if exclude:
-            for key in exclude:
-                del data[key]
-        return data
+    @property
+    def pipelines_running_count(self) -> int:
+        return 1 if self.channel_class == "SINGLE_PIPELINE" else 2
 
     def _resolve_transient_states(self) -> None:
         # Resolve transient states before second call
