@@ -35,18 +35,11 @@ def ec2_aws_verified(
     return_launch_template_details: bool = False,
 ):
     """
-        Function that is vMINIMAL_LAUNCH_TEMPLATE_DATE = {
-        "TagSpecifications": [
-            {
-                "ResourceType": "instance",
-                "Tags": [{"Key": "test", "Value": "value"}],
-            }
-        ]
-    }erified to work against AWS.
-        Can be run against AWS at any time by setting:
-          MOTO_TEST_ALLOW_AWS_REQUEST=true
+    Function that is verified to work against AWS.
+    Can be run against AWS at any time by setting:
+      MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-        If this environment variable is not set, the function runs in a `mock_aws` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     """
 
