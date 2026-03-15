@@ -36,36 +36,31 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
         )
 
-        return ActionResult(
-            {"channel": channel.to_dict(exclude=["pipelinesRunningCount"])}
-        )
+        return ActionResult({"channel": channel})
 
     def list_channels(self) -> ActionResult:
         channels = self.medialive_backend.list_channels()
-        channel_dicts = [
-            c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
-        ]
-        return PaginatedResult({"Channels": channel_dicts})
+        return PaginatedResult({"Channels": channels})
 
     def describe_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
         channel = self.medialive_backend.describe_channel(channel_id=channel_id)
-        return ActionResult(channel.to_dict())
+        return ActionResult(channel)
 
     def delete_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
         channel = self.medialive_backend.delete_channel(channel_id=channel_id)
-        return ActionResult(channel.to_dict())
+        return ActionResult(channel)
 
     def start_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
         channel = self.medialive_backend.start_channel(channel_id=channel_id)
-        return ActionResult(channel.to_dict())
+        return ActionResult(channel)
 
     def stop_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
         channel = self.medialive_backend.stop_channel(channel_id=channel_id)
-        return ActionResult(channel.to_dict())
+        return ActionResult(channel)
 
     def update_channel(self) -> ActionResult:
         channel_id = self._get_param("ChannelId")
@@ -88,7 +83,7 @@ class MediaLiveResponse(BaseResponse):
             name=name,
             role_arn=role_arn,
         )
-        return ActionResult({"channel": channel.to_dict()})
+        return ActionResult({"channel": channel})
 
     def create_input(self) -> ActionResult:
         destinations = self._get_param("Destinations")
@@ -111,16 +106,16 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
             input_type=input_type,
         )
-        return ActionResult({"input": a_input.to_dict()})
+        return ActionResult({"input": a_input})
 
     def describe_input(self) -> ActionResult:
         input_id = self._get_param("InputId")
         a_input = self.medialive_backend.describe_input(input_id=input_id)
-        return ActionResult(a_input.to_dict())
+        return ActionResult(a_input)
 
     def list_inputs(self) -> ActionResult:
         inputs = self.medialive_backend.list_inputs()
-        return PaginatedResult({"Inputs": [i.to_dict() for i in inputs]})
+        return PaginatedResult({"Inputs": inputs})
 
     def delete_input(self) -> ActionResult:
         input_id = self._get_param("InputId")
@@ -146,4 +141,4 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
         )
-        return ActionResult({"input": a_input.to_dict()})
+        return ActionResult({"input": a_input})
