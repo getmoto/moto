@@ -392,7 +392,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if not self.is_werkzeug_request:
             self.response_headers["date"] = http_date(utcnow())
 
-        if self.automated_parameter_parsing:
+        if self.automated_parameter_parsing and self._get_action():
             self.parse_parameters(request)
 
         # Register visit with IAM
