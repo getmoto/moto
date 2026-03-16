@@ -222,6 +222,14 @@ class ProjectionExpressionParser:
         return []
 
 
+class DynamoResult(ActionResult):
+    """Wrapper class for serializable results that contain :py:class:`moto.dynamodb.models.dynamo_type.DynamoType` objects."""
+
+    def __init__(self, result: object) -> None:
+        transformed_result = dynamo_to_dict(result)
+        super().__init__(transformed_result)
+
+
 class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
@@ -313,7 +321,7 @@ class DynamoHandler(BaseResponse):
             deletion_protection_enabled=deletion_protection_enabled,
             warm_throughput=warm_throughput,
         )
-        return ActionResult(dynamo_to_dict(table.describe()))
+        return DynamoResult(table.describe())
 
     def _validate_table_creation(
         self,
@@ -533,7 +541,7 @@ class DynamoHandler(BaseResponse):
     def delete_table(self) -> ActionResult:
         name = self.body["TableName"]
         table = self.dynamodb_backend.delete_table(name)
-        return ActionResult(dynamo_to_dict(table.describe()))
+        return DynamoResult(table.describe())
 
     def describe_endpoints(self) -> ActionResult:
         response = {"Endpoints": self.dynamodb_backend.describe_endpoints()}
@@ -589,12 +597,12 @@ class DynamoHandler(BaseResponse):
             deletion_protection_enabled=deletion_protection_enabled,
             warm_throughput=warm_throughput,
         )
-        return ActionResult(dynamo_to_dict(table.describe()))
+        return DynamoResult(table.describe())
 
     def describe_table(self) -> ActionResult:
         name = self.body["TableName"]
         table = self.dynamodb_backend.describe_table(name)
-        return ActionResult(dynamo_to_dict(table))
+        return DynamoResult(table)
 
     @include_consumed_capacity()
     def put_item(self) -> ActionResult:
@@ -622,7 +630,7 @@ class DynamoHandler(BaseResponse):
         if return_values == "ALL_OLD":
             existing_item = self.dynamodb_backend.get_item(name, item)
             if existing_item:
-                existing_attributes = dynamo_to_dict(existing_item.attrs)
+                existing_attributes = existing_item.to_json()["Attributes"]
             else:
                 existing_attributes = {}
 
@@ -645,7 +653,7 @@ class DynamoHandler(BaseResponse):
         if condition_expression:
             overwrite = False
 
-        self.dynamodb_backend.put_item(
+        result = self.dynamodb_backend.put_item(
             name,
             item,
             expected,
@@ -656,10 +664,12 @@ class DynamoHandler(BaseResponse):
             return_values_on_condition_check_failure,
         )
 
-        item_dict: dict[str, Any] = {}
+        item_dict = result.to_json()
         if return_values == "ALL_OLD":
             item_dict["Attributes"] = existing_attributes
-        return ActionResult(item_dict)
+        else:
+            item_dict.pop("Attributes", None)
+        return DynamoResult(item_dict)
 
     def batch_write_item(self) -> ActionResult:
         table_batches = self.body["RequestItems"]
@@ -749,7 +759,7 @@ class DynamoHandler(BaseResponse):
         if item:
             item_dict = item.describe_attrs(attributes=None)
             result["Item"] = item_dict.get("Item")
-        return ActionResult(dynamo_to_dict(result))
+        return DynamoResult(result)
 
     def batch_get_item(self) -> ActionResult:
         table_batches = self.body["RequestItems"]
@@ -819,7 +829,7 @@ class DynamoHandler(BaseResponse):
             results["ConsumedCapacity"].append(
                 {"CapacityUnits": len(keys), "TableName": table_name}
             )
-        return ActionResult(dynamo_to_dict(results))
+        return DynamoResult(results)
 
     def _contains_duplicates(self, keys: list[str]) -> bool:
         unique_keys = []
@@ -982,7 +992,7 @@ class DynamoHandler(BaseResponse):
         if last_evaluated_key is not None:
             result["LastEvaluatedKey"] = last_evaluated_key
 
-        return ActionResult(dynamo_to_dict(result))
+        return DynamoResult(result)
 
     @include_consumed_capacity()
     def scan(self) -> ActionResult:
@@ -1070,7 +1080,7 @@ class DynamoHandler(BaseResponse):
         }
         if last_evaluated_key is not None:
             result["LastEvaluatedKey"] = last_evaluated_key
-        return ActionResult(dynamo_to_dict(result))
+        return DynamoResult(result)
 
     @include_consumed_capacity()
     def delete_item(self) -> ActionResult:
@@ -1113,11 +1123,11 @@ class DynamoHandler(BaseResponse):
         )
 
         if item and return_values == "ALL_OLD":
-            item_dict: dict[str, Any] = {"Attributes": dynamo_to_dict(item.attrs)}
+            item_dict = item.to_json()
         else:
             item_dict = {}
         item_dict["ConsumedCapacityUnits"] = 0.5
-        return ActionResult(item_dict)
+        return DynamoResult(item_dict)
 
     def update_item(self) -> ActionResult:
         name = self.body["TableName"]
@@ -1165,7 +1175,7 @@ class DynamoHandler(BaseResponse):
         # We need to copy the item in order to avoid it being modified by the update_item operation
         existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:
-            existing_attributes = dynamo_to_dict(existing_item.attrs)
+            existing_attributes = existing_item.to_json()["Attributes"]
         else:
             existing_attributes = {}
 
@@ -1215,22 +1225,22 @@ class DynamoHandler(BaseResponse):
             return_values_on_condition_check_failure=return_values_on_condition_check_failure,
         )
 
-        new_attributes = dynamo_to_dict(item.attrs)
-        item_dict: dict[str, Any] = {
-            "ConsumedCapacity": {"TableName": name, "CapacityUnits": 0.5},
-        }
+        item_dict = item.to_json()
+        item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 0.5}
         unchanged_attributes = {
             k
             for k in existing_attributes.keys()
-            if existing_attributes[k] == new_attributes.get(k)
+            if existing_attributes[k] == item_dict["Attributes"].get(k)
         }
         changed_attributes = (
             set(existing_attributes.keys())
-            .union(new_attributes.keys())
+            .union(item_dict["Attributes"].keys())
             .difference(unchanged_attributes)
         )
 
-        if return_values == "ALL_OLD":
+        if return_values == "NONE":
+            item_dict.pop("Attributes", None)
+        elif return_values == "ALL_OLD":
             item_dict["Attributes"] = existing_attributes
         elif return_values == "UPDATED_OLD":
             item_dict["Attributes"] = {
@@ -1238,11 +1248,9 @@ class DynamoHandler(BaseResponse):
             }
         elif return_values == "UPDATED_NEW":
             item_dict["Attributes"] = self._build_updated_new_attributes(
-                existing_attributes, new_attributes
+                existing_attributes, item_dict["Attributes"]
             )
-        elif return_values == "ALL_NEW":
-            item_dict["Attributes"] = new_attributes
-        return ActionResult(item_dict)
+        return DynamoResult(item_dict)
 
     def _get_expr_attr_values(self) -> dict[str, dict[str, str]]:
         values = self.body.get("ExpressionAttributeValues")
@@ -1366,7 +1374,7 @@ class DynamoHandler(BaseResponse):
         if ret_consumed_capacity != "NONE":
             result.update({"ConsumedCapacity": list(consumed_capacity.values())})
 
-        return ActionResult(dynamo_to_dict(result))
+        return DynamoResult(result)
 
     def transact_write_items(self) -> ActionResult:
         transact_items = self.body["TransactItems"]
@@ -1449,7 +1457,7 @@ class DynamoHandler(BaseResponse):
         table_name = body.get("TableName")
         backups = self.dynamodb_backend.list_backups(table_name)
         response = {"BackupSummaries": [backup.summary for backup in backups]}
-        return ActionResult(dynamo_to_dict(response))
+        return DynamoResult(response)
 
     def create_backup(self) -> ActionResult:
         body = self.body
@@ -1457,21 +1465,21 @@ class DynamoHandler(BaseResponse):
         backup_name = body.get("BackupName")
         backup = self.dynamodb_backend.create_backup(table_name, backup_name)
         response = {"BackupDetails": backup.details}
-        return ActionResult(dynamo_to_dict(response))
+        return DynamoResult(response)
 
     def delete_backup(self) -> ActionResult:
         body = self.body
         backup_arn = body.get("BackupArn")
         backup = self.dynamodb_backend.delete_backup(backup_arn)
         response = {"BackupDescription": backup.description}
-        return ActionResult(dynamo_to_dict(response))
+        return DynamoResult(response)
 
     def describe_backup(self) -> ActionResult:
         body = self.body
         backup_arn = body.get("BackupArn")
         backup = self.dynamodb_backend.describe_backup(backup_arn)
         response = {"BackupDescription": backup.description}
-        return ActionResult(dynamo_to_dict(response))
+        return DynamoResult(response)
 
     def restore_table_from_backup(self) -> ActionResult:
         body = self.body
@@ -1480,7 +1488,7 @@ class DynamoHandler(BaseResponse):
         restored_table = self.dynamodb_backend.restore_table_from_backup(
             target_table_name, backup_arn
         )
-        return ActionResult(dynamo_to_dict(restored_table.describe()))
+        return DynamoResult(restored_table.describe())
 
     def restore_table_to_point_in_time(self) -> ActionResult:
         body = self.body
@@ -1489,7 +1497,7 @@ class DynamoHandler(BaseResponse):
         restored_table = self.dynamodb_backend.restore_table_to_point_in_time(
             target_table_name, source_table_name
         )
-        return ActionResult(dynamo_to_dict(restored_table.describe()))
+        return DynamoResult(restored_table.describe())
 
     def execute_statement(self) -> ActionResult:
         stmt = self.body.get("Statement", "")
@@ -1497,17 +1505,17 @@ class DynamoHandler(BaseResponse):
         items = self.dynamodb_backend.execute_statement(
             statement=stmt, parameters=parameters
         )
-        return ActionResult(dynamo_to_dict({"Items": items}))
+        return DynamoResult({"Items": items})
 
     def execute_transaction(self) -> ActionResult:
         stmts = self.body.get("TransactStatements", [])
         items = self.dynamodb_backend.execute_transaction(stmts)
-        return ActionResult(dynamo_to_dict({"Responses": items}))
+        return DynamoResult({"Responses": items})
 
     def batch_execute_statement(self) -> ActionResult:
         stmts = self.body.get("Statements", [])
         items = self.dynamodb_backend.batch_execute_statement(stmts)
-        return ActionResult(dynamo_to_dict({"Responses": items}))
+        return DynamoResult({"Responses": items})
 
     def import_table(self) -> ActionResult:
         params = self.body
