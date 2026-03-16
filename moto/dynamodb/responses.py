@@ -665,7 +665,7 @@ class DynamoHandler(BaseResponse):
         )
 
         item_dict = result.to_json()
-        if return_values == "ALL_OLD":
+        if return_values == "ALL_OLD" and existing_attributes:
             item_dict["Attributes"] = existing_attributes
         else:
             item_dict.pop("Attributes", None)
@@ -1241,11 +1241,18 @@ class DynamoHandler(BaseResponse):
         if return_values == "NONE":
             item_dict.pop("Attributes", None)
         elif return_values == "ALL_OLD":
-            item_dict["Attributes"] = existing_attributes
+            if existing_attributes:
+                item_dict["Attributes"] = existing_attributes
+            else:
+                item_dict.pop("Attributes", None)
         elif return_values == "UPDATED_OLD":
-            item_dict["Attributes"] = {
+            updated = {
                 k: v for k, v in existing_attributes.items() if k in changed_attributes
             }
+            if updated:
+                item_dict["Attributes"] = updated
+            else:
+                item_dict.pop("Attributes", None)
         elif return_values == "UPDATED_NEW":
             item_dict["Attributes"] = self._build_updated_new_attributes(
                 existing_attributes, item_dict["Attributes"]
