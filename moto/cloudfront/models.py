@@ -200,20 +200,11 @@ class DistributionConfig:
             config["OriginGroups"] = {"Quantity": 0}
         if "CustomErrorResponses" not in config:
             config["CustomErrorResponses"] = {"Quantity": 0}
-        # if "Enabled" not in config:
-        #     config["Enabled"] = False
         if "ViewerCertificate" not in config:
             config["ViewerCertificate"] = ViewerCertificate({})
         else:
             config["ViewerCertificate"] = ViewerCertificate(config["ViewerCertificate"])
-        # if "Origins" not in config:
-        #     config["Origins"] = {"Quantity": 0, "Items": []}
-        # else:
         config["Origins"]["Items"] = [Origin(o) for o in config["Origins"]["Items"]]
-        # if "OriginGroups" not in config:
-        #     config["OriginGroups"] = {"Quantity": 0}
-        # if "Comment" not in config:
-        #     config["Comment"] = ""
         if "CacheBehaviors" not in config:
             config["CacheBehaviors"] = {"Quantity": 0}
         elif config["CacheBehaviors"].get("Quantity"):
@@ -226,8 +217,6 @@ class DistributionConfig:
             config["Restrictions"]["GeoRestriction"] = GeoRestriction(
                 config["Restrictions"]["GeoRestriction"]
             )
-        # if "CallerReference" not in config:
-        #     config["CallerReference"] = str(random.uuid4())
         config["Logging"] = Logging(config.get("Logging", {}))
         config["DefaultCacheBehavior"] = DefaultCacheBehaviour(
             config.get("DefaultCacheBehavior", {})
@@ -237,7 +226,6 @@ class DistributionConfig:
         config["IsIPV6Enabled"] = config.get("IsIPV6Enabled", True)
         config["DefaultRootObject"] = config.get("DefaultRootObject", "")
         config["WebACLId"] = config.get("WebACLId", "")
-
         if config["DefaultCacheBehavior"].target_origin_id not in [
             o.id for o in config["Origins"]["Items"]
         ]:
