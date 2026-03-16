@@ -424,10 +424,7 @@ def test_put_bucket_notification_sns_sqs_raw_delivery():
     assert message_body["Records"][0]["eventName"] == "ObjectCreated:Put"
     assert message_body["Records"][0]["awsRegion"] == REGION_NAME
     assert message_body["Records"][0]["s3"]["configurationId"] == "SomeID"
-    assert (
-        message_body["Records"][0]["s3"]["object"]["key"]
-        == "incoming%2Fmyfile"
-    )
+    assert message_body["Records"][0]["s3"]["object"]["key"] == "incoming%2Fmyfile"
 
 
 @mock_aws
