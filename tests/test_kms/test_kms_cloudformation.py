@@ -58,3 +58,33 @@ def test_alias_create_and_delete():
     # VERIFY
     assert not kms_client.list_aliases(KeyId=kms_key_id1)["Aliases"]
     assert not kms_client.list_aliases(KeyId=kms_key_id2)["Aliases"]
+
+
+@mock_aws
+def test_alias_create_and_update_with_arn():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    kms_client = boto3.client("kms", region_name="us-east-1")
+
+    alias_name = "alias/my_arn_alias"
+    stack_name = f"Stack{str(uuid4())[0:6]}"
+    key1 = kms_client.create_key(Policy="my policy")["KeyMetadata"]
+    key2 = kms_client.create_key(Policy="my policy")["KeyMetadata"]
+
+    template = CF_KMS_ALIAS_TEMPLATE.copy()
+    template["Resources"]["MyFirstAlias"]["Properties"]["TargetKeyId"] = key1["Arn"]
+    template["Resources"]["MyFirstAlias"]["Properties"]["AliasName"] = alias_name
+
+    # CREATE with full ARN
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    aliases = kms_client.list_aliases(KeyId=key1["KeyId"])["Aliases"]
+    assert [al["AliasName"] for al in aliases] == [alias_name]
+
+    # UPDATE to a different key using full ARN
+    template["Resources"]["MyFirstAlias"]["Properties"]["TargetKeyId"] = key2["Arn"]
+    cf.update_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    assert not kms_client.list_aliases(KeyId=key1["KeyId"])["Aliases"]
+
+    aliases = kms_client.list_aliases(KeyId=key2["KeyId"])["Aliases"]
+    assert [al["AliasName"] for al in aliases] == [alias_name]

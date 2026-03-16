@@ -472,6 +472,11 @@ def test_create_email_identity():
     # Verify
     assert resp["IdentityType"] == "DOMAIN"
     assert resp["VerifiedForSendingStatus"] is False
+    assert "DkimAttributes" in resp
+    assert resp["DkimAttributes"]["Status"] == "NOT_STARTED"
+    assert resp["DkimAttributes"]["SigningEnabled"] is False
+    assert resp["DkimAttributes"]["SigningAttributesOrigin"] == "AWS_SES"
+    assert resp["DkimAttributes"]["NextSigningKeyLength"] == "RSA_1024_BIT"
 
 
 @mock_aws

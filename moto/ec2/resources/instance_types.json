@@ -12142,7 +12142,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -12272,7 +12272,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 1,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12406,7 +12406,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12671,7 +12671,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -12943,7 +12943,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -13403,7 +13403,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -13534,7 +13534,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 1,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -13673,7 +13673,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -13917,7 +13917,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -13928,7 +13928,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -14181,7 +14181,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -28548,7 +28548,7 @@
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
-   "MaximumEbsAttachments": 64,
+   "MaximumEbsAttachments": 128,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
@@ -37236,8 +37236,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -37667,8 +37667,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -37803,8 +37803,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -37941,8 +37941,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38086,8 +38086,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38210,8 +38210,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38345,8 +38345,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -38476,8 +38476,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -38738,8 +38738,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -38997,8 +38997,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39256,8 +39256,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39686,8 +39686,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40073,8 +40073,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40192,8 +40192,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40340,8 +40340,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40640,8 +40640,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40779,8 +40779,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40929,8 +40929,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41072,8 +41072,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41219,8 +41219,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41648,8 +41648,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42254,8 +42254,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -42819,8 +42819,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -43254,8 +43254,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43448,8 +43448,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43939,8 +43939,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44093,8 +44093,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -44236,8 +44236,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -72116,7 +72116,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -72246,7 +72246,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 1,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -72380,7 +72380,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -72645,7 +72645,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -72917,7 +72917,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -111316,7 +111316,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -111446,7 +111446,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 1,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -111580,7 +111580,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 37.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -111845,7 +111845,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -112117,7 +112117,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,

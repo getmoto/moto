@@ -118,3 +118,50 @@ class TransferResponse(BaseResponse):
     def list_servers(self) -> str:
         servers = self.transfer_backend.list_servers()
         return json.dumps({"Servers": [s.to_short_dict() for s in servers]})
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def create_connector(self) -> str:
+        params = json.loads(self.body)
+        connector_id = self.transfer_backend.create_connector(
+            url=params.get("Url"),
+            access_role=params.get("AccessRole"),
+            logging_role=params.get("LoggingRole"),
+            tags=params.get("Tags"),
+            as2_config=params.get("As2Config"),
+            sftp_config=params.get("SftpConfig"),
+            security_policy_name=params.get("SecurityPolicyName"),
+        )
+        return json.dumps({"ConnectorId": connector_id})
+
+    def describe_connector(self) -> str:
+        params = json.loads(self.body)
+        connector = self.transfer_backend.describe_connector(
+            connector_id=params.get("ConnectorId"),
+        )
+        return json.dumps({"Connector": connector.to_dict()})
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def update_connector(self) -> str:
+        params = json.loads(self.body)
+        connector_id = self.transfer_backend.update_connector(
+            connector_id=params.get("ConnectorId"),
+            url=params.get("Url"),
+            access_role=params.get("AccessRole"),
+            logging_role=params.get("LoggingRole"),
+            as2_config=params.get("As2Config"),
+            sftp_config=params.get("SftpConfig"),
+            security_policy_name=params.get("SecurityPolicyName"),
+        )
+        return json.dumps({"ConnectorId": connector_id})
+
+    def delete_connector(self) -> str:
+        params = json.loads(self.body)
+        self.transfer_backend.delete_connector(
+            connector_id=params.get("ConnectorId"),
+        )
+        return json.dumps({})
+
+    # TODO: implement pagination
+    def list_connectors(self) -> str:
+        connectors = self.transfer_backend.list_connectors()
+        return json.dumps({"Connectors": [c.to_short_dict() for c in connectors]})

@@ -773,6 +773,29 @@ class InstanceBackend:
         The KeyPair-parameter can be validated, to see if it is a known key-pair.
         Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
         """
+        if kwargs.get("launch_template"):
+            tmpl = self._get_template_from_args(kwargs["launch_template"]).data
+
+            if user_data is None and (template_user_data := tmpl.get("UserData")):
+                user_data = template_user_data
+            if kwargs.get("is_instance_type_default") and (
+                template_instance_type := tmpl.get("InstanceType")
+            ):
+                kwargs["instance_type"] = template_instance_type
+                kwargs["is_instance_type_default"] = False
+            if not kwargs.get("key_name") and (
+                template_key_name := tmpl.get("KeyName")
+            ):
+                kwargs["key_name"] = template_key_name
+            if not kwargs.get("security_group_ids") and (
+                template_sg_ids := tmpl.get("SecurityGroupIds")
+            ):
+                kwargs["security_group_ids"] = template_sg_ids
+            if not security_group_names and (
+                template_sgs := tmpl.get("SecurityGroups")
+            ):
+                security_group_names = template_sgs
+
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
         if settings.ENABLE_KEYPAIR_VALIDATION:
