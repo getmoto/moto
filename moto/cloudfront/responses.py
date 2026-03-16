@@ -21,10 +21,10 @@ class CloudFrontResponse(BaseResponse):
             op_to_action = {"Tag": "TagResource", "Untag": "UntagResource"}
             operation = self.querystring.get("Operation")[0]
             action = op_to_action.get(operation, action)
-        return action  # type: ignore[return-value]
+        return action
 
     def create_distribution(self) -> ActionResult:
-        distribution_config = self._get_param("DistributionConfig", {})  # type: ignore[union-attr]
+        distribution_config = self._get_param("DistributionConfig", {})
         distribution, location, e_tag = self.backend.create_distribution(
             distribution_config=distribution_config,
             tags=[],
@@ -35,7 +35,7 @@ class CloudFrontResponse(BaseResponse):
     def create_distribution_with_tags(self) -> ActionResult:
         distribution_config = self._get_param(
             "DistributionConfigWithTags.DistributionConfig", {}
-        )  # type: ignore[union-attr]
+        )
         tags = self._get_param("DistributionConfigWithTags.Tags.Items", [])
         distribution, location, e_tag = self.backend.create_distribution(
             distribution_config=distribution_config,
@@ -80,7 +80,7 @@ class CloudFrontResponse(BaseResponse):
         dist_config = self._get_param("DistributionConfig", {})
         if_match = self._get_param("IfMatch")
         dist, location, e_tag = self.backend.update_distribution(
-            dist_config=dist_config,  # type: ignore[arg-type]
+            dist_config=dist_config,
             _id=dist_id,
             if_match=if_match,
         )
@@ -91,7 +91,7 @@ class CloudFrontResponse(BaseResponse):
         dist_id = self._get_param("DistributionId")
         paths = self._get_param("InvalidationBatch.Paths.Items", [])
         caller_ref = self._get_param("InvalidationBatch.CallerReference")
-        invalidation = self.backend.create_invalidation(dist_id, paths, caller_ref)  # type: ignore[arg-type]
+        invalidation = self.backend.create_invalidation(dist_id, paths, caller_ref)
         result = {"Invalidation": invalidation, "Location": invalidation.location}
         return ActionResult(result)
 
