@@ -50769,6 +50769,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eusc-de-east-1": {
+                "Value": "eusc-de-east-1",
+                "endpoint": {
+                  "Value": "network-firewall.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "il-central-1": {
                 "Value": "il-central-1",
                 "endpoint": {
@@ -51921,9 +51930,6 @@
             "regions": {
               "ap-southeast-5": {
                 "Value": "ap-southeast-5",
-                "endpoint": {
-                  "Value": "notifications-contacts.us-east-1.api.aws"
-                },
                 "protocols": {
                   "Value": "HTTPS"
                 }
@@ -52345,6 +52351,12 @@
                   "Value": "observabilityadmin.ap-east-1.amazonaws.com"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-east-2.amazonaws.com"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -52403,6 +52415,12 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "observabilityadmin.ap-southeast-5.amazonaws.com"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-6.amazonaws.com"
                 }
               },
               "ap-southeast-7": {
@@ -52475,6 +52493,12 @@
                 "Value": "il-central-1",
                 "endpoint": {
                   "Value": "observabilityadmin.il-central-1.amazonaws.com"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "observabilityadmin.mx-central-1.amazonaws.com"
                 }
               },
               "sa-east-1": {
@@ -56679,6 +56703,15 @@
                 "Value": "ap-southeast-3",
                 "endpoint": {
                   "Value": "quicksight.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "quicksight.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62798,6 +62831,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "rum.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eusc-de-east-1": {
+                "Value": "eusc-de-east-1",
+                "endpoint": {
+                  "Value": "rum.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -75947,6 +75989,15 @@
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "transcribe.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "transcribe.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
