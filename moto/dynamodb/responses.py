@@ -225,6 +225,7 @@ class ProjectionExpressionParser:
 class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
+        self.automated_parameter_parsing = True
 
     def get_endpoint_name(self, headers: Any) -> Optional[str]:
         """Parses request headers and extracts part od the X-Amz-Target
@@ -248,7 +249,11 @@ class DynamoHandler(BaseResponse):
 
     @amz_crc32
     def call_action(self) -> TYPE_RESPONSE:
-        self.body = json.loads(self.body or "{}")
+        # To ease the transition to the new parameter parsing, we're still utilizing
+        # this self.body override, but now set to the automatically parsed parameters
+        # instead of the original json.loads().
+        # TODO: remove this in favor of self._get_param() calls in the action methods.
+        self.body = getattr(self, "params", {})
         return super().call_action()
 
     def list_tables(self) -> ActionResult:
