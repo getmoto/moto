@@ -1,9 +1,9 @@
 package moto.tests;
 
 import static moto.tests.DependencyFactory.cognitoIdpClient;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenResponse;
@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CognitoIDPTest {
+class CognitoIDPTest {
 
     @Test
-    public void testAssociateSoftwareToken() {
+    void testAssociateSoftwareToken() {
         CognitoIdentityProviderClient client = cognitoIdpClient();
 
         CreateUserPoolRequest up_request = CreateUserPoolRequest.builder()

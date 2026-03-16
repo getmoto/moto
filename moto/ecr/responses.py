@@ -3,7 +3,7 @@ import time
 from base64 import b64encode
 from datetime import datetime
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import ECRBackend, ecr_backends
 
@@ -217,14 +217,14 @@ class ECRResponse(BaseResponse):
         tags = self._get_param("tags", [])
 
         self.ecr_backend.tag_resource(arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
 
         self.ecr_backend.untag_resource(arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def put_image_tag_mutability(self) -> ActionResult:
         registry_id = self._get_param("registryId")

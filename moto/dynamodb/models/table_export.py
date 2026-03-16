@@ -1,9 +1,9 @@
-import json
 from threading import Thread
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import uuid4
 
 from moto.core.utils import gzip_compress
+from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.utilities.utils import get_partition
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ class TableExport(Thread):
         backup = ""
         for item in self.table.all_items():
             json_item = item.to_json(root_attr_name="Item")
-            backup += json.dumps(json_item) + "\n"
+            backup += dynamo_json_dump(json_item) + "\n"
             self.processed_bytes += len(json_item)
             self.item_count += 1
         content = gzip_compress(backup.encode("utf-8"))
@@ -80,6 +80,10 @@ class TableExport(Thread):
         return {
             "ExportArn": self.arn,
             "ExportStatus": self.status,
+            "TableArn": self.table.table_arn,
+            "S3Bucket": self.s3_bucket,
+            "S3BucketOwner": self.account_id,
+            "S3Prefix": self.s3_prefix,
             "FailureCode": self.failure_code,
             "FailureMessage": self.failure_message,
             "ExportFormat": self.export_format,

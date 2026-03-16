@@ -532,5 +532,15 @@ class AthenaBackend(BaseBackend):
             return self.tagger.list_tags_for_resource(resource_arn)
         return None
 
+    def tag_resource(
+        self, resource_arn: str, tags: list[dict[str, str]]
+    ) -> dict[str, Any]:
+        self.tagger.tag_resource(resource_arn, tags)
+        return {}
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+        return {}
+
 
 athena_backends = BackendDict(AthenaBackend, "athena")

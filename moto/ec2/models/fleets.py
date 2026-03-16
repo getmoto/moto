@@ -60,7 +60,6 @@ class Fleet(TaggedEC2Resource):
 
         self.launch_specs: list[SpotFleetLaunchSpec] = []
 
-        launch_specs_from_config: list[dict[str, Any]] = []
         for config in launch_template_configs or []:
             launch_spec = config["LaunchTemplateSpecification"]
             if "LaunchTemplateId" in launch_spec:
@@ -73,33 +72,52 @@ class Fleet(TaggedEC2Resource):
                 )
             else:
                 continue
-            launch_template_data = launch_template.latest_version().data
-            new_launch_template = launch_template_data.copy()
-            if config.get("Overrides"):
-                for override in config["Overrides"]:
-                    new_launch_template.update(override)
-            launch_specs_from_config.append(new_launch_template)
 
-        for spec in launch_specs_from_config:
-            tag_spec_set = spec.get("TagSpecifications", [])
-            tags = convert_tag_spec(tag_spec_set)
-            tags["instance"] = tags.get("instance", {}) | instance_tags
-            self.launch_specs.append(
-                SpotFleetLaunchSpec(
-                    ebs_optimized=spec.get("EbsOptimized"),
-                    group_set=spec.get("GroupSet", []),
-                    iam_instance_profile=spec.get("IamInstanceProfile"),
-                    image_id=spec["ImageId"],
-                    instance_type=spec["InstanceType"],
-                    key_name=spec.get("KeyName"),
-                    monitoring=spec.get("Monitoring"),
-                    spot_price=spec.get("SpotPrice"),
-                    subnet_id=spec.get("SubnetId"),
-                    tag_specifications=tags,
-                    user_data=spec.get("UserData"),
-                    weighted_capacity=spec.get("WeightedCapacity", 1),
+            # Resolve $Latest or $Default to actual version number
+            resolved_launch_spec = launch_spec.copy()
+            if resolved_launch_spec.get("Version") == "$Latest":
+                resolved_launch_spec["Version"] = str(
+                    launch_template.latest_version_number
                 )
+            elif resolved_launch_spec.get("Version") == "$Default":
+                resolved_launch_spec["Version"] = str(
+                    launch_template.default_version_number
+                )
+            # Always include the template ID in response (AWS does this even when name is used)
+            resolved_launch_spec["LaunchTemplateId"] = launch_template.id
+
+            template_version = resolved_launch_spec.get(
+                "Version", launch_template.default_version_number
             )
+            launch_template_data = launch_template.get_version(template_version).data
+            overrides_list = config.get("Overrides") or [{}]
+            for override in overrides_list:
+                # Merge launch template data with override
+                spec = launch_template_data.copy()
+                spec.update(override)
+
+                tag_spec_set = spec.get("TagSpecifications", [])
+                tags = convert_tag_spec(tag_spec_set)
+                tags["instance"] = tags.get("instance", {}) | instance_tags
+
+                self.launch_specs.append(
+                    SpotFleetLaunchSpec(
+                        ebs_optimized=spec.get("EbsOptimized"),
+                        group_set=spec.get("GroupSet", []),
+                        iam_instance_profile=spec.get("IamInstanceProfile"),
+                        image_id=spec["ImageId"],
+                        instance_type=spec["InstanceType"],
+                        key_name=spec.get("KeyName"),
+                        monitoring=spec.get("Monitoring"),
+                        spot_price=spec.get("SpotPrice"),
+                        subnet_id=spec.get("SubnetId"),
+                        tag_specifications=tags,
+                        user_data=spec.get("UserData"),
+                        weighted_capacity=spec.get("WeightedCapacity", 1),
+                        launch_template_spec=resolved_launch_spec,
+                        overrides=override if override else None,
+                    )
+                )
 
         self.spot_requests: list[SpotInstanceRequest] = []
         self.on_demand_instances: list[dict[str, Any]] = []
@@ -116,9 +134,7 @@ class Fleet(TaggedEC2Resource):
         if self.spot_target_capacity > 0:
             self.create_spot_requests(self.spot_target_capacity)
         self.on_demand_target_capacity = int(
-            target_capacity_specification.get(
-                "OnDemandTargetCapacity", self.target_capacity
-            )
+            target_capacity_specification.get("OnDemandTargetCapacity", 0)
         )
         if self.on_demand_target_capacity > 0:
             self.create_on_demand_requests(self.on_demand_target_capacity)
@@ -150,6 +166,59 @@ class Fleet(TaggedEC2Resource):
     def physical_resource_id(self) -> str:
         return self.id
 
+    @property
+    def instances(self) -> Optional[list[dict[str, Any]]]:
+        """
+        Return instances for instant fleets, None for other fleet types.
+        This is part of the CreateFleet response for instant fleets only.
+        """
+        if self.fleet_type != "instant":
+            return None
+
+        instances = []
+
+        # Process on-demand instances
+        for item in self.on_demand_instances:
+            instance_data = self._build_instance_data(
+                instance=item["instance"],
+                lifecycle="on-demand",
+                launch_spec=item.get("launch_spec"),
+            )
+            instances.append(instance_data)
+
+        # Process spot instances
+        for spot_request in self.spot_requests:
+            instance_data = self._build_instance_data(
+                instance=spot_request.instance,
+                lifecycle="spot",
+                launch_spec=spot_request.launch_spec,
+            )
+            instances.append(instance_data)
+
+        return instances
+
+    @staticmethod
+    def _build_instance_data(
+        instance: Any, lifecycle: str, launch_spec: Optional[SpotFleetLaunchSpec]
+    ) -> dict[str, Any]:
+        instance_data = {
+            "Lifecycle": lifecycle,
+            "InstanceIds": [instance.id],
+            "InstanceType": instance.instance_type,
+        }
+
+        # Add launch template and overrides if available
+        if launch_spec and launch_spec.launch_template_spec:
+            launch_template_and_overrides: dict[str, Any] = {
+                "LaunchTemplateSpecification": launch_spec.launch_template_spec
+            }
+            if launch_spec.overrides:
+                launch_template_and_overrides["Overrides"] = launch_spec.overrides
+
+            instance_data["LaunchTemplateAndOverrides"] = launch_template_and_overrides
+
+        return instance_data
+
     def create_spot_requests(self, weight_to_add: float) -> list[SpotInstanceRequest]:
         weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
         for launch_spec, count in weight_map.items():
@@ -173,6 +242,7 @@ class Fleet(TaggedEC2Resource):
                 subnet_id=launch_spec.subnet_id,
                 spot_fleet_id=self.id,
                 tags=launch_spec.tag_specifications,
+                launch_spec=launch_spec,
             )
             self.spot_requests.extend(requests)
         self.fulfilled_capacity += added_weight
@@ -198,14 +268,14 @@ class Fleet(TaggedEC2Resource):
                 tags=launch_spec.tag_specifications,
             )
 
-            # get the instance from the reservation
-            instance = reservation.instances[0]
-            self.on_demand_instances.append(
-                {
-                    "id": reservation.id,
-                    "instance": instance,
-                }
-            )
+            for instance in reservation.instances:
+                self.on_demand_instances.append(
+                    {
+                        "id": reservation.id,
+                        "instance": instance,
+                        "launch_spec": launch_spec,
+                    }
+                )
         self.fulfilled_capacity += added_weight
 
     def get_launch_spec_counts(

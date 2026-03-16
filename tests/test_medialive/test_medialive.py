@@ -111,7 +111,7 @@ def test_create_channel_succeeds():
     channel_config = _create_channel_config("test channel 1")
 
     response = client.create_channel(**channel_config)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     channel = response["Channel"]
     assert channel["Arn"] == f"arn:aws:medialive:channel:{response['Channel']['Id']}"
@@ -249,7 +249,7 @@ def test_create_input_succeeds():
     input_config = _create_input_config(input_name)
 
     create_response = client.create_input(**input_config)
-    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 201
     r_input = create_response["Input"]
     input_id = r_input["Id"]
     assert len(input_id) > 1
@@ -276,7 +276,7 @@ def test_describe_input_succeeds():
     input_config = _create_input_config(input_name)
 
     create_response = client.create_input(**input_config)
-    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 201
     assert create_response["Input"]["State"] == "CREATING"
 
     describe_response = client.describe_input(InputId=create_response["Input"]["Id"])

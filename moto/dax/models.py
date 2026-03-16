@@ -271,5 +271,18 @@ class DAXBackend(BaseBackend):
         )
         return self.clusters[cluster_name]
 
+    def tag_resource(self, resource_name: str, tags: list[dict[str, str]]) -> None:
+        name = resource_name.split("/")[-1]
+        if name not in self.clusters:
+            raise ClusterNotFoundFault()
+
+        self._tagger.tag_resource(self.clusters[name].arn, tags)
+
+    def untag_resource(self, resource_name: str, tag_keys: list[str]) -> None:
+        name = resource_name.split("/")[-1]
+        if name not in self.clusters:
+            raise ClusterNotFoundFault()
+        self._tagger.untag_resource_using_names(self.clusters[name].arn, tag_keys)
+
 
 dax_backends = BackendDict(DAXBackend, "dax")

@@ -293,6 +293,8 @@ class EmailIdentity(BaseModel):
         ):
             self.dkim_attributes["SigningEnabled"] = False
             self.dkim_attributes["Status"] = "NOT_STARTED"
+            self.dkim_attributes["NextSigningKeyLength"] = "RSA_1024_BIT"
+            self.dkim_attributes["SigningAttributesOrigin"] = "AWS_SES"
         else:
             self.dkim_attributes["SigningEnabled"] = True
             self.dkim_attributes["Status"] = "SUCCESS"

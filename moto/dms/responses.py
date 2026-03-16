@@ -60,8 +60,8 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
     def describe_replication_tasks(self) -> str:
-        filters = self._get_param("Filters")
-        max_records = self._get_int_param("MaxRecords")
+        filters = self._get_param("Filters", [])
+        max_records = self._get_int_param("MaxRecords", 100)
         replication_tasks = self.dms_backend.describe_replication_tasks(
             filters=filters, max_records=max_records
         )

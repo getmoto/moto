@@ -1,15 +1,15 @@
 package moto.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
 
-public class DynamoTest {
+class DynamoTest {
 
     @Test
-    public void testSingleTableExists() {
+    void testSingleTableExists() {
         String tableName = "table" + System.currentTimeMillis();
 
         DynamoLogic logic = new DynamoLogic();
@@ -19,7 +19,7 @@ public class DynamoTest {
     }
 
     @Test
-    public void testTableCannotBeCreatedTwice() {
+    void testTableCannotBeCreatedTwice() {
         String tableName = "table" + System.currentTimeMillis();
         DynamoLogic logic = new DynamoLogic();
         // Going once...

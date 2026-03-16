@@ -183,6 +183,23 @@ class STSBackend(BaseBackend):
         arn = f"arn:{partition}:sts::{self.account_id}:user/moto"
         return user_id, arn, self.account_id
 
+    def get_access_key_info(self, access_key_id: str) -> dict[str, str]:
+        """Return the account ID associated with the given access key.
+
+        In real AWS, this looks up the owning account. In moto, we check
+        IAM users/access keys across known accounts; if nothing matches,
+        we return the current account.
+        """
+        # Try to find the key in IAM backends
+        for account_id in iam_backends:
+            for partition in iam_backends[account_id]:
+                iam_backend = iam_backends[account_id][partition]
+                user = iam_backend.get_user_from_access_key_id(access_key_id)
+                if user:
+                    return {"Account": user.account_id}
+        # Default: return the calling account
+        return {"Account": self.account_id}
+
     def _create_access_key(self, role: str) -> tuple[str, AccessKey]:
         account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)
         if account_id_match:
