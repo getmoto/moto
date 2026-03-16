@@ -1,6 +1,7 @@
 include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt
 include moto/py.typed
+include moto/cloudfront/*/*.json
 include moto/config/resources/aws_managed_rules.json
 include moto/ec2/*/*.json
 include moto/ec2/resources/instance_types.json
@@ -13,6 +14,7 @@ include moto/emr/*/*.json
 include moto/emr/resources/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
+include moto/medialive/*/*.json
 include moto/moto_api/_internal/*
 include moto/moto_proxy/*
 include moto/moto_proxy/certs/__init__.py
@@ -20,6 +22,7 @@ include moto/moto_proxy/certs/req.conf.tmpl
 include moto/rds/*/*.json
 include moto/rds/resources/cluster_options/*.json
 include moto/rds/resources/option_group_options/*.json
+include moto/route53/*/*.json
 include moto/sqs/*/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json
