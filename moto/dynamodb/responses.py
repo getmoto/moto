@@ -6,7 +6,7 @@ from functools import wraps
 from typing import Any, Optional
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.dynamodb.comparisons import create_condition_expression_parser
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.table import (
@@ -538,13 +538,13 @@ class DynamoHandler(BaseResponse):
         table_arn = self.body["ResourceArn"]
         tags = self.body["Tags"]
         self.dynamodb_backend.tag_resource(table_arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
         tags = self.body["TagKeys"]
         self.dynamodb_backend.untag_resource(table_arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_tags_of_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
@@ -740,12 +740,11 @@ class DynamoHandler(BaseResponse):
         )
 
         item = self.dynamodb_backend.get_item(name, key, projection_expressions)
+        result = {}
         if item:
             item_dict = item.describe_attrs(attributes=None)
-            return ActionResult(dynamo_to_dict(item_dict))
-        else:
-            # Item not found
-            return ActionResult({})
+            result["Item"] = item_dict.get("Item")
+        return ActionResult(dynamo_to_dict(result))
 
     def batch_get_item(self) -> ActionResult:
         table_batches = self.body["RequestItems"]
@@ -1605,4 +1604,4 @@ class DynamoHandler(BaseResponse):
             resource_arn=self.body.get("ResourceArn"),
             expected_revision_id=self.body.get("ExpectedRevisionId"),
         )
-        return ActionResult({})
+        return EmptyResult()
