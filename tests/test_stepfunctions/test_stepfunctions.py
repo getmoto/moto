@@ -38,6 +38,299 @@ def test_state_machine_creation_succeeds():
 
 
 @mock_aws
+def test_state_machine_alias_succeeds():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+    response = client.create_state_machine_alias(
+        name="my-alias",
+        routingConfiguration=[
+            {
+                "stateMachineVersionArn": response_create["stateMachineVersionArn"],
+                "weight": 100,
+            }
+        ],
+    )
+    assert (
+        response["stateMachineAliasArn"]
+        == response_create["stateMachineArn"] + ":" + "my-alias"
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(response["creationDate"], datetime)
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "routing_configuration,expected_error_msg",
+    [
+        pytest.param(
+            [
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 50,
+                },
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 25,
+                },
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 25,
+                },
+            ],
+            "Routing configuration must contain 1 or 2",
+            id="too_many_versions",
+        ),
+        pytest.param(
+            [
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 50,
+                },
+            ],
+            "sum of the weights in the routing configuration must be equal to 100",
+            id="invalid_weight_single",
+        ),
+        pytest.param(
+            [
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 60,
+                },
+                {
+                    "stateMachineVersionArn": "arn:aws:states:us-east-1:123456789012:stateMachine:test:1",
+                    "weight": 30,
+                },
+            ],
+            "sum of the weights in the routing configuration must be equal to 100",
+            id="invalid_weight_sum",
+        ),
+    ],
+)
+def test_state_machine_alias_fails_with_invalid_routing_config(
+    routing_configuration, expected_error_msg
+):
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    _ = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_state_machine_alias(
+            name="my-alias",
+            routingConfiguration=routing_configuration,
+        )
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert expected_error_msg in exc.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_state_machine_alias_fails_with_different_state_machines():
+    client = boto3.client("stepfunctions", region_name=region)
+    name1 = "example_step_function_1"
+    response_create_1 = client.create_state_machine(
+        name=name1,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+    name2 = "example_step_function_2"
+    response_create_2 = client.create_state_machine(
+        name=name2,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_state_machine_alias(
+            name="my-alias",
+            routingConfiguration=[
+                {
+                    "stateMachineVersionArn": response_create_1[
+                        "stateMachineVersionArn"
+                    ],
+                    "weight": 50,
+                },
+                {
+                    "stateMachineVersionArn": response_create_2[
+                        "stateMachineVersionArn"
+                    ],
+                    "weight": 50,
+                },
+            ],
+        )
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        "Both stateMachineVersionArn values must belong to the same state machine"
+        in exc.value.response["Error"]["Message"]
+    )
+
+
+@mock_aws
+def test_state_machine_two_alias():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create_v1 = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    updated_definition = str(simple_definition).replace(
+        "DefaultState", "DefaultStateV2"
+    )
+    response_update_v2 = client.update_state_machine(
+        stateMachineArn=response_create_v1["stateMachineArn"],
+        definition=updated_definition,
+        publish=True,
+    )
+
+    response = client.create_state_machine_alias(
+        name="my-alias",
+        routingConfiguration=[
+            {
+                "stateMachineVersionArn": response_create_v1["stateMachineVersionArn"],
+                "weight": 70,
+            },
+            {
+                "stateMachineVersionArn": response_update_v2["stateMachineVersionArn"],
+                "weight": 30,
+            },
+        ],
+    )
+    assert (
+        response["stateMachineAliasArn"]
+        == response_create_v1["stateMachineArn"] + ":" + "my-alias"
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(response["creationDate"], datetime)
+
+
+@mock_aws
+def test_state_machine_describe_alias_succeeds():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    response_create_alias = client.create_state_machine_alias(
+        name="my-alias",
+        description="Test alias",
+        routingConfiguration=[
+            {
+                "stateMachineVersionArn": response_create["stateMachineVersionArn"],
+                "weight": 100,
+            }
+        ],
+    )
+
+    response = client.describe_state_machine_alias(
+        stateMachineAliasArn=response_create_alias["stateMachineAliasArn"]
+    )
+
+    assert (
+        response["stateMachineAliasArn"]
+        == response_create_alias["stateMachineAliasArn"]
+    )
+    assert response["name"] == "my-alias"
+    assert response["description"] == "Test alias"
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(response["creationDate"], datetime)
+    assert isinstance(response["updateDate"], datetime)
+    assert len(response["routingConfiguration"]) == 1
+    assert (
+        response["routingConfiguration"][0]["stateMachineVersionArn"]
+        == response_create["stateMachineVersionArn"]
+    )
+    assert response["routingConfiguration"][0]["weight"] == 100
+
+
+@mock_aws
+def test_state_machine_describe_alias_fails_nonexistent():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    nonexistent_alias_arn = response_create["stateMachineArn"] + ":nonexistent"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_state_machine_alias(stateMachineAliasArn=nonexistent_alias_arn)
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFound"
+
+
+@mock_aws
+def test_state_machine_delete_alias_succeeds():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    response_create_alias = client.create_state_machine_alias(
+        name="my-alias",
+        routingConfiguration=[
+            {
+                "stateMachineVersionArn": response_create["stateMachineVersionArn"],
+                "weight": 100,
+            }
+        ],
+    )
+
+    delete_response = client.delete_state_machine_alias(
+        stateMachineAliasArn=response_create_alias["stateMachineAliasArn"]
+    )
+    assert delete_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_state_machine_alias(
+            stateMachineAliasArn=response_create_alias["stateMachineAliasArn"]
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFound"
+
+
+@mock_aws
+def test_state_machine_delete_alias_fails_nonexistent():
+    client = boto3.client("stepfunctions", region_name=region)
+    name = "example_step_function"
+    response_create = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+
+    nonexistent_alias_arn = response_create["stateMachineArn"] + ":nonexistent"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_state_machine_alias(stateMachineAliasArn=nonexistent_alias_arn)
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFound"
+
+
+@mock_aws
 def test_state_machine_with_cmk():
     client = boto3.client("stepfunctions", region_name=region)
     kms_key_id = boto3.client("kms", region_name=region).create_key()["KeyMetadata"][

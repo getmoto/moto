@@ -61,6 +61,38 @@ class StepFunctionResponse(BaseResponse):
             response["stateMachineVersionArn"] = state_machine.latest_version.arn
         return ActionResult(response)
 
+    def create_state_machine_alias(self) -> ActionResult:
+        name = self._get_param("name")
+        routing_configuration = self._get_param("routingConfiguration")
+        description = self._get_param("description")
+        alias = self.stepfunction_backend.create_state_machine_alias(
+            name, routing_configuration, description
+        )
+        response = {
+            "creationDate": alias.creation_date,
+            "stateMachineAliasArn": alias.arn,
+        }
+        return ActionResult(response)
+
+    def describe_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        alias = self.stepfunction_backend.describe_state_machine_alias(arn)
+        response = {
+            "stateMachineAliasArn": alias.arn,
+            "name": alias.name,
+            "routingConfiguration": alias.routing_configuration,
+            "creationDate": alias.creation_date,
+            "updateDate": alias.update_date,
+        }
+        if alias.description:
+            response["description"] = alias.description
+        return ActionResult(response)
+
+    def delete_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        self.stepfunction_backend.delete_state_machine_alias(arn)
+        return EmptyResult()
+
     def list_state_machines(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
