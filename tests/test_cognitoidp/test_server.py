@@ -1,6 +1,11 @@
 import json
+from collections.abc import Iterable
+
+import pytest
+import requests
 
 import moto.server as server
+from moto.server import ThreadedMotoServer
 
 
 def test_sign_up_user_without_authentication():
@@ -270,3 +275,58 @@ def test_associate_software_token():
         },
     )
     assert json.loads(res.data.decode("utf-8")) == {"SecretCode": "asdfasdfasdf"}
+
+
+def test_jwks_endpoint_without_auth_header():
+    """Test that the JWKS endpoint works directly on the cognitoidp backend."""
+    backend = server.create_backend_app("cognito-idp")
+    test_client = backend.test_client()
+
+    res = test_client.get("/us-east-1_abc123/.well-known/jwks.json")
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert "keys" in data
+
+
+@pytest.fixture(scope="module")
+def moto_server_url() -> Iterable[str]:
+    srv = ThreadedMotoServer(port=0)
+    srv.start()
+    host, port = srv.get_host_and_port()
+    yield f"http://{host}:{port}"
+    srv.stop()
+
+
+def test_jwks_endpoint_on_moto_server(moto_server_url: str):
+    """Regression test for https://github.com/getmoto/moto/issues/9570.
+
+    In server mode, a plain GET to /{pool_id}/.well-known/jwks.json
+    should return the JWKS public keys without requiring an Authorization
+    header.
+    """
+    url = f"{moto_server_url}/us-east-1_abc123/.well-known/jwks.json"
+    response = requests.get(url)
+    assert response.status_code == 200
+    data = response.json()
+    assert "keys" in data
+    assert len(data["keys"]) >= 1
+
+
+def test_jwks_endpoint_non_us_east_1_region(moto_server_url: str):
+    """JWKS endpoint should route correctly for pools in any region."""
+    url = f"{moto_server_url}/eu-west-1_xyz789/.well-known/jwks.json"
+    response = requests.get(url)
+    assert response.status_code == 200
+    data = response.json()
+    assert "keys" in data
+    assert len(data["keys"]) >= 1
+
+
+def test_jwks_endpoint_non_default_region(moto_server_url: str):
+    """JWKS endpoint should route correctly for pools in ap-southeast-1."""
+    url = f"{moto_server_url}/ap-southeast-1_xyz789/.well-known/jwks.json"
+    response = requests.get(url)
+    assert response.status_code == 200
+    data = response.json()
+    assert "keys" in data
+    assert len(data["keys"]) >= 1
