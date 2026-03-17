@@ -5,7 +5,6 @@ from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .exceptions import ValidationException
 from .models import EventBridgePipesBackend, pipes_backends
@@ -81,10 +80,8 @@ class EventBridgePipesResponse(BaseResponse):
             "Name": pipe.name,
             "DesiredState": pipe.desired_state,
             "CurrentState": pipe.current_state,
-            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                pipe.last_modified_time
-            ),
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
         }
         if pipe.description is not None:
             response_dict["Description"] = pipe.description
@@ -201,10 +198,8 @@ class EventBridgePipesResponse(BaseResponse):
             "Name": pipe.name,
             "DesiredState": pipe.desired_state,
             "CurrentState": pipe.current_state,
-            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                pipe.last_modified_time
-            ),
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
         }
         return ActionResult(response_dict)
 
@@ -216,9 +211,7 @@ class EventBridgePipesResponse(BaseResponse):
             "Name": pipe.name,
             "DesiredState": pipe.desired_state,
             "CurrentState": pipe.current_state,
-            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                pipe.last_modified_time
-            ),
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
         }
         return ActionResult(response_dict)
