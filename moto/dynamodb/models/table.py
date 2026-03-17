@@ -188,9 +188,9 @@ class StreamRecord(BaseModel):
             },
         }
 
-        if stream_type in ("NEW_IMAGE", "NEW_AND_OLD_IMAGES"):
+        if stream_type in ("NEW_IMAGE", "NEW_AND_OLD_IMAGES") and new is not None:
             self.record["dynamodb"]["NewImage"] = new_a
-        if stream_type in ("OLD_IMAGE", "NEW_AND_OLD_IMAGES"):
+        if stream_type in ("OLD_IMAGE", "NEW_AND_OLD_IMAGES") and old is not None:
             self.record["dynamodb"]["OldImage"] = old_a
 
         # This is a substantial overestimate but it's the easiest to do now
