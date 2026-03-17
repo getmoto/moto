@@ -244,6 +244,90 @@ def test_untag_resource():
 
 
 @mock_aws
+def test_snva_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+    resp = client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp_sn["id"],
+        vpcIdentifier="vpc-12345678",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_rule_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_svc = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+
+    resp = client.create_rule(
+        listenerIdentifier="listener-1234567890123456",
+        serviceIdentifier=resp_svc["id"],
+        name="my-rule",
+        priority=1,
+        match={
+            "httpMatch": {
+                "pathMatch": {"caseSensitive": False, "match": {"exact": "/my-path"}}
+            }
+        },
+        action={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_als_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+
+    resp = client.create_access_log_subscription(
+        resourceIdentifier=resp_sn["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        serviceNetworkLogType="RESOURCE",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
 def test_create_access_log_subscription():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
@@ -785,6 +869,21 @@ def test_list_access_log_subscriptions_with_arn():
     )
     results = client.list_access_log_subscriptions(
         resourceIdentifier=resp["arn"],
+        maxResults=12,
+    )
+    assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+    results = client.list_service_network_vpc_associations(
+        serviceNetworkIdentifier=resp["arn"],
         maxResults=12,
     )
     assert len(results["items"]) == 1

@@ -59,3 +59,98 @@ def test_vpc_lattice_service_network_tagging_api(client, resource_groups_client)
         {"Key": "tag1", "Value": "value1"},
         {"Key": "tag2", "Value": "value2"},
     ]
+
+
+@mock_aws
+def test_vpc_lattice_snva_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+    resp = client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp_sn["id"],
+        vpcIdentifier="vpc-12345678",
+        securityGroupIds=["sg-12345678"],
+        clientToken="token456",
+        tags=tags,
+    )
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
+def test_vpc_lattice_rule_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp_svc = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+
+    resp = client.create_rule(
+        listenerIdentifier="listener-1234567890123456",
+        serviceIdentifier=resp_svc["id"],
+        name="my-rule",
+        priority=1,
+        match={
+            "httpMatch": {
+                "pathMatch": {"caseSensitive": False, "match": {"exact": "/my-path"}}
+            }
+        },
+        action={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+        clientToken="token789",
+        tags=tags,
+    )
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
+def test_vpc_lattice_als_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+
+    resp = client.create_access_log_subscription(
+        resourceIdentifier=resp_sn["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        clientToken="token456",
+        serviceNetworkLogType="RESOURCE",
+        tags=tags,
+    )
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]

@@ -218,3 +218,28 @@ class VPCLatticeResponse(BaseResponse):
         self.backend.delete_resource_policy(resourceArn=resource_arn)
 
         return "{}"
+
+    def list_service_network_vpc_associations(self) -> str:
+        service_network_identifier = self._get_param("serviceNetworkIdentifier")
+        if service_network_identifier:
+            service_network_identifier = unquote(service_network_identifier)
+
+        vpc_identifier = self._get_param("vpcIdentifier")
+        if vpc_identifier:
+            vpc_identifier = unquote(vpc_identifier)
+
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+
+        associations, next_token = self.backend.list_service_network_vpc_associations(
+            serviceNetworkIdentifier=service_network_identifier,
+            vpcIdentifier=vpc_identifier,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "items": [assoc.to_dict() for assoc in associations],
+                "nextToken": next_token,
+            }
+        )
