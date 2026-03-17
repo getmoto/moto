@@ -11,5 +11,6 @@ url_paths = {
     "{0}/api/v2/clusters/(?P<clusterArn>.+)$": KafkaResponse.dispatch,
     "{0}/v1/tags/(?P<resourceArn>.+)$": KafkaResponse.dispatch,
     "{0}/v1/clusters$": KafkaResponse.dispatch,
+    "{0}/v1/clusters/(?P<clusterArn>[^/]+)/policy$": KafkaResponse.dispatch,
     "{0}/v1/clusters/(?P<clusterArn>.+)$": KafkaResponse.dispatch,
 }

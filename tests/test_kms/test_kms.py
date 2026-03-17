@@ -425,6 +425,49 @@ def test_list_aliases_for_key_arn():
         } in aliases
 
 
+@mock_aws
+def test_update_alias_using_arn_as_target_key_id():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key1 = client.create_key()
+    key1_arn = key1["KeyMetadata"]["Arn"]
+    key2 = client.create_key()
+    key2_id = key2["KeyMetadata"]["KeyId"]
+    key2_arn = key2["KeyMetadata"]["Arn"]
+
+    alias_name = "alias/my-alias"
+    client.create_alias(AliasName=alias_name, TargetKeyId=key1_arn)
+
+    # Update alias using full ARN as TargetKeyId
+    client.update_alias(AliasName=alias_name, TargetKeyId=key2_arn)
+
+    aliases = client.list_aliases(KeyId=key2_id)["Aliases"]
+    matched = [a for a in aliases if a["AliasName"] == alias_name]
+    assert len(matched) == 1
+    assert matched[0]["TargetKeyId"] == key2_id
+
+    aliases = client.list_aliases(KeyId=key1_arn)["Aliases"]
+    assert not any(a["AliasName"] == alias_name for a in aliases)
+
+
+@mock_aws
+def test_update_alias_same_target_key():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key()
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+
+    alias_name = "alias/my-alias"
+    client.create_alias(AliasName=alias_name, TargetKeyId=key_id)
+
+    # Update alias to point to the same key using ARN (no-op)
+    client.update_alias(AliasName=alias_name, TargetKeyId=key_arn)
+
+    aliases = client.list_aliases(KeyId=key_id)["Aliases"]
+    assert any(a["AliasName"] == alias_name for a in aliases)
+
+
 @pytest.mark.parametrize(
     "key_id",
     [

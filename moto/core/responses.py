@@ -28,7 +28,7 @@ from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.parse import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -392,7 +392,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if not self.is_werkzeug_request:
             self.response_headers["date"] = http_date(utcnow())
 
-        if self.automated_parameter_parsing:
+        if self.automated_parameter_parsing and self._get_action():
             self.parse_parameters(request)
 
         # Register visit with IAM
@@ -543,15 +543,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             service_model, normalized_request.content_type
         )
         parser_cls = PROTOCOL_PARSERS[protocol]
-        parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
+        parser = parser_cls(operation_model, map_type=self.PROTOCOL_PARSER_MAP_TYPE)
         parsed = parser.parse(
             {
-                "query_params": normalized_request.values,
+                "method": normalized_request.method,
+                "values": normalized_request.values,
                 "headers": normalized_request.headers,
                 "body": normalized_request.data,
-            },
-            operation_model,
-        )  # type: ignore[no-untyped-call]
+                "url_path": normalized_request.path,
+                "url_params": self.uri_match.groupdict() if self.uri_match else {},
+            }
+        )
         self.params = cast(Any, parsed)
 
     def determine_response_protocol(self, service_model: ServiceModel) -> str:

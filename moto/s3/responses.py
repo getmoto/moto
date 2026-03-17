@@ -280,9 +280,13 @@ class S3Response(BaseResponse):
 
         path_based = (
             host == "s3.amazonaws.com"
-            or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host)
+            or re.match(
+                r"s3[\.\-](?:(?:dualstack|fips)[\.\-])?([^.]*)\.amazonaws\.com", host
+            )
             or any(
-                re.match(r"s3[\.\-]([^.]*)\." + suffix, host)
+                re.match(
+                    r"s3[\.\-](?:(?:dualstack|fips)[\.\-])?([^.]*)\." + suffix, host
+                )
                 for suffix in ALT_DOMAIN_SUFFIXES
             )
         )

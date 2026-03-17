@@ -80,8 +80,8 @@ def bucket_and_name_from_url(url: str) -> Union[tuple[str, str], tuple[None, Non
 
 
 REGION_URL_REGEX = re.compile(
-    r"^https?://(s3[-\.](?P<region1>.+)\.amazonaws\.com/(.+)|"
-    r"(.+)\.s3[-\.](?P<region2>.+)\.amazonaws\.com)/?"
+    r"^https?://(s3[-\.](?:(?:dualstack|fips)[.\-])?(?P<region1>.+)\.amazonaws\.com/(.+)|"
+    r"(.+)\.s3[-\.](?:(?:dualstack|fips)[.\-])?(?P<region2>.+)\.amazonaws\.com)/?"
 )
 
 

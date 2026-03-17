@@ -237,19 +237,15 @@ class KmsResponse(BaseResponse):
         if self.kms_backend.alias_exists(target_key_id):
             raise ValidationException("Aliases must refer to keys. Not aliases")
 
-        if update:
-            # delete any existing aliases with that name (should be a no-op if none exist)
-            self.kms_backend.delete_alias(alias_name)
-
-        if self.kms_backend.alias_exists(alias_name):
-            raise AlreadyExistsException(
-                f"An alias with the name arn:aws:kms:{self.region}:{self.current_account}:{alias_name} already exists"
-            )
-
         self._validate_cmk_id(target_key_id)
         if update:
+            self._validate_alias(alias_name)
             self.kms_backend.update_alias(target_key_id, alias_name)
         else:
+            if self.kms_backend.alias_exists(alias_name):
+                raise AlreadyExistsException(
+                    f"An alias with the name arn:aws:kms:{self.region}:{self.current_account}:{alias_name} already exists"
+                )
             self.kms_backend.create_alias(target_key_id, alias_name)
 
         return json.dumps(None)

@@ -2390,20 +2390,30 @@ class LambdaBackend(BaseBackend):
     def send_dynamodb_items(
         self, function_arn: str, items: list[Any], source: str
     ) -> Union[str, bytes]:
-        event = {
-            "Records": [
+        from moto.core.utils import unix_time
+
+        records = []
+        for item in items:
+            record = item.to_json()
+            # Shallow copy to avoid mutating the original StreamRecord
+            dynamodb = dict(record["dynamodb"])
+            # Convert datetime to epoch for the Lambda event payload
+            if isinstance(dynamodb.get("ApproximateCreationDateTime"), datetime):
+                dynamodb["ApproximateCreationDateTime"] = unix_time(
+                    dynamodb["ApproximateCreationDateTime"]
+                )
+            records.append(
                 {
-                    "eventID": item.to_json()["eventID"],
-                    "eventName": item.to_json()["eventName"],
-                    "eventVersion": item.to_json()["eventVersion"],
-                    "eventSource": item.to_json()["eventSource"],
+                    "eventID": record["eventID"],
+                    "eventName": record["eventName"],
+                    "eventVersion": record["eventVersion"],
+                    "eventSource": record["eventSource"],
                     "awsRegion": self.region_name,
-                    "dynamodb": item.to_json()["dynamodb"],
+                    "dynamodb": dynamodb,
                     "eventSourceARN": source,
                 }
-                for item in items
-            ]
-        }
+            )
+        event = {"Records": records}
         func = self._lambdas.get_arn(function_arn)
         return func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
