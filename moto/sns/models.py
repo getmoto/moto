@@ -768,11 +768,10 @@ class SNSBackend(BaseBackend):
                     raise InvalidParameterValue(
                         "The topic should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly"
                     )
-            elif group_id or deduplication_id:
-                parameter = "MessageGroupId" if group_id else "MessageDeduplicationId"
+            elif deduplication_id:
                 raise InvalidParameterValue(
-                    f"Invalid parameter: {parameter} "
-                    f"Reason: The request includes {parameter} parameter that is not valid for this topic type"
+                    "Invalid parameter: MessageDeduplicationId "
+                    "Reason: The request includes MessageDeduplicationId parameter that is not valid for this topic type"
                 )
 
             message_id = topic.publish(
