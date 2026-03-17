@@ -1,6 +1,8 @@
 """Unit tests for kafka-supported APIs."""
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -229,3 +231,170 @@ def test_list_clusters_v2():
 
         cluster_type = cluster["ClusterType"]
         assert cluster_type[0].upper() + cluster_type[1:].lower() in cluster
+
+
+@mock_aws
+def test_put_cluster_policy():
+    client = boto3.client("kafka", region_name="us-east-2")
+    create_resp = client.create_cluster(
+        ClusterName="TestCluster",
+        BrokerNodeGroupInfo={
+            "InstanceType": "kafka.m5.large",
+            "ClientSubnets": ["subnet-0123456789abcdef0"],
+            "SecurityGroups": ["sg-0123456789abcdef0"],
+        },
+        KafkaVersion="2.8.1",
+        NumberOfBrokerNodes=3,
+        Tags=FAKE_TAGS,
+    )
+
+    cluster_arn = create_resp["ClusterArn"]
+
+    policy_doc = """
+        {
+            "Version":"2012-10-17",
+            "Statement":[
+                {"Effect":"Allow",
+                "Principal":"*",
+                "Action":"kafka:*",
+                "Resource":"*"}
+                ]
+            }
+
+    """
+
+    put_resp = client.put_cluster_policy(
+        ClusterArn=cluster_arn,
+        CurrentVersion="",
+        Policy=policy_doc,
+    )
+
+    assert "CurrentVersion" in put_resp
+    first_version = put_resp["CurrentVersion"]
+    assert first_version != ""
+
+    # Verify get_cluser_policy
+    get_resp = client.get_cluster_policy(ClusterArn=cluster_arn)
+    assert get_resp["Policy"] == policy_doc
+    assert get_resp["CurrentVersion"] == first_version
+
+    # Update policy
+    updated_policy_doc = """
+        {
+            "Version":"2012-10-17",
+            "Statement":[
+                {"Effect":"Allow",
+                "Principal":"*",
+                "Action":"kafka:*",
+                "Resource":"*"}
+                ]
+            }
+
+    """
+
+    put_resp2 = client.put_cluster_policy(
+        ClusterArn=cluster_arn,
+        CurrentVersion=first_version,
+        Policy=updated_policy_doc,
+    )
+    second_version = put_resp2["CurrentVersion"]
+    assert second_version != first_version  # version should update
+
+    # get updated policy
+    get_resp2 = client.get_cluster_policy(ClusterArn=cluster_arn)
+    assert get_resp2["Policy"] == updated_policy_doc
+    assert get_resp2["CurrentVersion"] == second_version
+
+    # update old version. Should raise error
+    with pytest.raises(ClientError) as exc:
+        client.put_cluster_policy(
+            ClusterArn=cluster_arn,
+            CurrentVersion=first_version,
+            Policy=policy_doc,
+        )
+    resp = exc.value.response
+    error = resp["Error"]
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 400
+    assert error["Code"] == "BadRequestException"
+    assert (
+        error["Message"]
+        == f"Version mismatch: expected {second_version}, got {first_version}"
+    )
+
+
+@mock_aws
+def test_put_cluster_policy_not_found():
+    client = boto3.client("kafka", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.put_cluster_policy(
+            ClusterArn="INVALID_ARN",
+            CurrentVersion="",
+            Policy="",
+        )
+    resp = exc.value.response
+    error = resp["Error"]
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 400
+    assert error["Code"] == "BadRequestException"
+    assert error["Message"] == "Resource not found: INVALID_ARN"
+
+
+@mock_aws
+def test_get_cluster_policy_not_found():
+    client = boto3.client("kafka", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.get_cluster_policy(ClusterArn="INVALID_ARN")
+    resp = exc.value.response
+    error = resp["Error"]
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 400
+    assert error["Code"] == "NotFoundException"
+    assert error["Message"] == "Resource not found: INVALID_ARN"
+
+
+@mock_aws
+def test_delete_cluster_policy():
+    client = boto3.client("kafka", region_name="us-east-2")
+    create_resp = client.create_cluster(
+        ClusterName="TestCluster",
+        BrokerNodeGroupInfo={
+            "InstanceType": "kafka.m5.large",
+            "ClientSubnets": ["subnet-0123456789abcdef0"],
+            "SecurityGroups": ["sg-0123456789abcdef0"],
+        },
+        KafkaVersion="2.8.1",
+        NumberOfBrokerNodes=3,
+        Tags=FAKE_TAGS,
+    )
+    cluster_arn = create_resp["ClusterArn"]
+
+    policy_doc = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"kafka:*","Resource":"*"}]}'
+    client.put_cluster_policy(
+        ClusterArn=cluster_arn,
+        CurrentVersion="",
+        Policy=policy_doc,
+    )
+
+    get_resp = client.get_cluster_policy(ClusterArn=cluster_arn)
+    assert get_resp["Policy"] == policy_doc
+
+    delete_resp = client.delete_cluster_policy(ClusterArn=cluster_arn)
+    assert delete_resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    get_resp = client.get_cluster_policy(ClusterArn=cluster_arn)
+    assert get_resp["Policy"] == ""
+    assert get_resp["CurrentVersion"] == ""
+
+
+@mock_aws
+def test_delete_cluster_policy_not_found():
+    client = boto3.client("kafka", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.delete_cluster_policy(ClusterArn="INVALID_ARN")
+    resp = exc.value.response
+    error = resp["Error"]
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 400
+    assert error["Code"] == "NotFoundException"
+    assert error["Message"] == "Resource not found: INVALID_ARN"

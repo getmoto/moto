@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from typing import Any, Optional, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis, utcnow
+from moto.core.utils import unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
     ConditionalCheckFailed,
@@ -181,7 +181,7 @@ class StreamRecord(BaseModel):
             "awsRegion": "us-east-1",
             "dynamodb": {
                 "StreamViewType": stream_type,
-                "ApproximateCreationDateTime": utcnow().isoformat(),
+                "ApproximateCreationDateTime": utcnow(),
                 "SequenceNumber": str(seq),
                 "SizeBytes": 1,
                 "Keys": keys,
@@ -483,7 +483,7 @@ class Table(CloudFormationModel):
                 "TableArn": self.table_arn,
                 "KeySchema": self.schema,
                 "ItemCount": len(self),
-                "CreationDateTime": unix_time(self.created_at),
+                "CreationDateTime": self.created_at,
                 "GlobalSecondaryIndexes": [
                     index.describe() for index in self.global_indexes
                 ],
@@ -1290,7 +1290,7 @@ class Backup:
             "BackupSizeBytes": 123,
             "BackupStatus": self.status,
             "BackupType": self.type,
-            "BackupCreationDateTime": unix_time(self.creation_date_time),
+            "BackupCreationDateTime": self.creation_date_time,
         }
 
     @property
@@ -1301,7 +1301,7 @@ class Backup:
             "TableArn": self.table.table_arn,
             "BackupArn": self.arn,
             "BackupName": self.name,
-            "BackupCreationDateTime": unix_time(self.creation_date_time),
+            "BackupCreationDateTime": self.creation_date_time,
             # 'BackupExpiryDateTime': datetime(2015, 1, 1),
             "BackupStatus": self.status,
             "BackupType": self.type,
@@ -1345,7 +1345,7 @@ class RestoredTable(Table):
         result[base_key]["RestoreSummary"] = {
             "SourceBackupArn": self.source_backup_arn,
             "SourceTableArn": self.source_table_arn,
-            "RestoreDateTime": unix_time(self.restore_date_time),
+            "RestoreDateTime": self.restore_date_time,
             "RestoreInProgress": False,
         }
         return result
@@ -1373,7 +1373,7 @@ class RestoredPITTable(Table):
         result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceTableArn": self.source_table_arn,
-            "RestoreDateTime": unix_time(self.restore_date_time),
+            "RestoreDateTime": self.restore_date_time,
             "RestoreInProgress": False,
         }
         return result

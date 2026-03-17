@@ -18,7 +18,7 @@ neptune
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
-- [ ] copy_db_cluster_parameter_group
+- [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
 - [X] copy_db_parameter_group
 - [X] create_db_cluster

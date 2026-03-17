@@ -2,7 +2,7 @@ import re
 from re import Pattern
 from typing import Any
 
-from moto.core.parsers import XFormedDict
+from moto.core.parse import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .exceptions import ValidationException

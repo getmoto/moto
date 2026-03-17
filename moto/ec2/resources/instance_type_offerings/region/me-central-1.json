@@ -148,34 +148,6 @@
   "Location": "me-central-1"
  },
  {
-  "InstanceType": "c7i-flex.12xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.16xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.2xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.4xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.8xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.large",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "c7i-flex.xlarge",
-  "Location": "me-central-1"
- },
- {
   "InstanceType": "c7i.12xlarge",
   "Location": "me-central-1"
  },
@@ -1116,34 +1088,6 @@
   "Location": "me-central-1"
  },
  {
-  "InstanceType": "r8i-flex.12xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.16xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.2xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.4xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.8xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.large",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "r8i-flex.xlarge",
-  "Location": "me-central-1"
- },
- {
   "InstanceType": "r8i.12xlarge",
   "Location": "me-central-1"
  },
@@ -1193,62 +1137,6 @@
  },
  {
   "InstanceType": "r8i.xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.2xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.large",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.medium",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.micro",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.nano",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.small",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t3.xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.2xlarge",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.large",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.medium",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.micro",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.nano",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.small",
-  "Location": "me-central-1"
- },
- {
-  "InstanceType": "t4g.xlarge",
   "Location": "me-central-1"
  },
  {

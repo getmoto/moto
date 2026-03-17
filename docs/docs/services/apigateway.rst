@@ -46,7 +46,7 @@ apigateway
 - [X] delete_integration_response
 - [X] delete_method
 - [X] delete_method_response
-- [ ] delete_model
+- [X] delete_model
 - [X] delete_request_validator
 - [X] delete_resource
 - [X] delete_rest_api
