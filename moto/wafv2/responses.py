@@ -86,7 +86,8 @@ class WAFV2Response(BaseResponse):
             self.region = GLOBAL_REGION
         name = self._get_param("Name")
         _id = self._get_param("Id")
-        web_acl = self.wafv2_backend.get_web_acl(name, _id)
+        arn = self._get_param("ARN")
+        web_acl = self.wafv2_backend.get_web_acl(arn, name, _id)
         response = {"WebACL": web_acl.to_dict(), "LockToken": web_acl.lock_token}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
