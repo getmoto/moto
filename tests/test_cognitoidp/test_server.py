@@ -330,3 +330,49 @@ def test_jwks_endpoint_non_default_region(moto_server_url: str):
     data = response.json()
     assert "keys" in data
     assert len(data["keys"]) >= 1
+
+
+class TestGetServiceFromUnsignedPath:
+    """Unit tests for DomainDispatcherApplication.get_service_from_unsigned_path."""
+
+    method = staticmethod(
+        server.DomainDispatcherApplication.get_service_from_unsigned_path
+    )
+
+    def test_jwks_path_with_valid_pool_id(self):
+        service, region = self.method("/us-east-1_abc123/.well-known/jwks.json")
+        assert service == "cognito-idp"
+        assert region == "us-east-1"
+
+    def test_jwks_path_with_different_region(self):
+        service, region = self.method("/eu-west-1_xyz789/.well-known/jwks.json")
+        assert service == "cognito-idp"
+        assert region == "eu-west-1"
+
+    def test_jwks_path_without_underscore_in_pool_id(self):
+        """Pool ID without underscore should fall back to us-east-1."""
+        service, region = self.method("/nounderscore/.well-known/jwks.json")
+        assert service == "cognito-idp"
+        assert region == "us-east-1"
+
+    def test_jwks_path_with_trailing_slash(self):
+        service, region = self.method("/us-west-2_pool123/.well-known/jwks.json/")
+        assert service == "cognito-idp"
+        assert region == "us-west-2"
+
+    def test_non_jwks_path_returns_none(self):
+        service, region = self.method("/some/other/path")
+        assert service is None
+        assert region is None
+
+    def test_root_path_returns_none(self):
+        service, region = self.method("/")
+        assert service is None
+        assert region is None
+
+    def test_empty_pool_id_jwks_path(self):
+        """Bare /.well-known/jwks.json with no pool id segment."""
+        service, region = self.method("/.well-known/jwks.json")
+        assert service == "cognito-idp"
+        # .well-known has no underscore, so falls back to us-east-1
+        assert region == "us-east-1"
