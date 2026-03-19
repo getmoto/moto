@@ -128,9 +128,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             {
                 "ipv6CidrBlock": association["ipv6CidrBlock"],
                 "associationId": association["associationId"],
-                "ipv6CidrBlockState": {
-                    "state": association["ipv6CidrBlockState"],
-                },
+                "ipv6CidrBlockState": association["ipv6CidrBlockState"],
             }
             for association in self.ipv6_cidr_block_associations.values()
             if association["ipv6CidrBlockState"]["State"] == "associated"

@@ -234,6 +234,17 @@ def wait_for_ipv6_cidr_block_associations(ec2_client, vpc_id):
         sleep(5 * idx)
 
 
+def wait_for_subnet_ipv6_cidr_block_associations(ec2_client, subnet_id):
+    for idx in range(10):
+        subnets = ec2_client.describe_subnets(SubnetIds=[subnet_id])["Subnets"]
+        if (
+            subnets[0]["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlockState"]["State"]
+            == "associated"
+        ):
+            return subnets[0]["Ipv6CidrBlockAssociationSet"][0]
+        sleep(5 * idx)
+
+
 def delete_transit_gateway_dependencies(ec2_client, tg_id):
     delete_tg_attachments(ec2_client, tg_id)
 

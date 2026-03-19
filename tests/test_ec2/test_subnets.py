@@ -8,7 +8,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID, EXAMPLE_AMI_ID
-from tests.test_ec2 import ec2_aws_verified, wait_for_ipv6_cidr_block_associations
+from tests.test_ec2 import (
+    ec2_aws_verified,
+    wait_for_ipv6_cidr_block_associations,
+    wait_for_subnet_ipv6_cidr_block_associations,
+)
 
 from .helpers import assert_dryrun_error
 
@@ -892,6 +896,7 @@ def test_associate_subnet_cidr_block():
     assert len(association_set) == 1
     assert association_set[0]["AssociationId"] == association["AssociationId"]
     assert association_set[0]["Ipv6CidrBlock"] == "1080::1:200C:417A/112"
+    assert association_set[0]["Ipv6CidrBlockState"] == {"State": "associated"}
 
 
 @mock_aws
@@ -995,6 +1000,7 @@ def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
         subnet = ec2_client.create_subnet(
             VpcId=vpc_id, Ipv6Native=True, Ipv6CidrBlock=assoc["Ipv6CidrBlock"]
         )["Subnet"]
+
         assert subnet["AssignIpv6AddressOnCreation"] is True
         assert subnet["Ipv6Native"] is True
         assert subnet["State"] == "available"
@@ -1002,6 +1008,10 @@ def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
             subnet["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
             == assoc["Ipv6CidrBlock"]
         )
+        subnet_associated = wait_for_subnet_ipv6_cidr_block_associations(
+            ec2_client, subnet["SubnetId"]
+        )
+        assert subnet_associated["Ipv6CidrBlockState"] == {"State": "associated"}
     finally:
         if subnet:
             ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])
