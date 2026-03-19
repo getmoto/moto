@@ -3006,6 +3006,22 @@ def test_modify_instance_metadata_options():
     }
 
 
+def test_metadata_options_hop_limit_none():
+    from moto.ec2.models.instances import MetadataOptions
+
+    # when None is explicitly passed (e.g. from missing input in CloudFormation args or missing keys mapped to None)
+    options = MetadataOptions(options={"HttpPutResponseHopLimit": None})
+    assert options.http_put_response_hop_limit == 1
+
+    # when passing a valid int
+    options = MetadataOptions(options={"HttpPutResponseHopLimit": 5})
+    assert options.http_put_response_hop_limit == 5
+
+    # when the key isn't provided at all
+    options = MetadataOptions(options={})
+    assert options.http_put_response_hop_limit == 1
+
+
 @mock_aws
 def test_run_instances_default_response():
     ec2 = boto3.client("ec2", region_name="us-west-2")

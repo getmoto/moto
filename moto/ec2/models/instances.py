@@ -65,8 +65,9 @@ class MetadataOptions:
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
-        self.http_put_response_hop_limit = int(
-            options.get("HttpPutResponseHopLimit", 1)
+        hop_limit = options.get("HttpPutResponseHopLimit")
+        self.http_put_response_hop_limit = (
+            int(hop_limit) if hop_limit is not None else 1
         )
         self.http_endpoint = options.get("HttpEndpoint", "enabled")
         self.http_protocol_ipv6 = options.get("HttpProtocolIpv6", "disabled")
