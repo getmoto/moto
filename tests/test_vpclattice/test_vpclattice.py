@@ -887,3 +887,29 @@ def test_list_service_network_vpc_associations():
         maxResults=12,
     )
     assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations_with_vpc_identifier():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+
+    # Association 1
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+
+    # Association 2 with different VPC
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-99999999999999999",
+    )
+
+    results = client.list_service_network_vpc_associations(
+        vpcIdentifier="vpc-12345678901234567",
+        maxResults=12,
+    )
+
+    assert len(results["items"]) == 1
+    assert results["items"][0]["vpcId"] == "vpc-12345678901234567"
