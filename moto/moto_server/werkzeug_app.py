@@ -303,14 +303,11 @@ class DomainDispatcherApplication:
         # The user_pool_id starts with the region (e.g. us-east-1_abc123).
         if path_info.rstrip("/").endswith("/.well-known/jwks.json"):
             # Extract region from user pool ID (format: {region}_{id})
-            try:
-                pool_id = path_info.strip("/").split("/")[0]
-                if "_" not in pool_id:
-                    return "cognito-idp", "us-east-1"
-                region = pool_id.rsplit("_", 1)[0]
-                return "cognito-idp", region
-            except (IndexError, ValueError):
+            pool_id = path_info.strip("/").split("/")[0]
+            if "_" not in pool_id:
                 return "cognito-idp", "us-east-1"
+            region = pool_id.rsplit("_", 1)[0]
+            return "cognito-idp", region
         return None, None
 
     def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:
