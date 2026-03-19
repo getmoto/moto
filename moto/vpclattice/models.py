@@ -138,7 +138,7 @@ class VPCLatticeRule(BaseModel):
         tags: dict[str, str],
     ) -> None:
         self.action: dict[str, Any] = action or {}
-        self.id: str = f"rule-[0-9a-z]{17}"
+        self.id: str = f"rule-{str(uuid.uuid4())[:17]}"
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
             f"/listener/listener-{listener_identifier}/rule/{self.id}"
