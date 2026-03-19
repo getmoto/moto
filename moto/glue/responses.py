@@ -69,7 +69,10 @@ class GlueResponse(BaseResponse):
         table_name = table_input.get("Name")  # type: ignore
         open_table_format_input = self.parameters.get("OpenTableFormatInput")
         self.glue_backend.create_table(
-            database_name, table_name, table_input, open_table_format_input  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            table_input,
+            open_table_format_input,  # type: ignore[arg-type]
         )
         return EmptyResult()
 
