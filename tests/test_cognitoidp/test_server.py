@@ -332,6 +332,13 @@ def test_jwks_endpoint_non_default_region(moto_server_url: str):
     assert len(data["keys"]) >= 1
 
 
+def test_jwks_endpoint_post_not_routed(moto_server_url: str):
+    """POST to JWKS path should not be routed to cognito-idp."""
+    url = f"{moto_server_url}/us-east-1_abc123/.well-known/jwks.json"
+    response = requests.post(url)
+    assert response.status_code != 200
+
+
 class TestGetServiceFromUnsignedPath:
     """Unit tests for DomainDispatcherApplication.get_service_from_unsigned_path."""
 

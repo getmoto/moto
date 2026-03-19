@@ -127,7 +127,7 @@ class DomainDispatcherApplication:
                 service, region = UNSIGNED_ACTIONS[action]
             if not service:
                 service, region = self.get_service_from_body(body, environ)
-            if not service:
+            if not service and environ.get("REQUEST_METHOD", "GET") in ("GET", "HEAD"):
                 service, region = self.get_service_from_unsigned_path(path)
             if not service:
                 service, region = self.get_service_from_path(path)
