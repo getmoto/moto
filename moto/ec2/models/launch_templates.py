@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.types import Base64EncodedString
+from moto.core.utils import utcnow
 
 from ..exceptions import (
     InvalidLaunchTemplateIdNotFound,
@@ -20,7 +21,6 @@ from ..utils import (
     parse_user_data,
     random_launch_template_id,
     random_launch_template_name,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -37,7 +37,7 @@ class LaunchTemplateVersion:
         self.number = number
         self.data = data
         self.description = description
-        self.create_time = utc_date_and_time()
+        self.create_time = utcnow()
         self.instance_tags = convert_tag_spec(data.get("TagSpecifications", [])).get(
             "instance", {}
         )
@@ -75,7 +75,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = backend
         self.name = name
         self.id = random_launch_template_id()
-        self.create_time = utc_date_and_time()
+        self.create_time = utcnow()
         tag_map: dict[str, str] = tag_spec.get("launch-template", {})
         self.add_tags(tag_map)
         self.tags = self.get_tags()

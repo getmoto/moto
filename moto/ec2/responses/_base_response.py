@@ -9,11 +9,13 @@ from ..exceptions import (
     EmptyTagSpecError,
     InvalidParameter,
 )
-from ..utils import convert_tag_spec
+from ..utils import convert_tag_spec, format_timestamp
 
 
 class EC2BaseResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        # AMI
+        "Image.CreationDate": format_timestamp,
         # ENI
         "DescribeNetworkInterfacesResult.NetworkInterfaces.NetworkInterface.Association": return_if_not_empty,
         # IAM Instance Profiles

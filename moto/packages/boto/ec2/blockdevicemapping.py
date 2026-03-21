@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+from datetime import datetime
 from typing import Any, Optional, Union
 
 
@@ -36,7 +37,7 @@ class BlockDeviceType:
         volume_id: Optional[str] = None,
         snapshot_id: Optional[str] = None,
         status: Optional[str] = None,
-        attach_time: Optional[str] = None,
+        attach_time: Optional[datetime] = None,
         delete_on_termination: bool = False,
         size: Optional[int] = None,
         volume_type: Optional[str] = None,
