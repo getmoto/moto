@@ -2,6 +2,7 @@ import itertools
 from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
+from moto.core.utils import utcnow
 
 from ..exceptions import (
     FlowLogAlreadyExists,
@@ -13,7 +14,6 @@ from ..exceptions import (
 from ..utils import (
     generic_filter,
     random_flow_log_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -46,8 +46,8 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         self.max_aggregation_interval = max_aggregation_interval
         self.log_destination_type = log_destination_type
         self.log_format = log_format
-
-        self.created_at = utc_date_and_time()
+        self.flow_log_status = "ACTIVE"
+        self.creation_time = utcnow()
 
     @staticmethod
     def cloudformation_name_type() -> str:
