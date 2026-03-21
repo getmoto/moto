@@ -246,6 +246,19 @@ class InvalidLocationConstraintException(S3ClientError):
         )
 
 
+class InvalidNamespaceHeaderException(S3ClientError):
+    code = 400
+
+    def __init__(self, account_id: str, region: str) -> None:
+        super().__init__(
+            "InvalidNamespaceHeader",
+            "The requested bucket name did not include the account-regional namespace suffix, "
+            "but the provided x-amz-bucket-namespace header value is account-regional. "
+            f"Specify -{account_id}-{region}-an as the bucket name suffix to create a bucket "
+            "in your account-regional namespace, or remove the header.",
+        )
+
+
 class MalformedXML(S3ClientError):
     code = 400
 

@@ -1062,10 +1062,17 @@ class MultipartDict(dict[str, FakeMultipart]):
 
 
 class FakeBucket(CloudFormationModel):
-    def __init__(self, name: str, account_id: str, region_name: str):
+    def __init__(
+        self,
+        name: str,
+        account_id: str,
+        region_name: str,
+        bucket_namespace: Optional[str] = None,
+    ):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
+        self.bucket_namespace = bucket_namespace
         self.partition = get_partition(region_name)
         self.keys = _VersionedKeyStore()
         self.multiparts = MultipartDict()
@@ -1894,13 +1901,21 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             )
         return metrics
 
-    def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
+    def create_bucket(
+        self,
+        bucket_name: str,
+        region_name: str,
+        bucket_namespace: Optional[str] = None,
+    ) -> FakeBucket:
         if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
         new_bucket = FakeBucket(
-            name=bucket_name, account_id=self.account_id, region_name=region_name
+            name=bucket_name,
+            account_id=self.account_id,
+            region_name=region_name,
+            bucket_namespace=bucket_namespace,
         )
 
         self.buckets[bucket_name] = new_bucket
