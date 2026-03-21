@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
+from moto.core.utils import utcnow
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 
 from ..exceptions import (
@@ -20,7 +21,6 @@ from ..utils import (
     generic_filter,
     random_snapshot_id,
     random_volume_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -88,8 +88,8 @@ class VolumeModification:
                 target_multi_attach_enabled or volume.multi_attach_enabled
             )
 
-        self.start_time = utc_date_and_time()
-        self.end_time = utc_date_and_time()
+        self.start_time = utcnow()
+        self.end_time = utcnow()
 
     @property
     def volume_id(self) -> str:
@@ -119,7 +119,7 @@ class VolumeModification:
 class VolumeAttachment(CloudFormationModel):
     def __init__(self, volume: "Volume", instance: Any, device: str, status: str):
         self.volume = volume
-        self.attach_time = utc_date_and_time()
+        self.attach_time = utcnow()
         self.instance = instance
         self.device = device
         self.status = status
@@ -184,7 +184,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.volume_type = volume_type or "gp2"
         self.size = size
         self.zone = zone
-        self.create_time = utc_date_and_time()
+        self.create_time = utcnow()
         self.attachment: Optional[VolumeAttachment] = None
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
@@ -323,7 +323,7 @@ class Snapshot(TaggedEC2Resource):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
-        self.start_time = utc_date_and_time()
+        self.start_time = utcnow()
         self.create_volume_permission_groups: set[str] = set()
         self.create_volume_permission_userids: set[str] = set()
         self.ec2_backend = ec2_backend
@@ -514,7 +514,7 @@ class EBSBackend:
             volume_id=volume_id,
             status=volume.status,
             size=volume.size,
-            attach_time=utc_date_and_time(),
+            attach_time=utcnow(),
             delete_on_termination=delete_on_termination,
         )
         instance.block_device_mapping[device_path] = bdt
