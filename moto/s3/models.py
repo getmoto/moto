@@ -27,6 +27,7 @@ from moto.core.common_models import (
     CloudWatchMetricProvider,
 )
 from moto.core.utils import (
+    ensure_boolean,
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
     unix_time,
@@ -1022,35 +1023,25 @@ class NotificationConfiguration(BaseModel):
         return data
 
 
-def convert_str_to_bool(item: Any) -> bool:
-    """Converts a boolean string to a boolean value"""
-    if isinstance(item, str):
-        return item.lower() == "true"
-
-    return False
-
-
 class PublicAccessBlock(BaseModel):
     def __init__(
         self,
-        block_public_acls: Optional[str],
-        ignore_public_acls: Optional[str],
-        block_public_policy: Optional[str],
-        restrict_public_buckets: Optional[str],
+        block_public_acls: Optional[Union[str, bool]],
+        ignore_public_acls: Optional[Union[str, bool]],
+        block_public_policy: Optional[Union[str, bool]],
+        restrict_public_buckets: Optional[Union[str, bool]],
     ):
-        # The boto XML appears to expect these values to exist as lowercase strings...
-        self.block_public_acls = block_public_acls or "false"
-        self.ignore_public_acls = ignore_public_acls or "false"
-        self.block_public_policy = block_public_policy or "false"
-        self.restrict_public_buckets = restrict_public_buckets or "false"
+        self.block_public_acls = ensure_boolean(block_public_acls)
+        self.ignore_public_acls = ensure_boolean(ignore_public_acls)
+        self.block_public_policy = ensure_boolean(block_public_policy)
+        self.restrict_public_buckets = ensure_boolean(restrict_public_buckets)
 
     def to_config_dict(self) -> dict[str, bool]:
-        # Need to make the string values booleans for Config:
         return {
-            "blockPublicAcls": convert_str_to_bool(self.block_public_acls),
-            "ignorePublicAcls": convert_str_to_bool(self.ignore_public_acls),
-            "blockPublicPolicy": convert_str_to_bool(self.block_public_policy),
-            "restrictPublicBuckets": convert_str_to_bool(self.restrict_public_buckets),
+            "blockPublicAcls": self.block_public_acls,
+            "ignorePublicAcls": self.ignore_public_acls,
+            "blockPublicPolicy": self.block_public_policy,
+            "restrictPublicBuckets": self.restrict_public_buckets,
         }
 
 
