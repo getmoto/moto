@@ -77,6 +77,10 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         self.attachments: dict[str, VPCGatewayAttachment] = {}
         super().__init__()
 
+    @property
+    def vpc_attachments(self) -> list["VPCGatewayAttachment"]:
+        return list(self.attachments.values())
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return ""
