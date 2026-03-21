@@ -304,6 +304,22 @@
           "headers": {},
           "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><ListMember>abc</ListMember><ListMember>123</ListMember></OperationNameResponse>"
         }
+      },
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListMember": []
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse></OperationNameResponse>"
+        }
       }
     ]
   },
