@@ -670,8 +670,10 @@ class BaseXMLSerializer(ResponseSerializer):
                 value = wrapper[item_key]
                 if value != {}:
                     list_obj.append(value)
-        if not list_obj:  # empty list serialized as "" in XML
-            self._default_serialize(serialized, "", shape, key)
+        if not list_obj:
+            if not shape.is_flattened:
+                # Empty (non-flattened) list serialized as "" in XML
+                self._default_serialize(serialized, "", shape, key)
             return
         if shape.is_flattened:
             self._default_serialize(serialized, list_obj, shape.member, key)
@@ -692,6 +694,14 @@ class BaseRestSerializer(ResponseSerializer):
     EMPTY_BODY: Serialized = ResponseSerializer.MAP_TYPE()
     REQUIRES_EMPTY_BODY = False
 
+    @staticmethod
+    def has_body_members(shape: Optional[StructureShape]) -> bool:
+        if shape is not None:
+            for member in shape.members.values():
+                if "location" not in member.serialization:
+                    return True
+        return False
+
     def _serialized_result_to_response(
         self,
         resp: ResponseDict,
@@ -703,7 +713,7 @@ class BaseRestSerializer(ResponseSerializer):
             # Payload trumps all and is delivered as-is.
             resp["body"] = serialized_result["payload"]
         else:
-            if not serialized_result["body"]:
+            if not serialized_result["body"] and not self.has_body_members(shape):
                 if self.REQUIRES_EMPTY_BODY:
                     resp["body"] = self._serialize_body(self.EMPTY_BODY)
             else:
