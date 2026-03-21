@@ -23,7 +23,6 @@ class VPNConnection(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.id = vpn_connection_id
         self.state = "available"
-        self.customer_gateway_configuration: dict[str, str] = {}
         self.type = vpn_conn_type
         self.customer_gateway_id = customer_gateway_id
         self.vpn_gateway_id = vpn_gateway_id
@@ -32,6 +31,16 @@ class VPNConnection(TaggedEC2Resource):
         self.options = None
         self.static_routes = None
         self.add_tags(tags or {})
+
+    @property
+    def customer_gateway_configuration(self) -> str:
+        vgw_id = self.vpn_gateway_id if self.vpn_gateway_id is not None else ""
+        return _CUSTOMER_GATEWAY_CONFIGURATION.format(
+            vpn_connection_id=self.id,
+            customer_gateway_id=self.customer_gateway_id,
+            vpn_gateway_id=vgw_id,
+            vpn_connection_type=self.type,
+        )
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -102,3 +111,74 @@ class VPNConnectionBackend:
                 raise InvalidVpnConnectionIdError(invalid_id)
 
         return generic_filter(filters, vpn_connections)
+
+
+_IPSEC_TUNNEL = """\
+          <ipsec_tunnel>
+            <customer_gateway>
+            <tunnel_outside_address>
+              <ip_address>12.1.2.3</ip_address>
+            </tunnel_outside_address>
+            <tunnel_inside_address>
+              <ip_address>169.254.44.42</ip_address>
+              <network_mask>255.255.255.252</network_mask>
+              <network_cidr>30</network_cidr>
+            </tunnel_inside_address>
+            <bgp>
+              <asn>65000</asn>
+              <hold_time>30</hold_time>
+            </bgp>
+            </customer_gateway>
+            <vpn_gateway>
+            <tunnel_outside_address>
+              <ip_address>52.2.144.13</ip_address>
+            </tunnel_outside_address>
+            <tunnel_inside_address>
+              <ip_address>169.254.44.41</ip_address>
+              <network_mask>255.255.255.252</network_mask>
+              <network_cidr>30</network_cidr>
+            </tunnel_inside_address>
+            <bgp>
+              <asn>7224</asn>
+              <hold_time>30</hold_time>
+            </bgp>
+            </vpn_gateway>
+            <ike>
+            <authentication_protocol>sha1</authentication_protocol>
+            <encryption_protocol>aes-128-cbc</encryption_protocol>
+            <lifetime>28800</lifetime>
+            <perfect_forward_secrecy>group2</perfect_forward_secrecy>
+            <mode>main</mode>
+            <pre_shared_key>Iw2IAN9XUsQeYUrkMGP3kP59ugFDkfHg</pre_shared_key>
+            </ike>
+            <ipsec>
+            <protocol>esp</protocol>
+            <authentication_protocol>hmac-sha1-96</authentication_protocol>
+            <encryption_protocol>aes-128-cbc</encryption_protocol>
+            <lifetime>3600</lifetime>
+            <perfect_forward_secrecy>group2</perfect_forward_secrecy>
+            <mode>tunnel</mode>
+            <clear_df_bit>true</clear_df_bit>
+            <fragmentation_before_encryption>true</fragmentation_before_encryption>
+            <tcp_mss_adjustment>1387</tcp_mss_adjustment>
+            <dead_peer_detection>
+              <interval>10</interval>
+              <retries>3</retries>
+            </dead_peer_detection>
+            </ipsec>
+          </ipsec_tunnel>"""
+
+_CUSTOMER_GATEWAY_CONFIGURATION = (
+    """\
+          <vpn_connection id="{vpn_connection_id}">
+          <customer_gateway_id>{customer_gateway_id}</customer_gateway_id>
+          <vpn_gateway_id> {vpn_gateway_id} </vpn_gateway_id>
+          <vpn_connection_type>{vpn_connection_type}</vpn_connection_type>
+"""
+    + _IPSEC_TUNNEL
+    + "\n"
+    + _IPSEC_TUNNEL
+    + """
+        </vpn_connection>
+"""
+)
