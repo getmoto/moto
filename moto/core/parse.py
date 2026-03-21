@@ -19,7 +19,7 @@ from botocore.utils import is_json_value_header
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
 if TYPE_CHECKING:
-    from werkzeug.datastructures import Headers
+    from werkzeug.datastructures import Headers, MultiDict
 
     from moto.core.model import OperationModel
 
@@ -72,11 +72,11 @@ UNDEFINED = object()
 
 class RequestDict(TypedDict):
     body: str | bytes
-    headers: dict[str, Any] | Headers
+    headers: Headers
     method: str
     url_params: dict[str, Any]
     url_path: str
-    values: dict[str, Any]
+    values: MultiDict
 
 
 class RequestParser:
@@ -120,6 +120,16 @@ class RequestParser:
         member_shape = shape.member
         for item in node:
             parsed.append(self._parse_shape(member_shape, item))
+        return parsed
+
+    def _parse_map(self, shape, value):
+        parsed = self.MAP_TYPE()
+        key_shape = shape.key
+        value_shape = shape.value
+        for key, val in value.items():
+            actual_key = self._parse_shape(key_shape, key)
+            actual_value = self._parse_shape(value_shape, val)
+            parsed[actual_key] = actual_value
         return parsed
 
     def _default_handle(self, shape, value):
@@ -308,16 +318,6 @@ class BaseJSONParser(RequestParser):
                     )
         return final_parsed
 
-    def _parse_map(self, shape, value):
-        parsed = self.MAP_TYPE()
-        key_shape = shape.key
-        value_shape = shape.value
-        for key, val in value.items():
-            actual_key = self._parse_shape(key_shape, key)
-            actual_value = self._parse_shape(value_shape, val)
-            parsed[actual_key] = actual_value
-        return parsed
-
     def _parse_blob(self, shape, value):
         return self._blob_parser(value)
 
@@ -438,14 +438,11 @@ class BaseRestParser(RequestParser):
                 qs = response["values"]
                 member_name = member_shape.serialization.get("name", name)
                 if member_shape.type_name == "list":
-                    # This is for dealing with our test multidict vs a real multidict.
-                    get = qs.get_list if hasattr(qs, "get_list") else qs.get
-                    value = get(member_name, [])
+                    value = qs.getlist(member_name)
                 elif member_shape.type_name == "map":
-                    value = qs
-                    # Handle rest-xml case "String to string maps in querystring"
-                    final_parsed[name] = value
-                    continue
+                    # Maintain querystring keys with multiple values as lists.
+                    value = qs.to_dict(flat=False)
+                    value = {k: v if len(v) > 1 else v[0] for k, v in value.items()}
                 else:
                     value = qs.get(member_name, None)
                 if value is None:
@@ -457,7 +454,7 @@ class BaseRestParser(RequestParser):
         # all header names and header prefixes.
         parsed = self.MAP_TYPE()
         prefix = shape.serialization.get("name", "").lower()
-        for header_name in headers:
+        for header_name in headers.keys():
             if header_name.lower().startswith(prefix):
                 # The key name inserted into the parsed hash
                 # strips off the prefix.
@@ -661,6 +658,11 @@ class RestXMLParser(BaseRestParser, BaseXMLParser):
         if not body_contents:
             return ETree.Element("")
         return self._parse_xml_string_to_dom(body_contents)
+
+    def _parse_map(self, shape, node):
+        if shape.serialization.get("location") == "querystring":
+            return RequestParser._parse_map(self, shape, node)
+        return super()._parse_map(shape, node)
 
     @_text_content
     def _parse_string(self, shape, text):
