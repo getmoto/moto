@@ -3436,10 +3436,10 @@ S3_BUCKET_ACCELERATE = """
 
 S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
 <PublicAccessBlockConfiguration>
-  <BlockPublicAcls>{{public_block_config.block_public_acls}}</BlockPublicAcls>
-  <IgnorePublicAcls>{{public_block_config.ignore_public_acls}}</IgnorePublicAcls>
-  <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
-  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
+  <BlockPublicAcls>{{public_block_config.block_public_acls|string|lower}}</BlockPublicAcls>
+  <IgnorePublicAcls>{{public_block_config.ignore_public_acls|string|lower}}</IgnorePublicAcls>
+  <BlockPublicPolicy>{{public_block_config.block_public_policy|string|lower}}</BlockPublicPolicy>
+  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets|string|lower}}</RestrictPublicBuckets>
 </PublicAccessBlockConfiguration>
 """
 
