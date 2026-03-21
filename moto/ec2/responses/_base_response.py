@@ -28,6 +28,12 @@ class EC2BaseResponse(BaseResponse):
         },
         # Key Pairs
         "KeyPair.Tags": return_if_not_empty,
+        # Volumes
+        "CreateVolumeResponse.State": lambda _: "creating",
+        "ModifyVolumeResponse.VolumeModification.ModificationState": lambda _: "modifying",
+        "ModifyVolumeResponse.VolumeModification.Progress": lambda _: 0,
+        "Volume.Tags": return_if_not_empty,
+        "Volumes.Volume.Tags": return_if_not_empty,
         # VPC Endpoint Service Configuration
         "ServiceConfiguration.NetworkLoadBalancerArns": return_if_not_empty,
         "ServiceConfiguration.GatewayLoadBalancerArns": return_if_not_empty,

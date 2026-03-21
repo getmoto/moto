@@ -91,6 +91,18 @@ class VolumeModification:
         self.start_time = utc_date_and_time()
         self.end_time = utc_date_and_time()
 
+    @property
+    def volume_id(self) -> str:
+        return self.volume.id
+
+    @property
+    def modification_state(self) -> str:
+        return "completed"
+
+    @property
+    def progress(self) -> int:
+        return 100
+
     def get_filter_value(self, filter_name: str) -> Any:
         if filter_name == "original-size":
             return self.original_size
@@ -111,6 +123,14 @@ class VolumeAttachment(CloudFormationModel):
         self.instance = instance
         self.device = device
         self.status = status
+
+    @property
+    def volume_id(self) -> str:
+        return self.volume.id
+
+    @property
+    def instance_id(self) -> str:
+        return self.instance.id
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -237,6 +257,20 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         return self.id
 
     @property
+    def volume_id(self) -> str:
+        return self.id
+
+    @property
+    def availability_zone(self) -> Optional[str]:
+        return self.zone.name if self.zone else None
+
+    @property
+    def attachments(self) -> list["VolumeAttachment"]:
+        if self.attachment:
+            return [self.attachment]
+        return []
+
+    @property
     def status(self) -> str:
         if self.attachment:
             return "in-use"
@@ -298,6 +332,22 @@ class Snapshot(TaggedEC2Resource):
         self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
         self.kms_key_id = kms_key_id
+
+    @property
+    def snapshot_id(self) -> str:
+        return self.id
+
+    @property
+    def volume_id(self) -> str:
+        return self.volume.id
+
+    @property
+    def volume_size(self) -> int:
+        return self.volume.size
+
+    @property
+    def progress(self) -> str:
+        return "100%"
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
