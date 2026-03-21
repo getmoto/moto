@@ -28,6 +28,11 @@ class EC2BaseResponse(BaseResponse):
         },
         # Key Pairs
         "KeyPair.Tags": return_if_not_empty,
+        # VPC Endpoint Service Configuration
+        "ServiceConfiguration.NetworkLoadBalancerArns": return_if_not_empty,
+        "ServiceConfiguration.GatewayLoadBalancerArns": return_if_not_empty,
+        "ServiceConfigurations.ServiceConfiguration.NetworkLoadBalancerArns": return_if_not_empty,
+        "ServiceConfigurations.ServiceConfiguration.GatewayLoadBalancerArns": return_if_not_empty,
     }
 
     @property
