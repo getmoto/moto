@@ -180,7 +180,7 @@ class MultiRegionAccessPointOperation(BaseModel):
                     "Policy": self.details.get("Policy", ""),
                 }
             }
-            response["ResponseDetails"] = {}
+            response["ResponseDetails"] = None
 
         return response
 

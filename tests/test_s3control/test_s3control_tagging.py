@@ -15,11 +15,12 @@ def test_list_tags_for_regular_bucket(account_id, bucket_name=None):
     )["Tags"]
     assert existing_tags == [{"Key": "environment", "Value": "moto_tests"}]
 
-    s3control.tag_resource(
+    resp = s3control.tag_resource(
         AccountId=account_id,
         ResourceArn=bucket_arn,
         Tags=[{"Key": "tag1", "Value": "val"}],
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     new_tags = s3control.list_tags_for_resource(
         AccountId=account_id, ResourceArn=bucket_arn
@@ -29,16 +30,18 @@ def test_list_tags_for_regular_bucket(account_id, bucket_name=None):
     assert {"Key": "environment", "Value": "moto_tests"} in new_tags
 
     # Multiple tags at once
-    s3control.tag_resource(
+    resp = s3control.tag_resource(
         AccountId=account_id,
         ResourceArn=bucket_arn,
         Tags=[{"Key": "tag2", "Value": "val"}, {"Key": "tag3", "Value": "val"}],
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # Untag once
-    s3control.untag_resource(
+    resp = s3control.untag_resource(
         AccountId=account_id, ResourceArn=bucket_arn, TagKeys=["tag1"]
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     updated_tags = s3control.list_tags_for_resource(
         AccountId=account_id, ResourceArn=bucket_arn
@@ -47,9 +50,10 @@ def test_list_tags_for_regular_bucket(account_id, bucket_name=None):
     assert {"Key": "tag1", "Value": "val"} not in updated_tags
 
     # Untag multiple
-    s3control.untag_resource(
+    resp = s3control.untag_resource(
         AccountId=account_id, ResourceArn=bucket_arn, TagKeys=["tag2", "tag3"]
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     original_tags = s3control.list_tags_for_resource(
         AccountId=account_id, ResourceArn=bucket_arn
