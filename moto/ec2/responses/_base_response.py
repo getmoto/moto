@@ -28,6 +28,10 @@ class EC2BaseResponse(BaseResponse):
         },
         # Key Pairs
         "KeyPair.Tags": return_if_not_empty,
+        # Transit Gateway Attachments
+        "TransitGatewayVpcAttachment.Tags": return_if_not_empty,
+        "TransitGatewayVpcAttachments.TransitGatewayVpcAttachment.Tags": return_if_not_empty,
+        "TransitGatewayAttachments.TransitGatewayAttachment.Tags": return_if_not_empty,
         # Volumes
         "CreateVolumeResponse.State": lambda _: "creating",
         "ModifyVolumeResponse.VolumeModification.ModificationState": lambda _: "modifying",
