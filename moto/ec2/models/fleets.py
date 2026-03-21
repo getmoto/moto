@@ -238,7 +238,7 @@ class Fleet(TaggedEC2Resource):
                 placement=None,
                 kernel_id=None,
                 ramdisk_id=None,
-                monitoring_enabled=launch_spec.monitoring,
+                monitoring_enabled=launch_spec.monitoring_enabled,
                 subnet_id=launch_spec.subnet_id,
                 spot_fleet_id=self.id,
                 tags=launch_spec.tag_specifications,
