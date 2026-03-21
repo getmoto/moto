@@ -39,6 +39,22 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.association_id: Optional[str] = None
         self.add_tags(tags or {})
 
+    @property
+    def instance_id(self) -> str:
+        return self.instance.id if self.instance else ""
+
+    @property
+    def network_interface_id(self) -> str:
+        return self.eni.id if self.eni else ""
+
+    @property
+    def network_interface_owner_id(self) -> Optional[str]:
+        return self.eni.owner_id if self.eni else None
+
+    @property
+    def private_ip_address(self) -> Optional[str]:
+        return self.eni.private_ip_address if self.eni else None
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return ""
