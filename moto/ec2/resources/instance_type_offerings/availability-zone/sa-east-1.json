@@ -720,6 +720,46 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "c8i-flex.12xlarge",
   "Location": "sa-east-1a"
  },
@@ -3448,6 +3488,46 @@
   "Location": "sa-east-1b"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
   "InstanceType": "c8i-flex.12xlarge",
   "Location": "sa-east-1b"
  },
@@ -5869,6 +5949,46 @@
  },
  {
   "InstanceType": "c8gd.xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "sa-east-1c"
  },
  {

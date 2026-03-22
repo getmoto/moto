@@ -2428,6 +2428,10 @@
   "Location": "euw1-az1"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "euw1-az1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "euw1-az1"
  },
@@ -9561,6 +9565,10 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
   "Location": "euw1-az3"
  },
  {
