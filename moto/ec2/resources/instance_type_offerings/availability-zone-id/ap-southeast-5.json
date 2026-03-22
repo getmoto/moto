@@ -1684,6 +1684,10 @@
   "Location": "apse5-az1"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "apse5-az1"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "apse5-az1"
  },
@@ -5057,6 +5061,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse5-az3"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "apse5-az3"
  },
  {

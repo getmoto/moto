@@ -376,6 +376,46 @@
   "Location": "eu-central-2"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eu-central-2"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "eu-central-2"
+ },
+ {
   "InstanceType": "d3.2xlarge",
   "Location": "eu-central-2"
  },
