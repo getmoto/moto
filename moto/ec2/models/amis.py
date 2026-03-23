@@ -1,10 +1,13 @@
 import json
 import os
 import re
+from datetime import datetime
 from os import environ
 from typing import Any, Optional, cast
 
 from moto import settings
+from moto.core.parse import default_timestamp_parser as parse_timestamp
+from moto.core.utils import utcnow
 from moto.utilities.utils import load_resource
 
 from ..exceptions import (
@@ -17,7 +20,6 @@ from ..exceptions import (
 from ..utils import (
     generic_filter,
     random_ami_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 from .instances import Instance
@@ -44,7 +46,7 @@ class Ami(TaggedEC2Resource):
         virtualization_type: Optional[str] = None,
         architecture: Optional[str] = None,
         state: str = "available",
-        creation_date: Optional[str] = None,
+        creation_date: Optional[datetime] = None,
         platform: Optional[str] = None,
         image_type: str = "machine",
         image_location: Optional[str] = None,
@@ -75,7 +77,7 @@ class Ami(TaggedEC2Resource):
         self.root_device_name = root_device_name
         self.root_device_type = root_device_type
         self.sriov = sriov
-        self.creation_date = creation_date or utc_date_and_time()
+        self.creation_date = creation_date or utcnow()
         self.product_codes = product_codes or set()
         self.boot_mode = boot_mode
         self.instance_id: Optional[str] = None
@@ -190,6 +192,8 @@ class AmiBackend:
             # we are assuming the default loaded amis are owned by amazon
             # owner_alias is required for terraform owner filters
             ami["owner_alias"] = "amazon"
+            if ami.get("creation_date"):
+                ami["creation_date"] = parse_timestamp(ami["creation_date"])
             self.amis[ami_id] = Ami(self, **ami)
         if "MOTO_AMIS_PATH" not in environ:
             for path in ["latest_amis", "ecs/optimized_amis"]:
@@ -204,6 +208,8 @@ class AmiBackend:
                     for ami in latest_amis:
                         ami_id = ami["ami_id"]
                         ami["owner_alias"] = "amazon"
+                        if ami.get("creation_date"):
+                            ami["creation_date"] = parse_timestamp(ami["creation_date"])
                         self.amis[ami_id] = Ami(self, **ami)
                 except FileNotFoundError:
                     # Will error on unknown (new) regions - just return an empty list here

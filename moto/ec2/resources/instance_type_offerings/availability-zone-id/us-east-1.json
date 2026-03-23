@@ -2620,6 +2620,10 @@
   "Location": "use1-az1"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "use1-az1"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "use1-az1"
  },
@@ -11956,6 +11960,10 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "mac-m4max.metal",
   "Location": "use1-az4"
  },
@@ -15685,6 +15693,42 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.12xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.24xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.3xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.6xlarge",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.large",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.medium",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.metal-12xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.metal-24xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m8azn.xlarge",
   "Location": "use1-az5"
  },
  {
@@ -21509,6 +21553,10 @@
  },
  {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "use1-az6"
  },
  {

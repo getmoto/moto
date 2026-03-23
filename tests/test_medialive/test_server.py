@@ -15,7 +15,7 @@ def test_medialive_list_channels():
 
     res = test_client.get("/prod/channels")
     result = res.data.decode("utf-8")
-    assert json.loads(result) == {"channels": [], "nextToken": None}
+    assert json.loads(result) == {"channels": []}
 
 
 @mock_aws
@@ -26,4 +26,4 @@ def test_medialive_list_inputs():
     res = test_client.get("/prod/inputs")
 
     result = res.data.decode("utf-8")
-    assert json.loads(result) == {"inputs": [], "nextToken": None}
+    assert json.loads(result) == {"inputs": []}

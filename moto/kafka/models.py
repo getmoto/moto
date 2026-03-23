@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.kafka.exceptions import BadRequestException, NotFoundException
 from moto.utilities.utils import get_partition
 
 from ..utilities.tagging_service import TaggingService
@@ -80,6 +81,7 @@ class KafkaBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.clusters: dict[str, FakeKafkaCluster] = {}
+        self.policies: dict[str, dict[str, str]] = {}
         self.tagger = TaggingService()
 
     def create_cluster_v2(
@@ -311,6 +313,48 @@ class KafkaBackend(BaseBackend):
     def delete_cluster(self, cluster_arn: str, current_version: str) -> tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)
         return cluster_arn, cluster.state
+
+    def put_cluster_policy(
+        self,
+        cluster_arn: str,
+        current_version: str,
+        policy: str,
+    ) -> str:
+        if cluster_arn not in self.clusters:
+            raise BadRequestException(f"Resource not found: {cluster_arn}")
+
+        if cluster_arn in self.policies:
+            stored_version = self.policies[cluster_arn]["current_version"]
+            if stored_version != current_version:
+                raise BadRequestException(
+                    f"Version mismatch: expected {stored_version}, got {current_version}",
+                )
+
+        new_version = str(uuid.uuid4())[:8]
+        self.policies[cluster_arn] = {
+            "policy": policy,
+            "current_version": new_version,
+        }
+        return new_version
+
+    def get_cluster_policy(self, cluster_arn: str) -> tuple[str, str]:
+        if cluster_arn not in self.clusters:
+            raise NotFoundException(f"Resource not found: {cluster_arn}")
+
+        if cluster_arn not in self.policies:
+            return "", ""
+
+        stored = self.policies[cluster_arn]
+        return stored["policy"], stored["current_version"]
+
+    def delete_cluster_policy(self, cluster_arn: str) -> None:
+        if cluster_arn not in self.clusters:
+            raise NotFoundException(f"Resource not found: {cluster_arn}")
+
+        if cluster_arn not in self.policies:
+            raise NotFoundException(f"Resource not found: {cluster_arn}")
+
+        del self.policies[cluster_arn]
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)

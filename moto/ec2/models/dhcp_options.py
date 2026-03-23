@@ -58,8 +58,12 @@ class DHCPOptionsSet(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeDhcpOptions")
 
     @property
-    def options(self) -> dict[str, Any]:  # type: ignore[misc]
-        return self._options
+    def dhcp_configurations(self) -> list[dict[str, Any]]:
+        return [
+            {"Key": key, "Values": [{"Value": v} for v in values]}
+            for key, values in self._options.items()
+            if values
+        ]
 
 
 class DHCPOptionsSetBackend:

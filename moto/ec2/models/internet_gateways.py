@@ -120,6 +120,12 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
         return self.id
 
     @property
+    def attachments(self) -> list[dict[str, str]]:
+        if self.vpc:
+            return [{"State": "available", "VpcId": self.vpc.id}]
+        return []
+
+    @property
     def attachment_state(self) -> str:
         if self.vpc:
             return "available"

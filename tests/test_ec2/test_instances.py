@@ -3006,6 +3006,22 @@ def test_modify_instance_metadata_options():
     }
 
 
+def test_metadata_options_hop_limit_none():
+    from moto.ec2.models.instances import MetadataOptions
+
+    # when None is explicitly passed (e.g. from missing input in CloudFormation args or missing keys mapped to None)
+    options = MetadataOptions(options={"HttpPutResponseHopLimit": None})
+    assert options.http_put_response_hop_limit == 1
+
+    # when passing a valid int
+    options = MetadataOptions(options={"HttpPutResponseHopLimit": 5})
+    assert options.http_put_response_hop_limit == 5
+
+    # when the key isn't provided at all
+    options = MetadataOptions(options={})
+    assert options.http_put_response_hop_limit == 1
+
+
 @mock_aws
 def test_run_instances_default_response():
     ec2 = boto3.client("ec2", region_name="us-west-2")
@@ -3158,8 +3174,20 @@ def _verify_instance_tags(
         assert tags[key] == value
 
 
-def _run_instance_from_template(ec2_client, template_id, version=None):
-    launch_template_spec = {"LaunchTemplateId": template_id}
+def _run_instance_from_template(
+    ec2_client,
+    template_id=None,
+    template_name=None,
+    version=None,
+    **instance_kwargs,
+):
+    launch_template_spec = {}
+    if template_id:
+        launch_template_spec["LaunchTemplateId"] = template_id
+    elif template_name:
+        launch_template_spec["LaunchTemplateName"] = template_name
+    else:
+        raise ValueError("Either template_id or template_name must be provided.")
     if version:
         launch_template_spec["Version"] = version
 
@@ -3167,6 +3195,7 @@ def _run_instance_from_template(ec2_client, template_id, version=None):
         MinCount=1,
         MaxCount=1,
         LaunchTemplate=launch_template_spec,
+        **instance_kwargs,
     )["Instances"][0]
     return instance
 
@@ -3334,3 +3363,201 @@ def test_create_instance_from_launch_template_latest_and_default_version(
     finally:
         # Clean up launch template
         ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+
+
+_LT_USER_DATA_SCRIPT = b"#!/bin/bash\necho from-template"
+_LT_USER_DATA_B64 = base64.b64encode(_LT_USER_DATA_SCRIPT).decode()
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"InstanceType": "t2.micro", "UserData": _LT_USER_DATA_B64},
+)
+@pytest.mark.aws_verified
+def test_run_instances__user_data_from_launch_template(
+    ec2_client=None, launch_template_name=None
+):
+    """UserData in a launch template is applied when not supplied in RunInstances."""
+    ami_id = _get_ami_id(ec2_client)
+    instance = _run_instance_from_template(
+        ec2_client, template_name=launch_template_name, ImageId=ami_id
+    )
+    instance_id = instance["InstanceId"]
+    try:
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="userData"
+        )
+        assert attr["UserData"]["Value"] == _LT_USER_DATA_B64
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"InstanceType": "t2.micro", "UserData": _LT_USER_DATA_B64},
+)
+@pytest.mark.aws_verified
+def test_run_instances__user_data_override_takes_priority(
+    ec2_client=None, launch_template_name=None
+):
+    """Explicit UserData in RunInstances overrides the launch template value."""
+    ami_id = _get_ami_id(ec2_client)
+    request_script = "#!/bin/bash\necho from-request"
+    expected_b64 = base64.b64encode(request_script.encode()).decode()
+
+    instance = _run_instance_from_template(
+        ec2_client,
+        template_name=launch_template_name,
+        ImageId=ami_id,
+        UserData=request_script,
+    )
+    instance_id = instance["InstanceId"]
+    try:
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="userData"
+        )
+        assert attr["UserData"]["Value"] == expected_b64
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"InstanceType": "t2.micro"},
+)
+@pytest.mark.aws_verified
+def test_run_instances__instance_type_from_launch_template(
+    ec2_client=None, launch_template_name=None
+):
+    """InstanceType in a launch template is applied when not supplied in RunInstances."""
+    ami_id = _get_ami_id(ec2_client)
+    instance = _run_instance_from_template(
+        ec2_client, template_name=launch_template_name, ImageId=ami_id
+    )
+    instance_id = instance["InstanceId"]
+    try:
+        assert instance["InstanceType"] == "t2.micro"
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="instanceType"
+        )
+        assert attr["InstanceType"]["Value"] == "t2.micro"
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["InstanceType"]
+            == "t2.micro"
+        )
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+
+
+@ec2_aws_verified(
+    create_launch_template=True,
+    launch_template_data={"InstanceType": "t2.micro"},
+)
+@pytest.mark.aws_verified
+def test_run_instances__instance_type_override_takes_priority(
+    ec2_client=None, launch_template_name=None
+):
+    """Explicit InstanceType in RunInstances overrides the launch template value."""
+    ami_id = _get_ami_id(ec2_client)
+    resp = ec2_client.run_instances(
+        MinCount=1,
+        MaxCount=1,
+        ImageId=ami_id,
+        LaunchTemplate={"LaunchTemplateName": launch_template_name},
+        InstanceType="t2.small",
+    )
+    instance_id = resp["Instances"][0]["InstanceId"]
+    try:
+        assert resp["Instances"][0]["InstanceType"] == "t2.small"
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="instanceType"
+        )
+        assert attr["InstanceType"]["Value"] == "t2.small"
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["InstanceType"]
+            == "t2.small"
+        )
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+
+
+@ec2_aws_verified()
+@pytest.mark.aws_verified
+def test_run_instances__key_name_from_launch_template(ec2_client=None):
+    """KeyName in a launch template is applied when not supplied in RunInstances."""
+    ami_id = _get_ami_id(ec2_client)
+    key_name = f"test-key-{str(uuid4())[0:8]}"
+    lt_name = str(uuid4())
+    ec2_client.create_key_pair(KeyName=key_name)
+    ec2_client.create_launch_template(
+        LaunchTemplateName=lt_name,
+        LaunchTemplateData={"InstanceType": "t2.micro", "KeyName": key_name},
+    )
+    instance = _run_instance_from_template(
+        ec2_client, template_name=lt_name, ImageId=ami_id
+    )
+    instance_id = instance["InstanceId"]
+    try:
+        assert instance["KeyName"] == key_name
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        assert (
+            describe_instances["Reservations"][0]["Instances"][0]["KeyName"] == key_name
+        )
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+        ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
+        ec2_client.delete_key_pair(KeyName=key_name)
+
+
+@ec2_aws_verified()
+@pytest.mark.aws_verified
+def test_run_instances__security_group_ids_from_launch_template(ec2_client=None):
+    """SecurityGroupIds in a launch template are applied when not supplied in RunInstances."""
+    ami_id = _get_ami_id(ec2_client)
+    vpc_id = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock="10.0.1.0/24",
+        AvailabilityZone=ec2_client.meta.region_name + "a",
+    )["Subnet"]["SubnetId"]
+    sg_id = ec2_client.create_security_group(
+        GroupName=f"test-sg-{str(uuid4())[0:6]}",
+        Description="test",
+        VpcId=vpc_id,
+    )["GroupId"]
+    lt_name = str(uuid4())
+    ec2_client.create_launch_template(
+        LaunchTemplateName=lt_name,
+        LaunchTemplateData={
+            "InstanceType": "t2.micro",
+            "SecurityGroupIds": [sg_id],
+        },
+    )
+    instance = _run_instance_from_template(
+        ec2_client, template_name=lt_name, ImageId=ami_id, SubnetId=subnet_id
+    )
+    instance_id = instance["InstanceId"]
+    try:
+        instance_sg_ids = [g["GroupId"] for g in instance["SecurityGroups"]]
+        assert sg_id in instance_sg_ids
+        attr = ec2_client.describe_instance_attribute(
+            InstanceId=instance_id, Attribute="groupSet"
+        )
+        attr_sg_ids = [g["GroupId"] for g in attr["Groups"]]
+        assert sg_id in attr_sg_ids
+        describe_instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+        instance_sg_ids = [
+            g["GroupId"]
+            for g in describe_instances["Reservations"][0]["Instances"][0][
+                "SecurityGroups"
+            ]
+        ]
+        assert sg_id in instance_sg_ids
+    finally:
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+        ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
+        ec2_client.delete_security_group(GroupId=sg_id)
+        ec2_client.delete_subnet(SubnetId=subnet_id)
+        ec2_client.delete_vpc(VpcId=vpc_id)

@@ -86,7 +86,10 @@ class Fleet(TaggedEC2Resource):
             # Always include the template ID in response (AWS does this even when name is used)
             resolved_launch_spec["LaunchTemplateId"] = launch_template.id
 
-            launch_template_data = launch_template.latest_version().data
+            template_version = resolved_launch_spec.get(
+                "Version", launch_template.default_version_number
+            )
+            launch_template_data = launch_template.get_version(template_version).data
             overrides_list = config.get("Overrides") or [{}]
             for override in overrides_list:
                 # Merge launch template data with override
@@ -235,7 +238,7 @@ class Fleet(TaggedEC2Resource):
                 placement=None,
                 kernel_id=None,
                 ramdisk_id=None,
-                monitoring_enabled=launch_spec.monitoring,
+                monitoring_enabled=launch_spec.monitoring_enabled,
                 subnet_id=launch_spec.subnet_id,
                 spot_fleet_id=self.id,
                 tags=launch_spec.tag_specifications,

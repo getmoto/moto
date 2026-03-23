@@ -150,6 +150,7 @@ def test_create_query_logging_config_good_args(moto_server, route53_region):
     response = client.create_query_logging_config(
         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     config = response["QueryLoggingConfig"]
     assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
     assert config["CloudWatchLogsLogGroupArn"] == log_group_arn

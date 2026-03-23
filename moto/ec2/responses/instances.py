@@ -403,7 +403,7 @@ class InstanceResponse(EC2BaseResponse):
             )
             device_template["Ebs"]["Iops"] = device_mapping.get("Ebs", {}).get("Iops")
             device_template["Ebs"]["Encrypted"] = device_mapping.get("Ebs", {}).get(
-                "VolumeSize", False
+                "Encrypted", False
             )
             device_template["Ebs"]["KmsKeyId"] = device_mapping.get("Ebs", {}).get(
                 "KmsKeyId"

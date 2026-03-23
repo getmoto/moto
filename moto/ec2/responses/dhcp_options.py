@@ -18,7 +18,7 @@ class DHCPOptions(EC2BaseResponse):
 
         return EmptyResult()
 
-    def create_dhcp_options(self) -> str:
+    def create_dhcp_options(self) -> ActionResult:
         provided_config = self._get_param("DhcpConfigurations", [])
         flat_config = {f["Key"]: f["Values"] for f in provided_config}
 
@@ -38,95 +38,17 @@ class DHCPOptions(EC2BaseResponse):
             netbios_node_type=netbios_node_type,
         )
 
-        template = self.response_template(CREATE_DHCP_OPTIONS_RESPONSE)
-        return template.render(dhcp_options_set=dhcp_options_set)
+        result = {"DhcpOptions": dhcp_options_set}
+        return ActionResult(result)
 
     def delete_dhcp_options(self) -> ActionResult:
         dhcp_opt_id = self._get_param("DhcpOptionsId")
         self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
         return EmptyResult()
 
-    def describe_dhcp_options(self) -> str:
+    def describe_dhcp_options(self) -> ActionResult:
         dhcp_opt_ids = self._get_param("DhcpOptionsIds", [])
         filters = self._filters_from_querystring()
         dhcp_opts = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids, filters)
-        template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
-        return template.render(dhcp_options=dhcp_opts)
-
-
-CREATE_DHCP_OPTIONS_RESPONSE = """
-<CreateDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
-  <dhcpOptions>
-      <dhcpOptionsId>{{ dhcp_options_set.id }}</dhcpOptionsId>
-      <dhcpConfigurationSet>
-      {% for key, values in dhcp_options_set.options.items() %}
-        {{ values }}
-        {% if values %}
-        <item>
-          <key>{{key}}</key>
-          <valueSet>
-            {% for value in values %}
-            <item>
-              <value>{{ value }}</value>
-            </item>
-            {% endfor %}
-          </valueSet>
-        </item>
-        {% endif %}
-      {% endfor %}
-      </dhcpConfigurationSet>
-      <tagSet>
-        {% for tag in dhcp_options_set.get_tags() %}
-          <item>
-            <resourceId>{{ tag.resource_id }}</resourceId>
-            <resourceType>{{ tag.resource_type }}</resourceType>
-            <key>{{ tag.key }}</key>
-            <value>{{ tag.value }}</value>
-          </item>
-        {% endfor %}
-      </tagSet>
-  </dhcpOptions>
-</CreateDhcpOptionsResponse>
-"""
-
-
-DESCRIBE_DHCP_OPTIONS_RESPONSE = """
-<DescribeDhcpOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
-  <dhcpOptionsSet>
-  {% for dhcp_options_set in dhcp_options %}
-    <item>
-      <dhcpOptionsId>{{ dhcp_options_set.id }}</dhcpOptionsId>
-      <dhcpConfigurationSet>
-      {% for key, values in dhcp_options_set.options.items() %}
-        {{ values }}
-        {% if values %}
-        <item>
-          <key>{{ key }}</key>
-          <valueSet>
-            {% for value in values %}
-            <item>
-              <value>{{ value }}</value>
-            </item>
-            {% endfor %}
-          </valueSet>
-        </item>
-        {% endif %}
-      {% endfor %}
-      </dhcpConfigurationSet>
-      <tagSet>
-        {% for tag in dhcp_options_set.get_tags() %}
-          <item>
-            <resourceId>{{ tag.resource_id }}</resourceId>
-            <resourceType>{{ tag.resource_type }}</resourceType>
-            <key>{{ tag.key }}</key>
-            <value>{{ tag.value }}</value>
-          </item>
-        {% endfor %}
-      </tagSet>
-    </item>
-  {% endfor %}
-  </dhcpOptionsSet>
-</DescribeDhcpOptionsResponse>
-"""
+        result = {"DhcpOptions": dhcp_opts}
+        return ActionResult(result)

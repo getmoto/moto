@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidLocationConstraintException,
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
+    InvalidNamespaceHeaderException,
     InvalidNotificationARN,
     InvalidObjectState,
     InvalidPartOrder,
@@ -280,9 +281,13 @@ class S3Response(BaseResponse):
 
         path_based = (
             host == "s3.amazonaws.com"
-            or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host)
+            or re.match(
+                r"s3[\.\-](?:(?:dualstack|fips)[\.\-])?([^.]*)\.amazonaws\.com", host
+            )
             or any(
-                re.match(r"s3[\.\-]([^.]*)\." + suffix, host)
+                re.match(
+                    r"s3[\.\-](?:(?:dualstack|fips)[\.\-])?([^.]*)\." + suffix, host
+                )
                 for suffix in ALT_DOMAIN_SUFFIXES
             )
         )
@@ -947,8 +952,17 @@ class S3Response(BaseResponse):
             bucket_region = (
                 location_constraint if location_constraint else DEFAULT_REGION_NAME
             )
+            bucket_namespace = request.headers.get("x-amz-bucket-namespace")
+            if bucket_namespace == "account-regional":
+                expected_suffix = f"-{self.get_current_account()}-{bucket_region}-an"
+                if not bucket_name.endswith(expected_suffix):
+                    raise InvalidNamespaceHeaderException(
+                        self.get_current_account(), bucket_region
+                    )
             try:
-                new_bucket = self.backend.create_bucket(bucket_name, bucket_region)
+                new_bucket = self.backend.create_bucket(
+                    bucket_name, bucket_region, bucket_namespace=bucket_namespace
+                )
             except BucketAlreadyExists:
                 new_bucket = self.backend.get_bucket(bucket_name)
                 if new_bucket.account_id == self.get_current_account():
@@ -983,7 +997,10 @@ class S3Response(BaseResponse):
                 new_bucket.ownership_rule = ownership_rule
 
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
-            return template.render(bucket=new_bucket)
+            headers: dict[str, str] = {}
+            if new_bucket.bucket_namespace == "account-regional":
+                headers["x-amz-bucket-arn"] = new_bucket.arn
+            return 200, headers, template.render(bucket=new_bucket)
 
     def get_bucket_accelerate_configuration(self) -> str:
         accelerate_configuration = self.backend.get_bucket_accelerate_configuration(
@@ -2851,6 +2868,7 @@ S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.
   </CreateBucketResponse>
 </CreateBucketResponse>"""
 
+
 S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <DeleteBucketResponse>
     <Code>204</Code>
@@ -3432,10 +3450,10 @@ S3_BUCKET_ACCELERATE = """
 
 S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
 <PublicAccessBlockConfiguration>
-  <BlockPublicAcls>{{public_block_config.block_public_acls}}</BlockPublicAcls>
-  <IgnorePublicAcls>{{public_block_config.ignore_public_acls}}</IgnorePublicAcls>
-  <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
-  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
+  <BlockPublicAcls>{{public_block_config.block_public_acls|string|lower}}</BlockPublicAcls>
+  <IgnorePublicAcls>{{public_block_config.ignore_public_acls|string|lower}}</IgnorePublicAcls>
+  <BlockPublicPolicy>{{public_block_config.block_public_policy|string|lower}}</BlockPublicPolicy>
+  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets|string|lower}}</RestrictPublicBuckets>
 </PublicAccessBlockConfiguration>
 """
 

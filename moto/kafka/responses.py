@@ -135,6 +135,42 @@ class KafkaResponse(BaseResponse):
         )
         return json.dumps({"clusterArn": cluster_arn, "state": state})
 
+    def put_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        current_version = self._get_param("currentVersion")
+        policy = self._get_param("policy")
+
+        new_version = self.kafka_backend.put_cluster_policy(
+            cluster_arn=cluster_arn,
+            current_version=current_version,
+            policy=policy,
+        )
+        return json.dumps({"currentVersion": new_version})
+
+    def get_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        policy, current_version = self.kafka_backend.get_cluster_policy(
+            cluster_arn=cluster_arn,
+        )
+
+        return json.dumps(
+            {
+                "currentVersion": current_version,
+                "policy": policy,
+            }
+        )
+
+    def delete_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        self.kafka_backend.delete_cluster_policy(cluster_arn=cluster_arn)
+        return json.dumps({})
+
     def list_clusters(self) -> str:
         cluster_name_filter = self._get_param("clusterNameFilter")
         max_results = self._get_param("maxResults")

@@ -5,7 +5,7 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticIPAddresses(EC2BaseResponse):
-    def allocate_address(self) -> str:
+    def allocate_address(self) -> ActionResult:
         domain = self._get_param("Domain", if_none=None)
         reallocate_address = self._get_param("Address", if_none=None)
         tag_param = self._get_param("TagSpecifications", [])
@@ -19,10 +19,15 @@ class ElasticIPAddresses(EC2BaseResponse):
             )
         else:
             address = self.ec2_backend.allocate_address(domain, tags=tags)
-        template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
-        return template.render(address=address)
+        return ActionResult(
+            {
+                "PublicIp": address.public_ip,
+                "Domain": address.domain,
+                "AllocationId": address.allocation_id,
+            }
+        )
 
-    def associate_address(self) -> str:
+    def associate_address(self) -> ActionResult:
         instance = eni = None
 
         if "InstanceId" in self._get_params():
@@ -67,10 +72,9 @@ class ElasticIPAddresses(EC2BaseResponse):
                 "Invalid request, expect either instance or ENI.",
             )
 
-        template = self.response_template(ASSOCIATE_ADDRESS_RESPONSE)
-        return template.render(address=eip)
+        return ActionResult({"AssociationId": eip.association_id})
 
-    def describe_addresses(self) -> str:
+    def describe_addresses(self) -> ActionResult:
         self.error_on_dryrun()
         allocation_ids = self._get_param("AllocationIds", [])
         public_ips = self._get_param("PublicIps", [])
@@ -78,15 +82,13 @@ class ElasticIPAddresses(EC2BaseResponse):
         addresses = self.ec2_backend.describe_addresses(
             allocation_ids, public_ips, filters
         )
-        template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
-        return template.render(addresses=addresses)
+        return ActionResult({"Addresses": addresses})
 
-    def describe_addresses_attribute(self) -> str:
+    def describe_addresses_attribute(self) -> ActionResult:
         self.error_on_dryrun()
         allocation_ids = self._get_param("AllocationIds", [])
         addresses = self.ec2_backend.describe_addresses_attribute(allocation_ids)
-        template = self.response_template(DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE)
-        return template.render(addresses=addresses)
+        return ActionResult({"Addresses": addresses})
 
     def disassociate_address(self) -> ActionResult:
         if (
@@ -129,73 +131,3 @@ class ElasticIPAddresses(EC2BaseResponse):
             )
 
         return EmptyResult()
-
-
-ALLOCATE_ADDRESS_RESPONSE = """<AllocateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <publicIp>{{ address.public_ip }}</publicIp>
-  <domain>{{ address.domain }}</domain>
-  {% if address.allocation_id %}
-    <allocationId>{{ address.allocation_id }}</allocationId>
-  {% endif %}
-</AllocateAddressResponse>"""
-
-ASSOCIATE_ADDRESS_RESPONSE = """<AssociateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-  {% if address.association_id %}
-    <associationId>{{ address.association_id }}</associationId>
-  {% endif %}
-</AssociateAddressResponse>"""
-
-DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <addressesSet>
-    {% for address in addresses %}
-        <item>
-          <publicIp>{{ address.public_ip }}</publicIp>
-          <domain>{{ address.domain }}</domain>
-          {% if address.instance %}
-            <instanceId>{{ address.instance.id }}</instanceId>
-          {% else %}
-            <instanceId/>
-          {% endif %}
-          {% if address.eni %}
-            <networkInterfaceId>{{ address.eni.id }}</networkInterfaceId>
-            <privateIpAddress>{{ address.eni.private_ip_address }}</privateIpAddress>
-            <networkInterfaceOwnerId>{{ address.eni.owner_id }}</networkInterfaceOwnerId>
-          {% else %}
-            <networkInterfaceId/>
-          {% endif %}
-          {% if address.allocation_id %}
-            <allocationId>{{ address.allocation_id }}</allocationId>
-          {% endif %}
-          {% if address.association_id %}
-            <associationId>{{ address.association_id }}</associationId>
-          {% endif %}
-          <tagSet>
-          {% for tag in address.get_tags() %}
-              <item>
-                  <key>{{ tag.key }}</key>
-                  <value>{{ tag.value }}</value>
-              </item>
-          {% endfor %}
-          </tagSet>
-        </item>
-    {% endfor %}
-  </addressesSet>
-</DescribeAddressesResponse>"""
-
-DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE = """<DescribeAddressesAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <addressSet>
-    {% for address in addresses %}
-        <item>
-          <publicIp>{{ address.public_ip }}</publicIp>
-          {% if address.allocation_id %}
-            <allocationId>{{ address.allocation_id }}</allocationId>
-          {% endif %}
-        </item>
-    {% endfor %}
-  </addressSet>
-</DescribeAddressesAttributeResponse>"""

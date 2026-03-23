@@ -204,6 +204,10 @@ def test_export_table(table_name=None, bucket_name=None):
     assert export_details["ExportStatus"] == "COMPLETED"
     assert export_details["ItemCount"] == 3
     assert export_details["ExportFormat"] == "DYNAMODB_JSON"
+    assert export_details["TableArn"] == table_arn
+    assert export_details["S3Bucket"] == bucket_name
+    assert export_details["S3BucketOwner"] == "123456789012"
+    assert export_details["S3Prefix"] == s3_prefix
 
     s3_files = s3.list_objects(Bucket=bucket_name, Prefix=s3_prefix)["Contents"]
     for file in s3_files:
