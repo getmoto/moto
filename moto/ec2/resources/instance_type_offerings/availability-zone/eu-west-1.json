@@ -5808,6 +5808,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "p3.16xlarge",
   "Location": "eu-west-1b"
  },
@@ -9469,6 +9473,10 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
   "Location": "eu-west-1c"
  },
  {

@@ -2444,6 +2444,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "eu-west-1"
  },
