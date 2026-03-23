@@ -497,9 +497,9 @@ class FakeMultipart(BaseModel):
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
         if checksum_algo:
-            encoded_checksum = (
-                f"{compute_checksum(checksum, checksum_algo).decode('utf-8')}-{count}"
-            )
+            encoded_checksum = compute_checksum(checksum, checksum_algo).decode("utf-8")
+            if count > 1:
+                encoded_checksum = f"{encoded_checksum}-{count}"
         else:
             encoded_checksum = None
         return total, f"{full_etag.hexdigest()}-{count}", encoded_checksum
