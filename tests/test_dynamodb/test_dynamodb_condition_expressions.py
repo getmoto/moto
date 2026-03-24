@@ -659,3 +659,38 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
             "M": {"some_list": {"L": [{"M": {"hello": {"S": "h"}}}]}}
         },
     }
+
+
+@mock_aws
+def test_conditional_check_failed_bytes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test_table_bytes",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    dynamodb.put_item(
+        TableName="test_table_bytes",
+        Item={
+            "pk": {"S": "test"},
+            "my_bytes": {"B": b"somebytes"},
+            "my_bytes_set": {"BS": [b"byte1", b"byte2"]},
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.update_item(
+            TableName="test_table_bytes",
+            Key={"pk": {"S": "test"}},
+            UpdateExpression="SET my_str = :s",
+            ConditionExpression="attribute_not_exists(pk)",
+            ExpressionAttributeValues={":s": {"S": "newstr"}},
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ConditionalCheckFailedException"
+    assert "Item" in exc.value.response
+    assert exc.value.response["Item"]["my_bytes"]["B"] == b"somebytes"
+    assert exc.value.response["Item"]["my_bytes_set"]["BS"] == [b"byte1", b"byte2"]
