@@ -155,9 +155,27 @@ class CertBundle(BaseModel):
         self._cert = self.validate_certificate()
         # Extracting some common fields for ease of use
         # Have to search through cert.subject for OIDs
-        self.common_name: Any = self._cert.subject.get_attributes_for_oid(
-            OID_COMMON_NAME
-        )[0].value
+
+        # Parse SANs once here so they can be reused in describe() without re-parsing
+        try:
+            san_obj: Any = self._cert.extensions.get_extension_for_oid(
+                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
+            )
+            self.sans: list[str] = [str(item.value) for item in san_obj.value]
+        except cryptography.x509.ExtensionNotFound:
+            self.sans = []
+
+        # CN is optional per CAB Forum baseline requirements; fall back to first SAN
+        # (matching real AWS ACM DomainName behaviour) or empty string if no SANs either
+        cn_attrs = self._cert.subject.get_attributes_for_oid(OID_COMMON_NAME)
+        self.common_name: Any = (
+            cn_attrs[0].value if cn_attrs else (self.sans[0] if self.sans else "")
+        )
+
+        # Parse issuer CN, also optional
+        issuer_cn_attrs = self._cert.issuer.get_attributes_for_oid(OID_COMMON_NAME)
+        self.issuer_common_name: str = issuer_cn_attrs[0].value if issuer_cn_attrs else ""
+
         if chain is not None:
             self.validate_chain()
 
@@ -361,25 +379,12 @@ class CertBundle(BaseModel):
             # Handle RSA keys
             key_algo = f"RSA_{self._key.key_size}"
 
-        # Look for SANs
-        try:
-            san_obj: Any = self._cert.extensions.get_extension_for_oid(
-                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
-            )
-        except cryptography.x509.ExtensionNotFound:
-            san_obj = None
-        sans = []
-        if san_obj is not None:
-            sans = [str(item.value) for item in san_obj.value]
-
         result: dict[str, Any] = {
             "Certificate": {
                 "CertificateArn": self.arn,
                 "DomainName": self.common_name,
                 "InUseBy": self.in_use_by,
-                "Issuer": self._cert.issuer.get_attributes_for_oid(OID_COMMON_NAME)[
-                    0
-                ].value,
+                "Issuer": self.issuer_common_name,
                 "KeyAlgorithm": key_algo,
                 "NotAfter": datetime_to_epoch(self._not_valid_after(self._cert)),
                 "NotBefore": datetime_to_epoch(self._not_valid_before(self._cert)),
@@ -389,7 +394,7 @@ class CertBundle(BaseModel):
                 ),
                 "Status": self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
                 "Subject": f"CN={self.common_name}",
-                "SubjectAlternativeNames": sans,
+                "SubjectAlternativeNames": self.sans,
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],
                 "RenewalEligibility": "INELIGIBLE",
@@ -400,7 +405,7 @@ class CertBundle(BaseModel):
         if self.cert_authority_arn is not None:
             result["Certificate"]["CertificateAuthorityArn"] = self.cert_authority_arn
 
-        domain_names = set(sans + [self.common_name])
+        domain_names = set(self.sans + ([self.common_name] if self.common_name else []))
         validation_options = []
 
         domain_name_status = "SUCCESS" if self.status == "ISSUED" else self.status

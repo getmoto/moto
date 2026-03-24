@@ -7,8 +7,14 @@ from unittest import SkipTest, mock
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509 import (
+    DNSName,
     IPAddress,
+    NameOID,
     SubjectAlternativeName,
     load_pem_x509_certificate,
 )
@@ -73,6 +79,49 @@ def test_import_certificate():
 
     assert resp["Certificate"] == RSA_2048_CRT.decode()
     assert "CertificateChain" in resp
+
+
+@mock_aws
+def test_import_certificate_without_cn():
+    """CN is optional per CAB Forum baseline requirements since 2017.
+    import_certificate should succeed and DomainName should fall back to the first SAN."""
+    # Generate a cert with SANs but no CN in the subject
+    key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+    subject = x509.Name([])  # empty subject — no CN
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(
+            x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test Issuer")])
+        )
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.datetime.utcnow())
+        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+        .add_extension(
+            x509.SubjectAlternativeName([DNSName("app.test.example.com"), DNSName("app2.test.example.com")]),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256(), default_backend())
+    )
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+    key_pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    client = boto3.client("acm", region_name="us-east-1")
+    resp = client.import_certificate(Certificate=cert_pem, PrivateKey=key_pem)
+    arn = resp["CertificateArn"]
+
+    desc = client.describe_certificate(CertificateArn=arn)["Certificate"]
+    # DomainName should fall back to the first SAN when CN is absent
+    assert desc["DomainName"] == "app.test.example.com"
+    assert "app.test.example.com" in desc["SubjectAlternativeNames"]
+    assert "app2.test.example.com" in desc["SubjectAlternativeNames"]
 
 
 @mock_aws
