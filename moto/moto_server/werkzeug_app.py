@@ -211,7 +211,9 @@ class DomainDispatcherApplication:
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
-        elif path_info.startswith("/latest/meta-data/"):
+        elif path_info.startswith("/latest/meta-data/") or path_info.startswith(
+            "/latest/api/"
+        ):
             host = "instance_metadata"
         else:
             host = None
