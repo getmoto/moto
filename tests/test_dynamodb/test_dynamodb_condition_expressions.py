@@ -429,7 +429,7 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
 
 
 @mock_aws
-def test_condition_expression_rejects_redundant_parentheses():
+def test_condition_expression_parentheses_behavior():
     client = boto3.client("dynamodb", region_name="us-east-1")
     table_name = f"T{uuid4()}"
 
@@ -443,25 +443,54 @@ def test_condition_expression_rejects_redundant_parentheses():
         TableName=table_name,
         Item={
             "pk": {"S": "pk"},
-            "a": {"S": "match"},
-            "c": {"S": "match"},
-            "e": {"S": "match"},
+            "a": {"N": "1"},
+            "b": {"N": "2"},
+            "c": {"N": "3"},
+            "e": {"N": "4"},
         },
     )
 
+    # Test Case 1: #a = :b OR (#c = :d AND #e = :f)
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="#a = :b OR (#c = :d AND #e = :f)",
+        ExpressionAttributeNames={"#a": "pk", "#c": "pk", "#e": "pk"},
+        ExpressionAttributeValues={
+            ":b": {"S": "pk"},
+            ":d": {"S": "pk"},
+            ":f": {"S": "pk"},
+            ":z": {"S": "updated1"},
+        },
+    )
+
+    # Test Case 2: (attribute_exists (#0)) AND (((#1 <> :0) AND (#1 <> :1)) AND (#2 = :3))
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="(attribute_exists (#0)) AND (((#1 <> :0) AND (#1 <> :1)) AND (#2 = :3))",
+        ExpressionAttributeNames={"#0": "pk", "#1": "pk", "#2": "pk"},
+        ExpressionAttributeValues={
+            ":0": {"S": "nope"},
+            ":1": {"S": "nope"},
+            ":3": {"S": "pk"},
+            ":z": {"S": "updated2"},
+        },
+    )
+
+    # Test Case 3: ((((a < b))))
+    # AWS DDB fails this. Moto should too.
     with pytest.raises(ClientError) as exc:
         client.update_item(
             TableName=table_name,
             Key={"pk": {"S": "pk"}},
-            UpdateExpression="SET #z = :z",
-            ConditionExpression="#a = :b OR (#c = :d AND #e = :f)",
-            ExpressionAttributeNames={"#a": "a", "#c": "c", "#e": "e", "#z": "z"},
-            ExpressionAttributeValues={
-                ":b": {"S": "match"},
-                ":d": {"S": "match"},
-                ":f": {"S": "match"},
-                ":z": {"S": "updated"},
-            },
+            UpdateExpression="SET z = :z",
+            ConditionExpression="((((a < b))))",
+            ExpressionAttributeValues={":z": {"S": "updated3"}},
         )
 
     err = exc.value.response["Error"]
@@ -469,6 +498,22 @@ def test_condition_expression_rejects_redundant_parentheses():
     assert (
         err["Message"]
         == "Invalid ConditionExpression: The expression has redundant parentheses;"
+    )
+
+    # Test Case 4: ((#a = :b) OR (#c = :d) AND (#e = :f))
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="((#a = :b) OR (#c = :d) AND (#e = :f))",
+        ExpressionAttributeNames={"#a": "pk", "#c": "pk", "#e": "pk"},
+        ExpressionAttributeValues={
+            ":b": {"S": "pk"},
+            ":d": {"S": "pk"},
+            ":f": {"S": "pk"},
+            ":z": {"S": "updated4"},
+        },
     )
 
 
