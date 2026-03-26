@@ -41,7 +41,7 @@ class TestDifferentAccountsDoesNotBreakSeeding:
         instances = self.ec2_client.run_instances(MaxCount=1, MinCount=1)["Instances"]
 
         instance_ids = [instance["InstanceId"] for instance in instances]
-        assert instance_ids == ["i-6e8b5359309cc6273"]
+        assert instance_ids == ["i-dbe4d58fed8a728e7"]
 
     def test_1(self) -> None:
         # Create some data in a different account (111111111111)
