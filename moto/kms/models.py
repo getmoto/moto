@@ -1,5 +1,4 @@
 import json
-import os
 from collections.abc import Iterable
 from copy import copy
 from datetime import datetime, timedelta
@@ -629,7 +628,6 @@ class KmsBackend(BaseBackend):
 
     def generate_random(self) -> None:
         # Marker to indicate this is implemented
-        # Responses uses 'os.urandom'
         pass
 
     def generate_data_key(
@@ -650,7 +648,7 @@ class KmsBackend(BaseBackend):
         else:
             plaintext_len = number_of_bytes
 
-        plaintext = os.urandom(plaintext_len)
+        plaintext = mock_random.randbytes(plaintext_len)
 
         ciphertext_blob, arn = self.encrypt(
             key_id=key_id, plaintext=plaintext, encryption_context=encryption_context

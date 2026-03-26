@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import string
 from collections.abc import Iterable
@@ -128,7 +127,7 @@ class VirtualMfaDevice:
             random.choice(string.ascii_uppercase + "234567") for _ in range(64)
         )
         self.base32_string_seed = random_base32_string
-        self.qr_code_png = os.urandom(64)  # this would be a generated PNG
+        self.qr_code_png = random.randbytes(64)
 
         self.enable_date: Optional[datetime] = None
         self.user_attribute: Optional[dict[str, Any]] = None
