@@ -1351,14 +1351,14 @@ def test_delimiter_optional_in_response():
 
 
 @mock_aws
-def test_list_objects_with_maxkeys_0():
+def test_list_objects_with_max_keys_0():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid.uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
     resp = s3_client.list_objects(Bucket=bucket_name, MaxKeys=0)
     assert resp["Name"] == bucket_name
     assert resp["MaxKeys"] == 0
-    assert resp["IsTruncated"] is True
+    assert resp["IsTruncated"] is False
     assert "Contents" not in resp
 
 

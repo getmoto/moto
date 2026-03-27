@@ -2821,7 +2821,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def _truncate_result(self, result_keys: Any, max_keys: int) -> Any:
         if max_keys == 0:
             result_keys = []
-            is_truncated = True
+            is_truncated = False
             next_continuation_token = None
         elif len(result_keys) > max_keys:
             is_truncated = True
