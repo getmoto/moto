@@ -234,7 +234,7 @@ class Rule(CloudFormationModel):
     ) -> None:
         from moto.sqs import sqs_backends
 
-        if isinstance(event, dict) and "time" in event:
+        if "time" in event:
             event["time"] = iso_8601_datetime_without_milliseconds(
                 utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
             )
@@ -254,7 +254,7 @@ class Rule(CloudFormationModel):
 
         sqs_backends[self.account_id][self.region_name].send_message(
             queue_name=resource_id,
-            message_body=event if isinstance(event, str) else json.dumps(event),
+            message_body=json.dumps(event),
             group_id=group_id,
         )
 
