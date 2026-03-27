@@ -625,7 +625,7 @@ class DynamoDBBackend(BaseBackend):
         target_items: set[tuple[str, str]] = set()
 
         def check_unicity(table_name: str, key: dict[str, Any]) -> None:
-            item = (str(table_name), str(key))
+            item = (str(table_name), str(dict(sorted(key.items()))))
             if item in target_items:
                 raise MultipleTransactionsException()
             target_items.add(item)
