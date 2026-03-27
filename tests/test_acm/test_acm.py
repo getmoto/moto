@@ -101,7 +101,9 @@ def test_import_certificate_without_cn():
         .not_valid_before(datetime.datetime.utcnow())
         .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
         .add_extension(
-            x509.SubjectAlternativeName([DNSName("app.test.example.com"), DNSName("app2.test.example.com")]),
+            x509.SubjectAlternativeName(
+                [DNSName("app.test.example.com"), DNSName("app2.test.example.com")]
+            ),
             critical=False,
         )
         .sign(key, hashes.SHA256(), default_backend())

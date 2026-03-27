@@ -174,7 +174,9 @@ class CertBundle(BaseModel):
 
         # Parse issuer CN, also optional
         issuer_cn_attrs = self._cert.issuer.get_attributes_for_oid(OID_COMMON_NAME)
-        self.issuer_common_name: str = issuer_cn_attrs[0].value if issuer_cn_attrs else ""
+        self.issuer_common_name: str = (
+            issuer_cn_attrs[0].value if issuer_cn_attrs else ""
+        )
 
         if chain is not None:
             self.validate_chain()
