@@ -1351,7 +1351,7 @@ def test_delimiter_optional_in_response():
 
 
 @mock_aws
-def test_list_objects_with_pagesize_0():
+def test_list_objects_with_maxkeys_0():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid.uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
