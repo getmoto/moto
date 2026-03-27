@@ -2821,17 +2821,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def _truncate_result(self, result_keys: Any, max_keys: int) -> Any:
         if max_keys == 0:
             result_keys = []
-            is_truncated = True
+            is_truncated = False
             next_continuation_token = None
         elif len(result_keys) > max_keys:
-            is_truncated = "true"  # type: ignore
+            is_truncated = True
             result_keys = result_keys[:max_keys]
             item = result_keys[-1]
             key_id = item.name if isinstance(item, FakeKey) else item
             next_continuation_token = md5_hash(key_id.encode("utf-8")).hexdigest()
             self._pagination_tokens[next_continuation_token] = key_id
         else:
-            is_truncated = "false"  # type: ignore
+            is_truncated = False
             next_continuation_token = None
         return result_keys, is_truncated, next_continuation_token
 

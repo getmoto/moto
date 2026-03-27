@@ -2788,7 +2788,7 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   {% if encoding_type %}
     <EncodingType>{{ encoding_type }}</EncodingType>
   {% endif %}
-  <IsTruncated>{{ is_truncated }}</IsTruncated>
+  <IsTruncated>{{ is_truncated|string|lower }}</IsTruncated>
   {% if next_marker %}
     <NextMarker>{{ next_marker }}</NextMarker>
   {% endif %}
@@ -2828,7 +2828,7 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 {% if encoding_type %}
   <EncodingType>{{ encoding_type }}</EncodingType>
 {% endif %}
-  <IsTruncated>{{ is_truncated }}</IsTruncated>
+  <IsTruncated>{{ is_truncated|string|lower }}</IsTruncated>
 {% if next_continuation_token %}
   <NextContinuationToken>{{ next_continuation_token }}</NextContinuationToken>
 {% endif %}
