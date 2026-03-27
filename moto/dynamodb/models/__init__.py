@@ -739,18 +739,29 @@ class DynamoDBBackend(BaseBackend):
         except ResourceNotFoundException:
             raise TableNotFoundException(table_name)
 
-        if (
-            point_in_time_spec["PointInTimeRecoveryEnabled"]
-            and table.continuous_backups["PointInTimeRecoveryDescription"][
-                "PointInTimeRecoveryStatus"
-            ]
-            == "DISABLED"
-        ):
-            table.continuous_backups["PointInTimeRecoveryDescription"] = {
-                "PointInTimeRecoveryStatus": "ENABLED",
-                "EarliestRestorableDateTime": unix_time(),
-                "LatestRestorableDateTime": unix_time(),
-            }
+        if point_in_time_spec["PointInTimeRecoveryEnabled"]:
+            if (
+                table.continuous_backups["PointInTimeRecoveryDescription"][
+                    "PointInTimeRecoveryStatus"
+                ]
+                == "DISABLED"
+            ):
+                table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                    "PointInTimeRecoveryStatus": "ENABLED",
+                    "EarliestRestorableDateTime": unix_time(),
+                    "LatestRestorableDateTime": unix_time(),
+                }
+            if "RecoveryPeriodInDays" in point_in_time_spec:
+                table.continuous_backups["PointInTimeRecoveryDescription"][
+                    "RecoveryPeriodInDays"
+                ] = point_in_time_spec["RecoveryPeriodInDays"]
+            elif (
+                "RecoveryPeriodInDays"
+                not in table.continuous_backups["PointInTimeRecoveryDescription"]
+            ):
+                table.continuous_backups["PointInTimeRecoveryDescription"][
+                    "RecoveryPeriodInDays"
+                ] = 35
         elif not point_in_time_spec["PointInTimeRecoveryEnabled"]:
             table.continuous_backups["PointInTimeRecoveryDescription"] = {
                 "PointInTimeRecoveryStatus": "DISABLED"

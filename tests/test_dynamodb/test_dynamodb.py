@@ -1794,6 +1794,7 @@ def test_update_continuous_backups():
     latest_datetime = point_in_time["LatestRestorableDateTime"]
     assert isinstance(latest_datetime, datetime)
     assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 35
 
     # when
     # a second update should not change anything
@@ -1812,6 +1813,56 @@ def test_update_continuous_backups():
     assert point_in_time["EarliestRestorableDateTime"] == earliest_datetime
     assert point_in_time["LatestRestorableDateTime"] == latest_datetime
     assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 35
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": False},
+    )
+
+    # then
+    assert response["ContinuousBackupsDescription"] == {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+    }
+
+
+@mock_aws
+def test_update_continuous_backups_with_recovery_period():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName=f"T{uuid4()}",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={
+            "PointInTimeRecoveryEnabled": True,
+            "RecoveryPeriodInDays": 10,
+        },
+    )
+
+    # then
+    assert (
+        response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"] == "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 10
 
     # when
     response = client.update_continuous_backups(
