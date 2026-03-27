@@ -1494,6 +1494,11 @@ class AutoScalingBackend(BaseBackend):
         return groups
 
     def delete_auto_scaling_group(self, group_name: str) -> None:
+        if group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{group_name}' not found"
+            )
+
         self.set_desired_capacity(group_name, 0)
         self.autoscaling_groups.pop(group_name, None)
 
