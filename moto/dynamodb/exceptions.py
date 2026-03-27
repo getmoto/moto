@@ -1,8 +1,8 @@
-import json
 from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.dynamodb.models.utilities import dynamo_json_dump
 
 ERROR_TYPE_PREFIX = "com.amazonaws.dynamodb.v20120810#"
 
@@ -213,7 +213,7 @@ class ConditionalCheckFailed(DynamodbException):
         _msg = msg or "The conditional request failed"
         super().__init__(ConditionalCheckFailed.error_type, _msg)
         if item:
-            self.description = json.dumps(
+            self.description = dynamo_json_dump(
                 {
                     "__type": ConditionalCheckFailed.error_type,
                     # Note the uppercase Message
@@ -223,7 +223,7 @@ class ConditionalCheckFailed(DynamodbException):
                 }
             )
         else:
-            self.description = json.dumps(
+            self.description = dynamo_json_dump(
                 {
                     "__type": ConditionalCheckFailed.error_type,
                     # Note that lowercase 'message'
@@ -252,7 +252,7 @@ class TransactionCanceledException(DynamodbException):
                 r["Item"] = item
             reasons.append(r)
 
-        self.description = json.dumps(
+        self.description = dynamo_json_dump(
             {
                 "__type": TransactionCanceledException.error_type,
                 "CancellationReasons": reasons,
