@@ -10,7 +10,9 @@ def validate_role_arn(arn: str) -> None:
         "arn:(?P<partition>.+):iam::(?P<account_id>[0-9]{12}):role/.+"
     )
     match = valid_role_arn_format.match(arn)
-    valid_partition = match.group("partition") in Session().get_available_partitions()  # type: ignore
+    if not arn or not match:
+        raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")
 
-    if not all({arn, match, valid_partition}):
-        raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")  # type: ignore
+    valid_partition = match.group("partition") in Session().get_available_partitions()
+    if not valid_partition:
+        raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")
