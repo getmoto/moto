@@ -31,9 +31,10 @@ def paginated_list(
 
     sorted_list = sorted(full_list, key=lambda d: d[sort_key])
 
-    values = sorted_list[next_token : next_token + max_results]  # type: ignore
-    if len(values) == max_results:
-        new_next_token = str(next_token + max_results)  # type: ignore
+    end_index = next_token + max_results  # type: ignore
+    values = sorted_list[next_token:end_index]  # type: ignore
+    if end_index < len(sorted_list):
+        new_next_token = str(end_index)
     else:
         new_next_token = None
     return values, new_next_token
