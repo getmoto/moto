@@ -30519,17 +30519,38 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    },
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    }
+   ],
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 240000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 240000,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 120000,
+    "BaselineIops": 480000,
+    "BaselineThroughputInMBps": 15000.0,
+    "MaximumBandwidthInMbps": 120000,
+    "MaximumIops": 480000,
+    "MaximumThroughputInMBps": 15000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
    "MaximumEbsAttachments": 78,
+   "MaximumEbsCards": 2,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
@@ -38746,8 +38767,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39192,8 +39213,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39333,8 +39354,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39476,8 +39497,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -39626,8 +39647,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40436,8 +40457,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40974,8 +40995,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41158,8 +41179,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41286,8 +41307,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41688,8 +41709,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -43016,8 +43037,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43318,8 +43339,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -44670,8 +44691,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -44812,8 +44833,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44979,8 +45000,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45178,8 +45199,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -45684,8 +45705,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -46143,8 +46164,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47487,7 +47508,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47586,7 +47607,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47685,7 +47706,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -94155,17 +94176,38 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    },
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    }
+   ],
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 240000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 240000,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 120000,
+    "BaselineIops": 480000,
+    "BaselineThroughputInMBps": 15000.0,
+    "MaximumBandwidthInMbps": 120000,
+    "MaximumIops": 480000,
+    "MaximumThroughputInMBps": 15000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
    "MaximumEbsAttachments": 78,
+   "MaximumEbsCards": 2,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
@@ -134226,17 +134268,38 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    },
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    }
+   ],
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 240000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 240000,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 120000,
+    "BaselineIops": 480000,
+    "BaselineThroughputInMBps": 15000.0,
+    "MaximumBandwidthInMbps": 120000,
+    "MaximumIops": 480000,
+    "MaximumThroughputInMBps": 15000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
    "MaximumEbsAttachments": 78,
+   "MaximumEbsCards": 2,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
