@@ -324,6 +324,82 @@
     ]
   },
   {
+    "description": "Flattened List with custom member name",
+    "metadata": {
+      "protocol": "rest-xml"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "Rules": {
+            "shape": "LifecycleRules",
+            "locationName": "Rule"
+          }
+        }
+      },
+      "LifecycleRules": {
+        "type": "list",
+        "member": {
+          "shape": "LifecycleRule"
+        },
+        "flattened": true
+      },
+      "LifecycleRule": {
+        "type": "structure",
+        "members": {
+          "Id": {
+            "shape": "StringType"
+          }
+        }
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "Rules": [
+            {
+              "Id": "abc"
+            },
+            {
+              "Id": "123"
+            }
+          ]
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Rule><Id>abc</Id></Rule><Rule><Id>123</Id></Rule></OperationNameResponse>"
+        }
+      },
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListMember": []
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse></OperationNameResponse>"
+        }
+      }
+    ]
+  },
+  {
     "description": "Normal map",
     "metadata": {
       "protocol": "rest-xml"
