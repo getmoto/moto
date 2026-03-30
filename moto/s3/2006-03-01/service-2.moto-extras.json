@@ -1,0 +1,125 @@
+{
+  "version": 1.0,
+  "merge": {
+    "metadata": {
+      "xmlNamespace": "http://s3.amazonaws.com/doc/2006-03-01/"
+    },
+    "operations": {
+      "CopyObject": {
+        "output": {
+          "resultWrapper": "CopyObjectResult"
+        }
+      },
+      "DeleteObjects": {
+        "output": {
+          "resultWrapper": "DeleteResult"
+        }
+      },
+      "GetBucketAcl": {
+        "output": {
+          "resultWrapper": "AccessControlPolicy"
+        }
+      },
+      "GetBucketCors": {
+        "output": {
+          "resultWrapper": "CORSConfiguration"
+        }
+      },
+      "GetBucketEncryption": {
+        "output": {
+          "resultWrapper": "ServerSideEncryptionConfiguration"
+        }
+      },
+      "GetBucketLifecycleConfiguration": {
+        "output": {
+          "resultWrapper": "LifecycleConfiguration"
+        }
+      },
+      "GetBucketLocation": {
+        "output": {
+          "resultWrapper": "LocationConstraint"
+        }
+      },
+      "GetBucketLogging": {
+        "output": {
+          "resultWrapper": "BucketLoggingStatus"
+        }
+      },
+      "GetBucketNotificationConfiguration": {
+        "output": {
+          "resultWrapper": "NotificationConfiguration"
+        }
+      },
+      "GetBucketOwnershipControls": {
+        "output": {
+          "resultWrapper": "OwnershipControls"
+        }
+      },
+      "GetBucketReplication": {
+        "output": {
+          "resultWrapper": "ReplicationConfiguration"
+        }
+      },
+      "GetBucketTagging": {
+        "output": {
+          "resultWrapper": "Tagging"
+        }
+      },
+      "GetObjectAcl": {
+        "output": {
+          "resultWrapper": "AccessControlPolicy"
+        }
+      },
+      "GetObjectAttributes": {
+        "output": {
+          "resultWrapper": "GetObjectAttributesOutput"
+        }
+      },
+      "GetObjectLegalHold": {
+        "output": {
+          "resultWrapper": "LegalHold"
+        }
+      },
+      "GetObjectLockConfiguration": {
+        "output": {
+          "resultWrapper": "ObjectLockConfiguration"
+        }
+      },
+      "GetObjectTagging": {
+        "output": {
+          "resultWrapper": "Tagging"
+        }
+      },
+      "GetPublicAccessBlock": {
+        "output": {
+          "resultWrapper": "PublicAccessBlockConfiguration"
+        }
+      },
+      "ListBuckets": {
+        "output": {
+          "resultWrapper": "ListAllMyBucketsResult"
+        }
+      },
+      "ListMultipartUploads": {
+        "output": {
+          "resultWrapper": "ListMultipartUploadsResult"
+        }
+      },
+      "ListObjectVersions": {
+        "output": {
+          "resultWrapper": "ListVersionsResult"
+        }
+      },
+      "ListObjects": {
+        "output": {
+          "resultWrapper": "ListBucketResult"
+        }
+      },
+      "ListObjectsV2": {
+        "output": {
+          "resultWrapper": "ListBucketResult"
+        }
+      }
+    }
+  }
+}
