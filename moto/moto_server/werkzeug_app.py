@@ -44,6 +44,7 @@ UNSIGNED_ACTIONS = {
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
+    "bedrock-agentcore": "bedrock-agentcore-control",
     "eventbridge": "events",
     "execute-api": "iot",
     "iotdata": "data.iot",
