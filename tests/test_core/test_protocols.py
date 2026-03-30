@@ -153,7 +153,7 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
         "json": "application/x-amz-json-1.0",
         "query": "text/xml",
         "query-json": "application/json",
-        "rest-xml": "text/xml",
+        "rest-xml": "application/xml",
         "rest-json": "application/json",
     }
     if resp["body"]:
