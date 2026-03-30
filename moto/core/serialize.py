@@ -741,7 +741,8 @@ class BaseRestSerializer(ResponseSerializer):
                 )
         if "headers" in serialized_result:
             resp["headers"].update(serialized_result["headers"])
-        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        if resp["body"]:
+            resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialize_result(self, resp: ResponseDict, result: Any) -> ResponseDict:
