@@ -676,7 +676,8 @@ class BaseXMLSerializer(ResponseSerializer):
                 self._default_serialize(serialized, "", shape, key)
             return
         if shape.is_flattened:
-            self._default_serialize(serialized, list_obj, shape.member, key)
+            items_name = self.get_serialized_name(shape, key)
+            self._default_serialize(serialized, list_obj, shape.member, items_name)
         else:
             items_name = self.get_serialized_name(shape.member, "member")
             self._default_serialize(serialized, {items_name: list_obj}, shape, key)
