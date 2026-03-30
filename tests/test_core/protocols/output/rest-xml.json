@@ -1333,5 +1333,78 @@
         }
       }
     ]
+  },
+  {
+    "description": "XML Attribute",
+    "metadata": {
+      "protocol": "rest-xml",
+      "apiVersion": "2014-01-01"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "Grant": {
+            "shape": "Grant"
+          }
+        },
+        "payload": "Grant"
+      },
+      "Grant": {
+        "type": "structure",
+        "locationName": "Grant",
+        "members": {
+          "Grantee": {
+            "shape": "Grantee"
+          }
+        }
+      },
+      "Grantee": {
+        "type": "structure",
+        "members": {
+          "Type": {
+            "shape": "Type",
+            "locationName": "xsi:type",
+            "xmlAttribute": true
+          },
+          "EmailAddress": {
+            "shape": "StringType"
+          }
+        },
+        "xmlNamespace": {
+          "prefix": "xsi",
+          "uri": "http://www.w3.org/2001/XMLSchema-instance"
+        }
+      },
+      "Type": {
+        "type": "string"
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "Grant": {
+            "Grantee": {
+              "EmailAddress": "foo@example.com",
+              "Type": "CanonicalUser"
+            }
+          }
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<Grant><Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"CanonicalUser\"><EmailAddress>foo@example.com</EmailAddress></Grantee></Grant>"
+        }
+      }
+    ]
   }
 ]
