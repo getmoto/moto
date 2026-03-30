@@ -563,7 +563,7 @@ class BaseXMLSerializer(ResponseSerializer):
 
     def _serialize_namespace_attribute(self, serialized: Serialized) -> None:
         if (
-            self.CONTENT_TYPE == "text/xml"
+            self.CONTENT_TYPE in ["application/xml", "text/xml"]
             and "xmlNamespace" in self.operation_model.metadata
         ):
             namespace = self.operation_model.metadata["xmlNamespace"]
@@ -801,6 +801,7 @@ class BaseRestSerializer(ResponseSerializer):
 
 
 class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
+    CONTENT_TYPE = "application/xml"
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601
 
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
@@ -1005,6 +1006,35 @@ class EC2Serializer(QuerySerializer):
         return resp
 
 
+class S3Serializer(RestXMLSerializer):
+    DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601_ZEROED
+
+    def _serialized_result_to_response(
+        self,
+        resp: ResponseDict,
+        result: Any,
+        shape: Optional[StructureShape],
+        serialized_result: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        # GetBucketLocation response cannot be modeled properly, so we handle it as a one-off here.
+        # Ref: https://smithy.io/2.0/aws/customizations/s3-customizations.html#aws-customizations-s3unwrappedxmloutput-trait
+        if self.operation_model.name == "GetBucketLocation":
+            location = result.get("LocationConstraint", "")
+            serialized_result["body"] = {"#text": location}
+        return super()._serialized_result_to_response(
+            resp, result, shape, serialized_result
+        )
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> str:
+        body_serialized = xmltodict.unparse(
+            body,
+            full_document=True,
+            pretty=self.pretty_print,
+            short_empty_elements=True,
+        )
+        return body_serialized
+
+
 DoublePassEncoding = namedtuple(
     "DoublePassEncoding", ["char", "marker", "escape_sequence"]
 )
@@ -1080,10 +1110,9 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
-SERVICE_SPECIFIC_SERIALIZERS = {
-    "sqs": {
-        "query": SqsQuerySerializer,
-    }
+SERVICE_SPECIFIC_SERIALIZERS: dict[str, dict[str, type[ResponseSerializer]]] = {
+    "s3": {"rest-xml": S3Serializer},
+    "sqs": {"query": SqsQuerySerializer},
 }
 
 
