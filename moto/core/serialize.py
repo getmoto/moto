@@ -602,6 +602,8 @@ class BaseXMLSerializer(ResponseSerializer):
             result_key = shape.serialization["payload"]
         else:
             result_key = f"{self.operation_model.name}Response"
+        if shape is not None:
+            result_key = shape.serialization.get("resultWrapper", result_key)
         result_wrapper = {
             result_key: serialized_result,
         }
