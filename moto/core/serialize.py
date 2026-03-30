@@ -690,6 +690,22 @@ class BaseXMLSerializer(ResponseSerializer):
         string_value = str(value)
         self._default_serialize(serialized, string_value, shape, key)
 
+    def _default_serialize(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        if xml_namespace := shape.serialization.get("xmlNamespace"):
+            wrapper = self.MAP_TYPE()
+            namespace_key = "@xmlns"
+            if xml_namespace_prefix := xml_namespace.get("prefix"):
+                namespace_key = f"{namespace_key}:{xml_namespace_prefix}"
+            wrapper[namespace_key] = xml_namespace.get("uri")
+            value = wrapper | value
+        if shape.serialization.get("xmlAttribute", False):
+            serialization_key = "@" + self.get_serialized_name(shape, key)
+        else:
+            serialization_key = self.get_serialized_name(shape, key)
+        serialized[serialization_key] = value
+
 
 class BaseRestSerializer(ResponseSerializer):
     EMPTY_BODY: Serialized = ResponseSerializer.MAP_TYPE()
