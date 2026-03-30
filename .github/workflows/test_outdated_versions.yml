@@ -4,6 +4,10 @@ name: "Outdated Dependency Tests"
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/test_outdated_versions.yml"
+      - "moto/core/**"
+      - "tests/test_core/**"
     types: [ labeled ]
 
 jobs:
