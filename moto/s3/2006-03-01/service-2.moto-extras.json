@@ -120,6 +120,95 @@
           "resultWrapper": "ListBucketResult"
         }
       }
+    },
+    "shapes": {
+      "BucketAlreadyOwnedByYou": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 409},
+        "exception": true
+      },
+      "BucketNotEmpty": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 409},
+        "exception": true
+      },
+      "InvalidRequest": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "exception": true
+      },
+      "NoSuchBucketPolicy": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchCORSConfiguration": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchLifecycleConfiguration": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchTagSet": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchWebsiteConfiguration": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "OwnershipControlsNotFoundError": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "ReplicationConfigurationNotFoundError": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "ServerSideEncryptionConfigurationNotFoundError": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      }
     }
   }
 }
