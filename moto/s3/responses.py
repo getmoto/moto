@@ -28,10 +28,13 @@ from moto.s3bucket_path.utils import (
 )
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
+from ..core.exceptions import ServiceException, SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
     BucketAccessDeniedError,
     BucketAlreadyExists,
+    BucketAlreadyOwnedByYou,
+    BucketNotEmpty,
     DuplicateTagKeys,
     HeadOnDeleteMarker,
     IllegalLocationConstraintException,
@@ -54,13 +57,22 @@ from .exceptions import (
     MissingRequestBody,
     MissingUploadObjectWithObjectLockHeaders,
     MissingVersion,
+    NoSuchBucketPolicy,
+    NoSuchCORSConfiguration,
+    NoSuchLifecycleConfiguration,
+    NoSuchTagSet,
+    NoSuchWebsiteConfiguration,
     NoSystemTags,
     NotAnIntegerException,
     ObjectNotInActiveTierError,
+    OwnershipControlsNotFoundError,
     PreconditionFailed,
     RangeNotSatisfiable,
+    ReplicationConfigurationNotFoundError,
     S3AclAndGrantError,
     S3ClientError,
+    ServerSideEncryptionConfigurationNotFoundError,
+    VersioningNotEnabledForReplication,
 )
 from .models import (
     FakeAcl,
@@ -371,6 +383,8 @@ class S3Response(BaseResponse):
             response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
+        except ServiceException as e:
+            response = self.serialized(ActionResult(e))
 
         return self._send_response(response)
 
@@ -1051,8 +1065,7 @@ class S3Response(BaseResponse):
         elif "replication" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.is_versioned:
-                template = self.response_template(S3_NO_VERSIONING_ENABLED)
-                return 400, {}, template.render(bucket_name=bucket_name)
+                raise VersioningNotEnabledForReplication(bucket_name=bucket_name)
             replication_config = self._replication_config_from_xml(self.body)
             self.backend.put_bucket_replication(bucket_name, replication_config)
             return ""
@@ -1110,8 +1123,7 @@ class S3Response(BaseResponse):
                         # us-east-1 has different behavior - creating a bucket there is an idempotent operation
                         pass
                     else:
-                        template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
-                        return 409, {}, template.render(bucket_name=bucket_name)
+                        raise BucketAlreadyOwnedByYou(bucket_name=bucket_name)
                 else:
                     raise
 
@@ -1152,10 +1164,10 @@ class S3Response(BaseResponse):
         return self.serialized(ActionResult(self._acl_to_dict(acl)))
 
     def get_bucket_cors(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketCors"
         cors = self.backend.get_bucket_cors(self.bucket_name)
         if len(cors) == 0:
-            template = self.response_template(S3_NO_CORS_CONFIG)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchCORSConfiguration(bucket_name=self.bucket_name)
         cors_rules = [
             {
                 "ID": rule.id_,
@@ -1167,14 +1179,15 @@ class S3Response(BaseResponse):
             }
             for rule in cors
         ]
-        self.data["Action"] = "GetBucketCors"
         return self.serialized(ActionResult({"CORSRules": cors_rules}))
 
     def get_bucket_encryption(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketEncryption"
         encryption = self.backend.get_bucket_encryption(self.bucket_name)
         if not encryption:
-            template = self.response_template(S3_NO_ENCRYPTION)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise ServerSideEncryptionConfigurationNotFoundError(
+                bucket_name=self.bucket_name
+            )
         rule = encryption["Rule"]
         result_rule: dict[str, Any] = {
             "ApplyServerSideEncryptionByDefault": rule[
@@ -1191,11 +1204,11 @@ class S3Response(BaseResponse):
             )
         )
 
-    def get_bucket_lifecycle(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_lifecycle(self) -> TYPE_RESPONSE:
+        self.data["Action"] = "GetBucketLifecycleConfiguration"
         rules = self.backend.get_bucket_lifecycle(self.bucket_name)
         if not rules:
-            template = self.response_template(S3_NO_LIFECYCLE)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchLifecycleConfiguration(bucket_name=self.bucket_name)
 
         lifecycle_rules = []
         for rule in rules:
@@ -1285,7 +1298,6 @@ class S3Response(BaseResponse):
             "Rules": lifecycle_rules,
             "TransitionDefaultMinimumObjectSize": TransitionDefaultMinimumObjectSize.ALL_STORAGE_CLASSES_128K.value,
         }
-        self.data["Action"] = "GetBucketLifecycleConfiguration"
         return self.serialized(ActionResult(result))
 
     def get_bucket_location(self) -> TYPE_RESPONSE:
@@ -1358,11 +1370,10 @@ class S3Response(BaseResponse):
         return self.serialized(ActionResult(result))
 
     def get_bucket_ownership_controls(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketOwnershipControls"
         ownership_rule = self.backend.get_bucket_ownership_controls(self.bucket_name)
         if not ownership_rule:
-            template = self.response_template(S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        self.data["Action"] = "GetBucketOwnershipControls"
+            raise OwnershipControlsNotFoundError(bucket_name=self.bucket_name)
         return self.serialized(
             ActionResult(
                 {
@@ -1376,15 +1387,14 @@ class S3Response(BaseResponse):
     def get_bucket_policy(self) -> Union[str, TYPE_RESPONSE]:
         policy = self.backend.get_bucket_policy(self.bucket_name)
         if not policy:
-            template = self.response_template(S3_NO_POLICY)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchBucketPolicy(bucket_name=self.bucket_name)
         return 200, {}, policy
 
     def get_bucket_replication(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketReplication"
         replication = self.backend.get_bucket_replication(self.bucket_name)
         if not replication:
-            template = self.response_template(S3_NO_REPLICATION)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise ReplicationConfigurationNotFoundError(bucket_name=self.bucket_name)
         rules = [
             {
                 "ID": rule["ID"],
@@ -1396,7 +1406,6 @@ class S3Response(BaseResponse):
             }
             for rule in replication["Rule"]
         ]
-        self.data["Action"] = "GetBucketReplication"
         return self.serialized(
             ActionResult(
                 {
@@ -1409,12 +1418,11 @@ class S3Response(BaseResponse):
         )
 
     def get_bucket_tags(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketTagging"
         tags = self.backend.get_bucket_tagging(self.bucket_name)["Tags"]
         # "Special Error" if no tags:
         if len(tags) == 0:
-            template = self.response_template(S3_NO_BUCKET_TAGGING)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        self.data["Action"] = "GetBucketTagging"
+            raise NoSuchTagSet(bucket_name=self.bucket_name)
         return self.serialized(ActionResult({"TagSet": tags}))
 
     def get_bucket_versioning(self) -> TYPE_RESPONSE:
@@ -1428,8 +1436,7 @@ class S3Response(BaseResponse):
             self.bucket_name
         )
         if not website_configuration:
-            template = self.response_template(S3_NO_BUCKET_WEBSITE_CONFIG)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchWebsiteConfiguration(bucket_name=self.bucket_name)
         return 200, {}, website_configuration
 
     def get_object_acl(self) -> TYPE_RESPONSE:
@@ -1560,15 +1567,14 @@ class S3Response(BaseResponse):
         return self.delete_bucket()
 
     def delete_bucket(self) -> TYPE_RESPONSE:
+        self.data["Action"] = "DeleteBucket"
         removed_bucket = self.backend.delete_bucket(self.bucket_name)
         if removed_bucket:
             # Bucket exists
-            self.data["Action"] = "DeleteBucket"
             return self.serialized(EmptyResult())
         else:
             # Tried to delete a bucket that still has keys
-            template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return 409, {}, template.render(bucket_name=self.bucket_name)
+            raise BucketNotEmpty(bucket_name=self.bucket_name)
 
     def delete_bucket_ownership_controls(self) -> TYPE_RESPONSE:
         self.backend.delete_bucket_ownership_controls(self.bucket_name)
@@ -1915,7 +1921,7 @@ class S3Response(BaseResponse):
         if not key and signed_url and not authorized_request:
             # coming in from requests.get(s3.generate_presigned_url())
             if self._invalid_headers(request.url, dict(request.headers)):
-                return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
+                raise SignatureDoesNotMatchError()
 
         body = self.body or b""
 
@@ -3215,131 +3221,3 @@ class S3Response(BaseResponse):
 
 
 S3ResponseInstance = S3Response()
-
-S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error><Code>BucketNotEmpty</Code>
-<Message>The bucket you tried to delete is not empty</Message>
-<BucketName>{{ bucket_name }}</BucketName>
-<RequestId>asdfasdfsdafds</RequestId>
-<HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
-</Error>"""
-
-
-S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchBucketPolicy</Code>
-  <Message>The bucket policy does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_LIFECYCLE = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchLifecycleConfiguration</Code>
-  <Message>The lifecycle configuration does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_BUCKET_TAGGING = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchTagSet</Code>
-  <Message>The TagSet does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_BUCKET_WEBSITE_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchWebsiteConfiguration</Code>
-  <Message>The specified bucket does not have a website configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_INVALID_CORS_REQUEST = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchWebsiteConfiguration</Code>
-  <Message>The specified bucket does not have a website configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_CORS_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchCORSConfiguration</Code>
-  <Message>The CORS configuration does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_INVALID_PRESIGNED_PARAMETERS = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>SignatureDoesNotMatch</Code>
-  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_ENCRYPTION = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>ServerSideEncryptionConfigurationNotFoundError</Code>
-  <Message>The server side encryption configuration was not found</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>BucketAlreadyOwnedByYou</Code>
-  <Message>Your previous request to create the named bucket succeeded and you already own it.</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_REPLICATION = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>ReplicationConfigurationNotFoundError</Code>
-  <Message>The replication configuration was not found</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
-  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
-</Error>
-"""
-
-S3_NO_VERSIONING_ENABLED = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>InvalidRequest</Code>
-  <Message>Versioning must be 'Enabled' on the bucket to apply a replication configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
-  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
-</Error>
-"""
-
-S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND = """
-<Error>
-    <Code>OwnershipControlsNotFoundError</Code>
-    <Message>The bucket ownership controls were not found</Message>
-    <BucketName>{{bucket_name}}</BucketName>
-    <RequestId>294PFVCB9GFVXY2S</RequestId>
-    <HostId>l/tqqyk7HZbfvFFpdq3+CAzA9JXUiV4ZajKYhwolOIpnmlvZrsI88AKsDLsgQI6EvZ9MuGHhk7M=</HostId>
-</Error>
-"""
