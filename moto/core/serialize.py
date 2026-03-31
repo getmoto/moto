@@ -1007,6 +1007,9 @@ class EC2Serializer(QuerySerializer):
 
 
 class S3Serializer(RestXMLSerializer):
+    DEFAULT_HOST_ID = (
+        "9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg="
+    )
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601_ZEROED
 
     def _serialized_result_to_response(
@@ -1024,6 +1027,38 @@ class S3Serializer(RestXMLSerializer):
         return super()._serialized_result_to_response(
             resp, result, shape, serialized_result
         )
+
+    def _serialize_error_metadata(
+        self,
+        serialized: MutableMapping[str, Any],
+        error: Exception,
+        shape: ErrorShape,
+    ) -> None:
+        serialized["Code"] = shape.error_code
+        message = getattr(error, "message", None)
+        if message is not None:
+            serialized["Message"] = message
+        # Serialize any error model attributes.
+        self._serialize(serialized, error, shape, "")
+        # S3 includes RequestId and HostId in the error response.
+        serialized["RequestId"] = self.context.request_id
+        serialized["HostId"] = self.DEFAULT_HOST_ID
+
+    def _serialized_error_to_response(
+        self,
+        resp: ResponseDict,
+        error: Exception,
+        shape: ErrorShape,
+        serialized_error: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        error_wrapper = {"Error": serialized_error}
+        resp["body"] = self._serialize_body(error_wrapper)
+        status_code = shape.metadata.get("error", {}).get(
+            "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
+        )
+        resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        return resp
 
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
         body_serialized = xmltodict.unparse(
