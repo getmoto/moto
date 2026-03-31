@@ -1325,6 +1325,19 @@ def test_website_configuration_xml():
     assert "RedirectAllRequestsTo" not in site_info
     assert "ErrorDocument" not in site_info
 
+    client.delete_bucket_website(Bucket=bucket_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_bucket_website(Bucket=bucket_name)
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchWebsiteConfiguration"
+    assert (
+        error["Message"] == "The specified bucket does not have a website configuration"
+    )
+    assert error["BucketName"] == bucket_name  # type: ignore
+
 
 @mock_aws
 def test_client_get_object_returns_etag():
