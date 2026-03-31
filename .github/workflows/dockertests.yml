@@ -1,12 +1,6 @@
 name: DockerTests
 
-on:
-  push:
-    paths-ignore:
-      - 'README.md'
-    branches:
-      - master
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   cache:
