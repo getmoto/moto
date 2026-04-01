@@ -32,7 +32,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -128,7 +128,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -224,7 +224,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -320,7 +320,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -415,7 +415,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -511,7 +511,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -611,7 +611,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -720,7 +720,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -828,7 +828,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -948,7 +948,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1064,7 +1064,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1180,7 +1180,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1298,7 +1298,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1404,7 +1404,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1510,7 +1510,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1620,7 +1620,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1731,7 +1731,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1834,7 +1834,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -1938,7 +1938,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2058,7 +2058,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2183,7 +2183,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2315,7 +2315,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2425,7 +2425,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2537,7 +2537,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2654,7 +2654,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2762,7 +2762,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2858,7 +2858,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -2967,7 +2967,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3084,7 +3084,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3203,7 +3203,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3326,7 +3326,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3438,7 +3438,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3551,7 +3551,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3666,7 +3666,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3775,7 +3775,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -3897,7 +3897,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4026,7 +4026,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4157,7 +4157,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4292,7 +4292,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4416,7 +4416,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4541,7 +4541,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4668,7 +4668,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4789,7 +4789,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -4911,7 +4911,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5043,7 +5043,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5180,7 +5180,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5324,7 +5324,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5446,7 +5446,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5570,7 +5570,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5699,7 +5699,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5819,7 +5819,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -5927,7 +5927,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6036,7 +6036,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -6164,7 +6164,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6274,7 +6274,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6386,7 +6386,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -6506,7 +6506,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6614,7 +6614,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -6713,7 +6713,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6822,7 +6822,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -6943,7 +6943,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7062,7 +7062,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7179,7 +7179,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7294,7 +7294,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7410,7 +7410,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -7530,7 +7530,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7649,7 +7649,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7767,7 +7767,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -7878,7 +7878,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -7977,7 +7977,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -8414,7 +8414,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -8528,7 +8528,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -8650,7 +8650,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -8896,7 +8896,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -8996,7 +8996,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9214,7 +9214,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9380,7 +9380,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9562,7 +9562,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9688,7 +9688,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9822,7 +9822,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -9972,7 +9972,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -10092,7 +10092,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -10204,7 +10204,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -10312,7 +10312,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -10749,7 +10749,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -10985,7 +10985,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -11123,7 +11123,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -11448,7 +11448,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -11463,7 +11463,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -12437,7 +12437,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -12537,7 +12537,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -12662,7 +12662,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -13083,7 +13083,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -13366,7 +13366,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -13859,7 +13859,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -14660,7 +14660,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15020,7 +15020,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -15242,7 +15242,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15363,7 +15363,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15486,7 +15486,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15613,7 +15613,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15729,7 +15729,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -15851,7 +15851,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -15980,7 +15980,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -16097,7 +16097,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -16216,7 +16216,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -16326,7 +16326,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -16428,7 +16428,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -16528,7 +16528,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -16640,7 +16640,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -17346,7 +17346,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -17779,7 +17779,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -18259,7 +18259,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -18779,7 +18779,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -19002,7 +19002,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19157,7 +19157,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -19331,7 +19331,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19446,7 +19446,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19569,7 +19569,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19708,7 +19708,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19817,7 +19817,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -19918,7 +19918,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -20018,7 +20018,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -20972,7 +20972,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -21516,7 +21516,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -21675,7 +21675,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -23972,7 +23972,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -24689,7 +24689,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -25075,7 +25075,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -25390,7 +25390,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -27427,7 +27427,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -28488,7 +28488,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35333,7 +35333,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35452,7 +35452,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35575,7 +35575,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35699,7 +35699,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35816,7 +35816,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -35938,7 +35938,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36062,7 +36062,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36190,7 +36190,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36312,7 +36312,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36444,7 +36444,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36566,7 +36566,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36690,7 +36690,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36816,7 +36816,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -36944,7 +36944,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -37084,7 +37084,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -37250,7 +37250,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -37406,7 +37406,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -37548,7 +37548,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -37678,7 +37678,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -37812,7 +37812,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -37956,7 +37956,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -38105,7 +38105,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38251,7 +38251,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38389,7 +38389,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38524,7 +38524,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38660,7 +38660,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38797,7 +38797,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -38931,7 +38931,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -39085,7 +39085,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -39243,7 +39243,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -39384,7 +39384,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -39527,7 +39527,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -39676,7 +39676,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -39806,7 +39806,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -39946,7 +39946,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -40082,7 +40082,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -40218,7 +40218,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -40324,8 +40324,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40354,7 +40354,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -40457,8 +40457,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -40487,7 +40487,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -40593,8 +40593,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -40623,7 +40623,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -40756,7 +40756,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -40892,7 +40892,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -40995,8 +40995,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41013,7 +41013,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41179,8 +41179,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -41197,7 +41197,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41325,7 +41325,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41443,8 +41443,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41461,7 +41461,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41595,8 +41595,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -41612,7 +41612,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41727,7 +41727,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -41863,7 +41863,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -42016,7 +42016,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -42440,8 +42440,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -42625,7 +42625,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -42743,8 +42743,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -43037,8 +43037,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -43067,7 +43067,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -43218,7 +43218,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -43369,7 +43369,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -43528,7 +43528,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -43672,7 +43672,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -43847,7 +43847,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -43965,8 +43965,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -43995,7 +43995,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -44146,7 +44146,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -44288,7 +44288,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -44432,7 +44432,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -44580,7 +44580,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -44691,8 +44691,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44721,7 +44721,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -44833,8 +44833,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45894,7 +45894,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46042,7 +46042,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -46164,8 +46164,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -46194,7 +46194,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46323,7 +46323,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46453,7 +46453,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46571,7 +46571,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46693,7 +46693,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -46811,7 +46811,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -46927,7 +46927,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47076,7 +47076,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47184,7 +47184,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47292,7 +47292,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47400,7 +47400,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -47949,7 +47949,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48068,7 +48068,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48183,7 +48183,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48306,7 +48306,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48423,7 +48423,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48553,7 +48553,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48671,7 +48671,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48793,7 +48793,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -48923,7 +48923,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -49038,7 +49038,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -49436,7 +49436,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -49681,7 +49681,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -49807,7 +49807,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -49927,7 +49927,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -50038,7 +50038,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50160,7 +50160,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -50341,7 +50341,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50463,7 +50463,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50593,7 +50593,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50739,7 +50739,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50855,7 +50855,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -50973,7 +50973,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -51521,7 +51521,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -51804,7 +51804,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -52171,7 +52171,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -52591,7 +52591,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -52888,7 +52888,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -53188,7 +53188,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -54260,7 +54260,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -54683,7 +54683,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -54816,7 +54816,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -55280,7 +55280,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -55447,7 +55447,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -55630,7 +55630,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -55845,7 +55845,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -55972,7 +55972,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -56189,7 +56189,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -56324,7 +56324,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -56475,7 +56475,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -56595,7 +56595,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -56703,7 +56703,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -56815,7 +56815,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -58623,7 +58623,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -58808,7 +58808,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -58934,7 +58934,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59068,7 +59068,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59218,7 +59218,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59338,7 +59338,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59461,7 +59461,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -59625,7 +59625,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59764,7 +59764,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -59907,7 +59907,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60045,7 +60045,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60191,7 +60191,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60338,7 +60338,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60482,7 +60482,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60620,7 +60620,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60741,7 +60741,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -60870,7 +60870,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61015,7 +61015,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61130,7 +61130,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61244,7 +61244,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61361,7 +61361,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61461,7 +61461,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61562,7 +61562,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61671,7 +61671,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61779,7 +61779,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -61896,7 +61896,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62009,7 +62009,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62124,7 +62124,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62235,7 +62235,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62343,7 +62343,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62452,7 +62452,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62557,7 +62557,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62669,7 +62669,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62787,7 +62787,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -62893,7 +62893,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63003,7 +63003,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63106,7 +63106,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63210,7 +63210,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63330,7 +63330,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63454,7 +63454,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63585,7 +63585,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63695,7 +63695,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63807,7 +63807,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -63923,7 +63923,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64031,7 +64031,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64127,7 +64127,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64236,7 +64236,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64348,7 +64348,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64469,7 +64469,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64582,7 +64582,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64692,7 +64692,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64804,7 +64804,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -64919,7 +64919,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65028,7 +65028,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65149,7 +65149,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65273,7 +65273,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65406,7 +65406,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65531,7 +65531,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65653,7 +65653,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65777,7 +65777,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -65904,7 +65904,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66025,7 +66025,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66146,7 +66146,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66278,7 +66278,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66414,7 +66414,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66557,7 +66557,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66679,7 +66679,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66803,7 +66803,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -66931,7 +66931,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67051,7 +67051,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67159,7 +67159,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67280,7 +67280,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67412,7 +67412,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67548,7 +67548,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -67695,7 +67695,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67817,7 +67817,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -67941,7 +67941,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68069,7 +68069,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68189,7 +68189,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -68300,7 +68300,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68410,7 +68410,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68530,7 +68530,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68654,7 +68654,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -68789,7 +68789,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -68899,7 +68899,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69011,7 +69011,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69127,7 +69127,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69235,7 +69235,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -69334,7 +69334,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69444,7 +69444,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -69567,7 +69567,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69677,7 +69677,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69788,7 +69788,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -69902,7 +69902,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70010,7 +70010,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -70109,7 +70109,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70219,7 +70219,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70337,7 +70337,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70453,7 +70453,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70570,7 +70570,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70685,7 +70685,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -70801,7 +70801,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -70921,7 +70921,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -71040,7 +71040,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -71158,7 +71158,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -71269,7 +71269,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -71368,7 +71368,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -71805,7 +71805,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -72287,7 +72287,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -72953,7 +72953,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -73213,7 +73213,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -73363,7 +73363,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -73813,7 +73813,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -73828,7 +73828,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 4,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 18.75,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -74198,7 +74198,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -74902,7 +74902,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -75301,7 +75301,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -75731,7 +75731,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -75858,7 +75858,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -75989,7 +75989,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -76349,7 +76349,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -76497,7 +76497,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -76653,7 +76653,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -76800,7 +76800,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -76928,7 +76928,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -77097,7 +77097,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77229,7 +77229,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77369,7 +77369,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77493,7 +77493,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -77613,7 +77613,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77727,7 +77727,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77743,7 +77743,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -77863,7 +77863,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -77879,7 +77879,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -78007,7 +78007,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78023,7 +78023,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -78142,7 +78142,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78258,7 +78258,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -78277,7 +78277,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -78288,7 +78288,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -78415,7 +78415,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78535,7 +78535,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78551,7 +78551,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -78663,7 +78663,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78775,7 +78775,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -78883,7 +78883,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -78997,7 +78997,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79118,7 +79118,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79241,7 +79241,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79368,7 +79368,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79484,7 +79484,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79606,7 +79606,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -79735,7 +79735,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79852,7 +79852,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -79971,7 +79971,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -80081,7 +80081,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -80183,7 +80183,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -80283,7 +80283,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -80724,7 +80724,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -81210,7 +81210,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -81311,7 +81311,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -81887,7 +81887,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -83257,7 +83257,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -83381,7 +83381,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -83490,7 +83490,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -83600,7 +83600,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -84303,7 +84303,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -84545,7 +84545,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -84750,7 +84750,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -84850,7 +84850,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -88016,7 +88016,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -88136,7 +88136,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -88732,7 +88732,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -88838,7 +88838,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -91084,7 +91084,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -91849,7 +91849,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -92389,7 +92389,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -92622,7 +92622,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -93370,17 +93370,38 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    },
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    }
+   ],
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 240000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 240000,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 120000,
+    "BaselineIops": 480000,
+    "BaselineThroughputInMBps": 15000.0,
+    "MaximumBandwidthInMbps": 120000,
+    "MaximumIops": 480000,
+    "MaximumThroughputInMBps": 15000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
    "MaximumEbsAttachments": 128,
+   "MaximumEbsCards": 2,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
@@ -98989,7 +99010,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99083,7 +99104,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99189,7 +99210,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99283,7 +99304,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99376,7 +99397,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99470,7 +99491,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99564,7 +99585,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99658,7 +99679,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99770,7 +99791,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -99905,7 +99926,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -100028,7 +100049,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -100175,7 +100196,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -100334,7 +100355,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -100518,7 +100539,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -100702,7 +100723,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -101101,7 +101122,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -101252,7 +101273,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -101651,7 +101672,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -102507,7 +102528,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -102626,7 +102647,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -102741,7 +102762,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -102856,7 +102877,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -102972,7 +102993,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103077,7 +103098,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103195,7 +103216,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103301,7 +103322,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103411,7 +103432,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103529,7 +103550,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103632,7 +103653,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103736,7 +103757,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103856,7 +103877,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -103980,7 +104001,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104111,7 +104132,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104221,7 +104242,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104333,7 +104354,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104449,7 +104470,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104557,7 +104578,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104653,7 +104674,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104762,7 +104783,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104874,7 +104895,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -104995,7 +105016,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105108,7 +105129,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105218,7 +105239,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105330,7 +105351,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105445,7 +105466,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105554,7 +105575,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105675,7 +105696,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105799,7 +105820,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -105932,7 +105953,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106057,7 +106078,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106179,7 +106200,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106303,7 +106324,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106430,7 +106451,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106551,7 +106572,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106660,7 +106681,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106780,7 +106801,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -106904,7 +106925,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107036,7 +107057,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107146,7 +107167,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107258,7 +107279,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107374,7 +107395,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107482,7 +107503,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107578,7 +107599,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107700,7 +107721,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107832,7 +107853,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -107968,7 +107989,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108111,7 +108132,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108233,7 +108254,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108357,7 +108378,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108485,7 +108506,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108605,7 +108626,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108713,7 +108734,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108834,7 +108855,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -108966,7 +108987,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109102,7 +109123,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -109249,7 +109270,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109371,7 +109392,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109495,7 +109516,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109623,7 +109644,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109743,7 +109764,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -109854,7 +109875,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -109964,7 +109985,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110084,7 +110105,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110208,7 +110229,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -110343,7 +110364,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110453,7 +110474,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110565,7 +110586,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110681,7 +110702,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110789,7 +110810,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -110888,7 +110909,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -110998,7 +111019,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111116,7 +111137,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111232,7 +111253,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111349,7 +111370,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111464,7 +111485,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111580,7 +111601,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -111700,7 +111721,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111819,7 +111840,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -111934,7 +111955,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -112045,7 +112066,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -112144,7 +112165,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -112581,7 +112602,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113163,7 +113184,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113259,7 +113280,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113381,7 +113402,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113547,7 +113568,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113729,7 +113750,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113855,7 +113876,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -113989,7 +114010,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -114139,7 +114160,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -114259,7 +114280,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -114371,7 +114392,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -114479,7 +114500,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -114974,7 +114995,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -115087,7 +115108,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -115105,7 +115126,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 9,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 120,
@@ -115348,7 +115369,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -115363,7 +115384,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 0,
      "BaselineBandwidthInGbps": 12.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumEnaQueueCount": 64,
@@ -115467,7 +115488,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -115578,7 +115599,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -116634,7 +116655,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -116888,7 +116909,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -117125,7 +117146,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -117273,7 +117294,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -117429,7 +117450,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -117576,7 +117597,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -117704,7 +117725,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -117873,7 +117894,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118005,7 +118026,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118145,7 +118166,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118269,7 +118290,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -118389,7 +118410,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118503,7 +118524,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118519,7 +118540,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 2,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -118639,7 +118660,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118655,7 +118676,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 1,
      "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 240,
@@ -118783,7 +118804,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -118799,7 +118820,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 9,
      "BaselineBandwidthInGbps": 150.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 480,
@@ -118918,7 +118939,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119034,7 +119055,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -119053,7 +119074,7 @@
    "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -119064,7 +119085,7 @@
      "PeakBandwidthInGbps": 200.0
     },
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 4,
      "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumEnaQueueCount": 256,
@@ -119191,7 +119212,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119311,7 +119332,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119327,7 +119348,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "AdditionalFlexibleNetworkInterfaces": 0,
+     "AdditionalFlexibleNetworkInterfaces": 2,
      "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumEnaQueueCount": 128,
@@ -119439,7 +119460,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119551,7 +119572,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -119659,7 +119680,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119773,7 +119794,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -119894,7 +119915,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120017,7 +120038,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120144,7 +120165,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120260,7 +120281,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120382,7 +120403,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -120511,7 +120532,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120628,7 +120649,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120747,7 +120768,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120857,7 +120878,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -120959,7 +120980,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -121059,7 +121080,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -121171,7 +121192,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -121326,7 +121347,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -121877,7 +121898,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -122310,7 +122331,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -123807,7 +123828,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -124077,7 +124098,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -124236,7 +124257,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -124894,7 +124915,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125027,7 +125048,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125168,7 +125189,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125281,7 +125302,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -125424,7 +125445,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125541,7 +125562,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125666,7 +125687,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125775,7 +125796,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -125871,7 +125892,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -125971,7 +125992,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -128108,7 +128129,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -128566,7 +128587,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -129034,7 +129055,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -129139,7 +129160,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -131004,7 +131025,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -131587,7 +131608,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -131719,7 +131740,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -132597,7 +132618,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -133462,17 +133483,38 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "dedicated",
+   "EbsCards": [
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 0,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    },
+    {
+     "BaselineBandwidthInMbps": 60000,
+     "BaselineIops": 240000,
+     "BaselineThroughputInMBps": 7500.0,
+     "EbsCardIndex": 1,
+     "MaximumBandwidthInMbps": 60000,
+     "MaximumIops": 240000,
+     "MaximumThroughputInMBps": 7500.0
+    }
+   ],
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 240000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 240000,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 120000,
+    "BaselineIops": 480000,
+    "BaselineThroughputInMBps": 15000.0,
+    "MaximumBandwidthInMbps": 120000,
+    "MaximumIops": 480000,
+    "MaximumThroughputInMBps": 15000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
    "MaximumEbsAttachments": 128,
+   "MaximumEbsCards": 2,
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
@@ -139062,7 +139104,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139150,7 +139192,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139237,7 +139279,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139324,7 +139366,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139412,7 +139454,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139500,7 +139542,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139587,7 +139629,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -139675,7 +139717,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140311,7 +140353,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140527,7 +140569,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140636,7 +140678,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140744,7 +140786,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140852,7 +140894,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -140960,7 +141002,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -141068,7 +141110,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -141176,7 +141218,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -142053,7 +142095,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -142185,7 +142227,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -142407,7 +142449,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -142692,7 +142734,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -142834,7 +142876,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -143130,7 +143172,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -143258,7 +143300,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -143386,7 +143428,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -143513,7 +143555,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -144011,7 +144053,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -144185,7 +144227,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -144359,7 +144401,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -144546,7 +144588,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -144666,7 +144708,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -144781,7 +144823,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -144896,7 +144938,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145027,7 +145069,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145158,7 +145200,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145288,7 +145330,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145406,7 +145448,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145536,7 +145578,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145658,7 +145700,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145788,7 +145830,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -145904,7 +145946,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146065,7 +146107,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146242,7 +146284,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146363,7 +146405,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146492,7 +146534,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146637,7 +146679,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146752,7 +146794,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146859,7 +146901,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -146967,7 +147009,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -147364,7 +147406,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -147629,7 +147671,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -147765,7 +147807,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -148031,7 +148073,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -148310,7 +148352,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -148658,7 +148700,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -148781,7 +148823,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -148891,7 +148933,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -149003,7 +149045,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -149117,7 +149159,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -149232,7 +149274,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -150389,7 +150431,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -150549,7 +150591,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -150725,7 +150767,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -150936,7 +150978,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -151056,7 +151098,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -151266,7 +151308,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -151394,7 +151436,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -151538,7 +151580,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -151652,7 +151694,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -151758,7 +151800,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -151862,7 +151904,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaInfo": {
@@ -151967,7 +152009,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -153951,7 +153993,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154082,7 +154124,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154204,7 +154246,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154327,7 +154369,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154453,7 +154495,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154573,7 +154615,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
@@ -154681,7 +154723,7 @@
    "ConnectionTrackingConfiguration": {
     "DefaultTcpEstablishedTimeout": 432000,
     "DefaultUdpStreamTimeout": 180,
-    "DefaultUdpTimeout": 60
+    "DefaultUdpTimeout": 30
    },
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
