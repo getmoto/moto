@@ -19,4 +19,5 @@ url_paths = {
     "{0}/tags/(?P<resourceArn>[^/]+)?tagKeys=(?P<tagKeys>[^/]+)$": VPCLatticeResponse.dispatch,
     "{0}/resourcepolicy/(?P<resourceIdentifier>.+)$": VPCLatticeResponse.dispatch,
     "{0}/authpolicy/(?P<resourceIdentifier>.+)$": VPCLatticeResponse.dispatch,
+    "{0}/servicenetworkvpcassociations/(?P<serviceNetworkIdentifier>.+)$": VPCLatticeResponse.dispatch,
 }
