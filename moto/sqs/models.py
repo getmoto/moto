@@ -568,6 +568,8 @@ class Queue(CloudFormationModel):
             self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
+            if not esm.enabled:
+                continue
             backend = sqs_backends[self.account_id][self.region]
 
             """
