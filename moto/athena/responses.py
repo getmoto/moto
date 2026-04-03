@@ -1,5 +1,5 @@
 import json
-from typing import Union
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 
@@ -215,6 +215,24 @@ class AthenaResponse(BaseResponse):
     def get_data_catalog(self) -> str:
         name = self._get_param("Name")
         return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
+
+    def get_database(self) -> str:
+        catalog_name = self._get_param("CatalogName")
+        database_name = self._get_param("DatabaseName")
+        database = self.athena_backend.get_database(catalog_name, database_name)
+        return json.dumps({"Database": database})
+
+    def list_databases(self) -> str:
+        catalog_name = self._get_param("CatalogName")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        database_list, new_next_token = self.athena_backend.list_databases(
+            catalog_name, max_results, next_token
+        )
+        result: dict[str, Any] = {"DatabaseList": database_list}
+        if new_next_token:
+            result["NextToken"] = new_next_token
+        return json.dumps(result)
 
     def create_data_catalog(self) -> Union[tuple[str, dict[str, int]], str]:
         name = self._get_param("Name")
