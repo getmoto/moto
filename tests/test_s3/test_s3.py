@@ -3661,3 +3661,21 @@ def test_list_buckets_with_bucket_region():
     resp = client.list_buckets(BucketRegion="us-east-2")
 
     assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_bucket]
+
+
+@mock_aws
+def test_list_buckets_with_prefix_and_bucket_region():
+    client = boto3.client("s3", region_name="us-east-1")
+    prefix = "prefix"
+    us_east_1_prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+    us_east_2_prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+
+    client.create_bucket(Bucket=us_east_1_prefixed_bucket)
+    client.create_bucket(
+        Bucket=us_east_2_prefixed_bucket,
+        CreateBucketConfiguration={"LocationConstraint": "us-east-2"},
+    )
+
+    resp = client.list_buckets(Prefix=prefix, BucketRegion="us-east-2")
+
+    assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_prefixed_bucket]
