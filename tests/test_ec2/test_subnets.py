@@ -1007,6 +1007,43 @@ def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
             ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])
 
 
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_private_dns_name_options(ec2_client=None, vpc_id=None):
+    subnet = None
+    try:
+        subnet = ec2_client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.0.0/24",
+        )["Subnet"]
+
+        assert "PrivateDnsNameOptionsOnLaunch" in subnet
+        assert subnet["PrivateDnsNameOptionsOnLaunch"]["HostnameType"] == "ip-name"
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsARecord"]
+            is False
+        )
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsAAAARecord"]
+            is False
+        )
+
+        ec2_client.modify_subnet_attribute(
+            SubnetId=subnet["SubnetId"],
+            EnableResourceNameDnsARecordOnLaunch={"Value": True},
+        )
+        subnet = ec2_client.describe_subnets(SubnetIds=[subnet["SubnetId"]])["Subnets"][
+            0
+        ]
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsARecord"]
+            is True
+        )
+    finally:
+        if subnet:
+            ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+
 @mock_aws
 def test_create_subnet_cidr_reservations() -> None:
     ec2 = boto3.client("ec2", region_name="us-west-1")
