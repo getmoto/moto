@@ -1938,8 +1938,29 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.table_buckets[bucket_name] = new_bucket
         return new_bucket
 
-    def list_buckets(self) -> list[FakeBucket]:
-        return list(self.buckets.values())
+    def list_buckets(
+        self,
+        prefix: Optional[str],
+        bucket_region: Optional[str],
+        max_buckets: Optional[str],
+    ) -> list[FakeBucket]:
+        buckets = self.buckets
+        if prefix:
+            buckets = {
+                name: bucket
+                for name, bucket in buckets.items()
+                if name.startswith(prefix)
+            }
+        if bucket_region:
+            buckets = {
+                name: bucket
+                for name, bucket in buckets.items()
+                if bucket.region_name == bucket_region
+            }
+        filtered_buckets = list(buckets.values())
+        if max_buckets:
+            return filtered_buckets[: int(max_buckets)]
+        return filtered_buckets
 
     def get_bucket(self, bucket_name: str) -> FakeBucket:
         if bucket_name in self.buckets:
