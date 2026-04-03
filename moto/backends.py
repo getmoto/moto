@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from moto.batch.models import BatchBackend
     from moto.bedrock.models import BedrockBackend
     from moto.bedrockagent.models import AgentsforBedrockBackend
+    from moto.bedrockagentcorecontrol.models import BedrockAgentCoreControlBackend
     from moto.bedrockruntime.models import BedrockRuntimeBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
@@ -218,6 +219,7 @@ SERVICE_NAMES = Union[
     "Literal['batch']",
     "Literal['bedrock']",
     "Literal['bedrock-agent']",
+    "Literal['bedrock-agentcore-control']",
     "Literal['bedrock-runtime']",
     "Literal['budgets']",
     "Literal['ce']",
@@ -412,6 +414,10 @@ def get_backend(name: "Literal['bedrock']") -> "BackendDict[BedrockBackend]": ..
 def get_backend(
     name: "Literal['bedrock-agent']",
 ) -> "BackendDict[AgentsforBedrockBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['bedrock-agentcore-control']",
+) -> "BackendDict[BedrockAgentCoreControlBackend]": ...
 @overload
 def get_backend(
     name: "Literal['bedrock-runtime']",

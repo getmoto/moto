@@ -23,6 +23,7 @@ include moto/rds/*/*.json
 include moto/rds/resources/cluster_options/*.json
 include moto/rds/resources/option_group_options/*.json
 include moto/route53/*/*.json
+include moto/s3/*/*.json
 include moto/s3control/*/*.json
 include moto/sqs/*/*.json
 include moto/ssm/resources/*.json

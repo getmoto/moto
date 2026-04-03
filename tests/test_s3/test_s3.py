@@ -270,10 +270,14 @@ def test_create_existing_bucket():
     client.create_bucket(**kwargs)
     with pytest.raises(ClientError) as ex:
         client.create_bucket(**kwargs)
-    assert ex.value.response["Error"]["Code"] == "BucketAlreadyOwnedByYou"
-    assert ex.value.response["Error"]["Message"] == (
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 409
+    error = ex.value.response["Error"]
+    assert error["Code"] == "BucketAlreadyOwnedByYou"
+    assert error["Message"] == (
         "Your previous request to create the named bucket succeeded and you already own it."
     )
+    assert error["BucketName"] == kwargs["Bucket"]  # type: ignore
 
 
 @aws_verified
@@ -388,13 +392,16 @@ def test_bucket_deletion():
     # Try to delete a bucket that still has keys
     with pytest.raises(ClientError) as ex:
         client.delete_bucket(Bucket=bucket_name)
-    assert ex.value.response["Error"]["Code"] == "BucketNotEmpty"
-    assert ex.value.response["Error"]["Message"] == (
-        "The bucket you tried to delete is not empty"
-    )
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 409
+    error = ex.value.response["Error"]
+    assert error["Code"] == "BucketNotEmpty"
+    assert error["Message"] == "The bucket you tried to delete is not empty"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
     client.delete_object(Bucket=bucket_name, Key="the-key")
-    client.delete_bucket(Bucket=bucket_name)
+    resp = client.delete_bucket(Bucket=bucket_name)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # Delete non-existent bucket
     with pytest.raises(ClientError) as ex:
@@ -1264,8 +1271,12 @@ def test_policy():
 
     with pytest.raises(ClientError) as ex:
         client.get_bucket_policy(Bucket=bucket_name)
-    assert ex.value.response["Error"]["Code"] == "NoSuchBucketPolicy"
-    assert ex.value.response["Error"]["Message"] == "The bucket policy does not exist"
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchBucketPolicy"
+    assert error["Message"] == "The bucket policy does not exist"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
     client.put_bucket_policy(Bucket=bucket_name, Policy=policy)
 
@@ -1275,7 +1286,12 @@ def test_policy():
 
     with pytest.raises(ClientError) as ex:
         client.get_bucket_policy(Bucket=bucket_name)
-    assert ex.value.response["Error"]["Code"] == "NoSuchBucketPolicy"
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchBucketPolicy"
+    assert error["Message"] == "The bucket policy does not exist"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws
@@ -1308,6 +1324,19 @@ def test_website_configuration_xml():
 
     assert "RedirectAllRequestsTo" not in site_info
     assert "ErrorDocument" not in site_info
+
+    client.delete_bucket_website(Bucket=bucket_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_bucket_website(Bucket=bucket_name)
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchWebsiteConfiguration"
+    assert (
+        error["Message"] == "The specified bucket does not have a website configuration"
+    )
+    assert error["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws
@@ -1351,7 +1380,7 @@ def test_delimiter_optional_in_response():
 
 
 @mock_aws
-def test_list_objects_with_pagesize_0():
+def test_list_objects_with_max_keys_0():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid.uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
@@ -2224,15 +2253,14 @@ def test_delete_bucket_cors(bucket_name=None):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # Verify deletion:
-    with pytest.raises(ClientError) as err:
+    with pytest.raises(ClientError) as ex:
         s3_client.get_bucket_cors(Bucket=bucket_name)
-
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "NoSuchCORSConfiguration"
-    assert (
-        err_value.response["Error"]["Message"]
-        == "The CORS configuration does not exist"
-    )
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchCORSConfiguration"
+    assert error["Message"] == "The CORS configuration does not exist"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws
@@ -2985,9 +3013,9 @@ def test_presigned_put_url_with_approved_headers():
     assert response.status_code == 403
     assert "<Code>SignatureDoesNotMatch</Code>" in str(response.content)
     assert (
-        "<Message>The request signature we calculated does not match the "
-        "signature you provided. Check your key and signing method.</Message>"
-    ) in str(response.content)
+        "The request signature we calculated does not match the signature you provided"
+        in str(response.content)
+    )
 
     # Verify S3 throws an error when the header has the wrong value
     kwargs = {"data": content, "headers": {"Content-Type": "application/unknown"}}
@@ -2997,9 +3025,9 @@ def test_presigned_put_url_with_approved_headers():
     assert response.status_code == 403
     assert "<Code>SignatureDoesNotMatch</Code>" in str(response.content)
     assert (
-        "<Message>The request signature we calculated does not match the "
-        "signature you provided. Check your key and signing method.</Message>"
-    ) in str(response.content)
+        "The request signature we calculated does not match the signature you provided"
+        in str(response.content)
+    )
 
     # Verify S3 uploads correctly when providing the meta data
     kwargs = {"data": content, "headers": {"Content-Type": expected_contenttype}}

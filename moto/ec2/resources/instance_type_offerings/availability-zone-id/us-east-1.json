@@ -20200,6 +20200,10 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "mac-m4max.metal",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "mac-m4pro.metal",
   "Location": "use1-az6"
  },

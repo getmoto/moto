@@ -563,7 +563,7 @@ class BaseXMLSerializer(ResponseSerializer):
 
     def _serialize_namespace_attribute(self, serialized: Serialized) -> None:
         if (
-            self.CONTENT_TYPE == "text/xml"
+            self.CONTENT_TYPE in ["application/xml", "text/xml"]
             and "xmlNamespace" in self.operation_model.metadata
         ):
             namespace = self.operation_model.metadata["xmlNamespace"]
@@ -602,6 +602,8 @@ class BaseXMLSerializer(ResponseSerializer):
             result_key = shape.serialization["payload"]
         else:
             result_key = f"{self.operation_model.name}Response"
+        if shape is not None:
+            result_key = shape.serialization.get("resultWrapper", result_key)
         result_wrapper = {
             result_key: serialized_result,
         }
@@ -676,7 +678,8 @@ class BaseXMLSerializer(ResponseSerializer):
                 self._default_serialize(serialized, "", shape, key)
             return
         if shape.is_flattened:
-            self._default_serialize(serialized, list_obj, shape.member, key)
+            items_name = self.get_serialized_name(shape, key)
+            self._default_serialize(serialized, list_obj, shape.member, items_name)
         else:
             items_name = self.get_serialized_name(shape.member, "member")
             self._default_serialize(serialized, {items_name: list_obj}, shape, key)
@@ -688,6 +691,22 @@ class BaseXMLSerializer(ResponseSerializer):
     ) -> None:
         string_value = str(value)
         self._default_serialize(serialized, string_value, shape, key)
+
+    def _default_serialize(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        if xml_namespace := shape.serialization.get("xmlNamespace"):
+            wrapper = self.MAP_TYPE()
+            namespace_key = "@xmlns"
+            if xml_namespace_prefix := xml_namespace.get("prefix"):
+                namespace_key = f"{namespace_key}:{xml_namespace_prefix}"
+            wrapper[namespace_key] = xml_namespace.get("uri")
+            value = wrapper | value
+        if shape.serialization.get("xmlAttribute", False):
+            serialization_key = "@" + self.get_serialized_name(shape, key)
+        else:
+            serialization_key = self.get_serialized_name(shape, key)
+        serialized[serialization_key] = value
 
 
 class BaseRestSerializer(ResponseSerializer):
@@ -722,7 +741,8 @@ class BaseRestSerializer(ResponseSerializer):
                 )
         if "headers" in serialized_result:
             resp["headers"].update(serialized_result["headers"])
-        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        if resp["body"]:
+            resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialize_result(self, resp: ResponseDict, result: Any) -> ResponseDict:
@@ -781,6 +801,7 @@ class BaseRestSerializer(ResponseSerializer):
 
 
 class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
+    CONTENT_TYPE = "application/xml"
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601
 
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
@@ -985,6 +1006,70 @@ class EC2Serializer(QuerySerializer):
         return resp
 
 
+class S3Serializer(RestXMLSerializer):
+    DEFAULT_HOST_ID = (
+        "9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg="
+    )
+    DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601_ZEROED
+
+    def _serialized_result_to_response(
+        self,
+        resp: ResponseDict,
+        result: Any,
+        shape: Optional[StructureShape],
+        serialized_result: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        # GetBucketLocation response cannot be modeled properly, so we handle it as a one-off here.
+        # Ref: https://smithy.io/2.0/aws/customizations/s3-customizations.html#aws-customizations-s3unwrappedxmloutput-trait
+        if self.operation_model.name == "GetBucketLocation":
+            location = result.get("LocationConstraint", "")
+            serialized_result["body"] = {"#text": location}
+        return super()._serialized_result_to_response(
+            resp, result, shape, serialized_result
+        )
+
+    def _serialize_error_metadata(
+        self,
+        serialized: MutableMapping[str, Any],
+        error: Exception,
+        shape: ErrorShape,
+    ) -> None:
+        serialized["Code"] = shape.error_code
+        message = getattr(error, "message", None)
+        if message is not None:
+            serialized["Message"] = message
+        # Serialize any error model attributes.
+        self._serialize(serialized, error, shape, "")
+        # S3 includes RequestId and HostId in the error response.
+        serialized["RequestId"] = self.context.request_id
+        serialized["HostId"] = self.DEFAULT_HOST_ID
+
+    def _serialized_error_to_response(
+        self,
+        resp: ResponseDict,
+        error: Exception,
+        shape: ErrorShape,
+        serialized_error: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        error_wrapper = {"Error": serialized_error}
+        resp["body"] = self._serialize_body(error_wrapper)
+        status_code = shape.metadata.get("error", {}).get(
+            "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
+        )
+        resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        return resp
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> str:
+        body_serialized = xmltodict.unparse(
+            body,
+            full_document=True,
+            pretty=self.pretty_print,
+            short_empty_elements=True,
+        )
+        return body_serialized
+
+
 DoublePassEncoding = namedtuple(
     "DoublePassEncoding", ["char", "marker", "escape_sequence"]
 )
@@ -1060,10 +1145,9 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
-SERVICE_SPECIFIC_SERIALIZERS = {
-    "sqs": {
-        "query": SqsQuerySerializer,
-    }
+SERVICE_SPECIFIC_SERIALIZERS: dict[str, dict[str, type[ResponseSerializer]]] = {
+    "s3": {"rest-xml": S3Serializer},
+    "sqs": {"query": SqsQuerySerializer},
 }
 
 
