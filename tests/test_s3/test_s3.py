@@ -3604,3 +3604,30 @@ def test_list_bucket_inventory_configurations():
         ]
         == DEFAULT_ACCOUNT_ID
     )
+
+
+@mock_aws
+def test_list_buckets():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = str(uuid.uuid4())
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets()
+    assert [b["Name"] for b in resp["Buckets"]] == [bucket, bucket2]
+
+
+@mock_aws
+def test_list_buckets_with_prefix():
+    client = boto3.client("s3", region_name="us-east-1")
+    prefix = "prefix"
+    prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=prefixed_bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets(Prefix=prefix)
+    assert [b["Name"] for b in resp["Buckets"]] == [prefixed_bucket]

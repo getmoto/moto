@@ -241,7 +241,8 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action()
 
         # No bucket specified. Listing all buckets
-        all_buckets = self.backend.list_buckets()
+        prefix = self._get_param("prefix")
+        all_buckets = self.backend.list_buckets(prefix=prefix)
         buckets = [
             {"Name": bucket.name, "CreationDate": bucket.creation_date_ISO8601}
             for bucket in all_buckets
