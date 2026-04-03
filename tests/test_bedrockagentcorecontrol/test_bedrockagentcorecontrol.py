@@ -949,3 +949,183 @@ def test_update_gateway_target_with_optional_fields():
         targetId=target_id,
     )
     assert get_resp["metadataConfiguration"] == metadata_config
+
+
+@mock_aws
+def test_create_memory():
+    client = _create_client()
+    resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        description="Test memory",
+    )
+    memory = resp["memory"]
+    assert memory["id"] is not None
+    assert memory["name"] == "my_memory"
+    assert memory["eventExpiryDuration"] == 30
+    assert memory["status"] == "CREATING"
+    assert "arn" in memory
+    assert "createdAt" in memory
+
+
+@mock_aws
+def test_create_memory_with_strategies():
+    client = _create_client()
+    resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        memoryStrategies=[
+            {"semanticMemoryStrategy": {"name": "semantic_strat"}},
+            {"summaryMemoryStrategy": {"name": "summary_strat"}},
+        ],
+    )
+    memory = resp["memory"]
+    assert len(memory["strategies"]) == 2
+    types = {s["type"] for s in memory["strategies"]}
+    assert types == {"SEMANTIC", "SUMMARIZATION"}
+
+
+@mock_aws
+def test_get_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        description="Test memory",
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    get_resp = client.get_memory(memoryId=memory_id)
+    memory = get_resp["memory"]
+    assert memory["id"] == memory_id
+    assert memory["name"] == "my_memory"
+    assert memory["description"] == "Test memory"
+    assert memory["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_memory_not_found():
+    client = _create_client()
+    with pytest.raises(ClientError) as exc:
+        client.get_memory(memoryId="mnonexist00-abcdef0123")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_update_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    update_resp = client.update_memory(
+        memoryId=memory_id,
+        description="Updated memory",
+        eventExpiryDuration=60,
+    )
+    memory = update_resp["memory"]
+    assert memory["description"] == "Updated memory"
+    assert memory["eventExpiryDuration"] == 60
+
+
+@mock_aws
+def test_delete_memory():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+    )
+    memory_id = create_resp["memory"]["id"]
+
+    del_resp = client.delete_memory(memoryId=memory_id)
+    assert del_resp["status"] == "DELETING"
+    assert del_resp["memoryId"] == memory_id
+
+    with pytest.raises(ClientError) as exc:
+        client.get_memory(memoryId=memory_id)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_memories():
+    client = _create_client()
+
+    resp = client.list_memories()
+    assert resp["memories"] == []
+
+    client.create_memory(
+        name="memory_one",
+        eventExpiryDuration=30,
+    )
+    client.create_memory(
+        name="memory_two",
+        eventExpiryDuration=60,
+    )
+
+    resp = client.list_memories()
+    assert len(resp["memories"]) == 2
+
+
+@mock_aws
+def test_create_memory_with_all_optional_fields_and_tags():
+    client = _create_client()
+    resp = client.create_memory(
+        name="full_memory",
+        eventExpiryDuration=30,
+        description="Full memory",
+        encryptionKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123",
+        memoryExecutionRoleArn="arn:aws:iam::123456789012:role/MemoryRole",
+        tags={"env": "prod"},
+    )
+    memory = resp["memory"]
+    assert memory["encryptionKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert (
+        memory["memoryExecutionRoleArn"] == "arn:aws:iam::123456789012:role/MemoryRole"
+    )
+
+    tags = client.list_tags_for_resource(resourceArn=memory["arn"])["tags"]
+    assert tags == {"env": "prod"}
+
+
+@mock_aws
+def test_update_memory_with_strategies():
+    client = _create_client()
+    create_resp = client.create_memory(
+        name="my_memory",
+        eventExpiryDuration=30,
+        memoryStrategies=[
+            {"semanticMemoryStrategy": {"name": "strat_one"}},
+        ],
+    )
+    memory_id = create_resp["memory"]["id"]
+    strat_id = create_resp["memory"]["strategies"][0]["strategyId"]
+
+    # Add a strategy, modify the existing one, then delete it
+    update_resp = client.update_memory(
+        memoryId=memory_id,
+        memoryExecutionRoleArn="arn:aws:iam::123456789012:role/MemoryRole",
+        memoryStrategies={
+            "addMemoryStrategies": [
+                {"summaryMemoryStrategy": {"name": "strat_two"}},
+            ],
+            "modifyMemoryStrategies": [
+                {
+                    "memoryStrategyId": strat_id,
+                    "description": "Modified",
+                    "namespaces": ["ns1"],
+                },
+            ],
+            "deleteMemoryStrategies": [
+                {"memoryStrategyId": strat_id},
+            ],
+        },
+    )
+    memory = update_resp["memory"]
+    assert (
+        memory["memoryExecutionRoleArn"] == "arn:aws:iam::123456789012:role/MemoryRole"
+    )
+    # After delete, only strat_two remains
+    assert len(memory["strategies"]) == 1
+    assert memory["strategies"][0]["name"] == "strat_two"
