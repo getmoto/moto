@@ -289,7 +289,6 @@ class BedrockAgentCoreControlResponse(BaseResponse):
                 "credentialProviderConfigurations"
             ),
             metadata_configuration=params.get("metadataConfiguration"),
-            tags=params.get("tags"),
         )
         result = target.to_dict()
         result["status"] = "CREATING"
