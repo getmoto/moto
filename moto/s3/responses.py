@@ -242,7 +242,10 @@ class S3Response(BaseResponse):
 
         # No bucket specified. Listing all buckets
         prefix = self._get_param("prefix")
-        all_buckets = self.backend.list_buckets(prefix=prefix)
+        bucket_region = self._get_param("bucket-region")
+        all_buckets = self.backend.list_buckets(
+            prefix=prefix, bucket_region=bucket_region
+        )
         buckets = [
             {"Name": bucket.name, "CreationDate": bucket.creation_date_ISO8601}
             for bucket in all_buckets
