@@ -3620,6 +3620,19 @@ def test_list_buckets():
 
 
 @mock_aws
+def test_list_buckets_with_max_buckets():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = str(uuid.uuid4())
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets(MaxBuckets=1)
+    assert [b["Name"] for b in resp["Buckets"]] == [bucket]
+
+
+@mock_aws
 def test_list_buckets_with_prefix():
     client = boto3.client("s3", region_name="us-east-1")
     prefix = "prefix"
