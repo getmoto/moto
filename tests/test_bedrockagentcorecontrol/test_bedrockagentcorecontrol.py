@@ -914,38 +914,6 @@ def test_update_gateway_with_optional_fields():
 
 
 @mock_aws
-def test_create_gateway_target_with_optional_fields_and_tags():
-    client = _create_client()
-    gw = client.create_gateway(
-        name="my-gateway",
-        roleArn=GATEWAY_ROLE_ARN,
-        protocolType="MCP",
-        authorizerType="NONE",
-    )
-    gateway_id = gw["gatewayId"]
-
-    metadata_config = {"customMetadataField": "value"}
-    resp = client.create_gateway_target(
-        gatewayIdentifier=gateway_id,
-        name="my-target",
-        targetConfiguration=TARGET_CONFIG,
-        credentialProviderConfigurations=CREDENTIAL_PROVIDER_CONFIGS,
-        description="Tagged target",
-        metadataConfiguration=metadata_config,
-        tags={"env": "prod"},
-    )
-    target_id = resp["targetId"]
-    assert resp["metadataConfiguration"] == metadata_config
-
-    tags = client.list_tags_for_resource(resourceArn=resp["gatewayArn"])["tags"]
-    assert tags == {"env": "prod"}
-
-    targets = client.list_gateway_targets(gatewayIdentifier=gateway_id)["items"]
-    described = [t for t in targets if t["targetId"] == target_id]
-    assert described[0]["description"] == "Tagged target"
-
-
-@mock_aws
 def test_update_gateway_target_with_optional_fields():
     client = _create_client()
     gw = client.create_gateway(

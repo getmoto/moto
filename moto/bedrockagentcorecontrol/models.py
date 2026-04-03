@@ -803,7 +803,6 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         description: Optional[str],
         credential_provider_configurations: Optional[list[dict[str, Any]]],
         metadata_configuration: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
     ) -> GatewayTarget:
         gateway = self._get_gateway(gateway_identifier)
         target = GatewayTarget(
@@ -817,11 +816,6 @@ class BedrockAgentCoreControlBackend(BaseBackend):
             metadata_configuration=metadata_configuration,
         )
         self.gateway_targets[(gateway.gateway_id, target.target_id)] = target
-        if tags:
-            self.tagger.tag_resource(
-                target.gateway_arn,
-                [{"Key": k, "Value": v} for k, v in tags.items()],
-            )
         return target
 
     def get_gateway_target(
