@@ -247,7 +247,7 @@ class DynamoType:
                 val.to_regular_json() if isinstance(val, DynamoType) else val
                 for val in value
             ]
-        if self.is_binary():
+        if self.is_binary() and isinstance(value, str):
             value = base64.b64decode(value)
         return {self.type: value}
 

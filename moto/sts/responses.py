@@ -151,3 +151,8 @@ class TokenResponse(BaseResponse):
             "Arn": arn,
         }
         return ActionResult(result)
+
+    def get_access_key_info(self) -> ActionResult:
+        access_key_id = self._get_param("AccessKeyId")
+        result = self.backend.get_access_key_info(access_key_id)
+        return ActionResult(result)

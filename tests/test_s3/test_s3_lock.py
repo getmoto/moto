@@ -483,6 +483,10 @@ def test_put_object_legal_hold_with_versions():
         VersionId=version_id_1,
         LegalHold={"Status": "ON"},
     )
+    resp = s3_client.get_object_legal_hold(
+        Bucket=bucket_name, Key=key_name, VersionId=version_id_1
+    )
+    assert resp["LegalHold"]["Status"] == "ON"
 
     # put an object on the same key, effectively creating a version 2 of the object
     put_obj_2 = s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
@@ -494,6 +498,10 @@ def test_put_object_legal_hold_with_versions():
         VersionId=version_id_2,
         LegalHold={"Status": "ON"},
     )
+    resp = s3_client.get_object_legal_hold(
+        Bucket=bucket_name, Key=key_name, VersionId=version_id_2
+    )
+    assert resp["LegalHold"]["Status"] == "ON"
 
     # assert that the version 1 is locked
     head_obj_1 = s3_client.head_object(

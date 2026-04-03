@@ -1,3 +1,4 @@
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -41,3 +42,57 @@ def test_meta_data_default_role() -> None:
     assert "SecretAccessKey" in json_response
     assert "Token" in json_response
     assert "Expiration" in json_response
+
+
+@mock_aws
+def test_imdsv2_token() -> None:
+    res = requests.put(
+        f"{BASE_URL}/latest/api/token",
+        headers={"x-aws-ec2-metadata-token-ttl-seconds": "21600"},
+    )
+    assert res.status_code == 200
+    assert res.text == "fake-imdsv2-token"
+
+
+@mock_aws
+def test_imdsv2_flow() -> None:
+    token_res = requests.put(
+        f"{BASE_URL}/latest/api/token",
+        headers={"x-aws-ec2-metadata-token-ttl-seconds": "21600"},
+    )
+    assert token_res.status_code == 200
+    token = token_res.text
+
+    headers = {"x-aws-ec2-metadata-token": token}
+
+    role_res = requests.get(
+        f"{BASE_URL}/latest/meta-data/iam/security-credentials/", headers=headers
+    )
+    assert role_res.status_code == 200
+    role = role_res.text
+
+    creds_res = requests.get(
+        f"{BASE_URL}/latest/meta-data/iam/security-credentials/{role}", headers=headers
+    )
+    assert creds_res.status_code == 200
+    creds = creds_res.json()
+    assert "AccessKeyId" in creds
+    assert "SecretAccessKey" in creds
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "path,expected",
+    # random collection of metadata paths
+    [
+        ("instance-id", "i-fake"),
+        ("ami-id", "ami-moto-virtual"),
+        ("reservation-id", "r-moto-virtual"),
+        ("security-groups", "moto-default"),
+        ("mac", "00:de:ad:be:ef:00"),
+    ],
+)
+def test_common_metadata_paths(path: str, expected: str) -> None:
+    res = requests.get(f"{BASE_URL}/latest/meta-data/{path}")
+    assert res.status_code == 200
+    assert res.text == expected

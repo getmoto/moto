@@ -601,10 +601,12 @@ def test_lifecycle_delete():
 
     with pytest.raises(ClientError) as ex:
         client.get_bucket_lifecycle_configuration(Bucket=bucket.name)
-    assert ex.value.response["Error"]["Code"] == "NoSuchLifecycleConfiguration"
-    assert ex.value.response["Error"]["Message"] == (
-        "The lifecycle configuration does not exist"
-    )
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "NoSuchLifecycleConfiguration"
+    assert error["Message"] == "The lifecycle configuration does not exist"
+    assert error["BucketName"] == bucket.name  # type: ignore
 
 
 @mock_aws

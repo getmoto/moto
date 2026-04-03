@@ -1,0 +1,8 @@
+{
+  "version": 1.0,
+  "merge": {
+    "metadata": {
+      "xmlNamespace": "http://awss3control.amazonaws.com/doc/2018-08-20/"
+    }
+  }
+}

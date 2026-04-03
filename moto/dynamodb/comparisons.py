@@ -4,7 +4,10 @@ from collections.abc import Iterable
 from decimal import Decimal
 from typing import Any, Optional, Union
 
-from moto.dynamodb.exceptions import ConditionAttributeIsReservedKeyword
+from moto.dynamodb.exceptions import (
+    ConditionAttributeIsReservedKeyword,
+    InvalidConditionExpression,
+)
 from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
@@ -215,6 +218,7 @@ class ConditionExpressionParser:
         nodes = self._apply_between(nodes)
         nodes = self._apply_parens_and_booleans(nodes)
         node = nodes[0]
+        self._assert_no_redundant_parentheses(node)
 
         self.expr_attr_names_found.extend(self._find_literals(node))
         self.expr_attr_values_found.extend(self._find_expr_attr_values(node))
@@ -890,6 +894,26 @@ class ConditionExpressionParser:
             )
         else:  # pragma: no cover
             raise ValueError(f"Unknown expression node kind {node.kind}")
+
+    def _assert_no_redundant_parentheses(
+        self, node: Node, parent_kind: Optional[str] = None
+    ) -> None:
+        if node.kind == self.Kind.PARENTHESES:
+            (child,) = node.children
+            if self._is_redundant_parenthesized_child(parent_kind, child.kind):
+                raise InvalidConditionExpression(
+                    "The expression has redundant parentheses;"
+                )
+            self._assert_no_redundant_parentheses(child, parent_kind)
+            return
+
+        for child in node.children:
+            self._assert_no_redundant_parentheses(child, node.kind)
+
+    def _is_redundant_parenthesized_child(
+        self, parent_kind: Optional[str], child_kind: str
+    ) -> bool:
+        return child_kind == self.Kind.PARENTHESES
 
     def _assert(self, condition: bool, message: str, nodes: Iterable[Node]) -> None:
         if not condition:

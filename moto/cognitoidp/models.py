@@ -2,8 +2,9 @@ import enum
 import re
 import time
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
+from cryptography.hazmat.primitives.twofactor import InvalidToken
 from joserfc import jwk, jwt
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -15,10 +16,12 @@ from moto.utilities.utils import get_partition, load_resource, md5_hash
 
 from ..settings import (
     get_cognito_idp_user_pool_client_id_strategy,
+    get_cognito_idp_user_pool_enable_totp,
     get_cognito_idp_user_pool_id_strategy,
 )
 from .exceptions import (
     AliasExistsException,
+    CodeMismatchException,
     ExpiredCodeException,
     GroupExistsException,
     InvalidParameterException,
@@ -32,11 +35,15 @@ from .exceptions import (
 from .utils import (
     PAGINATION_MODEL,
     check_secret_hash,
+    cognito_totp,
     expand_attrs,
     flatten_attrs,
     generate_id,
     validate_username_format,
 )
+
+# FIXME: Should be per user and stored in the user's profile
+COGNITO_TOTP_MFA_SECRET: Final[str] = "asdfasdfasdf"
 
 
 class UserStatus(str, enum.Enum):
@@ -846,8 +853,6 @@ class CognitoIdpUser(BaseModel):
         self.enabled = True
         self.attributes = attributes
         self.attribute_lookup = flatten_attrs(attributes)
-        self.create_date = utcnow()
-        self.last_modified_date = utcnow()
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False
@@ -859,6 +864,9 @@ class CognitoIdpUser(BaseModel):
         self.groups: set[CognitoIdpGroup] = set()
 
         self.update_attributes([{"Name": "sub", "Value": self.id}])
+        now = utcnow()
+        self.create_date = now
+        self.last_modified_date = now
 
     def _base_json(self) -> dict[str, Any]:
         return {
@@ -969,8 +977,12 @@ class CognitoIdpBackend(BaseBackend):
     In some cases, you need to have reproducible IDs for the user pool.
     For example, a single initialization before the start of integration tests.
 
-    This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
-    Passing MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH enables the same logic for user pool clients.
+    This behavior can be enabled by passing the environment variable: `MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH`.
+    Passing `MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH` enables the same logic for user pool clients.
+
+    Support for MFA TOTP can be enabled by setting `MOTO_COGNITO_IDP_USER_POOL_ENABLE_TOTP=true`.
+    Moto will validate the TOTP MFA provided by the user when registering MFA or subsequently authenticating.
+    At this time, Moto uses a single fixed secret across all users.
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1719,6 +1731,16 @@ class CognitoIdpBackend(BaseBackend):
                 ):
                     raise NotAuthorizedError(secret_hash)
 
+            if (
+                challenge_name == "SOFTWARE_TOKEN_MFA"
+                and get_cognito_idp_user_pool_enable_totp()
+            ):
+                totp = cognito_totp(COGNITO_TOTP_MFA_SECRET)
+                try:
+                    totp.verify(mfa_code.encode("utf-8"), int(time.time()))
+                except InvalidToken:
+                    raise CodeMismatchException("MFA Code Mismatch")
+
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
 
@@ -2172,7 +2194,7 @@ class CognitoIdpBackend(BaseBackend):
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
-        secret_code = "asdfasdfasdf"
+        secret_code = COGNITO_TOTP_MFA_SECRET
         if session:
             if session in self.sessions:
                 return {"SecretCode": secret_code, "Session": session}
@@ -2187,16 +2209,25 @@ class CognitoIdpBackend(BaseBackend):
 
         raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
-        """
-        The parameter UserCode has not yet been implemented
-        """
+    def verify_software_token(
+        self, access_token: str, session: str, user_code: str, friendly_device_name: str
+    ) -> dict[str, str]:
+        totp = cognito_totp(COGNITO_TOTP_MFA_SECRET)
         if session:
             if session not in self.sessions:
                 raise ResourceNotFoundError(session)
 
             username, user_pool = self.sessions[session]
             user = self.admin_get_user(user_pool.id, username)
+
+            if get_cognito_idp_user_pool_enable_totp():
+                try:
+                    totp.verify(user_code.encode("utf-8"), int(time.time()))
+                except InvalidToken:
+                    raise CodeMismatchException(
+                        f"Code mismatch ({friendly_device_name})"
+                    )
+
             user.token_verified = True
 
             session = str(random.uuid4())
@@ -2207,6 +2238,14 @@ class CognitoIdpBackend(BaseBackend):
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
+
+                if get_cognito_idp_user_pool_enable_totp():
+                    try:
+                        totp.verify(user_code.encode("utf-8"), int(time.time()))
+                    except InvalidToken:
+                        raise CodeMismatchException(
+                            f"Code mismatch ({friendly_device_name})"
+                        )
 
                 user.token_verified = True
 
@@ -2453,9 +2492,17 @@ class RegionAgnosticBackend:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
         return backend.associate_software_token(access_token, session)
 
-    def verify_software_token(self, access_token: str, session: str) -> dict[str, str]:
+    def verify_software_token(
+        self,
+        access_token: str,
+        session: str,
+        user_code: str,
+        friendly_device_name: str,
+    ) -> dict[str, str]:
         backend = self._find_backend_by_access_token_or_session(access_token, session)
-        return backend.verify_software_token(access_token, session)
+        return backend.verify_software_token(
+            access_token, session, user_code, friendly_device_name
+        )
 
     def set_user_mfa_preference(
         self,

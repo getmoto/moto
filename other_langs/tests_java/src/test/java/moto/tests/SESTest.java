@@ -2,11 +2,10 @@ package moto.tests;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
-import software.amazon.awssdk.services.dynamodb.model.Get;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.Body;
 import software.amazon.awssdk.services.ses.model.Content;
@@ -17,10 +16,10 @@ import software.amazon.awssdk.services.ses.model.VerifyEmailAddressRequest;
 import software.amazon.awssdk.services.ses.model.GetSendStatisticsResponse;
 import software.amazon.awssdk.services.ses.model.SesException;
 
-public class SESTest {
+class SESTest {
 
     @Test
-    public void testUnverifiedEmail() {
+    void testUnverifiedEmail() {
         SesClient sesClient = DependencyFactory.sesClient();
 
         Message message = Message
@@ -41,12 +40,12 @@ public class SESTest {
             sesClient.sendEmail(request);
 
         } catch (SesException e) {
-            assertEquals(e.awsErrorDetails().errorMessage(), "Email address not verified noreply@thedomain.com");
+            assertEquals("Email address not verified noreply@thedomain.com", e.awsErrorDetails().errorMessage());
         }
     }
 
     @Test
-    public void testGetSendStatistics() {
+    void testGetSendStatistics() {
         SesClient sesClient = DependencyFactory.sesClient();
 
         VerifyEmailAddressRequest verifyEmailAddressRequest = VerifyEmailAddressRequest.builder().emailAddress("noreply@thedomain.com").build();
@@ -73,6 +72,6 @@ public class SESTest {
         GetSendStatisticsResponse statisticsAfter = sesClient.getSendStatistics();
         Long after = statisticsAfter.sendDataPoints().get(0).deliveryAttempts().longValue();
 
-        assertTrue("Delivery attempts should increase", after > prev);
+        assertTrue(after > prev, "Delivery attempts should increase");
     }
 }

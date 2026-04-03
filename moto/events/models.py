@@ -234,9 +234,10 @@ class Rule(CloudFormationModel):
     ) -> None:
         from moto.sqs import sqs_backends
 
-        event["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
+            )
 
         if group_id:
             queue_attr = sqs_backends[self.account_id][
@@ -1348,9 +1349,8 @@ class EventsBackend(BaseBackend):
         matching_rules = []
 
         for _, rule in event_bus.rules.items():
-            for target in rule.targets:
-                if target["Arn"] == target_arn:
-                    matching_rules.append(rule)
+            if any(target["Arn"] == target_arn for target in rule.targets):
+                matching_rules.append(rule)
 
         return matching_rules
 

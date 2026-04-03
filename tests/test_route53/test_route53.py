@@ -210,8 +210,8 @@ def test_list_resource_record_set_unknown_type():
         conn.list_resource_record_sets(HostedZoneId=zone["Id"], StartRecordType="A")
 
     err = ex.value.response["Error"]
-    assert err["Code"] == "400"
-    assert err["Message"] == "Bad Request"
+    assert err["Code"] == "InvalidInput"
+    assert err["Message"] == "The input is not valid"
 
 
 @mock_aws
@@ -865,14 +865,14 @@ def test_list_hosted_zones_pagination():
     assert "Marker" not in page1
     assert page1["IsTruncated"] is True
     assert "NextMarker" in page1
-    assert "MaxItems" not in page1
+    assert page1["MaxItems"] == "100"
     assert len(page1["HostedZones"]) == 100
 
     page2 = conn.list_hosted_zones(Marker=page1["NextMarker"])
     assert page2["Marker"] == page1["NextMarker"]
     assert page2["IsTruncated"] is False
     assert "NextMarker" not in page2
-    assert "MaxItems" not in page2
+    assert page2["MaxItems"] == "100"
     assert len(page2["HostedZones"]) == 50
 
     small_page = conn.list_hosted_zones(MaxItems="75")
@@ -886,7 +886,7 @@ def test_list_hosted_zones_pagination():
     assert remainer["Marker"] == small_page["NextMarker"]
     assert remainer["IsTruncated"] is False
     assert "NextMarker" not in remainer
-    assert "MaxItems" not in remainer
+    assert remainer["MaxItems"] == "100"
     assert len(remainer["HostedZones"]) == 75
 
 

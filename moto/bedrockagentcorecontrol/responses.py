@@ -362,6 +362,10 @@ class BedrockAgentCoreControlResponse(BaseResponse):
     def _get_path_param(self, name: str) -> str:
         parts = self.parsed_url.path.rstrip("/").split("/")
         if name == "agentRuntimeId":
+            # /runtimes/{agentRuntimeId}
+            # /runtimes/{agentRuntimeId}/versions
+            # /runtimes/{agentRuntimeId}/runtime-endpoints
+            # /runtimes/{agentRuntimeId}/runtime-endpoints/{endpointName}
             idx = parts.index("runtimes") + 1
             return parts[idx]
         elif name == "endpointName":

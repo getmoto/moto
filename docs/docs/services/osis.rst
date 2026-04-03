@@ -20,17 +20,17 @@ osis
 - [ ] create_pipeline_endpoint
 - [X] delete_pipeline
 - [ ] delete_pipeline_endpoint
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] get_pipeline
 - [ ] get_pipeline_blueprint
 - [ ] get_pipeline_change_progress
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [ ] list_pipeline_blueprints
 - [ ] list_pipeline_endpoint_connections
 - [ ] list_pipeline_endpoints
 - [X] list_pipelines
 - [X] list_tags_for_resource
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [ ] revoke_pipeline_endpoint_connections
 - [X] start_pipeline
 - [X] stop_pipeline

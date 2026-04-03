@@ -349,6 +349,7 @@ class ResolverQueryLogConfig(BaseModel):
     MAX_QUERY_LOG_CONFIGS_PER_REGION = 100
 
     FILTER_NAMES = [
+        "id",
         "name",
         "creator_request_id",
         "destination_arn",

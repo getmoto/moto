@@ -123,8 +123,19 @@ def get_error_model(
         if error is not None:
             break
     if error is None:
-        if services_checked and code not in COMMON_ERROR_CODES:
-            warning = f"Exception({exception.__class__.__name__}) with code {code} does not match an eror shape in service models(s): {services_checked}"  # pragma: no cover
+
+        def should_warn() -> bool:
+            if not services_checked:
+                return False
+            if code in COMMON_ERROR_CODES:
+                return False
+            if default_service_model.protocol == "ec2":
+                # EC2 service definition does not contain error models.
+                return False
+            return True
+
+        if should_warn():
+            warning = f"Exception({exception.__class__.__name__}) with code {code} does not match an error shape in service models(s): {services_checked}"  # pragma: no cover
             warn(warning, stacklevel=2)  # pragma: no cover
         error = ErrorShape(
             shape_name=exception.__class__.__name__,
