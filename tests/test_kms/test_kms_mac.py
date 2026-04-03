@@ -41,6 +41,27 @@ def test_generate_mac():
 
 
 @mock_aws
+def test_generate_mac_supports_aliases_for_hmac_keys():
+    # Arrange
+    key_id = create_hmac_key()
+    alias_name = "alias/my-hmac-key"
+    client = boto3.client("kms", region_name="eu-central-1")
+    client.create_alias(AliasName=alias_name, TargetKeyId=key_id)
+
+    # Act
+    resp = client.generate_mac(
+        KeyId=alias_name,
+        MacAlgorithm="HMAC_SHA_512",
+        Message=base64.b64encode(b"Hello World"),
+    )
+
+    # Assert
+    assert "Mac" in resp
+    assert resp["KeyId"] == key_id
+    assert resp["MacAlgorithm"] == "HMAC_SHA_512"
+
+
+@mock_aws
 def test_generate_fails_for_non_existent_key():
     # Arrange
     client = boto3.client("kms", region_name="eu-central-1")

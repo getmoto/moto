@@ -1,44 +1,16 @@
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
-from moto.core.exceptions import RESTError, ServiceException
+from moto.core.exceptions import ServiceException
 
 
-class EC2Error(ServiceException):
+class EC2ClientError(ServiceException):
     pass
 
 
-class DryRunClientError(EC2Error):
+class DryRunClientError(EC2ClientError):
     code = "DryRunOperation"
     message = "Request would have succeeded, but DryRun flag is set."
-
-
-# EC2 has a custom root-tag - <Response> vs <ErrorResponse>
-# `terraform destroy` will complain if the roottag is incorrect
-# See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html#api-error-response
-EC2_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Errors>
-    <Error>
-      <Code>{{error_type}}</Code>
-      <Message>{{message}}</Message>
-    </Error>
-  </Errors>
-  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
-</Response>
-"""
-
-
-class EC2ClientError(RESTError):
-    code = 400
-    # EC2 uses <RequestID> as tag name in the XML response
-    request_id_tag_name = "RequestID"
-    extended_templates = {"custom_response": EC2_ERROR_RESPONSE}
-    env = RESTError.extended_environment(extended_templates)
-
-    def __init__(self, *args: Any, **kwargs: Any):
-        kwargs.setdefault("template", "custom_response")
-        super().__init__(*args, **kwargs)
 
 
 class DefaultVpcAlreadyExists(EC2ClientError):
@@ -929,10 +901,8 @@ class UnknownVpcEndpointService(EC2ClientError):
         )
 
 
-class AuthFailureRestricted(RESTError):
+class AuthFailureRestricted(EC2ClientError):
     """Replicate real world issue https://github.com/aws/aws-cli/issues/1083"""
-
-    code = 401
 
     def __init__(self) -> None:
         super().__init__(

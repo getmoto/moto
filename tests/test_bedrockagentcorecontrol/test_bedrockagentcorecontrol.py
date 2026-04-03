@@ -908,7 +908,9 @@ def test_update_gateway_with_optional_fields():
         exceptionLevel="DEBUG",
     )
     assert update_resp["status"] == "UPDATING"
+    assert update_resp["authorizerConfiguration"]["customJWTAuthorizer"] is not None
     assert update_resp["kmsKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert update_resp["exceptionLevel"] == "DEBUG"
 
 
 @mock_aws
@@ -963,7 +965,7 @@ def test_update_gateway_target_with_optional_fields():
     target_id = create_resp["targetId"]
 
     new_config = {"mcp": {"mcpServer": {"endpoint": "https://example.com/mcp-v2"}}}
-    metadata_config = {"field": "value"}
+    metadata_config = {"allowedRequestHeaders": ["x-header-1", "x-header-2"]}
     update_resp = client.update_gateway_target(
         gatewayIdentifier=gateway_id,
         targetId=target_id,

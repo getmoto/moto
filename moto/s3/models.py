@@ -27,6 +27,7 @@ from moto.core.common_models import (
     CloudWatchMetricProvider,
 )
 from moto.core.utils import (
+    ensure_boolean,
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
     unix_time,
@@ -1022,35 +1023,25 @@ class NotificationConfiguration(BaseModel):
         return data
 
 
-def convert_str_to_bool(item: Any) -> bool:
-    """Converts a boolean string to a boolean value"""
-    if isinstance(item, str):
-        return item.lower() == "true"
-
-    return False
-
-
 class PublicAccessBlock(BaseModel):
     def __init__(
         self,
-        block_public_acls: Optional[str],
-        ignore_public_acls: Optional[str],
-        block_public_policy: Optional[str],
-        restrict_public_buckets: Optional[str],
+        block_public_acls: Optional[Union[str, bool]],
+        ignore_public_acls: Optional[Union[str, bool]],
+        block_public_policy: Optional[Union[str, bool]],
+        restrict_public_buckets: Optional[Union[str, bool]],
     ):
-        # The boto XML appears to expect these values to exist as lowercase strings...
-        self.block_public_acls = block_public_acls or "false"
-        self.ignore_public_acls = ignore_public_acls or "false"
-        self.block_public_policy = block_public_policy or "false"
-        self.restrict_public_buckets = restrict_public_buckets or "false"
+        self.block_public_acls = ensure_boolean(block_public_acls)
+        self.ignore_public_acls = ensure_boolean(ignore_public_acls)
+        self.block_public_policy = ensure_boolean(block_public_policy)
+        self.restrict_public_buckets = ensure_boolean(restrict_public_buckets)
 
     def to_config_dict(self) -> dict[str, bool]:
-        # Need to make the string values booleans for Config:
         return {
-            "blockPublicAcls": convert_str_to_bool(self.block_public_acls),
-            "ignorePublicAcls": convert_str_to_bool(self.ignore_public_acls),
-            "blockPublicPolicy": convert_str_to_bool(self.block_public_policy),
-            "restrictPublicBuckets": convert_str_to_bool(self.restrict_public_buckets),
+            "blockPublicAcls": self.block_public_acls,
+            "ignorePublicAcls": self.ignore_public_acls,
+            "blockPublicPolicy": self.block_public_policy,
+            "restrictPublicBuckets": self.restrict_public_buckets,
         }
 
 
@@ -1062,10 +1053,17 @@ class MultipartDict(dict[str, FakeMultipart]):
 
 
 class FakeBucket(CloudFormationModel):
-    def __init__(self, name: str, account_id: str, region_name: str):
+    def __init__(
+        self,
+        name: str,
+        account_id: str,
+        region_name: str,
+        bucket_namespace: Optional[str] = None,
+    ):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
+        self.bucket_namespace = bucket_namespace
         self.partition = get_partition(region_name)
         self.keys = _VersionedKeyStore()
         self.multiparts = MultipartDict()
@@ -1894,13 +1892,21 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             )
         return metrics
 
-    def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
+    def create_bucket(
+        self,
+        bucket_name: str,
+        region_name: str,
+        bucket_namespace: Optional[str] = None,
+    ) -> FakeBucket:
         if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
         new_bucket = FakeBucket(
-            name=bucket_name, account_id=self.account_id, region_name=region_name
+            name=bucket_name,
+            account_id=self.account_id,
+            region_name=region_name,
+            bucket_namespace=bucket_namespace,
         )
 
         self.buckets[bucket_name] = new_bucket
@@ -2815,17 +2821,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def _truncate_result(self, result_keys: Any, max_keys: int) -> Any:
         if max_keys == 0:
             result_keys = []
-            is_truncated = True
+            is_truncated = False
             next_continuation_token = None
         elif len(result_keys) > max_keys:
-            is_truncated = "true"  # type: ignore
+            is_truncated = True
             result_keys = result_keys[:max_keys]
             item = result_keys[-1]
             key_id = item.name if isinstance(item, FakeKey) else item
             next_continuation_token = md5_hash(key_id.encode("utf-8")).hexdigest()
             self._pagination_tokens[next_continuation_token] = key_id
         else:
-            is_truncated = "false"  # type: ignore
+            is_truncated = False
             next_continuation_token = None
         return result_keys, is_truncated, next_continuation_token
 

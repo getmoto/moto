@@ -70,6 +70,34 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         self.add_tags(tags or {})
         self._status = PeeringConnectionStatus(accepter_id=peer_vpc.owner_id)
 
+    @property
+    def vpc_peering_connection_id(self) -> str:
+        return self.id
+
+    @property
+    def requester_vpc_info(self) -> dict[str, Any]:
+        return {
+            "OwnerId": self.vpc.owner_id,
+            "Region": self.vpc.region,
+            "VpcId": self.vpc.id,
+            "CidrBlock": self.vpc.cidr_block,
+            "PeeringOptions": self.requester_options,
+        }
+
+    @property
+    def accepter_vpc_info(self) -> dict[str, Any]:
+        return {
+            "OwnerId": self.peer_vpc.owner_id,
+            "Region": self.peer_vpc.region,
+            "VpcId": self.peer_vpc.id,
+            "CidrBlock": self.peer_vpc.cidr_block,
+            "PeeringOptions": self.accepter_options,
+        }
+
+    @property
+    def status(self) -> dict[str, str]:
+        return {"Code": self._status.code, "Message": self._status.message}
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return ""

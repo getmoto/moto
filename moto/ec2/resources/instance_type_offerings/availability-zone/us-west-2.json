@@ -1636,6 +1636,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "us-west-2a"
  },
@@ -2932,7 +2936,15 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "mac-m4pro.metal",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "mac1.metal",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "mac2-m2.metal",
   "Location": "us-west-2a"
  },
  {
@@ -4237,6 +4249,10 @@
  },
  {
   "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "us-west-2a"
  },
  {
@@ -6200,6 +6216,10 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "i8g.metal-48xl",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "i8g.xlarge",
   "Location": "us-west-2b"
  },
@@ -7493,6 +7513,10 @@
  },
  {
   "InstanceType": "mac-m4.metal",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
   "Location": "us-west-2b"
  },
  {
@@ -10781,6 +10805,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "us-west-2c"
  },
  {
@@ -15089,6 +15117,10 @@
  },
  {
   "InstanceType": "i8g.metal-24xl",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "i8g.metal-48xl",
   "Location": "us-west-2d"
  },
  {

@@ -76,8 +76,12 @@ def test_delete_and_get_encryption():
     # GET now fails, after deleting it, as it no longer exists
     with pytest.raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket=bucket_name)
+    metadata = exc.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "ServerSideEncryptionConfigurationNotFoundError"
+    assert err["Message"] == "The server side encryption configuration was not found"
+    assert err["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws

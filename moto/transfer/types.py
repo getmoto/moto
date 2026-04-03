@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
 from typing import Any, Literal, Optional, Union
 
 from moto.core.common_models import BaseModel
+from moto.moto_api._internal import mock_random
 
 
 class UserHomeDirectoryType(str, Enum):
@@ -18,6 +18,9 @@ class UserHomeDirectoryMappingType(str, Enum):
 
 @dataclass
 class User(BaseModel):
+    region_name: str
+    account_id: str
+    server_id: str
     home_directory: Optional[str]
     home_directory_type: Optional[UserHomeDirectoryType]
     policy: Optional[str]
@@ -35,7 +38,7 @@ class User(BaseModel):
 
     def __post_init__(self) -> None:
         if self.arn == "":
-            self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.arn = f"arn:aws:transfer:{self.region_name}:{self.account_id}:user/{self.server_id}/{self.user_name}"
 
     def to_dict(self) -> dict[str, Any]:
         user = {
@@ -118,6 +121,8 @@ AS2_TRANSPORTS_TYPE = list[Literal["HTTP"]]
 
 @dataclass
 class Server(BaseModel):
+    region_name: str
+    account_id: str
     certificate: Optional[str]
     domain: Optional[ServerDomain]
     endpoint_type: Optional[ServerEndpointType]
@@ -143,10 +148,10 @@ class Server(BaseModel):
     _users: list[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
-        if self.arn == "":
-            self.arn = f"arn:aws:transfer:{self.server_id}"
         if self.server_id == "":
-            self.server_id = f"{self.identity_provider_type}:{self.server_id}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.server_id = f"s-{mock_random.get_random_hex(17)}"
+        if self.arn == "":
+            self.arn = f"arn:aws:transfer:{self.region_name}:{self.account_id}:server/{self.server_id}"
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
@@ -228,3 +233,89 @@ class Server(BaseModel):
             },
         }
         return server
+
+    def to_short_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "Domain": self.domain,
+            "EndpointType": self.endpoint_type,
+            "IdentityProviderType": self.identity_provider_type,
+            "LoggingRole": self.logging_role,
+            "ServerId": self.server_id,
+            "State": self.state,
+            "UserCount": self.user_count,
+        }
+
+
+@dataclass
+class Connector(BaseModel):  # type: ignore[misc]
+    # TODO: EgressConfig (VpcLattice) not implemented
+    region_name: str
+    account_id: str
+    url: str
+    access_role: str
+    logging_role: Optional[str]
+    as2_config: Optional[dict[str, Any]]
+    sftp_config: Optional[dict[str, Any]]
+    security_policy_name: Optional[str]
+    arn: str = field(default="", init=False)
+    connector_id: str = field(default="", init=False)
+    tags: list[dict[str, str]] = field(default_factory=list)
+    # Egress IPs are assigned automatically when creating a connector.
+    service_managed_egress_ip_addresses: list[str] = field(
+        default_factory=list, init=False
+    )
+
+    def __post_init__(self) -> None:
+        if self.connector_id == "":
+            self.connector_id = f"c-{mock_random.get_random_hex(17)}"
+        if self.arn == "":
+            self.arn = f"arn:aws:transfer:{self.region_name}:{self.account_id}:connector/{self.connector_id}"
+        # Set to mock values. Actual AWS values used were not validated.
+        self.service_managed_egress_ip_addresses = ["127.0.0.1", "127.0.0.2"]
+
+    def to_dict(self) -> dict[str, Any]:
+        connector: dict[str, Any] = {
+            "Arn": self.arn,
+            "ConnectorId": self.connector_id,
+            "Url": self.url,
+            "AccessRole": self.access_role,
+            "LoggingRole": self.logging_role,
+            "Tags": self.tags,
+            "SecurityPolicyName": self.security_policy_name,
+        }
+        if self.service_managed_egress_ip_addresses:
+            connector["ServiceManagedEgressIpAddresses"] = (
+                self.service_managed_egress_ip_addresses
+            )
+        if self.as2_config:
+            as2 = {
+                "LocalProfileId": self.as2_config.get("local_profile_id"),
+                "PartnerProfileId": self.as2_config.get("partner_profile_id"),
+                "MessageSubject": self.as2_config.get("message_subject"),
+                "Compression": self.as2_config.get("compression"),
+                "EncryptionAlgorithm": self.as2_config.get("encryption_algorithm"),
+                "SigningAlgorithm": self.as2_config.get("signing_algorithm"),
+                "MdnSigningAlgorithm": self.as2_config.get("mdn_signing_algorithm"),
+                "MdnResponse": self.as2_config.get("mdn_response"),
+                "BasicAuthSecretId": self.as2_config.get("basic_auth_secret_id"),
+                "PreserveContentType": self.as2_config.get("preserve_content_type"),
+            }
+            # TODO: AsyncMdnConfig not implemented
+            connector["As2Config"] = as2
+        if self.sftp_config:
+            connector["SftpConfig"] = {
+                "UserSecretId": self.sftp_config.get("user_secret_id"),
+                "TrustedHostKeys": self.sftp_config.get("trusted_host_keys"),
+                "MaxConcurrentConnections": self.sftp_config.get(
+                    "max_concurrent_connections"
+                ),
+            }
+        return connector
+
+    def to_short_dict(self) -> dict[str, str]:
+        return {
+            "Arn": self.arn,
+            "ConnectorId": self.connector_id,
+            "Url": self.url,
+        }

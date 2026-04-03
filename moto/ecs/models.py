@@ -514,17 +514,36 @@ class Service(CloudFormationModel, BaseModel):
             # Unable to parse value of MOTO_ECS_SERVICE_RUNNING as an integer, set to default 0
             ecs_running_count = 0
 
+        try:
+            ecs_failed_count = max(int(getenv("MOTO_ECS_SERVICE_FAILED_TASKS", 0)), 0)
+        except ValueError:
+            ecs_failed_count = 0
+
         self.running_count = ecs_running_count
         self.pending_count = desired_count - ecs_running_count
 
         if self.deployment_controller["type"] == "ECS":
+            deployment_id = f"ecs-svc/{mock_random.randint(0, 32**12)}"
+            rollout_state = (
+                "COMPLETED"
+                if ecs_running_count >= self.desired_count
+                else "IN_PROGRESS"
+            )
+            rollout_state_reason = (
+                f"ECS deployment {deployment_id} completed."
+                if rollout_state == "COMPLETED"
+                else f"ECS deployment {deployment_id} in progress."
+            )
             self.deployments = [
                 {
                     "createdAt": utcnow(),
                     "desiredCount": self.desired_count,
-                    "id": f"ecs-svc/{mock_random.randint(0, 32**12)}",
+                    "failedTasks": ecs_failed_count,
+                    "id": deployment_id,
                     "launchType": self.launch_type,
                     "pendingCount": self.pending_count,
+                    "rolloutState": rollout_state,
+                    "rolloutStateReason": rollout_state_reason,
                     "runningCount": ecs_running_count,
                     "platformVersion": self.platform_version,
                     "networkConfiguration": network_configuration,
@@ -556,7 +575,7 @@ class Service(CloudFormationModel, BaseModel):
         except InvalidSubnetIdError as exc:
             subnet_id = exc.message.split("'")[1]
             raise InvalidParameterException(
-                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.error_type})"
+                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.code})"
             )
 
         try:
@@ -882,6 +901,9 @@ class EC2ContainerServiceBackend(BaseBackend):
     MOTO_ECS_SERVICE_RUNNING=2
 
     Every describe_services() will return runningCount AND deployment of 2
+
+    Set the environment variable MOTO_ECS_SERVICE_FAILED_TASKS to configure the number of failed tasks
+    returned in deployments. Defaults to 0.
     """
 
     def __init__(self, region_name: str, account_id: str):

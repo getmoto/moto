@@ -197,6 +197,34 @@ def test_storage_lens_configuration():
 
 
 @mock_aws
+def test_delete_storage_lens_configuration():
+    client = boto3.client("s3control", region_name="us-east-2")
+    config_id = "my-test-config-id"
+    config = {
+        "Id": "id-test",
+        "AccountLevel": {
+            "BucketLevel": {},
+        },
+        "IsEnabled": True,
+    }
+    client.put_storage_lens_configuration(
+        AccountId=ACCOUNT_ID,
+        ConfigId=config_id,
+        StorageLensConfiguration=config,
+    )
+    resp = client.list_storage_lens_configurations(AccountId=ACCOUNT_ID)
+    assert any(
+        (config_id in slc["StorageLensArn"])
+        for slc in resp["StorageLensConfigurationList"]
+    )
+    client.delete_storage_lens_configuration(AccountId=ACCOUNT_ID, ConfigId=config_id)
+    with pytest.raises(ClientError) as ce_err:
+        client.get_storage_lens_configuration(AccountId=ACCOUNT_ID, ConfigId=config_id)
+    assert ce_err.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ce_err.value.response["Error"]["Code"] == "NoSuchConfiguration"
+
+
+@mock_aws
 def test_storage_lens_configuration_tagging():
     client = boto3.client("s3control", region_name="us-east-2")
     config_id = "my-test-config-id"

@@ -1479,6 +1479,38 @@ def test_get_model_with_invalid_name():
 
 
 @mock_aws
+def test_delete_model():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    model_name = "testModel"
+
+    # Create a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description="test model",
+        contentType="application/json",
+    )
+
+    # Verify model exists
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 1
+
+    # Delete the model
+    client.delete_model(restApiId=rest_api_id, modelName=model_name)
+
+    # Verify model is gone
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 0
+
+    # Deleting again should raise NotFoundException
+    with pytest.raises(ClientError) as ex:
+        client.delete_model(restApiId=rest_api_id, modelName=model_name)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
 def test_api_key_value_min_length():
     region_name = "us-east-1"
     client = boto3.client("apigateway", region_name=region_name)

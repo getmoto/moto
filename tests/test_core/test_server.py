@@ -1,4 +1,5 @@
 import gzip
+import json
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
@@ -74,3 +75,26 @@ def test_date_header_is_not_duplicated(moto_server: str) -> None:
     # If multiple date headers exist, their values will be concatenated with a comma
     # and this assertion will fail.
     assert len(date_header_value.split(",")) == 2
+
+
+def test_bedrock_service_resolution(moto_server: str) -> None:
+    # Multiple Bedrock services use the same signing name (bedrock),
+    # so this test checks that a bedrock-runtime request is correctly
+    # differentiated in server mode (where there is no host name available).
+    from botocore.exceptions import UnknownServiceError
+
+    try:
+        client = boto3.client(
+            "bedrock-runtime", region_name="us-east-1", endpoint_url=moto_server
+        )
+    except UnknownServiceError:
+        pytest.skip("Bedrock Runtime not supported in this version of Botocore.")
+    else:
+        resp = client.invoke_model(
+            modelId="test-model-id",
+            body=json.dumps({}),
+            performanceConfigLatency="optimized",
+            serviceTier="flex",
+        )
+        assert resp["performanceConfigLatency"] == "optimized"
+        assert resp["serviceTier"] == "flex"

@@ -218,6 +218,32 @@ def test_delete_replication_task_throws_resource_not_found_error():
 
 
 @mock_aws
+def test_describe_replication_tasks_no_filters():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    client.create_replication_task(
+        ReplicationTaskIdentifier="test-1",
+        SourceEndpointArn="source-endpoint-1-arn",
+        TargetEndpointArn="target-endpoint-1-arn",
+        ReplicationInstanceArn="replication-instance-1-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+    )
+    client.create_replication_task(
+        ReplicationTaskIdentifier="test-2",
+        SourceEndpointArn="source-endpoint-2-arn",
+        TargetEndpointArn="target-endpoint-2-arn",
+        ReplicationInstanceArn="replication-instance-2-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+    )
+
+    tasks = client.describe_replication_tasks()
+
+    assert len(tasks["ReplicationTasks"]) == 2
+
+
+@mock_aws
 def test_create_replication_instance():
     client = boto3.client("dms", region_name="us-east-1")
 
