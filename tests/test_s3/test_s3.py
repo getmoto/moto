@@ -3607,6 +3607,7 @@ def test_list_bucket_inventory_configurations():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_list_buckets():
     client = boto3.client("s3", region_name="us-east-1")
     bucket = str(uuid.uuid4())
@@ -3620,6 +3621,7 @@ def test_list_buckets():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_list_buckets_with_max_buckets():
     client = boto3.client("s3", region_name="us-east-1")
     bucket = str(uuid.uuid4())
