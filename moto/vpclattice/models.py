@@ -89,25 +89,37 @@ class VPCLatticeServiceNetworkVpcAssociation(BaseModel):
         account_id: str,
         client_token: str,
         security_group_ids: Optional[list[str]],
-        service_network_identifier: str,
+        service_network: VPCLatticeServiceNetwork,
         tags: Optional[dict[str, str]],
         vpc_identifier: str,
     ) -> None:
-        self.id: str = f"snva-{service_network_identifier[:4]}-{vpc_identifier[:4]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        self.id: str = f"snva-{str(uuid.uuid4())[:17]}"
         self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkvpcassociation/{self.id}"
         self.created_by: str = "user"
+        self.created_at: str = now_iso
+        self.last_updated_at: str = now_iso
         self.security_group_ids: list[str] = security_group_ids or []
+        self.service_network_id: str = service_network.id
+        self.service_network_name: str = service_network.name
+        self.service_network_arn: str = service_network.arn
         self.status: str = "ACTIVE"
+        self.vpc_id: str = vpc_identifier
         self.tags: dict[str, str] = tags or {}
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "id": self.id,
+            "status": self.status,
             "arn": self.arn,
             "createdBy": self.created_by,
-            "id": self.id,
+            "createdAt": self.created_at,
+            "serviceNetworkId": self.service_network_id,
+            "serviceNetworkName": self.service_network_name,
+            "serviceNetworkArn": self.service_network_arn,
+            "vpcId": self.vpc_id,
+            "lastUpdatedAt": self.last_updated_at,
             "securityGroupIds": self.security_group_ids,
-            "status": self.status,
-            "tags": self.tags,
         }
 
 
@@ -126,7 +138,7 @@ class VPCLatticeRule(BaseModel):
         tags: dict[str, str],
     ) -> None:
         self.action: dict[str, Any] = action or {}
-        self.id: str = f"rule-[0-9a-z]{17}"
+        self.id: str = f"rule-{str(uuid.uuid4())[:17]}"
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
             f"/listener/listener-{listener_identifier}/rule/{self.id}"
@@ -236,6 +248,12 @@ class VPCLatticeBackend(BaseBackend):
             "limit_default": 50,
             "unique_attribute": "id",
         },
+        "list_service_network_vpc_associations": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
@@ -328,12 +346,13 @@ class VPCLatticeBackend(BaseBackend):
         tags: Optional[dict[str, str]],
         vpc_identifier: str,
     ) -> VPCLatticeServiceNetworkVpcAssociation:
+        sn = self.get_service_network(service_network_identifier)
         assoc = VPCLatticeServiceNetworkVpcAssociation(
             self.region_name,
             self.account_id,
             client_token,
             security_group_ids,
-            service_network_identifier,
+            sn,
             tags,
             vpc_identifier,
         )
@@ -412,6 +431,7 @@ class VPCLatticeBackend(BaseBackend):
         )
 
         self.access_log_subscriptions[sub.id] = sub
+        self.tag_resource(sub.arn, tags or {})
         return sub
 
     def get_access_log_subscription(
@@ -551,6 +571,26 @@ class VPCLatticeBackend(BaseBackend):
             raise ResourceNotFoundException(f"Resource {resourceArn} not found")
 
         del self.resource_policies[resourceArn]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_network_vpc_associations(
+        self,
+        serviceNetworkIdentifier: Optional[str] = None,
+        vpcIdentifier: Optional[str] = None,
+    ) -> list[VPCLatticeServiceNetworkVpcAssociation]:
+        associations = list(self.service_network_vpc_associations.values())
+        if serviceNetworkIdentifier:
+            associations = [
+                assoc
+                for assoc in associations
+                if assoc.service_network_id == serviceNetworkIdentifier
+                or assoc.service_network_arn == serviceNetworkIdentifier
+            ]
+        if vpcIdentifier:
+            associations = [
+                assoc for assoc in associations if assoc.vpc_id == vpcIdentifier
+            ]
+        return associations
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

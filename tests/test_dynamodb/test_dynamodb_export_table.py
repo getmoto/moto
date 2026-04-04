@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 
 from moto import settings
 from moto.dynamodb.models import TableExport
+from tests import allow_aws_request
 from tests.test_s3 import s3_aws_verified
 
 from . import dynamodb_aws_verified
@@ -170,7 +171,7 @@ def test_export_empty_table(table_name=None, bucket_name=None):
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @s3_aws_verified
-def test_export_table(table_name=None, bucket_name=None):
+def test_export_table(account_id, table_name=None, bucket_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
     s3 = boto3.client("s3", region_name="us-east-1")
 
@@ -201,12 +202,16 @@ def test_export_table(table_name=None, bucket_name=None):
     )["ExportDescription"]
 
     export_details = wait_for_export(client, export_description)
+
     assert export_details["ExportStatus"] == "COMPLETED"
     assert export_details["ItemCount"] == 3
     assert export_details["ExportFormat"] == "DYNAMODB_JSON"
     assert export_details["TableArn"] == table_arn
     assert export_details["S3Bucket"] == bucket_name
-    assert export_details["S3BucketOwner"] == "123456789012"
+    if not allow_aws_request():
+        # AWS doesn't actually return this, despite the fact that it's mentioned in the documentation
+        # Maybe it's only exported when the owner is different from the requester?
+        assert export_details["S3BucketOwner"] == account_id
     assert export_details["S3Prefix"] == s3_prefix
 
     s3_files = s3.list_objects(Bucket=bucket_name, Prefix=s3_prefix)["Contents"]

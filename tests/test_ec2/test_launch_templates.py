@@ -5,7 +5,7 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws, settings
-from tests import EXAMPLE_AMI_ID, aws_verified
+from tests import EXAMPLE_AMI_ID, allow_aws_request, aws_verified
 from tests.test_ec2 import MINIMAL_LAUNCH_TEMPLATE_DATA, ec2_aws_verified
 
 from .helpers import assert_dryrun_error
@@ -125,7 +125,12 @@ def test_describe_launch_template_versions_without_name_or_id():
 def test_describe_launch_template_versions_with_just_version():
     cli = boto3.client("ec2", region_name="us-east-1")
     resp = cli.describe_launch_template_versions(Versions=["$Latest"])
-    assert resp["LaunchTemplateVersions"] == []
+    if not allow_aws_request():
+        # When running this against AWS, we can't really be sure that there are no LaunchTemplates,
+        # as, other tests that create templates will be running at the same time
+        # We can (and do) simply verify that we can execute the operation without errors
+        # Only against Moto can we know for sure that no LaunchTemplates exist
+        assert resp["LaunchTemplateVersions"] == []
 
     # Note that this is only possible when using $Latest/$Default - we can't retrieve versions with just a number
     with pytest.raises(ClientError) as exc:
