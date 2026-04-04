@@ -11,7 +11,12 @@ from .test_helper_functions import CREATE_WEB_ACL_BODY
 @mock_aws
 @pytest.mark.parametrize(
     "region,partition",
-    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-gov-east-1", "aws-us-gov")],
+    [
+        ("us-east-1", "aws"),
+        ("cn-north-1", "aws-cn"),
+        ("us-gov-east-1", "aws-us-gov"),
+        ("eusc-de-east-1", "aws-eusc"),
+    ],
 )
 def test_create_web_acl(region, partition):
     conn = boto3.client("wafv2", region_name=region)

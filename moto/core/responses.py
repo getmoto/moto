@@ -1,34 +1,34 @@
 from __future__ import annotations
 
-import datetime
 import functools
 import json
 import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
     cast,
 )
-from urllib.parse import parse_qs, parse_qsl, urlparse
+from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
 from xml.dom.minidom import parseString as parseXML
 
 import boto3
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
+from werkzeug.http import http_date
 
 from moto import settings
 from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS
+from moto.core.parse import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -38,12 +38,16 @@ from moto.core.serialize import (
 )
 from moto.core.utils import (
     camelcase_to_underscores,
+    get_pagination_model,
     get_service_model,
     get_value,
     gzip_decompress,
     method_names_from_class,
+    set_value,
+    utcnow,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
@@ -107,6 +111,8 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
                 request_uri += "?" if request_uri.endswith("/") else "/?"
         if service_name == "opensearch" and request_uri.endswith("/tags/"):
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
+            request_uri += "?"
+        if service_name == "backup" and request_uri.endswith("/"):
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
@@ -180,7 +186,7 @@ class ActionContext:
     service_model: ServiceModel
     operation_model: OperationModel
     serializer_class: type[ResponseSerializer]
-    response_class: type[BaseResponse]
+    response: BaseResponse
 
 
 class ActionResult:
@@ -201,7 +207,7 @@ class ActionResult:
         """
         serializer_cls = context.serializer_class
         response_transformers = getattr(
-            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+            context.response, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
         )
         value_picker = XFormedAttributePicker(
             response_transformers=response_transformers
@@ -213,6 +219,29 @@ class ActionResult:
         )
         serialized = serializer.serialize(self.result)
         return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class PaginatedResult(ActionResult):
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        service_name = str(context.service_model.service_name)
+        operation_name = str(context.operation_model.name)
+        pagination_model = get_pagination_model(service_name)
+        paging_config = pagination_model[operation_name]
+        paging_config.setdefault("limit_default", 100)
+
+        kwargs = context.response.params
+        if isinstance(kwargs, XFormedDict):
+            kwargs = kwargs.original_dict()
+
+        def get_result_to_paginate(**_: Any) -> Any:
+            return get_value(self._result, paging_config["result_key"])
+
+        get_result_to_paginate.__name__ = operation_name
+        paginator = paginate(pagination_model)(get_result_to_paginate)
+        paginated_results, next_token = paginator(**kwargs)
+        set_value(self._result, paging_config["result_key"], paginated_results)
+        set_value(self._result, paging_config["output_token"], next_token)
+        return super().execute_result(context)
 
 
 class EmptyResult(ActionResult):
@@ -243,35 +272,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.allow_request_decompression = True
         self.automated_parameter_parsing = False
 
+    @property
+    def boto3_service_name(self) -> str:
+        if self.service_name is None:
+            return ""
+        return boto3_service_name.get(self.service_name, self.service_name)
+
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         return cls()._dispatch(*args, **kwargs)
-
-    @classmethod
-    def method_dispatch(  # type: ignore[misc]
-        cls, to_call: Callable[[ResponseShape, Any, str, Any], TYPE_RESPONSE]
-    ) -> Callable[[Any, str, Any], TYPE_RESPONSE]:
-        """
-        Takes a given unbound function (part of a Response class) and executes it for a new instance of this
-        response class.
-        Can be used wherever we want to specify different methods for dispatching in urls.py
-        :param to_call: Unbound method residing in this Response class
-        :return: A wrapper executing the given method on a new instance of this class
-        """
-
-        @functools.wraps(to_call)  # type: ignore
-        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
-            response = getattr(cls(), to_call.__name__)(request, full_url, headers)
-            if isinstance(response, str):
-                status = 200
-                body = response
-                headers = {}
-            else:
-                status, headers, body = response
-            headers, body = cls._enrich_response(headers, body)
-            return status, headers, body
-
-        return _inner
 
     def setup_class(
         self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
@@ -379,10 +388,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.headers["host"] = self.parsed_url.netloc
         self.response_headers = {
             "server": "amazon.com",
-            "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
+        if not self.is_werkzeug_request:
+            self.response_headers["date"] = http_date(utcnow())
 
-        if self.automated_parameter_parsing:
+        if self.automated_parameter_parsing and self._get_action():
             self.parse_parameters(request)
 
         # Register visit with IAM
@@ -466,15 +476,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 # We don't want to our regex to think this marks an end-of-line, so let's escape it
                 return elem.replace("$", r"\$")
 
-            # When the element ends with +} the parameter can contain a / otherwise not.
-            slash_allowed = elem.endswith("+}")
+            # In the Smithy specification, a plus sign indicates a greedy label, which
+            # allows the label to match multiple path segments, including forward slashes.
+            # If a label is the last segment of a uri, we default it to greedy as well.
+            greedy = elem.endswith("+}") or uri.endswith(elem)
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if slash_allowed:
+            if greedy:
                 return f"(?P<{name}>.+)"
             return f"(?P<{name}>[^/]+)"
 
@@ -485,13 +497,20 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _get_action_from_method_and_request_uri(
         self, method: str, request_uri: str
     ) -> str:
-        """basically used for `rest-json` APIs
-        You can refer to example from link below
-        https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
-        """
+        """Used for AWS restJson1 and restXml API protocols"""
         methods_url = _get_method_urls(self.service_name, self.region)
         regexp_and_names = methods_url[method]
-        for regexp, name in regexp_and_names.items():
+        # Sort patterns by length (descending) so more specific patterns match before more general ones.
+        #
+        # This fixes problems with service definitions that contain uris like:
+        # - /mrap/instances/{name+} (GetMultiRegionAccessPoint)
+        # - /mrap/instances/{name+}/policy (GetMultiRegionAccessPointPolicy)
+        #
+        # Both urls match the regex for the first url, but we want to ensure we match the more specific pattern.
+        sorted_patterns = sorted(
+            regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
+        )
+        for regexp, name in sorted_patterns:
             match = re.match(regexp, request_uri)
             self.uri_match = match
             if match:
@@ -518,21 +537,23 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         assert isinstance(request, (AWSPreparedRequest, Request)), str(request)
         normalized_request = normalize_request(request)
-        service_model = get_service_model(self.service_name)
+        service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = determine_request_protocol(
             service_model, normalized_request.content_type
         )
         parser_cls = PROTOCOL_PARSERS[protocol]
-        parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
+        parser = parser_cls(operation_model, map_type=self.PROTOCOL_PARSER_MAP_TYPE)
         parsed = parser.parse(
             {
-                "query_params": normalized_request.values,
+                "method": normalized_request.method,
+                "values": normalized_request.values,
                 "headers": normalized_request.headers,
                 "body": normalized_request.data,
-            },
-            operation_model,
-        )  # type: ignore[no-untyped-call]
+                "url_path": normalized_request.path,
+                "url_params": self.uri_match.groupdict() if self.uri_match else {},
+            }
+        )
         self.params = cast(Any, parsed)
 
     def determine_response_protocol(self, service_model: ServiceModel) -> str:
@@ -543,13 +564,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return protocol
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
-        service_model = get_service_model(self.service_name)
+        service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
-        context = ActionContext(
-            service_model, operation_model, serializer_cls, self.__class__
-        )
+        context = ActionContext(service_model, operation_model, serializer_cls, self)
         status_code, headers, body = action_result.execute_result(context)
         headers.update(self.response_headers)
         return status_code, headers, body
@@ -651,7 +670,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # try to get path parameter
         if self.uri_match:
             try:
-                return self.uri_match.group(param_name)
+                val = self.uri_match.group(param_name)
+                return unquote(val)
             except IndexError:
                 # do nothing if param is not found
                 pass

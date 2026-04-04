@@ -205,7 +205,7 @@ ssm
 - [ ] start_session
 - [ ] stop_automation_execution
 - [ ] terminate_session
-- [ ] unlabel_parameter_version
+- [X] unlabel_parameter_version
 - [ ] update_association
 - [ ] update_association_status
 - [X] update_document

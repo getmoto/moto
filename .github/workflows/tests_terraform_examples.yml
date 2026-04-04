@@ -35,7 +35,7 @@ jobs:
     - name: Start MotoServer
       uses: ./.github/actions/run_moto_server
     - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
     - name: Run tests
       if: ${{ matrix.service != 'rds' }}
       run: |

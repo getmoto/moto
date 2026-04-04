@@ -23,6 +23,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
+from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -99,6 +100,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def efs_backend(self) -> EFSBackend:
         return efs_backends[self.account_id][self.region_name]
+
+    @property
+    def eb_backend(self) -> EBBackend:
+        return eb_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -614,6 +619,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
+        if not resource_type_filters or "dms:task" in resource_type_filters:
+            for replication_task in self.dms_backend.replication_tasks.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_task.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_task.arn}", "Tags": tags}
+
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
             for service in self.ecs_backend.services.values():
@@ -753,6 +767,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
+
+        # ElasticBeanstalk
+        if (
+            not resource_type_filters
+            or "elasticbeanstalk:environment" in resource_type_filters
+        ):
+            for eb_application in self.eb_backend.applications.values():
+                for eb_environment in eb_application.environments.values():
+                    tags = [
+                        {"Key": k, "Value": v} for k, v in eb_environment.tags.items()
+                    ]
+                    if not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{eb_environment.environment_arn}",
+                        "Tags": tags,
+                    }
 
         # ELB (Classic Load Balancers)
         if (
@@ -1179,6 +1210,35 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{service_network.arn}", "Tags": tags}
+
+            # Service Network VPC Associations
+            for (
+                assoc
+            ) in self.vpclattice_backend.service_network_vpc_associations.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(assoc.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{assoc.arn}", "Tags": tags}
+
+            # Rules
+            for rule in self.vpclattice_backend.rules.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(rule.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{rule.arn}", "Tags": tags}
+
+            # Access Log Subscriptions
+            for sub in self.vpclattice_backend.access_log_subscriptions.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(sub.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{sub.arn}", "Tags": tags}
 
         # Workspaces
         if self.workspaces_backend and (
@@ -1619,7 +1679,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
+        Only CloudFront, DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1679,6 +1739,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sesv2_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
+                self.cloudfront_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
@@ -1687,7 +1751,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: list[str], tag_keys: list[str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
+        Only CloudFront, EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1713,6 +1777,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.rds_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
+                self.cloudfront_backend.untag_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
 

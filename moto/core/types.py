@@ -30,6 +30,12 @@ class Base64EncodedString:
         return cls(raw_bytes.decode("ascii"))
 
     @classmethod
+    def from_raw_bytes(
+        cls, raw_bytes: bytes, encoding: str = "utf-8"
+    ) -> Base64EncodedString:
+        return cls.from_raw_string(raw_bytes.decode(encoding))
+
+    @classmethod
     def from_raw_string(
         cls, raw_string: str, encoding: str = "utf-8"
     ) -> Base64EncodedString:

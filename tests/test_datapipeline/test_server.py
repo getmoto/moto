@@ -2,6 +2,7 @@ import json
 
 import moto.server as server
 from moto import mock_aws
+from moto.utilities.constants import APPLICATION_AMZ_JSON_1_1
 
 """
 Test the different server responses
@@ -16,7 +17,10 @@ def test_list_streams():
     res = test_client.post(
         "/",
         data={"pipelineIds": ["ASdf"]},
-        headers={"X-Amz-Target": "DataPipeline.DescribePipelines"},
+        headers={
+            "X-Amz-Target": "DataPipeline.DescribePipelines",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
+        },
     )
 
     json_data = json.loads(res.data.decode("utf-8"))

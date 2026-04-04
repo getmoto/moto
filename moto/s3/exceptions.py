@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, ServiceException
 
 from .notifications import S3NotificationEvent
 
@@ -243,6 +243,19 @@ class InvalidLocationConstraintException(S3ClientError):
         super().__init__(
             "InvalidLocationConstraint",
             "The specified location-constraint is not valid",
+        )
+
+
+class InvalidNamespaceHeaderException(S3ClientError):
+    code = 400
+
+    def __init__(self, account_id: str, region: str) -> None:
+        super().__init__(
+            "InvalidNamespaceHeader",
+            "The requested bucket name did not include the account-regional namespace suffix, "
+            "but the provided x-amz-bucket-namespace header value is account-regional. "
+            f"Specify -{account_id}-{region}-an as the bucket name suffix to create a bucket "
+            "in your account-regional namespace, or remove the header.",
         )
 
 
@@ -653,3 +666,95 @@ class MethodNotAllowed(S3ClientError):
             "The specified method is not allowed against this resource.",
             **kwargs,
         )
+
+
+class NoSuchLifecycleConfiguration(ServiceException):
+    code = "NoSuchLifecycleConfiguration"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The lifecycle configuration does not exist")
+        self.bucket_name = bucket_name
+
+
+class NoSuchCORSConfiguration(ServiceException):
+    code = "NoSuchCORSConfiguration"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The CORS configuration does not exist")
+        self.bucket_name = bucket_name
+
+
+class OwnershipControlsNotFoundError(ServiceException):
+    code = "OwnershipControlsNotFoundError"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The bucket ownership controls were not found")
+        self.bucket_name = bucket_name
+
+
+class BucketNotEmpty(ServiceException):
+    code = "BucketNotEmpty"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The bucket you tried to delete is not empty")
+        self.bucket_name = bucket_name
+
+
+class NoSuchBucketPolicy(ServiceException):
+    code = "NoSuchBucketPolicy"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The bucket policy does not exist")
+        self.bucket_name = bucket_name
+
+
+class NoSuchTagSet(ServiceException):
+    code = "NoSuchTagSet"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The TagSet does not exist")
+        self.bucket_name = bucket_name
+
+
+class NoSuchWebsiteConfiguration(ServiceException):
+    code = "NoSuchWebsiteConfiguration"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The specified bucket does not have a website configuration")
+        self.bucket_name = bucket_name
+
+
+class ServerSideEncryptionConfigurationNotFoundError(ServiceException):
+    code = "ServerSideEncryptionConfigurationNotFoundError"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The server side encryption configuration was not found")
+        self.bucket_name = bucket_name
+
+
+class BucketAlreadyOwnedByYou(ServiceException):
+    code = "BucketAlreadyOwnedByYou"
+
+    def __init__(self, bucket_name: str):
+        super().__init__(
+            "Your previous request to create the named bucket succeeded and you already own it."
+        )
+        self.bucket_name = bucket_name
+
+
+class ReplicationConfigurationNotFoundError(ServiceException):
+    code = "ReplicationConfigurationNotFoundError"
+
+    def __init__(self, bucket_name: str):
+        super().__init__("The replication configuration was not found")
+        self.bucket_name = bucket_name
+
+
+class VersioningNotEnabledForReplication(ServiceException):
+    code = "InvalidRequest"
+
+    def __init__(self, bucket_name: str):
+        super().__init__(
+            "Versioning must be 'Enabled' on the bucket to apply a replication configuration"
+        )
+        self.bucket_name = bucket_name

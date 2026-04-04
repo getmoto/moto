@@ -1,5 +1,7 @@
 import re
 
+from moto.utilities.utils import ARN_PARTITION_REGEX
+
 # This file contains the constants required for Glue Schema Registry APIs.
 
 # common used constants
@@ -10,7 +12,7 @@ RESOURCE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9-_$#.]+$")
 DESCRIPTION_PATTERN = re.compile(
     r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
 )
-ARN_PATTERN = re.compile(r"^arn:(aws|aws-us-gov|aws-cn):glue:.*$")
+ARN_PATTERN = re.compile(rf"{ARN_PARTITION_REGEX}:glue:.*$")
 AVAILABLE_STATUS = "AVAILABLE"
 DELETING_STATUS = "DELETING"
 

@@ -49,7 +49,7 @@ class Consumer(BaseModel):
         self, consumer_name: str, account_id: str, region_name: str, stream_arn: str
     ):
         self.consumer_name = consumer_name
-        self.created = unix_time()
+        self.created = utcnow()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
         self.consumer_arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
@@ -83,10 +83,10 @@ class Record(BaseModel):
 
     def to_json(self) -> dict[str, Any]:
         return {
-            "Data": self.data,
+            "Data": b64decode(self.data),
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
-            "ApproximateArrivalTimestamp": self.created_at,
+            "ApproximateArrivalTimestamp": self.created_at_datetime,
         }
 
 
@@ -155,7 +155,10 @@ class Shard(BaseModel):
         return 0
 
     def get_sequence_number_at(self, at_timestamp: float) -> int:
-        if not self.records or at_timestamp < list(self.records.values())[0].created_at:
+        if (
+            not self.records
+            or at_timestamp <= list(self.records.values())[0].created_at
+        ):
             return 0
         else:
             # find the last item in the list that was created before
@@ -203,9 +206,7 @@ class Stream(CloudFormationModel):
         region_name: str,
     ):
         self.stream_name = stream_name
-        self.creation_datetime = datetime.datetime.now().strftime(
-            "%Y-%m-%dT%H:%M:%S.%f000"
-        )
+        self.creation_datetime = utcnow()
         self.region = region_name
         self.account_id = account_id
         self.arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}"
@@ -236,7 +237,7 @@ class Stream(CloudFormationModel):
         step = 2**128 // shard_count
         hash_ranges = itertools.chain(
             ((i, i * step, (i + 1) * step - 1) for i in range(shard_count - 1)),
-            [(shard_count - 1, (shard_count - 1) * step, 2**128)],
+            [(shard_count - 1, (shard_count - 1) * step, 2**128 - 1)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)
@@ -483,7 +484,7 @@ class Stream(CloudFormationModel):
     ) -> "Stream":
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
-        retention_period_hours = properties.get("RetentionPeriodHours", resource_name)
+        retention_period_hours = properties.get("RetentionPeriodHours")
         tags = {
             tag_item["Key"]: tag_item["Value"]
             for tag_item in properties.get("Tags", [])

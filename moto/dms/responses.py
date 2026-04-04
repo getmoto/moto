@@ -21,6 +21,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         migration_type = self._get_param("MigrationType")
         table_mappings = self._get_param("TableMappings")
         replication_task_settings = self._get_param("ReplicationTaskSettings")
+        tags = self._get_param("Tags")
         replication_task = self.dms_backend.create_replication_task(
             replication_task_identifier=replication_task_identifier,
             source_endpoint_arn=source_endpoint_arn,
@@ -29,6 +30,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             migration_type=migration_type,
             table_mappings=table_mappings,
             replication_task_settings=replication_task_settings,
+            tags=tags,
         )
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
@@ -58,8 +60,8 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
     def describe_replication_tasks(self) -> str:
-        filters = self._get_param("Filters")
-        max_records = self._get_int_param("MaxRecords")
+        filters = self._get_param("Filters", [])
+        max_records = self._get_int_param("MaxRecords", 100)
         replication_tasks = self.dms_backend.describe_replication_tasks(
             filters=filters, max_records=max_records
         )

@@ -649,12 +649,20 @@ class RedshiftBackend(BaseBackend):
         return self.clusters[cluster_id]
 
     def describe_clusters(
-        self, cluster_identifier: Optional[str] = None
+        self,
+        cluster_identifier: Optional[str] = None,
+        tag_keys: Optional[list[str]] = None,
     ) -> list[Cluster]:
         if cluster_identifier:
             if cluster_identifier in self.clusters:
                 return [self.clusters[cluster_identifier]]
             raise ClusterNotFoundError(cluster_identifier)
+        elif tag_keys:
+            return [
+                cluster
+                for cluster in self.clusters.values()
+                if any(key in [tag["Key"] for tag in cluster.tags] for key in tag_keys)
+            ]
         return list(self.clusters.values())
 
     def modify_cluster(self, **cluster_kwargs: Any) -> Cluster:

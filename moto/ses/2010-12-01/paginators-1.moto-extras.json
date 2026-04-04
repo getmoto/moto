@@ -1,0 +1,10 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListConfigurationSets": {
+        "unique_attribute": "Name"
+      }
+    }
+  }
+}

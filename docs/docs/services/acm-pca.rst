@@ -33,10 +33,6 @@ acm-pca
 - [X] describe_certificate_authority
 - [ ] describe_certificate_authority_audit_report
 - [X] get_certificate
-  
-        The CertificateChain will always return None for now
-        
-
 - [X] get_certificate_authority_certificate
 - [X] get_certificate_authority_csr
 - [X] get_policy
@@ -69,10 +65,6 @@ acm-pca
 
 - [ ] restore_certificate_authority
 - [X] revoke_certificate
-  
-        This is currently a NO-OP
-        
-
 - [X] tag_certificate_authority
 - [X] untag_certificate_authority
 - [X] update_certificate_authority

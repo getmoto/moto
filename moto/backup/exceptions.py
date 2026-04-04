@@ -15,3 +15,13 @@ class AlreadyExistsException(BackupClientError):
 class ResourceNotFoundException(JsonRESTError):
     def __init__(self, msg: str):
         super().__init__("ResourceNotFoundException", f"{msg}")
+
+
+class InvalidParameterValueException(BackupClientError):
+    def __init__(self, msg: str):
+        super().__init__("InvalidParameterValueException", f"{msg}")
+
+
+class InvalidRequestException(BackupClientError):
+    def __init__(self, msg: str):
+        super().__init__("InvalidRequestException", f"{msg}")

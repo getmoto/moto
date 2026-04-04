@@ -1,7 +1,7 @@
 import base64
 import copy
 from decimal import Decimal
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.utils import merge_dicts
@@ -74,13 +74,13 @@ class DynamoType:
             self.value = {k: DynamoType(v) for k, v in self.value.items()}
 
     def __hash__(self) -> int:
-        return hash((self.type, self.value))
+        return hash((self.type, self.cast_value))
 
     def __eq__(self, other: "DynamoType") -> bool:  # type: ignore[override]
-        return self.type == other.type and self.value == other.value
+        return self.type == other.type and self.cast_value == other.cast_value
 
     def __ne__(self, other: "DynamoType") -> bool:  # type: ignore[override]
-        return self.type != other.type or self.value != other.value
+        return self.type != other.type or self.cast_value != other.cast_value
 
     def __lt__(self, other: "DynamoType") -> bool:
         return self.cast_value < other.cast_value
@@ -96,6 +96,25 @@ class DynamoType:
 
     def __repr__(self) -> str:
         return f"DynamoType: {self.to_json()}"
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> "DynamoType":
+        """Custom deepcopy that bypasses the expensive default pickle-based
+        __reduce_ex__ protocol. Safe for DynamoDB AttributeValue trees,
+        which are acyclic."""
+        if id(self) in memo:  # pragma: no cover
+            return memo[id(self)]  # Circular refs can't occur in DynamoDB data
+        result = self.__class__.__new__(self.__class__)
+        memo[id(self)] = result
+        result.type = self.type
+        if self.is_list():
+            result.value = [copy.deepcopy(v, memo) for v in self.value]
+        elif self.is_map():
+            result.value = {k: copy.deepcopy(v, memo) for k, v in self.value.items()}
+        elif self.is_set():
+            result.value = list(self.value)
+        else:
+            result.value = self.value
+        return result
 
     def __add__(self, other: "DynamoType") -> "DynamoType":
         if self.type != other.type:
@@ -157,10 +176,7 @@ class DynamoType:
     @property
     def cast_value(self) -> Any:  # type: ignore[misc]
         if self.is_number():
-            try:
-                return int(self.value)
-            except ValueError:
-                return float(self.value)
+            return Decimal(self.value)
         elif self.is_set():
             sub_type = self.type[0]
             return {DynamoType({sub_type: v}).cast_value for v in self.value}
@@ -168,6 +184,8 @@ class DynamoType:
             return [DynamoType(v).cast_value for v in self.value]
         elif self.is_map():
             return {k: DynamoType(v).cast_value for k, v in self.value.items()}
+        elif self.is_null():
+            return None
         else:
             return self.value
 
@@ -229,7 +247,7 @@ class DynamoType:
                 val.to_regular_json() if isinstance(val, DynamoType) else val
                 for val in value
             ]
-        if self.is_binary():
+        if self.is_binary() and isinstance(value, str):
             value = base64.b64decode(value)
         return {self.type: value}
 
@@ -257,6 +275,9 @@ class DynamoType:
 
     def is_binary(self) -> bool:
         return self.type == DDBType.BINARY
+
+    def is_null(self) -> bool:
+        return self.type == DDBType.NULL
 
     def same_type(self, other: "DynamoType") -> bool:
         return self.type == other.type
@@ -317,6 +338,26 @@ class Item(BaseModel):
 
     def __repr__(self) -> str:
         return f"Item: {self.to_json()}"
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> "Item":
+        """Custom deepcopy that bypasses the expensive default pickle-based
+        __reduce_ex__ protocol, and skips LimitedSizeDict size validation
+        during copy (the source item already passed validation on write)."""
+        if id(self) in memo:  # pragma: no cover
+            return memo[id(self)]  # Circular refs can't occur in DynamoDB data
+        result = cast(Item, self.__class__.__new__(self.__class__))
+        memo[id(self)] = result
+        result.hash_key = copy.deepcopy(self.hash_key, memo)
+        result.range_key = copy.deepcopy(self.range_key, memo)
+        # Bypass LimitedSizeDict.__setitem__ which runs O(n) size validation on
+        # every insert. The source item already passed validation, so re-checking
+        # during copy is unnecessary and would make the overall copy O(n²).
+        attrs_copy = LimitedSizeDict.__new__(LimitedSizeDict)
+        dict.__init__(attrs_copy)
+        for key, value in self.attrs.items():
+            dict.__setitem__(attrs_copy, key, copy.deepcopy(value, memo))
+        result.attrs = attrs_copy
+        return result
 
     def size(self) -> int:
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())

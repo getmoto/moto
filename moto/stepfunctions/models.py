@@ -2,12 +2,12 @@ import json
 import re
 from datetime import datetime, timezone
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -41,7 +41,7 @@ class StateMachineInstance:
         loggingConfiguration: Optional[dict[str, Any]] = None,
         tracingConfiguration: Optional[dict[str, Any]] = None,
     ):
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = utcnow()
         self.update_date = self.creation_date
         self.arn = arn
         self.name = name
@@ -56,6 +56,29 @@ class StateMachineInstance:
         self.tracingConfiguration = tracingConfiguration or {"enabled": False}
         self.sm_type = "STANDARD"  # or express
         self.description: Optional[str] = None
+
+
+class StateMachineAlias(CloudFormationModel):
+    def __init__(
+        self,
+        name: str,
+        statemachine_arn: str,
+        routing_configuration: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ):
+        self.name = name
+        self.statemachine_arn = statemachine_arn
+        self.arn = f"{statemachine_arn}:{name}"
+        self.description = description
+        self.routing_configuration = routing_configuration
+        self.creation_date = utcnow()
+        self.update_date = self.creation_date
+
+    def update(self, **kwargs: Any) -> None:
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(self, key, value)
+        self.update_date = utcnow()
 
 
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
@@ -102,6 +125,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         )
         self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
+        self.aliases: dict[str, StateMachineAlias] = {}
         self.latest_version: Optional[StateMachineVersion] = None
         self.backend = backend
 
@@ -148,7 +172,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        execution.stop(stop_date=datetime.now(), error="", cause="")
+        execution.stop(stop_date=utcnow(), error="", cause="")
         return execution
 
     def _handle_name_input_idempotency(
@@ -181,7 +205,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
-        self.update_date = iso_8601_datetime_with_milliseconds()
+        self.update_date = utcnow()
 
     @property
     def physical_resource_id(self) -> str:
@@ -327,7 +351,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = datetime.now()
+        self.start_date = utcnow()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -345,13 +369,11 @@ class Execution:
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
-        tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+        tz = timezone.utc
         if sf_execution_history_type == "SUCCESS":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tz),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -362,9 +384,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "PassStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -375,9 +395,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "PassStateExited",
                     "id": 3,
                     "previousEventId": 2,
@@ -388,9 +406,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 20, tzinfo=tz),
                     "type": "ExecutionSucceeded",
                     "id": 4,
                     "previousEventId": 3,
@@ -403,9 +419,7 @@ class Execution:
         elif sf_execution_history_type == "FAILURE":
             return [
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tz),
                     "type": "ExecutionStarted",
                     "id": 1,
                     "previousEventId": 0,
@@ -416,9 +430,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "FailStateEntered",
                     "id": 2,
                     "previousEventId": 0,
@@ -429,9 +441,7 @@ class Execution:
                     },
                 },
                 {
-                    "timestamp": iso_8601_datetime_with_milliseconds(
-                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal)
-                    ),
+                    "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tz),
                     "type": "ExecutionFailed",
                     "id": 3,
                     "previousEventId": 2,
@@ -445,7 +455,7 @@ class Execution:
 
     def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
-        self.stop_date = datetime.now()
+        self.stop_date = utcnow()
 
 
 class Activity:
@@ -459,7 +469,7 @@ class Activity:
         self.name = name
         self.encryption_configuration = encryption_configuration
 
-        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.creation_date = utcnow()
         self.update_date = self.creation_date
 
 
@@ -643,9 +653,44 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
+    def create_state_machine_alias(
+        self,
+        name: str,
+        routing_configuration: list[dict[str, Any]],
+        description: Optional[str],
+    ) -> StateMachineAlias:
+        state_version_arn = routing_configuration[0]["stateMachineVersionArn"]
+        # Get the corresponding sm version
+        sm_version, sm = next(
+            (
+                (v, sm)
+                for sm in self.state_machines
+                for v in sm.versions.values()
+                if v.arn == state_version_arn
+            ),
+            (None, None),
+        )
+        if not sm_version:
+            raise StateMachineDoesNotExist(
+                f"State Machine Version Does Not Exist: '{state_version_arn}'"
+            )
+
+        # if sm_version exists then sm exists
+        sm = cast(StateMachine, sm)
+        alias = StateMachineAlias(name, sm.arn, routing_configuration, description)
+        sm.aliases[name] = alias
+        return alias
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machines(self) -> list[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_state_machine_aliases(self, arn: str) -> list[StateMachineAlias]:
+        sm = next((x for x in self.state_machines if x.arn == arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+        return sorted(sm.aliases.values(), key=lambda x: x.creation_date)
 
     def describe_state_machine(self, arn: str) -> StateMachine:
         self._validate_machine_arn(arn)
@@ -667,11 +712,49 @@ class StepFunctionBackend(BaseBackend):
             raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
         return sm  # type: ignore[return-value]
 
+    def describe_state_machine_alias(self, arn: str) -> StateMachineAlias:
+        arn_parts = arn.rsplit(":", 1)
+
+        state_machine_arn = arn_parts[0]
+        alias_name = arn_parts[1]
+
+        self._validate_machine_arn(state_machine_arn)
+
+        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{state_machine_arn}'"
+            )
+
+        alias = sm.aliases.get(alias_name)
+        if not alias:
+            raise ResourceNotFound(f"State Machine Alias Does Not Exist: '{arn}'")
+
+        return alias
+
     def delete_state_machine(self, arn: str) -> None:
         self._validate_machine_arn(arn)
         sm = next((x for x in self.state_machines if x.arn == arn), None)
         if sm:
             self.state_machines.remove(sm)
+
+    def delete_state_machine_alias(self, arn: str) -> None:
+        arn_parts = arn.rsplit(":", 1)
+        state_machine_arn = arn_parts[0]
+        alias_name = arn_parts[1]
+
+        self._validate_machine_arn(state_machine_arn)
+
+        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{state_machine_arn}'"
+            )
+
+        if alias_name not in sm.aliases:
+            raise ResourceNotFound(f"State Machine Alias Does Not Exist: '{arn}'")
+
+        del sm.aliases[alias_name]
 
     def update_state_machine(
         self,
@@ -699,6 +782,22 @@ class StepFunctionBackend(BaseBackend):
         if publish:
             sm.publish(version_description)
         return sm
+
+    def update_state_machine_alias(
+        self,
+        arn: str,
+        description: Optional[str],
+        routing_configuration: Optional[list[dict[str, Any]]],
+    ) -> StateMachineAlias:
+        alias = self.describe_state_machine_alias(arn=arn)
+
+        if routing_configuration:
+            alias.update(routing_configuration=routing_configuration)
+
+        if description is not None:
+            alias.update(description=description)
+
+        return alias
 
     def start_execution(
         self, state_machine_arn: str, name: str, execution_input: str

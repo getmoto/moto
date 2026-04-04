@@ -2,11 +2,11 @@ import datetime
 import hashlib
 import json
 import re
-import time
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Optional
+from uuid import uuid4
 
 import yaml
 
@@ -113,7 +113,7 @@ class ParameterDict(defaultdict[str, list["Parameter"]]):
             params = []
 
         for param in params:
-            last_modified_date = time.time()
+            last_modified_date = utcnow()
             name = param["Name"]
             value = param["Value"]
             # Following were lost in translation/conversion - using sensible defaults
@@ -221,7 +221,7 @@ class Parameter(CloudFormationModel):
         description: Optional[str],
         allowed_pattern: Optional[str],
         keyid: Optional[str],
-        last_modified_date: float,
+        last_modified_date: datetime.datetime,
         version: int,
         data_type: str,
         labels: Optional[list[str]] = None,
@@ -271,7 +271,7 @@ class Parameter(CloudFormationModel):
             "Type": self.parameter_type,
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
-            "LastModifiedDate": round(self.last_modified_date, 3),
+            "LastModifiedDate": self.last_modified_date,
             "DataType": self.data_type,
             "Tier": self.tier,
         }
@@ -296,7 +296,7 @@ class Parameter(CloudFormationModel):
         self, decrypt: bool = False, include_labels: bool = False
     ) -> dict[str, Any]:
         r: dict[str, Any] = self.response_object(decrypt)
-        r["LastModifiedDate"] = round(self.last_modified_date, 3)
+        r["LastModifiedDate"] = self.last_modified_date
         r["LastModifiedUser"] = "N/A"
 
         if self.description:
@@ -530,7 +530,7 @@ class Documents(BaseModel):
             "HashType": "Sha256",
             "Name": document.name,
             "Owner": document.owner,
-            "CreatedDate": document.created_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "CreatedDate": document.created_date,
             "Status": document.status,
             "DocumentVersion": document.document_version,
             "Description": document.description,
@@ -562,9 +562,7 @@ class Documents(BaseModel):
                 self.permissions.pop("all", None)
 
             new_permissions = {
-                account_id: AccountPermission(
-                    account_id, version, datetime.datetime.now()
-                )
+                account_id: AccountPermission(account_id, version, utcnow())
                 for account_id in accounts_to_add
             }
             self.permissions.update(**new_permissions)
@@ -593,7 +591,7 @@ class Documents(BaseModel):
         return len(self.permissions) > 0
 
 
-class Document(BaseModel):
+class Document(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
@@ -621,7 +619,10 @@ class Document(BaseModel):
         self.owner = account_id
         self.created_date = utcnow()
 
-        if document_format == "JSON":
+        if isinstance(content, dict):
+            # Terraform may send this content as an already-parsed dict
+            content_json = content
+        elif document_format == "JSON":
             try:
                 content_json = json.loads(content)
             except json.decoder.JSONDecodeError:
@@ -687,6 +688,75 @@ class Document(BaseModel):
 
         return base
 
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::SSM::Document"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Document":
+        ssm_backend: SimpleSystemManagerBackend = ssm_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        documents = ssm_backend.create_document(
+            content=properties.get("Content"),
+            requires=properties.get("Requires"),
+            attachments=properties.get("Attachments"),
+            name=properties.get("Name") or str(uuid4()),
+            version_name=properties.get("VersionName"),
+            document_type=properties.get("DocumentType"),
+            document_format=properties.get("DocumentFormat"),
+            target_type=properties.get("TargetType"),
+            tags=properties.get("Tags"),
+        )
+        return documents.get_default_version()
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "Document":
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, account_id, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        resource = resource_name
+        ssm_backend: SimpleSystemManagerBackend = ssm_backends[account_id][region_name]
+        if not resource:
+            properties = cloudformation_json["Properties"]
+            resource = properties.get("Name")
+        ssm_backend.delete_document(
+            name=resource,
+            document_version="",
+            version_name=cloudformation_json.get("VersionName") or "",
+            force=True,
+        )
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
 
 class Command(BaseModel):
     def __init__(
@@ -722,12 +792,10 @@ class Command(BaseModel):
         self.account_id = account_id
 
         self.timeout_seconds = timeout_seconds or MAX_TIMEOUT_SECONDS
-        self.requested_date_time = datetime.datetime.now()
-        self.requested_date_time_iso = self.requested_date_time.isoformat()
-        expires_after = self.requested_date_time + datetime.timedelta(
+        self.requested_date_time = utcnow()
+        self.expires_after = self.requested_date_time + datetime.timedelta(
             0, self.timeout_seconds
         )
-        self.expires_after = expires_after.isoformat()
 
         self.comment = comment
         self.document_name = document_name
@@ -794,7 +862,7 @@ class Command(BaseModel):
             "OutputS3BucketName": self.output_s3_bucket_name,
             "OutputS3KeyPrefix": self.output_s3_key_prefix,
             "Parameters": self.parameters,
-            "RequestedDateTime": self.requested_date_time_iso,
+            "RequestedDateTime": self.requested_date_time,
             "ServiceRole": self.service_role_arn,
             "Status": self.status,
             "StatusDetails": self.status_details,
@@ -818,7 +886,7 @@ class Command(BaseModel):
             "DocumentName": self.document_name,
             "PluginName": plugin_name,
             "ResponseCode": 0,
-            "ExecutionStartDateTime": self.requested_date_time_iso,
+            "ExecutionStartDateTime": self.requested_date_time.isoformat(),
             "ExecutionElapsedTime": elapsed_time_iso,
             "ExecutionEndDateTime": end_time.isoformat(),
             "Status": "Success",
@@ -1224,6 +1292,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.ssm_prefix = (
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
+        self.default_parameter_tier = "Standard"
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -1285,7 +1354,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         document_format: str,
         target_type: str,
         tags: list[dict[str, str]],
-    ) -> dict[str, Any]:
+    ) -> Documents:
         ssm_document = Document(
             account_id=self.account_id,
             name=name,
@@ -1315,7 +1384,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             document_tags = {t["Key"]: t["Value"] for t in tags}
             self.add_tags_to_resource("Document", name, document_tags)
 
-        return documents.describe(tags=tags)
+        return documents
 
     def delete_document(
         self, name: str, document_version: str, version_name: str, force: bool
@@ -1572,10 +1641,12 @@ class SimpleSystemManagerBackend(BaseBackend):
             account_ids_to_add, account_ids_to_remove, shared_document_version
         )
 
-    def delete_parameter(self, name: str) -> Optional[Parameter]:
+    def delete_parameter(self, name: str) -> None:
         normalized_parameter_name = self._parameters.normalize_name(name)
+        result = self._parameters.pop(normalized_parameter_name, None)  # type: ignore
+        if result is None:
+            raise ParameterNotFound(f"Parameter {name} not found.")
         self._resource_tags.get("Parameter", {}).pop(normalized_parameter_name, None)  # type: ignore
-        return self._parameters.pop(normalized_parameter_name, None)  # type: ignore
 
     def delete_parameters(self, names: list[str]) -> list[str]:
         result = []
@@ -2068,6 +2139,44 @@ class SimpleSystemManagerBackend(BaseBackend):
                         parameter.labels.remove(label)
         return (invalid_labels, version)
 
+    def unlabel_parameter_version(
+        self, name: str, version: int, labels: list[str]
+    ) -> tuple[list[str], list[str]]:
+        previous_parameter_versions = self._parameters[name]
+        if not previous_parameter_versions:
+            raise ParameterNotFound(f"Parameter {name} not found.")
+
+        if version is None:
+            raise ValidationException(
+                "1 validation error detected: Value 'null' at 'parameterVersion' failed to satisfy constraint: Member must not be null"
+            )
+
+        found_parameter = None
+        for parameter in previous_parameter_versions:
+            if parameter.version == version:
+                found_parameter = parameter
+                break
+
+        if not found_parameter:
+            raise ParameterVersionNotFound(
+                f"Systems Manager could not find version {version} of {name}. Verify the version and try again."
+            )
+
+        removed_labels: list[str] = []
+        invalid_labels: list[str] = []
+
+        if not labels:
+            return removed_labels, invalid_labels
+
+        for label in labels:
+            if label in found_parameter.labels:
+                found_parameter.labels.remove(label)
+                removed_labels.append(label)
+            else:
+                invalid_labels.append(label)
+
+        return removed_labels, invalid_labels
+
     def _check_for_parameter_version_limit_exception(self, name: str) -> None:
         # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html
         parameter_versions = self._parameters[name]
@@ -2183,8 +2292,9 @@ class SimpleSystemManagerBackend(BaseBackend):
             )
             tier = tier if tier is not None else previous_parameter.tier
             policies = policies if policies is not None else previous_parameter.policies
-
-        last_modified_date = time.time()
+        if tier is None:
+            tier = self.default_parameter_tier
+        last_modified_date = utcnow()
         new_param = Parameter(
             account_id=self.account_id,
             name=name,

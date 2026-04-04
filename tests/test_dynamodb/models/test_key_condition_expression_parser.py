@@ -10,15 +10,14 @@ class TestHashKey:
     @pytest.mark.parametrize("expression", ["job_id = :id", "job_id = :id "])
     def test_hash_key_only(self, expression):
         eav = {":id": {"S": "asdasdasd"}}
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expression,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == eav[":id"]
-        assert comparison is None
-        assert range_values == []
+        assert hash_key_conditions[0][1] == eav[":id"]
+        assert range_key_conditions == []
 
     def test_unknown_hash_key(self):
         kce = "wrongName = :id"
@@ -84,15 +83,15 @@ class TestHashAndRangeKey:
     )
     def test_begin_with(self, expr):
         eav = {":id": "pk", ":sk": "19"}
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == "pk"
-        assert comparison == "BEGINS_WITH"
-        assert range_values == ["19"]
+        assert hash_key_conditions[0][1] == "pk"
+        assert range_key_conditions[0][1] == "BEGINS_WITH"
+        assert range_key_conditions[0][2] == ["19"]
 
     @pytest.mark.parametrize("fn", ["Begins_with", "Begins_With", "BEGINS_WITH"])
     def test_begin_with__wrong_case(self, fn):
@@ -119,29 +118,29 @@ class TestHashAndRangeKey:
     )
     def test_in_between(self, expr):
         eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == "pk"
-        assert comparison == "BETWEEN"
-        assert range_values == ["19", "21"]
+        assert hash_key_conditions[0][1] == "pk"
+        assert range_key_conditions[0][1] == "BETWEEN"
+        assert range_key_conditions[0][2] == ["19", "21"]
 
     @pytest.mark.parametrize("operator", [" < ", " <=", "= ", ">", ">="])
     def test_numeric_comparisons(self, operator):
         eav = {":id": "pk", ":sk": "19"}
         expr = f"job_id = :id and start_date{operator}:sk"
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == "pk"
-        assert comparison == operator.strip()
-        assert range_values == ["19"]
+        assert hash_key_conditions[0][1] == "pk"
+        assert range_key_conditions[0][1] == operator.strip().upper()
+        assert range_key_conditions[0][2] == ["19"]
 
     @pytest.mark.parametrize(
         "expr",
@@ -154,13 +153,13 @@ class TestHashAndRangeKey:
     )
     def test_reverse_keys(self, expr):
         eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == "pk"
+        assert hash_key_conditions[0][1] == "pk"
 
     @pytest.mark.parametrize(
         "expr",
@@ -171,13 +170,13 @@ class TestHashAndRangeKey:
         ],
     )
     def test_brackets(self, expr):
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values={":id": "pk", ":sk": "19"},
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names={},
         )
-        assert desired_hash_key == "pk"
+        assert hash_key_conditions[0][1] == "pk"
 
 
 class TestNamesAndValues:
@@ -187,22 +186,21 @@ class TestNamesAndValues:
         kce = ":j = :id"
         ean = {":j": "job_id"}
         eav = {":id": {"S": "asdasdasd"}}
-        desired_hash_key, comparison, range_values, _ = parse_expression(
+        hash_key_conditions, range_key_conditions, _ = parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=kce,
             schema=self.schema,
             expression_attribute_names=ean,
         )
-        assert desired_hash_key == eav[":id"]
-        assert comparison is None
-        assert range_values == []
+        assert hash_key_conditions[0][1] == eav[":id"]
+        assert range_key_conditions == []
 
 
 def test_expression_attribute_names_found():
     kce = ":j = :id"
     ean = {":j": "job_id"}
     eav = {":id": {"S": "asdasdasd"}}
-    desired_hash_key, comparison, range_values, expression_attribute_names_used = (
+    hash_key_conditions, range_key_conditions, expression_attribute_names_used = (
         parse_expression(
             expression_attribute_values=eav,
             key_condition_expression=kce,

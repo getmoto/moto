@@ -1111,6 +1111,7 @@ class RestAPI(CloudFormationModel):
             if self.OPERATION_VALUE in op:
                 value = op[self.OPERATION_VALUE]
             operaton = op[self.OPERATION_OP]
+
             if operaton == self.OPERATION_REPLACE:
                 if to_path(self.PROP_NAME) in path:
                     self.name = value
@@ -1124,6 +1125,9 @@ class RestAPI(CloudFormationModel):
                     self.disableExecuteApiEndpoint = bool(value)
                 if to_path(self.PROP_POLICY) in path:
                     self.policy = value
+                if to_path(self.PROP_ENDPOINT_CONFIGURATION) in path:
+                    self.endpoint_configuration["types"] = [value]
+
             elif operaton == self.OPERATION_ADD:
                 if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
                     self.binaryMediaTypes.append(value)
@@ -2420,6 +2424,12 @@ class APIGatewayBackend(BaseBackend):
             raise ModelNotFound
         else:
             return model
+
+    def delete_model(self, rest_api_id: str, model_name: str) -> None:
+        api = self.get_rest_api(rest_api_id)
+        if model_name not in api.models:
+            raise ModelNotFound
+        del api.models[model_name]
 
     def get_request_validators(self, restapi_id: str) -> list[RequestValidator]:
         restApi = self.get_rest_api(restapi_id)

@@ -24,7 +24,83 @@ def test_create_pipe():
     assert resp["Arn"].startswith("arn:aws:pipes:eu-west-1:")
     assert resp["Name"] == "test-pipe"
     assert resp["DesiredState"] == "RUNNING"
+    assert resp["CurrentState"] == "CREATING"
+
+
+@mock_aws
+def test_start_pipe_on_running_pipe():
+    # Idempotency: Starting a running pipe is allowed
+    client = boto3.client("pipes", region_name="eu-west-1")
+    create_resp = client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:test-function",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+    )
+    resp = client.start_pipe(Name="test-pipe")
+    assert resp["Arn"] == create_resp["Arn"]
+    assert resp["Name"] == "test-pipe"
+    assert resp["DesiredState"] == "RUNNING"
     assert resp["CurrentState"] == "RUNNING"
+
+
+@mock_aws
+def test_stop_pipe_on_running_pipe():
+    client = boto3.client("pipes", region_name="eu-west-1")
+    create_resp = client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:test-function",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+    )
+    resp = client.stop_pipe(Name="test-pipe")
+    assert resp["Arn"] == create_resp["Arn"]
+    assert resp["Name"] == "test-pipe"
+    assert resp["DesiredState"] == "STOPPED"
+    assert resp["CurrentState"] == "STOPPING"
+
+    # Describe must show this as stopped
+    descr_resp = client.describe_pipe(Name="test-pipe")
+    assert descr_resp["CurrentState"] == "STOPPED"
+
+
+@mock_aws
+def test_stop_pipe_on_stopped_pipe():
+    # Idempotency
+    client = boto3.client("pipes", region_name="eu-west-1")
+    create_resp = client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:test-function",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+    )
+    _ = client.stop_pipe(Name="test-pipe")
+    resp = client.stop_pipe(Name="test-pipe")
+    assert resp["Arn"] == create_resp["Arn"]
+    assert resp["Name"] == "test-pipe"
+    assert resp["DesiredState"] == "STOPPED"
+    assert resp["CurrentState"] == "STOPPED"
+
+
+@mock_aws
+def test_start_pipe_on_stopped_pipe():
+    client = boto3.client("pipes", region_name="eu-west-1")
+    create_resp = client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:test-function",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+    )
+    _ = client.stop_pipe(Name="test-pipe")
+    resp = client.start_pipe(Name="test-pipe")
+    assert resp["Arn"] == create_resp["Arn"]
+    assert resp["Name"] == "test-pipe"
+    assert resp["DesiredState"] == "RUNNING"
+    assert resp["CurrentState"] == "STARTING"
+
+    # Describe must show this as running
+    descr_resp = client.describe_pipe(Name="test-pipe")
+    assert descr_resp["CurrentState"] == "RUNNING"
 
 
 @mock_aws
@@ -45,7 +121,7 @@ def test_create_pipe_with_optional_parameters():
 
     assert resp["Name"] == "test-pipe-optional"
     assert resp["DesiredState"] == "STOPPED"
-    assert resp["CurrentState"] == "RUNNING"
+    assert resp["CurrentState"] == "CREATING"
 
 
 @mock_aws
@@ -118,6 +194,13 @@ def test_tag_resource():
         "Team": "backend",
     }
 
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {
+        "Environment": "test",
+        "Project": "moto",
+        "Team": "backend",
+    }
+
 
 @mock_aws
 def test_tag_resource_updates_existing_tags():
@@ -138,6 +221,13 @@ def test_tag_resource_updates_existing_tags():
 
     describe_resp = client.describe_pipe(Name="test-pipe-tag-update")
     assert describe_resp["Tags"] == {
+        "Environment": "prod",
+        "Project": "old-project",
+        "Team": "backend",
+    }
+
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {
         "Environment": "prod",
         "Project": "old-project",
         "Team": "backend",
@@ -166,6 +256,9 @@ def test_untag_resource():
     describe_resp = client.describe_pipe(Name="test-pipe-untag")
     assert describe_resp["Tags"] == {"Project": "moto"}
 
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {"Project": "moto"}
+
 
 @mock_aws
 def test_untag_resource_all_tags():
@@ -186,6 +279,9 @@ def test_untag_resource_all_tags():
 
     describe_resp = client.describe_pipe(Name="test-pipe-untag-all")
     assert describe_resp.get("Tags") is None or describe_resp["Tags"] == {}
+
+    list_tags_resp = client.list_tags_for_resource(resourceArn=create_resp["Arn"])
+    assert list_tags_resp["tags"] == {}
 
 
 @mock_aws

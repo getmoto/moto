@@ -300,6 +300,41 @@ def test_publish_to_sqs_msg_attr_byte_value():
 
 
 @mock_aws
+def test_publish_to_sqs_with_custom_data_type():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]["TopicArn"]
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+    conn.subscribe(
+        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.attributes["QueueArn"]
+    )
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
+    conn.subscribe(
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
+    conn.publish(
+        TopicArn=topic_arn,
+        Message="my message",
+        MessageAttributes={
+            "store": {"DataType": "Number.java.lang.Long", "StringValue": "42"}
+        },
+    )
+    message = json.loads(queue.receive_messages()[0].body)
+    assert message["Message"] == "my message"
+    assert message["MessageAttributes"] == {
+        "store": {
+            "Type": "Number.java.lang.Long",
+            "Value": "42",
+        }
+    }
+
+
+@mock_aws
 def test_publish_to_sqs_msg_attr_number_type():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="test-topic")
@@ -609,14 +644,39 @@ def test_publish_group_id_to_non_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="topic")
 
-    with pytest.raises(
-        ClientError,
-        match="The request includes MessageGroupId parameter that is not valid for this topic type",
-    ):
-        topic.publish(Message="message", MessageGroupId="message_group_id")
+    # MessageGroupId is allowed on standard topics (forwarded to SQS for fair queues)
+    topic.publish(Message="message", MessageGroupId="message_group_id")
 
-    # message group not included - OK
+    # message group not included - also OK
     topic.publish(Message="message")
+
+
+@mock_aws
+def test_publish_group_id_to_standard_topic_delivers_to_sqs():
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    sns = boto3.client("sns", region_name="us-east-1")
+
+    topic_arn = sns.create_topic(Name="standard-topic")["TopicArn"]
+
+    queue_url = sqs.create_queue(QueueName="standard-queue")["QueueUrl"]
+    queue_arn = sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+
+    sns.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn)
+
+    sns.publish(
+        TopicArn=topic_arn,
+        Message="hello fair queues",
+        MessageGroupId="group-1",
+    )
+
+    messages = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)[
+        "Messages"
+    ]
+    assert len(messages) == 1
+    body = json.loads(messages[0]["Body"])
+    assert body["Message"] == "hello fair queues"
 
 
 @mock_aws
@@ -2631,3 +2691,27 @@ def test_publish_with_message_structure_errors():
             err.response["Error"]["Message"]
             == "MessageStructure must be 'json' if provided"
         )
+
+
+@mock_aws
+def test_publish_with_boolean_attributes():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(
+        Name="ml.fifo",
+        Attributes={
+            "FifoTopic": str(True),
+            "ContentBasedDeduplication": str(False),
+            "FifoThroughputScope": "Topic",
+        },
+    )
+    message = {
+        "sample_uuid": "hui",
+        "metadata": {"sample_id": "123456"},
+        "key": "178500",
+    }
+    resp = topic.publish(
+        Message=json.dumps(message),
+        MessageDeduplicationId=message["sample_uuid"],
+        MessageGroupId=message["metadata"]["sample_id"],
+    )
+    assert "MessageId" in resp

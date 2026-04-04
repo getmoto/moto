@@ -45,6 +45,10 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         return self.id
 
     @property
+    def nat_gateway_addresses(self) -> list[dict[str, Any]]:
+        return self.address_set
+
+    @property
     def create_time(self) -> str:
         return iso_8601_datetime_with_milliseconds(self._created_at)
 

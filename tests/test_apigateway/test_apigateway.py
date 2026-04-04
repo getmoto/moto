@@ -57,12 +57,18 @@ def test_update_rest_api():
             "value": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
             '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
         },
+        {
+            "op": "replace",
+            "path": "/endpointConfiguration/types",
+            "value": "REGIONAL",
+        },
     ]
 
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.pop("binaryMediaTypes")
+
     assert response == {
         "id": api_id,
         "name": "new-name",
@@ -71,7 +77,7 @@ def test_update_rest_api():
         "apiKeySource": "AUTHORIZER",
         "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
         '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
-        "endpointConfiguration": {"types": ["EDGE"]},
+        "endpointConfiguration": {"types": ["REGIONAL"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
         "rootResourceId": root_resource_id,
@@ -1469,6 +1475,38 @@ def test_get_model_with_invalid_name():
     with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=rest_api_id, modelName="fake")
     assert ex.value.response["Error"]["Message"] == "Invalid Model Name specified"
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_delete_model():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    model_name = "testModel"
+
+    # Create a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description="test model",
+        contentType="application/json",
+    )
+
+    # Verify model exists
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 1
+
+    # Delete the model
+    client.delete_model(restApiId=rest_api_id, modelName=model_name)
+
+    # Verify model is gone
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 0
+
+    # Deleting again should raise NotFoundException
+    with pytest.raises(ClientError) as ex:
+        client.delete_model(restApiId=rest_api_id, modelName=model_name)
     assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 

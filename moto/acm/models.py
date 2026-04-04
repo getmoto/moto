@@ -1,4 +1,5 @@
 import base64
+import calendar
 import datetime
 import ipaddress
 import re
@@ -9,11 +10,13 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.serialize import parse_to_aware_datetime
 from moto.core.utils import utcnow
 
 from .exceptions import (
@@ -57,7 +60,8 @@ IPV4_REGEX = re.compile(
 
 
 def datetime_to_epoch(date: datetime.datetime) -> float:
-    return date.timestamp()
+    aware_dt = parse_to_aware_datetime(date)  # type: ignore
+    return float(calendar.timegm(aware_dt.timetuple()))
 
 
 class TagHolder(dict[str, Optional[str]]):
@@ -343,12 +347,19 @@ class CertBundle(BaseModel):
 
     def describe(self) -> dict[str, Any]:
         # 'RenewalSummary': {},  # Only when cert is amazon issued
-        if self._key.key_size == 1024:
-            key_algo = "RSA_1024"
-        elif self._key.key_size == 2048:
-            key_algo = "RSA_2048"
+        if isinstance(self._key, ec.EllipticCurvePrivateKey):
+            # Handle EC keys (map curve name to AWS name)
+            curve_name_map = {
+                "secp256r1": "prime256v1",
+                "secp384r1": "secp384r1",
+                "secp521r1": "secp521r1",
+            }
+            curve_name = self._key.curve.name.lower()
+            aws_curve_name = curve_name_map.get(curve_name, curve_name)
+            key_algo = f"EC_{aws_curve_name}"
         else:
-            key_algo = "EC_prime256v1"
+            # Handle RSA keys
+            key_algo = f"RSA_{self._key.key_size}"
 
         # Look for SANs
         try:

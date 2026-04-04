@@ -89,25 +89,37 @@ class VPCLatticeServiceNetworkVpcAssociation(BaseModel):
         account_id: str,
         client_token: str,
         security_group_ids: Optional[list[str]],
-        service_network_identifier: str,
+        service_network: VPCLatticeServiceNetwork,
         tags: Optional[dict[str, str]],
         vpc_identifier: str,
     ) -> None:
-        self.id: str = f"snva-{service_network_identifier[:4]}-{vpc_identifier[:4]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        self.id: str = f"snva-{str(uuid.uuid4())[:17]}"
         self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkvpcassociation/{self.id}"
         self.created_by: str = "user"
+        self.created_at: str = now_iso
+        self.last_updated_at: str = now_iso
         self.security_group_ids: list[str] = security_group_ids or []
+        self.service_network_id: str = service_network.id
+        self.service_network_name: str = service_network.name
+        self.service_network_arn: str = service_network.arn
         self.status: str = "ACTIVE"
+        self.vpc_id: str = vpc_identifier
         self.tags: dict[str, str] = tags or {}
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "id": self.id,
+            "status": self.status,
             "arn": self.arn,
             "createdBy": self.created_by,
-            "id": self.id,
+            "createdAt": self.created_at,
+            "serviceNetworkId": self.service_network_id,
+            "serviceNetworkName": self.service_network_name,
+            "serviceNetworkArn": self.service_network_arn,
+            "vpcId": self.vpc_id,
+            "lastUpdatedAt": self.last_updated_at,
             "securityGroupIds": self.security_group_ids,
-            "status": self.status,
-            "tags": self.tags,
         }
 
 
@@ -126,7 +138,7 @@ class VPCLatticeRule(BaseModel):
         tags: dict[str, str],
     ) -> None:
         self.action: dict[str, Any] = action or {}
-        self.id: str = f"rule-[0-9a-z]{17}"
+        self.id: str = f"rule-{str(uuid.uuid4())[:17]}"
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
             f"/listener/listener-{listener_identifier}/rule/{self.id}"
@@ -206,6 +218,22 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         }
 
 
+class AuthPolicy:
+    def __init__(
+        self,
+        policy_name: str,
+        policy: str,
+        created_at: str,
+        last_updated_at: str,
+        state: str,
+    ) -> None:
+        self.policy_name = policy_name
+        self.policy = policy
+        self.created_at = created_at
+        self.last_updated_at = last_updated_at
+        self.state = state
+
+
 class VPCLatticeBackend(BaseBackend):
     PAGINATION_MODEL = {
         "list_services": {
@@ -215,6 +243,12 @@ class VPCLatticeBackend(BaseBackend):
             "unique_attribute": "id",
         },
         "list_service_networks": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_service_network_vpc_associations": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 50,
@@ -232,6 +266,8 @@ class VPCLatticeBackend(BaseBackend):
         self.rules: dict[str, VPCLatticeRule] = {}
         self.tagger: TaggingService = TaggingService()
         self.access_log_subscriptions: dict[str, VPCLatticeAccessLogSubscription] = {}
+        self.resource_policies: dict[str, str] = {}
+        self.auth_policies: dict[str, AuthPolicy] = {}
 
     def create_service(
         self,
@@ -310,12 +346,13 @@ class VPCLatticeBackend(BaseBackend):
         tags: Optional[dict[str, str]],
         vpc_identifier: str,
     ) -> VPCLatticeServiceNetworkVpcAssociation:
+        sn = self.get_service_network(service_network_identifier)
         assoc = VPCLatticeServiceNetworkVpcAssociation(
             self.region_name,
             self.account_id,
             client_token,
             security_group_ids,
-            service_network_identifier,
+            sn,
             tags,
             vpc_identifier,
         )
@@ -394,6 +431,7 @@ class VPCLatticeBackend(BaseBackend):
         )
 
         self.access_log_subscriptions[sub.id] = sub
+        self.tag_resource(sub.arn, tags or {})
         return sub
 
     def get_access_log_subscription(
@@ -416,6 +454,7 @@ class VPCLatticeBackend(BaseBackend):
             sub
             for sub in self.access_log_subscriptions.values()
             if sub.resourceId == resourceIdentifier
+            or sub.resourceArn == resourceIdentifier
         ][:maxResults]
 
     def update_access_log_subscription(
@@ -443,6 +482,115 @@ class VPCLatticeBackend(BaseBackend):
                 f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
             )
         del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
+
+    def put_auth_policy(self, resourceIdentifier: str, policy: str) -> AuthPolicy:
+        # ResourceConfig not supported yet, only handle Service and Service Network
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        resource: Any = None
+
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        elif resourceIdentifier.startswith("svc-"):
+            resource = self.services.get(resourceIdentifier)
+        else:
+            raise ValidationException(
+                "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+            )
+
+        if not resource:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        # Handle state management
+        state = "Inactive" if resource.auth_type == "NONE" else "Active"
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        if resourceIdentifier in self.auth_policies:
+            auth_policy = self.auth_policies[resourceIdentifier]
+            auth_policy.policy = policy
+            auth_policy.last_updated_at = now_iso
+            auth_policy.state = state
+
+        else:
+            auth_policy = AuthPolicy(
+                policy_name=resourceIdentifier,
+                policy=policy,
+                created_at=now_iso,
+                last_updated_at=now_iso,
+                state=state,
+            )
+
+            self.auth_policies[resourceIdentifier] = auth_policy
+
+        return auth_policy
+
+    def get_auth_policy(self, resourceIdentifier: str) -> AuthPolicy:
+        original_identifier = resourceIdentifier
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        auth_policy = self.auth_policies.get(resourceIdentifier)
+        if not auth_policy:
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
+
+        resource: Any
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        else:
+            resource = self.services.get(resourceIdentifier)
+
+        auth_policy.state = (
+            "Inactive" if not resource or resource.auth_type == "NONE" else "Active"
+        )
+
+        return auth_policy
+
+    def delete_auth_policy(self, resourceIdentifier: str) -> None:
+        original_identifier = resourceIdentifier
+
+        if resourceIdentifier.startswith("arn:"):
+            resourceIdentifier = resourceIdentifier.rsplit("/", 1)[-1]
+
+        if resourceIdentifier not in self.auth_policies:
+            raise ResourceNotFoundException(f"Resource {original_identifier} not found")
+
+        del self.auth_policies[resourceIdentifier]
+
+    def put_resource_policy(self, resourceArn: str, policy: str) -> None:
+        self.resource_policies[resourceArn] = policy
+
+    def get_resource_policy(self, resourceArn: str) -> str:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        return self.resource_policies[resourceArn]
+
+    def delete_resource_policy(self, resourceArn: str) -> None:
+        if resourceArn not in self.resource_policies:
+            raise ResourceNotFoundException(f"Resource {resourceArn} not found")
+
+        del self.resource_policies[resourceArn]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_network_vpc_associations(
+        self,
+        serviceNetworkIdentifier: Optional[str] = None,
+        vpcIdentifier: Optional[str] = None,
+    ) -> list[VPCLatticeServiceNetworkVpcAssociation]:
+        associations = list(self.service_network_vpc_associations.values())
+        if serviceNetworkIdentifier:
+            associations = [
+                assoc
+                for assoc in associations
+                if assoc.service_network_id == serviceNetworkIdentifier
+                or assoc.service_network_arn == serviceNetworkIdentifier
+            ]
+        if vpcIdentifier:
+            associations = [
+                assoc for assoc in associations if assoc.vpc_id == vpcIdentifier
+            ]
+        return associations
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

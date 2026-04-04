@@ -77,6 +77,7 @@ glue
 - [ ] delete_column_statistics_for_table
 - [ ] delete_column_statistics_task_settings
 - [ ] delete_connection
+- [ ] delete_connection_type
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
@@ -148,6 +149,7 @@ glue
 - [X] get_job_runs
 - [X] get_jobs
 - [ ] get_mapping
+- [ ] get_materialized_view_refresh_task_run
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
@@ -216,6 +218,7 @@ glue
 - [ ] list_entities
 - [ ] list_integration_resource_properties
 - [X] list_jobs
+- [ ] list_materialized_view_refresh_task_runs
 - [ ] list_ml_transforms
 - [X] list_registries
 - [ ] list_schema_versions
@@ -233,6 +236,7 @@ glue
 - [X] put_schema_version_metadata
 - [X] put_workflow_run_properties
 - [ ] query_schema_version_metadata
+- [ ] register_connection_type
 - [X] register_schema_version
 - [ ] remove_schema_version_metadata
 - [ ] reset_job_bookmark
@@ -249,6 +253,7 @@ glue
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
+- [ ] start_materialized_view_refresh_task_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
@@ -257,6 +262,7 @@ glue
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
+- [ ] stop_materialized_view_refresh_task_run
 - [X] stop_session
 - [X] stop_trigger
 - [X] stop_workflow_run

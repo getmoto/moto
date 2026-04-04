@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 if TYPE_CHECKING:
     from typing_extensions import Protocol

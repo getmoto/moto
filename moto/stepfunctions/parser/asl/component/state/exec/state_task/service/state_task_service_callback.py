@@ -2,7 +2,8 @@ import abc
 import json
 import threading
 import time
-from typing import Any, Callable, Final, Optional, Union
+from collections.abc import Callable
+from typing import Any, Final, Optional, Union
 
 from moto.stepfunctions.parser.api import (
     HistoryEventExecutionDataDetails,

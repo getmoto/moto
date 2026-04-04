@@ -60,6 +60,7 @@ sesv2
 - [ ] get_deliverability_test_report
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
+- [ ] get_email_address_insights
 - [X] get_email_identity
 - [X] get_email_identity_policies
 - [ ] get_email_template
@@ -86,7 +87,7 @@ sesv2
 - [ ] list_reputation_entities
 - [ ] list_resource_tenants
 - [ ] list_suppressed_destinations
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_tenant_resources
 - [ ] list_tenants
 - [ ] put_account_dedicated_ip_warmup_attributes
@@ -114,9 +115,9 @@ sesv2
 - [ ] send_bulk_email
 - [ ] send_custom_verification_email
 - [X] send_email
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_render_email_template
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_configuration_set_event_destination
 - [ ] update_contact
 - [ ] update_contact_list

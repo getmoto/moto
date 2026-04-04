@@ -1,3 +1,4 @@
+import copy
 from decimal import Decimal
 from uuid import uuid4
 
@@ -5,7 +6,10 @@ import boto3
 import pytest
 from boto3.dynamodb.conditions import Attr, Key
 
-from moto import mock_aws
+from moto import mock_aws, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.dynamodb import dynamodb_backends
+from moto.dynamodb.models import DynamoType
 
 from . import dynamodb_aws_verified
 
@@ -151,6 +155,91 @@ def test_key_condition_expressions():
         & Key("subject").between("567", "890")
     )
     assert results["Count"] == 1
+
+
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_query_returns_detached_items():
+    if settings.TEST_SERVER_MODE:
+        pytest.skip("Can't access backend directly in server mode")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    table = dynamodb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.put_item(
+        Item={
+            "pk": "hash",
+            "sk": "1",
+            "payload": {"nested": "original"},
+            "tags": ["a", "b"],
+        }
+    )
+
+    # Use backend API to verify Item isolation (boto3 returns plain dicts).
+    backend = dynamodb_backends[ACCOUNT_ID]["us-east-1"]
+    items, _, _ = backend.query(
+        table_name,
+        {"S": "hash"},
+        None,
+        [],
+        limit=10,
+        exclusive_start_key=None,
+        scan_index_forward=True,
+        projection_expressions=None,
+        index_name=None,
+        consistent_read=False,
+        expr_names=None,
+        expr_values=None,
+        filter_expression=None,
+    )
+
+    item = items[0]
+    item.attrs["payload"].value["nested"].value = "changed"
+    item.attrs["tags"].value[0].value = "changed"
+
+    stored_item = backend.get_item(table_name, {"pk": {"S": "hash"}, "sk": {"S": "1"}})
+    assert stored_item is not None
+    assert stored_item is not item
+    assert stored_item.attrs["payload"].value["nested"].value == "original"
+    assert stored_item.attrs["tags"].value[0].value == "a"
+
+
+@pytest.mark.parametrize(
+    "attr_value",
+    [
+        pytest.param({"S": "hello"}, id="string"),
+        pytest.param({"N": "123"}, id="number"),
+        pytest.param({"B": "aGVsbG8="}, id="binary"),
+        pytest.param({"BOOL": True}, id="boolean"),
+        pytest.param({"NULL": True}, id="null"),
+        pytest.param({"SS": ["a", "b", "c"]}, id="string_set"),
+        pytest.param({"NS": ["1", "2", "3"]}, id="number_set"),
+        pytest.param({"BS": ["aGVsbG8=", "d29ybGQ="]}, id="binary_set"),
+        pytest.param({"L": [{"S": "a"}, {"N": "1"}]}, id="list"),
+        pytest.param({"M": {"key": {"S": "value"}}}, id="map"),
+    ],
+)
+def test_dynamotype_deepcopy_all_types(attr_value):
+    original = DynamoType(attr_value)
+    copied = copy.deepcopy(original)
+
+    assert copied == original
+    assert copied is not original
+    assert copied.type == original.type
+    # For mutable containers, verify the value is a different object
+    if original.is_list() or original.is_map() or original.is_set():
+        assert copied.value is not original.value
 
 
 @pytest.mark.aws_verified
@@ -521,6 +610,71 @@ def test_query_gsi_pagination_with_numeric_range(table_name=None):
     results = page1["Items"] + page2["Items"]
     subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(numeric_range=True)
+def test_query_pagination_with_float_numeric_key_in_exclusive_start_key(
+    table_name=None,
+):
+    """Pagination works when ExclusiveStartKey uses float-style numeric representation.
+
+    DynamoDB treats {"N": "100"} and {"N": "100.0"} as the same number.
+    This can happen when a client library round-trips numeric values through float
+    deserialization (e.g., deserializing {"N": "100"} as float 100.0, then
+    re-serializing as {"N": "100.0"}).
+    """
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # Insert 4 items with integer-valued numeric range keys
+    for i in range(4):
+        client.put_item(
+            TableName=table_name,
+            Item={
+                "pk": {"S": "the-key"},
+                "sk": {"N": str(i * 100)},  # "0", "100", "200", "300"
+            },
+        )
+
+    # Query first page
+    page1 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="pk = :pk",
+        ExpressionAttributeValues={":pk": {"S": "the-key"}},
+        Limit=2,
+    )
+    assert len(page1["Items"]) == 2
+    lek = page1["LastEvaluatedKey"]
+
+    # Simulate a client library that round-trips numbers through float
+    # "100" -> float(100) -> "100.0"
+    modified_lek = {}
+    for key, value in lek.items():
+        if "N" in value:
+            modified_lek[key] = {"N": str(float(value["N"]))}
+        else:
+            modified_lek[key] = value
+
+    # Query second page with the float-style ExclusiveStartKey
+    page2 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="pk = :pk",
+        ExpressionAttributeValues={":pk": {"S": "the-key"}},
+        Limit=2,
+        ExclusiveStartKey=modified_lek,
+    )
+    assert len(page2["Items"]) == 2
+
+    # Verify no duplicates across pages
+    page1_sks = {item["sk"]["N"] for item in page1["Items"]}
+    page2_sks = {item["sk"]["N"] for item in page2["Items"]}
+    assert len(page1_sks & page2_sks) == 0, (
+        f"Duplicate items found: {page1_sks & page2_sks}"
+    )
+
+    # All items returned
+    all_items = page1["Items"] + page2["Items"]
+    assert len(all_items) == 4
 
 
 @pytest.mark.aws_verified

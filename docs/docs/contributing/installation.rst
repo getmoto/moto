@@ -48,7 +48,6 @@ To verify all tests pass for a specific service, for example for `s3`, run these
 
   ruff check moto/s3 tests/test_s3
   ruff format --check moto/s3 tests/test_s3
-  pylint moto/s3 tests/test_s3
   mypy
   pytest -sv tests/test_s3
 
@@ -85,6 +84,5 @@ Then standard development on Moto can proceed, for example:
 
   ruff check moto/s3 tests/test_s3
   ruff format --check moto/s3 tests/test_s3
-  pylint moto/s3 tests/test_s3
   mypy
   pytest -sv tests/test_s3

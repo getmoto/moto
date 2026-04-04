@@ -43,7 +43,7 @@ def test_response_result_execution() -> None:
     service_model = ServiceModel(TEST_MODEL)
     operation_model = service_model.operation_model("TestOperation")
     serializer_class = QuerySerializer
-    response_class = TestResponseClass
+    response_class = TestResponseClass()
 
     context = ActionContext(
         service_model, operation_model, serializer_class, response_class

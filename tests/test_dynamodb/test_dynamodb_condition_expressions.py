@@ -429,6 +429,134 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
 
 
 @mock_aws
+def test_condition_expression_parentheses_behavior():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    client.put_item(
+        TableName=table_name,
+        Item={
+            "pk": {"S": "pk"},
+            "a": {"N": "1"},
+            "b": {"N": "2"},
+            "c": {"N": "3"},
+            "e": {"N": "4"},
+        },
+    )
+
+    # Test Case 1: #a = :b OR (#c = :d AND #e = :f)
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="#a = :b OR (#c = :d AND #e = :f)",
+        ExpressionAttributeNames={"#a": "pk", "#c": "pk", "#e": "pk"},
+        ExpressionAttributeValues={
+            ":b": {"S": "pk"},
+            ":d": {"S": "pk"},
+            ":f": {"S": "pk"},
+            ":z": {"S": "updated1"},
+        },
+    )
+
+    # Test Case 2: (attribute_exists (#0)) AND (((#1 <> :0) AND (#1 <> :1)) AND (#2 = :3))
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="(attribute_exists (#0)) AND (((#1 <> :0) AND (#1 <> :1)) AND (#2 = :3))",
+        ExpressionAttributeNames={"#0": "pk", "#1": "pk", "#2": "pk"},
+        ExpressionAttributeValues={
+            ":0": {"S": "nope"},
+            ":1": {"S": "nope"},
+            ":3": {"S": "pk"},
+            ":z": {"S": "updated2"},
+        },
+    )
+
+    # Test Case 3: ((((a < b))))
+    # AWS DDB fails this. Moto should too.
+    with pytest.raises(ClientError) as exc:
+        client.update_item(
+            TableName=table_name,
+            Key={"pk": {"S": "pk"}},
+            UpdateExpression="SET z = :z",
+            ConditionExpression="((((a < b))))",
+            ExpressionAttributeValues={":z": {"S": "updated3"}},
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid ConditionExpression: The expression has redundant parentheses;"
+    )
+
+    # Test Case 4: ((#a = :b) OR (#c = :d) AND (#e = :f))
+    # AWS DDB allows this. Moto should too.
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET z = :z",
+        ConditionExpression="((#a = :b) OR (#c = :d) AND (#e = :f))",
+        ExpressionAttributeNames={"#a": "pk", "#c": "pk", "#e": "pk"},
+        ExpressionAttributeValues={
+            ":b": {"S": "pk"},
+            ":d": {"S": "pk"},
+            ":f": {"S": "pk"},
+            ":z": {"S": "updated4"},
+        },
+    )
+
+
+@mock_aws
+def test_condition_expression_allows_required_parentheses():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    client.put_item(
+        TableName=table_name,
+        Item={
+            "pk": {"S": "pk"},
+            "a": {"S": "match"},
+            "c": {"S": "match"},
+            "e": {"S": "match"},
+        },
+    )
+
+    client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "pk"}},
+        UpdateExpression="SET #z = :z",
+        ConditionExpression="#a = :b AND (#c = :d OR #e = :f)",
+        ExpressionAttributeNames={"#a": "a", "#c": "c", "#e": "e", "#z": "z"},
+        ExpressionAttributeValues={
+            ":b": {"S": "match"},
+            ":d": {"S": "match"},
+            ":f": {"S": "nope"},
+            ":z": {"S": "updated"},
+        },
+    )
+
+    item = client.get_item(TableName=table_name, Key={"pk": {"S": "pk"}})["Item"]
+    assert item["z"] == {"S": "updated"}
+
+
+@mock_aws
 def test_condition_check_failure_exception_is_raised_when_values_are_returned_for_an_item_with_a_top_level_list():
     # This explicitly tests for a failure in handling JSONification of DynamoType
     # when lists are at the top level of an item.
@@ -576,3 +704,38 @@ def test_condition_check_failure_exception_is_raised_when_values_are_returned_fo
             "M": {"some_list": {"L": [{"M": {"hello": {"S": "h"}}}]}}
         },
     }
+
+
+@mock_aws
+def test_conditional_check_failed_bytes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test_table_bytes",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    dynamodb.put_item(
+        TableName="test_table_bytes",
+        Item={
+            "pk": {"S": "test"},
+            "my_bytes": {"B": b"somebytes"},
+            "my_bytes_set": {"BS": [b"byte1", b"byte2"]},
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.update_item(
+            TableName="test_table_bytes",
+            Key={"pk": {"S": "test"}},
+            UpdateExpression="SET my_str = :s",
+            ConditionExpression="attribute_not_exists(pk)",
+            ExpressionAttributeValues={":s": {"S": "newstr"}},
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ConditionalCheckFailedException"
+    assert "Item" in exc.value.response
+    assert exc.value.response["Item"]["my_bytes"]["B"] == b"somebytes"
+    assert exc.value.response["Item"]["my_bytes_set"]["BS"] == [b"byte1", b"byte2"]

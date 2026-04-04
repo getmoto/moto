@@ -24,25 +24,29 @@ backup
 - [ ] create_framework
 - [ ] create_legal_hold
 - [ ] create_logically_air_gapped_backup_vault
-- [ ] create_report_plan
+- [X] create_report_plan
+  
+        The parameters ReportPlanTags and IdempotencyToken are not yet supported
+        
+
 - [ ] create_restore_access_backup_vault
 - [ ] create_restore_testing_plan
 - [ ] create_restore_testing_selection
 - [ ] create_tiering_configuration
 - [X] delete_backup_plan
 - [ ] delete_backup_selection
-- [ ] delete_backup_vault
+- [X] delete_backup_vault
 - [ ] delete_backup_vault_access_policy
-- [ ] delete_backup_vault_lock_configuration
+- [X] delete_backup_vault_lock_configuration
 - [ ] delete_backup_vault_notifications
 - [ ] delete_framework
 - [ ] delete_recovery_point
-- [ ] delete_report_plan
+- [X] delete_report_plan
 - [ ] delete_restore_testing_plan
 - [ ] delete_restore_testing_selection
 - [ ] delete_tiering_configuration
 - [ ] describe_backup_job
-- [ ] describe_backup_vault
+- [X] describe_backup_vault
 - [ ] describe_copy_job
 - [ ] describe_framework
 - [ ] describe_global_settings
@@ -50,7 +54,7 @@ backup
 - [ ] describe_recovery_point
 - [ ] describe_region_settings
 - [ ] describe_report_job
-- [ ] describe_report_plan
+- [X] describe_report_plan
 - [ ] describe_restore_job
 - [ ] describe_scan_job
 - [ ] disassociate_backup_vault_mpa_approval_team
@@ -98,7 +102,11 @@ backup
 - [ ] list_recovery_points_by_legal_hold
 - [ ] list_recovery_points_by_resource
 - [ ] list_report_jobs
-- [ ] list_report_plans
+- [X] list_report_plans
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_restore_access_backup_vaults
 - [ ] list_restore_job_summaries
 - [ ] list_restore_jobs
@@ -114,7 +122,7 @@ backup
 
 - [ ] list_tiering_configurations
 - [ ] put_backup_vault_access_policy
-- [ ] put_backup_vault_lock_configuration
+- [X] put_backup_vault_lock_configuration
 - [ ] put_backup_vault_notifications
 - [ ] put_restore_validation_result
 - [ ] revoke_restore_access_backup_vault

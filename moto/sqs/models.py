@@ -19,7 +19,7 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition, md5_hash
 
-from .constants import MAXIMUM_VISIBILITY_TIMEOUT
+from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
     BatchEntryIdsNotDistinct,
     BatchRequestTooLong,
@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
-MAXIMUM_MESSAGE_LENGTH = 1048576  # 1 MB
 
 MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
 MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
@@ -327,10 +326,10 @@ class Queue(CloudFormationModel):
 
         integer_fields = (
             "DelaySeconds",
-            "KmsDataKeyreusePeriodSeconds",
+            "KmsDataKeyReusePeriodSeconds",
             "MaximumMessageSize",
             "MessageRetentionPeriod",
-            "ReceiveMessageWaitTime",
+            "ReceiveMessageWaitTimeSeconds",
             "VisibilityTimeout",
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
@@ -569,6 +568,8 @@ class Queue(CloudFormationModel):
             self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
+            if not esm.enabled:
+                continue
             backend = sqs_backends[self.account_id][self.region]
 
             """
@@ -661,10 +662,24 @@ class Queue(CloudFormationModel):
 def _filter_message_attributes(
     message: Message, input_message_attributes: list[str]
 ) -> None:
+    # Supported patterns per AWS spec:
+    #   "All" or ".*"      – return all message attributes
+    #   "<prefix>.*"       – return attributes whose name starts with <prefix>
+    # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
+    # https://docs.aws.amazon.com/cli/latest/reference/sqs/receive-message.html
     filtered_message_attributes = {}
+    # "All" is handled explicitly; ".*" is covered by the prefix logic below
+    # because ".*"[:-2] == "" and every key starts with ""
     return_all = "All" in input_message_attributes
+    attribute_set = set(input_message_attributes)
+    # "Custom.*" -> prefix "Custom"; ".*" -> prefix "" (matches everything)
+    prefixes = [attr[:-2] for attr in input_message_attributes if attr.endswith(".*")]
     for key, value in message.message_attributes.items():
-        if return_all or key in input_message_attributes:
+        if (
+            return_all
+            or key in attribute_set
+            or any(key.startswith(prefix) for prefix in prefixes)
+        ):
             filtered_message_attributes[key] = value
     message.message_attributes = filtered_message_attributes
 

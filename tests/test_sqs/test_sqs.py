@@ -15,11 +15,13 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import camelcase_to_underscores
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     Queue,
+    sqs_backends,
 )
 from moto.utilities.distutils_version import LooseVersion
 from tests import aws_verified
@@ -321,6 +323,64 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "attribute_name,attribute_value",
+    [
+        ("DelaySeconds", "5"),
+        ("KmsDataKeyReusePeriodSeconds", "300"),
+        ("MaximumMessageSize", "262144"),
+        ("MessageRetentionPeriod", "345600"),
+        ("ReceiveMessageWaitTimeSeconds", "10"),
+        ("VisibilityTimeout", "30"),
+    ],
+)
+def test_set_attributes_integer_fields_conversion(attribute_name, attribute_value):
+    """Test that integer fields are properly converted from strings to integers."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+
+    client = boto3.client("sqs", region_name=REGION)
+    queue_name = str(uuid4())[0:6]
+
+    # KMS attributes require KmsMasterKeyId to be set
+    attributes = {attribute_name: attribute_value}
+    if attribute_name == "KmsDataKeyReusePeriodSeconds":
+        attributes["KmsMasterKeyId"] = "alias/MyKey"
+
+    q_resp = client.create_queue(QueueName=queue_name, Attributes=attributes)
+    queue_url = q_resp["QueueUrl"]
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == attribute_value
+
+    # Verify internal value is stored as integer
+    backend = sqs_backends[ACCOUNT_ID][REGION]
+    queue = backend.get_queue(queue_name)
+    internal_attr_name = camelcase_to_underscores(attribute_name)
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(attribute_value)
+
+    # Update attribute
+    new_value = str(int(attribute_value) + 1)
+    client.set_queue_attributes(
+        QueueUrl=queue_url, Attributes={attribute_name: new_value}
+    )
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == new_value
+
+    # Verify updated value is still integer internally
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(new_value)
+
+
+@mock_aws
 def test_set_queue_attribute_empty_redrive_removes_attr():
     client = boto3.client("sqs", region_name=REGION)
 
@@ -402,6 +462,7 @@ def test_message_send_without_attributes():
     assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
     assert "MD5OfMessageAttributes" not in msg
     assert " \n" not in msg.get("MessageId")
+    assert "SequenceNumber" not in msg
 
     messages = queue.receive_messages()
     assert len(messages) == 1
@@ -1297,12 +1358,13 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
 
     body = "this is a test message"
 
-    client.send_message(
+    resp = client.send_message(
         QueueUrl=queue_url,
         MessageBody=body,
         MessageDeduplicationId="123",
         MessageGroupId="456",
     )
+    assert "SequenceNumber" in resp
 
     message = client.receive_message(
         QueueUrl=queue_url, AttributeNames=[attribute_name], MaxNumberOfMessages=2
@@ -1447,7 +1509,7 @@ def test_send_large_message_fails():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
-        "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes."
+        f"One or more parameters are invalid. Reason: Message must be shorter than {MAXIMUM_MESSAGE_LENGTH} bytes."
     )
 
 
@@ -1790,7 +1852,7 @@ def test_delete_message_using_old_receipt_handle():
 
 
 @mock_aws
-def test_send_message_batch():
+def test_fifo_send_message_batch():
     client = boto3.client("sqs", region_name=REGION)
     response = client.create_queue(
         QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
@@ -1827,6 +1889,8 @@ def test_send_message_batch():
     )
 
     assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1", "id_2"]
+    for entry in response["Successful"]:
+        assert "SequenceNumber" in entry
 
     response = client.receive_message(
         QueueUrl=queue_url,
@@ -2903,9 +2967,17 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
 
 
 @mock_aws
-def test_send_message_fails_when_message_size_greater_than_max_message_size():
+@pytest.mark.parametrize(
+    "message_size_limit",
+    (
+        12345,
+        500_000,  # Above old limit of 262144
+    ),
+)
+def test_send_message_fails_when_message_size_greater_than_max_message_size(
+    message_size_limit: int,
+):
     sqs = boto3.resource("sqs", region_name="eu-west-3")
-    message_size_limit = 12345
     queue = sqs.create_queue(
         QueueName=str(uuid4()),
         Attributes={"MaximumMessageSize": str(message_size_limit)},
@@ -3278,6 +3350,8 @@ def test_message_delay_is_more_than_15_minutes():
 
     assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1"]
     assert sorted([entry["Id"] for entry in response["Failed"]]) == ["id_2"]
+    for entry in response["Successful"]:
+        assert "SequenceNumber" not in entry
 
     time.sleep(1.1)
 

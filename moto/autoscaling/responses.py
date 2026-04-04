@@ -252,6 +252,7 @@ class AutoScalingResponse(BaseResponse):
             new_instances_protected_from_scale_in=self._get_bool_param(
                 "NewInstancesProtectedFromScaleIn", None
             ),
+            mixed_instances_policy=self._get_param("MixedInstancesPolicy"),
         )
         return EmptyResult()
 

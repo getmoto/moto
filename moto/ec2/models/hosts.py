@@ -26,6 +26,23 @@ class Host(TaggedEC2Resource):
         self.ec2_backend = backend
         self.allocation_time = unix_time()
 
+    @property
+    def availability_zone(self) -> str:
+        return self.zone
+
+    @property
+    def owner_id(self) -> str:
+        return self.ec2_backend.account_id
+
+    @property
+    def host_properties(self) -> dict[str, Any]:
+        props: dict[str, Any] = {}
+        if self.instance_type:
+            props["InstanceType"] = self.instance_type
+        if self.instance_family:
+            props["InstanceFamily"] = self.instance_family
+        return props
+
     def release(self) -> None:
         self.state = "released"
 

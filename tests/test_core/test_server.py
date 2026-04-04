@@ -1,4 +1,5 @@
 import gzip
+import json
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
@@ -64,3 +65,36 @@ def test_request_decompression() -> None:
     resp = test_client.post(headers=headers, data=data)
     assert resp.status_code == 200
     assert "<DescribeDBInstancesResult>" in resp.data.decode("utf-8")
+
+
+def test_date_header_is_not_duplicated(moto_server: str) -> None:
+    client = boto3.client("glue", region_name="us-east-1", endpoint_url=moto_server)
+    resp = client.get_connections()
+    date_header_value = resp["ResponseMetadata"]["HTTPHeaders"]["date"]
+    # RFC 2822 dates should only have 1 comma, e.g. 'Mon, 20 Nov 1995 19:12:08 GMT'
+    # If multiple date headers exist, their values will be concatenated with a comma
+    # and this assertion will fail.
+    assert len(date_header_value.split(",")) == 2
+
+
+def test_bedrock_service_resolution(moto_server: str) -> None:
+    # Multiple Bedrock services use the same signing name (bedrock),
+    # so this test checks that a bedrock-runtime request is correctly
+    # differentiated in server mode (where there is no host name available).
+    from botocore.exceptions import UnknownServiceError
+
+    try:
+        client = boto3.client(
+            "bedrock-runtime", region_name="us-east-1", endpoint_url=moto_server
+        )
+    except UnknownServiceError:
+        pytest.skip("Bedrock Runtime not supported in this version of Botocore.")
+    else:
+        resp = client.invoke_model(
+            modelId="test-model-id",
+            body=json.dumps({}),
+            performanceConfigLatency="optimized",
+            serviceTier="flex",
+        )
+        assert resp["performanceConfigLatency"] == "optimized"
+        assert resp["serviceTier"] == "flex"

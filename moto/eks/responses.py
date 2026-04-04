@@ -1,6 +1,6 @@
 from urllib.parse import unquote
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import EKSBackend, eks_backends
 
@@ -150,6 +150,29 @@ class EKSResponse(BaseResponse):
 
         return ActionResult({"nodegroup": nodegroup})
 
+    def update_nodegroup_config(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        labels = self._get_param("labels")
+        taints = self._get_param("taints")
+        scaling_config = self._get_param("scalingConfig")
+        update_config = self._get_param("updateConfig")
+        node_repair_config = self._get_param("nodeRepairConfig")
+        client_request_token = self._get_param("clientRequestToken")
+
+        update = self.eks_backend.update_nodegroup_config(
+            cluster_name=cluster_name,
+            nodegroup_name=nodegroup_name,
+            labels=labels,
+            taints=taints,
+            scaling_config=scaling_config,
+            update_config=update_config,
+            node_repair_config=node_repair_config,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"update": update})
+
     def list_clusters(self) -> ActionResult:
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
@@ -216,14 +239,14 @@ class EKSResponse(BaseResponse):
             self._extract_arn_from_path(), self._get_param("tags")
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         self.eks_backend.untag_resource(
             self._extract_arn_from_path(), self._get_param("tagKeys")
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_tags_for_resource(self) -> ActionResult:
         tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())

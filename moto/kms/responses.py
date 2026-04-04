@@ -237,19 +237,15 @@ class KmsResponse(BaseResponse):
         if self.kms_backend.alias_exists(target_key_id):
             raise ValidationException("Aliases must refer to keys. Not aliases")
 
-        if update:
-            # delete any existing aliases with that name (should be a no-op if none exist)
-            self.kms_backend.delete_alias(alias_name)
-
-        if self.kms_backend.alias_exists(alias_name):
-            raise AlreadyExistsException(
-                f"An alias with the name arn:aws:kms:{self.region}:{self.current_account}:{alias_name} already exists"
-            )
-
         self._validate_cmk_id(target_key_id)
         if update:
+            self._validate_alias(alias_name)
             self.kms_backend.update_alias(target_key_id, alias_name)
         else:
+            if self.kms_backend.alias_exists(alias_name):
+                raise AlreadyExistsException(
+                    f"An alias with the name arn:aws:kms:{self.region}:{self.current_account}:{alias_name} already exists"
+                )
             self.kms_backend.create_alias(target_key_id, alias_name)
 
         return json.dumps(None)
@@ -277,22 +273,21 @@ class KmsResponse(BaseResponse):
 
         response_aliases = []
 
-        backend_aliases = self.kms_backend.list_aliases()
-        for target_key_id, aliases in backend_aliases.items():
-            for alias_name in aliases:
-                # TODO: add creation date and last updated in response_aliases
-                response_aliases.append(
-                    {
-                        "AliasArn": f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{alias_name}",
-                        "AliasName": alias_name,
-                        "TargetKeyId": target_key_id,
-                    }
-                )
+        aliases = self.kms_backend.list_aliases(key_id=key_id)
+        for alias in aliases:
+            # TODO: add creation date and last updated in response_aliases
+            response_aliases.append(
+                {
+                    "AliasArn": alias.alias_arn,
+                    "AliasName": alias.alias_name,
+                    "TargetKeyId": alias.target_key_id,
+                }
+            )
         for reserved_alias, target_key_id in RESERVED_ALIASE_TARGET_KEY_IDS.items():
-            exsisting = [
-                a for a in response_aliases if a["AliasName"] == reserved_alias
-            ]
-            if not exsisting:
+            if key_id and target_key_id != key_id:
+                continue
+            existing = [a for a in response_aliases if a["AliasName"] == reserved_alias]
+            if not existing:
                 arn = f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
@@ -301,11 +296,6 @@ class KmsResponse(BaseResponse):
                         "AliasName": reserved_alias,
                     }
                 )
-
-        if key_id is not None:
-            response_aliases = list(
-                filter(lambda alias: alias["TargetKeyId"] == key_id, response_aliases)
-            )
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 

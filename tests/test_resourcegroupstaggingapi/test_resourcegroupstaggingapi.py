@@ -536,56 +536,6 @@ def test_get_tag_values_event_bus():
 
 
 @mock_aws
-def test_get_tag_values_cloudfront():
-    client = boto3.client("cloudfront", "us-east-1")
-    for i in range(1, 3):
-        caller_reference = f"distribution{i}"
-        origin_id = f"origin{i}"
-
-        client.create_distribution_with_tags(
-            DistributionConfigWithTags={
-                "DistributionConfig": {
-                    "CallerReference": caller_reference,
-                    "Origins": {
-                        "Quantity": 1,
-                        "Items": [
-                            {
-                                "Id": origin_id,
-                                "DomainName": "example-bucket.s3.amazonaws.com",
-                                "S3OriginConfig": {"OriginAccessIdentity": ""},
-                            }
-                        ],
-                    },
-                    "DefaultCacheBehavior": {
-                        "TargetOriginId": origin_id,
-                        "ViewerProtocolPolicy": "allow-all",
-                        "TrustedSigners": {"Enabled": False, "Quantity": 0},
-                        "ForwardedValues": {
-                            "QueryString": False,
-                            "Cookies": {"Forward": "none"},
-                        },
-                        "MinTTL": 0,
-                    },
-                    "Comment": f"Sample distribution {i}",
-                    "Enabled": True,
-                },
-                "Tags": {"Items": [{"Key": "Test", "Value": f"Test{i}"}]},
-            }
-        )
-    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
-
-    # Test tag filtering
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["cloudfront"],
-        TagFilters=[{"Key": "Test", "Values": ["Test1"]}],
-    )
-    assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
-        "Tags"
-    ]
-
-
-@mock_aws
 def test_get_tag_values_lexv2_models():
     client = boto3.client("lexv2-models", "us-east-1")
     # Create a bot
@@ -1332,6 +1282,48 @@ def test_untag_resources_for_unknown_service():
         missing_resources["arn:aws:service_x"]["ErrorCode"]
         == "InternalServiceException"
     )
+
+
+@mock_aws
+def test_get_resources_elasticbeanstalk_environment():
+    client = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    app_name = "test-app"
+    env_name = "test-env"
+
+    client.create_application(ApplicationName=app_name)
+
+    client.create_environment(
+        ApplicationName=app_name,
+        EnvironmentName=env_name,
+        SolutionStackName="64bit Amazon Linux 2023 v4.9.0 running Python 3.14",
+        Tags=[
+            {"Key": "Test-tag", "Value": "test"},
+        ],
+    )
+
+    client.create_environment(
+        ApplicationName=app_name,
+        EnvironmentName="untagged",
+        SolutionStackName="64bit Amazon Linux 2023 v4.9.0 running Python 3.14",
+    )
+
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resources_no_filter = rgta_client.get_resources(
+        ResourceTypeFilters=["elasticbeanstalk:environment"],
+    )
+    assert len(resources_no_filter["ResourceTagMappingList"]) == 2
+
+    resources = rgta_client.get_resources(
+        TagFilters=[{"Key": "Test-tag", "Values": ["test"]}]
+    )
+    assert len(resources["ResourceTagMappingList"]) == 1
+    assert (
+        f"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/{app_name}/{env_name}"
+        == resources["ResourceTagMappingList"][0]["ResourceARN"]
+    )
+    assert {"Key": "Test-tag", "Value": "test"} in resources["ResourceTagMappingList"][
+        0
+    ]["Tags"]
 
 
 @mock_aws

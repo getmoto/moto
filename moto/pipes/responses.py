@@ -4,8 +4,7 @@ import json
 from typing import Any
 from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import ValidationException
 from .models import EventBridgePipesBackend, pipes_backends
@@ -21,7 +20,7 @@ class EventBridgePipesResponse(BaseResponse):
     def pipes_backend(self) -> EventBridgePipesBackend:
         return pipes_backends[self.current_account][self.region]
 
-    def create_pipe(self) -> str:
+    def create_pipe(self) -> ActionResult:
         body_params = json.loads(self.body) if self.body else {}
 
         name = body_params.get("Name") or self.uri.split("/")[-1]
@@ -60,22 +59,18 @@ class EventBridgePipesResponse(BaseResponse):
             log_configuration=log_configuration,
             kms_key_identifier=kms_key_identifier,
         )
-        return json.dumps(
+        return ActionResult(
             {
                 "Arn": pipe.arn,
                 "Name": pipe.name,
                 "DesiredState": pipe.desired_state,
                 "CurrentState": pipe.current_state,
-                "CreationTime": iso_8601_datetime_without_milliseconds(
-                    pipe.creation_time
-                ),
-                "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                    pipe.last_modified_time
-                ),
+                "CreationTime": pipe.creation_time,
+                "LastModifiedTime": pipe.last_modified_time,
             }
         )
 
-    def describe_pipe(self) -> str:
+    def describe_pipe(self) -> ActionResult:
         name = self.uri.split("?")[0].split("/")[-1]
         pipe = self.pipes_backend.describe_pipe(
             name=name,
@@ -85,10 +80,8 @@ class EventBridgePipesResponse(BaseResponse):
             "Name": pipe.name,
             "DesiredState": pipe.desired_state,
             "CurrentState": pipe.current_state,
-            "CreationTime": iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            "LastModifiedTime": iso_8601_datetime_without_milliseconds(
-                pipe.last_modified_time
-            ),
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
         }
         if pipe.description is not None:
             response_dict["Description"] = pipe.description
@@ -114,29 +107,25 @@ class EventBridgePipesResponse(BaseResponse):
             response_dict["LogConfiguration"] = pipe.log_configuration
         if pipe.kms_key_identifier is not None:
             response_dict["KmsKeyIdentifier"] = pipe.kms_key_identifier
-        return json.dumps(response_dict)
+        return ActionResult(response_dict)
 
-    def delete_pipe(self) -> str:
+    def delete_pipe(self) -> ActionResult:
         name = self.uri.split("?")[0].split("/")[-1]
 
-        arn, name, desired_state, current_state, creation_time, last_modified_time = (
-            self.pipes_backend.delete_pipe(
-                name=name,
-            )
-        )
+        pipe = self.pipes_backend.delete_pipe(name=name)
 
-        return json.dumps(
+        return ActionResult(
             {
-                "Arn": arn,
-                "Name": name,
-                "DesiredState": desired_state,
-                "CurrentState": current_state,
-                "CreationTime": creation_time,
-                "LastModifiedTime": last_modified_time,
+                "Arn": pipe.arn,
+                "Name": pipe.name,
+                "DesiredState": pipe.desired_state,
+                "CurrentState": pipe.current_state,
+                "CreationTime": pipe.creation_time,
+                "LastModifiedTime": pipe.last_modified_time,
             }
         )
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
         body_params = json.loads(self.body) if self.body else {}
         tags = body_params.get("Tags") or body_params.get("tags")
@@ -147,9 +136,9 @@ class EventBridgePipesResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         resource_arn = unquote(self.uri.split("?")[0].split("/tags/")[-1])
         tag_keys = self.querystring.get("tagKeys", [])
 
@@ -157,9 +146,14 @@ class EventBridgePipesResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def list_pipes(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = unquote(self.uri.split("/tags/")[-1])
+        tags = self.pipes_backend.list_tags_for_resource(resource_arn)
+        return ActionResult({"tags": tags})
+
+    def list_pipes(self) -> ActionResult:
         params = json.loads(self.body) if self.body else {}
         if not params and self.querystring:
             params = {
@@ -194,4 +188,30 @@ class EventBridgePipesResponse(BaseResponse):
         if next_token:
             response_dict["NextToken"] = next_token
 
-        return json.dumps(response_dict)
+        return ActionResult(response_dict)
+
+    def start_pipe(self) -> ActionResult:
+        name = self.uri.split("?")[0].split("/")[-2]
+        pipe = self.pipes_backend.start_pipe(name=name)
+        response_dict: dict[str, Any] = {
+            "Arn": pipe.arn,
+            "Name": pipe.name,
+            "DesiredState": pipe.desired_state,
+            "CurrentState": pipe.current_state,
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
+        }
+        return ActionResult(response_dict)
+
+    def stop_pipe(self) -> ActionResult:
+        name = self.uri.split("?")[0].split("/")[-2]
+        pipe = self.pipes_backend.stop_pipe(name=name)
+        response_dict: dict[str, Any] = {
+            "Arn": pipe.arn,
+            "Name": pipe.name,
+            "DesiredState": pipe.desired_state,
+            "CurrentState": pipe.current_state,
+            "CreationTime": pipe.creation_time,
+            "LastModifiedTime": pipe.last_modified_time,
+        }
+        return ActionResult(response_dict)

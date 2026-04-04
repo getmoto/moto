@@ -1,12 +1,11 @@
 import re
 import string
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from functools import lru_cache
 from threading import RLock
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Optional,
     TypeVar,

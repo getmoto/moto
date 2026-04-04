@@ -1,6 +1,5 @@
 import json
 import os
-from collections import defaultdict
 from collections.abc import Iterable
 from copy import copy
 from datetime import datetime, timedelta
@@ -64,6 +63,67 @@ class Grant(BaseModel):
         }
 
 
+class Alias(CloudFormationModel):
+    def __init__(self, account_id: str, region: str, name: str, key: "Key"):
+        self.alias_arn = f"arn:{get_partition(region)}:kms:{region}:{account_id}:{name}"
+        self.alias_name = name
+        self.target_key_id = key.id
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.alias_name
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend: KmsBackend = kms_backends[account_id][region_name]
+        backend.delete_alias(self.alias_name)
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kms-key.html
+        return "AWS::KMS::Alias"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.create_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.update_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return False
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        raise UnformattedGetAttTemplateException()
+
+
 class Key(CloudFormationModel):
     def __init__(
         self,
@@ -108,6 +168,7 @@ class Key(CloudFormationModel):
         self.grants: dict[str, Grant] = {}
 
         self.rotations: list[dict[str, Any]] = []
+        self.aliases: dict[str, Alias] = {}
 
     def add_grant(
         self,
@@ -293,7 +354,6 @@ class KmsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: Optional[str] = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: dict[str, Key] = {}
-        self.key_to_aliases: dict[str, set[str]] = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
@@ -385,8 +445,6 @@ class KmsBackend(BaseBackend):
 
     def delete_key(self, key_id: str) -> None:
         if key_id in self.keys:
-            if key_id in self.key_to_aliases:
-                self.key_to_aliases.pop(key_id)
             self.tagger.delete_all_tags_for_resource(key_id)
 
             self.keys.pop(key_id)
@@ -435,32 +493,50 @@ class KmsBackend(BaseBackend):
         return key_id
 
     def alias_exists(self, alias_name: str) -> bool:
-        for aliases in self.key_to_aliases.values():
-            if alias_name in aliases:
+        for key in self.keys.values():
+            if alias_name in key.aliases:
                 return True
 
         return False
 
-    def create_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> Alias:
         raw_key_id = self.get_key_id(target_key_id)
-        self.key_to_aliases[raw_key_id].add(alias_name)
+        key = self.keys[raw_key_id]
+        key.aliases[alias_name] = Alias(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=alias_name,
+            key=key,
+        )
+        return key.aliases[alias_name]
 
-    def update_alias(self, target_key_id: str, alias_name: str) -> None:
-        self.create_alias(target_key_id, alias_name)
+    def update_alias(self, target_key_id: str, alias_name: str) -> Alias:
+        raw_key_id = self.get_key_id(target_key_id)
+        for key in self.keys.values():
+            if alias_name in key.aliases and raw_key_id != key.id:
+                # Updating the Key that this is an alias of
+                alias = key.aliases.pop(alias_name)
+                alias.target_key_id = raw_key_id
+                self.keys[raw_key_id].aliases[alias_name] = alias
+                return alias
+        # TargetKeyId hasn't changed - nothing to update
+        return self.keys[raw_key_id].aliases[alias_name]
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
-        for aliases in self.key_to_aliases.values():
-            if alias_name in aliases:
-                aliases.remove(alias_name)
+        for key in self.keys.values():
+            if alias_name in key.aliases:
+                key.aliases.pop(alias_name, None)
 
-    def list_aliases(self) -> dict[str, set[str]]:
-        return self.key_to_aliases
+    def list_aliases(self, key_id: Optional[str] = None) -> Iterable[Alias]:
+        for key in self.keys.values():
+            if not key_id or key.id == key_id:
+                yield from key.aliases.values()
 
     def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
-        for key_id, aliases in dict(self.key_to_aliases).items():
-            if alias_name in ",".join(aliases):
-                return key_id
+        for key in self.keys.values():
+            if alias_name in key.aliases:
+                return key.id
         if alias_name in RESERVED_ALIASES:
             return self._generate_default_keys(alias_name)
         return None
@@ -760,6 +836,7 @@ class KmsBackend(BaseBackend):
         grant_tokens: list[str],
         dry_run: bool,
     ) -> tuple[str, str, str]:
+        key_id = self.any_id_to_key_id(key_id)
         key = self.keys[key_id]
 
         if (

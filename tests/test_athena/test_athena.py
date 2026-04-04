@@ -319,6 +319,28 @@ def create_basic_workgroup(client, name):
 
 
 @mock_aws
+def test_create_workgroup_with_default_configuration():
+    client = boto3.client("athena", region_name="us-east-1")
+    wg_name = "test-workgroup"
+    client.create_work_group(
+        Name=wg_name,
+        Description="Test work group",
+    )
+    resp = client.get_work_group(WorkGroup=wg_name)
+    default_configuration = {
+        "EnableMinimumEncryptionConfiguration": False,
+        "EnforceWorkGroupConfiguration": True,
+        "EngineVersion": {
+            "EffectiveEngineVersion": "Athena engine version 3",
+            "SelectedEngineVersion": "AUTO",
+        },
+        "PublishCloudWatchMetricsEnabled": False,
+        "RequesterPaysEnabled": False,
+    }
+    assert resp["WorkGroup"]["Configuration"] == default_configuration
+
+
+@mock_aws
 def test_create_data_catalog():
     client = boto3.client("athena", region_name="us-east-1")
     response = client.create_data_catalog(
@@ -355,6 +377,55 @@ def test_create_data_catalog():
 def test_list_tags_for_resource():
     client = boto3.client("athena", region_name="us-east-1")
     tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    resource_name = "athena_datacatalog"
+    client.create_data_catalog(
+        Name=resource_name,
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=tags,
+    )
+    resource_arn = (
+        "arn:aws:athena:us-east-1:123456789012:datacatalog/athena_datacatalog"
+    )
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    resource_arn = "arn:aws:athena:us-east-1:123456789012:workgroup/athena_workgroup"
+
+    client.tag_resource(ResourceARN=resource_arn, Tags=tags)
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    client.create_work_group(
+        Name="athena_workgroup",
+        Description="Test work group",
+        Configuration={
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/"}
+        },
+        Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}],
+    )
+    resource_arn = "arn:aws:athena:us-east-1:123456789012:workgroup/athena_workgroup"
+
+    client.untag_resource(ResourceARN=resource_arn, TagKeys=["key1"])
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert returned_tags["Tags"] == [{"Key": "key2", "Value": "value2"}]
+
+
+@mock_aws
+def test_list_tags_for_resource_with_no_tags():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = []
     resource_name = "athena_datacatalog"
     client.create_data_catalog(
         Name=resource_name,

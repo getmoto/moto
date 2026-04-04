@@ -23,6 +23,7 @@ service-quotas
 - [ ] get_association_for_service_quota_template
 - [ ] get_auto_management_configuration
 - [ ] get_aws_default_service_quota
+- [ ] get_quota_utilization_report
 - [ ] get_requested_service_quota_change
 - [X] get_service_quota
 - [ ] get_service_quota_increase_request_from_template
@@ -41,6 +42,7 @@ service-quotas
 - [ ] put_service_quota_increase_request_into_template
 - [ ] request_service_quota_increase
 - [ ] start_auto_management
+- [ ] start_quota_utilization_report
 - [ ] stop_auto_management
 - [ ] tag_resource
 - [ ] untag_resource

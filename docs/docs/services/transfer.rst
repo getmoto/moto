@@ -61,7 +61,7 @@ transfer
 - [ ] list_host_keys
 - [ ] list_profiles
 - [ ] list_security_policies
-- [ ] list_servers
+- [X] list_servers
 - [ ] list_tags_for_resource
 - [ ] list_users
 - [ ] list_web_apps

@@ -1,6 +1,203 @@
 Moto Changelog
 ==============
 
+5.1.22
+-----
+Docker Digest for 5.1.22: _sha256:1e3802c95726373544967b428201c548f0247c15b00db2d96a5ba0a77d8643b8_
+
+    New Methods:
+        * APIGateway:
+            * delete_model()
+
+        * Athena:
+            * tag_resource()
+            * untag_resource()
+
+        * Pipes:
+            * list_tags_for_resource()
+
+        * OSIS:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * RDS:
+            * copy_db_cluster_parameter_group()
+
+        * STS:
+            * get_access_key_info()
+
+        * Transfer:
+            * list_servers()
+
+    Miscellaneous:
+        * CloudFormation now supports the creation/update/deletion of AWS::CloudWatch::Dashboard resources
+        * CloudFormation now supports the creation/update/deletion of AWS::KMS::Alias resources
+        * CloudFormation now supports the creation/update/deletion of AWS::SSM::Document resources
+        * EC2: create_fleet() now supports the parameters DryRun and LaunchTemplateConfigs.Overrides
+        * EC2: describe_network_interfaces() now supports the 'attachment.attachment-id'-filter
+        * EC2: Instances created from a LaunchTemplate now have the 'aws:ec2launchtemplate:id' and 'aws:ec2launchtemplate:version' tags
+        * RDS: create_db_cluster_parameter_group() now validates the provided group name/description/familiy
+        * RDS: delete_db_cluster_parameter_group() now validates that the provided group exists
+        * S3: delete_object() now supports IfMatch
+        * SecretsManager: create-secret() now throw ResourceExistsException for duplicate requests with different token (broken since 5.1.11)
+        * SQS: send_message() now returns the SequenceNumber-attribute
+        * VPCLattice: list_access_log_subscriptions() now also supports arns as resourceIdentifiers
+
+
+5.1.21
+-----
+Docker Digest for 5.1.21: _sha256:93ad54da7badce7f9c13e5e6439c93564c764663c42872d2c39f718aa484047a_
+
+    General:
+        * Moto now supports the new AWS partition for the EU sovereign cloud ('eusc-de-east-1')
+
+    New Services:
+        * Account:
+            * delete_alternate_contact()
+            * get_alternate_contact()
+            * put_alternate_contact()
+
+        * Connect:
+            * associate_analytics_data_set()
+            * create_instance()
+            * delete_instance()
+            * describe_instance()
+            * disassociate_analytics_data_set()
+            * list_analytics_data_associations()
+            * list_instances()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * Backup:
+            * create_report_plan()
+            * delete_backup_vault()
+            * delete_backup_vault_lock_configuration()
+            * describe_backup_vault()
+            * describe_report_plan()
+            * list_report_plans()
+            * put_backup_vault_lock_configuration()
+
+        * EKS:
+            * update_nodegroup_config()
+
+        * Route53Resolver:
+            * get_resolver_query_log_config_association()
+            * list_resolver_query_log_configs()
+            * list_resolver_query_log_config_associations()
+
+        * SecurityHub:
+            * get_master_account()
+
+    Miscellaneous:
+        * DynamoDB now supports multi-attribute composite key support for GSIs
+        * ELBv2: Internal load balancers can now be `dualstack`
+        * IAM: Policy validation now correctly validates Boolean conditions and NULL-resources
+        * Lambda: put_function_event_invoke_config() no longer requires the DestinationConfig-parameter
+        * ResourceGroupsTaggingAPI: tag_resources() and untag_resources() now supports CloudFront resources
+        * SageMaker: describe_domain() now returns the DomainSetting-attribute
+
+
+5.1.20
+-----
+Docker Digest for 5.1.20: _sha256:d2711655244df58411ce0be34236c95736390db17886370d21e12ae2b1e36f79_
+
+    New Methods:
+        * EC2:
+            * create_subnet_cidr_reservation()
+            * delete_subnet_cidr_reservation()
+            * get_instance_uefi_data() (Just a stub, no actual data is returned)
+            * get_subnet_cidr_reservations()
+
+        * IOT:
+            * list_thing_principals_v2()
+
+        * ResourceGroups:
+            * cancel_tag_sync_task()
+            * get_tag_sync_task()
+            * list_tag_sync_tasks()
+            * start_tag_sync_task()
+
+        * Route53Resolver:
+            * get_resolver_dnssec_config()
+            * list_resolver_dnssec_configs()
+            * update_resolver_dnssec_config()
+
+        * S3Control:
+            * create_multi_region_access_point()
+            * delete_multi_region_access_point()
+            * delete_storage_lens_configuration()
+            * describe_multi_region_access_point_operation()
+            * get_multi_region_access_point()
+            * get_multi_region_access_point_policy()
+            * get_multi_region_access_point_policy_status()
+            * list_multi_region_access_points()
+            * put_multi_region_access_point_policy()
+
+        * SecurityHub:
+            * create_members()
+            * get_members()
+            * list_members()
+
+    Miscellaneous:
+        * ACM: import_certificate() now supports all key types, RSA and EC
+        * APIGateway: update_rest_api() now supports `/endpointConfiguration/types`
+        * Autoscaling: update_auto_scaling_group() now supports the MixedInstancesPolicy-parameter
+        * Batch: register_job_definition() now supports the eksProperties-parameter
+        * DMS: create_replication_task() now supports the Tags-parameter
+        * Organizations: list_policies() now support pagination
+        * Organizations now supports Resource Control Policy
+        * Redshift: describe_clusters() now supports the TagKeys-parameter
+        * Logs: put_subscription_filter() now supports other LogGroups
+
+
+5.1.19
+-----
+Docker Digest for 5.1.19: _sha256:1bba01d147a15d14a5816b69ee6d346ba04bd43baab4a3a27a55c368ecc2bb90_
+
+    General:
+        * Removed support for ElasticTranscoder, now that AWS has also deprecated this service
+
+    New Methods:
+        * ACM-PCA:
+            * revoke_certificate()
+
+        * DSQL:
+            * delete_cluster()
+            * get_vpc_endpoint_service_name()
+            * list_tags_for_resource()
+
+        * FSX:
+            * describe_backups()
+
+        * SESv2:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * VPC Lattice:
+            * delete_auth_policy()
+            * delete_resource_policy()
+            * get_auth_policy()
+            * get_resource_policy()
+            * put_auth_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: put_item() now correctly validates numeric and boolean values
+        * EC2: describe_instances() now returns the correct status for BlockDeviceMappings.Ebs.Status (attached, instead of in-use)
+        * EC2: describe_network_acls() now supports the 'association.association-id' Filter
+        * ELBv2: modify_load_balancer_attributes() no longer fails when modifying the 'health_check_logs.s3.enabled' attribute
+        * ResourceGroupsTaggingAPI: get_resources() now supports the SESv2 resources: ConfigurationSets, ContactLists, DedicatedIpPool, EmailIdentity
+        * Route53: change_tags_for_resource() no longer throws an error for removing a non-existing tag
+        * S3: list_object_versions() now correctly calculates the IsLatest-attribute
+        * Scheduler: list_schedules() and list_schedule_groups() now support pagination
+        * SecretsManager: batch_get_secret_value() now returns error handling for unknown secrets
+        * SSM: put_parameter() now returns the Tier-attribute
+
+
 5.1.18
 -----
 Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_

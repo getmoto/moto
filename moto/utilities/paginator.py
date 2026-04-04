@@ -1,7 +1,8 @@
 import inspect
+from collections.abc import Callable
 from copy import deepcopy
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 

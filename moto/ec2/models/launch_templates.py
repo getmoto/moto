@@ -3,11 +3,16 @@ from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.types import Base64EncodedString
+from moto.core.utils import utcnow
 
 from ..exceptions import (
+    InvalidLaunchTemplateIdNotFound,
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
     InvalidLaunchTemplateNameNotFoundWithNameError,
+    InvalidLaunchTemplateVersionNotFound,
+    InvalidParameterValue,
+    MissingParameter,
     MissingParameterError,
 )
 from ..utils import (
@@ -16,7 +21,6 @@ from ..utils import (
     parse_user_data,
     random_launch_template_id,
     random_launch_template_name,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -33,7 +37,7 @@ class LaunchTemplateVersion:
         self.number = number
         self.data = data
         self.description = description
-        self.create_time = utc_date_and_time()
+        self.create_time = utcnow()
         self.instance_tags = convert_tag_spec(data.get("TagSpecifications", [])).get(
             "instance", {}
         )
@@ -71,7 +75,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = backend
         self.name = name
         self.id = random_launch_template_id()
-        self.create_time = utc_date_and_time()
+        self.create_time = utcnow()
         tag_map: dict[str, str] = tag_spec.get("launch-template", {})
         self.add_tags(tag_map)
         self.tags = self.get_tags()
@@ -89,14 +93,17 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         return version
 
     def is_default(self, version: LaunchTemplateVersion) -> bool:
-        return self.default_version == version.number  # type: ignore
+        return self.default_version_number == version.number
 
     def get_version(self, num: Any) -> LaunchTemplateVersion:
         if str(num).lower() == "$latest":
             return self.versions[-1]
         if str(num).lower() == "$default":
             return self.default_version()
-        return self.versions[int(num) - 1]
+        try:
+            return self.versions[int(num) - 1]
+        except IndexError:
+            raise InvalidLaunchTemplateVersionNotFound(template_id=self.id, version=num)
 
     def default_version(self) -> LaunchTemplateVersion:
         return self.versions[self.default_version_number - 1]
@@ -248,11 +255,17 @@ class LaunchTemplateBackend:
             raise MissingParameterError("launch template ID or launch template name")
         if template_id not in self.launch_templates:
             raise InvalidLaunchTemplateNameNotFoundError()
-        self.launch_templates[template_id].default_version_number = int(default_version)
+        template = self.launch_templates[template_id]
+        if default_version not in [str(v.number) for v in template.versions]:
+            raise InvalidLaunchTemplateVersionNotFound(version=default_version)
+
+        template.default_version_number = int(default_version)
         template = self.launch_templates[template_id]
         return template
 
     def get_launch_template(self, template_id: str) -> LaunchTemplate:
+        if template_id not in self.launch_templates:
+            raise InvalidLaunchTemplateIdNotFound(template_id)
         return self.launch_templates[template_id]
 
     def get_launch_template_by_name(self, name: str) -> LaunchTemplate:
@@ -294,6 +307,58 @@ class LaunchTemplateBackend:
             templates = list(self.launch_templates.values())
 
         return generic_filter(filters, templates)
+
+    def describe_launch_template_versions(
+        self,
+        template_name: str,
+        template_id: str,
+        versions: list[str],
+        min_version: int,
+        max_version: int,
+        max_results: int,
+    ) -> list[tuple[LaunchTemplate, LaunchTemplateVersion]]:
+        """
+        The Filters-parameter is not yet implemented
+        """
+        wrong_param_msg = "To describe the launch template data for all your launch templates, for ‘--versions’ specify ‘$Latest’, ‘$Default’, or both, and omit ‘--launch-template-id’, ‘--launch-template-name’, and version numbers. To describe the launch template data for a specific launch template, specify ‘--launch-template-id’ or ‘--launch-template-name’, and for ‘--versions’ specify one or more of the following values: ‘$Latest’, ‘$Default’, or one or more version numbers."
+        if template_name:
+            template = self.get_launch_template_by_name(template_name)
+        elif template_id:
+            template = self.get_launch_template(template_id)
+        elif not versions:
+            raise MissingParameter(wrong_param_msg)
+        elif versions and ("$Latest" not in versions and "$Default" not in versions):
+            raise InvalidParameterValue(wrong_param_msg)
+        else:
+            template = None
+
+        ret_versions: list[tuple[LaunchTemplate, LaunchTemplateVersion]] = []
+        if versions and template:
+            for v in versions:
+                ret_versions.append((template, template.get_version(v)))
+        elif not template:
+            # Version has to have either $Latest and/or $Default at this point. This was already validated earlier, so here we can just iterate over both
+            for template in self.launch_templates.values():
+                if "$Latest" in versions:
+                    ret_versions.append((template, template.get_version("$Latest")))
+                if "$Default" in versions:
+                    ret_versions.append((template, template.get_version("$Default")))
+        elif min_version:
+            if max_version:
+                vMax = max_version
+            else:
+                vMax = min_version + max_results
+
+            vMin = min_version - 1
+            ret_versions = [(template, ver) for ver in template.versions[vMin:vMax]]
+        elif max_version:
+            vMax = max_version
+            ret_versions = [(template, ver) for ver in template.versions[:vMax]]
+        elif template is not None:
+            ret_versions = [(template, ver) for ver in template.versions]
+
+        ret_versions = ret_versions[:max_results]
+        return ret_versions
 
     def get_launch_template_data(self, instance_id: str) -> Any:
         return self.get_instance(instance_id)  # type: ignore[attr-defined]

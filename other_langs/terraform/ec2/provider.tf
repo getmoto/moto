@@ -15,6 +15,7 @@ provider "aws" {
 
   endpoints {
     ec2   = "http://localhost:5000"
+    ssm   = "http://localhost:5000"
   }
 
   access_key = "my-access-key"

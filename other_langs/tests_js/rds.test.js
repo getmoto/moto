@@ -7,7 +7,7 @@ const client = new RDSClient({region: 'us-east-1', endpoint:'http://localhost:50
 const create_command = new CreateDBInstanceCommand(
     {
         DBInstanceClass: "dbic",
-        DBInstanceIdentifier: "dbii",
+        DBInstanceIdentifier: "dbii" + Math.floor(Math.random() * 10000),
         Engine: "mysql",
         DBName: "dbn"
     }

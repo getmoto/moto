@@ -7,7 +7,6 @@ from typing import Any, Optional, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
-from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -28,7 +27,7 @@ from .exceptions import (
     UserAlreadyExists,
     UserNotFound,
 )
-from .utils import PAGINATION_MODEL, AuthenticationTypes
+from .utils import AuthenticationTypes
 
 
 class User(BaseModel):
@@ -864,12 +863,8 @@ class ElastiCacheBackend(BaseBackend):
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
 
-    @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
-        self,
-        cache_cluster_id: Optional[str] = None,
-        max_records: Optional[int] = None,
-        marker: Optional[str] = None,
+        self, cache_cluster_id: Optional[str] = None
     ) -> list[CacheCluster]:
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
@@ -912,7 +907,6 @@ class ElastiCacheBackend(BaseBackend):
         self.cache_subnet_groups[cache_subnet_group_name] = cache_subnet_group
         return cache_subnet_group
 
-    @paginate(PAGINATION_MODEL)
     def describe_cache_subnet_groups(
         self,
         cache_subnet_group_name: Optional[str] = None,
@@ -1033,7 +1027,6 @@ class ElastiCacheBackend(BaseBackend):
         self.replication_groups[replication_group_id] = replication_group
         return replication_group
 
-    @paginate(PAGINATION_MODEL)
     def describe_replication_groups(
         self,
         replication_group_id: Optional[str] = None,

@@ -473,6 +473,28 @@ def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
 
 
 @mock_aws
+def test_elastic_network_interfaces_get_by_attachment_id():
+    ec2resource, ec2client, vpc, subnet = setup_vpc()
+
+    eni1 = ec2resource.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.0.10",
+    )
+    instance = ec2resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    attachment = ec2client.attach_network_interface(
+        NetworkInterfaceId=eni1.id, InstanceId=instance.id, DeviceIndex=1
+    )
+    filter_attachment_id = attachment["AttachmentId"]
+    filters = [{"Name": "attachment.attachment-id", "Values": [filter_attachment_id]}]
+    enis = ec2client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
+    assert len(enis) == 1
+    assert enis[0]["NetworkInterfaceId"] == eni1.id
+    assert enis[0]["Attachment"]["AttachmentId"] == filter_attachment_id
+
+
+@mock_aws
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     ec2resource, ec2client, vpc, subnet = setup_vpc()
     random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))

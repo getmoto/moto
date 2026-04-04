@@ -1,9 +1,13 @@
 import re
 from collections import deque, namedtuple
 from collections.abc import Iterable
+from decimal import Decimal
 from typing import Any, Optional, Union
 
-from moto.dynamodb.exceptions import ConditionAttributeIsReservedKeyword
+from moto.dynamodb.exceptions import (
+    ConditionAttributeIsReservedKeyword,
+    InvalidConditionExpression,
+)
 from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
@@ -214,6 +218,7 @@ class ConditionExpressionParser:
         nodes = self._apply_between(nodes)
         nodes = self._apply_parens_and_booleans(nodes)
         node = nodes[0]
+        self._assert_no_redundant_parentheses(node)
 
         self.expr_attr_names_found.extend(self._find_literals(node))
         self.expr_attr_values_found.extend(self._find_expr_attr_values(node))
@@ -890,6 +895,26 @@ class ConditionExpressionParser:
         else:  # pragma: no cover
             raise ValueError(f"Unknown expression node kind {node.kind}")
 
+    def _assert_no_redundant_parentheses(
+        self, node: Node, parent_kind: Optional[str] = None
+    ) -> None:
+        if node.kind == self.Kind.PARENTHESES:
+            (child,) = node.children
+            if self._is_redundant_parenthesized_child(parent_kind, child.kind):
+                raise InvalidConditionExpression(
+                    "The expression has redundant parentheses;"
+                )
+            self._assert_no_redundant_parentheses(child, parent_kind)
+            return
+
+        for child in node.children:
+            self._assert_no_redundant_parentheses(child, node.kind)
+
+    def _is_redundant_parenthesized_child(
+        self, parent_kind: Optional[str], child_kind: str
+    ) -> bool:
+        return child_kind == self.Kind.PARENTHESES
+
     def _assert(self, condition: bool, message: str, nodes: Iterable[Node]) -> None:
         if not condition:
             raise ValueError(message + " " + " ".join([t.text for t in nodes]))
@@ -963,12 +988,8 @@ class AttributeValue(Operand):
         self.value = value[self.type]
 
     def expr(self, item: Optional[Item]) -> Any:
-        # TODO: Reuse DynamoType code
         if self.type == "N":
-            try:
-                return int(self.value)
-            except ValueError:
-                return float(self.value)
+            return Decimal(self.value)
         elif self.type in ["SS", "NS", "BS"]:
             sub_type = self.type[0]
             return {AttributeValue({sub_type: v}).expr(item) for v in self.value}
@@ -976,6 +997,8 @@ class AttributeValue(Operand):
             return [AttributeValue(v).expr(item) for v in self.value]
         elif self.type == "M":
             return {k: AttributeValue(v).expr(item) for k, v in self.value.items()}
+        elif self.type == "NULL":
+            return None
         else:
             return self.value
         return self.value
@@ -1207,9 +1230,9 @@ class FuncBetween(Func):
         attr = self.attr.expr(item)
         end = self.end.expr(item)
         # Need to verify whether start has a valid value
-        # Can't just check  'if start', because start could be 0, which is a valid integer
-        start_has_value = start is not None and (isinstance(start, int) or start)
-        end_has_value = end is not None and (isinstance(end, int) or end)
+        # Can't just check  'if start', because start could be 0, which is a valid number
+        start_has_value = start is not None and (isinstance(start, Decimal) or start)
+        end_has_value = end is not None and (isinstance(end, Decimal) or end)
         if start_has_value and attr and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:

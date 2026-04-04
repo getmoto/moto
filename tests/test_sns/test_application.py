@@ -82,15 +82,19 @@ def test_set_platform_application_attributes():
 def test_list_platform_applications():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_platform_application(
-        Name="application1", Platform="APNS", Attributes={}
+        Name="application1", Platform="APNS", Attributes={"Enabled": "true"}
     )
     conn.create_platform_application(
-        Name="application2", Platform="APNS", Attributes={}
+        Name="application2", Platform="APNS", Attributes={"Enabled": "false"}
     )
 
     applications_response = conn.list_platform_applications()
     applications = applications_response["PlatformApplications"]
     assert len(applications) == 2
+
+    attributes = [_["Attributes"] for _ in applications]
+    assert {"Enabled": "true"} in attributes
+    assert {"Enabled": "false"} in attributes
 
 
 @mock_aws
@@ -386,11 +390,12 @@ def test_set_endpoint_attributes():
     endpoint_arn = endpoint["EndpointArn"]
 
     conn.set_endpoint_attributes(
-        EndpointArn=endpoint_arn, Attributes={"CustomUserData": "other data"}
+        EndpointArn=endpoint_arn,
+        Attributes={"CustomUserData": "other data", "Enabled": "true"},
     )
     attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)["Attributes"]
     assert attributes == (
-        {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "other data"}
+        {"Token": "some_unique_id", "Enabled": "true", "CustomUserData": "other data"}
     )
 
 
@@ -412,6 +417,7 @@ def test_delete_endpoint():
         PlatformApplicationArn=app_arn
     )["Endpoints"]
     assert len(endpoints) == 1
+    assert endpoints[0]["Attributes"]["Enabled"] == "true"
 
     conn.delete_endpoint(EndpointArn=endpoint["EndpointArn"])
 

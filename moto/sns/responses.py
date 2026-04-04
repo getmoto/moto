@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, ensure_boolean
 
 from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
@@ -15,12 +15,28 @@ def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
     return [{"Key": key, "Value": value} for key, value in tags.items()]
 
 
+def transform_attributes(attributes: dict[str, str]) -> dict[str, str]:
+    # Botocore models this as dict[str, str], but responses from AWS serialize boolean values
+    # as `true` not `True`, so we have to do a bit of manipulation here.
+    return {
+        key: str(value).lower() if isinstance(value, bool) else value
+        for key, value in attributes.items()
+    }
+
+
 class SNSResponse(BaseResponse):
     SMS_ATTR_REGEX = re.compile(
         r"^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$"
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "GetEndpointAttributesResponse.Attributes": transform_attributes,
+        "GetPlatformApplicationAttributesResponse.Attributes": transform_attributes,
+        "GetSMSAttributesResponse.Attributes": transform_attributes,
+        "GetSubscriptionAttributesResponse.Attributes": transform_attributes,
+        "GetTopicAttributesResponse.Attributes": transform_attributes,
+        "ListEndpointsByPlatformApplicationResponse.Endpoints.Endpoint.Attributes": transform_attributes,
+        "ListPlatformApplicationsResponse.PlatformApplications.PlatformApplication.Attributes": transform_attributes,
         "ListTagsForResourceResponse.Tags": transform_tags,
     }
 
@@ -34,6 +50,15 @@ class SNSResponse(BaseResponse):
 
     def _get_attributes(self) -> dict[str, Any]:
         attributes = self._get_param("Attributes", {})
+        boolean_attributes = [
+            "ContentBasedDeduplication",
+            "Enabled",
+            "FifoTopic",
+            "RawMessageDelivery",
+        ]
+        for attribute in boolean_attributes:
+            if attribute in attributes:
+                attributes[attribute] = ensure_boolean(attributes[attribute])
         return attributes
 
     def _get_tags(self) -> dict[str, str]:
@@ -59,7 +84,7 @@ class SNSResponse(BaseResponse):
                 )
 
             data_type_parts = data_type.split(".")
-            if len(data_type_parts) > 2 or data_type_parts[0] not in [
+            if data_type_parts[0] not in [
                 "String",
                 "Binary",
                 "Number",
@@ -137,7 +162,7 @@ class SNSResponse(BaseResponse):
         }
         if topic.kms_master_key_id:
             attributes["KmsMasterKeyId"] = topic.kms_master_key_id
-        if topic.fifo_topic == "true":
+        if topic.fifo_topic:
             attributes["FifoTopic"] = topic.fifo_topic
             attributes["ContentBasedDeduplication"] = topic.content_based_deduplication
         result = {"Attributes": attributes}
@@ -146,8 +171,10 @@ class SNSResponse(BaseResponse):
     def set_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         attribute_name = self._get_param("AttributeName")
-        attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param("AttributeValue")
+        if attribute_name == "ContentBasedDeduplication":
+            attribute_value = ensure_boolean(attribute_value)
+        attribute_name = camelcase_to_underscores(attribute_name)
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
         return EmptyResult()
 
@@ -334,6 +361,8 @@ class SNSResponse(BaseResponse):
         arn = self._get_param("SubscriptionArn")
         attr_name = self._get_param("AttributeName")
         attr_value = self._get_param("AttributeValue")
+        if attr_name == "RawMessageDelivery":
+            attr_value = ensure_boolean(attr_value)
         self.backend.set_subscription_attributes(arn, attr_name, attr_value)
         return EmptyResult()
 

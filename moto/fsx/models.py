@@ -8,6 +8,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import filter_resources
 
 from .exceptions import ResourceNotFoundException
 from .utils import FileSystemType
@@ -18,7 +19,13 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 2147483647,
         "unique_attribute": "resource_arn",
-    }
+    },
+    "describe_backups": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 2147483647,
+        "unique_attribute": "resource_arn",
+    },
 }
 
 
@@ -254,6 +261,35 @@ class FSxBackend(BaseBackend):
         self.backups.pop(backup_id)
 
         return {"BackupId": backup_id, "Lifecycle": "DELETED"}
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_backups(
+        self,
+        backup_ids: list[str],
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[Backup]:
+        backups = []
+        if not backup_ids:
+            backups = list(self.backups.values())
+        else:
+            for id in backup_ids:
+                if id in self.backups:
+                    backups.append(self.backups[id])
+
+        attr_pairs = (
+            ("file-system-id", "file_system_id"),
+            ("backup-type", "backup_type"),
+            ("file-system-type", "file_system_type"),
+            ("volume-id", "volume_id"),
+            ("data-repository-type", "data_repository_type"),
+            ("file-cache-id", "file_cache_id"),
+            ("file-cache-type", "file_cache_type"),
+        )
+
+        if filters:
+            filter_dict = {f["Name"]: f["Values"] for f in filters}
+            backups = filter_resources(backups, filter_dict, attr_pairs)
+        return backups
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)

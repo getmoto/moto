@@ -3,15 +3,9 @@ import fnmatch
 import hashlib
 import ipaddress
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Optional,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, TypeVar, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -22,8 +16,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from moto.core.serialize import TimestampSerializer
 from moto.core.types import Base64EncodedString
-from moto.core.utils import utcnow
 from moto.ec2.exceptions import InvalidUserDataError
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -78,6 +72,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "iam-instance-profile-association": "iip-assoc",
     "carrier-gateway": "cagw",
     "key-pair": "key",
+    "subnet-cidr-reservation": "scr",
 }
 
 
@@ -303,6 +298,10 @@ def random_ipv6_cidr() -> str:
     return f"2400:6500:{random_resource_id(4)}:{random_resource_id(2)}00::/56"
 
 
+def random_subnet_cidr_reservation_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet-cidr-reservation"])
+
+
 def generate_route_id(
     route_table_id: str,
     cidr_block: Optional[str],
@@ -323,10 +322,8 @@ def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> dict[str, str
     }
 
 
-def utc_date_and_time() -> str:
-    x = utcnow()
-    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+def format_timestamp(dt: datetime) -> str:
+    return dt.strftime(TimestampSerializer.ISO8601_MICRO_ZEROED)
 
 
 def split_route_id(route_id: str) -> tuple[str, str]:
@@ -520,6 +517,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     if isinstance(value, bool):
         if str(value).lower() in filter_value:
+            return True
+        return False
+
+    if isinstance(value, datetime):
+        if format_timestamp(value) in filter_value:
             return True
         return False
 

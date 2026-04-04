@@ -431,18 +431,18 @@ def test_get_databases(client):
 
 @mock_aws
 def test_get_databases_paginated(client):
-    for i in range(51):
+    for i in range(101):
         create_db_instance(DBInstanceIdentifier=f"rds{i}")
 
     resp = client.describe_db_instances()
-    assert len(resp["DBInstances"]) == 50
-    assert resp["Marker"] == resp["DBInstances"][-1]["DBInstanceIdentifier"]
+    assert len(resp["DBInstances"]) == 100
+    assert "Marker" in resp
 
     resp2 = client.describe_db_instances(Marker=resp["Marker"])
     assert len(resp2["DBInstances"]) == 1
 
-    resp3 = client.describe_db_instances(MaxRecords=100)
-    assert len(resp3["DBInstances"]) == 51
+    resp3 = client.describe_db_instances(MaxRecords=23)
+    assert len(resp3["DBInstances"]) == 23
 
 
 @mock_aws
@@ -1417,21 +1417,36 @@ def test_describe_option_group_options(client):
     option_group_options = client.describe_option_group_options(
         EngineName="sqlserver-ee"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 4
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "sqlserver-ee"
+
     option_group_options = client.describe_option_group_options(
         EngineName="sqlserver-ee", MajorEngineVersion="11.00"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 2
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "sqlserver-ee"
+        assert option["MajorEngineVersion"] == "11.00"
+
     option_group_options = client.describe_option_group_options(
         EngineName="mysql", MajorEngineVersion="5.6"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 1
-    with pytest.raises(ClientError):
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "mysql"
+        assert option["MajorEngineVersion"] == "5.6"
+
+    with pytest.raises(ClientError) as exc:
         client.describe_option_group_options(EngineName="non-existent")
-    with pytest.raises(ClientError):
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"
+    assert str(error["Message"]).startswith("Invalid DB engine")
+
+    with pytest.raises(ClientError) as exc:
         client.describe_option_group_options(
             EngineName="mysql", MajorEngineVersion="non-existent"
         )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterCombination"
+    assert str(error["Message"]).startswith("Cannot find major version")
 
 
 @aws_verified

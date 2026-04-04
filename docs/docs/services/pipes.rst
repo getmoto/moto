@@ -22,7 +22,7 @@ pipes
 - [X] list_pipes
   List pipes with optional filtering and pagination.
 
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] start_pipe
 - [ ] stop_pipe
 - [X] tag_resource

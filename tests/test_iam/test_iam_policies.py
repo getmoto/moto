@@ -1336,6 +1336,50 @@ valid_policy_documents = [
         "Version": "2012-10-17",
         "Statement": [
             {
+                "Sid": "BooleanConditionOperations_Strings_And_Booleans",
+                "Action": "kms:CreateGrant",
+                "Condition": {
+                    "Bool": {"kms:GrantIsForAWSResource": True},
+                    "ForAllValues:Bool": {"kms:GrantIsForAWSResource": False},
+                    "ForAnyValue:Bool": {"kms:GrantIsForAWSResource": "True"},
+                },
+                "Effect": "Allow",
+                "Resource": ["arn:aws:kms:*:123456789012:key/*"],
+            }
+        ],
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "NullConditionOperator_Strings_And_Booleans",
+                "Action": "kms:CreateGrant",
+                "Condition": {
+                    "Null": {
+                        "kms:EncryptionContextKeys": False,
+                        "kms:GrantOperations": "true",
+                    }
+                },
+                "Effect": "Allow",
+                "Resource": ["arn:aws:kms:*:123456789012:key/*"],
+            }
+        ],
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "NullResource",
+                "Action": "kms:CreateGrant",
+                "Effect": "Allow",
+                "Resource": ["arn:aws:kms:*:123456789012:key/*", None],
+            }
+        ],
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
                 "Sid": "ListAndDescribe",
                 "Effect": "Allow",
                 "Action": [

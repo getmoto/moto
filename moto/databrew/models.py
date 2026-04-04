@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend, InstanceTrackerMeta
 from moto.core.common_models import BaseModel
-from moto.core.utils import camelcase_to_pascal, underscores_to_camelcase
+from moto.core.utils import camelcase_to_pascal, underscores_to_camelcase, utcnow
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -543,7 +543,7 @@ class FakeRecipeVersion(BaseModel):
 
     def publish(self, description: Optional[str]) -> None:
         self.version = float(math.ceil(self.version))
-        self.published_date = datetime.now()
+        self.published_date = utcnow()
         if description is not None:
             self.description = description
 

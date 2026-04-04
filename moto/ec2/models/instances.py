@@ -65,8 +65,9 @@ class MetadataOptions:
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
-        self.http_put_response_hop_limit = int(
-            options.get("HttpPutResponseHopLimit", 1)
+        hop_limit = options.get("HttpPutResponseHopLimit")
+        self.http_put_response_hop_limit = (
+            int(hop_limit) if hop_limit is not None else 1
         )
         self.http_endpoint = options.get("HttpEndpoint", "enabled")
         self.http_protocol_ipv6 = options.get("HttpProtocolIpv6", "disabled")
@@ -122,6 +123,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             tags = convert_tag_spec(tag_spec_set)
             instance_tags = tags.get("instance", {})
             self.add_tags(instance_tags)
+            # Add AWS-managed launch template tags
+            self.add_tags(
+                {
+                    "aws:ec2launchtemplate:id": template_version.template.id,
+                    "aws:ec2launchtemplate:version": str(template_version.number),
+                }
+            )
 
         self._state = InstanceState("running", 16)
         self._reason = ""
@@ -310,12 +318,24 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
         return self.block_device_mapping.items()
 
+    @staticmethod
+    def get_block_device_status(volume_status: str) -> str:
+        """Convert volume status to attachment status"""
+        if volume_status == "in-use":
+            return "attached"
+        elif volume_status == "available":
+            return "detached"
+
+        return volume_status
+
     @property
     def block_device_mappings(self) -> list[dict[str, Any]]:
-        return [
-            {"DeviceName": device_name, "Ebs": block}
-            for device_name, block in self.get_block_device_mapping
-        ]
+        result = []
+        for device_name, block in self.get_block_device_mapping:
+            block_copy = copy.copy(block)
+            block_copy.status = self.get_block_device_status(block.status)
+            result.append({"DeviceName": device_name, "Ebs": block_copy})
+        return result
 
     @property
     def network_interfaces(self) -> list[NetworkInterface]:
@@ -754,6 +774,29 @@ class InstanceBackend:
         The KeyPair-parameter can be validated, to see if it is a known key-pair.
         Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
         """
+        if kwargs.get("launch_template"):
+            tmpl = self._get_template_from_args(kwargs["launch_template"]).data
+
+            if user_data is None and (template_user_data := tmpl.get("UserData")):
+                user_data = template_user_data
+            if kwargs.get("is_instance_type_default") and (
+                template_instance_type := tmpl.get("InstanceType")
+            ):
+                kwargs["instance_type"] = template_instance_type
+                kwargs["is_instance_type_default"] = False
+            if not kwargs.get("key_name") and (
+                template_key_name := tmpl.get("KeyName")
+            ):
+                kwargs["key_name"] = template_key_name
+            if not kwargs.get("security_group_ids") and (
+                template_sg_ids := tmpl.get("SecurityGroupIds")
+            ):
+                kwargs["security_group_ids"] = template_sg_ids
+            if not security_group_names and (
+                template_sgs := tmpl.get("SecurityGroups")
+            ):
+                security_group_names = template_sgs
+
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
         if settings.ENABLE_KEYPAIR_VALIDATION:
@@ -1069,6 +1112,11 @@ class InstanceBackend:
             reservations = filter_reservations(reservations, filters)
         return reservations
 
+    def get_instance_uefi_data(self, instance_id: str) -> bytes:
+        # Just a stub for now, doesn't return any actual data.
+        _ = self.get_instance(instance_id)
+        return b""
+
     def _get_template_from_args(
         self, launch_template_arg: dict[str, Any]
     ) -> LaunchTemplateVersion:
@@ -1081,6 +1129,6 @@ class InstanceBackend:
                 template_names=[launch_template_arg["LaunchTemplateName"]]
             )[0]
         )
-        version = launch_template_arg.get("Version", template.latest_version_number)
+        version = launch_template_arg.get("Version", template.default_version_number)
         template_version = template.get_version(version)
         return template_version

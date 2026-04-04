@@ -160,3 +160,86 @@ class VPCLatticeResponse(BaseResponse):
         )
 
         return json.dumps({})
+
+    def put_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+        policy = self._get_param("policy")
+
+        auth_policy = self.backend.put_auth_policy(
+            resourceIdentifier=resourceId,
+            policy=policy,
+        )
+
+        response = {
+            "policy": auth_policy.policy,
+            "state": auth_policy.state,
+        }
+        return json.dumps(response)
+
+    def get_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+        auth_policy = self.backend.get_auth_policy(resourceIdentifier=resourceId)
+
+        response = {
+            "policy": auth_policy.policy,
+            "state": auth_policy.state,
+            "createdAt": auth_policy.created_at,
+            "lastUpdatedAt": auth_policy.last_updated_at,
+        }
+        return json.dumps(response)
+
+    def delete_auth_policy(self) -> str:
+        resourceId = unquote(self._get_param("resourceIdentifier"))
+
+        self.backend.delete_auth_policy(resourceIdentifier=resourceId)
+
+        return "{}"
+
+    def put_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+        policy = self._get_param("policy")
+        self.backend.put_resource_policy(
+            resourceArn=resource_arn,
+            policy=policy,
+        )
+
+        return "{}"
+
+    def get_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+
+        resource_policy = self.backend.get_resource_policy(resourceArn=resource_arn)
+
+        return json.dumps({"policy": resource_policy})
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+
+        self.backend.delete_resource_policy(resourceArn=resource_arn)
+
+        return "{}"
+
+    def list_service_network_vpc_associations(self) -> str:
+        service_network_identifier = self._get_param("serviceNetworkIdentifier")
+        if service_network_identifier:
+            service_network_identifier = unquote(service_network_identifier)
+
+        vpc_identifier = self._get_param("vpcIdentifier")
+        if vpc_identifier:
+            vpc_identifier = unquote(vpc_identifier)
+
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+
+        associations, next_token = self.backend.list_service_network_vpc_associations(
+            serviceNetworkIdentifier=service_network_identifier,
+            vpcIdentifier=vpc_identifier,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "items": [assoc.to_dict() for assoc in associations],
+                "nextToken": next_token,
+            }
+        )

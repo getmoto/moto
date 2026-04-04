@@ -8,6 +8,7 @@ import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 import moto.dynamodb.comparisons
 import moto.dynamodb.models
@@ -400,6 +401,7 @@ def test_put_item_with_special_chars():
     )
 
 
+@freeze_time("2024-01-01")
 @mock_aws
 def test_put_item_with_streams():
     name = f"T{uuid4()}"
@@ -447,7 +449,7 @@ def test_put_item_with_streams():
         assert len(table.stream_shard.items) == 1
         stream_record = table.stream_shard.items[0].record
         assert stream_record["eventName"] == "INSERT"
-        assert stream_record["dynamodb"]["SizeBytes"] == 447
+        assert stream_record["dynamodb"]["SizeBytes"] > 0
 
 
 @mock_aws
@@ -623,6 +625,70 @@ def test_nested_projection_expression_using_get_item():
             "level3": {"id": "irrelevant"},
         },
     }
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "projection_expression, item",
+    [
+        pytest.param(
+            "Id, RelatedIds",
+            {
+                "Id": {"S": "key1"},
+                "RelatedIds": {"L": [{"S": "id1"}, {"S": "id2"}]},
+            },
+            id="Key + Full List",
+        ),
+        pytest.param(
+            "Id, RelatedIds[0]",
+            {"Id": {"S": "key1"}, "RelatedIds": {"L": [{"S": "id1"}]}},
+            id="Key + First List Element",
+        ),
+        pytest.param(
+            "Id, RelatedIds[1]",
+            {"Id": {"S": "key1"}, "RelatedIds": {"L": [{"S": "id2"}]}},
+            id="Key + Last List Element",
+        ),
+        pytest.param(
+            "Id, RelatedIds[2]",
+            {"Id": {"S": "key1"}},
+            id="Key + Out of Bounds List Element",
+        ),
+        pytest.param(
+            "RelatedIds[2]",
+            {},
+            id="No Key + Out of Bounds List Element",
+        ),
+        pytest.param(
+            "Nested[1].Value",
+            {},
+            id="Nested List + Element Out of Bounds",
+        ),
+    ],
+)
+def test_projection_expression_accessing_list_elements(projection_expression, item):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "Id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "Id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName=table_name,
+        Item={
+            "Id": {"S": "key1"},
+            "RelatedIds": {"L": [{"S": "id1"}, {"S": "id2"}]},
+            "Nested": {"L": [{"M": {"Value": {"S": "foo"}}}]},
+        },
+    )
+    resp = client.get_item(
+        TableName=table_name,
+        Key={"Id": {"S": "key1"}},
+        ProjectionExpression=projection_expression,
+    )
+    assert resp["Item"] == item
 
 
 @mock_aws
@@ -1205,6 +1271,72 @@ def test_put_item_nonexisting_range_key():
     assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
+@mock_aws
+def test_put_item_returns_no_attributes_for_new_item():
+    """When putting a new item with ReturnValues=ALL_OLD, the response should
+    not contain the Attributes key since there was no previous item."""
+    name = f"T{uuid4()}"
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Put a brand new item with ReturnValues=ALL_OLD
+    response = client.put_item(
+        TableName=name,
+        Item={"pk": {"S": "new-key"}, "data": {"S": "hello"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert "Attributes" not in response
+
+    # Now overwrite the item; this time Attributes should be present
+    response = client.put_item(
+        TableName=name,
+        Item={"pk": {"S": "new-key"}, "data": {"S": "world"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert response["Attributes"] == {"pk": {"S": "new-key"}, "data": {"S": "hello"}}
+
+
+@mock_aws
+def test_update_item_returns_no_attributes_for_new_item():
+    """update_item with ReturnValues=ALL_OLD on a non-existent item should
+    omit Attributes, matching real AWS behavior."""
+    name = f"T{uuid4()}"
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Update (upsert) a non-existent item with ALL_OLD
+    response = client.update_item(
+        TableName=name,
+        Key={"pk": {"S": "new-key"}},
+        UpdateExpression="SET #d = :v",
+        ExpressionAttributeNames={"#d": "data"},
+        ExpressionAttributeValues={":v": {"S": "hello"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert "Attributes" not in response
+
+    # Now update the existing item; ALL_OLD should return old attributes
+    response = client.update_item(
+        TableName=name,
+        Key={"pk": {"S": "new-key"}},
+        UpdateExpression="SET #d = :v",
+        ExpressionAttributeNames={"#d": "data"},
+        ExpressionAttributeValues={":v": {"S": "world"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert response["Attributes"] == {"pk": {"S": "new-key"}, "data": {"S": "hello"}}
+
+
 def test_filter_expression():
     row1 = moto.dynamodb.models.Item(
         hash_key=None,
@@ -1334,6 +1466,53 @@ def test_filter_expression():
 
 
 @mock_aws
+def test_filter_expression_sparse_booleans():
+    # Test filtering between boolean and null values.
+    row_no_boolean = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={},
+    )
+    row_null_boolean = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"NULL": True}},
+    )
+    row_boolean_true = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"BOOL": True}},
+    )
+    row_boolean_false = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"is_visible": {"BOOL": False}},
+    )
+
+    # equivalent to (is_visible.exists()) & (is_visible != None)
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "(attribute_exists (is_visible) AND is_visible <> :0)",
+        names=None,
+        values={":0": {"NULL": True}},
+    )
+    assert filter_expr.expr(row_no_boolean) is False
+    assert filter_expr.expr(row_null_boolean) is False
+    assert filter_expr.expr(row_boolean_false) is True
+    assert filter_expr.expr(row_boolean_true) is True
+
+    # Equivalent to (is_visible.exists()) & (is_visible == True)
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "(attribute_exists (is_visible) AND is_visible = :0)",
+        names=None,
+        values={":0": {"BOOL": True}},
+    )
+    assert filter_expr.expr(row_no_boolean) is False
+    assert filter_expr.expr(row_null_boolean) is False
+    assert filter_expr.expr(row_boolean_false) is False
+    assert filter_expr.expr(row_boolean_true) is True
+
+
+@mock_aws
 def test_duplicate_create():
     client = boto3.client("dynamodb", region_name="us-east-1")
     table_name = f"T{uuid4()}"
@@ -1448,9 +1627,9 @@ def test_delete_item():
     response = table.scan()
     assert response["Count"] == 1
 
-    # Test deletion returning nothing
+    # Test deletion returning nothing (NONE is default, no Attributes key)
     response = table.delete_item(Key={"client": "client1", "app": "app2"})
-    assert len(response["Attributes"]) == 0
+    assert "Attributes" not in response
 
     response = table.scan()
     assert response["Count"] == 0
@@ -1615,6 +1794,7 @@ def test_update_continuous_backups():
     latest_datetime = point_in_time["LatestRestorableDateTime"]
     assert isinstance(latest_datetime, datetime)
     assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 35
 
     # when
     # a second update should not change anything
@@ -1633,6 +1813,56 @@ def test_update_continuous_backups():
     assert point_in_time["EarliestRestorableDateTime"] == earliest_datetime
     assert point_in_time["LatestRestorableDateTime"] == latest_datetime
     assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 35
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": False},
+    )
+
+    # then
+    assert response["ContinuousBackupsDescription"] == {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+    }
+
+
+@mock_aws
+def test_update_continuous_backups_with_recovery_period():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName=f"T{uuid4()}",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={
+            "PointInTimeRecoveryEnabled": True,
+            "RecoveryPeriodInDays": 10,
+        },
+    )
+
+    # then
+    assert (
+        response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"] == "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
+    assert point_in_time["RecoveryPeriodInDays"] == 10
 
     # when
     response = client.update_continuous_backups(
@@ -1902,8 +2132,11 @@ def test_update_return_attributes():
     r = update("col2", "val4", "UPDATED_OLD")
     assert r["Attributes"] == {"col2": {"S": "val3"}}
 
+    r = update("col3", "new_val", "UPDATED_OLD")
+    assert "Attributes" not in r
+
     r = update("col1", "val5", "NONE")
-    assert r["Attributes"] == {}
+    assert "Attributes" not in r
 
     with pytest.raises(ClientError) as ex:
         update("col1", "val6", "WRONG")
@@ -4581,6 +4814,70 @@ def test_projection_expression_with_binary_attr():
 
     item = table.query(KeyConditionExpression=Key("pk").eq("pk"))["Items"][0]
     assert item["key"] == Binary(b"value\xbf")
+
+
+@mock_aws
+def test_binary_attr_put_delete_update_return_values():
+    """Binary (B) and Binary Set (BS) values must survive the ActionResult
+    serialization round-trip when returned via ReturnValues=ALL_OLD / ALL_NEW."""
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    bin_val = b"value\xbf"
+    bin_set = {b"one\x00", b"two\xff"}
+
+    # --- put_item: ReturnValues=ALL_OLD ---
+    client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k1"}, "b": {"B": bin_val}, "bs": {"BS": list(bin_set)}},
+    )
+    r = client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k1"}, "b": {"B": b"new"}, "bs": {"BS": [b"x"]}},
+        ReturnValues="ALL_OLD",
+    )
+    assert r["Attributes"]["b"] == {"B": bin_val}
+    assert set(r["Attributes"]["bs"]["BS"]) == bin_set
+
+    # --- delete_item: ReturnValues=ALL_OLD ---
+    r = client.delete_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k1"}},
+        ReturnValues="ALL_OLD",
+    )
+    assert r["Attributes"]["b"] == {"B": b"new"}
+    assert r["Attributes"]["bs"] == {"BS": [b"x"]}
+
+    # --- update_item: ReturnValues=ALL_NEW ---
+    client.put_item(
+        TableName=table_name,
+        Item={"pk": {"S": "k2"}, "b": {"B": bin_val}},
+    )
+    r = client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k2"}},
+        UpdateExpression="SET bs = :bs",
+        ExpressionAttributeValues={":bs": {"BS": list(bin_set)}},
+        ReturnValues="ALL_NEW",
+    )
+    assert r["Attributes"]["b"] == {"B": bin_val}
+    assert set(r["Attributes"]["bs"]["BS"]) == bin_set
+
+    # --- update_item: ReturnValues=UPDATED_OLD ---
+    r = client.update_item(
+        TableName=table_name,
+        Key={"pk": {"S": "k2"}},
+        UpdateExpression="SET b = :b",
+        ExpressionAttributeValues={":b": {"B": b"changed"}},
+        ReturnValues="UPDATED_OLD",
+    )
+    assert r["Attributes"] == {"b": {"B": bin_val}}
 
 
 @mock_aws

@@ -165,10 +165,7 @@ def initialize_service(service, api_protocol):
 
     client = boto3.client(service)
     service_class = client.__class__.__name__
-    endpoint_prefix = (
-        # pylint: disable=protected-access
-        client._service_model.endpoint_prefix
-    )
+    endpoint_prefix = client._service_model.endpoint_prefix
 
     tmpl_context = {
         "service": service,
@@ -228,7 +225,7 @@ def get_operation_name_in_keys(operation_name, operation_keys):
     return operation_keys[index]
 
 
-def get_function_in_responses(service, operation, protocol):  # pylint: disable=too-many-locals
+def get_function_in_responses(service, operation, protocol): 
     """refers to definition of API in botocore, and autogenerates function
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
@@ -236,7 +233,6 @@ def get_function_in_responses(service, operation, protocol):  # pylint: disable=
     escaped_service = get_escaped_service(service)
     client = boto3.client(service)
 
-    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -291,7 +287,6 @@ def get_function_in_models(service, operation):
     """
     client = boto3.client(service)
 
-    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -343,7 +338,7 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
     class_name = shape.__class__.__name__
     shape_type = shape.type_name
     if class_name in ("StringShape", "Shape") or shape_type == "structure":
-        tree = etree.Element(name)  # pylint: disable=c-extension-no-member
+        tree = etree.Element(name)
         if name_prefix:
             tree.text = f"{{{{ {name_prefix[-1]}.{to_snake_case(name)} }}}}"
         else:
@@ -351,7 +346,6 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
         return tree
 
     if class_name in ("ListShape",) or shape_type == "list":
-        # pylint: disable=c-extension-no-member
         replace_list.append((name, name_prefix))
         tree = etree.Element(name)
         t_member = etree.Element("member")
@@ -370,7 +364,7 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
     raise ValueError(f"Not supported Shape: {shape}")
 
 
-def get_response_query_template(service, operation):  # pylint: disable=too-many-locals
+def get_response_query_template(service, operation):
     """refers to definition of API in botocore, and autogenerates template
     Assume that response format is xml when protocol is query
 
@@ -379,7 +373,6 @@ def get_response_query_template(service, operation):  # pylint: disable=too-many
     """
     client = boto3.client(service)
 
-    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -392,7 +385,6 @@ def get_response_query_template(service, operation):  # pylint: disable=too-many
     xml_namespace = metadata["xmlNamespace"]
 
     # build xml tree
-    # pylint: disable=c-extension-no-member
     t_root = etree.Element(response_wrapper, xmlns=xml_namespace)
 
     # build metadata
@@ -562,12 +554,11 @@ def insert_code_to_class(path, base_class, new_code):
         fhandle.write(body)
 
 
-def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-locals
+def insert_url(service, operation, api_protocol):
     """Create urls.py with appropriate URL bases and paths."""
     client = boto3.client(service)
     service_class = client.__class__.__name__
 
-    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -669,7 +660,6 @@ def main():
     while True:
         operation = select_operation(service)
 
-        # pylint: disable=protected-access
         api_protocol = boto3.client(service)._service_model.metadata["protocol"]
         initialize_service(service, api_protocol)
 

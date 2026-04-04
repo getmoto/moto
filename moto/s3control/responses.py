@@ -1,12 +1,10 @@
-import json
 from typing import Any
-from urllib.parse import unquote
 
-import xmltodict
-
-from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+)
 
 from .models import S3ControlBackend, s3control_backends
 
@@ -14,44 +12,38 @@ from .models import S3ControlBackend, s3control_backends
 class S3ControlResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3control")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> S3ControlBackend:
         return s3control_backends[self.current_account][self.partition]
 
-    def get_public_access_block(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
+    def get_public_access_block(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
         public_block_config = self.backend.get_public_access_block(
             account_id=account_id
         )
-        template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
-        return template.render(public_block_config=public_block_config)
+        return ActionResult({"PublicAccessBlockConfiguration": public_block_config})
 
-    def put_public_access_block(self) -> TYPE_RESPONSE:
-        account_id = self.headers.get("x-amz-account-id")
-        pab_config = self._parse_pab_config(self.body)
-        self.backend.put_public_access_block(
-            account_id, pab_config["PublicAccessBlockConfiguration"]
-        )
-        return 201, {"status": 201}, json.dumps({})
+    def put_public_access_block(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        pab_config = self._get_param("PublicAccessBlockConfiguration", {})
+        self.backend.put_public_access_block(account_id, pab_config)
+        return EmptyResult()
 
-    def delete_public_access_block(self) -> TYPE_RESPONSE:
-        account_id = self.headers.get("x-amz-account-id")
+    def delete_public_access_block(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
         self.backend.delete_public_access_block(account_id=account_id)
-        return 204, {"status": 204}, json.dumps({})
+        return EmptyResult()
 
-    def _parse_pab_config(self, body: str) -> dict[str, Any]:
-        parsed_xml = xmltodict.parse(body)
-        parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
-
-        return parsed_xml
-
-    def create_access_point(self) -> str:
-        account_id, name = self._get_accountid_and_name_from_accesspoint(self.uri)
-        params = xmltodict.parse(self.body)["CreateAccessPointRequest"]
-        bucket = params["Bucket"]
-        vpc_configuration = params.get("VpcConfiguration")
-        public_access_block_configuration = params.get("PublicAccessBlockConfiguration")
+    def create_access_point(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
+        bucket = self._get_param("Bucket")
+        vpc_configuration = self._get_param("VpcConfiguration")
+        public_access_block_configuration = self._get_param(
+            "PublicAccessBlockConfiguration"
+        )
         access_point = self.backend.create_access_point(
             account_id=account_id,
             name=name,
@@ -59,355 +51,282 @@ class S3ControlResponse(BaseResponse):
             vpc_configuration=vpc_configuration,
             public_access_block_configuration=public_access_block_configuration,
         )
-        template = self.response_template(CREATE_ACCESS_POINT_TEMPLATE)
-        return template.render(access_point=access_point)
+        return ActionResult(
+            {
+                "AccessPointArn": access_point.arn,
+                "Alias": access_point.alias,
+            }
+        )
 
-    def get_access_point(self) -> str:
-        account_id, name = self._get_accountid_and_name_from_accesspoint(self.uri)
-
+    def get_access_point(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
         access_point = self.backend.get_access_point(account_id=account_id, name=name)
-        template = self.response_template(GET_ACCESS_POINT_TEMPLATE)
-        return template.render(access_point=access_point)
+        return ActionResult(
+            {
+                "Name": access_point.name,
+                "Bucket": access_point.bucket,
+                "NetworkOrigin": access_point.network_origin,
+                "VpcConfiguration": {"VpcId": access_point.vpc_id}
+                if access_point.vpc_id
+                else None,
+                "PublicAccessBlockConfiguration": access_point.pubc,
+                "CreationDate": access_point.created,
+                "Alias": access_point.alias,
+                "AccessPointArn": access_point.arn,
+                "Endpoints": {
+                    "ipv4": "s3-accesspoint.us-east-1.amazonaws.com",
+                    "fips": "s3-accesspoint-fips.us-east-1.amazonaws.com",
+                    "fips_dualstack": "s3-accesspoint-fips.dualstack.us-east-1.amazonaws.com",
+                    "dualstack": "s3-accesspoint.dualstack.us-east-1.amazonaws.com",
+                },
+            }
+        )
 
-    def delete_access_point(self) -> TYPE_RESPONSE:
-        account_id, name = self._get_accountid_and_name_from_accesspoint(self.uri)
+    def delete_access_point(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
         self.backend.delete_access_point(account_id=account_id, name=name)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def put_access_point_policy(self) -> str:
-        account_id, name = self._get_accountid_and_name_from_policy(self.uri)
-        params = xmltodict.parse(self.body)
-        policy = params["PutAccessPointPolicyRequest"]["Policy"]
+    def put_access_point_policy(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
+        policy = self._get_param("Policy")
         self.backend.put_access_point_policy(account_id, name, policy)
-        return ""
+        return EmptyResult()
 
-    def get_access_point_policy(self) -> str:
-        account_id, name = self._get_accountid_and_name_from_policy(self.uri)
+    def get_access_point_policy(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
         policy = self.backend.get_access_point_policy(account_id, name)
-        template = self.response_template(GET_ACCESS_POINT_POLICY_TEMPLATE)
-        return template.render(policy=policy)
+        return ActionResult({"Policy": policy})
 
-    def delete_access_point_policy(self) -> TYPE_RESPONSE:
-        account_id, name = self._get_accountid_and_name_from_policy(self.uri)
+    def delete_access_point_policy(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
         self.backend.delete_access_point_policy(account_id=account_id, name=name)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def get_access_point_policy_status(self) -> str:
-        account_id, name = self._get_accountid_and_name_from_policy(self.uri)
+    def get_access_point_policy_status(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
         self.backend.get_access_point_policy_status(account_id, name)
-        template = self.response_template(GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE)
-        return template.render()
+        return ActionResult({"PolicyStatus": {"IsPublic": True}})
 
-    def _get_accountid_and_name_from_accesspoint(
-        self, full_url: str
-    ) -> tuple[str, str]:
-        url = full_url
-        if full_url.startswith("http"):
-            url = full_url.split("://")[1]
-        account_id = url.split(".")[0]
-        name = url.split("v20180820/accesspoint/")[-1]
-        return account_id, name
-
-    def _get_accountid_and_name_from_policy(self, full_url: str) -> tuple[str, str]:
-        url = full_url
-        if full_url.startswith("http"):
-            url = full_url.split("://")[1]
-        account_id = url.split(".")[0]
-        name = self.path.split("/")[-2]
-        return account_id, name
-
-    def put_storage_lens_configuration(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-        config_id = self.path.split("/")[-1]
-        request = xmltodict.parse(self.body)["PutStorageLensConfigurationRequest"]
-        storage_lens_configuration = request.get("StorageLensConfiguration")
-        tags = request.get("Tags")
+    def put_storage_lens_configuration(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        config_id = self._get_param("ConfigId")
+        storage_lens_configuration = self._get_param("StorageLensConfiguration")
+        tags = self._get_param("Tags")
         self.backend.put_storage_lens_configuration(
             config_id=config_id,
             account_id=account_id,
             storage_lens_configuration=storage_lens_configuration,
             tags=tags,
         )
-        return ""
+        return EmptyResult()
 
-    def get_storage_lens_configuration(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-        config_id = self.path.split("/")[-1]
+    def get_storage_lens_configuration(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        config_id = self._get_param("ConfigId")
         storage_lens_configuration = self.backend.get_storage_lens_configuration(
             config_id=config_id,
             account_id=account_id,
         )
-        # TODO: Add support for all fields in the response
-        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
-        template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
-        return template.render(config=storage_lens_configuration.config)
+        return ActionResult(
+            {"StorageLensConfiguration": storage_lens_configuration.config}
+        )
 
-    def list_storage_lens_configurations(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-        params = self._get_params()
-        next_token = params.get("nextToken")
+    def delete_storage_lens_configuration(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        config_id = self._get_param("ConfigId")
+        self.backend.delete_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        return EmptyResult()
+
+    def list_storage_lens_configurations(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        next_token = self._get_param("NextToken")
         storage_lens_configuration_list, next_token = (
             self.backend.list_storage_lens_configurations(
                 account_id=account_id,
                 next_token=next_token,
             )
         )
-        template = self.response_template(LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE)
-        return template.render(
-            next_token=next_token, configs=storage_lens_configuration_list
-        )
-
-    def put_storage_lens_configuration_tagging(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-        config_id = self.path.split("/")[-2]
-        request = xmltodict.parse(self.body)[
-            "PutStorageLensConfigurationTaggingRequest"
+        configs = [
+            {
+                "Id": config.config.get("Id"),
+                "IsEnabled": config.config.get("IsEnabled"),
+                "StorageLensArn": config.arn,
+            }
+            for config in storage_lens_configuration_list
         ]
-        tags = request.get("Tags")
+        result = {"StorageLensConfigurationList": configs, "NextToken": next_token}
+        return ActionResult(result)
+
+    def put_storage_lens_configuration_tagging(self) -> EmptyResult:
+        account_id = self._get_param("AccountId")
+        config_id = self._get_param("ConfigId")
+        tags = self._get_param("Tags")
         self.backend.put_storage_lens_configuration_tagging(
             config_id=config_id,
             account_id=account_id,
             tags=tags,
         )
-        return ""
+        return EmptyResult()
 
-    def get_storage_lens_configuration_tagging(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-        config_id = self.path.split("/")[-2]
+    def get_storage_lens_configuration_tagging(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        config_id = self._get_param("ConfigId")
         storage_lens_tags = self.backend.get_storage_lens_configuration_tagging(
             config_id=config_id,
             account_id=account_id,
         )
-        template = self.response_template(
-            GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE
-        )
-        return template.render(tags=storage_lens_tags)
+        return ActionResult({"Tags": storage_lens_tags})
 
-    def list_access_points(self) -> str:
-        account_id = self.headers.get("x-amz-account-id")
-
-        params = self._get_params()
-        max_results = params.get("maxResults")
-        if max_results:
-            max_results = int(max_results)
+    def list_access_points(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        bucket = self._get_param("Bucket")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
 
         access_points, next_token = self.backend.list_access_points(
             account_id=account_id,
-            bucket=params.get("bucket"),
+            bucket=bucket,
             max_results=max_results,
-            next_token=params.get("nextToken"),
+            next_token=next_token,
         )
 
-        template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
-        return template.render(access_points=access_points, next_token=next_token)
+        ap_list = [
+            {
+                "Name": ap.name,
+                "NetworkOrigin": ap.network_origin,
+                "VpcConfiguration": {"VpcId": ap.vpc_id} if ap.vpc_id else None,
+                "Bucket": ap.bucket,
+                "AccessPointArn": ap.arn,
+                "Alias": ap.alias,
+            }
+            for ap in access_points
+        ]
+        result: dict[str, Any] = {"AccessPointList": ap_list}
+        if next_token:
+            result["NextToken"] = next_token
+        return ActionResult(result)
+
+    def create_multi_region_access_point(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Details.Name")
+        regions = self._get_param("Details.Regions", [])
+        public_access_block = self._get_param("Details.PublicAccessBlock", {})
+        operation = self.backend.create_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+            public_access_block=public_access_block,
+            regions=regions,
+            region_name=self.region,
+        )
+        return ActionResult({"RequestTokenARN": operation.request_token_arn})
+
+    def delete_multi_region_access_point(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        details = self._get_param("Details", {})
+        name = details.get("Name")
+
+        operation = self.backend.delete_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+            region_name=self.region,
+        )
+        return ActionResult({"RequestTokenARN": operation.request_token_arn})
+
+    def describe_multi_region_access_point_operation(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        request_token = self._get_param("RequestTokenARN")
+
+        operation = self.backend.describe_multi_region_access_point_operation(
+            account_id=account_id,
+            request_token_arn=request_token,
+        )
+        return ActionResult({"AsyncOperation": operation.to_dict()})
+
+    def get_multi_region_access_point(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
+
+        mrap = self.backend.get_multi_region_access_point(
+            account_id=account_id,
+            name=name,
+        )
+        return ActionResult({"AccessPoint": mrap.to_dict()})
+
+    def get_multi_region_access_point_policy(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
+
+        policy = self.backend.get_multi_region_access_point_policy(
+            account_id=account_id,
+            name=name,
+        )
+        return ActionResult({"Policy": {"Established": {"Policy": policy}}})
+
+    def get_multi_region_access_point_policy_status(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        name = self._get_param("Name")
+
+        policy_status = self.backend.get_multi_region_access_point_policy_status(
+            account_id=account_id,
+            name=name,
+        )
+        return ActionResult({"Established": {"IsPublic": policy_status["IsPublic"]}})
+
+    def list_multi_region_access_points(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        mraps, next_token = self.backend.list_multi_region_access_points(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        result: dict[str, Any] = {
+            "AccessPoints": [mrap.to_dict() for mrap in mraps],
+        }
+        if next_token:
+            result["NextToken"] = next_token
+        return ActionResult(result)
+
+    def put_multi_region_access_point_policy(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        details = self._get_param("Details", {})
+        name = details.get("Name")
+        policy = details.get("Policy")
+
+        operation = self.backend.put_multi_region_access_point_policy(
+            account_id=account_id,
+            name=name,
+            policy=policy,
+            region_name=self.region,
+        )
+        return ActionResult({"RequestTokenARN": operation.request_token_arn})
 
     def list_tags_for_resource(self) -> ActionResult:
-        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        resource_arn = self._get_param("ResourceArn")
         tags = self.backend.list_tags_for_resource(resource_arn)
         return ActionResult(result={"Tags": tags})
 
     def tag_resource(self) -> EmptyResult:
-        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
-        tags = (
-            xmltodict.parse(self.raw_body, force_list={"Tag": True})
-            .get("TagResourceRequest", {})
-            .get("Tags", {})["Tag"]
-        )
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags", [])
         self.backend.tag_resource(resource_arn, tags=tags)
         return EmptyResult()
 
     def untag_resource(self) -> EmptyResult:
-        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
-        tag_keys = self.querystring.get("tagKeys", [])
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys", [])
         self.backend.untag_resource(resource_arn, tag_keys=tag_keys)
         return EmptyResult()
-
-
-CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <Alias>{{ access_point.alias }}</Alias>
-  <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
-</CreateAccessPointResult>
-"""
-
-
-GET_ACCESS_POINT_TEMPLATE = """<GetAccessPointResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <Name>{{ access_point.name }}</Name>
-  <Bucket>{{ access_point.bucket }}</Bucket>
-  <NetworkOrigin>{{ access_point.network_origin }}</NetworkOrigin>
-  {% if access_point.vpc_id %}
-  <VpcConfiguration>
-      <VpcId>{{ access_point.vpc_id }}</VpcId>
-  </VpcConfiguration>
-  {% endif %}
-  <PublicAccessBlockConfiguration>
-      <BlockPublicAcls>{{ access_point.pubc["BlockPublicAcls"] }}</BlockPublicAcls>
-      <IgnorePublicAcls>{{ access_point.pubc["IgnorePublicAcls"] }}</IgnorePublicAcls>
-      <BlockPublicPolicy>{{ access_point.pubc["BlockPublicPolicy"] }}</BlockPublicPolicy>
-      <RestrictPublicBuckets>{{ access_point.pubc["RestrictPublicBuckets"] }}</RestrictPublicBuckets>
-  </PublicAccessBlockConfiguration>
-  <CreationDate>{{ access_point.created }}</CreationDate>
-  <Alias>{{ access_point.alias }}</Alias>
-  <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
-  <Endpoints>
-      <entry>
-          <key>ipv4</key>
-          <value>s3-accesspoint.us-east-1.amazonaws.com</value>
-      </entry>
-      <entry>
-          <key>fips</key>
-          <value>s3-accesspoint-fips.us-east-1.amazonaws.com</value>
-      </entry>
-      <entry>
-          <key>fips_dualstack</key>
-          <value>s3-accesspoint-fips.dualstack.us-east-1.amazonaws.com</value>
-      </entry>
-      <entry>
-          <key>dualstack</key>
-          <value>s3-accesspoint.dualstack.us-east-1.amazonaws.com</value>
-      </entry>
-  </Endpoints>
-</GetAccessPointResult>
-"""
-
-
-GET_ACCESS_POINT_POLICY_TEMPLATE = """<GetAccessPointPolicyResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <Policy>{{ policy }}</Policy>
-</GetAccessPointPolicyResult>
-"""
-
-
-GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <PolicyStatus>
-      <IsPublic>true</IsPublic>
-  </PolicyStatus>
-</GetAccessPointPolicyResult>
-"""
-
-
-GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
-<StorageLensConfiguration>
-   <Id>{{config.get("Id")}}</Id>
-   {% if config.get("DataExport") %}
-   <DataExport>
-      {% if config["DataExport"]["S3BucketDestination"] %}
-      <S3BucketDestination>
-         <AccountId>{{config["DataExport"]["S3BucketDestination"]["AccountId"]}}</AccountId>
-         <Arn>{{config["DataExport"]["S3BucketDestination"]["Arn"]}}</Arn>
-         {% if config["DataExport"]["S3BucketDestination"].get("Encryption") %}
-         <Encryption>
-            {% if config["DataExport"]["S3BucketDestination"]["Encryption"].get("SSEKMS") %}
-            <SSE-KMS>
-               <KeyId>config["DataExport"]["S3BucketDestination"]["Encryption"]["KeyId"]</KeyId>
-            </SSE-KMS>
-            {% endif %}
-            {% if "SSE-S3" in config["DataExport"]["S3BucketDestination"]["Encryption"] %}
-            <SSE-S3>
-            </SSE-S3>
-            {% endif %}
-         </Encryption>
-         {% endif %}
-      </S3BucketDestination>
-      {% endif %}
-   </DataExport>
-   {% endif %}
-   <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
-   <AccountLevel>
-        <ActivityMetrics>
-            <IsEnabled>{{config["AccountLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
-        </ActivityMetrics>
-        <BucketLevel>
-            <ActivityMetrics>
-                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
-            </ActivityMetrics>
-            <PrefixLevel>
-                <StorageMetrics>
-                    <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["IsEnabled"]}}</IsEnabled>
-                    <SelectionCriteria>
-                        <Delimiter>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["Delimiter"]}}</Delimiter>
-                        <MaxDepth>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MaxDepth"]}}</MaxDepth>
-                        <MinStorageBytesPercentage>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MinStorageBytesPercentage"]}}</MinStorageBytesPercentage>
-                    </SelectionCriteria>
-                </StorageMetrics>
-            </PrefixLevel>
-            <DetailedStatusCodesMetrics>
-                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
-            </DetailedStatusCodesMetrics>
-        </BucketLevel>
-        <AdvancedDataProtectionMetrics>
-            <IsEnabled>{{config["AccountLevel"]["AdvancedDataProtectionMetrics"]["IsEnabled"]}}</IsEnabled>
-        </AdvancedDataProtectionMetrics>
-        <DetailedStatusCodesMetrics>
-            <IsEnabled>{{config["AccountLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
-        </DetailedStatusCodesMetrics>
-   </AccountLevel>
-   <AwsOrg>
-        <Arn>{{config.get("AwsOrg", {}).get("Arn", "")}}</Arn>
-    </AwsOrg>
-    <StorageLensArn>{{config.get("StorageLensArn")}}</StorageLensArn>
-</StorageLensConfiguration>
-"""
-
-
-LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
-<ListStorageLensConfigurationsResult>
-   {% if next_token %}
-   <NextToken>{{ next_token }}</NextToken>
-   {% endif %}
-   {% for config in configs %}
-   <StorageLensConfiguration>
-      <HomeRegion></HomeRegion>
-      <Id>{{ config.config.get("Id") }}</Id>
-      <IsEnabled>{{ config.config.get("IsEnabled") }}</IsEnabled>
-      <StorageLensArn>{{ config.arn }}</StorageLensArn>
-    </StorageLensConfiguration>
-    {% endfor %}
-</ListStorageLensConfigurationsResult>
-"""
-
-
-GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE = """
-<GetStorageLensConfigurationTaggingResult>
-   <Tags>
-      {% for tag in tags["Tag"] %}
-      <Tag>
-         <Key>{{ tag["Key"] }}</Key>
-         <Value>{{ tag["Value"] }}</Value>
-      </Tag>
-      {% endfor %}
-   </Tags>
-</GetStorageLensConfigurationTaggingResult>
-
-"""
-LIST_ACCESS_POINTS_TEMPLATE = """<ListAccessPointsResult>
-  <AccessPointList>
-    {% for access_point in access_points %}
-    <AccessPoint>
-      <Name>{{ access_point.name }}</Name>
-      <NetworkOrigin>{{ access_point.network_origin }}</NetworkOrigin>
-      {% if access_point.vpc_id %}
-      <VpcConfiguration>
-        <VpcId>{{ access_point.vpc_id }}</VpcId>
-      </VpcConfiguration>
-      {% endif %}
-      <Bucket>{{ access_point.bucket }}</Bucket>
-      <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
-      <Alias>{{ access_point.alias }}</Alias>
-    </AccessPoint>
-    {% endfor %}
-  </AccessPointList>
-  {% if next_token %}
-  <NextToken>{{ next_token }}</NextToken>
-  {% endif %}
-</ListAccessPointsResult>"""

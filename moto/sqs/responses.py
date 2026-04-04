@@ -6,7 +6,6 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
-    MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_VISIBILITY_TIMEOUT,
 )
 from .exceptions import (
@@ -14,6 +13,7 @@ from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
     MaxVisibilityTimeout,
+    QueueDoesNotExist,
     SQSException,
 )
 from .models import SQSBackend, sqs_backends
@@ -30,6 +30,13 @@ class SQSResponse(BaseResponse):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.current_account][self.region]
+
+    def _determine_resource(self) -> str:
+        queue_name = self._get_queue_name()
+        try:
+            return self.sqs_backend.get_queue(queue_name).queue_arn
+        except QueueDoesNotExist:
+            return "*"
 
     def _get_queue_name(self) -> str:
         try:
@@ -140,16 +147,12 @@ class SQSResponse(BaseResponse):
         delay_seconds = self._get_param("DelaySeconds")
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
-        if len(message) > MAXIMUM_MESSAGE_LENGTH:
-            raise SQSException(
-                "InvalidParameterValue",
-                "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
-            )
         message_attributes = self._get_param("MessageAttributes", {})
         validate_message_attributes(message_attributes)
         system_message_attributes = self._get_param("MessageSystemAttributes")
         validate_message_attributes(system_message_attributes)
         queue_name = self._get_queue_name()
+        queue = self.sqs_backend.get_queue(queue_name)
         message = self.sqs_backend.send_message(
             queue_name,
             message,
@@ -165,11 +168,13 @@ class SQSResponse(BaseResponse):
         }
         if len(message.message_attributes) > 0:
             resp["MD5OfMessageAttributes"] = message.attribute_md5
+        if queue.fifo_queue and message.sequence_number:
+            resp["SequenceNumber"] = message.sequence_number
         return ActionResult(resp)
 
     def send_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        self.sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.get_queue(queue_name)
         entries = self._get_param("Entries", [])
         entries = {str(idx): entry for idx, entry in enumerate(entries)}
         for entry in entries.values():
@@ -207,6 +212,8 @@ class SQSResponse(BaseResponse):
             }
             if len(msg.message_attributes) > 0:
                 msg_dict["MD5OfMessageAttributes"] = msg.attribute_md5
+            if queue.fifo_queue:
+                msg_dict["SequenceNumber"] = msg.sequence_number
             resp["Successful"].append(msg_dict)
         return ActionResult(resp)
 

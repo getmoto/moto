@@ -88,21 +88,12 @@ def test_publish_batch_standard_with_message_group_id():
     ]
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
-    assert len(resp["Successful"]) == 2
+    # MessageGroupId is allowed on standard topics (fair queues support)
+    assert len(resp["Successful"]) == 3
     for message_status in resp["Successful"]:
         assert "MessageId" in message_status
-    assert [m["Id"] for m in resp["Successful"]] == ["id_1", "id_3"]
-
-    assert len(resp["Failed"]) == 1
-    assert resp["Failed"][0] == {
-        "Id": "id_2",
-        "Code": "InvalidParameter",
-        "Message": (
-            "Invalid parameter: MessageGroupId Reason: The request includes "
-            "MessageGroupId parameter that is not valid for this topic type"
-        ),
-        "SenderFault": True,
-    }
+    assert [m["Id"] for m in resp["Successful"]] == ["id_1", "id_2", "id_3"]
+    assert resp.get("Failed", []) == []
 
 
 @mock_aws

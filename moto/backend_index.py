@@ -2,6 +2,7 @@
 import re
 
 backend_url_patterns = [
+    ("account", re.compile("https?://account\\.(.+)\\.amazonaws\\.com")),
     ("acm", re.compile("https?://acm\\.(.+)\\.amazonaws\\.com")),
     ("acmpca", re.compile("https?://acm-pca\\.(.+)\\.amazonaws\\.com")),
     ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
@@ -30,6 +31,11 @@ backend_url_patterns = [
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
     ("bedrock", re.compile("https?://bedrock\\.(.+)\\.amazonaws\\.com")),
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
+    (
+        "bedrockagentcorecontrol",
+        re.compile("https?://bedrock-agentcore-control\\.(.+)\\.amazonaws\\.com"),
+    ),
+    ("bedrockruntime", re.compile("https?://bedrock-runtime\\.(.+)\\.amazonaws\\.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
     ("clouddirectory", re.compile("https?://clouddirectory\\.(.+)\\.amazonaws\\.com")),
@@ -48,6 +54,7 @@ backend_url_patterns = [
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
     ("comprehend", re.compile("https?://comprehend\\.(.+)\\.amazonaws\\.com")),
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
+    ("connect", re.compile("https?://connect\\.(.+)\\.amazonaws\\.com")),
     (
         "connectcampaigns",
         re.compile("https?://connect-campaigns\\.(.+)\\.amazonaws\\.com"),
@@ -84,10 +91,6 @@ backend_url_patterns = [
         re.compile(
             "https?://elasticbeanstalk\\.(?P<region>[a-zA-Z0-9\\-_]+)\\.amazonaws.com"
         ),
-    ),
-    (
-        "elastictranscoder",
-        re.compile("https?://elastictranscoder\\.(.+)\\.amazonaws.com"),
     ),
     ("elb", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("elbv2", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),

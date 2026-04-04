@@ -45,8 +45,9 @@ class ChannelGroup(BaseModel):
         self.channel_group_name = channel_group_name
         self.arn = f"arn:aws:mediapackagev2:{region_name}:{account_id}:channelGroup/{channel_group_name}"
         self.egress_domain = f"{mock_random.get_random_hex(6)}.egress.{mock_random.get_random_hex(6)}.mediapackagev2.{region_name}.amazonaws.com"
-        self.created_at = datetime.now()
-        self.modified_at = datetime.now()
+        now = datetime.now()
+        self.created_at = now
+        self.modified_at = now
         self.e_tag = mock_random.get_random_hex(10)
         self.tags: dict[str, str] = {}
 

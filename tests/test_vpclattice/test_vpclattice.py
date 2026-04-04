@@ -1,3 +1,5 @@
+import json
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -237,6 +239,90 @@ def test_untag_resource():
 
     client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
 
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_snva_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+    resp = client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp_sn["id"],
+        vpcIdentifier="vpc-12345678",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_rule_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_svc = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+
+    resp = client.create_rule(
+        listenerIdentifier="listener-1234567890123456",
+        serviceIdentifier=resp_svc["id"],
+        name="my-rule",
+        priority=1,
+        match={
+            "httpMatch": {
+                "pathMatch": {"caseSensitive": False, "match": {"exact": "/my-path"}}
+            }
+        },
+        action={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_als_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+
+    resp = client.create_access_log_subscription(
+        resourceIdentifier=resp_sn["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        serviceNetworkLogType="RESOURCE",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
     returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
     assert returned_tags["tags"] == {"tag2": "value2"}
 
@@ -495,3 +581,335 @@ def test_update_access_log_subscription_not_found():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Access Log Subscription als-invalid-id123 not found"
+
+
+@mock_aws
+def test_put_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    svc = client.create_service(name="my-service", authType="AWS_IAM")
+    sn = client.create_service_network(name="my-sn", authType="NONE")
+
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": svc["arn"],
+                }
+            ],
+        }
+    )
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=svc["arn"],
+        policy=policy_document,
+    )
+
+    assert put_resp["policy"] == policy_document
+    assert put_resp["state"] == "Active"
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=sn["arn"],
+        policy=policy_document,
+    )
+
+    assert put_resp["policy"] == policy_document
+    assert put_resp["state"] == "Inactive"
+
+
+@mock_aws
+def test_update_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="AWS_IAM")
+
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "vpc-lattice-svcs:Invoke",
+                "Resource": resp["arn"],
+            }
+        ],
+    }
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=json.dumps(policy_document),
+    )
+
+    assert put_resp["policy"] == json.dumps(policy_document)
+
+    policy_document["Statement"][0]["Effect"] = "Deny"
+
+    put_resp = client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=json.dumps(policy_document),
+    )
+
+    assert put_resp["policy"] == json.dumps(policy_document)
+    assert put_resp["state"] == "Active"
+
+
+@mock_aws
+def test_get_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    svc = client.create_service(name="my-service", authType="NONE")
+    sn = client.create_service_network(name="my-sn", authType="AWS_IAM")
+
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": svc["arn"],
+                }
+            ],
+        }
+    )
+
+    client.put_auth_policy(
+        resourceIdentifier=svc["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_auth_policy(resourceIdentifier=svc["arn"])
+
+    assert resp["policy"] == policy_document
+    assert resp["state"] == "Inactive"
+
+    resp = client.put_auth_policy(
+        resourceIdentifier=sn["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_auth_policy(resourceIdentifier=sn["arn"])
+
+    assert resp["policy"] == policy_document
+    assert resp["state"] == "Active"
+
+
+@mock_aws
+def test_auth_policy_resource_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    id = "svc-invalid-id123"
+    with pytest.raises(ClientError) as exc:
+        client.get_auth_policy(resourceIdentifier=id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_auth_policy(resourceIdentifier=id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_auth_policy(resourceIdentifier=id, policy="{}")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {id} not found"
+
+
+@mock_aws
+def test_auth_policy_invalid_parameter():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.put_auth_policy(resourceIdentifier="invalid-id1234567", policy="{}")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+    )
+
+
+@mock_aws
+def test_delete_auth_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
+    )
+
+    client.put_auth_policy(
+        resourceIdentifier=resp["arn"],
+        policy=policy_document,
+    )
+
+    client.delete_auth_policy(resourceIdentifier=resp["arn"])
+
+    with pytest.raises(ClientError) as exc:
+        client.get_auth_policy(resourceIdentifier=resp["arn"])
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {resp['arn']} not found"
+
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
+    )
+
+    client.put_resource_policy(
+        resourceArn=resp["arn"],
+        policy=policy_document,
+    )
+
+    resp = client.get_resource_policy(resourceArn=resp["arn"])
+
+    assert resp["policy"] == policy_document
+
+
+@mock_aws
+def test_resource_policy_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    arn = "arn:aws:vpc-lattice:us-west-2:123456789012:service/svc-invalid-id123"
+    with pytest.raises(ClientError) as exc:
+        client.get_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    arn = resp["arn"]
+    policy_document = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "vpc-lattice-svcs:Invoke",
+                    "Resource": resp["arn"],
+                }
+            ],
+        }
+    )
+
+    client.put_resource_policy(
+        resourceArn=arn,
+        policy=policy_document,
+    )
+
+    resp = client.get_resource_policy(resourceArn=arn)
+    assert resp["policy"] == policy_document
+
+    client.delete_resource_policy(resourceArn=arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(resourceArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource {arn} not found"
+
+
+@mock_aws
+def test_list_access_log_subscriptions_with_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service(name="my-service", authType="NONE")
+    client.create_access_log_subscription(
+        resourceIdentifier=resp["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        serviceNetworkLogType="SERVICE",
+    )
+    results = client.list_access_log_subscriptions(
+        resourceIdentifier=resp["arn"],
+        maxResults=12,
+    )
+    assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+    results = client.list_service_network_vpc_associations(
+        serviceNetworkIdentifier=resp["arn"],
+        maxResults=12,
+    )
+    assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations_with_vpc_identifier():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+
+    # Association 1
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+
+    # Association 2 with different VPC
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-99999999999999999",
+    )
+
+    results = client.list_service_network_vpc_associations(
+        vpcIdentifier="vpc-12345678901234567",
+        maxResults=12,
+    )
+
+    assert len(results["items"]) == 1
+    assert results["items"][0]["vpcId"] == "vpc-12345678901234567"

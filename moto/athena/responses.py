@@ -17,7 +17,7 @@ class AthenaResponse(BaseResponse):
     def create_work_group(self) -> Union[tuple[str, dict[str, int]], str]:
         name = self._get_param("Name")
         description = self._get_param("Description")
-        configuration = self._get_param("Configuration")
+        configuration = self._get_param("Configuration", {})
         tags = self._get_param("Tags")
         work_group = self.athena_backend.create_work_group(
             name, configuration, description, tags
@@ -197,6 +197,20 @@ class AthenaResponse(BaseResponse):
         if not tags:
             return self.error(f"Athena Resource, {resource_arn} Does Not Exist", 400)
         return json.dumps(tags)
+
+    def tag_resource(self) -> str:
+        """Handler for tag_resource API call."""
+        resource_arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+        response = self.athena_backend.tag_resource(resource_arn, tags)
+        return json.dumps(response)
+
+    def untag_resource(self) -> str:
+        """Handler for untag_resource API call."""
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_param("TagKeys")
+        response = self.athena_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps(response)
 
     def get_data_catalog(self) -> str:
         name = self._get_param("Name")

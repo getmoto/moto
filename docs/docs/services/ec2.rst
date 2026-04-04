@@ -138,6 +138,8 @@ ec2
 - [ ] create_route_server_endpoint
 - [ ] create_route_server_peer
 - [X] create_route_table
+- [ ] create_secondary_network
+- [ ] create_secondary_subnet
 - [X] create_security_group
 - [X] create_snapshot
 - [X] create_snapshots
@@ -148,7 +150,7 @@ ec2
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
-- [ ] create_subnet_cidr_reservation
+- [X] create_subnet_cidr_reservation
 - [X] create_tags
 - [ ] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
@@ -234,11 +236,13 @@ ec2
 - [ ] delete_route_server_endpoint
 - [ ] delete_route_server_peer
 - [X] delete_route_table
+- [ ] delete_secondary_network
+- [ ] delete_secondary_subnet
 - [X] delete_security_group
 - [X] delete_snapshot
 - [ ] delete_spot_datafeed_subscription
 - [X] delete_subnet
-- [ ] delete_subnet_cidr_reservation
+- [X] delete_subnet_cidr_reservation
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
@@ -376,7 +380,11 @@ ec2
 - [ ] describe_ipams
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
-- [ ] describe_launch_template_versions
+- [X] describe_launch_template_versions
+  
+        The Filters-parameter is not yet implemented
+        
+
 - [X] describe_launch_templates
 - [ ] describe_local_gateway_route_table_virtual_interface_group_associations
 - [ ] describe_local_gateway_route_table_vpc_associations
@@ -415,6 +423,9 @@ ec2
 - [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
+- [ ] describe_secondary_interfaces
+- [ ] describe_secondary_networks
+- [ ] describe_secondary_subnets
 - [ ] describe_security_group_references
 - [X] describe_security_group_rules
 - [ ] describe_security_group_vpc_associations
@@ -593,7 +604,7 @@ ec2
 - [ ] get_instance_metadata_defaults
 - [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
-- [ ] get_instance_uefi_data
+- [X] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
 - [ ] get_ipam_discovered_public_addresses
@@ -620,7 +631,7 @@ ec2
 - [ ] get_serial_console_access_status
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
-- [ ] get_subnet_cidr_reservations
+- [X] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations

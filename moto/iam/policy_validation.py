@@ -231,7 +231,7 @@ class BaseIAMPolicyValidator:
             assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
                 for resource in statement[key]:
-                    assert isinstance(resource, str)
+                    assert resource is None or isinstance(resource, str)
 
     @staticmethod
     def _validate_condition_syntax(statement: dict[str, Any]) -> None:  # type: ignore[misc]
@@ -240,7 +240,7 @@ class BaseIAMPolicyValidator:
             for condition_key, condition_value in statement["Condition"].items():
                 assert isinstance(condition_value, dict)
                 for condition_element_value in condition_value.values():
-                    assert isinstance(condition_element_value, (list, str))
+                    assert isinstance(condition_element_value, (bool, list, str))
 
                 if (
                     IAMPolicyDocumentValidator._strip_condition_key(condition_key)
@@ -332,7 +332,9 @@ class BaseIAMPolicyValidator:
                 if isinstance(statement[key], str):
                     self._validate_resource_format(statement[key])
                 else:
-                    for resource in sorted(statement[key], reverse=True):
+                    # Skip validation of None elements
+                    resources = [r for r in statement[key] if r]
+                    for resource in sorted(resources, reverse=True):
                         self._validate_resource_format(resource)
                 if self._resource_error == "":
                     IAMPolicyDocumentValidator._legacy_parse_resource_like(
@@ -456,7 +458,7 @@ class BaseIAMPolicyValidator:
                 assert statement[key].split(":")[2] != ""
         else:  # list
             for resource in statement[key]:
-                if resource != "*":
+                if resource and resource != "*":
                     assert resource.count(":") >= 5 or "::" not in resource
                     assert resource[2] != ""
 
