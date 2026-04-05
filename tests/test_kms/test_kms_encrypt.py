@@ -200,6 +200,41 @@ def test_re_encrypt_decrypt(plaintext):
 
 
 @mock_aws
+def test_decrypt_with_correct_key_id_succeeds():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="key")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    encrypt_response = client.encrypt(KeyId=key_id, Plaintext=b"some plaintext")
+
+    # Decrypting with the correct KeyId should succeed
+    decrypt_response = client.decrypt(
+        CiphertextBlob=encrypt_response["CiphertextBlob"], KeyId=key_id
+    )
+    assert decrypt_response["Plaintext"] == b"some plaintext"
+
+
+@mock_aws
+def test_decrypt_with_wrong_key_id_raises_access_denied():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key_1 = client.create_key(Description="key 1")
+    key_1_id = key_1["KeyMetadata"]["KeyId"]
+    key_2 = client.create_key(Description="key 2")
+    key_2_id = key_2["KeyMetadata"]["KeyId"]
+
+    encrypt_response = client.encrypt(KeyId=key_1_id, Plaintext=b"some plaintext")
+
+    # Decrypting with a different key's ID should raise AccessDeniedException
+    with pytest.raises(ClientError) as exc:
+        client.decrypt(
+            CiphertextBlob=encrypt_response["CiphertextBlob"], KeyId=key_2_id
+        )
+    assert exc.value.response["Error"]["Code"] == "AccessDeniedException"
+
+
+@mock_aws
 def test_re_encrypt_to_invalid_destination():
     client = boto3.client("kms", region_name="us-west-2")
 

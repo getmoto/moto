@@ -92,6 +92,8 @@ def zip2tar(zip_bytes: bytes) -> io.BytesIO:
             tarinfo = tarfile.TarInfo(name=zipinfo.filename)
             tarinfo.size = zipinfo.file_size
             tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
+            if zipinfo.external_attr >> 16:
+                tarinfo.mode = zipinfo.external_attr >> 16
             infile = zipf.open(zipinfo.filename)
             tarf.addfile(tarinfo, infile)
 

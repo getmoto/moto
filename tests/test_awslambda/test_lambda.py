@@ -2231,3 +2231,28 @@ def setup_lambda(client, name):
         MemorySize=128,
         Publish=True,
     )
+
+
+def test_zip2tar_preserves_unix_file_permissions():
+    import io
+    import stat
+    import tarfile
+    import zipfile
+
+    from moto.awslambda.models import zip2tar
+
+    # Build a ZIP with an executable file (mode 0o755)
+    zip_buffer = io.BytesIO()
+    executable_mode = 0o755
+    with zipfile.ZipFile(zip_buffer, "w") as zf:
+        info = zipfile.ZipInfo("bootstrap")
+        info.external_attr = (stat.S_IFREG | executable_mode) << 16
+        zf.writestr(info, b"#!/bin/sh\necho hello")
+    zip_bytes = zip_buffer.getvalue()
+
+    tar_stream = zip2tar(zip_bytes)
+    with tarfile.open(fileobj=tar_stream, mode="r") as tf:
+        member = tf.getmember("bootstrap")
+        assert oct(member.mode) == oct(executable_mode), (
+            f"Expected mode {oct(executable_mode)}, got {oct(member.mode)}"
+        )
