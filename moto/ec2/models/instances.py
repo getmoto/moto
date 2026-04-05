@@ -773,6 +773,7 @@ class InstanceBackend:
         The KeyPair-parameter can be validated, to see if it is a known key-pair.
         Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
         """
+        template_nics: list[dict[str, Any]] = []
         if launch_template := kwargs.get("launch_template"):
             tmpl = self._get_template_from_args(launch_template).data
 
@@ -795,6 +796,15 @@ class InstanceBackend:
                 template_sgs := tmpl.get("SecurityGroups")
             ):
                 security_group_names = template_sgs
+            template_nics = tmpl.get("NetworkInterfaces") or []
+
+        if not kwargs.get("security_group_ids") and not security_group_names:
+            if nic_groups := [
+                g
+                for nic in (kwargs.get("nics") or template_nics)
+                for g in (nic.get("Groups") or [])
+            ]:
+                kwargs["security_group_ids"] = nic_groups
 
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"

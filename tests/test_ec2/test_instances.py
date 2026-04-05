@@ -3124,6 +3124,67 @@ def test_block_device_status_conversion():
     assert Instance.get_block_device_status("deleting") == "deleting"
 
 
+def _schedule_terminate_and_wait(ec2_client, instance_id, cleanups):
+    def _terminate():
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+        ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
+
+    cleanups.append(_terminate)
+
+
+@ec2_aws_verified()
+@pytest.mark.aws_verified
+def test_run_instances__security_groups_from_request_network_interfaces(
+    valid_ami, cleanups, ec2_client=None
+):
+    vpc_id = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    cleanups.append(lambda: ec2_client.delete_vpc(VpcId=vpc_id))
+
+    subnet_id = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock="10.0.1.0/24",
+        AvailabilityZone=ec2_client.meta.region_name + "a",
+    )["Subnet"]["SubnetId"]
+    cleanups.append(lambda: ec2_client.delete_subnet(SubnetId=subnet_id))
+
+    sg_id = ec2_client.create_security_group(
+        GroupName=f"test-sg-{str(uuid4())[0:6]}",
+        Description="test",
+        VpcId=vpc_id,
+    )["GroupId"]
+    cleanups.append(lambda: ec2_client.delete_security_group(GroupId=sg_id))
+
+    instance = ec2_client.run_instances(
+        MinCount=1,
+        MaxCount=1,
+        ImageId=valid_ami,
+        NetworkInterfaces=[
+            {"DeviceIndex": 0, "SubnetId": subnet_id, "Groups": [sg_id]}
+        ],
+    )["Instances"][0]
+    instance_id = instance["InstanceId"]
+    _schedule_terminate_and_wait(ec2_client, instance_id, cleanups)
+
+    sg_ids = [g["GroupId"] for g in instance["SecurityGroups"]]
+    assert sg_id in sg_ids
+    nic_sg_ids = [g["GroupId"] for g in instance["NetworkInterfaces"][0]["Groups"]]
+    assert sg_id in nic_sg_ids
+
+    described = ec2_client.describe_instances(InstanceIds=[instance_id])
+    sg_ids = [
+        g["GroupId"]
+        for g in described["Reservations"][0]["Instances"][0]["SecurityGroups"]
+    ]
+    assert sg_id in sg_ids
+    nic_sg_ids = [
+        g["GroupId"]
+        for g in described["Reservations"][0]["Instances"][0]["NetworkInterfaces"][0][
+            "Groups"
+        ]
+    ]
+    assert sg_id in nic_sg_ids
+
+
 class TestCreateInstanceFromLaunchTemplate:
     _LT_USER_DATA_SCRIPT = b"#!/bin/bash\necho from-template"
     _LT_USER_DATA_B64 = base64.b64encode(_LT_USER_DATA_SCRIPT).decode()
@@ -3383,9 +3444,7 @@ class TestCreateInstanceFromLaunchTemplate:
             ec2_client, template_name=lt_name, ImageId=valid_ami, SubnetId=subnet_id
         )
         instance_id = instance["InstanceId"]
-        cleanups.append(
-            lambda: ec2_client.terminate_instances(InstanceIds=[instance_id])
-        )
+        _schedule_terminate_and_wait(ec2_client, instance_id, cleanups)
 
         instance_sg_ids = [g["GroupId"] for g in instance["SecurityGroups"]]
         assert sg_id in instance_sg_ids
@@ -3404,6 +3463,62 @@ class TestCreateInstanceFromLaunchTemplate:
             ]
         ]
         assert sg_id in instance_sg_ids
+
+    @ec2_aws_verified()
+    @pytest.mark.aws_verified
+    def test_run_instances__security_groups_from_launch_template_network_interfaces(
+        self, valid_ami, cleanups, ec2_client=None
+    ):
+        """
+        SecurityGroups specified in NetworkInterfaces[].Groups in a launch template
+        must appear in DescribeInstances SecurityGroups.
+        """
+        vpc_id = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+        cleanups.append(lambda: ec2_client.delete_vpc(VpcId=vpc_id))
+
+        subnet_id = ec2_client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.1.0/24",
+            AvailabilityZone=ec2_client.meta.region_name + "a",
+        )["Subnet"]["SubnetId"]
+        cleanups.append(lambda: ec2_client.delete_subnet(SubnetId=subnet_id))
+
+        sg_id = ec2_client.create_security_group(
+            GroupName=f"test-sg-{str(uuid4())[0:6]}",
+            Description="test",
+            VpcId=vpc_id,
+        )["GroupId"]
+        cleanups.append(lambda: ec2_client.delete_security_group(GroupId=sg_id))
+
+        lt_name = str(uuid4())
+        ec2_client.create_launch_template(
+            LaunchTemplateName=lt_name,
+            LaunchTemplateData={
+                "InstanceType": "t2.micro",
+                "NetworkInterfaces": [
+                    {"DeviceIndex": 0, "SubnetId": subnet_id, "Groups": [sg_id]}
+                ],
+            },
+        )
+        cleanups.append(
+            lambda: ec2_client.delete_launch_template(LaunchTemplateName=lt_name)
+        )
+
+        instance = self._run_instance_from_template(
+            ec2_client, template_name=lt_name, ImageId=valid_ami
+        )
+        instance_id = instance["InstanceId"]
+        _schedule_terminate_and_wait(ec2_client, instance_id, cleanups)
+
+        sg_ids = [g["GroupId"] for g in instance["SecurityGroups"]]
+        assert sg_id in sg_ids
+
+        described = ec2_client.describe_instances(InstanceIds=[instance_id])
+        sg_ids = [
+            g["GroupId"]
+            for g in described["Reservations"][0]["Instances"][0]["SecurityGroups"]
+        ]
+        assert sg_id in sg_ids
 
     @ec2_aws_verified()
     @pytest.mark.aws_verified
