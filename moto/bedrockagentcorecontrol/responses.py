@@ -1,10 +1,8 @@
 """BedrockAgentCoreControl responses."""
 
-import json
 from typing import Any
-from urllib.parse import parse_qs, unquote
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import BedrockAgentCoreControlBackend, bedrockagentcorecontrol_backends
 
@@ -12,13 +10,14 @@ from .models import BedrockAgentCoreControlBackend, bedrockagentcorecontrol_back
 class BedrockAgentCoreControlResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="bedrock-agentcore-control")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> BedrockAgentCoreControlBackend:
         return bedrockagentcorecontrol_backends[self.current_account][self.region]
 
     def create_agent_runtime(self) -> ActionResult:
-        params = json.loads(self.body)
+        params = self._get_params()
         runtime = self.backend.create_agent_runtime(
             agent_runtime_name=params["agentRuntimeName"],
             agent_runtime_artifact=params["agentRuntimeArtifact"],
@@ -44,7 +43,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def get_agent_runtime(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        agent_runtime_id = self._get_param("agentRuntimeId")
         runtime = self.backend.get_agent_runtime(agent_runtime_id)
         result: dict[str, Any] = {
             "agentRuntimeArn": runtime.agent_runtime_arn,
@@ -72,8 +71,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def update_agent_runtime(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
-        params = json.loads(self.body)
+        agent_runtime_id = self._get_param("agentRuntimeId")
+        params = self._get_params()
         runtime = self.backend.update_agent_runtime(
             agent_runtime_id=agent_runtime_id,
             agent_runtime_artifact=params["agentRuntimeArtifact"],
@@ -99,7 +98,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def delete_agent_runtime(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        agent_runtime_id = self._get_param("agentRuntimeId")
         runtime = self.backend.delete_agent_runtime(agent_runtime_id)
         return ActionResult(
             {
@@ -117,7 +116,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def list_agent_runtime_versions(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        agent_runtime_id = self._get_param("agentRuntimeId")
         versions = self.backend.list_agent_runtime_versions(agent_runtime_id)
         return ActionResult(
             {
@@ -126,8 +125,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def create_agent_runtime_endpoint(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
-        params = json.loads(self.body)
+        agent_runtime_id = self._get_param("agentRuntimeId")
+        params = self._get_params()
         endpoint = self.backend.create_agent_runtime_endpoint(
             agent_runtime_id=agent_runtime_id,
             name=params["name"],
@@ -148,8 +147,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def get_agent_runtime_endpoint(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
-        endpoint_name = self._get_path_param("endpointName")
+        agent_runtime_id = self._get_param("agentRuntimeId")
+        endpoint_name = self._get_param("endpointName")
         endpoint = self.backend.get_agent_runtime_endpoint(
             agent_runtime_id, endpoint_name
         )
@@ -169,9 +168,9 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def update_agent_runtime_endpoint(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
-        endpoint_name = self._get_path_param("endpointName")
-        params = json.loads(self.body)
+        agent_runtime_id = self._get_param("agentRuntimeId")
+        endpoint_name = self._get_param("endpointName")
+        params = self._get_params()
         endpoint = self.backend.update_agent_runtime_endpoint(
             agent_runtime_id=agent_runtime_id,
             endpoint_name=endpoint_name,
@@ -191,8 +190,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def delete_agent_runtime_endpoint(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
-        endpoint_name = self._get_path_param("endpointName")
+        agent_runtime_id = self._get_param("agentRuntimeId")
+        endpoint_name = self._get_param("endpointName")
         endpoint = self.backend.delete_agent_runtime_endpoint(
             agent_runtime_id, endpoint_name
         )
@@ -205,7 +204,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def list_agent_runtime_endpoints(self) -> ActionResult:
-        agent_runtime_id = self._get_path_param("agentRuntimeId")
+        agent_runtime_id = self._get_param("agentRuntimeId")
         endpoints = self.backend.list_agent_runtime_endpoints(agent_runtime_id)
         return ActionResult(
             {
@@ -214,7 +213,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def create_gateway(self) -> ActionResult:
-        params = json.loads(self.body)
+        params = self._get_params()
         gateway = self.backend.create_gateway(
             name=params["name"],
             role_arn=params["roleArn"],
@@ -234,13 +233,13 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def get_gateway(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        gateway_identifier = self._get_param("gatewayIdentifier")
         gateway = self.backend.get_gateway(gateway_identifier)
         return ActionResult(gateway.to_dict())
 
     def update_gateway(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
-        params = json.loads(self.body)
+        gateway_identifier = self._get_param("gatewayIdentifier")
+        params = self._get_params()
         gateway = self.backend.update_gateway(
             gateway_identifier=gateway_identifier,
             name=params["name"],
@@ -260,7 +259,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_gateway(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        gateway_identifier = self._get_param("gatewayIdentifier")
         gateway = self.backend.delete_gateway(gateway_identifier)
         return ActionResult(
             {
@@ -278,8 +277,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def create_gateway_target(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
-        params = json.loads(self.body)
+        gateway_identifier = self._get_param("gatewayIdentifier")
+        params = self._get_params()
         target = self.backend.create_gateway_target(
             gateway_identifier=gateway_identifier,
             name=params["name"],
@@ -295,15 +294,15 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def get_gateway_target(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
-        target_id = self._get_path_param("targetId")
+        gateway_identifier = self._get_param("gatewayIdentifier")
+        target_id = self._get_param("targetId")
         target = self.backend.get_gateway_target(gateway_identifier, target_id)
         return ActionResult(target.to_dict())
 
     def update_gateway_target(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
-        target_id = self._get_path_param("targetId")
-        params = json.loads(self.body)
+        gateway_identifier = self._get_param("gatewayIdentifier")
+        target_id = self._get_param("targetId")
+        params = self._get_params()
         target = self.backend.update_gateway_target(
             gateway_identifier=gateway_identifier,
             target_id=target_id,
@@ -320,8 +319,8 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_gateway_target(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
-        target_id = self._get_path_param("targetId")
+        gateway_identifier = self._get_param("gatewayIdentifier")
+        target_id = self._get_param("targetId")
         target = self.backend.delete_gateway_target(gateway_identifier, target_id)
         return ActionResult(
             {
@@ -332,7 +331,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def list_gateway_targets(self) -> ActionResult:
-        gateway_identifier = self._get_path_param("gatewayIdentifier")
+        gateway_identifier = self._get_param("gatewayIdentifier")
         targets = self.backend.list_gateway_targets(gateway_identifier)
         return ActionResult(
             {
@@ -341,7 +340,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def create_memory(self) -> ActionResult:
-        params = json.loads(self.body)
+        params = self._get_params()
         memory = self.backend.create_memory(
             name=params["name"],
             event_expiry_duration=params["eventExpiryDuration"],
@@ -356,13 +355,13 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult({"memory": result})
 
     def get_memory(self) -> ActionResult:
-        memory_id = self._get_path_param("memoryId")
+        memory_id = self._get_param("memoryId")
         memory = self.backend.get_memory(memory_id)
         return ActionResult({"memory": memory.to_dict()})
 
     def update_memory(self) -> ActionResult:
-        memory_id = self._get_path_param("memoryId")
-        params = json.loads(self.body)
+        memory_id = self._get_param("memoryId")
+        params = self._get_params()
         memory = self.backend.update_memory(
             memory_id=memory_id,
             description=params.get("description"),
@@ -373,7 +372,7 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         return ActionResult({"memory": memory.to_dict()})
 
     def delete_memory(self) -> ActionResult:
-        memory_id = self._get_path_param("memoryId")
+        memory_id = self._get_param("memoryId")
         memory = self.backend.delete_memory(memory_id)
         return ActionResult(
             {
@@ -391,45 +390,18 @@ class BedrockAgentCoreControlResponse(BaseResponse):
         )
 
     def tag_resource(self) -> ActionResult:
-        resource_arn = unquote(self._get_path_param("resourceArn"))
-        params = json.loads(self.body)
+        resource_arn = self._get_param("resourceArn")
+        params = self._get_params()
         self.backend.tag_resource(resource_arn, params["tags"])
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
-        resource_arn = unquote(self._get_path_param("resourceArn"))
-        qs = parse_qs(self.parsed_url.query)
-        tag_keys = qs.get("tagKeys", [])
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys", [])
         self.backend.untag_resource(resource_arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_tags_for_resource(self) -> ActionResult:
-        resource_arn = unquote(self._get_path_param("resourceArn"))
+        resource_arn = self._get_param("resourceArn")
         tags = self.backend.list_tags_for_resource(resource_arn)
         return ActionResult({"tags": tags})
-
-    def _get_path_param(self, name: str) -> str:
-        parts = self.parsed_url.path.rstrip("/").split("/")
-        if name == "agentRuntimeId":
-            # /runtimes/{agentRuntimeId}
-            # /runtimes/{agentRuntimeId}/versions
-            # /runtimes/{agentRuntimeId}/runtime-endpoints
-            # /runtimes/{agentRuntimeId}/runtime-endpoints/{endpointName}
-            idx = parts.index("runtimes") + 1
-            return parts[idx]
-        elif name == "endpointName":
-            idx = parts.index("runtime-endpoints") + 1
-            return parts[idx]
-        elif name == "gatewayIdentifier":
-            idx = parts.index("gateways") + 1
-            return parts[idx]
-        elif name == "targetId":
-            idx = parts.index("targets") + 1
-            return parts[idx]
-        elif name == "memoryId":
-            idx = parts.index("memories") + 1
-            return parts[idx]
-        elif name == "resourceArn":
-            idx = parts.index("tags") + 1
-            return "/".join(parts[idx:])
-        raise ValueError(f"Unknown path parameter: {name}")
