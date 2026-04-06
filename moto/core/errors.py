@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
+from moto.core import utils
 from moto.core.model import StructureShape
 
 if TYPE_CHECKING:
@@ -100,8 +101,9 @@ def get_exception_service_model(exception: Exception) -> ServiceModel | None:
     exception_module = exception.__module__
     if not exception_module.startswith("moto"):
         return None
-    service = exception_module.split(".")[1]
-    service_model = get_service_model(service)
+    package = exception_module.split(".")[1]
+    service_name = utils.service_name_from_moto_package_name(package)
+    service_model = get_service_model(service_name)
     return service_model
 
 
