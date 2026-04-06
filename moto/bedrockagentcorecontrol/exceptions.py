@@ -1,21 +1,15 @@
 """BedrockAgentCoreControl exceptions."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class BedrockAgentCoreControlClientError(JsonRESTError):
-    code = 400
+class BedrockAgentCoreControlClientError(ServiceException):
+    pass
 
 
 class ResourceNotFoundException(BedrockAgentCoreControlClientError):
-    code = 404
-
-    def __init__(self, message: str) -> None:
-        super().__init__("ResourceNotFoundException", message)
+    code = "ResourceNotFoundException"
 
 
 class ConflictException(BedrockAgentCoreControlClientError):
-    code = 409
-
-    def __init__(self, message: str) -> None:
-        super().__init__("ConflictException", message)
+    code = "ConflictException"
