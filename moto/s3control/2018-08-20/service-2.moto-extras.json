@@ -3,6 +3,59 @@
   "merge": {
     "metadata": {
       "xmlNamespace": "http://awss3control.amazonaws.com/doc/2018-08-20/"
+    },
+    "shapes": {
+      "InvalidRequest": {
+        "type": "structure",
+        "members": {},
+        "exception": true
+      },
+      "NoSuchAccessPoint": {
+        "type": "structure",
+        "members": {
+          "AccessPointName": {"shape": "AccessPointName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchAccessPointPolicy": {
+        "type": "structure",
+        "members": {
+          "AccessPointName": {"shape": "AccessPointName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchAsyncRequest": {
+        "type": "structure",
+        "members": {
+          "RequestTokenARN": {"shape": "AsyncRequestTokenARN"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchConfiguration": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchMultiRegionAccessPoint": {
+        "type": "structure",
+        "members": {
+          "Name":{"shape":"MultiRegionAccessPointName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchMultiRegionAccessPointPolicy": {
+        "type": "structure",
+        "members": {
+          "Name":{"shape":"MultiRegionAccessPointName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      }
     }
   }
 }
