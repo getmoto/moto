@@ -16,11 +16,9 @@ from typing import (
     cast,
 )
 from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
-from xml.dom.minidom import parseString as parseXML
 
 import boto3
 from botocore.model import OperationNotFoundError
-from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import http_date
 
@@ -52,8 +50,6 @@ from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
-
-JINJA_ENVS: dict[type, Environment] = {}
 
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
@@ -119,67 +115,6 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
         method_urls[_method][uri_regexp] = op_model.name
 
     return method_urls
-
-
-class DynamicDictLoader(DictLoader):
-    def update(self, mapping: dict[str, str]) -> None:
-        self.mapping.update(mapping)  # type: ignore[attr-defined]
-
-    def contains(self, template: str) -> bool:
-        return bool(template in self.mapping)
-
-
-class _TemplateEnvironmentMixin:
-    LEFT_PATTERN = re.compile(r"[\s\n]+<")
-    RIGHT_PATTERN = re.compile(r">[\s\n]+")
-
-    @property
-    def should_autoescape(self) -> bool:
-        # Allow for subclass to overwrite
-        return False
-
-    @property
-    def environment(self) -> Environment:
-        key = type(self)
-        try:
-            environment = JINJA_ENVS[key]
-        except KeyError:
-            loader = DynamicDictLoader({})
-            environment = Environment(
-                loader=loader,
-                autoescape=self.should_autoescape,
-                trim_blocks=True,
-                lstrip_blocks=True,
-            )
-            JINJA_ENVS[key] = environment
-
-        return environment
-
-    def contains_template(self, template_id: str) -> bool:
-        return self.environment.loader.contains(template_id)  # type: ignore[union-attr]
-
-    @classmethod
-    def _make_template_id(cls, source: str) -> str:
-        """
-        Return a numeric string that's unique for the lifetime of the source.
-
-        Jinja2 expects to template IDs to be strings.
-        """
-        return str(id(source))
-
-    def response_template(self, source: str) -> Template:
-        template_id = self._make_template_id(source)
-        if not self.contains_template(template_id):
-            if settings.PRETTIFY_RESPONSES:
-                # pretty xml
-                xml = parseXML(source).toprettyxml()
-            else:
-                # collapsed xml
-                xml = re.sub(
-                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-                )
-            self.environment.loader.update({template_id: xml})  # type: ignore[union-attr]
-        return self.environment.get_template(template_id)
 
 
 @dataclass
@@ -252,7 +187,7 @@ class EmptyResult(ActionResult):
         super().__init__(None)
 
 
-class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
+class BaseResponse(ActionAuthenticatorMixin):
     PROTOCOL_PARSER_MAP_TYPE: Any = dict
     RESPONSE_KEY_PATH_TO_TRANSFORMER: dict[str, Callable[[Any], Any]] = {}
 
