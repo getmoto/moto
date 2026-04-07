@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
 from xml.dom.minidom import parseString as parseXML
 
 import boto3
+from botocore.model import OperationNotFoundError
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import http_date
@@ -565,7 +566,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.boto3_service_name)
-        operation_model = service_model.operation_model(self._get_action())
+        try:
+            operation_model = service_model.operation_model(self._get_action())
+        except OperationNotFoundError:
+            assert isinstance(action_result.result, Exception)
+            operation_model = OperationModel({}, service_model)
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
         context = ActionContext(service_model, operation_model, serializer_cls, self)
