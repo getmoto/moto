@@ -42,7 +42,7 @@ from moto.s3.exceptions import (
     BucketAlreadyExists,
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
-    CrossLocationLoggingProhibitted,
+    CrossLocationLoggingProhibited,
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
@@ -1387,7 +1387,7 @@ class FakeBucket(CloudFormationModel):
 
         # Buckets must also exist within the same region:
         if target_bucket.region_name != self.region_name:
-            raise CrossLocationLoggingProhibitted()
+            raise CrossLocationLoggingProhibited()
 
         # Checks pass -- set the logging config:
         self.logging = logging_config

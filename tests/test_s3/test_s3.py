@@ -3105,6 +3105,7 @@ def test_request_partial_content_should_contain_actual_content_length():
     try:
         file.get(Range=requested_range)
     except botocore.client.ClientError as exc:
+        assert exc.response["ResponseMetadata"]["HTTPStatusCode"] == 416
         assert exc.response["Error"]["Code"] == "InvalidRange"
         assert (
             exc.response["Error"]["Message"] == "The requested range is not satisfiable"

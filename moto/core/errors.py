@@ -134,6 +134,9 @@ def get_error_model(
             if default_service_model.protocol == "ec2":
                 # EC2 service definition does not contain error models.
                 return False
+            if default_service_model.service_id == "S3":
+                # S3 service definition omits nearly all error models.
+                return False
             return True
 
         if should_warn():

@@ -635,6 +635,7 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
         client.abort_multipart_upload(
             Bucket=bucket_name, Key="foobar", UploadId="dummy_upload_id"
         )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchUpload"
     assert err["Message"] == (
