@@ -786,9 +786,7 @@ def test_decrypt_validates_key_id():
     key2_id = key2["KeyMetadata"]["KeyId"]
 
     # Encrypt with key1
-    encrypt_resp = client.encrypt(
-        KeyId=key1_id, Plaintext=b"hello world"
-    )
+    encrypt_resp = client.encrypt(KeyId=key1_id, Plaintext=b"hello world")
 
     # Decrypt with correct key-id should succeed
     decrypt_resp = client.decrypt(
@@ -797,16 +795,12 @@ def test_decrypt_validates_key_id():
     assert decrypt_resp["Plaintext"] == b"hello world"
 
     # Decrypt without key-id should still succeed (key-id is optional)
-    decrypt_resp = client.decrypt(
-        CiphertextBlob=encrypt_resp["CiphertextBlob"]
-    )
+    decrypt_resp = client.decrypt(CiphertextBlob=encrypt_resp["CiphertextBlob"])
     assert decrypt_resp["Plaintext"] == b"hello world"
 
     # Decrypt with wrong key-id should raise AccessDeniedException
     with pytest.raises(ClientError) as exc:
-        client.decrypt(
-            CiphertextBlob=encrypt_resp["CiphertextBlob"], KeyId=key2_id
-        )
+        client.decrypt(CiphertextBlob=encrypt_resp["CiphertextBlob"], KeyId=key2_id)
     assert exc.value.response["Error"]["Code"] == "AccessDeniedException"
 
 
