@@ -163,6 +163,16 @@ def test_get_web_acl_by_arn():
 
 
 @mock_aws
+def test_get_non_existent_web_acl_by_arn():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    with pytest.raises(conn.exceptions.WAFNonexistentItemException) as error:
+        conn.get_web_acl(
+            ARN="arn:aws:wafv2:us-east-1:123456789012:regional/webacl/John/id"
+        )["WebACL"]
+    assert error
+
+
+@mock_aws
 def test_get_web_acl_by_id_and_name():
     conn = boto3.client("wafv2", region_name="us-east-1")
     body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
