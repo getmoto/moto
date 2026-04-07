@@ -28,7 +28,7 @@ from moto import settings
 from moto.awslambda.policy import Policy
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import JsonRESTError as RESTError
 from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
