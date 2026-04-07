@@ -122,6 +122,21 @@
       }
     },
     "shapes": {
+      "_Condition": {"type":"string"},
+      "_ResourceType": {"type":"string"},
+      "AccessForbidden": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "ArgumentName":{"type":"string"},
+      "ArgumentValue":{"type":"string"},
+      "BucketAlreadyExists": {
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        }
+      },
       "BucketAlreadyOwnedByYou": {
         "type": "structure",
         "members": {
@@ -138,12 +153,79 @@
         "error": {"httpStatusCode": 409},
         "exception": true
       },
-      "InvalidRequest": {
+      "CrossLocationLoggingProhibited": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidAccessKeyId": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
         },
+        "error": {"httpStatusCode": 403},
         "exception": true
+      },
+      "InvalidArgument": {
+        "type": "structure",
+        "members": {
+          "ArgumentName": {"shape": "ArgumentName"},
+          "ArgumentValue": {"shape": "ArgumentValue"}
+        },
+        "exception": true
+      },
+      "InvalidObjectState": {
+        "type": "structure",
+        "members": {
+          "StorageClass": {"shape": "StorageClass"}
+        },
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidRange": {
+        "type": "structure",
+        "members": {
+          "ActualObjectSize": {"shape": "ContentLength"},
+          "RangeRequested": {"shape": "Range"}
+        },
+        "error": {"httpStatusCode": 416},
+        "exception": true
+      },
+      "InvalidRequest": {
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        }
+      },
+      "InvalidStorageClass": {
+        "type": "structure",
+        "members": {
+          "StorageClass": {"shape": "StorageClass"}
+        },
+        "error": {"httpStatusCode": 400},
+        "exception": true
+      },
+      "InvalidToken": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 400},
+        "exception": true
+      },
+      "MethodNotAllowed": {
+        "type": "structure",
+        "members": {
+          "Method": {"shape": "AllowedMethod"},
+          "ResourceType": {"shape": "_ResourceType"}
+        },
+        "error": {"httpStatusCode": 405},
+        "exception": true
+      },
+      "NoSuchBucket": {
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        }
       },
       "NoSuchBucketPolicy": {
         "type": "structure",
@@ -161,6 +243,17 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "NoSuchKey": {
+        "members": {
+          "Key": {"shape": "ObjectKey"}
+        }
+      },
+      "NoSuchInventoryConfig": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
       "NoSuchLifecycleConfiguration": {
         "type": "structure",
         "members": {
@@ -169,10 +262,30 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "NoSuchPublicAccessBlockConfiguration": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
       "NoSuchTagSet": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchUpload": {
+        "members": {
+          "UploadId": {"shape": "MultipartUploadId"}
+        }
+      },
+      "NoSuchVersion": {
+        "type": "structure",
+        "members": {
+          "Key": {"shape": "ObjectKey"},
+          "VersionId": {"shape": "ObjectVersionId"}
         },
         "error": {"httpStatusCode": 404},
         "exception": true
@@ -185,12 +298,31 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "ObjectLockConfigurationNotFoundError": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "ObjectNotInActiveTierError": {
+        "members": {
+          "Key": {"shape": "ObjectKey"}
+        }
+      },
       "OwnershipControlsNotFoundError": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
         },
         "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "PreconditionFailed": {
+        "type": "structure",
+        "members": {
+          "Condition": {"shape": "_Condition"}
+        },
+        "error": {"httpStatusCode": 412},
         "exception": true
       },
       "ReplicationConfigurationNotFoundError": {
@@ -207,6 +339,14 @@
           "BucketName": {"shape": "BucketName"}
         },
         "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "SignatureDoesNotMatch": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 403},
         "exception": true
       }
     }

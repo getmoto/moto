@@ -337,7 +337,6 @@ def test_put_object_tagging_on_earliest_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -409,7 +408,6 @@ def test_put_object_tagging_on_both_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")

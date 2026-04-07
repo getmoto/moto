@@ -28,7 +28,7 @@ from moto.s3bucket_path.utils import (
 )
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from ..core.exceptions import ServiceException, SignatureDoesNotMatchError
+from ..core.exceptions import SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
     BucketAccessDeniedError,
@@ -387,9 +387,7 @@ class S3Response(BaseResponse):
         try:
             response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
-        except ServiceException as e:
-            response = self.serialized(ActionResult(e))
+            response = self.serialized(ActionResult(s3error))
 
         return self._send_response(response)
 
@@ -1858,7 +1856,7 @@ class S3Response(BaseResponse):
         try:
             response = self._key_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
+            response = self.serialized(ActionResult(s3error))
 
         status_code, response_headers, response_content = self._send_response(response)
 
@@ -1872,7 +1870,7 @@ class S3Response(BaseResponse):
                     request, response_headers, response_content
                 )
             except S3ClientError as s3error:
-                return s3error.code, {}, s3error.description
+                return self.serialized(ActionResult(s3error))
         return status_code, response_headers, response_content
 
     def _key_response(self, request: Any, full_url: str) -> TYPE_RESPONSE:
