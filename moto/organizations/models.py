@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
 from moto.organizations.exceptions import (
@@ -25,6 +24,7 @@ from moto.organizations.exceptions import (
     RootNotFoundException,
     TargetNotFoundException,
 )
+from moto.organizations.exceptions import OrganizationsClientError as RESTError
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 

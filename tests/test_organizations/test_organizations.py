@@ -290,8 +290,7 @@ def test_delete_organizational_unit():
         client.describe_organizational_unit(OrganizationalUnitId=ou_id)
     ex = e.value
     assert ex.operation_name == "DescribeOrganizationalUnit"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -316,8 +315,7 @@ def test_describe_organizational_unit_exception():
         )
     ex = e.value
     assert ex.operation_name == "DescribeOrganizationalUnit"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -363,8 +361,7 @@ def test_list_organizational_units_for_parent_exception():
         )
     ex = e.value
     assert ex.operation_name == "ListOrganizationalUnitsForParent"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "ParentNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "ParentNotFoundException"
 
 
 @mock_aws
@@ -698,8 +695,7 @@ def test_list_children_exception():
         client.list_children(ParentId=utils.make_random_root_id(), ChildType="ACCOUNT")
     ex = e.value
     assert ex.operation_name == "ListChildren"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "ParentNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "ParentNotFoundException"
     with pytest.raises(ClientError) as e:
         client.list_children(ParentId=root_id, ChildType="BLEE")
     ex = e.value
@@ -1157,8 +1153,7 @@ def test_detach_service_control_policy_root_ou_not_found_exception():
         client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
     ex = e.value
     assert ex.operation_name == "DetachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -1184,8 +1179,7 @@ def test_detach_resource_control_policy_root_ou_not_found_exception():
         client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
     ex = e.value
     assert ex.operation_name == "DetachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -1207,8 +1201,7 @@ def test_detach_service_control_policy_ou_not_found_exception():
         client.detach_policy(PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7")
     ex = e.value
     assert ex.operation_name == "DetachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -1230,8 +1223,7 @@ def test_detach_resource_control_policy_ou_not_found_exception():
         client.detach_policy(PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7")
     ex = e.value
     assert ex.operation_name == "DetachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
 
 
 @mock_aws
@@ -1402,8 +1394,7 @@ def test_delete_service_control_policy_exception():
         client.delete_policy(PolicyId=policy_id)
     ex = e.value
     assert ex.operation_name == "DeletePolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyInUseException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyInUseException"
 
 
 @mock_aws
@@ -1434,8 +1425,7 @@ def test_delete_resource_control_policy_exception():
         client.delete_policy(PolicyId=policy_id)
     ex = e.value
     assert ex.operation_name == "DeletePolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyInUseException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyInUseException"
 
 
 @mock_aws
@@ -1455,14 +1445,12 @@ def test_attach_service_control_policy_exception():
         client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     ex = e.value
     assert ex.operation_name == "AttachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     ex = e.value
     assert ex.operation_name == "AttachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     ex = e.value
@@ -1498,14 +1486,12 @@ def test_attach_resource_control_policy_exception():
         client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     ex = e.value
     assert ex.operation_name == "AttachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     ex = e.value
     assert ex.operation_name == "AttachPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     ex = e.value
@@ -1733,8 +1719,7 @@ def test_list_service_control_policies_for_target_exception():
         client.list_policies_for_target(TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY")
     ex = e.value
     assert ex.operation_name == "ListPoliciesForTarget"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.list_policies_for_target(
             TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
@@ -1798,8 +1783,7 @@ def test_list_resource_control_policies_for_target_exception():
         )
     ex = e.value
     assert ex.operation_name == "ListPoliciesForTarget"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "OrganizationalUnitNotFoundException"
     with pytest.raises(ClientError) as e:
         client.list_policies_for_target(
             TargetId=account_id, Filter="RESOURCE_CONTROL_POLICY"
@@ -2136,8 +2120,7 @@ def test__get_resource_for_tagging_existing_non_root():
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("r-abcd")
     ex = e.value
-    assert ex.code == 400
-    assert "TargetNotFoundException" in ex.description
+    assert ex.code == "TargetNotFoundException"
     assert ex.message == "You specified a target that doesn't exist."
 
 
@@ -2156,8 +2139,7 @@ def test__get_resource_for_tagging_non_existing_ou():
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
     ex = e.value
-    assert ex.code == 400
-    assert "TargetNotFoundException" in ex.description
+    assert ex.code == "TargetNotFoundException"
     assert ex.message == "You specified a target that doesn't exist."
 
 
@@ -2176,8 +2158,7 @@ def test__get_resource_for_tagging_non_existing_account():
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("100326223992")
     ex = e.value
-    assert ex.code == 400
-    assert "TargetNotFoundException" in ex.description
+    assert ex.code == "TargetNotFoundException"
     assert ex.message == "You specified a target that doesn't exist."
 
 
@@ -2196,8 +2177,7 @@ def test__get_resource_for_tagging_non_existing_policy():
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("p-y1vas4da")
     ex = e.value
-    assert ex.code == 400
-    assert "TargetNotFoundException" in ex.description
+    assert ex.code == "TargetNotFoundException"
     assert ex.message == "You specified a target that doesn't exist."
 
 
@@ -2206,8 +2186,7 @@ def test__get_resource_to_tag_incorrect_resource():
     with pytest.raises(InvalidInputException) as e:
         org_backend._get_resource_for_tagging("10032622399200")
     ex = e.value
-    assert ex.code == 400
-    assert "InvalidInputException" in ex.description
+    assert ex.code == "InvalidInputException"
     assert ex.message == (
         "You provided a value that does not match the required pattern."
     )
