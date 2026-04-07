@@ -124,6 +124,12 @@
     "shapes": {
       "_Condition": {"type":"string"},
       "_ResourceType": {"type":"string"},
+      "AccessDenied": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
       "AccessForbidden": {
         "type": "structure",
         "members": {},
@@ -133,9 +139,12 @@
       "ArgumentName":{"type":"string"},
       "ArgumentValue":{"type":"string"},
       "BucketAlreadyExists": {
+        "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
-        }
+        },
+        "error": {"httpStatusCode": 409},
+        "exception": true
       },
       "BucketAlreadyOwnedByYou": {
         "type": "structure",
@@ -193,9 +202,11 @@
         "exception": true
       },
       "InvalidRequest": {
+        "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
-        }
+        },
+        "exception": true
       },
       "InvalidStorageClass": {
         "type": "structure",
@@ -223,9 +234,12 @@
         "exception": true
       },
       "NoSuchBucket": {
+        "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
-        }
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
       },
       "NoSuchBucketPolicy": {
         "type": "structure",
@@ -244,9 +258,12 @@
         "exception": true
       },
       "NoSuchKey": {
+        "type": "structure",
         "members": {
           "Key": {"shape": "ObjectKey"}
-        }
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
       },
       "NoSuchInventoryConfig": {
         "type": "structure",
@@ -277,9 +294,12 @@
         "exception": true
       },
       "NoSuchUpload": {
+        "type": "structure",
         "members": {
           "UploadId": {"shape": "MultipartUploadId"}
-        }
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
       },
       "NoSuchVersion": {
         "type": "structure",
@@ -305,9 +325,12 @@
         "exception": true
       },
       "ObjectNotInActiveTierError": {
+        "type": "structure",
         "members": {
           "Key": {"shape": "ObjectKey"}
-        }
+        },
+        "error": {"httpStatusCode": 403},
+        "exception": true
       },
       "OwnershipControlsNotFoundError": {
         "type": "structure",
