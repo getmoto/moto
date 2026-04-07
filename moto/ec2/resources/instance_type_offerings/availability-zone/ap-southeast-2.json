@@ -3204,6 +3204,10 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -6685,6 +6689,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "ap-southeast-2b"
  },
  {

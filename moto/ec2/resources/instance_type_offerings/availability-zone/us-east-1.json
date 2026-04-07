@@ -3008,6 +3008,10 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "mac-m4max.metal",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "mac-m4pro.metal",
   "Location": "us-east-1a"
  },
