@@ -143,7 +143,7 @@ def get_error_model(
             warning = f"Exception({exception.__class__.__name__}) with code {code} does not match an error shape in service models(s): {services_checked}"  # pragma: no cover
             warn(warning, stacklevel=2)  # pragma: no cover
         error = ErrorShape(
-            shape_name=exception.__class__.__name__,
+            shape_name=code,
             shape_model={
                 "exception": True,
                 "type": "structure",
