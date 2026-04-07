@@ -1507,6 +1507,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -3329,6 +3338,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -4642,6 +4660,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -9457,6 +9484,12 @@
                   "Value": "observabilityadmin.ap-northeast-2.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-northeast-2.amazonaws.com"
+                }
+              },
               "omics": {
                 "Value": "omics"
               },
@@ -11732,6 +11765,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-northeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -13745,6 +13787,12 @@
                   "Value": "observabilityadmin.ap-south-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-south-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -15630,6 +15678,12 @@
                   "Value": "observabilityadmin.ap-south-2.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-south-2.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -15842,6 +15896,15 @@
               },
               "s3control": {
                 "Value": "s3control"
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -23035,6 +23098,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -24572,6 +24644,15 @@
               "s3control": {
                 "Value": "s3control"
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-4.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -25752,6 +25833,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -25889,12 +25979,6 @@
                 "endpoint": {
                   "Value": "notifications.ap-southeast-5.api.aws"
                 },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "notificationscontacts": {
-                "Value": "notificationscontacts",
                 "protocols": {
                   "Value": "HTTPS"
                 }
@@ -26116,6 +26200,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -26866,6 +26959,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -27239,6 +27341,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-6.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -28283,6 +28394,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-7.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -28482,6 +28602,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ap-southeast-7.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -32377,6 +32506,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.ca-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -39696,6 +39834,15 @@
               "s3control": {
                 "Value": "s3control"
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -39856,6 +40003,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -43696,6 +43852,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -45436,6 +45601,15 @@
               },
               "s3control": {
                 "Value": "s3control"
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.eu-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -54214,6 +54388,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "identitystore": {
                 "Value": "identitystore",
                 "endpoint": {
@@ -54689,6 +54872,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56187,6 +56379,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -60811,6 +61012,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.mx-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -62757,6 +62967,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66344,6 +66563,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "sustainability": {
+                "Value": "sustainability",
+                "endpoint": {
+                  "Value": "api.sustainability.us-east-1.api.aws"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -66463,6 +66688,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "uxc": {
+                "Value": "uxc",
+                "endpoint": {
+                  "Value": "uxc.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verified-access": {
                 "Value": "verified-access",
@@ -74513,6 +74747,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -77811,6 +78054,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "sustainability": {
+                "Value": "sustainability",
+                "endpoint": {
+                  "Value": "api.sustainability.us-west-2.api.aws"
                 }
               },
               "swf": {
