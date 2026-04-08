@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import base64
-import os
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.dynamodb.models.table import StreamShard, Table
+from moto.moto_api._internal import mock_random as random
 
 
 class ShardIterator(BaseModel):
@@ -18,7 +18,7 @@ class ShardIterator(BaseModel):
         shard_iterator_type: str,
         sequence_number: Optional[int] = None,
     ):
-        self.id = base64.b64encode(os.urandom(472)).decode("utf-8")
+        self.id = base64.b64encode(random.randbytes(472)).decode("utf-8")
         self.streams_backend = streams_backend
         self.stream_shard = stream_shard
         self.shard_iterator_type = shard_iterator_type

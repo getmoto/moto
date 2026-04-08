@@ -12,6 +12,7 @@ from botocore.client import ClientError
 
 import moto.s3.models as s3model
 from moto import mock_aws, settings
+from moto.moto_api._internal import mock_random as random
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
@@ -55,14 +56,14 @@ def test_default_key_buffer_size():
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
     fake_key = s3model.FakeKey(
-        "a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+        "a", random.randbytes(1), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
     )
     assert fake_key._value_buffer._rolled is False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
     fake_key = s3model.FakeKey(
-        "a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+        "a", random.randbytes(3), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
     )
     assert fake_key._value_buffer._rolled is True
 
@@ -545,7 +546,7 @@ def test_multipart_upload_with_tags():
     upload = boto3.resource("s3").MultipartUpload(bucket, key, response["UploadId"])
     parts = [
         {
-            "ETag": upload.Part(i).upload(Body=os.urandom(5 * (2**20)))["ETag"],
+            "ETag": upload.Part(i).upload(Body=random.randbytes(5 * (2**20)))["ETag"],
             "PartNumber": i,
         }
         for i in range(1, 3)

@@ -6,7 +6,6 @@ import datetime
 import gzip
 import itertools
 import json
-import os
 import string
 import sys
 import tempfile
@@ -454,7 +453,7 @@ class FakeMultipart(BaseModel):
         self.acl = acl
         self.parts: dict[int, FakeKey] = {}
         self.partlist: list[int] = []  # ordered list of part ID's
-        rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
+        rand_b64 = base64.b64encode(random.randbytes(UPLOAD_ID_BYTES))
         self.id = (
             rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
         )

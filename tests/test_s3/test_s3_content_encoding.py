@@ -1,8 +1,9 @@
-import os
 from tempfile import TemporaryFile
 
 import boto3
 import pytest
+
+from moto.moto_api._internal import mock_random as random
 
 from . import s3_aws_verified
 
@@ -22,7 +23,7 @@ def test_content_encoding_is_returned(encoding, bucket_name=None):
         attrs["ContentEncoding"] = encoding
 
     with TemporaryFile() as f:
-        f.write(os.urandom(1024))
+        f.write(random.randbytes(1024))
         f.flush()
         client.upload_fileobj(f, bucket_name, s3_file, ExtraArgs=attrs)
 

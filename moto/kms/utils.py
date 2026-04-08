@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import io
-import os
 import struct
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
@@ -133,7 +132,7 @@ def generate_key_id(multi_region: bool = False) -> str:
 
 def generate_data_key(number_of_bytes: int) -> bytes:
     """Generate a data key."""
-    return os.urandom(number_of_bytes)
+    return mock_random.randbytes(number_of_bytes)
 
 
 def generate_master_key() -> bytes:
@@ -381,7 +380,7 @@ def encrypt(
             "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length less than or equal to 4096"
         )
 
-    iv = os.urandom(IV_LEN)
+    iv = mock_random.randbytes(IV_LEN)
     aad = _serialize_encryption_context(encryption_context=encryption_context)
 
     encryptor = Cipher(

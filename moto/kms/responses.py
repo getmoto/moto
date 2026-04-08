@@ -1,11 +1,11 @@
 import base64
 import json
-import os
 import re
 from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -632,7 +632,7 @@ class KmsResponse(BaseResponse):
                 "equal to 1024"
             )
 
-        entropy = os.urandom(number_of_bytes)
+        entropy = random.randbytes(number_of_bytes)
 
         response_entropy = base64.b64encode(entropy).decode("utf-8")
 
