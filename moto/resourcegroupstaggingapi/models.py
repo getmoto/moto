@@ -666,8 +666,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ec2:managed-prefix-lists": self.ec2_backend.managed_prefix_lists.values(),
             "ec2:flow-logs": self.ec2_backend.flow_logs.values(),
             "ec2:spot-instance-request": self.ec2_backend.spot_instance_requests.values(),
-            "ec2:traffic-mirror-filter": self.ec2_backend.traffic_mirror_filters.values(),
-            "ec2:traffic-mirror-target": self.ec2_backend.traffic_mirror_targets.values(),
             # TODO: "ec2:reserved-instance": ...,
         }
 
@@ -1373,15 +1371,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for value in get_ec2_values(volume.id):  # type: ignore[assignment]
                 yield value
 
-        # EC2 Mirror Filters
-        for filter in self.ec2_backend.traffic_mirror_filters.values():
-            for value in get_ec2_values(filter.id):  # type: ignore[assignment]
-                yield value
-
-        # EC2 Mirror Targets
-        for target in self.ec2_backend.traffic_mirror_targets.values():
-            for value in get_ec2_values(target.id):  # type: ignore[assignment]
-                yield value
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
