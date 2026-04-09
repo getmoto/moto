@@ -1991,9 +1991,16 @@ class S3Response(BaseResponse):
             self.headers.get("x-amz-checksum-mode") == "ENABLED"
             and key.checksum_algorithm
         ):
+            qualified_checksum = key.checksum_value
+            if key.checksum_type == "COMPOSITE":
+                qualified_checksum = f"{key.checksum_value}-{key.checksum_parts}"
+
             response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
-                key.checksum_value
+                qualified_checksum
             )
+
+            if key.checksum_type:
+                response_headers["x-amz-checksum-type"] = key.checksum_type
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
@@ -2033,7 +2040,8 @@ class S3Response(BaseResponse):
             "ObjectSize": response_keys["size"],
             "StorageClass": response_keys["storage_class"],
         }
-
+        if checksum:
+            result["Checksum"]["ChecksumType"] = checksum.get("type")
         self.data["Action"] = "GetObjectAttributes"
         status, headers, body = self.serialized(ActionResult(result))
         headers.update(response_headers)
