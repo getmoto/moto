@@ -12,9 +12,10 @@ import xmltodict
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.mime_types import APP_XML
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import (
     ALT_DOMAIN_SUFFIXES,
+    ensure_boolean,
     extract_region_from_aws_authorization,
     path_url,
     str_to_rfc_1123_datetime,
@@ -27,10 +28,13 @@ from moto.s3bucket_path.utils import (
 )
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
+from ..core.exceptions import SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
     BucketAccessDeniedError,
     BucketAlreadyExists,
+    BucketAlreadyOwnedByYou,
+    BucketNotEmpty,
     DuplicateTagKeys,
     HeadOnDeleteMarker,
     IllegalLocationConstraintException,
@@ -53,13 +57,22 @@ from .exceptions import (
     MissingRequestBody,
     MissingUploadObjectWithObjectLockHeaders,
     MissingVersion,
+    NoSuchBucketPolicy,
+    NoSuchCORSConfiguration,
+    NoSuchLifecycleConfiguration,
+    NoSuchTagSet,
+    NoSuchWebsiteConfiguration,
     NoSystemTags,
     NotAnIntegerException,
     ObjectNotInActiveTierError,
+    OwnershipControlsNotFoundError,
     PreconditionFailed,
     RangeNotSatisfiable,
+    ReplicationConfigurationNotFoundError,
     S3AclAndGrantError,
     S3ClientError,
+    ServerSideEncryptionConfigurationNotFoundError,
+    VersioningNotEnabledForReplication,
 )
 from .models import (
     FakeAcl,
@@ -223,14 +236,33 @@ class S3Response(BaseResponse):
         self.backend.abort_multipart_upload(self.bucket_name, upload_id)
         return 204, {}, ""
 
-    def all_buckets(self) -> str:
+    def all_buckets(self) -> TYPE_RESPONSE:
         self.data["Action"] = "ListAllMyBuckets"
         self._authenticate_and_authorize_s3_action()
 
         # No bucket specified. Listing all buckets
-        all_buckets = self.backend.list_buckets()
-        template = self.response_template(S3_ALL_BUCKETS)
-        return template.render(buckets=all_buckets)
+        prefix = self._get_param("prefix")
+        bucket_region = self._get_param("bucket-region")
+        max_buckets = self._get_param("max-buckets")
+        all_buckets = self.backend.list_buckets(
+            prefix=prefix, bucket_region=bucket_region, max_buckets=max_buckets
+        )
+        buckets = [
+            {"Name": bucket.name, "CreationDate": bucket.creation_date_ISO8601}
+            for bucket in all_buckets
+        ]
+        self.data["Action"] = "ListBuckets"
+        return self.serialized(
+            ActionResult(
+                {
+                    "Owner": {
+                        "ID": "bcaf1ffd86f41161ca5fb16fd081034f",
+                        "DisplayName": "webfile",
+                    },
+                    "Buckets": buckets,
+                }
+            )
+        )
 
     def subdomain_based_buckets(self, request: Any) -> bool:
         if settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME:
@@ -355,7 +387,7 @@ class S3Response(BaseResponse):
         try:
             response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
+            response = self.serialized(ActionResult(s3error))
 
         return self._send_response(response)
 
@@ -375,7 +407,7 @@ class S3Response(BaseResponse):
         if isinstance(body, str):
             body = body.encode("utf-8")
 
-        if body and "content-type" not in headers:
+        if body and "content-type" not in (header.lower() for header in headers.keys()):
             headers["content-type"] = APP_XML
 
         return status_code, headers, body
@@ -507,6 +539,33 @@ class S3Response(BaseResponse):
 
         return 200, self.response_headers, ""
 
+    @staticmethod
+    def _acl_to_dict(acl: Any) -> dict[str, Any]:
+        """Convert an ACL object to a dict matching the botocore shape.
+
+        Mirrors the logic and hardcoded values from the original
+        S3_OBJECT_ACL_RESPONSE Jinja template.
+        """
+        grants = [
+            {
+                "Grantee": {
+                    "Type": grant.grantees[0].type,
+                    "URI": grant.grantees[0].uri or None,
+                    "ID": grant.grantees[0].id or None,
+                    "DisplayName": grant.grantees[0].display_name or None,
+                },
+                "Permission": grant.permissions[0],
+            }
+            for grant in acl.grants
+        ]
+        return {
+            "Owner": {
+                "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                "DisplayName": "webfile",
+            },
+            "Grants": grants,
+        }
+
     def _get_cors_headers_other(self) -> dict[str, Any]:
         """
         Returns a dictionary with the appropriate CORS headers
@@ -619,7 +678,7 @@ class S3Response(BaseResponse):
         if not action_set:
             self.data["Action"] = ACTION_MAP[action_resource_type][method]["DEFAULT"]
 
-    def list_multipart_uploads(self) -> str:
+    def list_multipart_uploads(self) -> TYPE_RESPONSE:
         multiparts = list(
             self.backend.list_multipart_uploads(self.bucket_name).values()
         )
@@ -628,14 +687,35 @@ class S3Response(BaseResponse):
             multiparts = [
                 upload for upload in multiparts if upload.key_name.startswith(prefix)
             ]
-        template = self.response_template(S3_ALL_MULTIPARTS)
-        return template.render(
-            bucket_name=self.bucket_name,
-            uploads=multiparts,
-            account_id=self.current_account,
-        )
+        uploads = [
+            {
+                "Key": upload.key_name,
+                "UploadId": upload.id,
+                "Initiator": {
+                    "ID": f"arn:aws:iam::{self.current_account}:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de",
+                    "DisplayName": "user1-11111a31-17b5-4fb7-9df5-b111111f13de",
+                },
+                "Owner": {
+                    "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                    "DisplayName": "webfile",
+                },
+                "StorageClass": "STANDARD",
+                "Initiated": "2010-11-10T20:48:33.000Z",
+            }
+            for upload in multiparts
+        ]
+        result = {
+            "Bucket": self.bucket_name,
+            "KeyMarker": "",
+            "UploadIdMarker": "",
+            "MaxUploads": 1000,
+            "IsTruncated": False,
+            "Uploads": uploads,
+        }
+        self.data["Action"] = "ListMultipartUploads"
+        return self.serialized(ActionResult(result))
 
-    def list_objects(self) -> str:
+    def list_objects(self) -> TYPE_RESPONSE:
         bucket = self.backend.get_bucket(self.bucket_name)
         querystring = self._get_querystring(self.request, self.uri)
         prefix = querystring.get("prefix", [None])[0]
@@ -661,21 +741,41 @@ class S3Response(BaseResponse):
             max_keys=max_keys,
         )
 
-        template = self.response_template(S3_BUCKET_GET_RESPONSE)
-        return template.render(
-            bucket=bucket,
-            prefix=prefix,
-            delimiter=delimiter,
-            result_keys=result_keys,
-            result_folders=result_folders,
-            is_truncated=is_truncated,
-            next_marker=next_marker,
-            max_keys=max_keys,
-            encoding_type=encoding_type,
-        )
+        contents = [
+            {
+                "Key": key.safe_name(encoding_type),
+                "LastModified": key.last_modified_ISO8601,
+                "ETag": key.etag,
+                "Size": key.size,
+                "StorageClass": key.storage_class,
+                "Owner": {
+                    "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                    "DisplayName": "webfile",
+                },
+            }
+            for key in result_keys
+        ]
 
-    def list_objects_v2(self) -> str:
-        template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
+        result: dict[str, Any] = {
+            "Name": bucket.name,
+            "MaxKeys": max_keys,
+            "IsTruncated": is_truncated,
+            "Contents": contents,
+        }
+        if prefix is not None:
+            result["Prefix"] = prefix
+        if delimiter:
+            result["Delimiter"] = delimiter
+            result["CommonPrefixes"] = [{"Prefix": folder} for folder in result_folders]
+        if encoding_type:
+            result["EncodingType"] = encoding_type
+        if next_marker:
+            result["NextMarker"] = next_marker
+
+        self.data["Action"] = "ListObjects"
+        return self.serialized(ActionResult(result))
+
+    def list_objects_v2(self) -> TYPE_RESPONSE:
         bucket = self.backend.get_bucket(self.bucket_name)
 
         continuation_token = self.querystring.get("continuation-token", [None])[0]
@@ -716,22 +816,46 @@ class S3Response(BaseResponse):
             prefix = urllib.parse.quote(prefix) if prefix else ""
             result_folders = [urllib.parse.quote(folder) for folder in result_folders]
 
-        return template.render(
-            bucket=bucket,
-            prefix=prefix or "",
-            delimiter=delimiter,
-            key_count=key_count,
-            result_keys=result_keys,
-            result_folders=result_folders,
-            fetch_owner=fetch_owner,
-            max_keys=max_keys,
-            is_truncated=is_truncated,
-            next_continuation_token=next_continuation_token,
-            start_after=None if continuation_token else start_after,
-            encoding_type=encoding_type,
-        )
+        contents = []
+        for key in result_keys:
+            item: dict[str, Any] = {
+                "Key": key.safe_name(encoding_type),
+                "LastModified": key.last_modified_ISO8601,
+                "ETag": key.etag,
+                "Size": key.size,
+                "StorageClass": key.storage_class,
+            }
+            if fetch_owner:
+                item["Owner"] = {
+                    "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                    "DisplayName": "webfile",
+                }
+            if key.checksum_algorithm:
+                item["ChecksumAlgorithm"] = [key.checksum_algorithm]
+            contents.append(item)
 
-    def list_object_versions(self) -> str:
+        result: dict[str, Any] = {
+            "Name": bucket.name,
+            "Prefix": prefix or "",
+            "MaxKeys": max_keys,
+            "KeyCount": key_count,
+            "IsTruncated": is_truncated,
+            "Contents": contents,
+        }
+        if delimiter:
+            result["Delimiter"] = delimiter
+            result["CommonPrefixes"] = [{"Prefix": folder} for folder in result_folders]
+        if encoding_type:
+            result["EncodingType"] = encoding_type
+        if next_continuation_token:
+            result["NextContinuationToken"] = next_continuation_token
+        if not continuation_token and start_after:
+            result["StartAfter"] = start_after
+
+        self.data["Action"] = "ListObjectsV2"
+        return self.serialized(ActionResult(result))
+
+    def list_object_versions(self) -> TYPE_RESPONSE:
         delimiter = self.querystring.get("delimiter", [None])[0]
         key_marker = self.querystring.get("key-marker", [None])[0]
         max_keys = int(
@@ -758,26 +882,55 @@ class S3Response(BaseResponse):
         )
         key_list = versions
 
-        is_truncated = False
-        if next_key_marker is not None:
-            is_truncated = True
+        is_truncated = next_key_marker is not None
 
-        template = self.response_template(S3_BUCKET_GET_VERSIONS)
+        owner = {
+            "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+            "DisplayName": "webfile",
+        }
+        version_list = [
+            {
+                "Key": key.name,
+                "VersionId": key.version_id if key.version_id is not None else "null",
+                "IsLatest": getattr(key, "is_latest", False),
+                "LastModified": key.last_modified_ISO8601,
+                "ETag": key.etag,
+                "Size": key.size,
+                "StorageClass": key.storage_class,
+                "Owner": owner,
+            }
+            for key in key_list
+        ]
+        delete_marker_list = [
+            {
+                "Key": marker.name,
+                "VersionId": marker.version_id,
+                "IsLatest": getattr(marker, "is_latest", False),
+                "LastModified": marker.last_modified_ISO8601,
+                "Owner": owner,
+            }
+            for marker in delete_markers
+        ]
 
-        return template.render(
-            common_prefixes=common_prefixes,
-            key_list=key_list,
-            delete_marker_list=delete_markers,
-            bucket=bucket,
-            prefix=prefix,
-            max_keys=max_keys,
-            delimiter=delimiter,
-            key_marker=key_marker,
-            version_id_marker=version_id_marker,
-            is_truncated=is_truncated,
-            next_key_marker=next_key_marker,
-            next_version_id_marker=next_version_id_marker,
-        )
+        result: dict[str, Any] = {
+            "Name": bucket.name,
+            "Prefix": prefix if prefix is not None else None,
+            "Delimiter": delimiter,
+            "KeyMarker": key_marker or "",
+            "VersionIdMarker": version_id_marker or "",
+            "MaxKeys": max_keys,
+            "IsTruncated": is_truncated,
+            "Versions": version_list,
+            "DeleteMarkers": delete_marker_list,
+        }
+        if common_prefixes:
+            result["CommonPrefixes"] = [{"Prefix": p} for p in common_prefixes]
+        if is_truncated:
+            result["NextKeyMarker"] = next_key_marker
+            result["NextVersionIdMarker"] = next_version_id_marker
+
+        self.data["Action"] = "ListObjectVersions"
+        return self.serialized(ActionResult(result))
 
     @staticmethod
     def _split_truncated_keys(truncated_keys: Any) -> Any:  # type: ignore[misc]
@@ -835,8 +988,8 @@ class S3Response(BaseResponse):
             ver = re.search(r"<Status>([A-Za-z]+)</Status>", body)
             if ver:
                 self.backend.put_bucket_versioning(bucket_name, ver.group(1))
-                template = self.response_template(S3_BUCKET_VERSIONING)
-                return template.render(bucket_versioning_status=ver.group(1))
+                self.data["Action"] = "PutBucketVersioning"
+                return self.serialized(EmptyResult())
             else:
                 return 404, {}, ""
         elif "lifecycle" in querystring:
@@ -915,8 +1068,7 @@ class S3Response(BaseResponse):
         elif "replication" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.is_versioned:
-                template = self.response_template(S3_NO_VERSIONING_ENABLED)
-                return 400, {}, template.render(bucket_name=bucket_name)
+                raise VersioningNotEnabledForReplication(bucket_name=bucket_name)
             replication_config = self._replication_config_from_xml(self.body)
             self.backend.put_bucket_replication(bucket_name, replication_config)
             return ""
@@ -974,8 +1126,7 @@ class S3Response(BaseResponse):
                         # us-east-1 has different behavior - creating a bucket there is an idempotent operation
                         pass
                     else:
-                        template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
-                        return 409, {}, template.render(bucket_name=bucket_name)
+                        raise BucketAlreadyOwnedByYou(bucket_name=bucket_name)
                 else:
                     raise
 
@@ -996,119 +1147,299 @@ class S3Response(BaseResponse):
             if ownership_rule:
                 new_bucket.ownership_rule = ownership_rule
 
-            template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
-            headers: dict[str, str] = {}
+            result: dict[str, Any] = {"Location": f"/{new_bucket.name}"}
             if new_bucket.bucket_namespace == "account-regional":
-                headers["x-amz-bucket-arn"] = new_bucket.arn
-            return 200, headers, template.render(bucket=new_bucket)
+                result["BucketArn"] = new_bucket.arn
+            self.data["Action"] = "CreateBucket"
+            return self.serialized(ActionResult(result))
 
-    def get_bucket_accelerate_configuration(self) -> str:
+    def get_bucket_accelerate_configuration(self) -> TYPE_RESPONSE:
         accelerate_configuration = self.backend.get_bucket_accelerate_configuration(
             self.bucket_name
         )
-        template = self.response_template(S3_BUCKET_ACCELERATE)
-        return template.render(accelerate_configuration=accelerate_configuration)
+        result = {"Status": accelerate_configuration}
+        self.data["Action"] = "GetBucketAccelerateConfiguration"
+        return self.serialized(ActionResult(result))
 
-    def get_bucket_acl(self) -> str:
+    def get_bucket_acl(self) -> TYPE_RESPONSE:
         acl = self.backend.get_bucket_acl(self.bucket_name)
-        template = self.response_template(S3_OBJECT_ACL_RESPONSE)
-        return template.render(acl=acl)
+        self.data["Action"] = "GetBucketAcl"
+        return self.serialized(ActionResult(self._acl_to_dict(acl)))
 
     def get_bucket_cors(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketCors"
         cors = self.backend.get_bucket_cors(self.bucket_name)
         if len(cors) == 0:
-            template = self.response_template(S3_NO_CORS_CONFIG)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_BUCKET_CORS_RESPONSE)
-        return template.render(cors=cors)
+            raise NoSuchCORSConfiguration(bucket_name=self.bucket_name)
+        cors_rules = [
+            {
+                "ID": rule.id_,
+                "AllowedOrigins": rule.allowed_origins,
+                "AllowedMethods": rule.allowed_methods,
+                "AllowedHeaders": rule.allowed_headers,
+                "ExposeHeaders": rule.exposed_headers,
+                "MaxAgeSeconds": rule.max_age_seconds,
+            }
+            for rule in cors
+        ]
+        return self.serialized(ActionResult({"CORSRules": cors_rules}))
 
     def get_bucket_encryption(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketEncryption"
         encryption = self.backend.get_bucket_encryption(self.bucket_name)
         if not encryption:
-            template = self.response_template(S3_NO_ENCRYPTION)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_ENCRYPTION_CONFIG)
-        return template.render(encryption=encryption)
+            raise ServerSideEncryptionConfigurationNotFoundError(
+                bucket_name=self.bucket_name
+            )
+        rule = encryption["Rule"]
+        result_rule: dict[str, Any] = {
+            "ApplyServerSideEncryptionByDefault": rule[
+                "ApplyServerSideEncryptionByDefault"
+            ],
+            "BucketKeyEnabled": ensure_boolean(rule.get("BucketKeyEnabled")),
+        }
+        self.data["Action"] = "GetBucketEncryption"
+        return self.serialized(
+            ActionResult(
+                {
+                    "ServerSideEncryptionConfiguration": {"Rules": [result_rule]},
+                }
+            )
+        )
 
-    def get_bucket_lifecycle(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_lifecycle(self) -> TYPE_RESPONSE:
+        self.data["Action"] = "GetBucketLifecycleConfiguration"
         rules = self.backend.get_bucket_lifecycle(self.bucket_name)
         if not rules:
-            template = self.response_template(S3_NO_LIFECYCLE)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
-        headers = {
-            "x-amz-transition-default-minimum-object-size": TransitionDefaultMinimumObjectSize.ALL_STORAGE_CLASSES_128K.value
-        }
-        return 200, headers, template.render(rules=rules)
+            raise NoSuchLifecycleConfiguration(bucket_name=self.bucket_name)
 
-    def get_bucket_location(self) -> str:
+        lifecycle_rules = []
+        for rule in rules:
+            r: dict[str, Any] = {"ID": rule.id, "Status": rule.status}
+
+            if rule.filter:
+                f: dict[str, Any] = {}
+                if rule.filter.prefix is not None:
+                    f["Prefix"] = rule.filter.prefix
+                if rule.filter.tag_key:
+                    f["Tag"] = {
+                        "Key": rule.filter.tag_key,
+                        "Value": rule.filter.tag_value,
+                    }
+                if rule.filter.and_filter:
+                    and_f: dict[str, Any] = {}
+                    if rule.filter.and_filter.prefix is not None:
+                        and_f["Prefix"] = rule.filter.and_filter.prefix
+                    if rule.filter.and_filter.tags:
+                        and_f["Tags"] = [
+                            {"Key": k, "Value": v}
+                            for k, v in rule.filter.and_filter.tags.items()
+                        ]
+                    f["And"] = and_f
+                r["Filter"] = f
+            else:
+                if rule.prefix is not None:
+                    r["Prefix"] = rule.prefix
+                else:
+                    r["Filter"] = {}
+
+            if rule.transitions:
+                r["Transitions"] = [
+                    {
+                        k: v
+                        for k, v in [
+                            ("Days", t.days),
+                            ("Date", t.date),
+                            ("StorageClass", t.storage_class),
+                        ]
+                        if v is not None
+                    }
+                    for t in rule.transitions
+                ]
+
+            if (
+                rule.expiration_days
+                or rule.expiration_date
+                or rule.expired_object_delete_marker
+            ):
+                exp: dict[str, Any] = {}
+                if rule.expiration_days:
+                    exp["Days"] = rule.expiration_days
+                if rule.expiration_date:
+                    exp["Date"] = rule.expiration_date
+                if rule.expired_object_delete_marker:
+                    exp["ExpiredObjectDeleteMarker"] = rule.expired_object_delete_marker
+                r["Expiration"] = exp
+
+            if rule.noncurrent_version_transitions:
+                r["NoncurrentVersionTransitions"] = [
+                    {
+                        k: v
+                        for k, v in [
+                            ("NewerNoncurrentVersions", nvt.newer_versions),
+                            ("NoncurrentDays", nvt.days),
+                            ("StorageClass", nvt.storage_class),
+                        ]
+                        if v is not None
+                    }
+                    for nvt in rule.noncurrent_version_transitions
+                ]
+
+            if rule.nve_noncurrent_days:
+                r["NoncurrentVersionExpiration"] = {
+                    "NoncurrentDays": rule.nve_noncurrent_days
+                }
+
+            if rule.aimu_days:
+                r["AbortIncompleteMultipartUpload"] = {
+                    "DaysAfterInitiation": rule.aimu_days
+                }
+
+            lifecycle_rules.append(r)
+
+        result = {
+            "Rules": lifecycle_rules,
+            "TransitionDefaultMinimumObjectSize": TransitionDefaultMinimumObjectSize.ALL_STORAGE_CLASSES_128K.value,
+        }
+        return self.serialized(ActionResult(result))
+
+    def get_bucket_location(self) -> TYPE_RESPONSE:
         location: Optional[str] = self.backend.get_bucket_location(self.bucket_name)
-        template = self.response_template(S3_BUCKET_LOCATION)
 
         # us-east-1 is different - returns a None location
         if location == DEFAULT_REGION_NAME:
             location = None
 
-        return template.render(location=location)
+        self.data["Action"] = "GetBucketLocation"
+        return self.serialized(ActionResult({"LocationConstraint": location}))
 
-    def get_bucket_logging(self) -> str:
+    def get_bucket_logging(self) -> TYPE_RESPONSE:
         logging = self.backend.get_bucket_logging(self.bucket_name)
-        template = self.response_template(S3_LOGGING_CONFIG)
-        return template.render(logging=logging)
+        result: dict[str, Any] = {}
+        if logging:
+            logging_enabled: dict[str, Any] = {
+                "TargetBucket": logging["TargetBucket"],
+                "TargetPrefix": logging["TargetPrefix"],
+            }
+            if logging.get("TargetGrants"):
+                logging_enabled["TargetGrants"] = [
+                    {
+                        "Grantee": {
+                            "Type": grant.grantees[0].type,
+                            "URI": grant.grantees[0].uri,
+                            "ID": grant.grantees[0].id,
+                            "DisplayName": grant.grantees[0].display_name,
+                        },
+                        "Permission": grant.permissions[0],
+                    }
+                    for grant in logging["TargetGrants"]
+                ]
+            result["LoggingEnabled"] = logging_enabled
+        self.data["Action"] = "GetBucketLogging"
+        return self.serialized(ActionResult(result))
 
-    def get_bucket_notification(self) -> str:
+    def get_bucket_notification(self) -> TYPE_RESPONSE:
         notification_configuration = self.backend.get_bucket_notification_configuration(
             self.bucket_name
         )
         if not notification_configuration:
-            return ""
-        template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
-        return template.render(config=notification_configuration)
+            return self.serialized(EmptyResult())
+
+        def _build_config(item: Any, arn_key: str) -> dict[str, Any]:
+            config: dict[str, Any] = {
+                "Id": item.id,
+                arn_key: item.arn,
+                "Events": item.events,
+            }
+            if item.filters:
+                config["Filter"] = {
+                    "Key": {"FilterRules": item.filters["S3Key"]["FilterRule"]}
+                }
+            return config
+
+        result: dict[str, Any] = {
+            "TopicConfigurations": [
+                _build_config(t, "TopicArn") for t in notification_configuration.topic
+            ],
+            "QueueConfigurations": [
+                _build_config(q, "QueueArn") for q in notification_configuration.queue
+            ],
+            "LambdaFunctionConfigurations": [
+                _build_config(cf, "LambdaFunctionArn")
+                for cf in notification_configuration.cloud_function
+            ],
+        }
+        self.data["Action"] = "GetBucketNotificationConfiguration"
+        return self.serialized(ActionResult(result))
 
     def get_bucket_ownership_controls(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketOwnershipControls"
         ownership_rule = self.backend.get_bucket_ownership_controls(self.bucket_name)
         if not ownership_rule:
-            template = self.response_template(S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_BUCKET_GET_OWNERSHIP_RULE)
-        return template.render(ownership_rule=ownership_rule)
+            raise OwnershipControlsNotFoundError(bucket_name=self.bucket_name)
+        return self.serialized(
+            ActionResult(
+                {
+                    "OwnershipControls": {
+                        "Rules": [{"ObjectOwnership": ownership_rule}],
+                    },
+                }
+            )
+        )
 
     def get_bucket_policy(self) -> Union[str, TYPE_RESPONSE]:
         policy = self.backend.get_bucket_policy(self.bucket_name)
         if not policy:
-            template = self.response_template(S3_NO_POLICY)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchBucketPolicy(bucket_name=self.bucket_name)
         return 200, {}, policy
 
     def get_bucket_replication(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketReplication"
         replication = self.backend.get_bucket_replication(self.bucket_name)
         if not replication:
-            template = self.response_template(S3_NO_REPLICATION)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_REPLICATION_CONFIG)
-        return template.render(replication=replication)
+            raise ReplicationConfigurationNotFoundError(bucket_name=self.bucket_name)
+        rules = [
+            {
+                "ID": rule["ID"],
+                "Priority": rule["Priority"],
+                "Status": rule["Status"],
+                "DeleteMarkerReplication": {"Status": "Disabled"},
+                "Filter": {"Prefix": ""},
+                "Destination": rule["Destination"],
+            }
+            for rule in replication["Rule"]
+        ]
+        return self.serialized(
+            ActionResult(
+                {
+                    "ReplicationConfiguration": {
+                        "Role": replication["Role"],
+                        "Rules": rules,
+                    },
+                }
+            )
+        )
 
     def get_bucket_tags(self) -> Union[str, TYPE_RESPONSE]:
+        self.data["Action"] = "GetBucketTagging"
         tags = self.backend.get_bucket_tagging(self.bucket_name)["Tags"]
         # "Special Error" if no tags:
         if len(tags) == 0:
-            template = self.response_template(S3_NO_BUCKET_TAGGING)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
-        template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
-        return template.render(tags=tags)
+            raise NoSuchTagSet(bucket_name=self.bucket_name)
+        return self.serialized(ActionResult({"TagSet": tags}))
 
-    def get_bucket_versioning(self) -> str:
+    def get_bucket_versioning(self) -> TYPE_RESPONSE:
         versioning = self.backend.get_bucket_versioning(self.bucket_name)
-        template = self.response_template(S3_BUCKET_GET_VERSIONING)
-        return template.render(status=versioning)
+        result = {"Status": versioning}
+        self.data["Action"] = "GetBucketVersioning"
+        return self.serialized(ActionResult(result))
 
     def get_bucket_website(self) -> TYPE_RESPONSE:
         website_configuration = self.backend.get_bucket_website_configuration(
             self.bucket_name
         )
         if not website_configuration:
-            template = self.response_template(S3_NO_BUCKET_WEBSITE_CONFIG)
-            return 404, {}, template.render(bucket_name=self.bucket_name)
+            raise NoSuchWebsiteConfiguration(bucket_name=self.bucket_name)
         return 200, {}, website_configuration
 
     def get_object_acl(self) -> TYPE_RESPONSE:
@@ -1120,49 +1451,96 @@ class S3Response(BaseResponse):
             return 304, response_headers, "Not Modified"
 
         acl = self.backend.get_object_acl(key)
-        template = self.response_template(S3_OBJECT_ACL_RESPONSE)
-        return 200, response_headers, template.render(acl=acl)
+        self.data["Action"] = "GetObjectAcl"
+        status, headers, body = self.serialized(ActionResult(self._acl_to_dict(acl)))
+        headers.update(response_headers)
+        return status, headers, body
 
-    def get_object_lock_configuration(self) -> str:
+    def get_object_lock_configuration(self) -> TYPE_RESPONSE:
         (
             lock_enabled,
             mode,
             days,
             years,
         ) = self.backend.get_object_lock_configuration(self.bucket_name)
-        template = self.response_template(S3_BUCKET_LOCK_CONFIGURATION)
+        config: dict[str, Any] = {
+            "ObjectLockEnabled": "Enabled" if lock_enabled else "Disabled",
+        }
+        if mode:
+            config["Rule"] = {
+                "DefaultRetention": {
+                    "Mode": mode,
+                    "Days": days,
+                    "Years": years,
+                },
+            }
+        self.data["Action"] = "GetObjectLockConfiguration"
+        return self.serialized(ActionResult({"ObjectLockConfiguration": config}))
 
-        return template.render(
-            lock_enabled=lock_enabled, mode=mode, days=days, years=years
+    def get_public_access_block(self) -> TYPE_RESPONSE:
+        public_block_config = self.backend.get_public_access_block(self.bucket_name)
+        self.data["Action"] = "GetPublicAccessBlock"
+        return self.serialized(
+            ActionResult(
+                {
+                    "PublicAccessBlockConfiguration": public_block_config,
+                }
+            )
         )
 
-    def get_public_access_block(self) -> str:
-        public_block_config = self.backend.get_public_access_block(self.bucket_name)
-        template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
-        return template.render(public_block_config=public_block_config)
-
-    def get_bucket_inventory_configuration(self) -> str:
+    def get_bucket_inventory_configuration(self) -> TYPE_RESPONSE:
         config_id = self.querystring["id"][0]
         inventory_configuration = self.backend.get_bucket_inventory_configuration(
             bucket_name=self.bucket_name, id=config_id
         )
-        template = self.response_template(S3_BUCKET_INVENTORY_CONFIGURATION)
-        return template.render(
-            inventory_config=inventory_configuration,
-            s3_bucket_config=inventory_configuration.destination["S3BucketDestination"],
-        )
+        config: dict[str, Any] = {
+            "Destination": inventory_configuration.destination,
+            "IsEnabled": ensure_boolean(inventory_configuration.is_enabled),
+            "Id": inventory_configuration.id,
+            "IncludedObjectVersions": "All",
+            "Schedule": inventory_configuration.schedule,
+        }
+        if inventory_configuration.filters:
+            config["Filter"] = inventory_configuration.filters
+        if inventory_configuration.optional_fields:
+            # TODO: fix input processing to make sure this is parsed as list and not a dict.
+            optional_fields: list[str] = (
+                inventory_configuration.optional_fields.get("Field", [])
+                if isinstance(inventory_configuration.optional_fields, dict)
+                else inventory_configuration.optional_fields
+            )
+            config["OptionalFields"] = optional_fields
+        self.data["Action"] = "GetBucketInventoryConfiguration"
+        return self.serialized(ActionResult({"InventoryConfiguration": config}))
 
-    def list_bucket_inventory_configurations(self) -> str:
+    def list_bucket_inventory_configurations(self) -> TYPE_RESPONSE:
         inventory_configuration_list = (
             self.backend.list_bucket_inventory_configurations(
                 bucket_name=self.bucket_name,
             )
         )
-        template = self.response_template(LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE)
+        configs = []
+        for inv in inventory_configuration_list:
+            config: dict[str, Any] = {
+                "Destination": inv.destination,
+                "IsEnabled": inv.is_enabled,
+                "Id": inv.id,
+                "IncludedObjectVersions": "All",
+                "Schedule": inv.schedule,
+            }
+            if inv.filters:
+                config["Filter"] = inv.filters
+            if inv.optional_fields:
+                config["OptionalFields"] = inv.optional_fields
+            configs.append(config)
+
         # TODO: Add support for pagination/ continuation tokens
-        return template.render(
-            inventory_configuration_list=inventory_configuration_list,
-        )
+        result = {
+            "InventoryConfigurationList": configs,
+            "IsTruncated": False,
+        }
+        self.data["Action"] = "ListBucketInventoryConfigurations"
+        return self.serialized(ActionResult(result))
 
     def _bucket_response_delete(
         self, bucket_name: str, querystring: dict[str, Any]
@@ -1192,15 +1570,14 @@ class S3Response(BaseResponse):
         return self.delete_bucket()
 
     def delete_bucket(self) -> TYPE_RESPONSE:
+        self.data["Action"] = "DeleteBucket"
         removed_bucket = self.backend.delete_bucket(self.bucket_name)
         if removed_bucket:
             # Bucket exists
-            template = self.response_template(S3_DELETE_BUCKET_SUCCESS)
-            return 204, {}, template.render(bucket=removed_bucket)
+            return self.serialized(EmptyResult())
         else:
             # Tried to delete a bucket that still has keys
-            template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return 409, {}, template.render(bucket_name=self.bucket_name)
+            raise BucketNotEmpty(bucket_name=self.bucket_name)
 
     def delete_bucket_ownership_controls(self) -> TYPE_RESPONSE:
         self.backend.delete_bucket_ownership_controls(self.bucket_name)
@@ -1312,7 +1689,6 @@ class S3Response(BaseResponse):
     def _bucket_response_delete_keys(
         self, bucket_name: str, authenticated: bool = True
     ) -> TYPE_RESPONSE:
-        template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(self.body, strip_whitespace=False)
         bypass_retention = (
             self.headers.get("x-amz-bypass-governance-retention", "").lower() == "true"
@@ -1358,10 +1734,24 @@ class S3Response(BaseResponse):
             # [(key_name, errorcode, 'error message'), ..]
             errors = [(o["Key"], "AccessDenied", "Access Denied") for o in objects]
 
-        return (
-            200,
-            {},
-            template.render(deleted=deleted, delete_errors=errors),
+        deleted_objects = [
+            {
+                "Key": k,
+                "VersionId": v or None,
+                "DeleteMarkerVersionId": dv or None,
+                "DeleteMarker": True if dv else None,
+            }
+            for k, v, dv in deleted
+        ]
+        error_objects = [{"Key": k, "Code": c, "Message": m} for k, c, m in errors]
+        self.data["Action"] = "DeleteObjects"
+        return self.serialized(
+            ActionResult(
+                {
+                    "Deleted": deleted_objects,
+                    "Errors": error_objects,
+                }
+            )
         )
 
     def _handle_range_header(
@@ -1466,7 +1856,7 @@ class S3Response(BaseResponse):
         try:
             response = self._key_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
+            response = self.serialized(ActionResult(s3error))
 
         status_code, response_headers, response_content = self._send_response(response)
 
@@ -1480,7 +1870,7 @@ class S3Response(BaseResponse):
                     request, response_headers, response_content
                 )
             except S3ClientError as s3error:
-                return s3error.code, {}, s3error.description
+                return self.serialized(ActionResult(s3error))
         return status_code, response_headers, response_content
 
     def _key_response(self, request: Any, full_url: str) -> TYPE_RESPONSE:
@@ -1534,7 +1924,7 @@ class S3Response(BaseResponse):
         if not key and signed_url and not authorized_request:
             # coming in from requests.get(s3.generate_presigned_url())
             if self._invalid_headers(request.url, dict(request.headers)):
-                return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
+                raise SignatureDoesNotMatchError()
 
         body = self.body or b""
 
@@ -1599,9 +1989,16 @@ class S3Response(BaseResponse):
             self.headers.get("x-amz-checksum-mode") == "ENABLED"
             and key.checksum_algorithm
         ):
+            qualified_checksum = key.checksum_value
+            if key.checksum_type == "COMPOSITE":
+                qualified_checksum = f"{key.checksum_value}-{key.checksum_parts}"
+
             response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
-                key.checksum_value
+                qualified_checksum
             )
+
+            if key.checksum_type:
+                response_headers["x-amz-checksum-type"] = key.checksum_type
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
@@ -1631,8 +2028,22 @@ class S3Response(BaseResponse):
         attributes_to_get = self.headers.get("x-amz-object-attributes", "").split(",")
         response_keys = self.backend.get_object_attributes(key, attributes_to_get)
         response_headers["Last-Modified"] = key.last_modified_ISO8601
-        template = self.response_template(S3_OBJECT_ATTRIBUTES_RESPONSE)
-        return 200, response_headers, template.render(**response_keys)
+
+        checksum = response_keys["checksum"]
+        result: dict[str, Any] = {
+            "ETag": response_keys["etag"],
+            "Checksum": {f"Checksum{algo}": value for algo, value in checksum.items()}
+            if checksum
+            else None,
+            "ObjectSize": response_keys["size"],
+            "StorageClass": response_keys["storage_class"],
+        }
+        if checksum:
+            result["Checksum"]["ChecksumType"] = checksum.get("type")
+        self.data["Action"] = "GetObjectAttributes"
+        status, headers, body = self.serialized(ActionResult(result))
+        headers.update(response_headers)
+        return status, headers, body
 
     def get_object_legal_hold(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
@@ -1644,8 +2055,16 @@ class S3Response(BaseResponse):
             response_headers["x-amz-version-id"] = key.version_id
 
         legal_hold = self.backend.get_object_legal_hold(key)
-        template = self.response_template(S3_OBJECT_LEGAL_HOLD)
-        return 200, response_headers, template.render(legal_hold=legal_hold)
+        self.data["Action"] = "GetObjectLegalHold"
+        status, headers, body = self.serialized(
+            ActionResult(
+                {
+                    "LegalHold": {"Status": legal_hold},
+                }
+            )
+        )
+        headers.update(response_headers)
+        return status, headers, body
 
     def get_object_tagging(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
@@ -1658,8 +2077,10 @@ class S3Response(BaseResponse):
 
         tags = self.backend.get_object_tagging(key)["Tags"]
 
-        template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
-        return 200, response_headers, template.render(tags=tags)
+        self.data["Action"] = "GetObjectTagging"
+        status, headers, body = self.serialized(ActionResult({"TagSet": tags}))
+        headers.update(response_headers)
+        return status, headers, body
 
     def list_parts(self) -> TYPE_RESPONSE:
         response_headers = self._get_cors_headers_other()
@@ -1696,21 +2117,38 @@ class S3Response(BaseResponse):
         )
 
         key_name = self.parse_key_name()
-        template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
-        return (
-            200,
-            response_headers,
-            template.render(
-                bucket_name=self.bucket_name,
-                key_name=key_name,
-                upload_id=upload_id,
-                is_truncated=str(is_truncated).lower(),
-                max_parts=max_parts,
-                next_part_number_marker=next_part_number_marker,
-                parts=parts,
-                part_number_marker=part_number_marker,
-            ),
-        )
+        parts_list = [
+            {
+                "PartNumber": part.name,
+                "LastModified": part.last_modified_ISO8601,
+                "ETag": part.etag,
+                "Size": part.size,
+            }
+            for part in parts
+        ]
+        result = {
+            "Bucket": self.bucket_name,
+            "Key": key_name,
+            "UploadId": upload_id,
+            "StorageClass": "STANDARD",
+            "Initiator": {
+                "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                "DisplayName": "webfile",
+            },
+            "Owner": {
+                "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                "DisplayName": "webfile",
+            },
+            "PartNumberMarker": part_number_marker,
+            "NextPartNumberMarker": next_part_number_marker,
+            "MaxParts": max_parts,
+            "IsTruncated": is_truncated,
+            "Parts": parts_list,
+        }
+        self.data["Action"] = "ListParts"
+        status, headers, body = self.serialized(ActionResult(result))
+        headers.update(response_headers)
+        return status, headers, body
 
     def _get_key(self, validate_storage_class: bool = True) -> tuple[FakeKey, bool]:
         key_name = self.parse_key_name()
@@ -1989,11 +2427,25 @@ class S3Response(BaseResponse):
             new_key.checksum_algorithm = checksum_algorithm
             new_key.checksum_value = checksum_value
 
-        template = self.response_template(S3_OBJECT_COPY_RESPONSE)
-        response_headers.update(new_key.response_dict)
-        response = template.render(key=new_key)
-        response_headers["content-length"] = str(len(response))
-        return 200, response_headers, response
+        copy_result: dict[str, Any] = {
+            "ETag": new_key.etag,
+            "LastModified": new_key.last_modified_ISO8601,
+        }
+        if new_key.checksum_value:
+            copy_result[f"Checksum{new_key.checksum_algorithm}"] = (
+                new_key.checksum_value
+            )
+
+        self.data["Action"] = "CopyObject"
+        status, headers, body = self.serialized(
+            ActionResult({"CopyObjectResult": copy_result})
+        )
+        headers.update(response_headers)
+        # TODO: Remove this in favor of setting the appropriate keys in the
+        # result dict, e.g. "ServerSideEncryption": new_key.encryption
+        headers.update(new_key.response_dict)
+        headers["content-length"] = str(len(body))
+        return status, headers, body
 
     def _get_lock_details(
         self, bucket: "FakeBucket", lock_enabled: bool
@@ -2123,12 +2575,21 @@ class S3Response(BaseResponse):
             )
         else:
             return 404, response_headers, ""
-        template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
-        response = template.render(part=key)
-
-        response_headers.update(key.response_dict)
-        response_headers["content-length"] = str(len(response))
-        return 200, response_headers, response
+        self.data["Action"] = "UploadPartCopy"
+        status, headers, body = self.serialized(
+            ActionResult(
+                {
+                    "CopyPartResult": {
+                        "LastModified": key.last_modified_ISO8601,
+                        "ETag": key.etag,
+                    },
+                }
+            )
+        )
+        headers.update(response_headers)
+        headers.update(key.response_dict)
+        headers["content-length"] = str(len(body))
+        return status, headers, body
 
     def head_object(
         self,
@@ -2609,8 +3070,8 @@ class S3Response(BaseResponse):
         self.backend.delete_object_tagging(
             self.bucket_name, key_name, version_id=version_id
         )
-        template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
-        return 204, {}, template.render(version_id=version_id)
+        self.data["Action"] = "DeleteObjectTagging"
+        return self.serialized(ActionResult({"VersionId": version_id}))
 
     def _complete_multipart_body(self, body: bytes) -> Iterator[tuple[int, str]]:
         ps = minidom.parseString(body).getElementsByTagName("Part")
@@ -2661,11 +3122,18 @@ class S3Response(BaseResponse):
                     kms_key_id
                 )
 
-            template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
-            response = template.render(
-                bucket_name=bucket_name, key_name=key_name, upload_id=multipart_id
+            self.data["Action"] = "CreateMultipartUpload"
+            status, resp_headers, resp_body = self.serialized(
+                ActionResult(
+                    {
+                        "Bucket": bucket_name,
+                        "Key": key_name,
+                        "UploadId": multipart_id,
+                    }
+                )
             )
-            return 200, response_headers, response
+            resp_headers.update(response_headers)
+            return status, resp_headers, resp_body
 
         if query.get("uploadId"):
             existing = self.backend.get_object(self.bucket_name, key_name)
@@ -2691,7 +3159,6 @@ class S3Response(BaseResponse):
 
             headers: dict[str, Any] = {}
 
-            template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             if key.version_id:
                 headers["x-amz-version-id"] = key.version_id
 
@@ -2701,13 +3168,19 @@ class S3Response(BaseResponse):
             if key.kms_key_id:
                 headers["x-amz-server-side-encryption-aws-kms-key-id"] = key.kms_key_id
 
-            return (
-                200,
-                headers,
-                template.render(
-                    bucket_name=bucket_name, key_name=key.name, etag=key.etag
-                ),
+            self.data["Action"] = "CompleteMultipartUpload"
+            status, resp_headers, resp_body = self.serialized(
+                ActionResult(
+                    {
+                        "Location": f"http://{bucket_name}.s3.amazonaws.com/{key.name}",
+                        "Bucket": bucket_name,
+                        "Key": key.name,
+                        "ETag": key.etag,
+                    }
+                )
             )
+            resp_headers.update(headers)
+            return status, resp_headers, resp_body
 
         elif "restore" in query:
             params = xmltodict.parse(body)["RestoreRequest"]
@@ -2759,900 +3232,3 @@ class S3Response(BaseResponse):
 
 
 S3ResponseInstance = S3Response()
-
-S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <Owner>
-    <ID>bcaf1ffd86f41161ca5fb16fd081034f</ID>
-    <DisplayName>webfile</DisplayName>
-  </Owner>
-  <Buckets>
-    {% for bucket in buckets %}
-      <Bucket>
-        <Name>{{ bucket.name }}</Name>
-        <CreationDate>{{ bucket.creation_date_ISO8601 }}</CreationDate>
-      </Bucket>
-    {% endfor %}
- </Buckets>
-</ListAllMyBucketsResult>"""
-
-S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Name>{{ bucket.name }}</Name>
-  {% if prefix != None %}
-  <Prefix>{{ prefix }}</Prefix>
-  {% endif %}
-  <MaxKeys>{{ max_keys }}</MaxKeys>
-  {% if delimiter %}
-    <Delimiter>{{ delimiter }}</Delimiter>
-  {% endif %}
-  {% if encoding_type %}
-    <EncodingType>{{ encoding_type }}</EncodingType>
-  {% endif %}
-  <IsTruncated>{{ is_truncated }}</IsTruncated>
-  {% if next_marker %}
-    <NextMarker>{{ next_marker }}</NextMarker>
-  {% endif %}
-  {% for key in result_keys %}
-    <Contents>
-      <Key>{{ key.safe_name(encoding_type) }}</Key>
-      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-      <ETag>{{ key.etag }}</ETag>
-      <Size>{{ key.size }}</Size>
-      <StorageClass>{{ key.storage_class }}</StorageClass>
-      <Owner>
-        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-        <DisplayName>webfile</DisplayName>
-      </Owner>
-    </Contents>
-  {% endfor %}
-  {% if delimiter %}
-    {% for folder in result_folders %}
-      <CommonPrefixes>
-        <Prefix>{{ folder }}</Prefix>
-      </CommonPrefixes>
-    {% endfor %}
-  {% endif %}
-  </ListBucketResult>"""
-
-S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
-<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Name>{{ bucket.name }}</Name>
-{% if prefix != None %}
-  <Prefix>{{ prefix }}</Prefix>
-{% endif %}
-  <MaxKeys>{{ max_keys }}</MaxKeys>
-  <KeyCount>{{ key_count }}</KeyCount>
-{% if delimiter %}
-  <Delimiter>{{ delimiter }}</Delimiter>
-{% endif %}
-{% if encoding_type %}
-  <EncodingType>{{ encoding_type }}</EncodingType>
-{% endif %}
-  <IsTruncated>{{ is_truncated }}</IsTruncated>
-{% if next_continuation_token %}
-  <NextContinuationToken>{{ next_continuation_token }}</NextContinuationToken>
-{% endif %}
-{% if start_after %}
-  <StartAfter>{{ start_after }}</StartAfter>
-{% endif %}
-  {% for key in result_keys %}
-    <Contents>
-      <Key>{{ key.safe_name(encoding_type) }}</Key>
-      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-      <ETag>{{ key.etag }}</ETag>
-      <Size>{{ key.size }}</Size>
-      <StorageClass>{{ key.storage_class }}</StorageClass>
-      {% if fetch_owner %}
-      <Owner>
-        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-        <DisplayName>webfile</DisplayName>
-      </Owner>
-      {% endif %}
-      {% if key.checksum_algorithm %}
-      <ChecksumAlgorithm>{{ key.checksum_algorithm }}</ChecksumAlgorithm>
-      {% endif %}
-    </Contents>
-  {% endfor %}
-  {% if delimiter %}
-    {% for folder in result_folders %}
-      <CommonPrefixes>
-        <Prefix>{{ folder }}</Prefix>
-      </CommonPrefixes>
-    {% endfor %}
-  {% endif %}
-  </ListBucketResult>"""
-
-S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <CreateBucketResponse>
-    <Bucket>{{ bucket.name }}</Bucket>
-  </CreateBucketResponse>
-</CreateBucketResponse>"""
-
-
-S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <DeleteBucketResponse>
-    <Code>204</Code>
-    <Description>No Content</Description>
-  </DeleteBucketResponse>
-</DeleteBucketResponse>"""
-
-S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error><Code>BucketNotEmpty</Code>
-<Message>The bucket you tried to delete is not empty</Message>
-<BucketName>{{ bucket_name }}</BucketName>
-<RequestId>asdfasdfsdafds</RequestId>
-<HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
-</Error>"""
-
-S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
-<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{% if location != None %}{{ location }}{% endif %}</LocationConstraint>"""
-
-S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
-<LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    {% for rule in rules %}
-    <Rule>
-        <ID>{{ rule.id }}</ID>
-        {% if rule.filter %}
-        <Filter>
-            {% if rule.filter.prefix != None %}
-            <Prefix>{{ rule.filter.prefix }}</Prefix>
-            {% endif %}
-            {% if rule.filter.tag_key %}
-            <Tag>
-                <Key>{{ rule.filter.tag_key }}</Key>
-                <Value>{{ rule.filter.tag_value }}</Value>
-            </Tag>
-            {% endif %}
-            {% if rule.filter.and_filter %}
-            <And>
-                {% if rule.filter.and_filter.prefix != None %}
-                <Prefix>{{ rule.filter.and_filter.prefix }}</Prefix>
-                {% endif %}
-                {% for key, value in rule.filter.and_filter.tags.items() %}
-                <Tag>
-                    <Key>{{ key }}</Key>
-                    <Value>{{ value }}</Value>
-                </Tag>
-                {% endfor %}
-            </And>
-            {% endif %}
-        </Filter>
-        {% else %}
-            {% if rule.prefix != None %}
-            <Prefix>{{ rule.prefix }}</Prefix>
-            {% else %}
-            <Filter/>
-            {% endif %}
-        {% endif %}
-        <Status>{{ rule.status }}</Status>
-        {% for transition in rule.transitions %}
-            <Transition>
-                {% if transition.days %}
-                <Days>{{ transition.days }}</Days>
-                {% endif %}
-                {% if transition.date %}
-                <Date>{{ transition.date }}</Date>
-                {% endif %}
-                {% if transition.storage_class %}
-                <StorageClass>{{ transition.storage_class }}</StorageClass>
-                {% endif %}
-            </Transition>
-        {% endfor %}
-        {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
-        <Expiration>
-            {% if rule.expiration_days %}
-               <Days>{{ rule.expiration_days }}</Days>
-            {% endif %}
-            {% if rule.expiration_date %}
-               <Date>{{ rule.expiration_date }}</Date>
-            {% endif %}
-            {% if rule.expired_object_delete_marker %}
-                <ExpiredObjectDeleteMarker>{{ rule.expired_object_delete_marker }}</ExpiredObjectDeleteMarker>
-            {% endif %}
-        </Expiration>
-        {% endif %}
-        {% for nvt in rule.noncurrent_version_transitions %}
-            <NoncurrentVersionTransition>
-                {% if nvt.newer_versions %}
-                <NewerNoncurrentVersions>{{ nvt.newer_versions }}</NewerNoncurrentVersions>
-                {% endif %}
-                {% if nvt.days %}
-                <NoncurrentDays>{{ nvt.days }}</NoncurrentDays>
-                {% endif %}
-                {% if nvt.storage_class %}
-                <StorageClass>{{ nvt.storage_class }}</StorageClass>
-                {% endif %}
-            </NoncurrentVersionTransition>
-        {% endfor %}
-        {% if rule.nve_noncurrent_days %}
-        <NoncurrentVersionExpiration>
-           <NoncurrentDays>{{ rule.nve_noncurrent_days }}</NoncurrentDays>
-        </NoncurrentVersionExpiration>
-        {% endif %}
-        {% if rule.aimu_days %}
-        <AbortIncompleteMultipartUpload>
-           <DaysAfterInitiation>{{ rule.aimu_days }}</DaysAfterInitiation>
-        </AbortIncompleteMultipartUpload>
-        {% endif %}
-    </Rule>
-    {% endfor %}
-</LifecycleConfiguration>
-"""
-
-S3_BUCKET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
-<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    <Status>{{ bucket_versioning_status }}</Status>
-</VersioningConfiguration>
-"""
-
-S3_BUCKET_GET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
-{% if status is none %}
-    <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
-{% else %}
-    <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    <Status>{{ status }}</Status>
-    </VersioningConfiguration>
-{% endif %}
-"""
-
-S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
-<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-    <Name>{{ bucket.name }}</Name>
-    {% if prefix != None %}
-    <Prefix>{{ prefix }}</Prefix>
-    {% endif %}
-    {% if common_prefixes %}
-    {% for prefix in common_prefixes %}
-    <CommonPrefixes>
-        <Prefix>{{ prefix }}</Prefix>
-    </CommonPrefixes>
-    {% endfor %}
-    {% endif %}
-    <Delimiter>{{ delimiter }}</Delimiter>
-    <KeyMarker>{{ key_marker or "" }}</KeyMarker>
-    <VersionIdMarker>{{ version_id_marker or "" }}</VersionIdMarker>
-    <MaxKeys>{{ max_keys }}</MaxKeys>
-    {% if is_truncated %}
-    <IsTruncated>true</IsTruncated>
-    <NextKeyMarker>{{ next_key_marker }}</NextKeyMarker>
-    {% if next_version_id_marker %}
-    <NextVersionIdMarker>{{ next_version_id_marker }}</NextVersionIdMarker>
-    {% endif %}
-    {% else %}
-    <IsTruncated>false</IsTruncated>
-    {% endif %}
-    {% for key in key_list %}
-    <Version>
-        <Key>{{ key.name }}</Key>
-        <VersionId>{% if key.version_id is none %}null{% else %}{{ key.version_id }}{% endif %}</VersionId>
-        <IsLatest>{{ 'true' if key.is_latest else 'false' }}</IsLatest>
-        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-        <ETag>{{ key.etag }}</ETag>
-        <Size>{{ key.size }}</Size>
-        <StorageClass>{{ key.storage_class }}</StorageClass>
-        <Owner>
-            <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-            <DisplayName>webfile</DisplayName>
-        </Owner>
-    </Version>
-    {% endfor %}
-    {% for marker in delete_marker_list %}
-    <DeleteMarker>
-        <Key>{{ marker.name }}</Key>
-        <VersionId>{{ marker.version_id }}</VersionId>
-        <IsLatest>{{ 'true' if marker.is_latest else 'false' }}</IsLatest>
-        <LastModified>{{ marker.last_modified_ISO8601 }}</LastModified>
-        <Owner>
-            <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-            <DisplayName>webfile</DisplayName>
-        </Owner>
-    </DeleteMarker>
-    {% endfor %}
-</ListVersionsResult>
-"""
-
-S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-{% for k, v, dv in deleted %}
-<Deleted>
-<Key>{{k}}</Key>
-{% if v %}<VersionId>{{v}}</VersionId>{% endif %}
-{% if dv %}<DeleteMarkerVersionId>{{ dv }}</DeleteMarkerVersionId><DeleteMarker>true</DeleteMarker>{% endif %}
-</Deleted>
-{% endfor %}
-{% for k,c,m in delete_errors %}
-<Error>
-<Key>{{k}}</Key>
-<Code>{{c}}</Code>
-<Message>{{m}}</Message>
-</Error>
-{% endfor %}
-</DeleteResult>"""
-
-S3_DELETE_KEY_TAGGING_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<DeleteObjectTaggingResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-<VersionId>{{version_id}}</VersionId>
-</DeleteObjectTaggingResult>
-"""
-
-S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-    <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-      <Owner>
-        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-        <DisplayName>webfile</DisplayName>
-      </Owner>
-      <AccessControlList>
-        {% for grant in acl.grants %}
-        <Grant>
-          {% for grantee in grant.grantees %}
-          <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                   xsi:type="{{ grantee.type }}">
-            {% if grantee.uri %}
-            <URI>{{ grantee.uri }}</URI>
-            {% endif %}
-            {% if grantee.id %}
-            <ID>{{ grantee.id }}</ID>
-            {% endif %}
-            {% if grantee.display_name %}
-            <DisplayName>{{ grantee.display_name }}</DisplayName>
-            {% endif %}
-          </Grantee>
-          {% endfor %}
-          {% for permission in grant.permissions %}
-          <Permission>{{ permission }}</Permission>
-          {% endfor %}
-        </Grant>
-        {% endfor %}
-      </AccessControlList>
-    </AccessControlPolicy>"""
-
-S3_OBJECT_LEGAL_HOLD = """<?xml version="1.0" encoding="UTF-8"?>
-<LegalHold>
-   <Status>{{ legal_hold }}</Status>
-</LegalHold>
-"""
-
-S3_OBJECT_TAGGING_RESPONSE = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<Tagging xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <TagSet>
-    {% for tag in tags %}
-    <Tag>
-      <Key>{{ tag.Key }}</Key>
-      <Value>{{ tag.Value }}</Value>
-    </Tag>
-    {% endfor %}
-  </TagSet>
-</Tagging>"""
-
-S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<CORSConfiguration>
-  {% for cors in cors %}
-  <CORSRule>
-    {% for origin in cors.allowed_origins %}
-    <AllowedOrigin>{{ origin }}</AllowedOrigin>
-    {% endfor %}
-    {% for method in cors.allowed_methods %}
-    <AllowedMethod>{{ method }}</AllowedMethod>
-    {% endfor %}
-    {% if cors.allowed_headers is not none %}
-      {% for header in cors.allowed_headers %}
-      <AllowedHeader>{{ header }}</AllowedHeader>
-      {% endfor %}
-    {% endif %}
-    {% if cors.id_ is not none %}
-    <ID>{{ cors.id_ }}</ID>
-    {% endif %}
-    {% if cors.exposed_headers is not none %}
-      {% for header in cors.exposed_headers %}
-      <ExposeHeader>{{ header }}</ExposeHeader>
-      {% endfor %}
-    {% endif %}
-    {% if cors.max_age_seconds is not none %}
-    <MaxAgeSeconds>{{ cors.max_age_seconds }}</MaxAgeSeconds>
-    {% endif %}
-  </CORSRule>
-  {% endfor %}
-  </CORSConfiguration>
-"""
-
-# https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html
-S3_OBJECT_COPY_RESPONSE = """\
-<CopyObjectResult xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-    <ETag>{{ key.etag }}</ETag>
-    <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-    {% if key.checksum_value  %}
-      {% if "CRC32" in key.checksum_algorithm %}<ChecksumCRC32>{{ key.checksum_value }}</ChecksumCRC32>{% endif %}
-      {% if "CRC32C" in key.checksum_algorithm %}<ChecksumCRC32C>{{ key.checksum_value }}</ChecksumCRC32C>{% endif %}
-      {% if "SHA1" in key.checksum_algorithm %}<ChecksumSHA1>{{ key.checksum_value }}</ChecksumSHA1>{% endif %}
-      {% if "SHA256" in key.checksum_algorithm %}<ChecksumSHA256>{{ key.checksum_value }}</ChecksumSHA256>{% endif %}
-    {% endif %}
-</CopyObjectResult>"""
-
-S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Bucket>{{ bucket_name }}</Bucket>
-  <Key>{{ key_name }}</Key>
-  <UploadId>{{ upload_id }}</UploadId>
-</InitiateMultipartUploadResult>"""
-
-S3_MULTIPART_UPLOAD_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<CopyPartResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
-  <ETag>{{ part.etag }}</ETag>
-</CopyPartResult>"""
-
-S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<ListPartsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Bucket>{{ bucket_name }}</Bucket>
-  <Key>{{ key_name }}</Key>
-  <UploadId>{{ upload_id }}</UploadId>
-  <StorageClass>STANDARD</StorageClass>
-  <Initiator>
-    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-    <DisplayName>webfile</DisplayName>
-  </Initiator>
-  <Owner>
-    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-    <DisplayName>webfile</DisplayName>
-  </Owner>
-  <PartNumberMarker>{{ part_number_marker }}</PartNumberMarker>
-  <NextPartNumberMarker>{{ next_part_number_marker }}</NextPartNumberMarker>
-  <MaxParts>{{ max_parts }}</MaxParts>
-  <IsTruncated>{{ is_truncated }}</IsTruncated>
-  {% for part in parts %}
-  <Part>
-    <PartNumber>{{ part.name }}</PartNumber>
-    <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
-    <ETag>{{ part.etag }}</ETag>
-    <Size>{{ part.size }}</Size>
-  </Part>
-  {% endfor %}
-</ListPartsResult>"""
-
-S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Location>http://{{ bucket_name }}.s3.amazonaws.com/{{ key_name }}</Location>
-  <Bucket>{{ bucket_name }}</Bucket>
-  <Key>{{ key_name }}</Key>
-  <ETag>{{ etag }}</ETag>
-</CompleteMultipartUploadResult>
-"""
-
-S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
-<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Bucket>{{ bucket_name }}</Bucket>
-  <KeyMarker></KeyMarker>
-  <UploadIdMarker></UploadIdMarker>
-  <MaxUploads>1000</MaxUploads>
-  <IsTruncated>false</IsTruncated>
-  {% for upload in uploads %}
-  <Upload>
-    <Key>{{ upload.key_name }}</Key>
-    <UploadId>{{ upload.id }}</UploadId>
-    <Initiator>
-      <ID>arn:aws:iam::{{ account_id }}:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
-      <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
-    </Initiator>
-    <Owner>
-      <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-      <DisplayName>webfile</DisplayName>
-    </Owner>
-    <StorageClass>STANDARD</StorageClass>
-    <Initiated>2010-11-10T20:48:33.000Z</Initiated>
-  </Upload>
-  {% endfor %}
-</ListMultipartUploadsResult>
-"""
-
-S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchBucketPolicy</Code>
-  <Message>The bucket policy does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_LIFECYCLE = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchLifecycleConfiguration</Code>
-  <Message>The lifecycle configuration does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_BUCKET_TAGGING = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchTagSet</Code>
-  <Message>The TagSet does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_BUCKET_WEBSITE_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchWebsiteConfiguration</Code>
-  <Message>The specified bucket does not have a website configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_INVALID_CORS_REQUEST = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchWebsiteConfiguration</Code>
-  <Message>The specified bucket does not have a website configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_CORS_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchCORSConfiguration</Code>
-  <Message>The CORS configuration does not exist</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-  {% if logging %}
-  <LoggingEnabled>
-    <TargetBucket>{{ logging["TargetBucket"] }}</TargetBucket>
-    <TargetPrefix>{{ logging["TargetPrefix"] }}</TargetPrefix>
-    {% if logging.get("TargetGrants") %}
-    <TargetGrants>
-      {% for grant in logging["TargetGrants"] %}
-      <Grant>
-        <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xsi:type="{{ grant.grantees[0].type }}">
-          {% if grant.grantees[0].uri %}
-          <URI>{{ grant.grantees[0].uri }}</URI>
-          {% endif %}
-          {% if grant.grantees[0].id %}
-          <ID>{{ grant.grantees[0].id }}</ID>
-          {% endif %}
-          {% if grant.grantees[0].display_name %}
-          <DisplayName>{{ grant.grantees[0].display_name }}</DisplayName>
-          {% endif %}
-        </Grantee>
-        <Permission>{{ grant.permissions[0] }}</Permission>
-      </Grant>
-      {% endfor %}
-    </TargetGrants>
-    {% endif %}
-  </LoggingEnabled>
-  {% endif %}
-</BucketLoggingStatus>
-"""
-
-S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-    {% if encryption %}
-        <Rule>
-            <ApplyServerSideEncryptionByDefault>
-                <SSEAlgorithm>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
-                {% if encryption["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
-                <KMSMasterKeyID>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
-                {% endif %}
-            </ApplyServerSideEncryptionByDefault>
-            <BucketKeyEnabled>{{ 'true' if encryption["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
-        </Rule>
-    {% endif %}
-</ServerSideEncryptionConfiguration>
-"""
-
-S3_INVALID_PRESIGNED_PARAMETERS = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>SignatureDoesNotMatch</Code>
-  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_ENCRYPTION = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>ServerSideEncryptionConfigurationNotFoundError</Code>
-  <Message>The server side encryption configuration was not found</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>0D68A23BB2E2215B</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<NotificationConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  {% for topic in config.topic %}
-  <TopicConfiguration>
-    <Id>{{ topic.id }}</Id>
-    <Topic>{{ topic.arn }}</Topic>
-    {% for event in topic.events %}
-    <Event>{{ event }}</Event>
-    {% endfor %}
-    {% if topic.filters %}
-      <Filter>
-        <S3Key>
-          {% for rule in topic.filters["S3Key"]["FilterRule"] %}
-          <FilterRule>
-            <Name>{{ rule["Name"] }}</Name>
-            <Value>{{ rule["Value"] }}</Value>
-          </FilterRule>
-          {% endfor %}
-        </S3Key>
-      </Filter>
-    {% endif %}
-  </TopicConfiguration>
-  {% endfor %}
-  {% for queue in config.queue %}
-  <QueueConfiguration>
-    <Id>{{ queue.id }}</Id>
-    <Queue>{{ queue.arn }}</Queue>
-    {% for event in queue.events %}
-    <Event>{{ event }}</Event>
-    {% endfor %}
-    {% if queue.filters %}
-      <Filter>
-        <S3Key>
-          {% for rule in queue.filters["S3Key"]["FilterRule"] %}
-          <FilterRule>
-            <Name>{{ rule["Name"] }}</Name>
-            <Value>{{ rule["Value"] }}</Value>
-          </FilterRule>
-          {% endfor %}
-        </S3Key>
-      </Filter>
-    {% endif %}
-  </QueueConfiguration>
-  {% endfor %}
-  {% for cf in config.cloud_function %}
-  <CloudFunctionConfiguration>
-    <Id>{{ cf.id }}</Id>
-    <CloudFunction>{{ cf.arn }}</CloudFunction>
-    {% for event in cf.events %}
-    <Event>{{ event }}</Event>
-    {% endfor %}
-    {% if cf.filters %}
-      <Filter>
-        <S3Key>
-          {% for rule in cf.filters["S3Key"]["FilterRule"] %}
-          <FilterRule>
-            <Name>{{ rule["Name"] }}</Name>
-            <Value>{{ rule["Value"] }}</Value>
-          </FilterRule>
-          {% endfor %}
-        </S3Key>
-      </Filter>
-    {% endif %}
-  </CloudFunctionConfiguration>
-  {% endfor %}
-</NotificationConfiguration>
-"""
-
-S3_BUCKET_ACCELERATE = """
-<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  {% if accelerate_configuration %}
-  <Status>{{ accelerate_configuration }}</Status>
-  {% endif %}
-</AccelerateConfiguration>
-"""
-
-S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
-<PublicAccessBlockConfiguration>
-  <BlockPublicAcls>{{public_block_config.block_public_acls|string|lower}}</BlockPublicAcls>
-  <IgnorePublicAcls>{{public_block_config.ignore_public_acls|string|lower}}</IgnorePublicAcls>
-  <BlockPublicPolicy>{{public_block_config.block_public_policy|string|lower}}</BlockPublicPolicy>
-  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets|string|lower}}</RestrictPublicBuckets>
-</PublicAccessBlockConfiguration>
-"""
-
-S3_BUCKET_INVENTORY_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
-<InventoryConfiguration>
-   <Destination>
-      <S3BucketDestination>
-            {%if s3_bucket_config.get('AccountId') %}
-            <AccountId>{{s3_bucket_config['AccountId']}}</AccountId>
-            {% endif %}
-            <Bucket>{{s3_bucket_config['Bucket']}}</Bucket>
-            <Format>{{s3_bucket_config['Format']}}</Format>
-            {%if s3_bucket_config.get('Prefix') %}
-            <Prefix>{{s3_bucket_config['Prefix']}}</Prefix>
-            {% endif %}
-            {% if s3_bucket_config.get('Encryption') %}
-            <Encryption>
-                ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
-                {% if s3_bucket_config['Encryption'].get('SSE-KMS') %}
-                <SSE-KMS>
-                    <KeyId>{{s3_bucket_config['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
-                </SSE-KMS>
-                {% else %}
-                <SSES3/>
-                {% endif %}
-            </Encryption>
-            {% endif %}
-      </S3BucketDestination>
-   </Destination>
-   <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
-   <Filter>
-      <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
-   </Filter>
-   <Id>{{inventory_config.id}}</Id>
-   <IncludedObjectVersions>All</IncludedObjectVersions>
-   <OptionalFields>
-        {% for field in inventory_config.optional_fields['Field'] %}
-        <Field>{{ field }}</Field>
-        {% endfor %}
-   </OptionalFields>
-   <Schedule>
-      <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
-   </Schedule>
-</InventoryConfiguration>
-"""
-
-LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
-<ListInventoryConfigurationsResult>
-    <IsTruncated>false</IsTruncated>
-    {% for inventory_config in inventory_configuration_list %}
-    <InventoryConfiguration>
-        <Destination>
-            <S3BucketDestination>
-                    {%if inventory_config.destination["S3BucketDestination"].get('AccountId') %}
-                    <AccountId>{{inventory_config.destination["S3BucketDestination"]['AccountId']}}</AccountId>
-                    {% endif %}
-                    <Bucket>{{inventory_config.destination["S3BucketDestination"]['Bucket']}}</Bucket>
-                    <Format>{{inventory_config.destination["S3BucketDestination"]['Format']}}</Format>
-                    {%if inventory_config.destination["S3BucketDestination"].get('Prefix') %}
-                    <Prefix>{{inventory_config.destination["S3BucketDestination"]['Prefix']}}</Prefix>
-                    {% endif %}
-                    {% if inventory_config.destination["S3BucketDestination"].get('Encryption') %}
-                    <Encryption>
-                        ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
-                        {% if inventory_config.destination["S3BucketDestination"]['Encryption'].get('SSE-KMS') %}
-                        <SSE-KMS>
-                            <KeyId>{{inventory_config.destination["S3BucketDestination"]['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
-                        </SSE-KMS>
-                        {% else %}
-                        <SSES3/>
-                        {% endif %}
-                    </Encryption>
-                    {% endif %}
-            </S3BucketDestination>
-        </Destination>
-        <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
-        <Filter>
-            <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
-        </Filter>
-        <Id>{{inventory_config.id}}</Id>
-        <IncludedObjectVersions>All</IncludedObjectVersions>
-        <OptionalFields>
-                {% for field in inventory_config.optional_fields['Field'] %}
-                <Field>{{ field }}</Field>
-                {% endfor %}
-        </OptionalFields>
-        <Schedule>
-            <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
-        </Schedule>
-    </InventoryConfiguration>
-    {% endfor %}
-</ListInventoryConfigurationsResult>
-"""
-
-S3_BUCKET_LOCK_CONFIGURATION = """
-<ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    {%if lock_enabled %}
-    <ObjectLockEnabled>Enabled</ObjectLockEnabled>
-    {% else %}
-    <ObjectLockEnabled>Disabled</ObjectLockEnabled>
-    {% endif %}
-    {% if mode %}
-    <Rule>
-        <DefaultRetention>
-            <Mode>{{mode}}</Mode>
-            <Days>{{days}}</Days>
-            <Years>{{years}}</Years>
-        </DefaultRetention>
-    </Rule>
-    {% endif %}
-</ObjectLockConfiguration>
-"""
-
-S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>BucketAlreadyOwnedByYou</Code>
-  <Message>Your previous request to create the named bucket succeeded and you already own it.</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>44425877V1D0A2F9</RequestId>
-  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
-</Error>
-"""
-
-S3_NO_REPLICATION = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>ReplicationConfigurationNotFoundError</Code>
-  <Message>The replication configuration was not found</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
-  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
-</Error>
-"""
-
-S3_NO_VERSIONING_ENABLED = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>InvalidRequest</Code>
-  <Message>Versioning must be 'Enabled' on the bucket to apply a replication configuration</Message>
-  <BucketName>{{ bucket_name }}</BucketName>
-  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
-  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
-</Error>
-"""
-
-S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<ReplicationConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-{% for rule in replication["Rule"] %}
-<Rule>
-  <ID>{{ rule["ID"] }}</ID>
-  <Priority>{{ rule["Priority"] }}</Priority>
-  <Status>{{ rule["Status"] }}</Status>
-  <DeleteMarkerReplication>
-    <Status>Disabled</Status>
-  </DeleteMarkerReplication>
-  <Filter>
-    <Prefix></Prefix>
-  </Filter>
-  <Destination>
-    <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
-    {% if rule["Destination"].get("Account") %}
-    <Account>{{ rule["Destination"]["Account"] }}</Account>
-    {% endif %}
-  </Destination>
-</Rule>
-{% endfor %}
-<Role>{{ replication["Role"] }}</Role>
-</ReplicationConfiguration>
-"""
-
-S3_BUCKET_GET_OWNERSHIP_RULE = """<?xml version="1.0" encoding="UTF-8"?>
-<OwnershipControls xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    <Rule>
-        <ObjectOwnership>{{ownership_rule}}</ObjectOwnership>
-    </Rule>
-</OwnershipControls>
-"""
-
-S3_ERROR_BUCKET_ONWERSHIP_NOT_FOUND = """
-<Error>
-    <Code>OwnershipControlsNotFoundError</Code>
-    <Message>The bucket ownership controls were not found</Message>
-    <BucketName>{{bucket_name}}</BucketName>
-    <RequestId>294PFVCB9GFVXY2S</RequestId>
-    <HostId>l/tqqyk7HZbfvFFpdq3+CAzA9JXUiV4ZajKYhwolOIpnmlvZrsI88AKsDLsgQI6EvZ9MuGHhk7M=</HostId>
-</Error>
-"""
-
-
-S3_OBJECT_ATTRIBUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<GetObjectAttributesOutput xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    {% if etag is not none %}<ETag>{{ etag }}</ETag>{% endif %}
-    {% if checksum is not none %}
-      <Checksum>
-      {% if "CRC32" in checksum %}<ChecksumCRC32>{{ checksum["CRC32"] }}</ChecksumCRC32>{% endif %}
-      {% if "CRC32C" in checksum %}<ChecksumCRC32C>{{ checksum["CRC32C"] }}</ChecksumCRC32C>{% endif %}
-      {% if "SHA1" in checksum %}<ChecksumSHA1>{{ checksum["SHA1"] }}</ChecksumSHA1>{% endif %}
-      {% if "SHA256" in checksum %}<ChecksumSHA256>{{ checksum["SHA256"] }}</ChecksumSHA256>{% endif %}
-      </Checksum>
-    {% endif %}
-    {% if size is not none %}<ObjectSize>{{ size }}</ObjectSize>{% endif %}
-    {% if storage_class is not none %}<StorageClass>{{ storage_class }}</StorageClass>{% endif %}
-</GetObjectAttributesOutput>
-"""

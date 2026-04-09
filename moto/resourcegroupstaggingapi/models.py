@@ -15,7 +15,6 @@ from moto.connectcampaigns.models import (
     connectcampaigns_backends,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.exceptions import RESTError
 from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -45,6 +44,9 @@ from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
+from moto.resourcegroupstaggingapi.exceptions import (
+    ResourceGroupsTaggingAPIError as RESTError,
+)
 from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
@@ -1210,6 +1212,35 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{service_network.arn}", "Tags": tags}
+
+            # Service Network VPC Associations
+            for (
+                assoc
+            ) in self.vpclattice_backend.service_network_vpc_associations.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(assoc.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{assoc.arn}", "Tags": tags}
+
+            # Rules
+            for rule in self.vpclattice_backend.rules.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(rule.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{rule.arn}", "Tags": tags}
+
+            # Access Log Subscriptions
+            for sub in self.vpclattice_backend.access_log_subscriptions.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(sub.arn)[
+                    "Tags"
+                ]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{sub.arn}", "Tags": tags}
 
         # Workspaces
         if self.workspaces_backend and (

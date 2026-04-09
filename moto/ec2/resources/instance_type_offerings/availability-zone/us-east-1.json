@@ -12196,6 +12196,10 @@
   "Location": "us-east-1c"
  },
  {
+  "InstanceType": "mac-m4max.metal",
+  "Location": "us-east-1c"
+ },
+ {
   "InstanceType": "mac-m4pro.metal",
   "Location": "us-east-1c"
  },

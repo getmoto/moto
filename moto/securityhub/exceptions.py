@@ -1,10 +1,10 @@
 """Exceptions raised by the securityhub service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class SecurityHubClientError(JsonRESTError):
-    code = 400
+class SecurityHubClientError(ServiceException):
+    pass
 
 
 class _InvalidOperationException(SecurityHubClientError):

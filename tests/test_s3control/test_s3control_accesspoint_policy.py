@@ -111,6 +111,7 @@ def test_get_unknown_access_point_policy_status():
 
     with pytest.raises(ClientError) as exc:
         client.get_access_point_policy_status(AccountId="111111111111", Name="ap_name")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchAccessPointPolicy"
     assert err["Message"] == "The specified accesspoint policy does not exist"

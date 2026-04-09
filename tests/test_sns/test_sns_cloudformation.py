@@ -105,6 +105,38 @@ def test_sns_delete_topic(with_properties):
     assert len(topics) == 0
 
 
+@mock_aws
+@pytest.mark.parametrize("fifo", [True, False])
+def test_sns_fifo_topic(fifo):
+    topic_name = "test.fifo" if fifo else "test"
+
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MySNSTopic": {
+                "Type": "AWS::SNS::Topic",
+                "Properties": {"TopicName": topic_name, "FifoTopic": fifo},
+            }
+        },
+    }
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template))
+
+    sns = boto3.client("sns", region_name="us-west-1")
+    topics = sns.list_topics()["Topics"]
+
+    assert len(topics) == 1
+    topic_arn = topics[0]["TopicArn"]
+    assert topic_arn.endswith(topic_name)
+
+    topic = sns.get_topic_attributes(TopicArn=topic_arn)
+
+    if fifo:
+        assert topic["Attributes"]["FifoTopic"] == "true"
+    else:
+        assert "FifoTopic" not in topic["Attributes"]
+
+
 def get_template(with_properties):
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

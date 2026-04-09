@@ -116,9 +116,10 @@ def test_describe_multi_region_access_point_operation_not_found():
             AccountId=ACCOUNT_ID,
             RequestTokenARN="arn:aws:s3:us-east-1:123456789012:async-request/mrap/invalid/token",
         )
-
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchAsyncRequest"
+    assert "RequestTokenARN" in err
 
 
 @mock_aws
@@ -346,9 +347,10 @@ def test_get_multi_region_access_point_policy_not_found():
         client.get_multi_region_access_point_policy(
             AccountId=ACCOUNT_ID, Name="mrap-no-policy"
         )
-
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchMultiRegionAccessPointPolicy"
+    assert "Name" in err
 
 
 @mock_aws
@@ -443,9 +445,10 @@ def test_delete_multi_region_access_point():
         client.get_multi_region_access_point(
             AccountId=ACCOUNT_ID, Name="mrap-to-delete"
         )
-
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchMultiRegionAccessPoint"
+    assert "Name" in err
 
 
 @mock_aws

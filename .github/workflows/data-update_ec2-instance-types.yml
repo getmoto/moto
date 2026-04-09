@@ -9,7 +9,7 @@ name: "DataUpdate_EC2InstanceTypes"
 
 on:
   schedule:
-    - cron: '00 8 * * 0'
+    - cron: '00 8 1 * *'
   workflow_dispatch:
 
 jobs:

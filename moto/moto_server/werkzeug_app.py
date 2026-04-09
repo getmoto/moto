@@ -44,6 +44,7 @@ UNSIGNED_ACTIONS = {
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
+    "bedrock-agentcore": "bedrock-agentcore-control",
     "eventbridge": "events",
     "execute-api": "iot",
     "iotdata": "data.iot",
@@ -128,6 +129,8 @@ class DomainDispatcherApplication:
             if not service:
                 service, region = self.get_service_from_body(body, environ)
             if not service:
+                service, region = self.get_service_from_unsigned_path(path)
+            if not service:
                 service, region = self.get_service_from_path(path)
             if not service:
                 return None
@@ -211,7 +214,9 @@ class DomainDispatcherApplication:
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
-        elif path_info.startswith("/latest/meta-data/"):
+        elif path_info.startswith("/latest/meta-data/") or path_info.startswith(
+            "/latest/api/"
+        ):
             host = "instance_metadata"
         else:
             host = None
@@ -287,6 +292,26 @@ class DomainDispatcherApplication:
             return service, region
         except (AttributeError, KeyError, ValueError):
             return None, None
+
+    @staticmethod
+    def get_service_from_unsigned_path(
+        path_info: str,
+    ) -> tuple[Optional[str], Optional[str]]:
+        # Must run before get_service_from_path, which would misparse the user pool ID
+        # prefix (e.g., "us-east-1" from "us-east-1_abc123") as a service name.
+        #
+        # Some unsigned GET requests can be routed based on the URL path alone.
+        # For example, Cognito JWKS endpoint:
+        #   GET /{user_pool_id}/.well-known/jwks.json
+        # The user_pool_id starts with the region (e.g. us-east-1_abc123).
+        if path_info.rstrip("/").endswith("/.well-known/jwks.json"):
+            # Extract region from user pool ID (format: {region}_{id})
+            pool_id = path_info.strip("/").split("/")[0]
+            if "_" not in pool_id:
+                return "cognito-idp", "us-east-1"
+            region = pool_id.rsplit("_", 1)[0]
+            return "cognito-idp", region
+        return None, None
 
     def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:
         backend_app = self.get_application(environ)
