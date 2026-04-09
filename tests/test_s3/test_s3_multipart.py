@@ -16,7 +16,6 @@ from moto.core.compat import HAS_CRC32C, HAS_CRT
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
-    TEST_SERVER_MODE,
     get_s3_default_key_buffer_size,
     is_test_proxy_mode,
 )
@@ -424,7 +423,7 @@ def test_multipart_etag_quotes_stripped():
 def test_multipart_composite_checksum_reports_parts_correctly(
     part_count, expected_composite_checksum, expected_checksum_qualified
 ):
-    if TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         return pytest.skip(
             "Can't use @reduced_min_part_size in server mode. Checksums won't match."
         )
@@ -557,7 +556,7 @@ def test_multipart_checksums(
     expected_type,
     expected_checksum,
 ):
-    if TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         return pytest.skip(
             "Can't use @reduced_min_part_size in server mode. Checksums won't match."
         )
