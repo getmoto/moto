@@ -1,6 +1,7 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
-from unittest import SkipTest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
