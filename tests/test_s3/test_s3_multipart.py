@@ -1455,3 +1455,16 @@ def test_multipart_upload_overwrites(bucket_name=None):
     content = result["Body"].read()
 
     assert content == new_data
+
+
+@mock_aws
+def test_multipart_response_contains_checksum_attributes():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    bucket = s3.create_bucket(Bucket="bucket")
+    s3.Object("bucket", "key").initiate_multipart_upload(
+        ChecksumAlgorithm="SHA256",
+        ChecksumType="COMPOSITE",
+    )
+    (upload,) = bucket.multipart_uploads.all()
+    assert upload.checksum_algorithm == "SHA256"
+    assert upload.checksum_type == "COMPOSITE"
