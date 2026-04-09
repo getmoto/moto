@@ -2641,7 +2641,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         acl: Optional[FakeAcl],
         sse_encryption: str,
         kms_key_id: str,
-    ) -> str:
+    ) -> FakeMultipart:
         multipart = FakeMultipart(
             key_name,
             metadata,
@@ -2656,7 +2656,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         bucket = self.get_bucket(bucket_name)
         bucket.multiparts[multipart.id] = multipart
-        return multipart.id
+        return multipart
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[tuple[int, str]]

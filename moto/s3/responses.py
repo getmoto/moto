@@ -701,6 +701,8 @@ class S3Response(BaseResponse):
                 },
                 "StorageClass": "STANDARD",
                 "Initiated": "2010-11-10T20:48:33.000Z",
+                "ChecksumAlgorithm": upload.metadata.get("x-amz-checksum-algorithm"),
+                "ChecksumType": upload.metadata.get("x-amz-checksum-type"),
             }
             for upload in multiparts
         ]
@@ -3097,7 +3099,7 @@ class S3Response(BaseResponse):
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             acl = self._acl_from_headers(request.headers)
 
-            multipart_id = self.backend.create_multipart_upload(
+            multipart = self.backend.create_multipart_upload(
                 bucket_name,
                 key_name,
                 metadata,
@@ -3120,7 +3122,11 @@ class S3Response(BaseResponse):
                     {
                         "Bucket": bucket_name,
                         "Key": key_name,
-                        "UploadId": multipart_id,
+                        "UploadId": multipart.id,
+                        "ChecksumAlgorithm": multipart.metadata.get(
+                            "x-amz-checksum-algorithm"
+                        ),
+                        "ChecksumType": multipart.metadata.get("x-amz-checksum-type"),
                     }
                 )
             )
