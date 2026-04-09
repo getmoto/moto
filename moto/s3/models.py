@@ -466,8 +466,8 @@ class FakeMultipart(BaseModel):
         self.kms_key_id = kms_key_id
 
     def complete(
-        self, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[bytearray, str, Optional[Tuple[str, str, int]]]:
+        self, body: Iterator[tuple[int, str]]
+    ) -> tuple[bytearray, str, Optional[tuple[str, str, int]]]:
         checksum_algo: Optional[str] = self.metadata.get("x-amz-checksum-algorithm")
         checksum_type: Optional[str] = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
@@ -558,7 +558,7 @@ class MultipartChecksumBuilder:
 
         self.part_count += 1
 
-    def build(self) -> Optional[Tuple[str, str, int]]:
+    def build(self) -> Optional[tuple[str, str, int]]:
         if self.checksum_type == "COMPOSITE":
             return (
                 self.checksum_type,

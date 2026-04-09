@@ -2038,7 +2038,8 @@ class S3Response(BaseResponse):
             "ObjectSize": response_keys["size"],
             "StorageClass": response_keys["storage_class"],
         }
-
+        if checksum:
+            result["Checksum"]["ChecksumType"] = checksum.get("type")
         self.data["Action"] = "GetObjectAttributes"
         status, headers, body = self.serialized(ActionResult(result))
         headers.update(response_headers)
