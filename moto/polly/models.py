@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from xml.etree import ElementTree as ET
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -46,7 +46,7 @@ class Lexicon(BaseModel):
         except Exception as err:
             raise ValueError(f"Failure parsing XML: {err}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Attributes": {
                 "Alphabet": self.alphabet,
@@ -65,9 +65,9 @@ class Lexicon(BaseModel):
 class PollyBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._lexicons: Dict[str, Lexicon] = {}
+        self._lexicons: dict[str, Lexicon] = {}
 
-    def describe_voices(self, language_code: str) -> List[Dict[str, Any]]:
+    def describe_voices(self, language_code: str) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -84,7 +84,7 @@ class PollyBackend(BaseBackend):
         # Raises KeyError
         return self._lexicons[name]
 
-    def list_lexicons(self) -> List[Dict[str, Any]]:
+    def list_lexicons(self) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """

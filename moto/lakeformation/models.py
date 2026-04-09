@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -24,7 +24,7 @@ class Resource(BaseModel):
         self.arn = arn
         self.role_arn = role_arn
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ResourceArn": self.arn,
             "RoleArn": self.role_arn,
@@ -34,10 +34,10 @@ class Resource(BaseModel):
 class Permission:
     def __init__(
         self,
-        principal: Dict[str, str],
-        resource: Dict[str, Any],
-        permissions: List[str],
-        permissions_with_grant_options: List[str],
+        principal: dict[str, str],
+        resource: dict[str, Any],
+        permissions: list[str],
+        permissions_with_grant_options: list[str],
     ):
         self.principal = principal
         self.resource = resource
@@ -93,7 +93,7 @@ class Permission:
             len(self.permissions) == 0 and len(self.permissions_with_grant_options) == 0
         )
 
-    def to_external_form(self) -> Dict[str, Any]:
+    def to_external_form(self) -> dict[str, Any]:
         return {
             "Permissions": self.permissions,
             "PermissionsWithGrantOption": self.permissions_with_grant_options,
@@ -104,7 +104,7 @@ class Permission:
 
 class PermissionCatalog:
     def __init__(self) -> None:
-        self.permissions: Set[Permission] = set()
+        self.permissions: set[Permission] = set()
 
     def add_permission(self, permission: Permission) -> None:
         for existing_permission in self.permissions:
@@ -141,7 +141,7 @@ class ListPermissionsResourceTable:
         database_name: str,
         name: Optional[str],
         table_wildcard: Optional[
-            Dict[str, str]
+            dict[str, str]
         ],  # Placeholder type, table_wildcard is an empty dict in docs
     ):
         if name is None and table_wildcard is None:
@@ -155,7 +155,7 @@ class ListPermissionsResourceTable:
 
 
 class ExcludedColumnNames:
-    def __init__(self, excluded_column_names: List[str]):
+    def __init__(self, excluded_column_names: list[str]):
         self.excluded_column_names = excluded_column_names
 
 
@@ -165,7 +165,7 @@ class ListPermissionsResourceTableWithColumns:
         catalog_id: Optional[str],
         database_name: str,
         name: str,
-        column_names: List[str],
+        column_names: list[str],
         column_wildcard: ExcludedColumnNames,
     ):
         self.database_name = database_name
@@ -192,20 +192,20 @@ class ListPermissionsResourceDataCellsFilter:
 
 
 class ListPermissionsResourceLFTag:
-    def __init__(self, catalog_id: str, tag_key: str, tag_values: List[str]):
+    def __init__(self, catalog_id: str, tag_key: str, tag_values: list[str]):
         self.catalog_id = catalog_id
         self.tag_key = tag_key
         self.tag_values = tag_values
 
 
 class LFTag:
-    def __init__(self, tag_key: str, tag_values: List[str]):
+    def __init__(self, tag_key: str, tag_values: list[str]):
         self.tag_key = tag_key
         self.tag_values = tag_values
 
 
 class ListPermissionsResourceLFTagPolicy:
-    def __init__(self, catalog_id: str, resource_type: str, expression: List[LFTag]):
+    def __init__(self, catalog_id: str, resource_type: str, expression: list[LFTag]):
         self.catalog_id = catalog_id
         self.resource_type = resource_type
         self.expression = expression
@@ -215,7 +215,7 @@ class ListPermissionsResource:
     def __init__(
         self,
         catalog: Optional[
-            Dict[str, str]
+            dict[str, str]
         ],  # Placeholder type, catalog is an empty dict in docs
         database: Optional[ListPermissionsResourceDatabase],
         table: Optional[ListPermissionsResourceTable],
@@ -246,7 +246,7 @@ class ListPermissionsResource:
         self.lf_tag_policy = lf_tag_policy
 
 
-def default_settings() -> Dict[str, Any]:
+def default_settings() -> dict[str, Any]:
     return {
         "DataLakeAdmins": [],
         "CreateDatabaseDefaultPermissions": [
@@ -270,13 +270,13 @@ def default_settings() -> Dict[str, Any]:
 class LakeFormationBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.resources: Dict[str, Resource] = dict()
-        self.settings: Dict[str, Dict[str, Any]] = defaultdict(default_settings)
-        self.grants: Dict[str, PermissionCatalog] = {}
+        self.resources: dict[str, Resource] = {}
+        self.settings: dict[str, dict[str, Any]] = defaultdict(default_settings)
+        self.grants: dict[str, PermissionCatalog] = {}
         self.tagger = TaggingService()
-        self.lf_database_tags: Dict[Tuple[str, str], List[Dict[str, str]]] = {}
-        self.lf_table_tags: Dict[Tuple[str, str, str], List[Dict[str, str]]] = {}
-        self.lf_columns_tags: Dict[Tuple[str, ...], List[Dict[str, str]]] = {}
+        self.lf_database_tags: dict[tuple[str, str], list[dict[str, str]]] = {}
+        self.lf_table_tags: dict[tuple[str, str, str], list[dict[str, str]]] = {}
+        self.lf_columns_tags: dict[tuple[str, ...], list[dict[str, str]]] = {}
 
     def describe_resource(self, resource_arn: str) -> Resource:
         if resource_arn not in self.resources:
@@ -295,22 +295,22 @@ class LakeFormationBackend(BaseBackend):
             )
         self.resources[resource_arn] = Resource(resource_arn, role_arn)
 
-    def list_resources(self) -> List[Resource]:
+    def list_resources(self) -> list[Resource]:
         return list(self.resources.values())
 
-    def get_data_lake_settings(self, catalog_id: str) -> Dict[str, Any]:
+    def get_data_lake_settings(self, catalog_id: str) -> dict[str, Any]:
         return self.settings[catalog_id]
 
-    def put_data_lake_settings(self, catalog_id: str, settings: Dict[str, Any]) -> None:
+    def put_data_lake_settings(self, catalog_id: str, settings: dict[str, Any]) -> None:
         self.settings[catalog_id] = settings
 
     def grant_permissions(
         self,
         catalog_id: str,
-        principal: Dict[str, str],
-        resource: Dict[str, Any],
-        permissions: List[str],
-        permissions_with_grant_options: List[str],
+        principal: dict[str, str],
+        resource: dict[str, Any],
+        permissions: list[str],
+        permissions_with_grant_options: list[str],
     ) -> None:
         if catalog_id not in self.grants:
             self.grants[catalog_id] = PermissionCatalog()
@@ -327,10 +327,10 @@ class LakeFormationBackend(BaseBackend):
     def revoke_permissions(
         self,
         catalog_id: str,
-        principal: Dict[str, str],
-        resource: Dict[str, Any],
-        permissions_to_revoke: List[str],
-        permissions_with_grant_options_to_revoke: List[str],
+        principal: dict[str, str],
+        resource: dict[str, Any],
+        permissions_to_revoke: list[str],
+        permissions_with_grant_options_to_revoke: list[str],
     ) -> None:
         if catalog_id not in self.grants:
             return
@@ -349,10 +349,10 @@ class LakeFormationBackend(BaseBackend):
     def list_permissions(
         self,
         catalog_id: str,
-        principal: Optional[Dict[str, str]] = None,
+        principal: Optional[dict[str, str]] = None,
         resource: Optional[ListPermissionsResource] = None,
         resource_type: Optional[RessourceType] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         No pagination has been implemented yet.
         """
@@ -453,13 +453,13 @@ class LakeFormationBackend(BaseBackend):
 
         return [permission.to_external_form() for permission in permissions]
 
-    def create_lf_tag(self, catalog_id: str, key: str, values: List[str]) -> None:
+    def create_lf_tag(self, catalog_id: str, key: str, values: list[str]) -> None:
         # There is no ARN that we can use, so just create another  unique identifier that's easy to recognize and reproduce
         arn = f"arn:lakeformation:{catalog_id}"
         tag_list = TaggingService.convert_dict_to_tags_input({key: values})  # type: ignore
         self.tagger.tag_resource(arn=arn, tags=tag_list)
 
-    def get_lf_tag(self, catalog_id: str, key: str) -> List[str]:
+    def get_lf_tag(self, catalog_id: str, key: str) -> list[str]:
         # There is no ARN that we can use, so just create another  unique identifier that's easy to recognize and reproduce
         arn = f"arn:lakeformation:{catalog_id}"
         all_tags = self.tagger.get_tag_dict_for_resource(arn=arn)
@@ -484,13 +484,13 @@ class LakeFormationBackend(BaseBackend):
                 tag for tag in self.lf_columns_tags[column] if tag["TagKey"] != key
             ]
 
-    def list_lf_tags(self, catalog_id: str) -> Dict[str, str]:
+    def list_lf_tags(self, catalog_id: str) -> dict[str, str]:
         # There is no ARN that we can use, so just create another  unique identifier that's easy to recognize and reproduce
         arn = f"arn:lakeformation:{catalog_id}"
         return self.tagger.get_tag_dict_for_resource(arn=arn)
 
     def update_lf_tag(
-        self, catalog_id: str, tag_key: str, to_delete: List[str], to_add: List[str]
+        self, catalog_id: str, tag_key: str, to_delete: list[str], to_add: list[str]
     ) -> None:
         arn = f"arn:lakeformation:{catalog_id}"
         existing_tags = self.list_lf_tags(catalog_id)
@@ -501,14 +501,14 @@ class LakeFormationBackend(BaseBackend):
             arn, TaggingService.convert_dict_to_tags_input(existing_tags)
         )
 
-    def list_data_cells_filter(self) -> List[Dict[str, Any]]:
+    def list_data_cells_filter(self) -> list[dict[str, Any]]:
         """
         This currently just returns an empty list, as the corresponding Create is not yet implemented
         """
         return []
 
     def batch_grant_permissions(
-        self, catalog_id: str, entries: List[Dict[str, Any]]
+        self, catalog_id: str, entries: list[dict[str, Any]]
     ) -> None:
         for entry in entries:
             self.grant_permissions(
@@ -520,7 +520,7 @@ class LakeFormationBackend(BaseBackend):
             )
 
     def batch_revoke_permissions(
-        self, catalog_id: str, entries: List[Dict[str, Any]]
+        self, catalog_id: str, entries: list[dict[str, Any]]
     ) -> None:
         for entry in entries:
             self.revoke_permissions(
@@ -534,8 +534,8 @@ class LakeFormationBackend(BaseBackend):
             )
 
     def add_lf_tags_to_resource(
-        self, catalog_id: str, resource: Dict[str, Any], tags: List[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
+        self, catalog_id: str, resource: dict[str, Any], tags: list[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         existing_lf_tags = self.list_lf_tags(catalog_id)
         failures = []
 
@@ -577,9 +577,9 @@ class LakeFormationBackend(BaseBackend):
 
     def get_resource_lf_tags(
         self,
-        catalog_id: str,  # pylint: disable=unused-argument
-        resource: Dict[str, Any],
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        catalog_id: str,
+        resource: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
         database_tags = []
         table_tags = []
         column_tags = []
@@ -607,7 +607,7 @@ class LakeFormationBackend(BaseBackend):
         return database_tags, table_tags, column_tags
 
     def remove_lf_tags_from_resource(
-        self, catalog_id: str, resource: Dict[str, Any], tags: List[Dict[str, str]]
+        self, catalog_id: str, resource: dict[str, Any], tags: list[dict[str, str]]
     ) -> None:
         for tag in tags:
             if "CatalogId" not in tag:

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.utilities.utils import filter_resources
 
@@ -9,7 +9,7 @@ from .core import TaggedEC2Resource
 
 class CarrierGateway(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend: Any, vpc_id: str, tags: Optional[Dict[str, str]] = None
+        self, ec2_backend: Any, vpc_id: str, tags: Optional[dict[str, str]] = None
     ):
         self.id = random_carrier_gateway_id()
         self.ec2_backend = ec2_backend
@@ -28,10 +28,10 @@ class CarrierGateway(TaggedEC2Resource):
 
 class CarrierGatewayBackend:
     def __init__(self) -> None:
-        self.carrier_gateways: Dict[str, CarrierGateway] = {}
+        self.carrier_gateways: dict[str, CarrierGateway] = {}
 
     def create_carrier_gateway(
-        self, vpc_id: str, tags: Optional[Dict[str, str]] = None
+        self, vpc_id: str, tags: Optional[dict[str, str]] = None
     ) -> CarrierGateway:
         vpc = self.get_vpc(vpc_id)  # type: ignore[attr-defined]
         if not vpc:
@@ -48,8 +48,8 @@ class CarrierGatewayBackend:
         return carrier_gateway
 
     def describe_carrier_gateways(
-        self, ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[CarrierGateway]:
+        self, ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[CarrierGateway]:
         carrier_gateways = list(self.carrier_gateways.values())
 
         if ids:

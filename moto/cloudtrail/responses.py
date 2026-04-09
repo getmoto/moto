@@ -1,7 +1,7 @@
 """Handles incoming cloudtrail requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -131,11 +131,11 @@ class CloudTrailResponse(BaseResponse):
             advanced_event_selectors=advanced_event_selectors,
         )
         return json.dumps(
-            dict(
-                TrailARN=trail_arn,
-                EventSelectors=event_selectors,
-                AdvancedEventSelectors=advanced_event_selectors,
-            )
+            {
+                "TrailARN": trail_arn,
+                "EventSelectors": event_selectors,
+                "AdvancedEventSelectors": advanced_event_selectors,
+            }
         )
 
     def get_event_selectors(self) -> str:
@@ -147,11 +147,11 @@ class CloudTrailResponse(BaseResponse):
             advanced_event_selectors,
         ) = self.cloudtrail_backend.get_event_selectors(trail_name=trail_name)
         return json.dumps(
-            dict(
-                TrailARN=trail_arn,
-                EventSelectors=event_selectors,
-                AdvancedEventSelectors=advanced_event_selectors,
-            )
+            {
+                "TrailARN": trail_arn,
+                "EventSelectors": event_selectors,
+                "AdvancedEventSelectors": advanced_event_selectors,
+            }
         )
 
     def add_tags(self) -> str:
@@ -159,7 +159,7 @@ class CloudTrailResponse(BaseResponse):
         resource_id = params.get("ResourceId")
         tags_list = params.get("TagsList")
         self.cloudtrail_backend.add_tags(resource_id=resource_id, tags_list=tags_list)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def remove_tags(self) -> str:
         resource_id = self._get_param("ResourceId")
@@ -167,7 +167,7 @@ class CloudTrailResponse(BaseResponse):
         self.cloudtrail_backend.remove_tags(
             resource_id=resource_id, tags_list=tags_list
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags(self) -> str:
         params = json.loads(self.body)
@@ -175,7 +175,7 @@ class CloudTrailResponse(BaseResponse):
         resource_tag_list = self.cloudtrail_backend.list_tags(
             resource_id_list=resource_id_list
         )
-        return json.dumps(dict(ResourceTagList=resource_tag_list))
+        return json.dumps({"ResourceTagList": resource_tag_list})
 
     def put_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
@@ -183,14 +183,16 @@ class CloudTrailResponse(BaseResponse):
         trail_arn, insight_selectors = self.cloudtrail_backend.put_insight_selectors(
             trail_name=trail_name, insight_selectors=insight_selectors
         )
-        return json.dumps(dict(TrailARN=trail_arn, InsightSelectors=insight_selectors))
+        return json.dumps(
+            {"TrailARN": trail_arn, "InsightSelectors": insight_selectors}
+        )
 
     def get_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
         trail_arn, insight_selectors = self.cloudtrail_backend.get_insight_selectors(
             trail_name=trail_name
         )
-        resp: Dict[str, Any] = {"TrailARN": trail_arn}
+        resp: dict[str, Any] = {"TrailARN": trail_arn}
         if insight_selectors:
             resp["InsightSelectors"] = insight_selectors
         return json.dumps(resp)

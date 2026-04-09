@@ -8,6 +8,20 @@ Supported Models for State Transitions
 ============================================
 
 
+Service: Athena
+-----------------
+
+**Model**: `athena::execution`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "QUEUED" --> "RUNNING" --> "SUCCEEDED"
+
+Transition type: `immediate`  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("athena").get_query_execution(..)` to advance the status of a single execution.
+
+
 Service: Batch
 -----------------
 
@@ -68,6 +82,17 @@ Transition type: `immediate`  :raw-html:`<br />`
 Advancement:
 
     Call `boto3.client("glue").get_job_run(..)`
+
+
+**Model**: `glue::crawl`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "RUNNING" --> "COMPLETED"
+
+Transition type: `manual`  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("glue").list_crawls(..)`
 
 Service: S3 (Glacier Restoration)
 -----------------------------------
@@ -147,3 +172,35 @@ Transition type: Manual - describe the resource 1 time before the state advances
 Advancement:
 
     Call `boto3.client("ecs").describe_tasks(..)`
+
+Service: DMS
+---------------------
+
+**Model**: `dms::replication_instance`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "creating" --> "available"   :raw-html:`<br />`
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("dms").replication_instance(..)`
+**Model**: `dms::connection`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "testing" --> "success"
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("dms").describe_connections(..)`
+
+**Model**: `dms::replicationinstance`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "creating" --> "available"   :raw-html:`<br />`
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("dms").describe_replication_instance(..)`

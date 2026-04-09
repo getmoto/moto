@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.common_models import ConfigQueryModel
 from moto.core.exceptions import InvalidNextTokenException
@@ -12,14 +12,14 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[List[str]],
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # The resource_region only matters for aggregated queries as you can filter on bucket regions for them.
         # For other resource types, you would need to iterate appropriately for the backend_region.
 
@@ -104,7 +104,7 @@ class S3ConfigQuery(ConfigQueryModel[S3Backend]):
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         # Get the bucket:
         bucket = self.backends[account_id][partition].buckets.get(resource_id)
 

@@ -1,7 +1,9 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 
 if TYPE_CHECKING:
@@ -32,13 +34,27 @@ class LaunchSpecification(BaseModel):
         self.key_name = key_name
         self.instance_type = instance_type
         self.image_id = image_id
-        self.groups: List[SecurityGroup] = []
-        self.placement = placement
-        self.kernel = kernel_id
-        self.ramdisk = ramdisk_id
+        self.groups: list[SecurityGroup] = []
+        self.availability_zone = placement
+        self.kernel_id = kernel_id
+        self.ramdisk_id = ramdisk_id
         self.monitored = monitored
         self.subnet_id = subnet_id
         self.ebs_optimized = False
+
+    @property
+    def placement(self) -> Optional[dict[str, Optional[str]]]:
+        if self.availability_zone:
+            return {"AvailabilityZone": self.availability_zone}
+        return None
+
+    @property
+    def security_groups(self) -> list["SecurityGroup"]:
+        return self.groups
+
+    @property
+    def monitoring(self) -> dict[str, bool]:
+        return {"Enabled": self.monitored}
 
 
 class SpotInstanceRequest(TaggedEC2Resource):
@@ -49,22 +65,23 @@ class SpotInstanceRequest(TaggedEC2Resource):
         price: str,
         image_id: str,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,
-        security_groups: List[str],
-        user_data: Dict[str, Any],
+        security_groups: list[str],
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
         ramdisk_id: Optional[str],
         monitoring_enabled: bool,
         subnet_id: str,
-        tags: Dict[str, Dict[str, str]],
+        tags: dict[str, dict[str, str]],
         spot_fleet_id: Optional[str],
         instance_interruption_behaviour: Optional[str],
+        launch_spec: Optional["SpotFleetLaunchSpec"] = None,
     ):
         super().__init__()
         self.ec2_backend = ec2_backend
@@ -80,7 +97,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         )
         self.id = spot_request_id
         self.state = "open"
-        self.status = "pending-evaluation"
+        self._status_code = "pending-evaluation"
         self.status_message = "Your Spot request has been submitted for review, and is pending evaluation."
         if price:
             price = f"{float(price):.6f}"  # round up/down to 6 decimals
@@ -95,6 +112,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         )
         self.user_data = user_data  # NOT
         self.spot_fleet_id = spot_fleet_id
+        self.launch_spec = launch_spec  # Track which launch spec created this request
         tag_map = tags.get("spot-instances-request", {})
         self.add_tags(tag_map)
         self.all_tags = tags
@@ -111,8 +129,54 @@ class SpotInstanceRequest(TaggedEC2Resource):
 
         self.instance = self.launch_instance()
         self.state = "active"
-        self.status = "fulfilled"
+        self._status_code = "fulfilled"
         self.status_message = ""
+
+    @property
+    def spot_instance_request_id(self) -> str:
+        return self.id
+
+    @property
+    def spot_price(self) -> str:
+        return self.price
+
+    @property
+    def instance_id(self) -> str:
+        return self.instance.id
+
+    @property
+    def status(self) -> dict[str, Any]:
+        return {
+            "Code": self._status_code,
+            "Message": self.status_message,
+            "UpdateTime": "2015-01-01T00:00:00.000Z",
+        }
+
+    @property
+    def product_description(self) -> str:
+        return "Linux/UNIX"
+
+    @property
+    def create_time(self) -> str:
+        return "2015-01-01T00:00:00.000Z"
+
+    @property
+    def instance_interruption_behavior(self) -> str:
+        return self.instance_interruption_behaviour
+
+    @property
+    def valid_from_as_string(self) -> Optional[str]:
+        if self.valid_from is None:
+            return self.valid_from
+        x = self.valid_from
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+
+    @property
+    def valid_until_as_string(self) -> Optional[str]:
+        if self.valid_until is None:
+            return self.valid_until
+        x = self.valid_until
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -147,7 +211,7 @@ class SpotFleetLaunchSpec:
     def __init__(
         self,
         ebs_optimized: Any,
-        group_set: List[str],
+        group_set: list[str],
         iam_instance_profile: Any,
         image_id: str,
         instance_type: str,
@@ -155,22 +219,46 @@ class SpotFleetLaunchSpec:
         monitoring: Any,
         spot_price: Any,
         subnet_id: Any,
-        tag_specifications: Dict[str, Dict[str, str]],
+        tag_specifications: dict[str, dict[str, str]],
         user_data: Any,
         weighted_capacity: float,
+        launch_template_spec: Optional[dict[str, Any]] = None,
+        overrides: Optional[dict[str, Any]] = None,
     ):
         self.ebs_optimized = ebs_optimized
         self.group_set = group_set
-        self.iam_instance_profile = iam_instance_profile
+        self._iam_instance_profile_arn = iam_instance_profile
         self.image_id = image_id
         self.instance_type = instance_type
         self.key_name = key_name
-        self.monitoring = monitoring
+        self.monitoring_enabled = monitoring
         self.spot_price = spot_price
         self.subnet_id = subnet_id
         self.tag_specifications = tag_specifications
         self.user_data = user_data
         self.weighted_capacity = float(weighted_capacity)
+        self.launch_template_spec = launch_template_spec
+        self.overrides = overrides
+
+    @property
+    def iam_instance_profile(self) -> Optional[dict[str, Any]]:
+        if self._iam_instance_profile_arn:
+            return {"Arn": self._iam_instance_profile_arn}
+        return None
+
+    @property
+    def monitoring(self) -> dict[str, Any]:
+        return {"Enabled": self.monitoring_enabled}
+
+    @property
+    def spot_fleet_tag_specification_list(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "ResourceType": resource_type,
+                "Tags": [{"Key": k, "Value": v} for k, v in tags.items()],
+            }
+            for resource_type, tags in self.tag_specifications.items()
+        ]
 
 
 class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
@@ -183,10 +271,10 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         target_capacity: str,
         iam_fleet_role: str,
         allocation_strategy: str,
-        launch_specs: List[Dict[str, Any]],
-        launch_template_config: Optional[List[Dict[str, Any]]],
+        launch_specs: list[dict[str, Any]],
+        launch_template_config: Optional[list[dict[str, Any]]],
         instance_interruption_behaviour: Optional[str],
-        tag_specifications: Optional[List[Dict[str, Any]]],
+        tag_specifications: Optional[list[dict[str, Any]]],
     ):
         self.ec2_backend = ec2_backend
         self.spot_backend = spot_backend
@@ -227,22 +315,22 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
             launch_template_data = launch_template.latest_version().data
             new_launch_template = launch_template_data.copy()
             if config.get("Overrides"):
-                overrides = list(config["Overrides"].values())[0]
+                overrides = config["Overrides"][0]
                 new_launch_template.update(overrides)
             launch_specs_from_config.append(new_launch_template)
 
         for spec in (launch_specs or []) + launch_specs_from_config:
-            tag_spec_set = spec.get("TagSpecificationSet", [])
+            tag_spec_set = spec.get("TagSpecifications", [])
             tags = convert_tag_spec(tag_spec_set)
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
                     ebs_optimized=spec.get("EbsOptimized"),
-                    group_set=spec.get("GroupSet", []),
-                    iam_instance_profile=spec.get("IamInstanceProfile"),
+                    group_set=spec.get("SecurityGroups", []),
+                    iam_instance_profile=spec.get("IamInstanceProfile", {}).get("Arn"),
                     image_id=spec["ImageId"],
                     instance_type=spec["InstanceType"],
                     key_name=spec.get("KeyName"),
-                    monitoring=spec.get("Monitoring"),
+                    monitoring=spec.get("Monitoring", {}).get("Enabled", False),
                     spot_price=spec.get("SpotPrice", self.spot_price),
                     subnet_id=spec.get("SubnetId"),
                     tag_specifications=tags,
@@ -251,8 +339,36 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
                 )
             )
 
-        self.spot_requests: List[SpotInstanceRequest] = []
+        self.spot_requests: list[SpotInstanceRequest] = []
         self.create_spot_requests(self.target_capacity)
+
+    @property
+    def tag_set(self) -> list[dict[str, str]]:
+        return [
+            {"Key": k, "Value": v}
+            for k, v in self.tags.get("spot-fleet-request", {}).items()
+        ]
+
+    @property
+    def spot_fleet_request_id(self) -> str:
+        return self.id
+
+    @property
+    def spot_fleet_request_state(self) -> str:
+        return self.state
+
+    @property
+    def spot_fleet_request_config(self) -> dict[str, Any]:
+        config: dict[str, Any] = {
+            "TargetCapacity": self.target_capacity,
+            "IamFleetRole": self.iam_fleet_role,
+            "AllocationStrategy": self.allocation_strategy,
+            "FulfilledCapacity": self.fulfilled_capacity,
+            "LaunchSpecifications": self.launch_specs,
+        }
+        if self.spot_price:
+            config["SpotPrice"] = self.spot_price
+        return config
 
     @property
     def physical_resource_id(self) -> str:
@@ -299,8 +415,8 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
     def get_launch_spec_counts(
         self, weight_to_add: float
-    ) -> Tuple[Dict[Any, int], float]:
-        weight_map: Dict[Any, int] = defaultdict(int)
+    ) -> tuple[dict[Any, int], float]:
+        weight_map: dict[Any, int] = defaultdict(int)
 
         weight_so_far = 0.0
         if self.allocation_strategy == "diversified":
@@ -370,7 +486,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
             if new_fulfilled_capacity - spec.weighted_capacity < self.target_capacity:
                 continue
-            new_fulfilled_capacity -= spec.weighted_capacity  # pylint: disable=W0631
+            new_fulfilled_capacity -= spec.weighted_capacity
             instance_ids.append(instance.id)
 
         self.spot_requests = [
@@ -381,8 +497,8 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
 class SpotRequestBackend:
     def __init__(self) -> None:
-        self.spot_instance_requests: Dict[str, SpotInstanceRequest] = {}
-        self.spot_fleet_requests: Dict[str, SpotFleetRequest] = {}
+        self.spot_instance_requests: dict[str, SpotInstanceRequest] = {}
+        self.spot_fleet_requests: dict[str, SpotFleetRequest] = {}
 
     def request_spot_instances(
         self,
@@ -390,23 +506,24 @@ class SpotRequestBackend:
         image_id: str,
         count: int,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,
-        security_groups: List[str],
-        user_data: Dict[str, Any],
+        security_groups: list[str],
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
         ramdisk_id: Optional[str],
         monitoring_enabled: bool,
         subnet_id: str,
-        tags: Optional[Dict[str, Dict[str, str]]] = None,
+        tags: Optional[dict[str, dict[str, str]]] = None,
         spot_fleet_id: Optional[str] = None,
         instance_interruption_behaviour: Optional[str] = None,
-    ) -> List[SpotInstanceRequest]:
+        launch_spec: Optional[SpotFleetLaunchSpec] = None,
+    ) -> list[SpotInstanceRequest]:
         requests = []
         tags = tags or {}
         for _ in range(count):
@@ -433,14 +550,15 @@ class SpotRequestBackend:
                 tags,
                 spot_fleet_id,
                 instance_interruption_behaviour,
+                launch_spec,
             )
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
 
     def describe_spot_instance_requests(
-        self, filters: Any = None, spot_instance_ids: Optional[List[str]] = None
-    ) -> List[SpotInstanceRequest]:
+        self, filters: Any = None, spot_instance_ids: Optional[list[str]] = None
+    ) -> list[SpotInstanceRequest]:
         requests = list(self.spot_instance_requests.values())
 
         if spot_instance_ids:
@@ -449,8 +567,8 @@ class SpotRequestBackend:
         return generic_filter(filters, requests)
 
     def cancel_spot_instance_requests(
-        self, request_ids: List[str]
-    ) -> List[SpotInstanceRequest]:
+        self, request_ids: list[str]
+    ) -> list[SpotInstanceRequest]:
         requests = []
         for request_id in request_ids:
             requests.append(self.spot_instance_requests.pop(request_id))
@@ -462,10 +580,10 @@ class SpotRequestBackend:
         target_capacity: str,
         iam_fleet_role: str,
         allocation_strategy: str,
-        launch_specs: List[Dict[str, Any]],
-        launch_template_config: Optional[List[Dict[str, Any]]] = None,
+        launch_specs: list[dict[str, Any]],
+        launch_template_config: Optional[list[dict[str, Any]]] = None,
         instance_interruption_behaviour: Optional[str] = None,
-        tag_specifications: Optional[List[Dict[str, Any]]] = None,
+        tag_specifications: Optional[list[dict[str, Any]]] = None,
     ) -> SpotFleetRequest:
         spot_fleet_request_id = random_spot_fleet_request_id()
         request = SpotFleetRequest(
@@ -491,15 +609,15 @@ class SpotRequestBackend:
 
     def describe_spot_fleet_instances(
         self, spot_fleet_request_id: str
-    ) -> List[SpotInstanceRequest]:
+    ) -> list[SpotInstanceRequest]:
         spot_fleet = self.get_spot_fleet_request(spot_fleet_request_id)
         if not spot_fleet:
             return []
         return spot_fleet.spot_requests
 
     def describe_spot_fleet_requests(
-        self, spot_fleet_request_ids: List[str]
-    ) -> List[SpotFleetRequest]:
+        self, spot_fleet_request_ids: list[str]
+    ) -> list[SpotFleetRequest]:
         requests = list(self.spot_fleet_requests.values())
 
         if spot_fleet_request_ids:
@@ -510,8 +628,8 @@ class SpotRequestBackend:
         return requests
 
     def cancel_spot_fleet_requests(
-        self, spot_fleet_request_ids: List[str], terminate_instances: bool
-    ) -> List[SpotFleetRequest]:
+        self, spot_fleet_request_ids: list[str], terminate_instances: bool
+    ) -> list[SpotFleetRequest]:
         spot_requests = []
         for spot_fleet_request_id in spot_fleet_request_ids:
             spot_fleet = self.spot_fleet_requests[spot_fleet_request_id]
@@ -538,13 +656,13 @@ class SpotRequestBackend:
             spot_fleet_request.terminate_instances()
 
     def describe_spot_price_history(
-        self, instance_types: Optional[List[str]] = None, filters: Any = None
-    ) -> List[Dict[str, str]]:
+        self, instance_types: Optional[list[str]] = None, filters: Any = None
+    ) -> list[dict[str, str]]:
         matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
         matches = matches.get(self.region_name, [])  # type: ignore[attr-defined]
 
-        def matches_filters(offering: Dict[str, Any], filters: Any) -> bool:
-            def matches_filter(key: str, values: List[str]) -> bool:
+        def matches_filters(offering: dict[str, Any], filters: Any) -> bool:
+            def matches_filter(key: str, values: list[str]) -> bool:
                 if key == "availability-zone":
                     return offering.get("Location") in values
                 elif key == "instance-type":
@@ -552,7 +670,7 @@ class SpotRequestBackend:
                 else:
                     return False
 
-            return all([matches_filter(key, values) for key, values in filters.items()])
+            return all(matches_filter(key, values) for key, values in filters.items())
 
         matches = [o for o in matches if matches_filters(o, filters)]
 

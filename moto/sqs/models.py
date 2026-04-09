@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import json
 import re
@@ -6,13 +5,11 @@ import string
 import struct
 from copy import deepcopy
 from threading import Condition
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 from urllib.parse import ParseResult
-from xml.sax.saxutils import escape
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,
     tags_from_cloudformation_tags_list,
@@ -22,7 +19,7 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition, md5_hash
 
-from .constants import MAXIMUM_VISIBILITY_TIMEOUT
+from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
     BatchEntryIdsNotDistinct,
     BatchRequestTooLong,
@@ -36,6 +33,7 @@ from .exceptions import (
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
+    SQSException,
     TooManyEntriesInBatchRequest,
 )
 from .utils import generate_receipt_handle
@@ -45,7 +43,6 @@ if TYPE_CHECKING:
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
-MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
 MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
@@ -76,13 +73,13 @@ class Message(BaseModel):
         self,
         message_id: str,
         body: str,
-        system_attributes: Optional[Dict[str, Any]] = None,
+        system_attributes: Optional[dict[str, Any]] = None,
     ):
         self.id = message_id
-        self._body = body
-        self.message_attributes: Dict[str, Any] = {}
+        self.body = body
+        self.message_attributes: dict[str, Any] = {}
         self.receipt_handle: Optional[str] = None
-        self._old_receipt_handles: List[str] = []
+        self._old_receipt_handles: list[str] = []
         self.sender_id = DEFAULT_SENDER_ID
         self.sent_timestamp = None
         self.approximate_first_receive_timestamp: Optional[int] = None
@@ -97,7 +94,7 @@ class Message(BaseModel):
     @property
     def body_md5(self) -> str:
         md5 = md5_hash()
-        md5.update(self._body.encode("utf-8"))
+        md5.update(self.body.encode("utf-8"))
         return md5.hexdigest()
 
     @property
@@ -110,30 +107,17 @@ class Message(BaseModel):
             # Encode name
             self.update_binary_length_and_value(md5, self.utf8(attrName))
             # Encode type
-            self.update_binary_length_and_value(md5, self.utf8(attrValue["data_type"]))
+            self.update_binary_length_and_value(md5, self.utf8(attrValue["DataType"]))
 
-            if attrValue.get("string_value"):
+            if attrValue.get("StringValue"):
                 md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
                 self.update_binary_length_and_value(
-                    md5, self.utf8(attrValue.get("string_value"))
+                    md5, self.utf8(attrValue.get("StringValue"))
                 )
-            elif attrValue.get("binary_value"):
+            elif attrValue.get("BinaryValue"):
                 md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
-                decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))
+                decoded_binary_value = attrValue.get("BinaryValue")
                 self.update_binary_length_and_value(md5, decoded_binary_value)
-            # string_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["string_list_value"]) > 0:
-                md5.update(bytearray([STRING_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["string_list_value"]:
-                    self.update_binary_length_and_value(md5, self.utf8(strListMember))
-            # binary_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["binary_list_value"]) > 0:
-                md5.update(bytearray([BINARY_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["binary_list_value"]:
-                    decoded_binary_value = base64.b64decode(strListMember)
-                    self.update_binary_length_and_value(md5, decoded_binary_value)
 
         return md5.hexdigest()
 
@@ -157,14 +141,6 @@ class Message(BaseModel):
         if isinstance(value, str):
             return value.encode("utf-8")
         return value
-
-    @property
-    def body(self) -> str:
-        return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
-
-    @property
-    def original_body(self) -> str:
-        return self._body
 
     def mark_sent(self, delay_seconds: Optional[int] = None) -> None:
         self.sent_timestamp = int(unix_time_millis())  # type: ignore
@@ -218,7 +194,7 @@ class Message(BaseModel):
         return False
 
     @property
-    def all_receipt_handles(self) -> List[Optional[str]]:
+    def all_receipt_handles(self) -> list[Optional[str]]:
         return [self.receipt_handle] + self._old_receipt_handles  # type: ignore
 
     def had_receipt_handle(self, receipt_handle: str) -> bool:
@@ -268,21 +244,21 @@ class Queue(CloudFormationModel):
         self.name = name
         self.region = region
         self.account_id = account_id
-        self.tags: Dict[str, str] = {}
-        self.permissions: Dict[str, Any] = {}
+        self.tags: dict[str, str] = {}
+        self.permissions: dict[str, Any] = {}
 
-        self._messages: List[Message] = []
-        self._pending_messages: Set[Message] = set()
-        self.deleted_messages: Set[str] = set()
+        self._messages: list[Message] = []
+        self._pending_messages: set[Message] = set()
+        self.deleted_messages: set[str] = set()
         self._messages_lock = Condition()
 
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = f"arn:{get_partition(region)}:sqs:{region}:{account_id}:{name}"
-        self.dead_letter_queue: Optional["Queue"] = None
+        self.dead_letter_queue: Optional[Queue] = None
         self.fifo_queue = False
 
-        self.lambda_event_source_mappings: Dict[str, "EventSourceMapping"] = {}
+        self.lambda_event_source_mappings: dict[str, EventSourceMapping] = {}
 
         # default settings for a non fifo queue
         defaults = {
@@ -331,29 +307,29 @@ class Queue(CloudFormationModel):
             )
 
     @property
-    def pending_messages(self) -> Set[Message]:
+    def pending_messages(self) -> set[Message]:
         return self._pending_messages
 
     @property
-    def pending_message_groups(self) -> Set[str]:
-        return set(
+    def pending_message_groups(self) -> set[str]:
+        return {
             message.group_id
             for message in self._pending_messages
             if message.group_id is not None
-        )
+        }
 
     def _set_attributes(
-        self, attributes: Dict[str, Any], now: Optional[float] = None
+        self, attributes: dict[str, Any], now: Optional[float] = None
     ) -> None:
         if not now:
             now = unix_time()
 
         integer_fields = (
             "DelaySeconds",
-            "KmsDataKeyreusePeriodSeconds",
+            "KmsDataKeyReusePeriodSeconds",
             "MaximumMessageSize",
             "MessageRetentionPeriod",
-            "ReceiveMessageWaitTime",
+            "ReceiveMessageWaitTimeSeconds",
             "VisibilityTimeout",
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
@@ -396,24 +372,24 @@ class Queue(CloudFormationModel):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:
-                raise RESTError(
+                raise SQSException(
                     "InvalidParameterValue",
                     "Redrive policy is not a dict or valid json",
                 )
         elif isinstance(policy, dict):
             self.redrive_policy = policy
         else:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue", "Redrive policy is not a dict or valid json"
             )
 
         if "deadLetterTargetArn" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain deadLetterTargetArn",
             )
         if "maxReceiveCount" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain maxReceiveCount",
             )
@@ -429,13 +405,13 @@ class Queue(CloudFormationModel):
                 self.dead_letter_queue = queue
 
                 if self.fifo_queue and not queue.fifo_queue:
-                    raise RESTError(
+                    raise SQSException(
                         "InvalidParameterCombination",
                         "Fifo queues cannot use non fifo dead letter queues",
                     )
                 break
         else:
-            raise RESTError(
+            raise SQSException(
                 "AWS.SimpleQueueService.NonExistentQueue",
                 f"Could not find DLQ for {self.redrive_policy['deadLetterTargetArn']}",
             )
@@ -527,8 +503,8 @@ class Queue(CloudFormationModel):
         return f"https://sqs.{self.region}.amazonaws.com/{self.account_id}/{self.name}"
 
     @property
-    def attributes(self) -> Dict[str, Any]:  # type: ignore[misc]
-        result: Dict[str, Any] = {}
+    def attributes(self) -> dict[str, Any]:  # type: ignore[misc]
+        result: dict[str, Any] = {}
 
         for attribute in self.BASE_ATTRIBUTES:
             attr = getattr(self, camelcase_to_underscores(attribute))
@@ -562,7 +538,7 @@ class Queue(CloudFormationModel):
         )
 
     @property
-    def messages(self) -> List[Message]:
+    def messages(self) -> list[Message]:
         # TODO: This can become very inefficient if a large number of messages are in-flight
         return [
             message
@@ -592,6 +568,8 @@ class Queue(CloudFormationModel):
             self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
+            if not esm.enabled:
+                continue
             backend = sqs_backends[self.account_id][self.region]
 
             """
@@ -682,12 +660,26 @@ class Queue(CloudFormationModel):
 
 
 def _filter_message_attributes(
-    message: Message, input_message_attributes: List[str]
+    message: Message, input_message_attributes: list[str]
 ) -> None:
+    # Supported patterns per AWS spec:
+    #   "All" or ".*"      – return all message attributes
+    #   "<prefix>.*"       – return attributes whose name starts with <prefix>
+    # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
+    # https://docs.aws.amazon.com/cli/latest/reference/sqs/receive-message.html
     filtered_message_attributes = {}
+    # "All" is handled explicitly; ".*" is covered by the prefix logic below
+    # because ".*"[:-2] == "" and every key starts with ""
     return_all = "All" in input_message_attributes
+    attribute_set = set(input_message_attributes)
+    # "Custom.*" -> prefix "Custom"; ".*" -> prefix "" (matches everything)
+    prefixes = [attr[:-2] for attr in input_message_attributes if attr.endswith(".*")]
     for key, value in message.message_attributes.items():
-        if return_all or key in input_message_attributes:
+        if (
+            return_all
+            or key in attribute_set
+            or any(key.startswith(prefix) for prefix in prefixes)
+        ):
             filtered_message_attributes[key] = value
     message.message_attributes = filtered_message_attributes
 
@@ -695,10 +687,10 @@ def _filter_message_attributes(
 class SQSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.queues: Dict[str, Queue] = {}
+        self.queues: dict[str, Queue] = {}
 
     def create_queue(
-        self, name: str, tags: Optional[Dict[str, str]] = None, **kwargs: Any
+        self, name: str, tags: Optional[dict[str, str]] = None, **kwargs: Any
     ) -> Queue:
         queue = self.queues.get(name)
         if queue:
@@ -737,7 +729,7 @@ class SQSBackend(BaseBackend):
     def get_queue_url(self, queue_name: str) -> Queue:
         return self.get_queue(queue_name)
 
-    def list_queues(self, queue_name_prefix: str) -> List[Queue]:
+    def list_queues(self, queue_name_prefix: str) -> list[Queue]:
         re_str = ".*"
         if queue_name_prefix:
             re_str = f"^{queue_name_prefix}.*"
@@ -760,8 +752,8 @@ class SQSBackend(BaseBackend):
         del self.queues[queue_name]
 
     def get_queue_attributes(
-        self, queue_name: str, attribute_names: List[str]
-    ) -> Dict[str, Any]:
+        self, queue_name: str, attribute_names: list[str]
+    ) -> dict[str, Any]:
         queue = self.get_queue(queue_name)
         if not attribute_names:
             return {}
@@ -791,7 +783,7 @@ class SQSBackend(BaseBackend):
         return attributes
 
     def set_queue_attributes(
-        self, queue_name: str, attributes: Dict[str, Any]
+        self, queue_name: str, attributes: dict[str, Any]
     ) -> Queue:
         queue = self.get_queue(queue_name)
         queue._set_attributes(attributes)
@@ -804,6 +796,7 @@ class SQSBackend(BaseBackend):
         delay_seconds: int,
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
+        validate_group_id: bool = True,
     ) -> None:
         if queue.fifo_queue:
             if (
@@ -834,33 +827,31 @@ class SQSBackend(BaseBackend):
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."  # type: ignore
             raise InvalidParameterValue(msg)
 
-        if group_id is None:
-            if queue.fifo_queue:
-                # MessageGroupId is a mandatory parameter for all
-                # messages in a fifo queue
-                raise MissingParameter("MessageGroupId")
-        else:
-            if not queue.fifo_queue:
-                msg = (
-                    f"Value {group_id} for parameter MessageGroupId is invalid. "
-                    "Reason: The request include parameter that is not valid for this queue type."
-                )
-                raise InvalidParameterValue(msg)
+        if group_id is None and queue.fifo_queue:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            raise MissingParameter("MessageGroupId")
 
     def send_message(
         self,
         queue_name: str,
         message_body: str,
-        message_attributes: Optional[Dict[str, Any]] = None,
+        message_attributes: Optional[dict[str, Any]] = None,
         delay_seconds: Optional[int] = None,
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
-        system_attributes: Optional[Dict[str, Any]] = None,
+        system_attributes: Optional[dict[str, Any]] = None,
+        validate_group_id: bool = True,
     ) -> Message:
         queue = self.get_queue(queue_name)
 
         self._validate_message(
-            queue, message_body, int(delay_seconds or 0), deduplication_id, group_id
+            queue,
+            message_body=message_body,
+            delay_seconds=int(delay_seconds or 0),
+            deduplication_id=deduplication_id,
+            group_id=group_id,
+            validate_group_id=validate_group_id,
         )
 
         if delay_seconds is not None:
@@ -905,8 +896,8 @@ class SQSBackend(BaseBackend):
         return message
 
     def send_message_batch(
-        self, queue_name: str, entries: Dict[str, Dict[str, Any]]
-    ) -> Tuple[List[Message], List[Dict[str, Any]]]:
+        self, queue_name: str, entries: dict[str, dict[str, Any]]
+    ) -> tuple[list[Message], list[dict[str, Any]]]:
         queue = self.get_queue(queue_name)
 
         if any(
@@ -961,7 +952,7 @@ class SQSBackend(BaseBackend):
 
         return messages, failedInvalidDelay
 
-    def _get_first_duplicate_id(self, ids: List[str]) -> Optional[str]:
+    def _get_first_duplicate_id(self, ids: list[str]) -> Optional[str]:
         unique_ids = set()
         for _id in ids:
             if _id in unique_ids:
@@ -975,8 +966,8 @@ class SQSBackend(BaseBackend):
         count: int,
         wait_seconds_timeout: int,
         visibility_timeout: int,
-        message_attribute_names: Optional[List[str]] = None,
-    ) -> List[Message]:
+        message_attribute_names: Optional[list[str]] = None,
+    ) -> list[Message]:
         # Attempt to retrieve visible messages from a queue.
 
         # If a message was read by client and not deleted it is considered to be
@@ -987,7 +978,7 @@ class SQSBackend(BaseBackend):
         if message_attribute_names is None:
             message_attribute_names = []
         queue = self.get_queue(queue_name)
-        result: List[Message] = []
+        result: list[Message] = []
         previous_result_count = len(result)
 
         polling_end = unix_time() + wait_seconds_timeout
@@ -998,7 +989,7 @@ class SQSBackend(BaseBackend):
             if result or (wait_seconds_timeout and unix_time() > polling_end):
                 break
 
-            messages_to_dlq: List[Message] = []
+            messages_to_dlq: list[Message] = []
 
             for message in queue.messages:
                 if not message.visible:
@@ -1060,21 +1051,21 @@ class SQSBackend(BaseBackend):
         queue.delete_message(receipt_handle)
 
     def delete_message_batch(
-        self, queue_name: str, receipts: List[Dict[str, Any]]
-    ) -> Tuple[List[str], List[Dict[str, str]]]:
+        self, queue_name: str, receipts: list[dict[str, Any]]
+    ) -> tuple[list[str], list[dict[str, str]]]:
         success = []
         errors = []
         for receipt_and_id in receipts:
             try:
-                self.delete_message(queue_name, receipt_and_id["receipt_handle"])
-                success.append(receipt_and_id["msg_user_id"])
+                self.delete_message(queue_name, receipt_and_id["ReceiptHandle"])
+                success.append(receipt_and_id["Id"])
             except ReceiptHandleIsInvalid:
                 errors.append(
                     {
-                        "Id": receipt_and_id["msg_user_id"],
+                        "Id": receipt_and_id["Id"],
                         "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
+                        "Message": f'The input receipt handle "{receipt_and_id["ReceiptHandle"]}" is not a valid receipt handle.',
                     }
                 )
         return success, errors
@@ -1102,19 +1093,19 @@ class SQSBackend(BaseBackend):
         raise ReceiptHandleIsInvalid
 
     def change_message_visibility_batch(
-        self, queue_name: str, entries: List[Dict[str, Any]]
-    ) -> Tuple[List[str], List[Dict[str, str]]]:
+        self, queue_name: str, entries: list[dict[str, Any]]
+    ) -> tuple[list[str], list[dict[str, str]]]:
         success = []
         error = []
         for entry in entries:
             try:
-                visibility_timeout = int(entry["visibility_timeout"])
+                visibility_timeout = int(entry["VisibilityTimeout"])
                 assert visibility_timeout <= MAXIMUM_VISIBILITY_TIMEOUT
             except:  # noqa: E722 Do not use bare except
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "InvalidParameterValue",
                         "Message": "Visibility timeout invalid",
                     }
@@ -1124,17 +1115,17 @@ class SQSBackend(BaseBackend):
             try:
                 self.change_message_visibility(
                     queue_name=queue_name,
-                    receipt_handle=entry["receipt_handle"],
+                    receipt_handle=entry["ReceiptHandle"],
                     visibility_timeout=visibility_timeout,
                 )
-                success.append(entry["id"])
+                success.append(entry["Id"])
             except ReceiptHandleIsInvalid as e:
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": e.description,
+                        "Message": getattr(e, "message", ""),
                     }
                 )
         return success, error
@@ -1144,10 +1135,10 @@ class SQSBackend(BaseBackend):
         queue._messages = []
         queue._pending_messages = set()
 
-    def list_dead_letter_source_queues(self, queue_name: str) -> List[Queue]:
+    def list_dead_letter_source_queues(self, queue_name: str) -> list[Queue]:
         dlq = self.get_queue(queue_name)
 
-        queues: List[Queue] = []
+        queues: list[Queue] = []
         for queue in self.queues.values():
             if queue.dead_letter_queue is dlq:
                 queues.append(queue)
@@ -1158,8 +1149,8 @@ class SQSBackend(BaseBackend):
         self,
         region_name: str,
         queue_name: str,
-        actions: List[str],
-        account_ids: List[str],
+        actions: list[str],
+        account_ids: list[str],
         label: str,
     ) -> None:
         queue = self.get_queue(queue_name)
@@ -1232,7 +1223,7 @@ class SQSBackend(BaseBackend):
 
         queue._policy_json["Statement"] = statements_new
 
-    def tag_queue(self, queue_name: str, tags: Dict[str, str]) -> None:
+    def tag_queue(self, queue_name: str, tags: dict[str, str]) -> None:
         queue = self.get_queue(queue_name)
 
         if not len(tags):
@@ -1243,11 +1234,11 @@ class SQSBackend(BaseBackend):
 
         queue.tags.update(tags)
 
-    def untag_queue(self, queue_name: str, tag_keys: List[str]) -> None:
+    def untag_queue(self, queue_name: str, tag_keys: list[str]) -> None:
         queue = self.get_queue(queue_name)
 
         if not len(tag_keys):
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Tag keys must be between 1 and 128 characters in length.",
             )

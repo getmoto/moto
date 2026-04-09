@@ -199,3 +199,37 @@ def test_untag_resource_error_not_exists():
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.response["Error"]["Message"] == "Unknown"
+
+
+@mock_aws
+def test_tag_insight_rules_resource():
+    client = boto3.client("cloudwatch", region_name="eu-central-1")
+
+    rule_name = "MySampleInsightRule"
+    log_group_name = "my-log-group"
+    rule_body = f"""
+    {{
+      "Schema": "CloudWatchLogRule",
+      "LogGroupNames": ["{log_group_name}"],
+      "LogFormat": "JSON",
+      "Filter": "[timestamp, request, statusCode = *]",
+      "Contribution": {{
+        "Keys": ["statusCode"],
+        "ValueOf": "Count"
+      }}
+    }}
+    """
+    tags = [{"Key": "ThisIsAKey", "Value": "ThisIsAValue"}]
+
+    client.put_insight_rule(
+        RuleName=rule_name, RuleDefinition=rule_body, RuleState="ENABLED", Tags=tags
+    )
+
+    arn = (
+        "arn:aws:cloudwatch:eu-central-1:123456789012:insight-rule/MySampleInsightRule"
+    )
+
+    response = client.list_tags_for_resource(ResourceARN=arn)
+    assert sorted(response["Tags"], key=itemgetter("Key")) == [
+        {"Key": "ThisIsAKey", "Value": "ThisIsAValue"},
+    ]

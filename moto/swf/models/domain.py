@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import get_partition
@@ -31,7 +31,7 @@ class Domain(BaseModel):
         self.region_name = region_name
         self.description = description
         self.status = "REGISTERED"
-        self.types: Dict[str, Dict[str, Dict[str, GenericType]]] = {
+        self.types: dict[str, dict[str, dict[str, GenericType]]] = {
             "activity": defaultdict(dict),
             "workflow": defaultdict(dict),
         }
@@ -40,14 +40,14 @@ class Domain(BaseModel):
         # that against SWF API) ; hence the storage method as a dict
         # of "workflow_id (client determined)" => WorkflowExecution()
         # here.
-        self.workflow_executions: List["WorkflowExecution"] = []
-        self.activity_task_lists: Dict[List[str], List["ActivityTask"]] = {}
-        self.decision_task_lists: Dict[str, List["DecisionTask"]] = {}
+        self.workflow_executions: list[WorkflowExecution] = []
+        self.activity_task_lists: dict[list[str], list[ActivityTask]] = {}
+        self.decision_task_lists: dict[str, list[DecisionTask]] = {}
 
     def __repr__(self) -> str:
         return f"Domain(name: {self.name}, status: {self.status})"
 
-    def to_short_dict(self) -> Dict[str, str]:
+    def to_short_dict(self) -> dict[str, str]:
         hsh = {"name": self.name, "status": self.status}
         if self.description:
             hsh["description"] = self.description
@@ -56,7 +56,7 @@ class Domain(BaseModel):
         )
         return hsh
 
-    def to_full_dict(self) -> Dict[str, Any]:
+    def to_full_dict(self) -> dict[str, Any]:
         return {
             "domainInfo": self.to_short_dict(),
             "configuration": {"workflowExecutionRetentionPeriodInDays": self.retention},
@@ -77,7 +77,7 @@ class Domain(BaseModel):
     def add_type(self, _type: "TGenericType") -> None:
         self.types[_type.kind][_type.name][_type.version] = _type
 
-    def find_types(self, kind: str, status: str) -> List["GenericType"]:
+    def find_types(self, kind: str, status: str) -> list["GenericType"]:
         _all = []
         for family in self.types[kind].values():
             for _type in family.values():
@@ -129,15 +129,15 @@ class Domain(BaseModel):
         return wfe
 
     def add_to_activity_task_list(
-        self, task_list: List[str], obj: "ActivityTask"
+        self, task_list: list[str], obj: "ActivityTask"
     ) -> None:
         if task_list not in self.activity_task_lists:
             self.activity_task_lists[task_list] = []
         self.activity_task_lists[task_list].append(obj)
 
     @property
-    def activity_tasks(self) -> List["ActivityTask"]:
-        _all: List["ActivityTask"] = []
+    def activity_tasks(self) -> list["ActivityTask"]:
+        _all: list[ActivityTask] = []
         for tasks in self.activity_task_lists.values():
             _all += tasks
         return _all
@@ -148,8 +148,8 @@ class Domain(BaseModel):
         self.decision_task_lists[task_list].append(obj)
 
     @property
-    def decision_tasks(self) -> List["DecisionTask"]:
-        _all: List["DecisionTask"] = []
+    def decision_tasks(self) -> list["DecisionTask"]:
+        _all: list[DecisionTask] = []
         for tasks in self.decision_task_lists.values():
             _all += tasks
         return _all

@@ -8,6 +8,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     pascal_to_camelcase,
     rfc_1123_datetime,
+    set_value,
     str_to_rfc_1123_datetime,
     underscores_to_camelcase,
     unix_time,
@@ -61,3 +62,26 @@ def test_rfc1123_dates() -> None:
         x = rfc_1123_datetime(datetime.datetime.now())
         assert x == "Sun, 04 Mar 2012 05:00:05 GMT"
         assert str_to_rfc_1123_datetime(x) == datetime.datetime.now()
+
+
+def test_set_value() -> None:
+    basic_dict = {"foo": None}
+    set_value(basic_dict, "foo", "bar")
+    assert basic_dict["foo"] == "bar"
+
+    class BasicObject:
+        foo = None
+
+    basic_object = BasicObject()
+    set_value(basic_object, "foo", "bar")
+    assert basic_object.foo == "bar"
+    nested_dict = {"foo": {"bar": None}}
+    set_value(nested_dict, "foo.bar", "baz")
+    assert nested_dict["foo"]["bar"] == "baz"
+
+    class NestedObject:
+        child = BasicObject()
+
+    nested_object = NestedObject()
+    set_value(nested_object, "child.foo", "bar")
+    assert nested_object.child.foo == "bar"

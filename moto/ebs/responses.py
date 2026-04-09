@@ -89,11 +89,11 @@ class EBSResponse(BaseResponse):
             for idx, (x, y) in changed_blocks.items()
         ]
         return json.dumps(
-            dict(
-                ChangedBlocks=blocks,
-                VolumeSize=snapshot.volume_size,
-                BlockSize=snapshot.block_size,
-            )
+            {
+                "ChangedBlocks": blocks,
+                "VolumeSize": snapshot.volume_size,
+                "BlockSize": snapshot.block_size,
+            }
         )
 
     def list_snapshot_blocks(self) -> str:

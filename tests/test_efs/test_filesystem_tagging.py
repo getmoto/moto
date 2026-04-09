@@ -1,4 +1,4 @@
-from . import fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_efs  # noqa
 
 
 def test_list_tags_for_resource__without_tags(efs):

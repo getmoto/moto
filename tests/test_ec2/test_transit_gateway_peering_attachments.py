@@ -42,15 +42,15 @@ def test_create_and_describe_transit_gateway_peering_attachment():
     assert attachment["RequesterTgwInfo"]["TransitGatewayId"] == gateway_id1
     assert attachment["AccepterTgwInfo"]["TransitGatewayId"] == gateway_id2
 
-    all_attachments = ec2.describe_transit_gateway_peering_attachments()[
-        "TransitGatewayPeeringAttachments"
-    ]
-    our_attachment = [
-        att
-        for att in all_attachments
-        if att["TransitGatewayAttachmentId"] == attachment["TransitGatewayAttachmentId"]
-    ]
-    assert our_attachment == [attachment]
+    our_attachment = ec2.describe_transit_gateway_peering_attachments(
+        Filters=[
+            {
+                "Name": "transit-gateway-attachment-id",
+                "Values": [attachment["TransitGatewayAttachmentId"]],
+            },
+        ],
+    )["TransitGatewayPeeringAttachments"][0]
+    assert our_attachment == attachment
 
 
 @mock_aws
@@ -69,14 +69,14 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
     attchmnt2 = create_peering_attachment(ec2, gateway_id1, gateway_id3)
     attchmnt3 = create_peering_attachment(ec2, gateway_id2, gateway_id3)
 
-    all_attachments = ec2.describe_transit_gateway_peering_attachments()[
-        "TransitGatewayPeeringAttachments"
-    ]
-    ours = [
-        a
-        for a in all_attachments
-        if a["TransitGatewayAttachmentId"] in [attchmnt1, attchmnt2, attchmnt3]
-    ]
+    ours = ec2.describe_transit_gateway_peering_attachments(
+        Filters=[
+            {
+                "Name": "transit-gateway-attachment-id",
+                "Values": [attchmnt1, attchmnt2, attchmnt3],
+            },
+        ],
+    )["TransitGatewayPeeringAttachments"]
     assert len(ours) == 3
 
     find_1 = ec2.describe_transit_gateway_peering_attachments(
@@ -266,13 +266,13 @@ def create_peering_attachment(
     )["TransitGatewayPeeringAttachment"]["TransitGatewayAttachmentId"]
 
 
-def retrieve_all_attachments(client, filters=[]):  # pylint: disable=W0102
-    resp = client.describe_transit_gateway_peering_attachments(Filters=filters)
+def retrieve_all_attachments(client, filters=None):
+    resp = client.describe_transit_gateway_peering_attachments(Filters=filters or [])
     attmnts = resp["TransitGatewayPeeringAttachments"]
     token = resp.get("NextToken")
     while token:
         resp = client.describe_transit_gateway_peering_attachments(
-            Filters=filters, NextToken=token
+            Filters=filters or [], NextToken=token
         )
         attmnts.extend(resp["TransitGatewayPeeringAttachments"])
         token = resp.get("NextToken")

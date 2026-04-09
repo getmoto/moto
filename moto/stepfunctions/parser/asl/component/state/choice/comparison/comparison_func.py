@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, Final
 
-from moto.stepfunctions.parser.asl.component.common.variable_sample import (
-    VariableSample,
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringVariableSample,
 )
 from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_operator_type import (
     ComparisonOperatorType,
@@ -22,14 +22,14 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class ComparisonFunc(Comparison, abc.ABC):
-    operator_type: ComparisonOperatorType
+    operator_type: Final[ComparisonOperatorType]
 
     def __init__(self, operator_type: ComparisonOperatorType):
         self.operator_type = operator_type
 
 
 class ComparisonFuncValue(ComparisonFunc):
-    value: Any
+    value: Final[Any]
 
     def __init__(self, operator_type: ComparisonOperatorType, value: Any):
         super().__init__(operator_type=operator_type)
@@ -40,20 +40,22 @@ class ComparisonFuncValue(ComparisonFunc):
         operator.eval(env=env, value=self.value)
 
 
-class ComparisonFuncVar(ComparisonFuncValue):
-    _COMPARISON_FUNC_VAR_VALUE: str = "$"
-    variable_sample: VariableSample
+class ComparisonFuncStringVariableSample(ComparisonFuncValue):
+    _COMPARISON_FUNC_VAR_VALUE: Final[str] = "$"
+    string_variable_sample: Final[StringVariableSample]
 
     def __init__(
-        self, operator_type: ComparisonOperatorType, variable_sample: VariableSample
+        self,
+        operator_type: ComparisonOperatorType,
+        string_variable_sample: StringVariableSample,
     ):
         super().__init__(
             operator_type=operator_type, value=self._COMPARISON_FUNC_VAR_VALUE
         )
-        self.variable_sample = variable_sample
+        self.string_variable_sample = string_variable_sample
 
     def _eval_body(self, env: Environment) -> None:
-        self.variable_sample.eval(env=env)
+        self.string_variable_sample.eval(env=env)
         super()._eval_body(env=env)
         # Purge the outcome of the variable sampling form the
         # stack as operators do not digest the input value.

@@ -1,5 +1,6 @@
 import copy
 import logging
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.common.parargs import Parargs
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
@@ -18,8 +19,8 @@ LOG = logging.getLogger(__name__)
 
 
 class ResultWriter(EvalComponent):
-    resource_eval: ResourceEval
-    parargs: Parargs
+    resource_eval: Final[ResourceEval]
+    parargs: Final[Parargs]
 
     def __init__(
         self,

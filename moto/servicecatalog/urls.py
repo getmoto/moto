@@ -11,5 +11,5 @@ url_bases = [
 
 url_paths = {
     "{0}/$": ServiceCatalogResponse.dispatch,
-    **{path: AppRegistryResponse.dispatch for path in catalog_paths},
+    **dict.fromkeys(catalog_paths, AppRegistryResponse.dispatch),
 }

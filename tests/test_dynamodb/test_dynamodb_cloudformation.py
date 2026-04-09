@@ -2,6 +2,7 @@ import json
 from copy import deepcopy
 
 import boto3
+import pytest
 
 from moto import mock_aws
 
@@ -31,6 +32,7 @@ template_create_table = {
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_create_stack_pay_per_request():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
@@ -49,6 +51,7 @@ def test_create_stack_pay_per_request():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_create_stack_with_indexes():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
@@ -80,6 +83,7 @@ def test_create_stack_with_indexes():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_delete_stack_dynamo_template():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")

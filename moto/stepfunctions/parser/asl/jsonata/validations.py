@@ -1,4 +1,4 @@
-from typing import Set
+from typing import Final
 
 from moto.stepfunctions.parser.api import (
     EvaluationFailedEventDetails,
@@ -20,7 +20,7 @@ from moto.stepfunctions.parser.asl.jsonata.jsonata import (
     eval_jsonata_expression,
 )
 
-_SUPPORTED_JSONATA_TYPES: Set[str] = {
+_SUPPORTED_JSONATA_TYPES: Final[set[str]] = {
     "null",
     "number",
     "string",

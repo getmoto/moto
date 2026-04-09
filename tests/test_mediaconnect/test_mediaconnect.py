@@ -49,17 +49,17 @@ def _create_flow_config(name, **kwargs):
     sources = kwargs.get("sources", [])
     vpc_interfaces = kwargs.get("vpc_interfaces", [])
     maintenance = kwargs.get("maintenance", {})
-    flow_config = dict(Name=name)
-    optional_flow_config = dict(
-        AvailabilityZone=availability_zone,
-        Entitlements=entitlements,
-        Outputs=outputs,
-        Source=source,
-        SourceFailoverConfig=source_failover_config,
-        Sources=sources,
-        VpcInterfaces=vpc_interfaces,
-        Maintenance=maintenance,
-    )
+    flow_config = {"Name": name}
+    optional_flow_config = {
+        "AvailabilityZone": availability_zone,
+        "Entitlements": entitlements,
+        "Outputs": outputs,
+        "Source": source,
+        "SourceFailoverConfig": source_failover_config,
+        "Sources": sources,
+        "VpcInterfaces": vpc_interfaces,
+        "Maintenance": maintenance,
+    }
     for key, value in optional_flow_config.items():
         if value:
             flow_config[key] = value

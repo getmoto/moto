@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 class IterationWorker(abc.ABC):
-    _work_name: str
+    _work_name: Final[str]
     _job_pool: Final[JobPool]
     _env: Final[Environment]
     _stop_signal_received: bool

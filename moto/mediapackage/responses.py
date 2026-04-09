@@ -24,7 +24,7 @@ class MediaPackageResponse(BaseResponse):
 
     def list_channels(self) -> str:
         channels = self.mediapackage_backend.list_channels()
-        return json.dumps(dict(channels=channels))
+        return json.dumps({"channels": channels})
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("id")
@@ -49,8 +49,8 @@ class MediaPackageResponse(BaseResponse):
         origination = self._get_param("origination")
         startover_window_seconds = self._get_int_param("startoverWindowSeconds")
         tags = self._get_param("tags")
-        time_delay_seconds = self._get_int_param("timeDelaySeconds.member")
-        whitelist = self._get_list_prefix("whitelist.member")
+        time_delay_seconds = self._get_int_param("timeDelaySeconds")
+        whitelist = self._get_param("whitelist")
         origin_endpoint = self.mediapackage_backend.create_origin_endpoint(
             authorization=authorization,
             channel_id=channel_id,
@@ -71,7 +71,7 @@ class MediaPackageResponse(BaseResponse):
 
     def list_origin_endpoints(self) -> str:
         origin_endpoints = self.mediapackage_backend.list_origin_endpoints()
-        return json.dumps(dict(originEndpoints=origin_endpoints))
+        return json.dumps({"originEndpoints": origin_endpoints})
 
     def describe_origin_endpoint(self) -> str:
         endpoint_id = self._get_param("id")
@@ -99,7 +99,7 @@ class MediaPackageResponse(BaseResponse):
         origination = self._get_param("origination")
         startover_window_seconds = self._get_int_param("startoverWindowSeconds")
         time_delay_seconds = self._get_int_param("timeDelaySeconds")
-        whitelist = self._get_list_prefix("whitelist.member")
+        whitelist = self._get_param("whitelist")
         origin_endpoint = self.mediapackage_backend.update_origin_endpoint(
             authorization=authorization,
             cmaf_package=cmaf_package,

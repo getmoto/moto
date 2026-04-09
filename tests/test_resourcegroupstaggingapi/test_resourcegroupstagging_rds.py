@@ -79,3 +79,28 @@ class TestRdsTagging(unittest.TestCase):
             assert {"Key": "key2", "Value": "value2"} in get_tags(arn)
         for arn in self.resources_untagged:
             assert get_tags(arn) == []
+
+    def test_untag_resources_rds(self):
+        for arn in self.resources_tagged:
+            self.rds.add_tags_to_resource(
+                ResourceName=arn,
+                Tags=[
+                    {"Key": "key1", "Value": "value1"},
+                    {"Key": "key2", "Value": "value2"},
+                ],
+            )
+
+        response = self.rtapi.untag_resources(
+            ResourceARNList=self.resources_tagged,
+            TagKeys=["key2"],
+        )
+
+        assert response["FailedResourcesMap"] == {}
+
+        def get_tags(arn):
+            return self.rds.list_tags_for_resource(ResourceName=arn)["TagList"]
+
+        for arn in self.resources_tagged:
+            tags = get_tags(arn)
+            assert {"Key": "key1", "Value": "value1"} in tags
+            assert {"Key": "key2", "Value": "value2"} not in tags

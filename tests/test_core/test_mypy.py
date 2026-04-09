@@ -35,8 +35,9 @@ def test_manual() -> None:
     m.stop()
 
 
-x: int = method_with_parentheses()
-assert x == 456
+def test_mock_aws_decorator_return_types() -> None:
+    x: int = method_with_parentheses()
+    assert x == 456
 
-y: int = method_without_parentheses()
-assert y == 123
+    y: int = method_without_parentheses()
+    assert y == 123

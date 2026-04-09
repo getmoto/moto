@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from moto.core.exceptions import AWSError
 
@@ -11,7 +11,7 @@ class EKSError(AWSError):
         self.headers = {"status": self.STATUS, "x-amzn-ErrorType": self.TYPE}
         self.code = self.STATUS
 
-    def response(self) -> Tuple[int, Dict[str, Any], str]:  # type: ignore[override]
+    def response(self) -> tuple[int, dict[str, Any], str]:  # type: ignore[override]
         return self.STATUS, self.headers, self.description
 
 

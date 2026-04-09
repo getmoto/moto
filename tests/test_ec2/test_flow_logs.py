@@ -4,8 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ec2.exceptions import FilterNotImplementedError
+
+from .helpers import assert_dryrun_error
 
 
 @mock_aws
@@ -33,12 +36,7 @@ def test_create_flow_logs_s3(region, partition):
             LogDestination="arn:aws:s3:::" + bucket.name,
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.create_flow_logs(
         ResourceType="VPC",
@@ -65,6 +63,46 @@ def test_create_flow_logs_s3(region, partition):
         flow_log["LogFormat"]
         == "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )
+    assert flow_log["MaxAggregationInterval"] == 600
+
+
+@mock_aws
+@pytest.mark.parametrize("region", ["us-west-2", "cn-north-1"])
+def test_create_flow_logs_max_aggregation_interval(region):
+    s3 = boto3.resource("s3", region_name=region)
+    client = boto3.client("ec2", region_name=region)
+
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    bucket_name = str(uuid4())
+    bucket = s3.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": region},
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogDestination="arn:aws:s3:::" + bucket.name,
+            DryRun=True,
+        )
+    assert_dryrun_error(ex)
+
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+        MaxAggregationInterval=600,  # check explicitly set interval
+    )["FlowLogIds"]
+    flow_logs = client.describe_flow_logs(FlowLogIds=[response[0]])["FlowLogs"]
+    assert len(flow_logs) == 1
+
+    flow_log = flow_logs[0]
     assert flow_log["MaxAggregationInterval"] == 600
 
 
@@ -162,12 +200,7 @@ def test_create_flow_logs_cloud_watch():
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.create_flow_logs(
         ResourceType="VPC",
@@ -604,7 +637,7 @@ def test_describe_flow_logs_filtering():
     assert fl2 not in cw_ids
     assert fl3 in cw_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], all_cw_logs))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in all_cw_logs)
     assert subnet1["SubnetId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -622,11 +655,11 @@ def test_describe_flow_logs_filtering():
         Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}]
     )["FlowLogs"]
     assert len(fl_by_flow_log_ids) == 2
-    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_flow_log_ids))
+    flow_logs_ids = tuple(fl["FlowLogId"] for fl in fl_by_flow_log_ids)
     assert fl1 in flow_logs_ids
     assert fl3 in flow_logs_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], fl_by_flow_log_ids))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in fl_by_flow_log_ids)
     assert subnet1["SubnetId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -682,8 +715,11 @@ def test_describe_flow_logs_filtering():
     assert len(fl_by_tag_key) == 0
 
     # NotYetImplemented
-    with pytest.raises(Exception):
-        client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
+    if settings.TEST_DECORATOR_MODE:
+        with pytest.raises(FilterNotImplementedError):
+            client.describe_flow_logs(
+                Filters=[{"Name": "unknown", "Values": ["foobar"]}]
+            )
 
 
 @mock_aws
@@ -722,11 +758,11 @@ def test_flow_logs_by_ids():
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
     assert len(flow_logs) == 2
-    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], flow_logs))
+    flow_logs_ids = tuple(fl["FlowLogId"] for fl in flow_logs)
     assert fl1 in flow_logs_ids
     assert fl3 in flow_logs_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], flow_logs))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in flow_logs)
     assert vpc1["VpcId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -748,12 +784,12 @@ def test_flow_logs_by_ids():
     assert fl3 not in all_ids
 
 
-def retrieve_all_logs(client, filters=[]):  # pylint: disable=W0102
-    resp = client.describe_flow_logs(Filters=filters)
+def retrieve_all_logs(client, filters=None):
+    resp = client.describe_flow_logs(Filters=filters or [])
     all_logs = resp["FlowLogs"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_flow_logs(Filters=filters, NextToken=token)
+        resp = client.describe_flow_logs(Filters=filters or [], NextToken=token)
         all_logs.extend(resp["FlowLogs"])
         token = resp.get("NextToken")
     return all_logs

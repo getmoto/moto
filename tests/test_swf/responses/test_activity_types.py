@@ -7,7 +7,7 @@ from moto import mock_aws
 
 # RegisterActivityType endpoint
 @mock_aws
-def test_register_activity_type_boto3():
+def test_register_activity_type():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -26,7 +26,7 @@ def test_register_activity_type_boto3():
 
 
 @mock_aws
-def test_register_already_existing_activity_type_boto3():
+def test_register_already_existing_activity_type():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -51,7 +51,7 @@ def test_register_already_existing_activity_type_boto3():
 
 # ListActivityTypes endpoint
 @mock_aws
-def test_list_activity_types_boto3():
+def test_list_activity_types():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -76,7 +76,7 @@ def test_list_activity_types_boto3():
 
 
 @mock_aws
-def test_list_activity_types_reverse_order_boto3():
+def test_list_activity_types_reverse_order():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -103,7 +103,7 @@ def test_list_activity_types_reverse_order_boto3():
 
 # DeprecateActivityType endpoint
 @mock_aws
-def test_deprecate_activity_type_boto3():
+def test_deprecate_activity_type():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -125,7 +125,7 @@ def test_deprecate_activity_type_boto3():
 
 
 @mock_aws
-def test_deprecate_already_deprecated_activity_type_boto3():
+def test_deprecate_already_deprecated_activity_type():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -150,7 +150,7 @@ def test_deprecate_already_deprecated_activity_type_boto3():
 
 
 @mock_aws
-def test_deprecate_non_existent_activity_type_boto3():
+def test_deprecate_non_existent_activity_type():
     client = boto3.client("swf", region_name="us-west-2")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -247,7 +247,7 @@ def test_undeprecate_non_existent_activity_type():
 
 # DescribeActivityType endpoint
 @mock_aws
-def test_describe_activity_type_boto3():
+def test_describe_activity_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -271,7 +271,7 @@ def test_describe_activity_type_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_activity_type_boto3():
+def test_describe_non_existent_activity_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"

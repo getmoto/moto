@@ -1,31 +1,34 @@
 package moto.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
 
-public class DynamoTest {
+class DynamoTest {
 
     @Test
-    public void testSingleTableExists() {
-        DynamoLogic logic = new DynamoLogic();
-        String table_name = logic.createTable("table", "key");
+    void testSingleTableExists() {
+        String tableName = "table" + System.currentTimeMillis();
 
-        assertEquals("table", table_name);
+        DynamoLogic logic = new DynamoLogic();
+        String tableNameFromCreation = logic.createTable(tableName, "key");
+
+        assertEquals(tableName, tableNameFromCreation);
     }
 
     @Test
-    public void testTableCannotBeCreatedTwice() {
+    void testTableCannotBeCreatedTwice() {
+        String tableName = "table" + System.currentTimeMillis();
         DynamoLogic logic = new DynamoLogic();
         // Going once...
-        logic.createTable("table2", "key");
+        logic.createTable(tableName, "key");
         try {
             // Going twice should throw a specific exception
-            logic.createTable("table2", "key");
+            logic.createTable(tableName, "key");
         } catch (ResourceInUseException riue) {
-            assertTrue(riue.getMessage().startsWith("Table already exists: table2"));
+            assertTrue(riue.getMessage().startsWith("Table already exists: " + tableName));
         }
     }
 }

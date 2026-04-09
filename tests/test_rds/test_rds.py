@@ -1,11 +1,10 @@
-import datetime
 import time
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -57,6 +56,11 @@ def test_create_database(client):
         LicenseModel="license-included",
         MasterUsername="root",
         MasterUserPassword="hunter2",
+        Domain="mydomain",
+        DomainFqdn="mydomain.com",
+        DomainOu="OU=MyOU,DC=mydomain,DC=com",
+        DomainAuthSecretArn="arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret",
+        DomainDnsIps=[],
         Port=1234,
         DBSecurityGroups=["my_sg"],
         VpcSecurityGroupIds=["sg-123456"],
@@ -72,19 +76,43 @@ def test_create_database(client):
     assert db_instance["DBInstanceArn"] == (
         f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db:db-master-1"
     )
+    assert db_instance["DomainMemberships"][0]["Domain"] == "mydomain"
+    assert db_instance["DomainMemberships"][0]["Status"] == "active"
+    assert db_instance["DomainMemberships"][0]["FQDN"] == "mydomain.com"
+    assert (
+        db_instance["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert db_instance["DomainMemberships"][0]["AuthSecretArn"] == (
+        "arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret"
+    )
+    assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
+    assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
     assert db_instance["DBInstanceStatus"] == "available"
     assert db_instance["DBName"] == "staging-postgres"
     assert db_instance["DBInstanceIdentifier"] == "db-master-1"
     assert db_instance["IAMDatabaseAuthenticationEnabled"] is False
     assert "db-" in db_instance["DbiResourceId"]
     assert db_instance["CopyTagsToSnapshot"] is False
-    assert isinstance(db_instance["InstanceCreateTime"], datetime.datetime)
+    assert isinstance(db_instance["InstanceCreateTime"], datetime)
     assert db_instance["VpcSecurityGroups"][0]["VpcSecurityGroupId"] == "sg-123456"
     assert db_instance["DeletionProtection"] is False
     assert db_instance["EnabledCloudwatchLogsExports"] == ["audit", "error"]
     assert db_instance["Endpoint"]["Port"] == 1234
     assert db_instance["DbInstancePort"] == 1234
     assert db_instance["AutoMinorVersionUpgrade"] is False
+    assert db_instance["DomainMemberships"][0]["Domain"] == "mydomain"
+    assert db_instance["DomainMemberships"][0]["Status"] == "active"
+    assert db_instance["DomainMemberships"][0]["FQDN"] == "mydomain.com"
+    assert (
+        db_instance["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert db_instance["DomainMemberships"][0]["AuthSecretArn"] == (
+        "arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret"
+    )
+    assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
+    assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
 
 
 @mock_aws
@@ -403,18 +431,18 @@ def test_get_databases(client):
 
 @mock_aws
 def test_get_databases_paginated(client):
-    for i in range(51):
+    for i in range(101):
         create_db_instance(DBInstanceIdentifier=f"rds{i}")
 
     resp = client.describe_db_instances()
-    assert len(resp["DBInstances"]) == 50
-    assert resp["Marker"] == resp["DBInstances"][-1]["DBInstanceIdentifier"]
+    assert len(resp["DBInstances"]) == 100
+    assert "Marker" in resp
 
     resp2 = client.describe_db_instances(Marker=resp["Marker"])
     assert len(resp2["DBInstances"]) == 1
 
-    resp3 = client.describe_db_instances(MaxRecords=100)
-    assert len(resp3["DBInstances"]) == 51
+    resp3 = client.describe_db_instances(MaxRecords=23)
+    assert len(resp3["DBInstances"]) == 23
 
 
 @mock_aws
@@ -828,7 +856,7 @@ def test_create_db_snapshots(client):
 
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    snapshot_create_time = datetime(2025, 1, 2, tzinfo=timezone.utc)
     with freeze_time(snapshot_create_time):
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
@@ -913,7 +941,7 @@ def test_copy_db_snapshots(
 ):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    snapshot_create_time = datetime(2025, 1, 2, tzinfo=timezone.utc)
     with freeze_time(snapshot_create_time):
         client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
@@ -923,7 +951,7 @@ def test_copy_db_snapshots(
         # Delete the original instance, but the copy snapshot operation should still succeed.
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    target_snapshot_create_time = snapshot_create_time + datetime.timedelta(minutes=1)
+    target_snapshot_create_time = snapshot_create_time + timedelta(minutes=1)
     with freeze_time(target_snapshot_create_time):
         target_snapshot = client.copy_db_snapshot(
             SourceDBSnapshotIdentifier=db_snapshot_identifier,
@@ -1389,21 +1417,36 @@ def test_describe_option_group_options(client):
     option_group_options = client.describe_option_group_options(
         EngineName="sqlserver-ee"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 4
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "sqlserver-ee"
+
     option_group_options = client.describe_option_group_options(
         EngineName="sqlserver-ee", MajorEngineVersion="11.00"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 2
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "sqlserver-ee"
+        assert option["MajorEngineVersion"] == "11.00"
+
     option_group_options = client.describe_option_group_options(
         EngineName="mysql", MajorEngineVersion="5.6"
     )
-    assert len(option_group_options["OptionGroupOptions"]) == 1
-    with pytest.raises(ClientError):
+    for option in option_group_options["OptionGroupOptions"]:
+        assert option["EngineName"] == "mysql"
+        assert option["MajorEngineVersion"] == "5.6"
+
+    with pytest.raises(ClientError) as exc:
         client.describe_option_group_options(EngineName="non-existent")
-    with pytest.raises(ClientError):
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"
+    assert str(error["Message"]).startswith("Invalid DB engine")
+
+    with pytest.raises(ClientError) as exc:
         client.describe_option_group_options(
             EngineName="mysql", MajorEngineVersion="non-existent"
         )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterCombination"
+    assert str(error["Message"]).startswith("Cannot find major version")
 
 
 @aws_verified
@@ -1481,8 +1524,8 @@ def test_modify_option_group():
         audit_plugin = [
             o for o in option_settings if o["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
         ][0]
-        audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
-        audit_plugin["Value"] == "1000"
+        assert audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        assert audit_plugin["Value"] == "1000"
 
         # Verify option can be deleted
         client.modify_option_group(
@@ -1522,9 +1565,11 @@ def test_modify_non_existent_option_group(client):
     )
 
 
-@pytest.mark.aws_verified
 @mock_aws
 def test_delete_database_with_protection(client):
+    # This has been verified against AWS
+    # We're not going to mark it with @pytest.mark.aws_verified though, as we cannot run this against AWS yet
+    # Not without additional work to ensure we properly create and teardown any resources
     create_db_instance(DBInstanceIdentifier="db-primary-1", DeletionProtection=True)
 
     with pytest.raises(ClientError) as exc:
@@ -2867,9 +2912,10 @@ def test_modify_db_snapshot_attribute(client):
 def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_snapshot):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    deletion_kwargs = dict(
-        DBInstanceIdentifier="db-primary-1", SkipFinalSnapshot=skip_final_snapshot
-    )
+    deletion_kwargs = {
+        "DBInstanceIdentifier": "db-primary-1",
+        "SkipFinalSnapshot": skip_final_snapshot,
+    }
     if not skip_final_snapshot:
         deletion_kwargs["FinalDBSnapshotIdentifier"] = "final-snapshot"
     client.delete_db_instance(**deletion_kwargs)
@@ -3014,9 +3060,9 @@ def test_restore_db_instance_to_point_in_time_with_allocated_storage(client):
     allocated_storage = 20
     details_source = create_db_instance(AllocatedStorage=allocated_storage)
     source_identifier = details_source["DBInstanceIdentifier"]
-    restore_time = datetime.datetime.fromtimestamp(
-        time.time() - 600, datetime.timezone.utc
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    restore_time = datetime.fromtimestamp(time.time() - 600, timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     # Default
     restored = client.restore_db_instance_to_point_in_time(
         SourceDBInstanceIdentifier=source_identifier,
@@ -3337,7 +3383,8 @@ def test_copy_db_snapshot_copy_tags_from_source_snapshot(client):
     tag_list = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])[
         "TagList"
     ]
-    tag_list == test_tags
+    assert tag_list == test_tags
+
     copied_snapshot = client.copy_db_snapshot(
         SourceDBSnapshotIdentifier="snap-1",
         TargetDBSnapshotIdentifier="snap-1-copy",
@@ -3659,3 +3706,114 @@ def test_db_instance_identifier_is_case_insensitive(client):
 
     response = client.describe_db_instances()
     assert len(response["DBInstances"]) == 0
+
+
+@mock_aws
+def test_add_role_to_db_instance(client):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+    role = instances["DBInstances"][0]["AssociatedRoles"][0]
+    assert role["FeatureName"] == "S3_INTERGRATION"
+    assert role["RoleArn"] == "role-to-for-rds-to-access-s3"
+    assert role["Status"] == "ACTIVE"
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_feature_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="a-different-role",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Feature S3_INTERGRATION alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_role_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Role role-to-for-rds-to-access-s3 alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_in_invalid_state_throws_InvalidDBInstanceStateFault(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    response = client.stop_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        DBSnapshotIdentifier="rocky4570-rds-snap",
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="S3_INTEGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidDBInstanceState"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Instance db-master-1 should be in a valid state to add role."
+    )

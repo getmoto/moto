@@ -1,7 +1,7 @@
 import abc
 from collections import OrderedDict
 from threading import Event, Lock
-from typing import Dict, Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import ActivityDoesNotExist, Arn
 from moto.stepfunctions.parser.backend.activity import Activity, ActivityTask
@@ -11,14 +11,14 @@ CallbackId = str
 
 
 class CallbackOutcome(abc.ABC):
-    callback_id: CallbackId
+    callback_id: Final[CallbackId]
 
     def __init__(self, callback_id: str):
         self.callback_id = callback_id
 
 
 class CallbackOutcomeSuccess(CallbackOutcome):
-    output: str
+    output: Final[str]
 
     def __init__(self, callback_id: CallbackId, output: str):
         super().__init__(callback_id=callback_id)
@@ -26,8 +26,8 @@ class CallbackOutcomeSuccess(CallbackOutcome):
 
 
 class CallbackOutcomeFailure(CallbackOutcome):
-    error: Optional[str]
-    cause: Optional[str]
+    error: Final[Optional[str]]
+    cause: Final[Optional[str]]
 
     def __init__(
         self, callback_id: CallbackId, error: Optional[str], cause: Optional[str]
@@ -57,9 +57,9 @@ class CallbackConsumerLeft(CallbackConsumerError):
 
 
 class HeartbeatEndpoint:
-    _mutex: Lock
-    _next_heartbeat_event: Event
-    _heartbeat_seconds: int
+    _mutex: Final[Lock]
+    _next_heartbeat_event: Final[Event]
+    _heartbeat_seconds: Final[int]
 
     def __init__(self, heartbeat_seconds: int):
         self._mutex = Lock()
@@ -94,7 +94,7 @@ class ActivityTaskStartOutcome:
 
 
 class ActivityTaskStartEndpoint:
-    _next_activity_task_start_event: Event
+    _next_activity_task_start_event: Final[Event]
     _outcome: Optional[ActivityTaskStartOutcome]
 
     def __init__(self):
@@ -110,8 +110,8 @@ class ActivityTaskStartEndpoint:
 
 
 class CallbackEndpoint:
-    callback_id: CallbackId
-    _notify_event: Event
+    callback_id: Final[CallbackId]
+    _notify_event: Final[Event]
     _outcome: Optional[CallbackOutcome]
     consumer_error: Optional[CallbackConsumerError]
     _heartbeat_endpoint: Optional[HeartbeatEndpoint]
@@ -160,8 +160,8 @@ class CallbackEndpoint:
 
 
 class ActivityCallbackEndpoint(CallbackEndpoint):
-    _activity_task_start_endpoint: ActivityTaskStartEndpoint
-    _activity_input: str
+    _activity_task_start_endpoint: Final[ActivityTaskStartEndpoint]
+    _activity_input: Final[str]
 
     def __init__(self, callback_id: str, activity_input: str):
         super().__init__(callback_id=callback_id)
@@ -195,10 +195,10 @@ class CallbackOutcomeFailureError(RuntimeError):
 
 
 class CallbackPoolManager:
-    _activity_store: Dict[CallbackId, Activity]
-    _pool: Dict[CallbackId, CallbackEndpoint]
+    _activity_store: Final[dict[CallbackId, Activity]]
+    _pool: Final[dict[CallbackId, CallbackEndpoint]]
 
-    def __init__(self, activity_store: Dict[Arn, Activity]):
+    def __init__(self, activity_store: dict[Arn, Activity]):
         self._activity_store = activity_store
         self._pool = OrderedDict()
 

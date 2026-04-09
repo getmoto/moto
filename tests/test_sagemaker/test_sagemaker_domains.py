@@ -78,6 +78,13 @@ def test_describe_domain():
                 ],
             },
         },
+        DomainSettings={
+            "IpAddressType": "ipv4",
+            "ExecutionRoleIdentityConfig": "USER_PROFILE_NAME",
+            "TrustedIdentityPropagationSettings": {
+                "Status": "ENABLED",
+            },
+        },
         Tags=[{"Key": "string", "Value": "string"}],
     )
     resp = client.describe_domain(DomainId="d-testdomain")
@@ -105,6 +112,13 @@ def test_describe_domain():
         "SharingSettings": {
             "NotebookOutputOption": "Allowed",
             "S3OutputPath": "s3://output",
+        },
+    }
+    assert resp["DomainSettings"] == {
+        "IpAddressType": "ipv4",
+        "ExecutionRoleIdentityConfig": "USER_PROFILE_NAME",
+        "TrustedIdentityPropagationSettings": {
+            "Status": "ENABLED",
         },
     }
 

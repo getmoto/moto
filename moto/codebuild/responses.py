@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.utilities.utils import get_partition
@@ -13,7 +13,7 @@ from .exceptions import (
 from .models import CodeBuildBackend, codebuild_backends
 
 
-def _validate_required_params_source(source: Dict[str, Any]) -> None:
+def _validate_required_params_source(source: dict[str, Any]) -> None:
     if source["type"] not in [
         "BITBUCKET",
         "CODECOMMIT",
@@ -43,7 +43,7 @@ def _validate_required_params_service_role(
         )
 
 
-def _validate_required_params_artifacts(artifacts: Dict[str, Any]) -> None:
+def _validate_required_params_artifacts(artifacts: dict[str, Any]) -> None:
     if artifacts["type"] not in ["CODEPIPELINE", "S3", "NO_ARTIFACTS"]:
         raise InvalidInputException("Invalid type provided: Artifact type")
 
@@ -56,7 +56,7 @@ def _validate_required_params_artifacts(artifacts: Dict[str, Any]) -> None:
         raise InvalidInputException("Project source location is required")
 
 
-def _validate_required_params_environment(environment: Dict[str, Any]) -> None:
+def _validate_required_params_environment(environment: dict[str, Any]) -> None:
     if environment["type"] not in [
         "WINDOWS_CONTAINER",
         "LINUX_CONTAINER",
@@ -88,7 +88,7 @@ def _validate_required_params_project_name(name: str) -> None:
         )
 
 
-def _validate_required_params_id(build_id: str, build_ids: List[str]) -> None:
+def _validate_required_params_id(build_id: str, build_ids: list[str]) -> None:
     if ":" not in build_id:
         raise InvalidInputException("Invalid build ID provided")
 

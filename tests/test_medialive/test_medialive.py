@@ -33,19 +33,19 @@ def _create_input_config(name, **kwargs):
     vpc_config = kwargs.get(
         "vpc", {"SubnetIds": ["subnet-1"], "SecurityGroupIds": ["sg-0001"]}
     )
-    input_config = dict(
-        Name=name,
-        Destinations=destinations,
-        InputDevices=input_devices,
-        InputSecurityGroups=input_security_groups,
-        MediaConnectFlows=media_connect_flows,
-        RoleArn=role_arn,
-        RequestId=request_id,
-        Sources=sources,
-        Type=input_type,
-        Tags=tags,
-        Vpc=vpc_config,
-    )
+    input_config = {
+        "Name": name,
+        "Destinations": destinations,
+        "InputDevices": input_devices,
+        "InputSecurityGroups": input_security_groups,
+        "MediaConnectFlows": media_connect_flows,
+        "RoleArn": role_arn,
+        "RequestId": request_id,
+        "Sources": sources,
+        "Type": input_type,
+        "Tags": tags,
+        "Vpc": vpc_config,
+    }
     return input_config
 
 
@@ -91,17 +91,17 @@ def _create_channel_config(name, **kwargs):
     input_specification = kwargs.get("input_specification", {})
     log_level = kwargs.get("log_level", "INFO")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(
-        Name=name,
-        RoleArn=role_arn,
-        InputAttachments=input_settings,
-        Destinations=destinations,
-        EncoderSettings=encoder_settings,
-        InputSpecification=input_specification,
-        RequestId=name,
-        LogLevel=log_level,
-        Tags=tags,
-    )
+    channel_config = {
+        "Name": name,
+        "RoleArn": role_arn,
+        "InputAttachments": input_settings,
+        "Destinations": destinations,
+        "EncoderSettings": encoder_settings,
+        "InputSpecification": input_specification,
+        "RequestId": name,
+        "LogLevel": log_level,
+        "Tags": tags,
+    }
     return channel_config
 
 
@@ -111,7 +111,7 @@ def test_create_channel_succeeds():
     channel_config = _create_channel_config("test channel 1")
 
     response = client.create_channel(**channel_config)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     channel = response["Channel"]
     assert channel["Arn"] == f"arn:aws:medialive:channel:{response['Channel']['Id']}"
@@ -249,7 +249,7 @@ def test_create_input_succeeds():
     input_config = _create_input_config(input_name)
 
     create_response = client.create_input(**input_config)
-    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 201
     r_input = create_response["Input"]
     input_id = r_input["Id"]
     assert len(input_id) > 1
@@ -276,7 +276,7 @@ def test_describe_input_succeeds():
     input_config = _create_input_config(input_name)
 
     create_response = client.create_input(**input_config)
-    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 201
     assert create_response["Input"]["State"] == "CREATING"
 
     describe_response = client.describe_input(InputId=create_response["Input"]["Id"])

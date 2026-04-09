@@ -80,7 +80,7 @@ class LexModelsV2Response(BaseResponse):
 
     def list_bots(self) -> str:
         bot_summaries = self.lexv2models_backend.list_bots()
-        return json.dumps(dict(botSummaries=bot_summaries, nextToken=None))
+        return json.dumps({"botSummaries": bot_summaries, "nextToken": None})
 
     def delete_bot(self) -> str:
         bot_id = self._get_param("botId")
@@ -89,7 +89,7 @@ class LexModelsV2Response(BaseResponse):
             bot_id=bot_id,
             skip_resource_in_use_check=skip_resource_in_use_check,
         )
-        return json.dumps(dict(botId=bot_id, botStatus=bot_status))
+        return json.dumps({"botId": bot_id, "botStatus": bot_status})
 
     def create_bot_alias(self) -> str:
         bot_alias_name = self._get_param("botAliasName")
@@ -155,11 +155,11 @@ class LexModelsV2Response(BaseResponse):
             bot_id=bot_id, max_results=max_results
         )
         return json.dumps(
-            dict(
-                botAliasSummaries=bot_alias_summaries,
-                nextToken=None,
-                botId=bot_id,
-            )
+            {
+                "botAliasSummaries": bot_alias_summaries,
+                "nextToken": None,
+                "botId": bot_id,
+            }
         )
 
     def delete_bot_alias(self) -> str:
@@ -174,7 +174,11 @@ class LexModelsV2Response(BaseResponse):
             )
         )
         return json.dumps(
-            dict(botAliasId=bot_alias_id, botId=bot_id, botAliasStatus=bot_alias_status)
+            {
+                "botAliasId": bot_alias_id,
+                "botId": bot_id,
+                "botAliasStatus": bot_alias_status,
+            }
         )
 
     def create_resource_policy(self) -> str:
@@ -184,7 +188,7 @@ class LexModelsV2Response(BaseResponse):
             resource_arn=resource_arn,
             policy=policy,
         )
-        return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
+        return json.dumps({"resourceArn": resource_arn, "revisionId": revision_id})
 
     def describe_resource_policy(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
@@ -194,7 +198,7 @@ class LexModelsV2Response(BaseResponse):
             )
         )
         return json.dumps(
-            dict(resourceArn=resource_arn, policy=policy, revisionId=revision_id)
+            {"resourceArn": resource_arn, "policy": policy, "revisionId": revision_id}
         )
 
     def update_resource_policy(self) -> str:
@@ -206,7 +210,7 @@ class LexModelsV2Response(BaseResponse):
             policy=policy,
             expected_revision_id=expected_revision_id,
         )
-        return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
+        return json.dumps({"resourceArn": resource_arn, "revisionId": revision_id})
 
     def delete_resource_policy(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
@@ -215,7 +219,7 @@ class LexModelsV2Response(BaseResponse):
             resource_arn=resource_arn,
             expected_revision_id=expected_revision_id,
         )
-        return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
+        return json.dumps({"resourceArn": resource_arn, "revisionId": revision_id})
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
@@ -224,7 +228,7 @@ class LexModelsV2Response(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
@@ -233,11 +237,11 @@ class LexModelsV2Response(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.lexv2models_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})

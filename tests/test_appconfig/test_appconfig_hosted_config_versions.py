@@ -7,7 +7,7 @@ from moto import mock_aws
 
 @mock_aws
 class TestHostedConfigurationVersions:
-    def setup_method(self, *args):  # pylint: disable=unused-argument
+    def setup_method(self, *args):
         self.client = boto3.client("appconfig", region_name="us-west-1")
         self.app_id = self.client.create_application(Name="testapp")["Id"]
         self.config_profile_id = self.client.create_configuration_profile(

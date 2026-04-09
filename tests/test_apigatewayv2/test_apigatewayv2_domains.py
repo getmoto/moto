@@ -12,6 +12,7 @@ def test_create_domain_name():
     tags = {"tag": "it"}
     expected_keys = [
         "DomainName",
+        "DomainNameArn",
         "ApiMappingSelectionExpression",
         "DomainNameConfigurations",
         "MutualTlsAuthentication",
@@ -36,6 +37,10 @@ def test_create_domain_name():
     # ensure known values are set correct in post response
     assert post_resp.get("DomainName") == domain_name
     assert post_resp.get("Tags") == tags
+    assert (
+        post_resp.get("DomainNameArn")
+        == f"arn:aws:apigateway:us-east-1::/domainnames/{domain_name}"
+    )
 
 
 @mock_aws

@@ -4,14 +4,13 @@ import random
 import re
 import string
 from collections import defaultdict
-from datetime import datetime
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union, cast
-
-from dateutil.tz import tzutc
+from collections.abc import Iterable
+from datetime import datetime, timezone
+from typing import Any, Optional, Union, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
@@ -163,8 +162,8 @@ PAGINATION_MODEL = {
     },
 }
 
-METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
-METRIC_STEP_TYPE = Dict[int, METRIC_INFO_TYPE]
+METRIC_INFO_TYPE = dict[str, Union[str, int, float, datetime]]
+METRIC_STEP_TYPE = dict[int, METRIC_INFO_TYPE]
 
 
 class BaseObject(BaseModel):
@@ -179,8 +178,8 @@ class BaseObject(BaseModel):
         for k in details.keys():
             setattr(self, k, details[k])
 
-    def gen_response_object(self) -> Dict[str, Any]:
-        response_object: Dict[str, Any] = dict()
+    def gen_response_object(self) -> dict[str, Any]:
+        response_object: dict[str, Any] = {}
         for key, value in self.__dict__.items():
             if "_" in key:
                 response_object[self.camelCase(key)] = value
@@ -189,7 +188,7 @@ class BaseObject(BaseModel):
         return response_object
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return self.gen_response_object()
 
 
@@ -198,9 +197,9 @@ class FakePipelineExecution(BaseObject):
         self,
         pipeline_execution_arn: str,
         pipeline_execution_display_name: str,
-        pipeline_parameters: List[Dict[str, str]],
+        pipeline_parameters: list[dict[str, str]],
         pipeline_execution_description: str,
-        parallelism_configuration: Dict[str, int],
+        parallelism_configuration: dict[str, int],
         pipeline_definition: str,
         client_request_token: str,
     ):
@@ -214,10 +213,10 @@ class FakePipelineExecution(BaseObject):
         self.pipeline_definition_for_execution = pipeline_definition
         self.client_request_token = client_request_token
 
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.start_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.start_time = now
 
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
@@ -247,25 +246,25 @@ class FakePipeline(BaseObject):
         pipeline_definition: str,
         pipeline_description: str,
         role_arn: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         account_id: str,
         region_name: str,
-        parallelism_configuration: Dict[str, int],
+        parallelism_configuration: dict[str, int],
     ):
         self.pipeline_name = pipeline_name
         self.arn = arn_formatter("pipeline", pipeline_name, account_id, region_name)
         self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
-        self.pipeline_executions: Dict[str, FakePipelineExecution] = dict()
+        self.pipeline_executions: dict[str, FakePipelineExecution] = {}
         self.role_arn = role_arn
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
 
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.last_execution_time: Optional[str] = None
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.last_execution_time: Optional[datetime] = None
 
         self.pipeline_status = "Active"
         fake_user_profile_name = "fake-user-profile-name"
@@ -291,26 +290,26 @@ class FakePipeline(BaseObject):
 class FakeProcessingJob(BaseObject):
     def __init__(
         self,
-        app_specification: Dict[str, Any],
-        experiment_config: Dict[str, str],
-        network_config: Dict[str, Any],
-        processing_inputs: List[Dict[str, Any]],
+        app_specification: dict[str, Any],
+        experiment_config: dict[str, str],
+        network_config: dict[str, Any],
+        processing_inputs: list[dict[str, Any]],
         processing_job_name: str,
-        processing_output_config: Dict[str, Any],
+        processing_output_config: dict[str, Any],
         account_id: str,
         region_name: str,
         role_arn: str,
-        tags: List[Dict[str, str]],
-        stopping_condition: Dict[str, int],
+        tags: list[dict[str, str]],
+        stopping_condition: dict[str, int],
     ):
         self.processing_job_name = processing_job_name
         self.arn = FakeProcessingJob.arn_formatter(
             processing_job_name, account_id, region_name
         )
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.processing_end_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.processing_end_time = now
         self.tags = tags or []
         self.role_arn = role_arn
         self.app_specification = app_specification
@@ -322,7 +321,7 @@ class FakeProcessingJob(BaseObject):
         self.stopping_condition = stopping_condition
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -332,7 +331,7 @@ class FakeProcessingJob(BaseObject):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"ProcessingJobArn": self.arn}
 
     @staticmethod
@@ -346,23 +345,23 @@ class FakeTrainingJob(BaseObject):
         account_id: str,
         region_name: str,
         training_job_name: str,
-        hyper_parameters: Dict[str, str],
-        algorithm_specification: Dict[str, Any],
+        hyper_parameters: dict[str, str],
+        algorithm_specification: dict[str, Any],
         role_arn: str,
-        input_data_config: List[Dict[str, Any]],
-        output_data_config: Dict[str, str],
-        resource_config: Dict[str, Any],
-        vpc_config: Dict[str, List[str]],
-        stopping_condition: Dict[str, int],
-        tags: List[Dict[str, str]],
+        input_data_config: list[dict[str, Any]],
+        output_data_config: dict[str, str],
+        resource_config: dict[str, Any],
+        vpc_config: dict[str, list[str]],
+        stopping_condition: dict[str, int],
+        tags: list[dict[str, str]],
         enable_network_isolation: bool,
         enable_inter_container_traffic_encryption: bool,
         enable_managed_spot_training: bool,
-        checkpoint_config: Dict[str, str],
-        debug_hook_config: Dict[str, Any],
-        debug_rule_configurations: List[Dict[str, Any]],
-        tensor_board_output_config: Dict[str, str],
-        experiment_config: Dict[str, str],
+        checkpoint_config: dict[str, str],
+        debug_hook_config: dict[str, Any],
+        debug_rule_configurations: list[dict[str, Any]],
+        tensor_board_output_config: dict[str, str],
+        experiment_config: dict[str, str],
     ):
         self.training_job_name = training_job_name
         self.hyper_parameters = hyper_parameters
@@ -387,9 +386,7 @@ class FakeTrainingJob(BaseObject):
         self.arn = FakeTrainingJob.arn_formatter(
             training_job_name, account_id, region_name
         )
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
         self.model_artifacts = {
             "S3ModelArtifacts": os.path.join(
                 self.output_data_config["S3OutputPath"],
@@ -406,11 +403,11 @@ class FakeTrainingJob(BaseObject):
                 "Regex": "#quality_metric: host=\\S+, test dcg <score>=(\\S+)",
             }
         ]
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.last_modified_time = now_string
-        self.training_start_time = now_string
-        self.training_end_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.last_modified_time = now
+        self.training_start_time = now
+        self.training_end_time = now
         self.secondary_status_transitions = [
             {
                 "Status": "Starting",
@@ -428,7 +425,7 @@ class FakeTrainingJob(BaseObject):
         ]
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -438,7 +435,7 @@ class FakeTrainingJob(BaseObject):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"TrainingJobArn": self.arn}
 
     @staticmethod
@@ -453,9 +450,9 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         region_name: str,
         endpoint_name: str,
         endpoint_config_name: str,
-        production_variants: List[Dict[str, Any]],
-        data_capture_config: Dict[str, Any],
-        tags: List[Dict[str, str]],
+        production_variants: list[dict[str, Any]],
+        data_capture_config: dict[str, Any],
+        tags: list[dict[str, str]],
     ):
         self.endpoint_name = endpoint_name
         self.arn = FakeEndpoint.arn_formatter(endpoint_name, account_id, region_name)
@@ -467,13 +464,11 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.tags = tags or []
         self.endpoint_status = "InService"
         self.failure_reason = None
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     def _process_production_variants(
-        self, production_variants: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, production_variants: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         endpoint_variants = []
         for production_variant in production_variants:
             temp_variant = {}
@@ -509,7 +504,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
         return endpoint_variants
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "EndpointName": self.endpoint_name,
             "EndpointArn": self.arn,
@@ -519,7 +514,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         }
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -529,7 +524,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"EndpointArn": self.arn}
 
     @staticmethod
@@ -626,10 +621,10 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         account_id: str,
         region_name: str,
         endpoint_config_name: str,
-        production_variants: List[Dict[str, Any]],
-        async_inference_config: Dict[str, Any],
-        data_capture_config: Dict[str, Any],
-        tags: List[Dict[str, Any]],
+        production_variants: list[dict[str, Any]],
+        async_inference_config: dict[str, Any],
+        data_capture_config: dict[str, Any],
+        tags: list[dict[str, Any]],
         kms_key_id: str,
     ):
         self.validate_production_variants(production_variants)
@@ -644,10 +639,10 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
         self.kms_key_id = kms_key_id
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
 
     def validate_production_variants(
-        self, production_variants: List[Dict[str, Any]]
+        self, production_variants: list[dict[str, Any]]
     ) -> None:
         for production_variant in production_variants:
             if "InstanceType" in production_variant.keys():
@@ -658,7 +653,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
                 message = f"Invalid Keys for ProductionVariant: received {production_variant.keys()} but expected it to contain one of {['InstanceType', 'ServerlessConfig']}"
                 raise ValidationError(message=message)
 
-    def validate_serverless_config(self, serverless_config: Dict[str, Any]) -> None:
+    def validate_serverless_config(self, serverless_config: dict[str, Any]) -> None:
         VALID_SERVERLESS_MEMORY_SIZE = [1024, 2048, 3072, 4096, 5120, 6144]
         if not validators.is_one_of(
             serverless_config["MemorySizeInMB"], VALID_SERVERLESS_MEMORY_SIZE
@@ -739,7 +734,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {VALID_INSTANCE_TYPES}"
             raise ValidationError(message=message)
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "EndpointConfigName": self.endpoint_config_name,
             "EndpointConfigArn": self.endpoint_config_arn,
@@ -747,14 +742,14 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         }
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"EndpointConfigArn": self.endpoint_config_arn}
 
     @staticmethod
@@ -862,17 +857,17 @@ class FakeTransformJob(BaseObject):
         transform_job_name: str,
         model_name: str,
         max_concurrent_transforms: int,
-        model_client_config: Dict[str, int],
+        model_client_config: dict[str, int],
         max_payload_in_mb: int,
         batch_strategy: str,
-        environment: Dict[str, str],
-        transform_input: Dict[str, Union[Dict[str, str], str]],
-        transform_output: Dict[str, str],
-        data_capture_config: Dict[str, Union[str, bool]],
-        transform_resources: Dict[str, Union[str, int]],
-        data_processing: Dict[str, str],
-        tags: Dict[str, str],
-        experiment_config: Dict[str, str],
+        environment: dict[str, str],
+        transform_input: dict[str, Union[dict[str, str], str]],
+        transform_output: dict[str, str],
+        data_capture_config: dict[str, Union[str, bool]],
+        transform_resources: dict[str, Union[str, int]],
+        data_processing: dict[str, str],
+        tags: dict[str, str],
+        experiment_config: dict[str, str],
     ):
         self.transform_job_name = transform_job_name
         self.model_name = model_name
@@ -895,11 +890,11 @@ class FakeTransformJob(BaseObject):
         self.failure_reason = ""
         self.labeling_job_arn = ""
         self.auto_ml_job_arn = ""
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = now_string
-        self.transform_start_time = now_string
-        self.transform_end_time = now_string
-        self.last_modified_time = now_string
+        now = utcnow()
+        self.creation_time = now
+        self.transform_start_time = now
+        self.transform_end_time = now
+        self.last_modified_time = now
 
     # Override title case
     def camelCase(self, key: str) -> str:
@@ -912,15 +907,16 @@ class FakeTransformJob(BaseObject):
         return "".join(words)
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TransformJobArn"] = response.pop("Arn")
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"TransformJobArn": self.arn}
 
     @staticmethod
@@ -935,13 +931,13 @@ class Model(BaseObject, CloudFormationModel):
         region_name: str,
         model_name: str,
         execution_role_arn: str,
-        primary_container: Dict[str, Any],
-        vpc_config: Dict[str, Any],
-        containers: Optional[List[Dict[str, Any]]] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        primary_container: dict[str, Any],
+        vpc_config: dict[str, Any],
+        containers: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.model_name = model_name
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.containers = containers or []
         self.tags = tags or []
         self.enable_network_isolation = False
@@ -951,7 +947,7 @@ class Model(BaseObject, CloudFormationModel):
         self.arn = arn_formatter("model", self.model_name, account_id, region_name)
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -961,7 +957,7 @@ class Model(BaseObject, CloudFormationModel):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"ModelArn": self.arn}
 
     @property
@@ -1056,7 +1052,7 @@ class ModelPackageGroup(BaseObject):
         model_package_group_description: str,
         account_id: str,
         region_name: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> None:
         model_package_group_arn = arn_formatter(
             region_name=region_name,
@@ -1072,7 +1068,7 @@ class ModelPackageGroup(BaseObject):
             account_id=account_id,
             region_name=region_name,
         )
-        datetime_now = datetime.now(tzutc())
+        datetime_now = utcnow()
         self.model_package_group_name = model_package_group_name
         self.arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
@@ -1085,11 +1081,8 @@ class ModelPackageGroup(BaseObject):
         self.model_package_group_status = "Completed"
         self.tags = tags
 
-    def gen_response_object(self) -> Dict[str, Any]:
+    def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = v.isoformat()
         response_values = [
             "ModelPackageGroupName",
             "Arn",
@@ -1113,12 +1106,12 @@ class FakeModelCard(BaseObject):
         model_card_version: int,
         content: str,
         model_card_status: str,
-        security_config: Optional[Dict[str, str]] = None,
-        tags: Optional[List[Dict[str, Any]]] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        security_config: Optional[dict[str, str]] = None,
+        tags: Optional[list[dict[str, Any]]] = None,
+        creation_time: Optional[datetime] = None,
+        last_modified_time: Optional[datetime] = None,
     ) -> None:
-        datetime_now = str(datetime.now(tzutc()))
+        datetime_now = utcnow()
         self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
         self.model_card_name = model_card_name
         self.model_card_version = model_card_version
@@ -1131,7 +1124,7 @@ class FakeModelCard(BaseObject):
         self.security_config = security_config
         self.tags = tags
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "ModelCardArn": self.arn,
             "ModelCardName": self.model_card_name,
@@ -1145,7 +1138,7 @@ class FakeModelCard(BaseObject):
             "LastModifiedBy": {},
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "ModelCardName": self.model_card_name,
             "ModelCardArn": self.arn,
@@ -1154,7 +1147,7 @@ class FakeModelCard(BaseObject):
             "LastModifiedTime": self.last_modified_time,
         }
 
-    def version_summary(self) -> Dict[str, Any]:
+    def version_summary(self) -> dict[str, Any]:
         return {
             "ModelCardName": self.model_card_name,
             "ModelCardArn": self.arn,
@@ -1173,10 +1166,10 @@ class FeatureGroup(BaseObject):
         feature_group_name: str,
         record_identifier_feature_name: str,
         event_time_feature_name: str,
-        feature_definitions: List[Dict[str, str]],
-        offline_store_config: Dict[str, Any],
+        feature_definitions: list[dict[str, str]],
+        offline_store_config: dict[str, Any],
         role_arn: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> None:
         self.feature_group_name = feature_group_name
         self.record_identifier_feature_name = record_identifier_feature_name
@@ -1184,7 +1177,7 @@ class FeatureGroup(BaseObject):
         self.feature_definitions = feature_definitions
 
         table_name = (
-            f"{feature_group_name.replace('-','_')}_{int(datetime.now().timestamp())}"
+            f"{feature_group_name.replace('-', '_')}_{int(utcnow().timestamp())}"
         )
         offline_store_config["DataCatalogConfig"] = {
             "TableName": table_name,
@@ -1192,13 +1185,13 @@ class FeatureGroup(BaseObject):
             "Database": "sagemaker_featurestore",
         }
         offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
-            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+            f"{offline_store_config['S3StorageConfig']['S3Uri']}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(utcnow().timestamp())}/data"
         )
 
         self.offline_store_config = offline_store_config
         self.role_arn = role_arn
 
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.arn = arn_formatter(
             region_name=region_name,
             account_id=account_id,
@@ -1207,7 +1200,7 @@ class FeatureGroup(BaseObject):
         )
         self.tags = tags
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "FeatureGroupArn": self.arn,
             "FeatureGroupName": self.feature_group_name,
@@ -1242,12 +1235,12 @@ class ModelPackage(BaseObject):
         domain: str,
         task: str,
         sample_payload_url: str,
-        additional_inference_specifications: List[Any],
+        additional_inference_specifications: list[Any],
         client_token: str,
         region_name: str,
         account_id: str,
         model_package_type: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> None:
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
@@ -1267,7 +1260,7 @@ class ModelPackage(BaseObject):
                 else model_package_name.lower()
             ),
         )
-        datetime_now = datetime.now(tzutc())
+        datetime_now = utcnow()
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
@@ -1309,20 +1302,17 @@ class ModelPackage(BaseObject):
         self.domain = domain
         self.task = task
         self.sample_payload_url = sample_payload_url
-        self.additional_inference_specifications: Optional[List[Any]] = None
+        self.additional_inference_specifications: Optional[list[Any]] = None
         self.add_additional_inference_specifications(
             additional_inference_specifications
         )
         self.tags = tags
         self.model_package_status = "Completed"
-        self.last_modified_by: Optional[Dict[str, str]] = None
+        self.last_modified_by: Optional[dict[str, str]] = None
         self.client_token = client_token
 
-    def gen_response_object(self) -> Dict[str, Any]:
+    def gen_response_object(self) -> dict[str, Any]:
         response_object = super().gen_response_object()
-        for k, v in response_object.items():
-            if isinstance(v, datetime):
-                response_object[k] = v.isoformat()
         response_values = [
             "ModelPackageName",
             "ModelPackageGroupName",
@@ -1366,7 +1356,7 @@ class ModelPackage(BaseObject):
         return response
 
     def modifications_done(self) -> None:
-        self.last_modified_time = datetime.now(tzutc())
+        self.last_modified_time = utcnow()
         self.last_modified_by = self.created_by
 
     def set_model_approval_status(self, model_approval_status: Optional[str]) -> None:
@@ -1375,14 +1365,14 @@ class ModelPackage(BaseObject):
         self.model_approval_status = model_approval_status
 
     def remove_customer_metadata_property(
-        self, customer_metadata_properties_to_remove: List[str]
+        self, customer_metadata_properties_to_remove: list[str]
     ) -> None:
         if customer_metadata_properties_to_remove is not None:
             for customer_metadata_property in customer_metadata_properties_to_remove:
                 self.customer_metadata_properties.pop(customer_metadata_property, None)
 
     def add_additional_inference_specifications(
-        self, additional_inference_specifications_to_add: Optional[List[Any]]
+        self, additional_inference_specifications_to_add: Optional[list[Any]]
     ) -> None:
         self.validate_additional_inference_specifications(
             additional_inference_specifications_to_add
@@ -1400,7 +1390,7 @@ class ModelPackage(BaseObject):
             )
 
     def validate_additional_inference_specifications(
-        self, additional_inference_specifications: Optional[List[Dict[str, Any]]]
+        self, additional_inference_specifications: Optional[list[dict[str, Any]]]
     ) -> None:
         specifications_to_validate = additional_inference_specifications or []
         for additional_inference_specification in specifications_to_validate:
@@ -1421,7 +1411,7 @@ class ModelPackage(BaseObject):
                 )
 
     @staticmethod
-    def validate_supported_transform_instance_types(instance_types: List[str]) -> None:
+    def validate_supported_transform_instance_types(instance_types: list[str]) -> None:
         VALID_TRANSFORM_INSTANCE_TYPES = [
             "ml.m4.xlarge",
             "ml.m4.2xlarge",
@@ -1463,7 +1453,7 @@ class ModelPackage(BaseObject):
 
     @staticmethod
     def validate_supported_realtime_inference_instance_types(
-        instance_types: List[str],
+        instance_types: list[str],
     ) -> None:
         VALID_REALTIME_INFERENCE_INSTANCE_TYPES = [
             "ml.t2.medium",
@@ -1629,9 +1619,9 @@ class Cluster(BaseObject):
         cluster_name: str,
         region_name: str,
         account_id: str,
-        instance_groups: List[Dict[str, Any]],
-        vpc_config: Dict[str, List[str]],
-        tags: Optional[List[Dict[str, str]]] = None,
+        instance_groups: list[dict[str, Any]],
+        vpc_config: dict[str, list[str]],
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -1653,15 +1643,15 @@ class Cluster(BaseObject):
         self.tags = tags or []
         self.arn = arn_formatter("cluster", self.cluster_name, account_id, region_name)
         self.status = "InService"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.failure_message = ""
-        self.nodes: Dict[str, ClusterNode] = {}
+        self.nodes: dict[str, ClusterNode] = {}
         for instance_group in self.instance_groups:
             instance_group["CurrentCount"] = instance_group["InstanceCount"]
             instance_group["TargetCount"] = instance_group["InstanceCount"]
             del instance_group["InstanceCount"]
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "ClusterArn": self.arn,
             "ClusterName": self.cluster_name,
@@ -1672,7 +1662,7 @@ class Cluster(BaseObject):
             "VpcConfig": self.vpc_config,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "ClusterArn": self.arn,
             "ClusterName": self.cluster_name,
@@ -1735,7 +1725,7 @@ class ClusterNode(BaseObject):
         cluster_name: str,
         instance_group_name: str,
         instance_type: str,
-        life_cycle_config: Dict[str, Any],
+        life_cycle_config: dict[str, Any],
         execution_role: str,
         node_id: str,
         threads_per_core: Optional[int] = None,
@@ -1752,9 +1742,9 @@ class ClusterNode(BaseObject):
         self.execution_role = execution_role
         self.threads_per_core = threads_per_core
         self.status = "Running"
-        self.launch_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.launch_time = utcnow()
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "InstanceGroupName": self.instance_group_name,
             "InstanceId": self.instance_id,
@@ -1765,7 +1755,7 @@ class ClusterNode(BaseObject):
             "ThreadsPerCore": self.threads_per_core,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "InstanceGroupName": self.instance_group_name,
             "InstanceId": self.instance_id,
@@ -1782,12 +1772,12 @@ class CompilationJob(BaseObject):
         role_arn: str,
         region_name: str,
         account_id: str,
-        output_config: Dict[str, Any],
-        stopping_condition: Dict[str, Any],
+        output_config: dict[str, Any],
+        stopping_condition: dict[str, Any],
         model_package_version_arn: Optional[str],
-        input_config: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        input_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
     ):
         self.compilation_job_name = compilation_job_name
         if (
@@ -1801,13 +1791,13 @@ class CompilationJob(BaseObject):
             "compilation-job", self.compilation_job_name, account_id, region_name
         )
         self.compilation_job_status = "COMPLETED"
-        self.compilation_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.compilation_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.compilation_start_time = utcnow()
+        self.compilation_end_time = utcnow()
         self.stopping_condition = stopping_condition
         self.inference_image = "InferenceImage"
         self.model_package_version_arn = model_package_version_arn
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.model_artifacts = {"S3ModelArtifacts": output_config["S3OutputLocation"]}
         self.model_digests = {
@@ -1828,7 +1818,7 @@ class CompilationJob(BaseObject):
         self.derived_information = {"DerivedDataInputConfig": "DerivedDataInputConfig"}
         self.tags = tags
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "CompilationJobName": self.compilation_job_name,
             "CompilationJobArn": self.arn,
@@ -1850,7 +1840,7 @@ class CompilationJob(BaseObject):
             "DerivedInformation": self.derived_information,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         summary = {
             "CompilationJobName": self.compilation_job_name,
             "CompilationJobArn": self.arn,
@@ -1879,17 +1869,17 @@ class AutoMLJob(BaseObject):
     def __init__(
         self,
         auto_ml_job_name: str,
-        auto_ml_job_input_data_config: List[Dict[str, Any]],
-        output_data_config: Dict[str, Any],
-        auto_ml_problem_type_config: Dict[str, Any],
+        auto_ml_job_input_data_config: list[dict[str, Any]],
+        output_data_config: dict[str, Any],
+        auto_ml_problem_type_config: dict[str, Any],
         role_arn: str,
         region_name: str,
         account_id: str,
-        security_config: Optional[Dict[str, Any]],
-        auto_ml_job_objective: Optional[Dict[str, Any]],
-        model_deploy_config: Optional[Dict[str, Any]],
-        data_split_config: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]] = None,
+        security_config: Optional[dict[str, Any]],
+        auto_ml_job_objective: Optional[dict[str, Any]],
+        model_deploy_config: Optional[dict[str, Any]],
+        data_split_config: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -1904,9 +1894,7 @@ class AutoMLJob(BaseObject):
         self.role_arn = role_arn
         self.security_config = security_config
         self.auto_ml_job_objective = auto_ml_job_objective
-        self.auto_ml_problem_type_resolved_attributes = {
-            "SDK_UNKNOWN_MEMBER": {"name": "UnknownMemberName"}
-        }
+        self.auto_ml_problem_type_resolved_attributes: Optional[dict[str, Any]] = None
         if "ImageClassificationJobConfig" in self.auto_ml_problem_type_config:
             self.auto_ml_job_objective = (
                 {"MetricName": "Accuracy"}
@@ -2002,9 +1990,9 @@ class AutoMLJob(BaseObject):
         self.arn = arn_formatter(
             "automl-job", self.auto_ml_job_name, account_id, region_name
         )
-        self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.end_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.last_modified_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.creation_time = utcnow()
+        self.end_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.partial_failure_reasons = [{"PartialFailureMessage": ""}]
         self.best_candidate = {
@@ -2033,9 +2021,9 @@ class AutoMLJob(BaseObject):
                     "Environment": {"string": "string"},
                 },
             ],
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "EndTime": str(datetime(2024, 1, 1)),
-            "LastModifiedTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "EndTime": datetime(2024, 1, 1),
+            "LastModifiedTime": datetime(2024, 1, 1),
             "FailureReason": "string",
             "CandidateProperties": {
                 "CandidateArtifactLocations": {
@@ -2069,13 +2057,17 @@ class AutoMLJob(BaseObject):
             "DataExplorationNotebookLocation": "data/notebook/location",
         }
 
-        self.resolved_attributes = {
+        resolved = {
             "AutoMLJobObjective": self.auto_ml_job_objective,
             "CompletionCriteria": self.auto_ml_problem_type_config[
                 self.auto_ml_problem_type_config_name + "JobConfig"
             ]["CompletionCriteria"],
-            "AutoMLProblemTypeResolvedAttributes": self.auto_ml_problem_type_resolved_attributes,
         }
+        if self.auto_ml_problem_type_resolved_attributes is not None:
+            resolved["AutoMLProblemTypeResolvedAttributes"] = (
+                self.auto_ml_problem_type_resolved_attributes
+            )
+        self.resolved_attributes = resolved
 
         self.model_deploy_result = {
             "EndpointName": (
@@ -2085,7 +2077,7 @@ class AutoMLJob(BaseObject):
             ),
         }
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "AutoMLJobName": self.auto_ml_job_name,
             "AutoMLJobArn": self.arn,
@@ -2111,7 +2103,7 @@ class AutoMLJob(BaseObject):
             "SecurityConfig": self.security_config,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "AutoMLJobName": self.auto_ml_job_name,
             "AutoMLJobArn": self.arn,
@@ -2130,18 +2122,18 @@ class Domain(BaseObject):
         self,
         domain_name: str,
         auth_mode: str,
-        default_user_settings: Dict[str, Any],
-        subnet_ids: List[str],
+        default_user_settings: dict[str, Any],
+        subnet_ids: list[str],
         vpc_id: str,
         account_id: str,
         region_name: str,
-        domain_settings: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        domain_settings: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
         app_network_access_type: Optional[str],
         home_efs_file_system_kms_key_id: Optional[str],
         kms_key_id: Optional[str],
         app_security_group_management: Optional[str],
-        default_space_settings: Optional[Dict[str, Any]],
+        default_space_settings: Optional[dict[str, Any]],
     ):
         self.domain_name = domain_name
         if domain_name in sagemaker_backends[account_id][region_name].domains:
@@ -2176,13 +2168,13 @@ class Domain(BaseObject):
             "sso", f"application/{domain_name}/apl-{domain_name}", account_id, ""
         )
         self.status = "InService"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
         self.failure_reason = ""
         self.security_group_id_for_domain_boundary = f"sg-{domain_name}"
         self.url = f"{domain_name}.{region_name}.sagemaker.test.com"
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "DomainArn": self.arn,
             "DomainId": self.id,
@@ -2197,7 +2189,7 @@ class Domain(BaseObject):
             "SecurityGroupIdForDomainBoundary": self.security_group_id_for_domain_boundary,
             "AuthMode": self.auth_mode,
             "DefaultUserSettings": self.default_user_settings,
-            "DomainSetting": self.domain_settings,
+            "DomainSettings": self.domain_settings,
             "AppNetworkAccessType": self.app_network_access_type,
             "HomeEfsFileSystemKmsKeyId": self.home_efs_file_system_kms_key_id,
             "SubnetIds": self.subnet_ids,
@@ -2208,7 +2200,7 @@ class Domain(BaseObject):
             "DefaultSpaceSettings": self.default_space_settings,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "DomainArn": self.arn,
             "DomainId": self.id,
@@ -2224,17 +2216,17 @@ class ModelExplainabilityJobDefinition(BaseObject):
     def __init__(
         self,
         job_definition_name: str,
-        model_explainability_baseline_config: Optional[Dict[str, Any]],
-        model_explainability_app_specification: Dict[str, Any],
-        model_explainability_job_input: Dict[str, Any],
-        model_explainability_job_output_config: Dict[str, Any],
-        job_resources: Dict[str, Any],
-        network_config: Optional[Dict[str, Any]],
+        model_explainability_baseline_config: Optional[dict[str, Any]],
+        model_explainability_app_specification: dict[str, Any],
+        model_explainability_job_input: dict[str, Any],
+        model_explainability_job_output_config: dict[str, Any],
+        job_resources: dict[str, Any],
+        network_config: Optional[dict[str, Any]],
         role_arn: str,
-        stopping_condition: Optional[Dict[str, Any]],
+        stopping_condition: Optional[dict[str, Any]],
         region_name: str,
         account_id: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
     ):
         self.job_definition_name = job_definition_name
         if (
@@ -2268,12 +2260,12 @@ class ModelExplainabilityJobDefinition(BaseObject):
             self.account_id,
             self.region_name,
         )
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = utcnow()
         self.endpoint_name = model_explainability_job_input["EndpointInput"][
             "EndpointName"
         ]
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "JobDefinitionArn": self.arn,
             "JobDefinitionName": self.job_definition_name,
@@ -2288,7 +2280,7 @@ class ModelExplainabilityJobDefinition(BaseObject):
             "StoppingConditions": self.stopping_condition,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,
@@ -2301,14 +2293,14 @@ class HyperParameterTuningJob(BaseObject):
     def __init__(
         self,
         hyper_parameter_tuning_job_name: str,
-        hyper_parameter_tuning_job_config: Dict[str, Any],
+        hyper_parameter_tuning_job_config: dict[str, Any],
         region_name: str,
         account_id: str,
-        training_job_definition: Optional[Dict[str, Any]],
-        training_job_definitions: Optional[List[Dict[str, Any]]],
-        warm_start_config: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
-        autotune: Optional[Dict[str, Any]],
+        training_job_definition: Optional[dict[str, Any]],
+        training_job_definitions: Optional[list[dict[str, Any]]],
+        warm_start_config: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        autotune: Optional[dict[str, Any]],
     ):
         self.hyper_parameter_tuning_job_name = hyper_parameter_tuning_job_name
         if (
@@ -2330,11 +2322,9 @@ class HyperParameterTuningJob(BaseObject):
         self.training_job_definition = training_job_definition
         self.training_job_definitions = training_job_definitions
         self.hyper_parameter_tuning_job_status = "Completed"
-        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.hyper_parameter_tuning_end_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.hyper_parameter_tuning_end_time = utcnow()
         self.training_job_status_counters = {
             "Completed": 1,
             "InProgress": 0,
@@ -2352,9 +2342,9 @@ class HyperParameterTuningJob(BaseObject):
             "TrainingJobName": "FakeTrainingJobName",
             "TrainingJobArn": "FakeTrainingJobArn",
             "TuningJobName": "FakeTuningJobName",
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "TrainingStartTime": str(datetime(2024, 1, 1)),
-            "TrainingEndTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "TrainingStartTime": datetime(2024, 1, 1),
+            "TrainingEndTime": datetime(2024, 1, 1),
             "TrainingJobStatus": "Completed",
             "TunedHyperParameters": {"string": "TunedHyperParameters"},
             "FailureReason": "string",
@@ -2370,9 +2360,9 @@ class HyperParameterTuningJob(BaseObject):
             "TrainingJobName": "FakeTrainingJobName",
             "TrainingJobArn": "FakeTrainingJobArn",
             "TuningJobName": "FakeTuningJobName",
-            "CreationTime": str(datetime(2024, 1, 1)),
-            "TrainingStartTime": str(datetime(2024, 1, 1)),
-            "TrainingEndTime": str(datetime(2024, 1, 1)),
+            "CreationTime": datetime(2024, 1, 1),
+            "TrainingStartTime": datetime(2024, 1, 1),
+            "TrainingEndTime": datetime(2024, 1, 1),
             "TrainingJobStatus": "Completed",
             "TunedHyperParameters": {"string": "FakeTunedHyperParameters"},
             "FailureReason": "FakeFailureReason",
@@ -2387,13 +2377,13 @@ class HyperParameterTuningJob(BaseObject):
         self.failure_reason = ""
         self.tuning_job_completion_details = {
             "NumberOfTrainingJobsObjectiveNotImproving": 123,
-            "ConvergenceDetectedTime": str(datetime(2024, 1, 1)),
+            "ConvergenceDetectedTime": datetime(2024, 1, 1),
         }
         self.consumed_resources = {"RuntimeInSeconds": 123}
         self.tags = tags
         self.autotune = autotune
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "HyperParameterTuningJobName": self.hyper_parameter_tuning_job_name,
             "HyperParameterTuningJobArn": self.arn,
@@ -2415,7 +2405,7 @@ class HyperParameterTuningJob(BaseObject):
             "ConsumedResources": self.consumed_resources,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "HyperParameterTuningJobName": self.hyper_parameter_tuning_job_name,
             "HyperParameterTuningJobArn": self.arn,
@@ -2434,15 +2424,15 @@ class ModelQualityJobDefinition(BaseObject):
     def __init__(
         self,
         job_definition_name: str,
-        model_quality_baseline_config: Optional[Dict[str, Any]],
-        model_quality_app_specification: Dict[str, Any],
-        model_quality_job_input: Dict[str, Any],
-        model_quality_job_output_config: Dict[str, Any],
-        job_resources: Dict[str, Any],
-        network_config: Optional[Dict[str, Any]],
+        model_quality_baseline_config: Optional[dict[str, Any]],
+        model_quality_app_specification: dict[str, Any],
+        model_quality_job_input: dict[str, Any],
+        model_quality_job_output_config: dict[str, Any],
+        job_resources: dict[str, Any],
+        network_config: Optional[dict[str, Any]],
         role_arn: str,
-        stopping_condition: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        stopping_condition: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
         region_name: str,
         account_id: str,
     ):
@@ -2471,12 +2461,12 @@ class ModelQualityJobDefinition(BaseObject):
             account_id,
             region_name,
         )
-        self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.creation_time = utcnow()
         self.endpoint_name = self.model_quality_job_input["EndpointInput"][
             "EndpointName"
         ]
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "JobDefinitionArn": self.arn,
             "JobDefinitionName": self.job_definition_name,
@@ -2491,7 +2481,7 @@ class ModelQualityJobDefinition(BaseObject):
             "StoppingCondition": self.stopping_condition,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,
@@ -2501,12 +2491,12 @@ class ModelQualityJobDefinition(BaseObject):
 
 
 class VpcConfig(BaseObject):
-    def __init__(self, security_group_ids: List[str], subnets: List[str]):
+    def __init__(self, security_group_ids: list[str], subnets: list[str]):
         self.security_group_ids = security_group_ids
         self.subnets = subnets
 
     @property
-    def response_object(self) -> Dict[str, List[str]]:
+    def response_object(self) -> dict[str, list[str]]:
         response_object = self.gen_response_object()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -2522,7 +2512,7 @@ class Container(BaseObject):
         self.environment = kwargs.get("environment", {})
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -2538,15 +2528,15 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         instance_type: str,
         role_arn: str,
         subnet_id: Optional[str],
-        security_group_ids: Optional[List[str]],
+        security_group_ids: Optional[list[str]],
         kms_key_id: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         lifecycle_config_name: Optional[str],
         direct_internet_access: str,
         volume_size_in_gb: int,
-        accelerator_types: Optional[List[str]],
+        accelerator_types: Optional[list[str]],
         default_code_repository: Optional[str],
-        additional_code_repositories: Optional[List[str]],
+        additional_code_repositories: Optional[list[str]],
         root_access: Optional[str],
     ):
         self.validate_volume_size_in_gb(volume_size_in_gb)
@@ -2568,7 +2558,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         self.additional_code_repositories = additional_code_repositories
         self.root_access = root_access
         self.status = "Pending"
-        self.creation_time = self.last_modified_time = datetime.now()
+        self.creation_time = self.last_modified_time = utcnow()
         self.arn = arn_formatter(
             "notebook-instance", notebook_instance_name, account_id, region_name
         )
@@ -2724,7 +2714,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         backend.stop_notebook_instance(notebook_instance_name)
         backend.delete_notebook_instance(notebook_instance_name)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "NotebookInstanceArn": self.arn,
             "NotebookInstanceName": self.notebook_instance_name,
@@ -2736,8 +2726,8 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             "RoleArn": self.role_arn,
             "KmsKeyId": self.kms_key_id,
             # ToDo: NetworkInterfaceId
-            "LastModifiedTime": str(self.last_modified_time),
-            "CreationTime": str(self.creation_time),
+            "LastModifiedTime": self.last_modified_time,
+            "CreationTime": self.creation_time,
             "NotebookInstanceLifecycleConfigName": self.lifecycle_config_name,
             "DirectInternetAccess": self.direct_internet_access,
             "VolumeSizeInGB": self.volume_size_in_gb,
@@ -2754,8 +2744,8 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         account_id: str,
         region_name: str,
         notebook_instance_lifecycle_config_name: str,
-        on_create: List[Dict[str, str]],
-        on_start: List[Dict[str, str]],
+        on_create: list[dict[str, str]],
+        on_start: list[dict[str, str]],
     ):
         self.region_name = region_name
         self.notebook_instance_lifecycle_config_name = (
@@ -2763,9 +2753,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         )
         self.on_create = on_create
         self.on_start = on_start
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
         self.arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
             self.notebook_instance_lifecycle_config_name, account_id, region_name
         )
@@ -2777,7 +2765,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         )
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -2875,42 +2863,42 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 class SageMakerModelBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._models: Dict[str, Model] = {}
-        self.notebook_instances: Dict[str, FakeSagemakerNotebookInstance] = {}
-        self.endpoint_configs: Dict[str, FakeEndpointConfig] = {}
-        self.endpoints: Dict[str, FakeEndpoint] = {}
-        self.experiments: Dict[str, FakeExperiment] = {}
-        self.pipelines: Dict[str, FakePipeline] = {}
-        self.pipeline_executions: Dict[str, FakePipelineExecution] = {}
-        self.processing_jobs: Dict[str, FakeProcessingJob] = {}
-        self.trials: Dict[str, FakeTrial] = {}
-        self.trial_components: Dict[str, FakeTrialComponent] = {}
-        self.training_jobs: Dict[str, FakeTrainingJob] = {}
-        self.transform_jobs: Dict[str, FakeTransformJob] = {}
-        self.notebook_instance_lifecycle_configurations: Dict[
+        self._models: dict[str, Model] = {}
+        self.notebook_instances: dict[str, FakeSagemakerNotebookInstance] = {}
+        self.endpoint_configs: dict[str, FakeEndpointConfig] = {}
+        self.endpoints: dict[str, FakeEndpoint] = {}
+        self.experiments: dict[str, FakeExperiment] = {}
+        self.pipelines: dict[str, FakePipeline] = {}
+        self.pipeline_executions: dict[str, FakePipelineExecution] = {}
+        self.processing_jobs: dict[str, FakeProcessingJob] = {}
+        self.trials: dict[str, FakeTrial] = {}
+        self.trial_components: dict[str, FakeTrialComponent] = {}
+        self.training_jobs: dict[str, FakeTrainingJob] = {}
+        self.transform_jobs: dict[str, FakeTransformJob] = {}
+        self.notebook_instance_lifecycle_configurations: dict[
             str, FakeSageMakerNotebookInstanceLifecycleConfig
         ] = {}
-        self.model_cards: DefaultDict[str, List[FakeModelCard]] = defaultdict(list)
-        self.model_package_groups: Dict[str, ModelPackageGroup] = {}
-        self.model_packages: Dict[str, ModelPackage] = {}
-        self.model_package_name_mapping: Dict[str, str] = {}
-        self.feature_groups: Dict[str, FeatureGroup] = {}
-        self.clusters: Dict[str, Cluster] = {}
-        self.data_quality_job_definitions: Dict[str, FakeDataQualityJobDefinition] = {}
-        self.model_bias_job_definitions: Dict[str, FakeModelBiasJobDefinition] = {}
-        self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
-        self.compilation_jobs: Dict[str, CompilationJob] = {}
-        self.domains: Dict[str, Domain] = {}
-        self.model_explainability_job_definitions: Dict[
+        self.model_cards: defaultdict[str, list[FakeModelCard]] = defaultdict(list)
+        self.model_package_groups: dict[str, ModelPackageGroup] = {}
+        self.model_packages: dict[str, ModelPackage] = {}
+        self.model_package_name_mapping: dict[str, str] = {}
+        self.feature_groups: dict[str, FeatureGroup] = {}
+        self.clusters: dict[str, Cluster] = {}
+        self.data_quality_job_definitions: dict[str, FakeDataQualityJobDefinition] = {}
+        self.model_bias_job_definitions: dict[str, FakeModelBiasJobDefinition] = {}
+        self.auto_ml_jobs: dict[str, AutoMLJob] = {}
+        self.compilation_jobs: dict[str, CompilationJob] = {}
+        self.domains: dict[str, Domain] = {}
+        self.model_explainability_job_definitions: dict[
             str, ModelExplainabilityJobDefinition
         ] = {}
-        self.hyper_parameter_tuning_jobs: Dict[str, HyperParameterTuningJob] = {}
-        self.model_quality_job_definitions: Dict[str, ModelQualityJobDefinition] = {}
+        self.hyper_parameter_tuning_jobs: dict[str, HyperParameterTuningJob] = {}
+        self.model_quality_job_definitions: dict[str, ModelQualityJobDefinition] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
+        service_region: str, zones: list[str]
+    ) -> list[dict[str, str]]:
         """Default VPC endpoint services."""
         api_service = BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "api.sagemaker", special_service_name="sagemaker.api"
@@ -2965,10 +2953,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         model_name: str,
         execution_role_arn: str,
-        primary_container: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
-        containers: Optional[List[Dict[str, Any]]],
-        tags: Optional[List[Dict[str, str]]],
+        primary_container: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
+        containers: Optional[list[dict[str, Any]]],
+        tags: Optional[list[dict[str, str]]],
     ) -> Model:
         model_obj = Model(
             account_id=self.account_id,
@@ -3002,7 +2990,7 @@ class SageMakerModelBackend(BaseBackend):
         else:
             raise MissingModel(model=model_name)
 
-    def create_experiment(self, experiment_name: str) -> Dict[str, str]:
+    def create_experiment(self, experiment_name: str) -> dict[str, str]:
         experiment = FakeExperiment(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -3012,7 +3000,7 @@ class SageMakerModelBackend(BaseBackend):
         self.experiments[experiment_name] = experiment
         return experiment.response_create
 
-    def describe_experiment(self, experiment_name: str) -> Dict[str, Any]:
+    def describe_experiment(self, experiment_name: str) -> dict[str, Any]:
         experiment_data = self.experiments[experiment_name]
         return {
             "ExperimentName": experiment_data.experiment_name,
@@ -3056,22 +3044,22 @@ class SageMakerModelBackend(BaseBackend):
             return resource[0]
         return resource
 
-    def add_tags(self, arn: str, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def add_tags(self, arn: str, tags: list[dict[str, str]]) -> list[dict[str, str]]:
         resource = self._get_resource_from_arn(arn)
         resource.tags.extend(tags)
         return resource.tags
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags(self, arn: str) -> list[dict[str, str]]:
         resource = self._get_resource_from_arn(arn)
         return resource.tags
 
-    def delete_tags(self, arn: str, tag_keys: List[str]) -> None:
+    def delete_tags(self, arn: str, tag_keys: list[str]) -> None:
         resource = self._get_resource_from_arn(arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_experiments(self) -> List["FakeExperiment"]:
+    def list_experiments(self) -> list["FakeExperiment"]:
         return list(self.experiments.values())
 
     def search(self, resource: Any = None, search_expression: Any = None) -> Any:
@@ -3137,7 +3125,7 @@ class SageMakerModelBackend(BaseBackend):
 
                     elif f["Name"] == "Parents.TrialName":
                         trial_name = f["Value"]
-                        if getattr(item, "trial_name") != trial_name:
+                        if item.trial_name != trial_name:
                             return False
 
                     elif hasattr(item, prop_key):
@@ -3152,7 +3140,7 @@ class SageMakerModelBackend(BaseBackend):
 
             return True
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "Results": [],
             "NextToken": str(next_index) if next_index is not None else None,
         }
@@ -3181,7 +3169,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find experiment configuration '{arn}'."
             )
 
-    def create_trial(self, trial_name: str, experiment_name: str) -> Dict[str, str]:
+    def create_trial(self, trial_name: str, experiment_name: str) -> dict[str, str]:
         trial = FakeTrial(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -3193,7 +3181,7 @@ class SageMakerModelBackend(BaseBackend):
         self.trials[trial_name] = trial
         return trial.response_create
 
-    def describe_trial(self, trial_name: str) -> Dict[str, Any]:
+    def describe_trial(self, trial_name: str) -> dict[str, Any]:
         try:
             return self.trials[trial_name].response_object
         except KeyError:
@@ -3214,7 +3202,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         experiment_name: Optional[str] = None,
         trial_component_name: Optional[str] = None,
-    ) -> List["FakeTrial"]:
+    ) -> list["FakeTrial"]:
         trials_fetched = list(self.trials.values())
 
         def evaluate_filter_expression(trial_data: FakeTrial) -> bool:
@@ -3238,15 +3226,15 @@ class SageMakerModelBackend(BaseBackend):
         self,
         trial_component_name: str,
         trial_name: str,
-        status: Dict[str, str],
+        status: dict[str, str],
         start_time: Optional[datetime],
         end_time: Optional[datetime],
         display_name: Optional[str],
-        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
-        input_artifacts: Optional[Dict[str, Dict[str, str]]],
-        output_artifacts: Optional[Dict[str, Dict[str, str]]],
-        metadata_properties: Optional[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
+        input_artifacts: Optional[dict[str, dict[str, str]]],
+        output_artifacts: Optional[dict[str, dict[str, str]]],
+        metadata_properties: Optional[dict[str, str]],
+    ) -> dict[str, Any]:
         trial_component = FakeTrialComponent(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -3276,7 +3264,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find trial-component configuration '{arn}'."
             )
 
-    def describe_trial_component(self, trial_component_name: str) -> Dict[str, Any]:
+    def describe_trial_component(self, trial_component_name: str) -> dict[str, Any]:
         try:
             return self.trial_components[trial_component_name].response_object
         except KeyError:
@@ -3293,7 +3281,7 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(
         self, trial_name: Optional[str] = None
-    ) -> List["FakeTrialComponent"]:
+    ) -> list["FakeTrialComponent"]:
         trial_components_fetched = list(self.trial_components.values())
 
         return [
@@ -3304,7 +3292,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def associate_trial_component(
         self, trial_name: str, trial_component_name: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         if trial_name in self.trials.keys():
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
@@ -3322,7 +3310,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def disassociate_trial_component(
         self, trial_name: str, trial_component_name: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         if trial_component_name in self.trial_components.keys():
             self.trial_components[trial_component_name].trial_name = None
 
@@ -3342,17 +3330,17 @@ class SageMakerModelBackend(BaseBackend):
     def update_trial_component(
         self,
         trial_component_name: str,
-        status: Optional[Dict[str, str]],
+        status: Optional[dict[str, str]],
         display_name: Optional[str],
         start_time: Optional[datetime],
         end_time: Optional[datetime],
-        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
-        parameters_to_remove: Optional[List[str]],
-        input_artifacts: Optional[Dict[str, Dict[str, str]]],
-        input_artifacts_to_remove: Optional[List[str]],
-        output_artifacts: Optional[Dict[str, Dict[str, str]]],
-        output_artifacts_to_remove: Optional[List[str]],
-    ) -> Dict[str, str]:
+        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
+        parameters_to_remove: Optional[list[str]],
+        input_artifacts: Optional[dict[str, dict[str, str]]],
+        input_artifacts_to_remove: Optional[list[str]],
+        output_artifacts: Optional[dict[str, dict[str, str]]],
+        output_artifacts_to_remove: Optional[list[str]],
+    ) -> dict[str, str]:
         try:
             trial_component = self.trial_components[trial_component_name]
         except KeyError:
@@ -3376,9 +3364,7 @@ class SageMakerModelBackend(BaseBackend):
         if output_artifacts:
             trial_component.output_artifacts = output_artifacts
 
-        trial_component.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        trial_component.last_modified_time = utcnow()
 
         for parameter_to_remove in parameters_to_remove or []:
             trial_component.parameters.pop(parameter_to_remove)
@@ -3401,15 +3387,15 @@ class SageMakerModelBackend(BaseBackend):
         instance_type: str,
         role_arn: str,
         subnet_id: Optional[str] = None,
-        security_group_ids: Optional[List[str]] = None,
+        security_group_ids: Optional[list[str]] = None,
         kms_key_id: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         lifecycle_config_name: Optional[str] = None,
         direct_internet_access: str = "Enabled",
         volume_size_in_gb: int = 5,
-        accelerator_types: Optional[List[str]] = None,
+        accelerator_types: Optional[list[str]] = None,
         default_code_repository: Optional[str] = None,
-        additional_code_repositories: Optional[List[str]] = None,
+        additional_code_repositories: Optional[list[str]] = None,
         root_access: Optional[str] = None,
     ) -> FakeSagemakerNotebookInstance:
         self._validate_unique_notebook_instance_name(notebook_instance_name)
@@ -3477,7 +3463,7 @@ class SageMakerModelBackend(BaseBackend):
         sort_order: str,
         name_contains: Optional[str],
         status: Optional[str],
-    ) -> List[FakeSagemakerNotebookInstance]:
+    ) -> list[FakeSagemakerNotebookInstance]:
         """
         The following parameters are not yet implemented:
         CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
@@ -3505,8 +3491,8 @@ class SageMakerModelBackend(BaseBackend):
     def create_notebook_instance_lifecycle_config(
         self,
         notebook_instance_lifecycle_config_name: str,
-        on_create: List[Dict[str, str]],
-        on_start: List[Dict[str, str]],
+        on_create: list[dict[str, str]],
+        on_start: list[dict[str, str]],
     ) -> FakeSageMakerNotebookInstanceLifecycleConfig:
         if (
             notebook_instance_lifecycle_config_name
@@ -3533,7 +3519,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_notebook_instance_lifecycle_config(
         self, notebook_instance_lifecycle_config_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
             return self.notebook_instance_lifecycle_configurations[
                 notebook_instance_lifecycle_config_name
@@ -3566,10 +3552,10 @@ class SageMakerModelBackend(BaseBackend):
     def create_endpoint_config(
         self,
         endpoint_config_name: str,
-        production_variants: List[Dict[str, Any]],
-        data_capture_config: Dict[str, Any],
-        async_inference_config: Dict[str, Any],
-        tags: List[Dict[str, str]],
+        production_variants: list[dict[str, Any]],
+        data_capture_config: dict[str, Any],
+        async_inference_config: dict[str, Any],
+        tags: list[dict[str, str]],
         kms_key_id: str,
     ) -> FakeEndpointConfig:
         endpoint_config = FakeEndpointConfig(
@@ -3588,7 +3574,7 @@ class SageMakerModelBackend(BaseBackend):
         return endpoint_config
 
     def validate_production_variants(
-        self, production_variants: List[Dict[str, Any]]
+        self, production_variants: list[dict[str, Any]]
     ) -> None:
         for production_variant in production_variants:
             if production_variant["ModelName"] not in self._models:
@@ -3600,7 +3586,7 @@ class SageMakerModelBackend(BaseBackend):
                 )
                 raise ValidationError(message=f"Could not find model '{arn}'.")
 
-    def describe_endpoint_config(self, endpoint_config_name: str) -> Dict[str, Any]:
+    def describe_endpoint_config(self, endpoint_config_name: str) -> dict[str, Any]:
         try:
             return self.endpoint_configs[endpoint_config_name].response_object
         except KeyError:
@@ -3623,7 +3609,7 @@ class SageMakerModelBackend(BaseBackend):
             )
 
     def create_endpoint(
-        self, endpoint_name: str, endpoint_config_name: str, tags: List[Dict[str, str]]
+        self, endpoint_name: str, endpoint_config_name: str, tags: list[dict[str, str]]
     ) -> FakeEndpoint:
         try:
             endpoint_config = self.describe_endpoint_config(endpoint_config_name)
@@ -3646,7 +3632,7 @@ class SageMakerModelBackend(BaseBackend):
         self.endpoints[endpoint_name] = endpoint
         return endpoint
 
-    def describe_endpoint(self, endpoint_name: str) -> Dict[str, Any]:
+    def describe_endpoint(self, endpoint_name: str) -> dict[str, Any]:
         try:
             return self.endpoints[endpoint_name].response_object
         except KeyError:
@@ -3666,15 +3652,15 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_processing_job(
         self,
-        app_specification: Dict[str, Any],
-        experiment_config: Dict[str, str],
-        network_config: Dict[str, Any],
-        processing_inputs: List[Dict[str, Any]],
+        app_specification: dict[str, Any],
+        experiment_config: dict[str, str],
+        network_config: dict[str, Any],
+        processing_inputs: list[dict[str, Any]],
         processing_job_name: str,
-        processing_output_config: Dict[str, Any],
+        processing_output_config: dict[str, Any],
         role_arn: str,
-        tags: List[Dict[str, str]],
-        stopping_condition: Dict[str, int],
+        tags: list[dict[str, str]],
+        stopping_condition: dict[str, int],
     ) -> FakeProcessingJob:
         processing_job = FakeProcessingJob(
             app_specification=app_specification,
@@ -3692,7 +3678,7 @@ class SageMakerModelBackend(BaseBackend):
         self.processing_jobs[processing_job_name] = processing_job
         return processing_job
 
-    def describe_processing_job(self, processing_job_name: str) -> Dict[str, Any]:
+    def describe_processing_job(self, processing_job_name: str) -> dict[str, Any]:
         try:
             return self.processing_jobs[processing_job_name].response_object
         except KeyError:
@@ -3706,11 +3692,11 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_name: str,
         pipeline_display_name: str,
         pipeline_definition: str,
-        pipeline_definition_s3_location: Dict[str, Any],
+        pipeline_definition_s3_location: dict[str, Any],
         pipeline_description: str,
         role_arn: str,
-        tags: List[Dict[str, str]],
-        parallelism_configuration: Dict[str, int],
+        tags: list[dict[str, str]],
+        parallelism_configuration: dict[str, int],
     ) -> FakePipeline:
         if not any([pipeline_definition, pipeline_definition_s3_location]):
             raise ValidationError(
@@ -3788,11 +3774,11 @@ class SageMakerModelBackend(BaseBackend):
         self,
         pipeline_name: str,
         pipeline_execution_display_name: str,
-        pipeline_parameters: List[Dict[str, Any]],
+        pipeline_parameters: list[dict[str, Any]],
         pipeline_execution_description: str,
-        parallelism_configuration: Dict[str, int],
+        parallelism_configuration: dict[str, int],
         client_request_token: str,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         execution_id = "".join(
             random.choices(string.ascii_lowercase + string.digits, k=12)
@@ -3824,7 +3810,7 @@ class SageMakerModelBackend(BaseBackend):
 
         return {"PipelineExecutionArn": pipeline_execution_arn}
 
-    def list_pipeline_executions(self, pipeline_name: str) -> Dict[str, Any]:
+    def list_pipeline_executions(self, pipeline_name: str) -> dict[str, Any]:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         return {
             "PipelineExecutionSummaries": [
@@ -3844,7 +3830,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_pipeline_definition_for_execution(
         self, pipeline_execution_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pipeline_execution = get_pipeline_execution_from_arn(
             self.pipelines, pipeline_execution_arn
         )
@@ -3857,7 +3843,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def list_pipeline_parameters_for_execution(
         self, pipeline_execution_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pipeline_execution = get_pipeline_execution_from_arn(
             self.pipelines, pipeline_execution_arn
         )
@@ -3867,7 +3853,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_pipeline_execution(
         self, pipeline_execution_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pipeline_execution = get_pipeline_execution_from_arn(
             self.pipelines, pipeline_execution_arn
         )
@@ -3889,7 +3875,7 @@ class SageMakerModelBackend(BaseBackend):
             "ParallelismConfiguration": pipeline_execution.parallelism_configuration,
         }
 
-    def describe_pipeline(self, pipeline_name: str) -> Dict[str, Any]:
+    def describe_pipeline(self, pipeline_name: str) -> dict[str, Any]:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         return {
             "PipelineArn": pipeline.arn,
@@ -3910,13 +3896,13 @@ class SageMakerModelBackend(BaseBackend):
     def list_pipelines(
         self,
         pipeline_name_prefix: str,
-        created_after: str,
-        created_before: str,
+        created_after: Optional[datetime],
+        created_before: Optional[datetime],
         next_token: str,
         max_results: int,
         sort_by: str,
         sort_order: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if next_token:
             try:
                 starting_index = int(next_token)
@@ -3946,22 +3932,15 @@ class SageMakerModelBackend(BaseBackend):
                 pipelines_fetched,
             )
 
-        def format_time(x: Any) -> str:
-            return (
-                x
-                if isinstance(x, str)
-                else datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
-            )
-
         if created_after is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time > format_time(created_after),
+                lambda x: x.creation_time > created_after,
                 pipelines_fetched,
             )
 
         if created_before is not None:
             pipelines_fetched = filter(
-                lambda x: x.creation_time < format_time(created_before),
+                lambda x: x.creation_time < created_before,
                 pipelines_fetched,
             )
 
@@ -3995,13 +3974,13 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if next_token:
             try:
                 starting_index = int(next_token)
@@ -4081,17 +4060,17 @@ class SageMakerModelBackend(BaseBackend):
         transform_job_name: str,
         model_name: str,
         max_concurrent_transforms: int,
-        model_client_config: Dict[str, int],
+        model_client_config: dict[str, int],
         max_payload_in_mb: int,
         batch_strategy: str,
-        environment: Dict[str, str],
-        transform_input: Dict[str, Union[Dict[str, str], str]],
-        transform_output: Dict[str, str],
-        data_capture_config: Dict[str, Union[str, bool]],
-        transform_resources: Dict[str, Union[str, int]],
-        data_processing: Dict[str, str],
-        tags: Dict[str, str],
-        experiment_config: Dict[str, str],
+        environment: dict[str, str],
+        transform_input: dict[str, Union[dict[str, str], str]],
+        transform_output: dict[str, str],
+        data_capture_config: dict[str, Union[str, bool]],
+        transform_resources: dict[str, Union[str, int]],
+        data_processing: dict[str, str],
+        tags: dict[str, str],
+        experiment_config: dict[str, str],
     ) -> FakeTransformJob:
         transform_job = FakeTransformJob(
             account_id=self.account_id,
@@ -4118,13 +4097,13 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if next_token:
             try:
                 starting_index = int(next_token)
@@ -4197,7 +4176,7 @@ class SageMakerModelBackend(BaseBackend):
             "NextToken": str(next_index) if next_index is not None else None,
         }
 
-    def describe_transform_job(self, transform_job_name: str) -> Dict[str, Any]:
+    def describe_transform_job(self, transform_job_name: str) -> dict[str, Any]:
         try:
             return self.transform_jobs[transform_job_name].response_object
         except KeyError:
@@ -4210,23 +4189,23 @@ class SageMakerModelBackend(BaseBackend):
     def create_training_job(
         self,
         training_job_name: str,
-        hyper_parameters: Dict[str, str],
-        algorithm_specification: Dict[str, Any],
+        hyper_parameters: dict[str, str],
+        algorithm_specification: dict[str, Any],
         role_arn: str,
-        input_data_config: List[Dict[str, Any]],
-        output_data_config: Dict[str, str],
-        resource_config: Dict[str, Any],
-        vpc_config: Dict[str, List[str]],
-        stopping_condition: Dict[str, int],
-        tags: List[Dict[str, str]],
+        input_data_config: list[dict[str, Any]],
+        output_data_config: dict[str, str],
+        resource_config: dict[str, Any],
+        vpc_config: dict[str, list[str]],
+        stopping_condition: dict[str, int],
+        tags: list[dict[str, str]],
         enable_network_isolation: bool,
         enable_inter_container_traffic_encryption: bool,
         enable_managed_spot_training: bool,
-        checkpoint_config: Dict[str, str],
-        debug_hook_config: Dict[str, Any],
-        debug_rule_configurations: List[Dict[str, Any]],
-        tensor_board_output_config: Dict[str, str],
-        experiment_config: Dict[str, str],
+        checkpoint_config: dict[str, str],
+        debug_hook_config: dict[str, Any],
+        debug_rule_configurations: list[dict[str, Any]],
+        tensor_board_output_config: dict[str, str],
+        experiment_config: dict[str, str],
     ) -> FakeTrainingJob:
         training_job = FakeTrainingJob(
             account_id=self.account_id,
@@ -4253,7 +4232,7 @@ class SageMakerModelBackend(BaseBackend):
         self.training_jobs[training_job_name] = training_job
         return training_job
 
-    def describe_training_job(self, training_job_name: str) -> Dict[str, Any]:
+    def describe_training_job(self, training_job_name: str) -> dict[str, Any]:
         try:
             return self.training_jobs[training_job_name].response_object
         except KeyError:
@@ -4267,13 +4246,13 @@ class SageMakerModelBackend(BaseBackend):
         self,
         next_token: str,
         max_results: int,
-        creation_time_after: str,
-        creation_time_before: str,
-        last_modified_time_after: str,
-        last_modified_time_before: str,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: str,
         status_equals: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if next_token:
             try:
                 starting_index = int(next_token)
@@ -4346,7 +4325,7 @@ class SageMakerModelBackend(BaseBackend):
         }
 
     def update_endpoint_weights_and_capacities(
-        self, endpoint_name: str, desired_weights_and_capacities: List[Dict[str, Any]]
+        self, endpoint_name: str, desired_weights_and_capacities: list[dict[str, Any]]
     ) -> str:
         # Validate inputs
         endpoint = self.endpoints.get(endpoint_name, None)
@@ -4398,7 +4377,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         model_package_group_name: str,
         model_package_group_description: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> str:
         self.model_package_groups[model_package_group_name] = ModelPackageGroup(
             model_package_group_name=model_package_group_name,
@@ -4423,29 +4402,20 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_package_groups(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[ModelPackageGroup]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=tzutc()
-            )
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=tzutc()
-            )
+    ) -> list[ModelPackageGroup]:
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4454,16 +4424,14 @@ class SageMakerModelBackend(BaseBackend):
                 self.model_package_groups.values(),
             )
         )
-        model_package_group_summary_list = list(
-            sorted(
-                model_package_group_summary_list,
-                key={
-                    "Name": lambda x: x.model_package_group_name,
-                    "CreationTime": lambda x: x.creation_time,
-                    None: lambda x: x.creation_time,
-                }[sort_by],
-                reverse=sort_order == "Descending",
-            )
+        model_package_group_summary_list = sorted(
+            model_package_group_summary_list,
+            key={
+                "Name": lambda x: x.model_package_group_name,
+                "CreationTime": lambda x: x.creation_time,
+                None: lambda x: x.creation_time,
+            }[sort_by],
+            reverse=sort_order == "Descending",
         )
         return model_package_group_summary_list
 
@@ -4486,23 +4454,15 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         name_contains: Optional[str],
         model_approval_status: Optional[str],
         model_package_group_name: Optional[str],
         model_package_type: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[ModelPackage]:
-        if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=tzutc()
-            )
-        if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=tzutc()
-            )
+    ) -> list[ModelPackage]:
         if model_package_group_name is not None:
             model_package_type = "Versioned"
             if re.match(ARN_PARTITION_REGEX, model_package_group_name):
@@ -4510,12 +4470,11 @@ class SageMakerModelBackend(BaseBackend):
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None
-                    or x.creation_time > creation_time_after_datetime
+                    creation_time_after is None or x.creation_time > creation_time_after
                 )
                 and (
                     creation_time_before is None
-                    or x.creation_time < creation_time_before_datetime
+                    or x.creation_time < creation_time_before
                 )
                 and (
                     name_contains is None
@@ -4535,16 +4494,14 @@ class SageMakerModelBackend(BaseBackend):
                 self.model_packages.values(),
             )
         )
-        model_package_summary_list = list(
-            sorted(
-                model_package_summary_list,
-                key={
-                    "Name": lambda x: x.model_package_name,
-                    "CreationTime": lambda x: x.creation_time,
-                    None: lambda x: x.creation_time,
-                }[sort_by],
-                reverse=sort_order == "Descending",
-            )
+        model_package_summary_list = sorted(
+            model_package_summary_list,
+            key={
+                "Name": lambda x: x.model_package_name,
+                "CreationTime": lambda x: x.creation_time,
+                None: lambda x: x.creation_time,
+            }[sort_by],
+            reverse=sort_order == "Descending",
         )
         return model_package_summary_list
 
@@ -4562,9 +4519,9 @@ class SageMakerModelBackend(BaseBackend):
         model_package_arn: str,
         model_approval_status: Optional[str],
         approval_description: Optional[str],
-        customer_metadata_properties: Optional[Dict[str, str]],
-        customer_metadata_properties_to_remove: List[str],
-        additional_inference_specifications_to_add: Optional[List[Any]],
+        customer_metadata_properties: Optional[dict[str, str]],
+        customer_metadata_properties_to_remove: list[str],
+        additional_inference_specifications_to_add: Optional[list[Any]],
     ) -> str:
         model_package_name_mapped = self.model_package_name_mapping.get(
             model_package_arn, model_package_arn
@@ -4670,8 +4627,8 @@ class SageMakerModelBackend(BaseBackend):
         feature_group_name: str,
         record_identifier_feature_name: str,
         event_time_feature_name: str,
-        feature_definitions: List[Dict[str, str]],
-        offline_store_config: Dict[str, Any],
+        feature_definitions: list[dict[str, str]],
+        offline_store_config: dict[str, Any],
         role_arn: str,
         tags: Any,
     ) -> str:
@@ -4703,7 +4660,7 @@ class SageMakerModelBackend(BaseBackend):
     def describe_feature_group(
         self,
         feature_group_name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         feature_group_arn = arn_formatter(
             region_name=self.region_name,
             account_id=self.account_id,
@@ -4717,8 +4674,8 @@ class SageMakerModelBackend(BaseBackend):
     def create_cluster(
         self,
         cluster_name: str,
-        instance_groups: List[Dict[str, Any]],
-        vpc_config: Dict[str, List[str]],
+        instance_groups: list[dict[str, Any]],
+        vpc_config: dict[str, list[str]],
         tags: Any,
     ) -> str:
         cluster = Cluster(
@@ -4750,7 +4707,7 @@ class SageMakerModelBackend(BaseBackend):
 
         return cluster.arn
 
-    def describe_cluster(self, cluster_name: str) -> Dict[str, Any]:
+    def describe_cluster(self, cluster_name: str) -> dict[str, Any]:
         if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
@@ -4769,7 +4726,7 @@ class SageMakerModelBackend(BaseBackend):
         del self.clusters[cluster_name]
         return arn
 
-    def describe_cluster_node(self, cluster_name: str, node_id: str) -> Dict[str, Any]:
+    def describe_cluster_node(self, cluster_name: str, node_id: str) -> dict[str, Any]:
         if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
@@ -4790,18 +4747,14 @@ class SageMakerModelBackend(BaseBackend):
         name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[Cluster]:
+    ) -> list[Cluster]:
         clusters = list(self.clusters.values())
         if name_contains:
             clusters = [i for i in clusters if name_contains in i.cluster_name]
         if creation_time_before:
-            clusters = [
-                i for i in clusters if i.creation_time < str(creation_time_before)
-            ]
+            clusters = [i for i in clusters if i.creation_time < creation_time_before]
         if creation_time_after:
-            clusters = [
-                i for i in clusters if i.creation_time > str(creation_time_after)
-            ]
+            clusters = [i for i in clusters if i.creation_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             clusters = sorted(clusters, key=lambda x: x.cluster_name, reverse=reverse)
@@ -4813,12 +4766,12 @@ class SageMakerModelBackend(BaseBackend):
     def list_cluster_nodes(
         self,
         cluster_name: str,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
         instance_group_name_contains: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[ClusterNode]:
+    ) -> list[ClusterNode]:
         if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
@@ -4833,13 +4786,9 @@ class SageMakerModelBackend(BaseBackend):
                 if instance_group_name_contains in i.instance_group_name
             ]
         if creation_time_before:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time < str(creation_time_before)
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time < creation_time_before]
         if creation_time_after:
-            nodes_list = [
-                i for i in nodes_list if i.launch_time > str(creation_time_after)
-            ]
+            nodes_list = [i for i in nodes_list if i.launch_time > creation_time_after]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
             nodes_list = sorted(
@@ -4855,22 +4804,22 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[list[dict[str, str]]] = None,
         role_arn: str = "",
-        job_resources: Optional[Dict[str, Any]] = None,
-        stopping_condition: Optional[Dict[str, Any]] = None,
-        environment: Optional[Dict[str, str]] = None,
-        network_config: Optional[Dict[str, Any]] = None,
-        model_bias_baseline_config: Optional[Dict[str, Any]] = None,
-        model_bias_app_specification: Optional[Dict[str, Any]] = None,
-        model_bias_job_input: Optional[Dict[str, Any]] = None,
-        model_bias_job_output_config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, str]:
+        job_resources: Optional[dict[str, Any]] = None,
+        stopping_condition: Optional[dict[str, Any]] = None,
+        environment: Optional[dict[str, str]] = None,
+        network_config: Optional[dict[str, Any]] = None,
+        model_bias_baseline_config: Optional[dict[str, Any]] = None,
+        model_bias_app_specification: Optional[dict[str, Any]] = None,
+        model_bias_job_input: Optional[dict[str, Any]] = None,
+        model_bias_job_output_config: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
         job_definition = FakeModelBiasJobDefinition(
             account_id=account_id,
             region_name=self.region_name,
             job_definition_name=job_definition_name,
-            tags=tags,
+            tags=tags or [],
             role_arn=role_arn,
             job_resources=job_resources,
             stopping_condition=stopping_condition,
@@ -4885,12 +4834,12 @@ class SageMakerModelBackend(BaseBackend):
         return job_definition.response_create
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_model_bias_job_definitions(self) -> List[Dict[str, str]]:
+    def list_model_bias_job_definitions(self) -> list[dict[str, str]]:
         return [job.summary_object for job in self.model_bias_job_definitions.values()]
 
     def describe_model_bias_job_definition(
         self, job_definition_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         job_definition = self.model_bias_job_definitions.get(job_definition_name)
         if job_definition is None:
             raise ResourceNotFound(f"Job definition {job_definition_name} not found")
@@ -4905,15 +4854,15 @@ class SageMakerModelBackend(BaseBackend):
     def create_auto_ml_job_v2(
         self,
         auto_ml_job_name: str,
-        auto_ml_job_input_data_config: List[Dict[str, Any]],
-        output_data_config: Dict[str, Any],
-        auto_ml_problem_type_config: Dict[str, Any],
+        auto_ml_job_input_data_config: list[dict[str, Any]],
+        output_data_config: dict[str, Any],
+        auto_ml_problem_type_config: dict[str, Any],
         role_arn: str,
-        tags: Optional[List[Dict[str, str]]],
-        security_config: Optional[Dict[str, Any]],
-        auto_ml_job_objective: Optional[Dict[str, str]],
-        model_deploy_config: Optional[Dict[str, Any]],
-        data_split_config: Optional[Dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        security_config: Optional[dict[str, Any]],
+        auto_ml_job_objective: Optional[dict[str, str]],
+        model_deploy_config: Optional[dict[str, Any]],
+        data_split_config: Optional[dict[str, Any]],
     ) -> str:
         auto_ml_job = AutoMLJob(
             auto_ml_job_name=auto_ml_job_name,
@@ -4933,7 +4882,7 @@ class SageMakerModelBackend(BaseBackend):
         self.auto_ml_jobs[auto_ml_job_name] = auto_ml_job
         return auto_ml_job.arn
 
-    def describe_auto_ml_job_v2(self, auto_ml_job_name: str) -> Dict[str, Any]:
+    def describe_auto_ml_job_v2(self, auto_ml_job_name: str) -> dict[str, Any]:
         if auto_ml_job_name not in self.auto_ml_jobs:
             raise ResourceNotFound(
                 f"Could not find AutoML job with name {auto_ml_job_name}."
@@ -4944,15 +4893,15 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_auto_ml_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_order: Optional[str],
         sort_by: Optional[str],
-    ) -> List[AutoMLJob]:
+    ) -> list[AutoMLJob]:
         auto_ml_jobs = list(self.auto_ml_jobs.values())
         if name_contains:
             auto_ml_jobs = [
@@ -4964,23 +4913,23 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time < str(creation_time_before)
+                i for i in auto_ml_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             auto_ml_jobs = [
-                i for i in auto_ml_jobs if i.creation_time > str(creation_time_after)
+                i for i in auto_ml_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             auto_ml_jobs = [
                 i
                 for i in auto_ml_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Status":
@@ -5012,36 +4961,28 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
         status_equals: Optional[str],
-    ) -> List[FakeEndpoint]:
+    ) -> list[FakeEndpoint]:
         endpoints = list(self.endpoints.values())
         if name_contains:
             endpoints = [i for i in endpoints if name_contains in i.endpoint_name]
         if status_equals:
             endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
         if creation_time_before:
-            endpoints = [
-                i for i in endpoints if i.creation_time < str(creation_time_before)
-            ]
+            endpoints = [i for i in endpoints if i.creation_time < creation_time_before]
         if creation_time_after:
-            endpoints = [
-                i for i in endpoints if i.creation_time > str(creation_time_after)
-            ]
+            endpoints = [i for i in endpoints if i.creation_time > creation_time_after]
         if last_modified_time_before:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time < str(last_modified_time_before)
+                i for i in endpoints if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             endpoints = [
-                i
-                for i in endpoints
-                if i.last_modified_time > str(last_modified_time_after)
+                i for i in endpoints if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5064,9 +5005,9 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-    ) -> List[FakeEndpointConfig]:
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+    ) -> list[FakeEndpointConfig]:
         endpoint_configs = list(self.endpoint_configs.values())
         if name_contains:
             endpoint_configs = [
@@ -5074,15 +5015,11 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time < str(creation_time_before)
+                i for i in endpoint_configs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             endpoint_configs = [
-                i
-                for i in endpoint_configs
-                if i.creation_time > str(creation_time_after)
+                i for i in endpoint_configs if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5099,12 +5036,12 @@ class SageMakerModelBackend(BaseBackend):
         self,
         compilation_job_name: str,
         role_arn: str,
-        output_config: Dict[str, Any],
-        stopping_condition: Dict[str, Any],
+        output_config: dict[str, Any],
+        stopping_condition: dict[str, Any],
         model_package_version_arn: Optional[str],
-        input_config: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        input_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
     ) -> str:
         compilation_job = CompilationJob(
             compilation_job_name=compilation_job_name,
@@ -5121,7 +5058,7 @@ class SageMakerModelBackend(BaseBackend):
         self.compilation_jobs[compilation_job_name] = compilation_job
         return compilation_job.arn
 
-    def describe_compilation_job(self, compilation_job_name: str) -> Dict[str, Any]:
+    def describe_compilation_job(self, compilation_job_name: str) -> dict[str, Any]:
         if compilation_job_name not in self.compilation_jobs:
             raise ResourceNotFound(
                 message=f"Could not find compilation job '{compilation_job_name}'."
@@ -5132,15 +5069,15 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_compilation_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         name_contains: Optional[str],
         status_equals: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[CompilationJob]:
+    ) -> list[CompilationJob]:
         compilation_jobs = list(self.compilation_jobs.values())
         if name_contains:
             compilation_jobs = [
@@ -5148,27 +5085,23 @@ class SageMakerModelBackend(BaseBackend):
             ]
         if creation_time_before:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time < str(creation_time_before)
+                i for i in compilation_jobs if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             compilation_jobs = [
-                i
-                for i in compilation_jobs
-                if i.creation_time > str(creation_time_after)
+                i for i in compilation_jobs if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
-        if creation_time_after:
+        if last_modified_time_after:
             compilation_jobs = [
                 i
                 for i in compilation_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         if status_equals:
             compilation_jobs = [
@@ -5202,17 +5135,17 @@ class SageMakerModelBackend(BaseBackend):
         self,
         domain_name: str,
         auth_mode: str,
-        default_user_settings: Dict[str, Any],
-        subnet_ids: List[str],
+        default_user_settings: dict[str, Any],
+        subnet_ids: list[str],
         vpc_id: str,
-        domain_settings: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        domain_settings: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
         app_network_access_type: Optional[str],
         home_efs_file_system_kms_key_id: Optional[str],
         kms_key_id: Optional[str],
         app_security_group_management: Optional[str],
-        default_space_settings: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        default_space_settings: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         domain = Domain(
             domain_name=domain_name,
             auth_mode=auth_mode,
@@ -5232,17 +5165,17 @@ class SageMakerModelBackend(BaseBackend):
         self.domains[domain.id] = domain
         return {"DomainArn": domain.arn, "Url": domain.url}
 
-    def describe_domain(self, domain_id: str) -> Dict[str, Any]:
+    def describe_domain(self, domain_id: str) -> dict[str, Any]:
         if domain_id not in self.domains:
             raise ValidationError(message=f"Could not find domain '{domain_id}'.")
         return self.domains[domain_id].describe()
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_domains(self) -> List[Domain]:
+    def list_domains(self) -> list[Domain]:
         return list(self.domains.values())
 
     def delete_domain(
-        self, domain_id: str, retention_policy: Optional[Dict[str, str]]
+        self, domain_id: str, retention_policy: Optional[dict[str, str]]
     ) -> None:
         # 'retention_policy' parameter is not used
         if domain_id not in self.domains:
@@ -5252,15 +5185,15 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_explainability_job_definition(
         self,
         job_definition_name: str,
-        model_explainability_baseline_config: Optional[Dict[str, Any]],
-        model_explainability_app_specification: Dict[str, Any],
-        model_explainability_job_input: Dict[str, Any],
-        model_explainability_job_output_config: Dict[str, Any],
-        job_resources: Dict[str, Any],
-        network_config: Optional[Dict[str, Any]],
+        model_explainability_baseline_config: Optional[dict[str, Any]],
+        model_explainability_app_specification: dict[str, Any],
+        model_explainability_job_input: dict[str, Any],
+        model_explainability_job_output_config: dict[str, Any],
+        job_resources: dict[str, Any],
+        network_config: Optional[dict[str, Any]],
         role_arn: str,
-        stopping_condition: Optional[Dict[str, Any]],
-        tags: List[Dict[str, str]],
+        stopping_condition: Optional[dict[str, Any]],
+        tags: list[dict[str, str]],
     ) -> str:
         model_explainability_job_definition = ModelExplainabilityJobDefinition(
             job_definition_name=job_definition_name,
@@ -5283,7 +5216,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_model_explainability_job_definition(
         self, job_definition_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if job_definition_name not in self.model_explainability_job_definitions:
             raise ResourceNotFound(
                 message=f"Could not find model explainability job definition with name '{job_definition_name}'."
@@ -5297,9 +5230,9 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-    ) -> List[ModelExplainabilityJobDefinition]:
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+    ) -> list[ModelExplainabilityJobDefinition]:
         model_explainability_job_definitions = list(
             self.model_explainability_job_definitions.values()
         )
@@ -5319,13 +5252,13 @@ class SageMakerModelBackend(BaseBackend):
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_explainability_job_definitions = [
                 i
                 for i in model_explainability_job_definitions
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5354,12 +5287,12 @@ class SageMakerModelBackend(BaseBackend):
     def create_hyper_parameter_tuning_job(
         self,
         hyper_parameter_tuning_job_name: str,
-        hyper_parameter_tuning_job_config: Dict[str, Any],
-        training_job_definition: Optional[Dict[str, Any]],
-        training_job_definitions: Optional[List[Dict[str, Any]]],
-        warm_start_config: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
-        autotune: Optional[Dict[str, Any]],
+        hyper_parameter_tuning_job_config: dict[str, Any],
+        training_job_definition: Optional[dict[str, Any]],
+        training_job_definitions: Optional[list[dict[str, Any]]],
+        warm_start_config: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        autotune: Optional[dict[str, Any]],
     ) -> str:
         hyper_parameter_tuning_job = HyperParameterTuningJob(
             hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
@@ -5380,7 +5313,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_hyper_parameter_tuning_job(
         self, hyper_parameter_tuning_job_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if hyper_parameter_tuning_job_name not in self.hyper_parameter_tuning_jobs:
             raise ResourceNotFound(
                 message=f"Could not find hyper parameter tuning job '{hyper_parameter_tuning_job_name}'."
@@ -5395,12 +5328,12 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        last_modified_time_after: Optional[datetime],
+        last_modified_time_before: Optional[datetime],
         status_equals: Optional[str],
-    ) -> List[HyperParameterTuningJob]:
+    ) -> list[HyperParameterTuningJob]:
         hyper_parameter_tuning_jobs = list(self.hyper_parameter_tuning_jobs.values())
         if name_contains:
             hyper_parameter_tuning_jobs = [
@@ -5418,25 +5351,25 @@ class SageMakerModelBackend(BaseBackend):
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         if last_modified_time_before:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time < str(last_modified_time_before)
+                if i.last_modified_time < last_modified_time_before
             ]
         if last_modified_time_after:
             hyper_parameter_tuning_jobs = [
                 i
                 for i in hyper_parameter_tuning_jobs
-                if i.last_modified_time > str(last_modified_time_after)
+                if i.last_modified_time > last_modified_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5471,15 +5404,15 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_quality_job_definition(
         self,
         job_definition_name: str,
-        model_quality_baseline_config: Optional[Dict[str, Any]],
-        model_quality_app_specification: Dict[str, Any],
-        model_quality_job_input: Dict[str, Any],
-        model_quality_job_output_config: Dict[str, Any],
-        job_resources: Dict[str, Any],
-        network_config: Optional[Dict[str, Any]],
+        model_quality_baseline_config: Optional[dict[str, Any]],
+        model_quality_app_specification: dict[str, Any],
+        model_quality_job_input: dict[str, Any],
+        model_quality_job_output_config: dict[str, Any],
+        job_resources: dict[str, Any],
+        network_config: Optional[dict[str, Any]],
         role_arn: str,
-        stopping_condition: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
+        stopping_condition: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
     ) -> str:
         model_quality_job_definition = ModelQualityJobDefinition(
             job_definition_name=job_definition_name,
@@ -5502,7 +5435,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_model_quality_job_definition(
         self, job_definition_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if job_definition_name not in self.model_quality_job_definitions:
             raise ResourceNotFound(
                 message=f"Could not find model quality job definition '{job_definition_name}'."
@@ -5516,9 +5449,9 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
         name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-    ) -> List[ModelQualityJobDefinition]:
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+    ) -> list[ModelQualityJobDefinition]:
         model_quality_job_definitions = list(
             self.model_quality_job_definitions.values()
         )
@@ -5538,13 +5471,13 @@ class SageMakerModelBackend(BaseBackend):
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time < str(creation_time_before)
+                if i.creation_time < creation_time_before
             ]
         if creation_time_after:
             model_quality_job_definitions = [
                 i
                 for i in model_quality_job_definitions
-                if i.creation_time > str(creation_time_after)
+                if i.creation_time > creation_time_after
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
@@ -5571,13 +5504,13 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_card(
         self,
         model_card_name: str,
-        security_config: Optional[Dict[str, str]],
+        security_config: Optional[dict[str, str]],
         content: str,
         model_card_status: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         model_card_version: Optional[int] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        creation_time: Optional[datetime] = None,
+        last_modified_time: Optional[datetime] = None,
     ) -> str:
         if model_card_name in self.model_cards:
             raise ConflictException(f"Modelcard {model_card_name} already exists")
@@ -5606,7 +5539,7 @@ class SageMakerModelBackend(BaseBackend):
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist.")
 
-        datetime_now = str(datetime.now(tzutc()))
+        datetime_now = utcnow()
 
         first_version = self.model_cards[model_card_name][0]
         creation_time = first_version.creation_time
@@ -5641,7 +5574,7 @@ class SageMakerModelBackend(BaseBackend):
         model_card_status: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[FakeModelCard]:
+    ) -> list[FakeModelCard]:
         model_cards = self.model_cards
 
         return filter_model_cards(
@@ -5663,18 +5596,18 @@ class SageMakerModelBackend(BaseBackend):
         model_card_status: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[FakeModelCard]:
+    ) -> list[FakeModelCard]:
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
         versions = self.model_cards[model_card_name]
         if creation_time_after:
             versions = [
-                v for v in versions if v.last_modified_time > str(creation_time_after)
+                v for v in versions if v.last_modified_time > creation_time_after
             ]
         if creation_time_before:
             versions = [
-                v for v in versions if v.last_modified_time < str(creation_time_before)
+                v for v in versions if v.last_modified_time < creation_time_before
             ]
         if model_card_status:
             versions = [v for v in versions if v.model_card_status == model_card_status]
@@ -5685,7 +5618,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_model_card(
         self, model_card_name: str, model_card_version: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
@@ -5713,22 +5646,22 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[list[dict[str, str]]] = None,
         role_arn: str = "",
-        job_resources: Optional[Dict[str, Any]] = None,
-        stopping_condition: Optional[Dict[str, Any]] = None,
-        environment: Optional[Dict[str, str]] = None,
-        network_config: Optional[Dict[str, Any]] = None,
-        data_quality_baseline_config: Optional[Dict[str, Any]] = None,
-        data_quality_app_specification: Optional[Dict[str, Any]] = None,
-        data_quality_job_input: Optional[Dict[str, Any]] = None,
-        data_quality_job_output_config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, str]:
+        job_resources: Optional[dict[str, Any]] = None,
+        stopping_condition: Optional[dict[str, Any]] = None,
+        environment: Optional[dict[str, str]] = None,
+        network_config: Optional[dict[str, Any]] = None,
+        data_quality_baseline_config: Optional[dict[str, Any]] = None,
+        data_quality_app_specification: Optional[dict[str, Any]] = None,
+        data_quality_job_input: Optional[dict[str, Any]] = None,
+        data_quality_job_output_config: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
         job_definition = FakeDataQualityJobDefinition(
             account_id=account_id,
             region_name=self.region_name,
             job_definition_name=job_definition_name,
-            tags=tags,
+            tags=tags or [],
             role_arn=role_arn,
             job_resources=job_resources,
             stopping_condition=stopping_condition,
@@ -5743,14 +5676,14 @@ class SageMakerModelBackend(BaseBackend):
         return job_definition.response_create
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_data_quality_job_definitions(self) -> List[Dict[str, str]]:
+    def list_data_quality_job_definitions(self) -> list[dict[str, str]]:
         return [
             job.summary_object for job in self.data_quality_job_definitions.values()
         ]
 
     def describe_data_quality_job_definition(
         self, job_definition_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         job_definition = self.data_quality_job_definitions.get(job_definition_name)
         if job_definition is None:
             raise ResourceNotFound(f"Job definition {job_definition_name} not found")
@@ -5769,22 +5702,22 @@ class FakeDataQualityJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[list[dict[str, str]]] = None,
         role_arn: str = "",
-        job_resources: Optional[Dict[str, Any]] = None,
-        stopping_condition: Optional[Dict[str, Any]] = None,
-        environment: Optional[Dict[str, str]] = None,
-        network_config: Optional[Dict[str, Any]] = None,
-        data_quality_baseline_config: Optional[Dict[str, Any]] = None,
-        data_quality_app_specification: Optional[Dict[str, Any]] = None,
-        data_quality_job_input: Optional[Dict[str, Any]] = None,
-        data_quality_job_output_config: Optional[Dict[str, Any]] = None,
+        job_resources: Optional[dict[str, Any]] = None,
+        stopping_condition: Optional[dict[str, Any]] = None,
+        environment: Optional[dict[str, str]] = None,
+        network_config: Optional[dict[str, Any]] = None,
+        data_quality_baseline_config: Optional[dict[str, Any]] = None,
+        data_quality_app_specification: Optional[dict[str, Any]] = None,
+        data_quality_job_input: Optional[dict[str, Any]] = None,
+        data_quality_job_output_config: Optional[dict[str, Any]] = None,
     ):
         self.job_definition_name = job_definition_name
         self.arn = FakeDataQualityJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
-        self.tags = tags
+        self.tags = tags or []
         self.role_arn = role_arn
         self.job_resources = job_resources or {}
         self.stopping_condition = stopping_condition or {}
@@ -5794,12 +5727,10 @@ class FakeDataQualityJobDefinition(BaseObject):
         self.data_quality_app_specification = data_quality_app_specification or {}
         self.data_quality_job_input = data_quality_job_input or {}
         self.data_quality_job_output_config = data_quality_job_output_config or {}
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
-    def response_object(self) -> Dict[str, str]:
+    def response_object(self) -> dict[str, str]:
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -5808,7 +5739,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"JobDefinitionArn": self.arn}
 
     @staticmethod
@@ -5816,7 +5747,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         return arn_formatter("data-quality-job-definition", name, account_id, region)
 
     @property
-    def summary_object(self) -> Dict[str, str]:
+    def summary_object(self) -> dict[str, Any]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,
@@ -5831,24 +5762,22 @@ class FakeExperiment(BaseObject):
         account_id: str,
         region_name: str,
         experiment_name: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ):
         self.experiment_name = experiment_name
         self.arn = arn_formatter("experiment", experiment_name, account_id, region_name)
         self.tags = tags
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"ExperimentArn": self.arn}
 
 
@@ -5859,20 +5788,18 @@ class FakeTrial(BaseObject):
         region_name: str,
         trial_name: str,
         experiment_name: str,
-        tags: List[Dict[str, str]],
-        trial_components: List[str],
+        tags: list[dict[str, str]],
+        trial_components: list[str],
     ):
         self.trial_name = trial_name
         self.arn = FakeTrial.arn_formatter(trial_name, account_id, region_name)
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -5882,7 +5809,7 @@ class FakeTrial(BaseObject):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"TrialArn": self.arn}
 
     @staticmethod
@@ -5899,13 +5826,13 @@ class FakeTrialComponent(BaseObject):
         display_name: Optional[str],
         start_time: Optional[datetime],
         end_time: Optional[datetime],
-        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
-        input_artifacts: Optional[Dict[str, Dict[str, str]]],
-        output_artifacts: Optional[Dict[str, Dict[str, str]]],
-        metadata_properties: Optional[Dict[str, str]],
-        status: Optional[Dict[str, str]],
+        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
+        input_artifacts: Optional[dict[str, dict[str, str]]],
+        output_artifacts: Optional[dict[str, dict[str, str]]],
+        metadata_properties: Optional[dict[str, str]],
+        status: Optional[dict[str, str]],
         trial_name: Optional[str],
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ):
         self.trial_component_name = trial_component_name
         self.display_name = (
@@ -5919,19 +5846,19 @@ class FakeTrialComponent(BaseObject):
         self.trial_name = trial_name
         self.start_time = start_time
         self.end_time = end_time
-        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.creation_time = self.last_modified_time = now_string
-        self.created_by: Dict[str, Union[Dict[str, str], str]] = {}
-        self.last_modified_by: Dict[str, Union[Dict[str, str], str]] = {}
+        now = utcnow()
+        self.creation_time = self.last_modified_time = now
+        self.created_by: dict[str, Union[dict[str, str], str]] = {}
+        self.last_modified_by: dict[str, Union[dict[str, str], str]] = {}
         self.parameters = parameters if parameters is not None else {}
         self.input_artifacts = input_artifacts if input_artifacts is not None else {}
         self.output_artifacts = output_artifacts if output_artifacts is not None else {}
         self.metadata_properties = metadata_properties
-        self.metrics: Dict[str, Dict[str, Union[str, int, METRIC_STEP_TYPE]]] = {}
-        self.sources: List[Dict[str, str]] = []
+        self.metrics: dict[str, dict[str, Union[str, int, METRIC_STEP_TYPE]]] = {}
+        self.sources: list[dict[str, str]] = []
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response_object["Metrics"] = self.gen_metrics_response_object()
         response = {
@@ -5943,7 +5870,7 @@ class FakeTrialComponent(BaseObject):
 
     def gen_metrics_response_object(
         self,
-    ) -> List[Dict[str, Union[str, int, float, datetime]]]:
+    ) -> list[dict[str, Union[str, int, float, datetime]]]:
         metrics_names = self.metrics.keys()
         metrics_response_objects = []
         for metrics_name in metrics_names:
@@ -5951,25 +5878,19 @@ class FakeTrialComponent(BaseObject):
                 METRIC_STEP_TYPE, self.metrics[metrics_name]["Values"]
             )
             max_step = max(list(metrics_steps.keys()))
-            metrics_steps_values: List[float] = list(
-                map(
-                    lambda metric: cast(float, metric["Value"]),
-                    list(metrics_steps.values()),
-                )
-            )
+            metrics_steps_values: list[float] = [
+                cast(float, metric["Value"]) for metric in list(metrics_steps.values())
+            ]
             count = len(metrics_steps_values)
             mean = sum(metrics_steps_values) / count
             std = (
-                sum(map(lambda value: (value - mean) ** 2, metrics_steps_values))
-                / count
+                sum((value - mean) ** 2 for value in metrics_steps_values) / count
             ) ** 0.5
             timestamp_int: int = cast(int, self.metrics[metrics_name]["Timestamp"])
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.arn,
-                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=tzutc()).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=timezone.utc),
                 "Max": max(metrics_steps_values),
                 "Min": min(metrics_steps_values),
                 "Last": metrics_steps[max_step]["Value"],
@@ -5981,7 +5902,7 @@ class FakeTrialComponent(BaseObject):
         return metrics_response_objects
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"TrialComponentArn": self.arn}
 
     @staticmethod
@@ -5999,22 +5920,22 @@ class FakeModelBiasJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[list[dict[str, str]]] = None,
         role_arn: str = "",
-        job_resources: Optional[Dict[str, Any]] = None,
-        stopping_condition: Optional[Dict[str, Any]] = None,
-        environment: Optional[Dict[str, str]] = None,
-        network_config: Optional[Dict[str, Any]] = None,
-        model_bias_baseline_config: Optional[Dict[str, Any]] = None,
-        model_bias_app_specification: Optional[Dict[str, Any]] = None,
-        model_bias_job_input: Optional[Dict[str, Any]] = None,
-        model_bias_job_output_config: Optional[Dict[str, Any]] = None,
+        job_resources: Optional[dict[str, Any]] = None,
+        stopping_condition: Optional[dict[str, Any]] = None,
+        environment: Optional[dict[str, str]] = None,
+        network_config: Optional[dict[str, Any]] = None,
+        model_bias_baseline_config: Optional[dict[str, Any]] = None,
+        model_bias_app_specification: Optional[dict[str, Any]] = None,
+        model_bias_job_input: Optional[dict[str, Any]] = None,
+        model_bias_job_output_config: Optional[dict[str, Any]] = None,
     ):
         self.job_definition_name = job_definition_name
         self.arn = FakeModelBiasJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
-        self.tags = tags
+        self.tags = tags or []
         self.role_arn = role_arn
         self.job_resources = job_resources or {}
         self.stopping_condition = stopping_condition or {}
@@ -6024,12 +5945,10 @@ class FakeModelBiasJobDefinition(BaseObject):
         self.model_bias_app_specification = model_bias_app_specification or {}
         self.model_bias_job_input = model_bias_job_input or {}
         self.model_bias_job_output_config = model_bias_job_output_config or {}
-        self.creation_time = self.last_modified_time = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        self.creation_time = self.last_modified_time = utcnow()
 
     @property
-    def response_object(self) -> Dict[str, str]:
+    def response_object(self) -> dict[str, str]:
         response_object = self.gen_response_object()
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
@@ -6038,7 +5957,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         return response
 
     @property
-    def response_create(self) -> Dict[str, str]:
+    def response_create(self) -> dict[str, str]:
         return {"JobDefinitionArn": self.arn}
 
     @staticmethod
@@ -6046,7 +5965,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         return f"arn:{get_partition(region)}:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
 
     @property
-    def summary_object(self) -> Dict[str, str]:
+    def summary_object(self) -> dict[str, str]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.arn,

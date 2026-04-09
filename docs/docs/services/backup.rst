@@ -16,6 +16,7 @@ backup
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_backup_vault_mpa_approval_team
 - [ ] cancel_legal_hold
 - [X] create_backup_plan
 - [ ] create_backup_selection
@@ -23,22 +24,29 @@ backup
 - [ ] create_framework
 - [ ] create_legal_hold
 - [ ] create_logically_air_gapped_backup_vault
-- [ ] create_report_plan
+- [X] create_report_plan
+  
+        The parameters ReportPlanTags and IdempotencyToken are not yet supported
+        
+
+- [ ] create_restore_access_backup_vault
 - [ ] create_restore_testing_plan
 - [ ] create_restore_testing_selection
+- [ ] create_tiering_configuration
 - [X] delete_backup_plan
 - [ ] delete_backup_selection
-- [ ] delete_backup_vault
+- [X] delete_backup_vault
 - [ ] delete_backup_vault_access_policy
-- [ ] delete_backup_vault_lock_configuration
+- [X] delete_backup_vault_lock_configuration
 - [ ] delete_backup_vault_notifications
 - [ ] delete_framework
 - [ ] delete_recovery_point
-- [ ] delete_report_plan
+- [X] delete_report_plan
 - [ ] delete_restore_testing_plan
 - [ ] delete_restore_testing_selection
+- [ ] delete_tiering_configuration
 - [ ] describe_backup_job
-- [ ] describe_backup_vault
+- [X] describe_backup_vault
 - [ ] describe_copy_job
 - [ ] describe_framework
 - [ ] describe_global_settings
@@ -46,8 +54,10 @@ backup
 - [ ] describe_recovery_point
 - [ ] describe_region_settings
 - [ ] describe_report_job
-- [ ] describe_report_plan
+- [X] describe_report_plan
 - [ ] describe_restore_job
+- [ ] describe_scan_job
+- [ ] disassociate_backup_vault_mpa_approval_team
 - [ ] disassociate_recovery_point
 - [ ] disassociate_recovery_point_from_parent
 - [ ] export_backup_plan_template
@@ -65,6 +75,7 @@ backup
 - [ ] get_restore_testing_plan
 - [ ] get_restore_testing_selection
 - [ ] get_supported_resource_types
+- [ ] get_tiering_configuration
 - [ ] list_backup_job_summaries
 - [ ] list_backup_jobs
 - [ ] list_backup_plan_templates
@@ -91,25 +102,35 @@ backup
 - [ ] list_recovery_points_by_legal_hold
 - [ ] list_recovery_points_by_resource
 - [ ] list_report_jobs
-- [ ] list_report_plans
+- [X] list_report_plans
+  
+        Pagination is not yet implemented
+        
+
+- [ ] list_restore_access_backup_vaults
 - [ ] list_restore_job_summaries
 - [ ] list_restore_jobs
 - [ ] list_restore_jobs_by_protected_resource
 - [ ] list_restore_testing_plans
 - [ ] list_restore_testing_selections
+- [ ] list_scan_job_summaries
+- [ ] list_scan_jobs
 - [X] list_tags
   
         Pagination is not yet implemented
         
 
+- [ ] list_tiering_configurations
 - [ ] put_backup_vault_access_policy
-- [ ] put_backup_vault_lock_configuration
+- [X] put_backup_vault_lock_configuration
 - [ ] put_backup_vault_notifications
 - [ ] put_restore_validation_result
+- [ ] revoke_restore_access_backup_vault
 - [ ] start_backup_job
 - [ ] start_copy_job
 - [ ] start_report_job
 - [ ] start_restore_job
+- [ ] start_scan_job
 - [ ] stop_backup_job
 - [X] tag_resource
 - [X] untag_resource
@@ -122,4 +143,5 @@ backup
 - [ ] update_report_plan
 - [ ] update_restore_testing_plan
 - [ ] update_restore_testing_selection
+- [ ] update_tiering_configuration
 

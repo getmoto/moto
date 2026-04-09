@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import os
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from urllib.parse import urlparse
 
 import requests
@@ -61,7 +61,7 @@ class Recorder:
             file.write(json.dumps(entry))
             file.write("\n")
 
-    def _encode_body(self, body: Any) -> Tuple[str, bool]:
+    def _encode_body(self, body: Any) -> tuple[str, bool]:
         body_encoded = False
         try:
             if isinstance(body, io.BytesIO):
@@ -105,7 +105,7 @@ class Recorder:
         Download the current recording. The result can be uploaded afterwards.
         """
         filepath = self._location
-        with open(filepath, "r") as file:
+        with open(filepath) as file:
             return file.read()
 
     def replay_recording(self, target_host: Optional[str] = None) -> None:
@@ -119,7 +119,7 @@ class Recorder:
         old_setting = self._user_enabled
         self._user_enabled = False
 
-        with open(filepath, "r") as file:
+        with open(filepath) as file:
             entries = file.readlines()
 
         for row in entries:

@@ -1,6 +1,7 @@
 import datetime
 from collections import OrderedDict
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -15,7 +16,7 @@ class PipelineObject(BaseModel):
         self.name = name
         self.fields = fields
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {"fields": self.fields, "id": self.object_id, "name": self.name}
 
 
@@ -26,7 +27,7 @@ class Pipeline(CloudFormationModel):
         self.description = kwargs.get("description", "")
         self.pipeline_id = get_random_pipeline_id()
         self.creation_time = utcnow()
-        self.objects: List[Any] = []
+        self.objects: list[Any] = []
         self.status = "PENDING"
         self.tags = kwargs.get("tags", [])
 
@@ -34,10 +35,10 @@ class Pipeline(CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.pipeline_id
 
-    def to_meta_json(self) -> Dict[str, str]:
+    def to_meta_json(self) -> dict[str, str]:
         return {"id": self.pipeline_id, "name": self.name}
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "description": self.description,
             "fields": [
@@ -88,7 +89,7 @@ class Pipeline(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -112,7 +113,7 @@ class Pipeline(CloudFormationModel):
 class DataPipelineBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.pipelines: Dict[str, Pipeline] = OrderedDict()
+        self.pipelines: dict[str, Pipeline] = OrderedDict()
 
     def create_pipeline(self, name: str, unique_id: str, **kwargs: Any) -> Pipeline:
         pipeline = Pipeline(name, unique_id, **kwargs)
@@ -122,7 +123,7 @@ class DataPipelineBackend(BaseBackend):
     def list_pipelines(self) -> Iterable[Pipeline]:
         return self.pipelines.values()
 
-    def describe_pipelines(self, pipeline_ids: List[str]) -> List[Pipeline]:
+    def describe_pipelines(self, pipeline_ids: list[str]) -> list[Pipeline]:
         pipelines = [
             pipeline
             for pipeline in self.pipelines.values()
@@ -144,7 +145,7 @@ class DataPipelineBackend(BaseBackend):
         pipeline = self.get_pipeline(pipeline_id)
         return pipeline.objects
 
-    def describe_objects(self, object_ids: List[str], pipeline_id: str) -> List[Any]:
+    def describe_objects(self, object_ids: list[str], pipeline_id: str) -> list[Any]:
         pipeline = self.get_pipeline(pipeline_id)
         pipeline_objects = [
             pipeline_object

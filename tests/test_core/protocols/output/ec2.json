@@ -514,7 +514,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><TimeArg>2014-04-29T18:30:38Z</TimeArg><TimeCustom>Tue, 29 Apr 2014 18:30:38 GMT</TimeCustom><TimeFormat>1398796238</TimeFormat><StructMember><foo>2014-04-29T18:30:38Z</foo><bar>1398796238</bar></StructMember><requestId>request-id</requestId></OperationNameResponse>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><TimeArg>2014-04-29T18:30:38.000Z</TimeArg><TimeCustom>Tue, 29 Apr 2014 18:30:38 GMT</TimeCustom><TimeFormat>1398796238</TimeFormat><StructMember><foo>2014-04-29T18:30:38.000Z</foo><bar>1398796238</bar></StructMember><requestId>request-id</requestId></OperationNameResponse>"
         }
       }
     ]

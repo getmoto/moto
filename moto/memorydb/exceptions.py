@@ -1,7 +1,5 @@
 """Exceptions raised by the memorydb service."""
 
-from typing import List
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -15,7 +13,7 @@ class ClusterAlreadyExistsFault(MemoryDBClientError):
 
 
 class InvalidSubnetError(MemoryDBClientError):
-    def __init__(self, subnet_identifier: List[str]):
+    def __init__(self, subnet_identifier: list[str]):
         super().__init__("InvalidSubnetError", f"Subnet {subnet_identifier} not found.")
 
 

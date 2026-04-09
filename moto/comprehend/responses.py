@@ -1,6 +1,7 @@
 """Handles incoming comprehend requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -23,7 +24,7 @@ class ComprehendResponse(BaseResponse):
         _filter = params.get("Filter", {})
         recognizers = self.comprehend_backend.list_entity_recognizers(_filter=_filter)
         return json.dumps(
-            dict(EntityRecognizerPropertiesList=[r.to_dict() for r in recognizers])
+            {"EntityRecognizerPropertiesList": [r.to_dict() for r in recognizers]}
         )
 
     def create_entity_recognizer(self) -> str:
@@ -50,7 +51,7 @@ class ComprehendResponse(BaseResponse):
             model_kms_key_id=model_kms_key_id,
             model_policy=model_policy,
         )
-        return json.dumps(dict(EntityRecognizerArn=entity_recognizer_arn))
+        return json.dumps({"EntityRecognizerArn": entity_recognizer_arn})
 
     def describe_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -58,7 +59,7 @@ class ComprehendResponse(BaseResponse):
         recognizer = self.comprehend_backend.describe_entity_recognizer(
             entity_recognizer_arn=entity_recognizer_arn,
         )
-        return json.dumps(dict(EntityRecognizerProperties=recognizer.to_dict()))
+        return json.dumps({"EntityRecognizerProperties": recognizer.to_dict()})
 
     def stop_training_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -66,7 +67,7 @@ class ComprehendResponse(BaseResponse):
         self.comprehend_backend.stop_training_entity_recognizer(
             entity_recognizer_arn=entity_recognizer_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -74,7 +75,7 @@ class ComprehendResponse(BaseResponse):
         tags = self.comprehend_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(ResourceArn=resource_arn, Tags=tags))
+        return json.dumps({"ResourceArn": resource_arn, "Tags": tags})
 
     def delete_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -103,14 +104,14 @@ class ComprehendResponse(BaseResponse):
         text = params.get("Text")
         language = params.get("LanguageCode")
         resp = self.comprehend_backend.detect_pii_entities(text, language)
-        return json.dumps(dict(Entities=resp))
+        return json.dumps({"Entities": resp})
 
     def detect_key_phrases(self) -> str:
         params = json.loads(self.body)
         text = params.get("Text")
         language = params.get("LanguageCode")
         resp = self.comprehend_backend.detect_key_phrases(text, language)
-        return json.dumps(dict(KeyPhrases=resp))
+        return json.dumps({"KeyPhrases": resp})
 
     def detect_sentiment(self) -> str:
         params = json.loads(self.body)
@@ -151,7 +152,7 @@ class ComprehendResponse(BaseResponse):
             model_policy=model_policy,
         )
 
-        return json.dumps(dict(DocumentClassifierArn=document_classifier_arn))
+        return json.dumps({"DocumentClassifierArn": document_classifier_arn})
 
     def create_endpoint(self) -> str:
         params = json.loads(self.body)
@@ -172,7 +173,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(EndpointArn=endpoint_arn, ModelArn=model_arn))
+        return json.dumps({"EndpointArn": endpoint_arn, "ModelArn": model_arn})
 
     def create_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -198,7 +199,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelArn=flywheel_arn, activeModelArn=active_model_arn)
+            {"FlywheelArn": flywheel_arn, "activeModelArn": active_model_arn}
         )
 
     def describe_document_classifier(self) -> str:
@@ -209,7 +210,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(DocumentClassifierProperties=document_classifier.to_dict())
+            {"DocumentClassifierProperties": document_classifier.to_dict()}
         )
 
     def describe_endpoint(self) -> str:
@@ -219,7 +220,7 @@ class ComprehendResponse(BaseResponse):
             endpoint_arn=endpoint_arn,
         )
 
-        return json.dumps(dict(EndpointProperties=endpoint_properties.to_dict()))
+        return json.dumps({"EndpointProperties": endpoint_properties.to_dict()})
 
     def describe_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -228,7 +229,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(FlywheelProperties=flywheel_properties.to_dict()))
+        return json.dumps({"FlywheelProperties": flywheel_properties.to_dict()})
 
     def delete_document_classifier(self) -> str:
         params = json.loads(self.body)
@@ -237,7 +238,7 @@ class ComprehendResponse(BaseResponse):
             document_classifier_arn=document_classifier_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_endpoint(self) -> str:
         params = json.loads(self.body)
@@ -246,7 +247,7 @@ class ComprehendResponse(BaseResponse):
             endpoint_arn=endpoint_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -255,7 +256,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_document_classifiers(self) -> str:
         params = json.loads(self.body)
@@ -271,10 +272,10 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DocumentClassifierPropertiesList=document_classifier_properties_list,
-                NextToken=next_token,
-            )
+            {
+                "DocumentClassifierPropertiesList": document_classifier_properties_list,
+                "NextToken": next_token,
+            }
         )
 
     def list_endpoints(self) -> str:
@@ -289,7 +290,10 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(EndpointPropertiesList=endpoint_properties_list, NextToken=next_token)
+            {
+                "EndpointPropertiesList": endpoint_properties_list,
+                "NextToken": next_token,
+            }
         )
 
     def list_flywheels(self) -> str:
@@ -304,7 +308,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelSummaryList=flywheel_summary_list, nextToken=next_token)
+            {"FlywheelSummaryList": flywheel_summary_list, "nextToken": next_token}
         )
 
     def stop_training_document_classifier(self) -> str:
@@ -314,7 +318,7 @@ class ComprehendResponse(BaseResponse):
             document_classifier_arn=document_classifier_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def start_flywheel_iteration(self) -> str:
         params = json.loads(self.body)
@@ -328,7 +332,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelArn=flywheel_arn, FlywheelIterationId=flywheel_iteration_id)
+            {"FlywheelArn": flywheel_arn, "FlywheelIterationId": flywheel_iteration_id}
         )
 
     def update_endpoint(self) -> str:
@@ -346,4 +350,309 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(DesiredModelArn=desired_model_arn))
+        return json.dumps({"DesiredModelArn": desired_model_arn})
+
+    def _job_to_dict_resp(self, job_properties: dict[str, Any]) -> str:
+        job_type_key = job_properties.pop("job_type")
+
+        if job_properties.get("SubmitTime"):
+            job_properties["SubmitTime"] = job_properties["SubmitTime"].isoformat()
+        if job_properties.get("EndTime"):
+            job_properties["EndTime"] = job_properties["EndTime"].isoformat()
+
+        key_name = f"{job_type_key}JobProperties"
+        return json.dumps({key_name: job_properties})
+
+    def _list_jobs_to_dict_resp(
+        self, job_list: list[dict[str, Any]], job_type: str
+    ) -> str:
+        for job_properties in job_list:
+            job_properties.pop("job_type")
+            if job_properties.get("SubmitTime"):
+                job_properties["SubmitTime"] = job_properties["SubmitTime"].isoformat()
+            if job_properties.get("EndTime"):
+                job_properties["EndTime"] = job_properties["EndTime"].isoformat()
+
+        key_name = f"{job_type}JobPropertiesList"
+        return json.dumps({key_name: job_list, "NextToken": None})
+
+    def start_pii_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_pii_entities_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_pii_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_pii_entities_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_pii_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_pii_entities_detection_job(job_id=params["JobId"])
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_pii_entities_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_pii_entities_detection_jobs(
+            filter=job_filter
+        )
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "PiiEntitiesDetection")
+
+    def start_key_phrases_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_key_phrases_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_key_phrases_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_key_phrases_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_key_phrases_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_key_phrases_detection_job(job_id=params["JobId"])
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_key_phrases_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_key_phrases_detection_jobs(
+            filter=job_filter
+        )
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "KeyPhrasesDetection")
+
+    def start_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_sentiment_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_sentiment_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_sentiment_detection_job(job_id=params["JobId"])
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_sentiment_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_sentiment_detection_jobs(filter=job_filter)
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "SentimentDetection")
+
+    def put_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        resource_policy = params.get("ResourcePolicy")
+        policy_revision_id = params.get("PolicyRevisionId")
+
+        revision_id = self.comprehend_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            resource_policy=resource_policy,
+            policy_revision_id=policy_revision_id,
+        )
+
+        return json.dumps({"PolicyRevisionId": revision_id})
+
+    def describe_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+
+        policy_details = self.comprehend_backend.describe_resource_policy(
+            resource_arn=resource_arn
+        )
+
+        response_payload = {
+            "ResourcePolicy": policy_details["ResourcePolicy"],
+            "CreationTime": policy_details["CreationTime"].isoformat(),
+            "LastModifiedTime": policy_details["LastModifiedTime"].isoformat(),
+            "PolicyRevisionId": policy_details["PolicyRevisionId"],
+        }
+
+        return json.dumps(response_payload)
+
+    def delete_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        policy_revision_id = params.get("PolicyRevisionId")
+
+        self.comprehend_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+            policy_revision_id=policy_revision_id,
+        )
+
+        return "{}"
+
+    def start_targeted_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_targeted_sentiment_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_targeted_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_targeted_sentiment_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_targeted_sentiment_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_targeted_sentiment_detection_job(
+            job_id=params["JobId"]
+        )
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_targeted_sentiment_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_targeted_sentiment_detection_jobs(
+            filter=job_filter
+        )
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "TargetedSentimentDetection")
+
+    def start_dominant_language_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_dominant_language_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_dominant_language_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_dominant_language_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_dominant_language_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_dominant_language_detection_job(
+            job_id=params["JobId"]
+        )
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_dominant_language_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_dominant_language_detection_jobs(
+            filter=job_filter
+        )
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "DominantLanguageDetection")
+
+    def start_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_entities_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_entities_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_entities_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_entities_detection_job(job_id=params["JobId"])
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_entities_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_entities_detection_jobs(filter=job_filter)
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "EntitiesDetection")
+
+    def start_topics_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_topics_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_topics_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_topics_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def list_topics_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_topics_detection_jobs(filter=job_filter)
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "TopicsDetection")
+
+    def start_document_classification_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_document_classification_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_document_classification_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_document_classification_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def list_document_classification_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_document_classification_jobs(
+            filter=job_filter
+        )
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "DocumentClassification")
+
+    def start_events_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.start_events_detection_job(**params)
+        return json.dumps(
+            {"JobId": job.job_id, "JobArn": job.job_arn, "JobStatus": job.job_status}
+        )
+
+    def describe_events_detection_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.comprehend_backend.describe_events_detection_job(
+            job_id=params["JobId"]
+        )
+        return self._job_to_dict_resp(job.to_dict())
+
+    def stop_events_detection_job(self) -> str:
+        params = json.loads(self.body)
+        self.comprehend_backend.stop_events_detection_job(job_id=params["JobId"])
+        return json.dumps({"JobId": params["JobId"], "JobStatus": "STOP_REQUESTED"})
+
+    def list_events_detection_jobs(self) -> str:
+        params = json.loads(self.body)
+        job_filter = params.get("Filter")
+        jobs = self.comprehend_backend.list_events_detection_jobs(filter=job_filter)
+        job_list = [job.to_dict() for job in jobs]
+        return self._list_jobs_to_dict_resp(job_list, "EventsDetection")

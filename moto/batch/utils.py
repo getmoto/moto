@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.utilities.utils import get_partition
 
@@ -24,14 +24,14 @@ def make_arn_for_task_def(
     return f"arn:{get_partition(region_name)}:batch:{region_name}:{account_id}:job-definition/{name}:{revision}"
 
 
-def lowercase_first_key(some_dict: Dict[str, Any]) -> Dict[str, Any]:
-    new_dict: Dict[str, Any] = {}
+def lowercase_first_key(some_dict: dict[str, Any]) -> dict[str, Any]:
+    new_dict: dict[str, Any] = {}
     for key, value in some_dict.items():
         new_key = key[0].lower() + key[1:]
         try:
             if isinstance(value, dict):
                 new_dict[new_key] = lowercase_first_key(value)
-            elif all([isinstance(v, dict) for v in value]):
+            elif all(isinstance(v, dict) for v in value):
                 new_dict[new_key] = [lowercase_first_key(v) for v in value]
             else:
                 new_dict[new_key] = value
@@ -41,13 +41,11 @@ def lowercase_first_key(some_dict: Dict[str, Any]) -> Dict[str, Any]:
     return new_dict
 
 
-def validate_job_status(target_job_status: str, valid_job_statuses: List[str]) -> None:
+def validate_job_status(target_job_status: str, valid_job_statuses: list[str]) -> None:
     if target_job_status not in valid_job_statuses:
         raise ValidationError(
-            (
-                "1 validation error detected: Value at 'current_status' failed "
-                "to satisfy constraint: Member must satisfy enum value set: {valid_statues}"
-            ).format(valid_statues=valid_job_statuses)
+            "1 validation error detected: Value at 'current_status' failed "
+            f"to satisfy constraint: Member must satisfy enum value set: {valid_job_statuses}"
         )
 
 
@@ -61,7 +59,7 @@ class JobStatus(str, Enum):
     FAILED = "FAILED"
 
     @classmethod
-    def job_statuses(self) -> List[str]:
+    def job_statuses(self) -> list[str]:
         return sorted([item.value for item in JobStatus])
 
     @classmethod
@@ -84,7 +82,7 @@ class JobStatus(str, Enum):
         ]
 
     @classmethod
-    def status_transitions(self) -> List[Tuple[Optional[str], str]]:
+    def status_transitions(self) -> list[tuple[Optional[str], str]]:
         return [
             (JobStatus.SUBMITTED.value, JobStatus.PENDING.value),
             (JobStatus.PENDING.value, JobStatus.RUNNABLE.value),

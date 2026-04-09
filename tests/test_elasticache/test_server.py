@@ -6,7 +6,10 @@ def test_elasticache_describe_users():
     test_client = backend.test_client()
 
     data = "Action=DescribeUsers"
-    headers = {"Host": "elasticache.us-east-1.amazonaws.com"}
+    headers = {
+        "Host": "elasticache.us-east-1.amazonaws.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
     resp = test_client.post("/", data=data, headers=headers)
     assert resp.status_code == 200
     assert "<UserId>default</UserId>" in str(resp.data)

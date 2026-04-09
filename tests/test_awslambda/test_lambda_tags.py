@@ -40,7 +40,7 @@ def test_tags():
     )
 
     # List tags when there are none
-    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == dict()
+    assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {}
 
     # List tags when there is one
     resp = conn.tag_resource(Resource=function["FunctionArn"], Tags={"spam": "eggs"})
@@ -48,7 +48,7 @@ def test_tags():
     assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {"spam": "eggs"}
 
     # List tags when another has been added
-    resp = conn.tag_resource(Resource=function["FunctionArn"], Tags=dict(foo="bar"))
+    resp = conn.tag_resource(Resource=function["FunctionArn"], Tags={"foo": "bar"})
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert conn.list_tags(Resource=function["FunctionArn"])["Tags"] == {
         "spam": "eggs",
@@ -106,7 +106,7 @@ def test_tags_not_found():
     with pytest.raises(ClientError):
         conn.tag_resource(
             Resource=f"arn:aws:lambda:{ACCOUNT_ID}:function:not-found",
-            Tags=dict(spam="eggs"),
+            Tags={"spam": "eggs"},
         )
 
     with pytest.raises(ClientError):

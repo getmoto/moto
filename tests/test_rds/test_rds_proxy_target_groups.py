@@ -45,7 +45,7 @@ def secrets_arn():
 
 
 @pytest.fixture(scope="module")
-def vpc_id(mockaws):  # pylint: disable=redefined-outer-name
+def vpc_id(mockaws):
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
     _vpc_id = None
     try:
@@ -56,7 +56,7 @@ def vpc_id(mockaws):  # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture(scope="module")
-def subnet_id1(vpc_id):  # pylint: disable=redefined-outer-name
+def subnet_id1(vpc_id):
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
     try:
         subnet = ec2_client.create_subnet(
@@ -69,7 +69,7 @@ def subnet_id1(vpc_id):  # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture(scope="module")
-def subnet_id2(vpc_id):  # pylint: disable=redefined-outer-name
+def subnet_id2(vpc_id):
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
     try:
         subnet = ec2_client.create_subnet(
@@ -82,7 +82,7 @@ def subnet_id2(vpc_id):  # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture(scope="module")
-def role_arn(mockaws):  # pylint: disable=redefined-outer-name
+def role_arn(mockaws):
     role_name = f"moto-test-{str(uuid4())[0:6]}"
     iam = boto3.client("iam", region_name=DEFAULT_REGION)
     try:
@@ -96,7 +96,7 @@ def role_arn(mockaws):  # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture(scope="module")
-def proxy_name(subnet_id1, subnet_id2, role_arn, secrets_arn):  # pylint: disable=redefined-outer-name
+def proxy_name(subnet_id1, subnet_id2, role_arn, secrets_arn):
     name = f"moto-test-{str(uuid4())[0:6]}"
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     proxy_creation_succeeded = False
@@ -137,7 +137,7 @@ def proxy_name(subnet_id1, subnet_id2, role_arn, secrets_arn):  # pylint: disabl
 
 
 @pytest.fixture(scope="module")
-def db_cluster_id(mockaws):  # pylint: disable=redefined-outer-name
+def db_cluster_id(mockaws):
     cluster_name = f"moto-test-{str(uuid4())[0:6]}"
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     cluster_creation_succeeded = False
@@ -160,7 +160,7 @@ def db_cluster_id(mockaws):  # pylint: disable=redefined-outer-name
             )
 
 
-def test_default_proxy_targets(account_id, proxy_name):  # pylint: disable=redefined-outer-name
+def test_default_proxy_targets(account_id, proxy_name):
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     resp = rds_client.describe_db_proxy_targets(DBProxyName=proxy_name)
 
@@ -191,7 +191,7 @@ def test_default_proxy_targets(account_id, proxy_name):  # pylint: disable=redef
     }
 
 
-def test_register_db_proxy(account_id, proxy_name, db_cluster_id):  # pylint: disable=redefined-outer-name
+def test_register_db_proxy(account_id, proxy_name, db_cluster_id):
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
 
     resp = rds_client.register_db_proxy_targets(
@@ -224,7 +224,7 @@ def test_register_db_proxy(account_id, proxy_name, db_cluster_id):  # pylint: di
     assert resp["Targets"] == []
 
 
-def test_modify_group(proxy_name):  # pylint: disable=redefined-outer-name
+def test_modify_group(proxy_name):
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
 
     rds_client.modify_db_proxy_target_group(

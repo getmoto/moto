@@ -42,7 +42,7 @@ If you want to mock the default region, as an additional layer of protection aga
 
 .. sourcecode:: python
 
-    os.environ["MOTO_ALLOW_NONEXISTENT_REGION"] = True
+    os.environ["MOTO_ALLOW_NONEXISTENT_REGION"] = "True"
     os.environ["AWS_DEFAULT_REGION"] = "antarctica"
 
 

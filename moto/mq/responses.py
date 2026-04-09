@@ -4,7 +4,7 @@ import copy
 import json
 from urllib.parse import unquote
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import MQBackend, mq_backends
 
@@ -92,18 +92,18 @@ class MQResponse(BaseResponse):
     def delete_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-1]
         self.mq_backend.delete_broker(broker_id=broker_id)
-        return ActionResult(dict(BrokerId=broker_id))
+        return ActionResult({"BrokerId": broker_id})
 
     def describe_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-1]
         broker = self.mq_backend.describe_broker(broker_id=broker_id)
         resp = copy.copy(broker)
-        setattr(resp, "tags", self.mq_backend.list_tags(broker.arn))
+        resp.tags = self.mq_backend.list_tags(broker.arn)  # type: ignore[attr-defined]
         return ActionResult(resp)
 
     def list_brokers(self) -> ActionResult:
         brokers = self.mq_backend.list_brokers()
-        return ActionResult(dict(BrokerSummaries=brokers))
+        return ActionResult({"BrokerSummaries": brokers})
 
     def create_user(self) -> ActionResult:
         params = json.loads(self.body)
@@ -112,7 +112,7 @@ class MQResponse(BaseResponse):
         console_access = params.get("consoleAccess", False)
         groups = params.get("groups", [])
         self.mq_backend.create_user(broker_id, username, console_access, groups)
-        return ActionResult({})
+        return EmptyResult()
 
     def update_user(self) -> ActionResult:
         params = json.loads(self.body)
@@ -126,7 +126,7 @@ class MQResponse(BaseResponse):
             groups=groups,
             username=username,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_user(self) -> ActionResult:
         broker_id = self.path.split("/")[-3]
@@ -138,7 +138,7 @@ class MQResponse(BaseResponse):
         broker_id = self.path.split("/")[-3]
         username = self.path.split("/")[-1]
         self.mq_backend.delete_user(broker_id, username)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_users(self) -> ActionResult:
         broker_id = self.path.split("/")[-2]
@@ -165,7 +165,7 @@ class MQResponse(BaseResponse):
         config_id = self.path.split("/")[-1]
         config = self.mq_backend.describe_configuration(config_id)
         resp = copy.copy(config)
-        setattr(resp, "tags", self.mq_backend.list_tags(config.arn))
+        resp.tags = self.mq_backend.list_tags(config.arn)  # type: ignore[attr-defined]
         return ActionResult(resp)
 
     def list_configurations(self) -> ActionResult:
@@ -193,13 +193,13 @@ class MQResponse(BaseResponse):
         resource_arn = unquote(self.path.split("/")[-1])
         tags = json.loads(self.body).get("tags", {})
         self.mq_backend.create_tags(resource_arn, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_tags(self) -> ActionResult:
         resource_arn = unquote(self.path.split("/")[-1])
         tag_keys = self._get_param("tagKeys")
         self.mq_backend.delete_tags(resource_arn, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_tags(self) -> ActionResult:
         resource_arn = unquote(self.path.split("/")[-1])
@@ -209,4 +209,4 @@ class MQResponse(BaseResponse):
     def reboot_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-2]
         self.mq_backend.reboot_broker(broker_id=broker_id)
-        return ActionResult({})
+        return EmptyResult()

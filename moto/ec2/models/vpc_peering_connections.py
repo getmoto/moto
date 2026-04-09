@@ -1,6 +1,7 @@
 import weakref
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional
+from collections.abc import Iterator
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -47,9 +48,9 @@ class PeeringConnectionStatus:
 
 class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
     DEFAULT_OPTIONS = {
-        "AllowEgressFromLocalClassicLinkToRemoteVpc": "false",
-        "AllowEgressFromLocalVpcToRemoteClassicLink": "false",
-        "AllowDnsResolutionFromRemoteVpc": "false",
+        "AllowEgressFromLocalClassicLinkToRemoteVpc": False,
+        "AllowEgressFromLocalVpcToRemoteClassicLink": False,
+        "AllowDnsResolutionFromRemoteVpc": False,
     }
 
     def __init__(
@@ -58,7 +59,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         vpc_pcx_id: str,
         vpc: VPC,
         peer_vpc: VPC,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.id = vpc_pcx_id
         self.ec2_backend = backend
@@ -68,6 +69,34 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         self.accepter_options = self.DEFAULT_OPTIONS.copy()
         self.add_tags(tags or {})
         self._status = PeeringConnectionStatus(accepter_id=peer_vpc.owner_id)
+
+    @property
+    def vpc_peering_connection_id(self) -> str:
+        return self.id
+
+    @property
+    def requester_vpc_info(self) -> dict[str, Any]:
+        return {
+            "OwnerId": self.vpc.owner_id,
+            "Region": self.vpc.region,
+            "VpcId": self.vpc.id,
+            "CidrBlock": self.vpc.cidr_block,
+            "PeeringOptions": self.requester_options,
+        }
+
+    @property
+    def accepter_vpc_info(self) -> dict[str, Any]:
+        return {
+            "OwnerId": self.peer_vpc.owner_id,
+            "Region": self.peer_vpc.region,
+            "VpcId": self.peer_vpc.id,
+            "CidrBlock": self.peer_vpc.cidr_block,
+            "PeeringOptions": self.accepter_options,
+        }
+
+    @property
+    def status(self) -> dict[str, str]:
+        return {"Code": self._status.code, "Message": self._status.message}
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -109,7 +138,7 @@ class VPCPeeringConnectionBackend:
     vpc_pcx_refs = defaultdict(set)  # type: ignore
 
     def __init__(self) -> None:
-        self.vpc_pcxs: Dict[str, VPCPeeringConnection] = {}
+        self.vpc_pcxs: dict[str, VPCPeeringConnection] = {}
         self.vpc_pcx_refs[self.__class__].add(weakref.ref(self))
 
     @classmethod
@@ -120,7 +149,7 @@ class VPCPeeringConnectionBackend:
                 yield inst
 
     def create_vpc_peering_connection(
-        self, vpc: VPC, peer_vpc: VPC, tags: Optional[Dict[str, str]] = None
+        self, vpc: VPC, peer_vpc: VPC, tags: Optional[dict[str, str]] = None
     ) -> VPCPeeringConnection:
         vpc_pcx_id = random_vpc_peering_connection_id()
         vpc_pcx = VPCPeeringConnection(self, vpc_pcx_id, vpc, peer_vpc, tags)
@@ -138,8 +167,8 @@ class VPCPeeringConnectionBackend:
         return vpc_pcx
 
     def describe_vpc_peering_connections(
-        self, vpc_peering_ids: Optional[List[str]] = None
-    ) -> List[VPCPeeringConnection]:
+        self, vpc_peering_ids: Optional[list[str]] = None
+    ) -> list[VPCPeeringConnection]:
         all_pcxs = list(self.vpc_pcxs.values())
         if vpc_peering_ids:
             return [pcx for pcx in all_pcxs if pcx.id in vpc_peering_ids]
@@ -198,9 +227,9 @@ class VPCPeeringConnectionBackend:
     def modify_vpc_peering_connection_options(
         self,
         vpc_pcx_id: str,
-        accepter_options: Optional[Dict[str, Any]] = None,
-        requester_options: Optional[Dict[str, Any]] = None,
-    ) -> None:
+        accepter_options: Optional[dict[str, Any]] = None,
+        requester_options: Optional[dict[str, Any]] = None,
+    ) -> VPCPeeringConnection:
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if not vpc_pcx:
             raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
@@ -209,3 +238,4 @@ class VPCPeeringConnectionBackend:
             vpc_pcx.accepter_options.update(accepter_options)
         if requester_options:
             vpc_pcx.requester_options.update(requester_options)
+        return vpc_pcx

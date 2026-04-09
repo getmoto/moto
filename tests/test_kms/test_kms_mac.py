@@ -31,7 +31,28 @@ def test_generate_mac():
     resp = client.generate_mac(
         KeyId=key_id,
         MacAlgorithm="HMAC_SHA_512",
-        Message=base64.b64encode("Hello World".encode("utf-8")),
+        Message=base64.b64encode(b"Hello World"),
+    )
+
+    # Assert
+    assert "Mac" in resp
+    assert resp["KeyId"] == key_id
+    assert resp["MacAlgorithm"] == "HMAC_SHA_512"
+
+
+@mock_aws
+def test_generate_mac_supports_aliases_for_hmac_keys():
+    # Arrange
+    key_id = create_hmac_key()
+    alias_name = "alias/my-hmac-key"
+    client = boto3.client("kms", region_name="eu-central-1")
+    client.create_alias(AliasName=alias_name, TargetKeyId=key_id)
+
+    # Act
+    resp = client.generate_mac(
+        KeyId=alias_name,
+        MacAlgorithm="HMAC_SHA_512",
+        Message=base64.b64encode(b"Hello World"),
     )
 
     # Assert
@@ -50,7 +71,7 @@ def test_generate_fails_for_non_existent_key():
         client.generate_mac(
             KeyId="some-key",
             MacAlgorithm="HMAC_SHA_512",
-            Message=base64.b64encode("Hello World".encode("utf-8")),
+            Message=base64.b64encode(b"Hello World"),
         )
 
 
@@ -67,7 +88,7 @@ def test_generate_fails_for_invalid_key_usage():
         client.generate_mac(
             KeyId=key_id,
             MacAlgorithm="HMAC_SHA_512",
-            Message=base64.b64encode("Hello World".encode("utf-8")),
+            Message=base64.b64encode(b"Hello World"),
         )
 
 
@@ -84,7 +105,7 @@ def test_generate_fails_for_invalid_key_spec():
         client.generate_mac(
             KeyId=key_id,
             MacAlgorithm="HMAC_SHA_512",
-            Message=base64.b64encode("Hello World".encode("utf-8")),
+            Message=base64.b64encode(b"Hello World"),
         )
 
 
@@ -96,14 +117,14 @@ def test_verify_mac():
     mac = client.generate_mac(
         KeyId=key_id,
         MacAlgorithm="HMAC_SHA_512",
-        Message=base64.b64encode("Hello World".encode("utf-8")),
+        Message=base64.b64encode(b"Hello World"),
     )["Mac"]
 
     # Act
     resp = client.verify_mac(
         KeyId=key_id,
         MacAlgorithm="HMAC_SHA_512",
-        Message=base64.b64encode("Hello World".encode("utf-8")),
+        Message=base64.b64encode(b"Hello World"),
         Mac=mac,
     )
 
@@ -122,7 +143,7 @@ def test_verify_mac_fails_for_another_key_id():
     mac = client.generate_mac(
         KeyId=key_id,
         MacAlgorithm="HMAC_SHA_512",
-        Message=base64.b64encode("Hello World".encode("utf-8")),
+        Message=base64.b64encode(b"Hello World"),
     )["Mac"]
 
     # Act + Assert
@@ -130,6 +151,6 @@ def test_verify_mac_fails_for_another_key_id():
         client.verify_mac(
             KeyId=other_key_id,
             MacAlgorithm="HMAC_SHA_512",
-            Message=base64.b64encode("Hello World".encode("utf-8")),
+            Message=base64.b64encode(b"Hello World"),
             Mac=mac,
         )

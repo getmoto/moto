@@ -28,7 +28,7 @@ class PersonalizeResponse(BaseResponse):
             schema_dict=schema,
             domain=domain,
         )
-        return json.dumps(dict(schemaArn=schema_arn))
+        return json.dumps({"schemaArn": schema_arn})
 
     def delete_schema(self) -> str:
         params = json.loads(self.body)
@@ -40,7 +40,7 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         schema_arn = params.get("schemaArn")
         schema = self.personalize_backend.describe_schema(schema_arn=schema_arn)
-        return json.dumps(dict(schema=schema.to_dict()))
+        return json.dumps({"schema": schema.to_dict()})
 
     def list_schemas(self) -> str:
         schemas = self.personalize_backend.list_schemas()

@@ -2,6 +2,7 @@ import json
 
 import moto.server as server
 from moto import mock_aws
+from moto.utilities.constants import APPLICATION_AMZ_JSON_1_1
 
 """
 Test the different server responses
@@ -15,9 +16,10 @@ def test_create_identity_pool():
 
     res = test_client.post(
         "/",
-        data={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
+        json={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.CreateIdentityPool"
+            "X-Amz-Target": "AWSCognitoIdentityService.CreateIdentityPool",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 
@@ -32,24 +34,24 @@ def test_get_id():
 
     res = test_client.post(
         "/",
-        data={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
+        json={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.CreateIdentityPool"
+            "X-Amz-Target": "AWSCognitoIdentityService.CreateIdentityPool",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 
     json_data = json.loads(res.data.decode("utf-8"))
     res = test_client.post(
         "/",
-        data=json.dumps(
-            {
-                "AccountId": "someaccount",
-                "IdentityPoolId": json_data["IdentityPoolId"],
-                "Logins": {"someurl": "12345"},
-            }
-        ),
+        json={
+            "AccountId": "someaccount",
+            "IdentityPoolId": json_data["IdentityPoolId"],
+            "Logins": {"someurl": "12345"},
+        },
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.GetId"
+            "X-Amz-Target": "AWSCognitoIdentityService.GetId",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 
@@ -64,9 +66,10 @@ def test_list_identities():
 
     res = test_client.post(
         "/",
-        data={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
+        json={"IdentityPoolName": "test", "AllowUnauthenticatedIdentities": True},
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.CreateIdentityPool"
+            "X-Amz-Target": "AWSCognitoIdentityService.CreateIdentityPool",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 
@@ -74,15 +77,14 @@ def test_list_identities():
     identity_pool_id = json_data["IdentityPoolId"]
     res = test_client.post(
         "/",
-        data=json.dumps(
-            {
-                "AccountId": "someaccount",
-                "IdentityPoolId": identity_pool_id,
-                "Logins": {"someurl": "12345"},
-            }
-        ),
+        json={
+            "AccountId": "someaccount",
+            "IdentityPoolId": identity_pool_id,
+            "Logins": {"someurl": "12345"},
+        },
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.GetId"
+            "X-Amz-Target": "AWSCognitoIdentityService.GetId",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 
@@ -91,9 +93,10 @@ def test_list_identities():
 
     res = test_client.post(
         "/",
-        data=json.dumps({"IdentityPoolId": identity_pool_id}),
+        json={"IdentityPoolId": identity_pool_id},
         headers={
-            "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.ListIdentities"
+            "X-Amz-Target": "AWSCognitoIdentityService.ListIdentities",
+            "Content-Type": APPLICATION_AMZ_JSON_1_1,
         },
     )
 

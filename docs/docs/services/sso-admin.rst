@@ -16,6 +16,7 @@ sso-admin
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] add_region
 - [X] attach_customer_managed_policy_reference_to_permission_set
 - [X] attach_managed_policy_to_permission_set
 - [X] create_account_assignment
@@ -46,6 +47,7 @@ sso-admin
 - [ ] describe_instance_access_control_attribute_configuration
 - [X] describe_permission_set
 - [ ] describe_permission_set_provisioning_status
+- [ ] describe_region
 - [ ] describe_trusted_token_issuer
 - [X] detach_customer_managed_policy_reference_from_permission_set
 - [X] detach_managed_policy_from_permission_set
@@ -53,6 +55,7 @@ sso-admin
 - [ ] get_application_assignment_configuration
 - [ ] get_application_authentication_method
 - [ ] get_application_grant
+- [ ] get_application_session_configuration
 - [X] get_inline_policy_for_permission_set
 - [ ] get_permissions_boundary_for_permission_set
 - [ ] list_account_assignment_creation_status
@@ -81,6 +84,7 @@ sso-admin
         The following parameters are not yet implemented: AccountId, ProvisioningStatus, MaxResults, NextToken
         
 
+- [ ] list_regions
 - [ ] list_tags_for_resource
 - [ ] list_trusted_token_issuers
 - [X] provision_permission_set
@@ -92,8 +96,10 @@ sso-admin
 - [ ] put_application_assignment_configuration
 - [ ] put_application_authentication_method
 - [ ] put_application_grant
+- [ ] put_application_session_configuration
 - [X] put_inline_policy_to_permission_set
 - [ ] put_permissions_boundary_to_permission_set
+- [ ] remove_region
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_application

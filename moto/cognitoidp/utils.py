@@ -3,7 +3,10 @@ import hashlib
 import hmac
 import re
 import string
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
+
+from cryptography.hazmat.primitives.hashes import SHA1
+from cryptography.hazmat.primitives.twofactor.totp import TOTP
 
 from moto.moto_api._internal import mock_random as random
 
@@ -91,11 +94,11 @@ def validate_username_format(username: str, _format: str = "email") -> bool:
     return re.fullmatch(FORMATS.get(_format, r"a^"), username) is not None
 
 
-def flatten_attrs(attrs: List[Dict[str, Any]]) -> Dict[str, Any]:
+def flatten_attrs(attrs: list[dict[str, Any]]) -> dict[str, Any]:
     return {attr["Name"]: attr["Value"] for attr in attrs}
 
 
-def expand_attrs(attrs: Dict[str, Any]) -> List[Dict[str, Any]]:
+def expand_attrs(attrs: dict[str, Any]) -> list[dict[str, Any]]:
     return [{"Name": k, "Value": v} for k, v in attrs.items()]
 
 
@@ -120,3 +123,19 @@ def _generate_id_hash(args: Any) -> str:
         hasher.update(str(arg).encode())
 
     return hasher.hexdigest()
+
+
+def cognito_totp(key: str) -> TOTP:
+    key_padded = key
+    # Pad the secret if required before converting it to bytes
+    padding = len(key) % 8
+    if padding != 0:
+        key_padded += "=" * (8 - padding)
+    # https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-mfa-totp.html
+    return TOTP(
+        key=base64.b32decode(key_padded, casefold=True),
+        length=6,
+        algorithm=SHA1(),
+        time_step=30,
+        enforce_key_length=False,
+    )

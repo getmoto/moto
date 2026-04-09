@@ -124,7 +124,7 @@ class TestLambdaInvocations:
         )
 
         if "FunctionError" in success_result:
-            assert False, success_result["Payload"].read().decode("utf-8")
+            raise AssertionError(success_result["Payload"].read().decode("utf-8"))
 
         assert success_result["StatusCode"] == 200
         assert (

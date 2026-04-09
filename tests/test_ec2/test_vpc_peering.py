@@ -17,7 +17,7 @@ def create_vpx_pcx(ec2, client):
 
 
 @mock_aws
-def test_vpc_peering_connections_boto3():
+def test_vpc_peering_connections():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -28,7 +28,7 @@ def test_vpc_peering_connections_boto3():
 
 
 @mock_aws
-def test_vpc_peering_connections_get_all_boto3():
+def test_vpc_peering_connections_get_all():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_pcx = create_vpx_pcx(ec2, client)
@@ -46,7 +46,7 @@ def test_vpc_peering_connections_get_all_boto3():
 
 
 @mock_aws
-def test_vpc_peering_connections_accept_boto3():
+def test_vpc_peering_connections_accept():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_pcx = create_vpx_pcx(ec2, client)
@@ -70,7 +70,7 @@ def test_vpc_peering_connections_accept_boto3():
 
 
 @mock_aws
-def test_vpc_peering_connections_reject_boto3():
+def test_vpc_peering_connections_reject():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_pcx = create_vpx_pcx(ec2, client)
@@ -92,7 +92,7 @@ def test_vpc_peering_connections_reject_boto3():
 
 
 @mock_aws
-def test_vpc_peering_connections_delete_boto3():
+def test_vpc_peering_connections_delete():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_pcx = create_vpx_pcx(ec2, client)

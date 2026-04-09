@@ -289,7 +289,7 @@ def put_resource_policy(ddb, table_arn, action="dynamodb:*", revision_id=None):
     )["RevisionId"]
     # Put Resource Policy is an async action
     # Periodically poll to see when the policy is ready
-    for x in range(20):
+    for _ in range(20):
         try:
             policy = ddb.get_resource_policy(ResourceArn=table_arn)
             assert policy["RevisionId"] == revision_id
@@ -301,4 +301,4 @@ def put_resource_policy(ddb, table_arn, action="dynamodb:*", revision_id=None):
         except (ClientError, AssertionError):
             # Policy is not ready yet
             sleep(1)
-    assert False, f"Revision {revision_id} wasn't ready in 20 seconds"
+    raise AssertionError(f"Revision {revision_id} wasn't ready in 20 seconds")

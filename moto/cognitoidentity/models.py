@@ -2,7 +2,7 @@ import datetime
 import json
 import re
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -54,8 +54,8 @@ class CognitoIdentityPool(BaseModel):
 class CognitoIdentityBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.identity_pools: Dict[str, CognitoIdentityPool] = OrderedDict()
-        self.pools_identities: Dict[str, Dict[str, Any]] = {}
+        self.identity_pools: dict[str, CognitoIdentityPool] = OrderedDict()
+        self.pools_identities: dict[str, dict[str, Any]] = {}
 
     def describe_identity_pool(self, identity_pool_id: str) -> str:
         identity_pool = self.identity_pools.get(identity_pool_id, None)
@@ -69,12 +69,12 @@ class CognitoIdentityBackend(BaseBackend):
         self,
         identity_pool_name: str,
         allow_unauthenticated_identities: bool,
-        supported_login_providers: Dict[str, str],
+        supported_login_providers: dict[str, str],
         developer_provider_name: str,
-        open_id_connect_provider_arns: List[str],
-        cognito_identity_providers: List[Dict[str, Any]],
-        saml_provider_arns: List[str],
-        tags: Dict[str, str],
+        open_id_connect_provider_arns: list[str],
+        cognito_identity_providers: list[dict[str, Any]],
+        saml_provider_arns: list[str],
+        tags: dict[str, str],
     ) -> str:
         new_identity = CognitoIdentityPool(
             self.region_name,
@@ -103,12 +103,12 @@ class CognitoIdentityBackend(BaseBackend):
         identity_pool_id: str,
         identity_pool_name: str,
         allow_unauthenticated: Optional[bool],
-        login_providers: Optional[Dict[str, str]],
+        login_providers: Optional[dict[str, str]],
         provider_name: Optional[str],
-        provider_arns: Optional[List[str]],
-        identity_providers: Optional[List[Dict[str, Any]]],
-        saml_providers: Optional[List[str]],
-        tags: Optional[Dict[str, str]],
+        provider_arns: Optional[list[str]],
+        identity_providers: Optional[list[dict[str, Any]]],
+        saml_providers: Optional[list[str]],
+        tags: Optional[dict[str, str]],
     ) -> str:
         """
         The AllowClassic-parameter has not yet been implemented

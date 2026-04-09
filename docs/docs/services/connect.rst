@@ -1,0 +1,399 @@
+.. _implementedservice_connect:
+
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
+=======
+connect
+=======
+
+.. autoclass:: moto.connect.models.ConnectBackend
+
+|start-h3| Implemented features for this service |end-h3|
+
+- [ ] activate_evaluation_form
+- [X] associate_analytics_data_set
+  Associate an analytics data set with a Connect instance.
+
+        Enforces one association per (instance_id, data_set_id) pair.
+        
+
+- [ ] associate_approved_origin
+- [ ] associate_bot
+- [ ] associate_contact_with_user
+- [ ] associate_default_vocabulary
+- [ ] associate_email_address_alias
+- [ ] associate_flow
+- [ ] associate_hours_of_operations
+- [ ] associate_instance_storage_config
+- [ ] associate_lambda_function
+- [ ] associate_lex_bot
+- [ ] associate_phone_number_contact_flow
+- [ ] associate_queue_email_addresses
+- [ ] associate_queue_quick_connects
+- [ ] associate_routing_profile_queues
+- [ ] associate_security_key
+- [ ] associate_security_profiles
+- [ ] associate_traffic_distribution_group_user
+- [ ] associate_user_proficiencies
+- [ ] associate_workspace
+- [ ] batch_associate_analytics_data_set
+- [ ] batch_create_data_table_value
+- [ ] batch_delete_data_table_value
+- [ ] batch_describe_data_table_value
+- [ ] batch_disassociate_analytics_data_set
+- [ ] batch_get_attached_file_metadata
+- [ ] batch_get_flow_association
+- [ ] batch_put_contact
+- [ ] batch_update_data_table_value
+- [ ] claim_phone_number
+- [ ] complete_attached_file_upload
+- [ ] create_agent_status
+- [ ] create_contact
+- [ ] create_contact_flow
+- [ ] create_contact_flow_module
+- [ ] create_contact_flow_module_alias
+- [ ] create_contact_flow_module_version
+- [ ] create_contact_flow_version
+- [ ] create_data_table
+- [ ] create_data_table_attribute
+- [ ] create_email_address
+- [ ] create_evaluation_form
+- [ ] create_hours_of_operation
+- [ ] create_hours_of_operation_override
+- [X] create_instance
+  Create a new Connect instance.
+
+- [ ] create_integration_association
+- [ ] create_notification
+- [ ] create_participant
+- [ ] create_persistent_contact_association
+- [ ] create_predefined_attribute
+- [ ] create_prompt
+- [ ] create_push_notification_registration
+- [ ] create_queue
+- [ ] create_quick_connect
+- [ ] create_routing_profile
+- [ ] create_rule
+- [ ] create_security_profile
+- [ ] create_task_template
+- [ ] create_test_case
+- [ ] create_traffic_distribution_group
+- [ ] create_use_case
+- [ ] create_user
+- [ ] create_user_hierarchy_group
+- [ ] create_view
+- [ ] create_view_version
+- [ ] create_vocabulary
+- [ ] create_workspace
+- [ ] create_workspace_page
+- [ ] deactivate_evaluation_form
+- [ ] delete_attached_file
+- [ ] delete_contact_evaluation
+- [ ] delete_contact_flow
+- [ ] delete_contact_flow_module
+- [ ] delete_contact_flow_module_alias
+- [ ] delete_contact_flow_module_version
+- [ ] delete_contact_flow_version
+- [ ] delete_data_table
+- [ ] delete_data_table_attribute
+- [ ] delete_email_address
+- [ ] delete_evaluation_form
+- [ ] delete_hours_of_operation
+- [ ] delete_hours_of_operation_override
+- [X] delete_instance
+- [ ] delete_integration_association
+- [ ] delete_notification
+- [ ] delete_predefined_attribute
+- [ ] delete_prompt
+- [ ] delete_push_notification_registration
+- [ ] delete_queue
+- [ ] delete_quick_connect
+- [ ] delete_routing_profile
+- [ ] delete_rule
+- [ ] delete_security_profile
+- [ ] delete_task_template
+- [ ] delete_test_case
+- [ ] delete_traffic_distribution_group
+- [ ] delete_use_case
+- [ ] delete_user
+- [ ] delete_user_hierarchy_group
+- [ ] delete_view
+- [ ] delete_view_version
+- [ ] delete_vocabulary
+- [ ] delete_workspace
+- [ ] delete_workspace_media
+- [ ] delete_workspace_page
+- [ ] describe_agent_status
+- [ ] describe_authentication_profile
+- [ ] describe_contact
+- [ ] describe_contact_evaluation
+- [ ] describe_contact_flow
+- [ ] describe_contact_flow_module
+- [ ] describe_contact_flow_module_alias
+- [ ] describe_data_table
+- [ ] describe_data_table_attribute
+- [ ] describe_email_address
+- [ ] describe_evaluation_form
+- [ ] describe_hours_of_operation
+- [ ] describe_hours_of_operation_override
+- [X] describe_instance
+  Describe a Connect instance.
+
+- [ ] describe_instance_attribute
+- [ ] describe_instance_storage_config
+- [ ] describe_notification
+- [ ] describe_phone_number
+- [ ] describe_predefined_attribute
+- [ ] describe_prompt
+- [ ] describe_queue
+- [ ] describe_quick_connect
+- [ ] describe_routing_profile
+- [ ] describe_rule
+- [ ] describe_security_profile
+- [ ] describe_test_case
+- [ ] describe_traffic_distribution_group
+- [ ] describe_user
+- [ ] describe_user_hierarchy_group
+- [ ] describe_user_hierarchy_structure
+- [ ] describe_view
+- [ ] describe_vocabulary
+- [ ] describe_workspace
+- [X] disassociate_analytics_data_set
+  Disassociate an analytics data set from a Connect instance.
+
+- [ ] disassociate_approved_origin
+- [ ] disassociate_bot
+- [ ] disassociate_email_address_alias
+- [ ] disassociate_flow
+- [ ] disassociate_hours_of_operations
+- [ ] disassociate_instance_storage_config
+- [ ] disassociate_lambda_function
+- [ ] disassociate_lex_bot
+- [ ] disassociate_phone_number_contact_flow
+- [ ] disassociate_queue_email_addresses
+- [ ] disassociate_queue_quick_connects
+- [ ] disassociate_routing_profile_queues
+- [ ] disassociate_security_key
+- [ ] disassociate_security_profiles
+- [ ] disassociate_traffic_distribution_group_user
+- [ ] disassociate_user_proficiencies
+- [ ] disassociate_workspace
+- [ ] dismiss_user_contact
+- [ ] evaluate_data_table_values
+- [ ] get_attached_file
+- [ ] get_contact_attributes
+- [ ] get_contact_metrics
+- [ ] get_current_metric_data
+- [ ] get_current_user_data
+- [ ] get_effective_hours_of_operations
+- [ ] get_federation_token
+- [ ] get_flow_association
+- [ ] get_metric_data
+- [ ] get_metric_data_v2
+- [ ] get_prompt_file
+- [ ] get_task_template
+- [ ] get_test_case_execution_summary
+- [ ] get_traffic_distribution
+- [ ] import_phone_number
+- [ ] import_workspace_media
+- [ ] list_agent_statuses
+- [X] list_analytics_data_associations
+  List analytics data associations for a Connect instance.
+
+- [ ] list_analytics_data_lake_data_sets
+- [ ] list_approved_origins
+- [ ] list_associated_contacts
+- [ ] list_authentication_profiles
+- [ ] list_bots
+- [ ] list_child_hours_of_operations
+- [ ] list_contact_evaluations
+- [ ] list_contact_flow_module_aliases
+- [ ] list_contact_flow_module_versions
+- [ ] list_contact_flow_modules
+- [ ] list_contact_flow_versions
+- [ ] list_contact_flows
+- [ ] list_contact_references
+- [ ] list_data_table_attributes
+- [ ] list_data_table_primary_values
+- [ ] list_data_table_values
+- [ ] list_data_tables
+- [ ] list_default_vocabularies
+- [ ] list_entity_security_profiles
+- [ ] list_evaluation_form_versions
+- [ ] list_evaluation_forms
+- [ ] list_flow_associations
+- [ ] list_hours_of_operation_overrides
+- [ ] list_hours_of_operations
+- [ ] list_instance_attributes
+- [ ] list_instance_storage_configs
+- [X] list_instances
+- [ ] list_integration_associations
+- [ ] list_lambda_functions
+- [ ] list_lex_bots
+- [ ] list_notifications
+- [ ] list_phone_numbers
+- [ ] list_phone_numbers_v2
+- [ ] list_predefined_attributes
+- [ ] list_prompts
+- [ ] list_queue_email_addresses
+- [ ] list_queue_quick_connects
+- [ ] list_queues
+- [ ] list_quick_connects
+- [ ] list_realtime_contact_analysis_segments_v2
+- [ ] list_routing_profile_manual_assignment_queues
+- [ ] list_routing_profile_queues
+- [ ] list_routing_profiles
+- [ ] list_rules
+- [ ] list_security_keys
+- [ ] list_security_profile_applications
+- [ ] list_security_profile_flow_modules
+- [ ] list_security_profile_permissions
+- [ ] list_security_profiles
+- [X] list_tags_for_resource
+- [ ] list_task_templates
+- [ ] list_test_case_execution_records
+- [ ] list_test_case_executions
+- [ ] list_test_cases
+- [ ] list_traffic_distribution_group_users
+- [ ] list_traffic_distribution_groups
+- [ ] list_use_cases
+- [ ] list_user_hierarchy_groups
+- [ ] list_user_notifications
+- [ ] list_user_proficiencies
+- [ ] list_users
+- [ ] list_view_versions
+- [ ] list_views
+- [ ] list_workspace_media
+- [ ] list_workspace_pages
+- [ ] list_workspaces
+- [ ] monitor_contact
+- [ ] pause_contact
+- [ ] put_user_status
+- [ ] release_phone_number
+- [ ] replicate_instance
+- [ ] resume_contact
+- [ ] resume_contact_recording
+- [ ] search_agent_statuses
+- [ ] search_available_phone_numbers
+- [ ] search_contact_evaluations
+- [ ] search_contact_flow_modules
+- [ ] search_contact_flows
+- [ ] search_contacts
+- [ ] search_data_tables
+- [ ] search_email_addresses
+- [ ] search_evaluation_forms
+- [ ] search_hours_of_operation_overrides
+- [ ] search_hours_of_operations
+- [ ] search_notifications
+- [ ] search_predefined_attributes
+- [ ] search_prompts
+- [ ] search_queues
+- [ ] search_quick_connects
+- [ ] search_resource_tags
+- [ ] search_routing_profiles
+- [ ] search_security_profiles
+- [ ] search_test_cases
+- [ ] search_user_hierarchy_groups
+- [ ] search_users
+- [ ] search_views
+- [ ] search_vocabularies
+- [ ] search_workspace_associations
+- [ ] search_workspaces
+- [ ] send_chat_integration_event
+- [ ] send_outbound_email
+- [ ] start_attached_file_upload
+- [ ] start_chat_contact
+- [ ] start_contact_evaluation
+- [ ] start_contact_media_processing
+- [ ] start_contact_recording
+- [ ] start_contact_streaming
+- [ ] start_email_contact
+- [ ] start_outbound_chat_contact
+- [ ] start_outbound_email_contact
+- [ ] start_outbound_voice_contact
+- [ ] start_screen_sharing
+- [ ] start_task_contact
+- [ ] start_test_case_execution
+- [ ] start_web_rtc_contact
+- [ ] stop_contact
+- [ ] stop_contact_media_processing
+- [ ] stop_contact_recording
+- [ ] stop_contact_streaming
+- [ ] stop_test_case_execution
+- [ ] submit_contact_evaluation
+- [ ] suspend_contact_recording
+- [ ] tag_contact
+- [X] tag_resource
+- [ ] transfer_contact
+- [ ] untag_contact
+- [X] untag_resource
+- [ ] update_agent_status
+- [ ] update_authentication_profile
+- [ ] update_contact
+- [ ] update_contact_attributes
+- [ ] update_contact_evaluation
+- [ ] update_contact_flow_content
+- [ ] update_contact_flow_metadata
+- [ ] update_contact_flow_module_alias
+- [ ] update_contact_flow_module_content
+- [ ] update_contact_flow_module_metadata
+- [ ] update_contact_flow_name
+- [ ] update_contact_routing_data
+- [ ] update_contact_schedule
+- [ ] update_data_table_attribute
+- [ ] update_data_table_metadata
+- [ ] update_data_table_primary_values
+- [ ] update_email_address_metadata
+- [ ] update_evaluation_form
+- [ ] update_hours_of_operation
+- [ ] update_hours_of_operation_override
+- [ ] update_instance_attribute
+- [ ] update_instance_storage_config
+- [ ] update_notification_content
+- [ ] update_participant_authentication
+- [ ] update_participant_role_config
+- [ ] update_phone_number
+- [ ] update_phone_number_metadata
+- [ ] update_predefined_attribute
+- [ ] update_prompt
+- [ ] update_queue_hours_of_operation
+- [ ] update_queue_max_contacts
+- [ ] update_queue_name
+- [ ] update_queue_outbound_caller_config
+- [ ] update_queue_outbound_email_config
+- [ ] update_queue_status
+- [ ] update_quick_connect_config
+- [ ] update_quick_connect_name
+- [ ] update_routing_profile_agent_availability_timer
+- [ ] update_routing_profile_concurrency
+- [ ] update_routing_profile_default_outbound_queue
+- [ ] update_routing_profile_name
+- [ ] update_routing_profile_queues
+- [ ] update_rule
+- [ ] update_security_profile
+- [ ] update_task_template
+- [ ] update_test_case
+- [ ] update_traffic_distribution
+- [ ] update_user_config
+- [ ] update_user_hierarchy
+- [ ] update_user_hierarchy_group_name
+- [ ] update_user_hierarchy_structure
+- [ ] update_user_identity_info
+- [ ] update_user_notification_status
+- [ ] update_user_phone_config
+- [ ] update_user_proficiencies
+- [ ] update_user_routing_profile
+- [ ] update_user_security_profiles
+- [ ] update_view_content
+- [ ] update_view_metadata
+- [ ] update_workspace_metadata
+- [ ] update_workspace_page
+- [ ] update_workspace_theme
+- [ ] update_workspace_visibility
+

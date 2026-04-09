@@ -22,11 +22,13 @@ kafka
 - [X] create_cluster_v2
 - [ ] create_configuration
 - [ ] create_replicator
+- [ ] create_topic
 - [ ] create_vpc_connection
 - [X] delete_cluster
 - [ ] delete_cluster_policy
 - [ ] delete_configuration
 - [ ] delete_replicator
+- [ ] delete_topic
 - [ ] delete_vpc_connection
 - [X] describe_cluster
 - [ ] describe_cluster_operation
@@ -35,6 +37,8 @@ kafka
 - [ ] describe_configuration
 - [ ] describe_configuration_revision
 - [ ] describe_replicator
+- [ ] describe_topic
+- [ ] describe_topic_partitions
 - [ ] describe_vpc_connection
 - [ ] get_bootstrap_brokers
 - [ ] get_cluster_policy
@@ -51,6 +55,7 @@ kafka
 - [ ] list_replicators
 - [ ] list_scram_secrets
 - [X] list_tags_for_resource
+- [ ] list_topics
 - [ ] list_vpc_connections
 - [ ] put_cluster_policy
 - [ ] reboot_broker
@@ -65,7 +70,9 @@ kafka
 - [ ] update_configuration
 - [ ] update_connectivity
 - [ ] update_monitoring
+- [ ] update_rebalancing
 - [ ] update_replication_info
 - [ ] update_security
 - [ ] update_storage
+- [ ] update_topic
 

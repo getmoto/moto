@@ -326,9 +326,9 @@ def test_create_task_definition_through_cloudformation():
                         {
                             "Name": "ecs-sample",
                             "Image": "amazon/amazon-ecs-sample",
-                            "Cpu": "200",
-                            "Memory": "500",
-                            "Essential": "true",
+                            "Cpu": 200,
+                            "Memory": 500,
+                            "Essential": True,
                             "PortMappings": [
                                 {
                                     "ContainerPort": 123,
@@ -392,7 +392,8 @@ def test_cloudformation_container_definition_validation():
         },
     }
     invalid_json = json.dumps(invalid_definition)
-    with pytest.raises(Exception):
+    # Currently throws a JSON exception, but we expect an XML exception here
+    with pytest.raises(Exception):  # noqa: B017 Do not assert blind exception: `Exception`
         cfn_conn.create_stack(StackName="invalid-stack", TemplateBody=invalid_json)
 
     # No task memory, has container memory

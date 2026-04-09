@@ -11,8 +11,8 @@ def test_table_list():
     res = test_client.get("/")
     assert res.status_code == 404
 
-    headers = {"X-Amz-Target": "TestTable.ListTables"}
-    res = test_client.get("/", headers=headers)
+    headers = {"X-Amz-Target": "DynamoDB_20120810.ListTables"}
+    res = test_client.post("/", headers=headers)
     assert b"TableNames" in res.data
     assert "X-Amz-Crc32" in res.headers
 

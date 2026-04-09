@@ -27,8 +27,8 @@ public class DynamoLogic {
                         .keyType(KeyType.HASH)
                         .build())
                 .provisionedThroughput(ProvisionedThroughput.builder()
-                        .readCapacityUnits(new Long(10))
-                        .writeCapacityUnits(new Long(10))
+                        .readCapacityUnits(Long.valueOf(10))
+                        .writeCapacityUnits(Long.valueOf(10))
                         .build())
                 .tableName(tableName)
                 .build();

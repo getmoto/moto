@@ -19,11 +19,16 @@ resourcegroupstaggingapi
 - [X] get_resources
 - [X] get_tag_keys
 - [X] get_tag_values
+- [ ] list_required_tags
 - [ ] start_report_creation
 - [X] tag_resources
   
-        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
+        Only CloudFront, DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, SageMaker, and SES resources are currently supported
         
 
-- [ ] untag_resources
+- [X] untag_resources
+  
+        Only CloudFront, EFS, Elasticache, Lambda, Quicksight, and SES resources are currently supported
+        
+
 

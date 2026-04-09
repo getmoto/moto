@@ -1,6 +1,7 @@
 """Handles incoming osis requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -40,21 +41,21 @@ class OpenSearchIngestionResponse(BaseResponse):
             encryption_at_rest_options=encryption_at_rest_options,
             tags=tags,
         )
-        return json.dumps(dict(Pipeline=pipeline.to_dict()))
+        return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def delete_pipeline(self) -> str:
         pipeline_name = self._get_param("PipelineName")
         self.osis_backend.delete_pipeline(
             pipeline_name=pipeline_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_pipeline(self) -> str:
         pipeline_name = self._get_param("PipelineName")
         pipeline = self.osis_backend.get_pipeline(
             pipeline_name=pipeline_name,
         )
-        return json.dumps(dict(Pipeline=pipeline.to_dict()))
+        return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def list_pipelines(self) -> str:
         max_results = self._get_int_param("MaxResults")
@@ -64,7 +65,10 @@ class OpenSearchIngestionResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(
-            dict(nextToken=next_token, Pipelines=[p.to_short_dict() for p in pipelines])
+            {
+                "nextToken": next_token,
+                "Pipelines": [p.to_short_dict() for p in pipelines],
+            }
         )
 
     def list_tags_for_resource(self) -> str:
@@ -91,7 +95,7 @@ class OpenSearchIngestionResponse(BaseResponse):
             encryption_at_rest_options=encryption_at_rest_options,
         )
         # TODO: adjust response
-        return json.dumps(dict(Pipeline=pipeline.to_dict()))
+        return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -101,7 +105,7 @@ class OpenSearchIngestionResponse(BaseResponse):
             arn=arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
@@ -111,18 +115,41 @@ class OpenSearchIngestionResponse(BaseResponse):
             arn=arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def start_pipeline(self) -> str:
         pipeline_name = self._get_param("PipelineName")
         pipeline = self.osis_backend.start_pipeline(
             pipeline_name=pipeline_name,
         )
-        return json.dumps(dict(Pipeline=pipeline.to_dict()))
+        return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def stop_pipeline(self) -> str:
         pipeline_name = self._get_param("PipelineName")
         pipeline = self.osis_backend.stop_pipeline(
             pipeline_name=pipeline_name,
         )
-        return json.dumps(dict(Pipeline=pipeline.to_dict()))
+        return json.dumps({"Pipeline": pipeline.to_dict()})
+
+    def get_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        policy = self.osis_backend.get_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"ResourceArn": resource_arn, "Policy": policy})
+
+    def put_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        policy = self._get_param("Policy")
+        self.osis_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy=policy,
+        )
+        return json.dumps({"ResourceArn": resource_arn, "Policy": policy})
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        self.osis_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({})

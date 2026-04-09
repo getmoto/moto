@@ -1,7 +1,5 @@
 """Unit tests for directconnect-supported APIs."""
 
-import time
-
 import boto3
 import pytest
 
@@ -18,7 +16,7 @@ def test_create_connection(client):
     connection = client.create_connection(
         location="EqDC2", bandwidth="10Gbps", connectionName="TestConnection"
     )
-    assert connection["connectionId"].startswith("dx-moto")
+    assert "dx-moto" in connection["connectionId"]
     assert connection["connectionState"] == "available"
 
 
@@ -29,14 +27,13 @@ def test_describe_connections(client):
         connectionName="TestConnection1",
         requestMACSec=False,
     )
-    time.sleep(0.1)
     client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection2",
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
@@ -46,8 +43,59 @@ def test_describe_connections(client):
     assert len(connections[1]["macSecKeys"]) == 1
     assert connections[0]["encryptionMode"] == "no_encrypt"
     assert connections[1]["encryptionMode"] == "must_encrypt"
+
     resp = client.describe_connections(connectionId=connections[0]["connectionId"])
     assert len(resp["connections"]) == 1
+
+
+@mock_aws
+def test_connection_tags(client):
+    client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection1",
+        requestMACSec=False,
+        tags=[
+            {
+                "key": "name",
+                "value": "Test Connection",
+            },
+            {
+                "key": "connection-id",
+                "value": "test-1",
+            },
+        ],
+    )
+    client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection2",
+        requestMACSec=True,
+        tags=[
+            {
+                "key": "name",
+                "value": "Test Connection 2",
+            },
+            {
+                "key": "connection-id",
+                "value": "test-2",
+            },
+        ],
+    )
+    resp = client.describe_connections()
+    connections = resp["connections"]
+    assert len(connections) == 2
+
+    assert len(connections[0]["tags"]) == 2
+    assert connections[0]["tags"][0]["key"] == "name"
+    assert connections[0]["tags"][0]["value"] == "Test Connection"
+    assert connections[0]["tags"][1]["key"] == "connection-id"
+    assert connections[0]["tags"][1]["value"] == "test-1"
+
+    assert connections[1]["tags"][0]["key"] == "name"
+    assert connections[1]["tags"][0]["value"] == "Test Connection 2"
+    assert connections[1]["tags"][1]["key"] == "connection-id"
+    assert connections[1]["tags"][1]["value"] == "test-2"
 
 
 def test_delete_connection(client):
@@ -64,14 +112,13 @@ def test_update_connection(client):
         bandwidth="10Gbps",
         connectionName="TestConnection1",
     )
-    time.sleep(0.1)
     client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection2",
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_connections()
     connection1_id = resp["connections"][0]["connectionId"]
     connection2_id = resp["connections"][1]["connectionId"]
@@ -129,13 +176,12 @@ def test_create_lag(client):
         connectionsBandwidth="10Gbps",
         lagName="TestLag0",
     )
-    assert lag["lagId"].startswith("dxlag-moto")
+    assert "dxlag-moto" in lag["lagId"]
     assert lag["lagState"] == "available"
     assert len(lag["connections"]) == 1
     connection = lag["connections"][0]
-    assert connection["connectionName"].startswith(
-        "Requested Connection 1 for Lag dxlag-moto"
-    )
+    assert "Requested Connection 1 for Lag" in connection["connectionName"]
+    assert "dxlag-moto" in connection["connectionName"]
 
 
 def test_describe_lags(client):
@@ -146,7 +192,6 @@ def test_describe_lags(client):
         numberOfConnections=1,
         requestMACSec=False,
     )
-    time.sleep(0.1)
     client.create_lag(
         location="EqDC2",
         connectionsBandwidth="10Gbps",
@@ -154,7 +199,7 @@ def test_describe_lags(client):
         numberOfConnections=1,
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_lags()
     lags = resp["lags"]
     assert len(lags) == 2
@@ -214,3 +259,39 @@ def test_disassociate_mac_sec_key_lag(client):
     )
     lag_id = lag["lagId"]
     _test_disassociate_mac_sec_key_common(client=client, connection_id=lag_id)
+
+
+@mock_aws
+def test_tag_resource(client):
+    connection = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection1",
+        requestMACSec=False,
+    )
+    connection_id = connection["connectionId"]
+
+    client.tag_resource(
+        resourceArn=connection_id,
+        tags=[{"key": "t1", "value": "v1"}, {"key": "t2", "value": "v2"}],
+    )
+
+    expected = [{"key": "t1", "value": "v1"}, {"key": "t2", "value": "v2"}]
+    assert get_tags(connection_id, client) == expected
+    assert (
+        client.describe_connections(connectionId=connection_id)["connections"][0][
+            "tags"
+        ]
+        == expected
+    )
+
+    client.untag_resource(resourceArn=connection_id, tagKeys=["t1"])
+    assert get_tags(connection_id, client) == [{"key": "t2", "value": "v2"}]
+
+    client.untag_resource(resourceArn=connection_id, tagKeys=["t2"])
+    assert get_tags(connection_id, client) == []
+
+
+def get_tags(arn, client):
+    tags = client.describe_tags(resourceArns=[arn])
+    return tags["resourceTags"][0]["tags"]

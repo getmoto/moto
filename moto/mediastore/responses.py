@@ -17,7 +17,7 @@ class MediaStoreResponse(BaseResponse):
         name = self._get_param("ContainerName")
         tags = self._get_param("Tags")
         container = self.mediastore_backend.create_container(name=name, tags=tags)
-        return json.dumps(dict(Container=container.to_dict()))
+        return json.dumps({"Container": container.to_dict()})
 
     def delete_container(self) -> str:
         name = self._get_param("ContainerName")
@@ -27,16 +27,16 @@ class MediaStoreResponse(BaseResponse):
     def describe_container(self) -> str:
         name = self._get_param("ContainerName")
         container = self.mediastore_backend.describe_container(name=name)
-        return json.dumps(dict(Container=container.to_dict()))
+        return json.dumps({"Container": container.to_dict()})
 
     def list_containers(self) -> str:
         containers = self.mediastore_backend.list_containers()
-        return json.dumps(dict(dict(Containers=containers), NextToken=None))
+        return json.dumps(dict({"Containers": containers}, NextToken=None))
 
     def list_tags_for_resource(self) -> str:
         name = self._get_param("Resource")
         tags = self.mediastore_backend.list_tags_for_resource(name)
-        return json.dumps(dict(Tags=tags))
+        return json.dumps({"Tags": tags})
 
     def put_lifecycle_policy(self) -> str:
         container_name = self._get_param("ContainerName")
@@ -51,7 +51,7 @@ class MediaStoreResponse(BaseResponse):
         lifecycle_policy = self.mediastore_backend.get_lifecycle_policy(
             container_name=container_name
         )
-        return json.dumps(dict(LifecyclePolicy=lifecycle_policy))
+        return json.dumps({"LifecyclePolicy": lifecycle_policy})
 
     def put_container_policy(self) -> str:
         container_name = self._get_param("ContainerName")
@@ -66,7 +66,7 @@ class MediaStoreResponse(BaseResponse):
         policy = self.mediastore_backend.get_container_policy(
             container_name=container_name
         )
-        return json.dumps(dict(Policy=policy))
+        return json.dumps({"Policy": policy})
 
     def put_metric_policy(self) -> str:
         container_name = self._get_param("ContainerName")
@@ -81,4 +81,4 @@ class MediaStoreResponse(BaseResponse):
         metric_policy = self.mediastore_backend.get_metric_policy(
             container_name=container_name
         )
-        return json.dumps(dict(MetricPolicy=metric_policy))
+        return json.dumps({"MetricPolicy": metric_policy})

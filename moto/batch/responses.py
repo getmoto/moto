@@ -30,6 +30,7 @@ class BatchResponse(BaseResponse):
         service_role = self._get_param("serviceRole")
         state = self._get_param("state")
         _type = self._get_param("type")
+        tags = self._get_param("tags")
 
         env = self.batch_backend.create_compute_environment(
             compute_environment_name=compute_env_name,
@@ -37,6 +38,7 @@ class BatchResponse(BaseResponse):
             state=state,
             compute_resources=compute_resource,
             service_role=service_role,
+            tags=tags,
         )
 
         result = {"computeEnvironmentArn": env.arn, "computeEnvironmentName": env.name}
@@ -133,6 +135,7 @@ class BatchResponse(BaseResponse):
     def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
         node_properties = self._get_param("nodeProperties")
+        eks_properties = self._get_param("eksProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
         tags = self._get_param("tags")
@@ -149,6 +152,7 @@ class BatchResponse(BaseResponse):
             retry_strategy=retry_strategy,
             container_properties=container_properties,
             node_properties=node_properties,
+            eks_properties=eks_properties,
             timeout=timeout,
             platform_capabilities=platform_capabilities,
             propagate_tags=propagate_tags,
@@ -183,6 +187,7 @@ class BatchResponse(BaseResponse):
 
     def submitjob(self) -> str:
         container_overrides = self._get_param("containerOverrides")
+        eks_properties_override = self._get_param("eksPropertiesOverride")
         depends_on = self._get_param("dependsOn")
         job_def = self._get_param("jobDefinition")
         job_name = self._get_param("jobName")
@@ -190,6 +195,7 @@ class BatchResponse(BaseResponse):
         timeout = self._get_param("timeout")
         array_properties = self._get_param("arrayProperties", {})
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
 
         name, job_id, job_arn = self.batch_backend.submit_job(
             job_name,
@@ -197,9 +203,11 @@ class BatchResponse(BaseResponse):
             job_queue,
             depends_on=depends_on,
             container_overrides=container_overrides,
+            eks_properties_override=eks_properties_override,
             timeout=timeout,
             array_properties=array_properties,
             parameters=parameters,
+            tags=tags,
         )
 
         result = {"jobId": job_id, "jobName": name, "jobArn": job_arn}

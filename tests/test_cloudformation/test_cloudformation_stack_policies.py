@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
-from .test_cloudformation_stack_crud_boto3 import dummy_template_json
+from .test_cloudformation_stack_crud import dummy_template_json
 
 
 @mock_aws

@@ -21,7 +21,7 @@ def ns_resp_fixture(client):
         for ns in client.list_namespaces()["Namespaces"]
         if ns["Name"] == "mynamespace"
     ][0]
-    return dict(Namespace=namespace)
+    return {"Namespace": namespace}
 
 
 @pytest.fixture(name="srv_resp")
@@ -124,7 +124,7 @@ def test_list_instances(client, ns_resp, srv_resp):
 
     instances = client.list_instances(ServiceId=srv_resp["Service"]["Id"])
     assert len(instances["Instances"]) == 4
-    assert set(inst["Id"] for inst in instances["Instances"]) == set(instance_ids)
+    assert {inst["Id"] for inst in instances["Instances"]} == set(instance_ids)
 
 
 @mock_aws
@@ -138,14 +138,14 @@ def test_paginate_list_instances(client, ns_resp, srv_resp):
     instances = client.list_instances(ServiceId=srv_resp["Service"]["Id"], MaxResults=2)
     assert len(instances["Instances"]) == 2
     assert "NextToken" in instances
-    assert set(inst["Id"] for inst in instances["Instances"]) == set(instance_ids[:2])
+    assert {inst["Id"] for inst in instances["Instances"]} == set(instance_ids[:2])
 
     instances = client.list_instances(
         ServiceId=srv_resp["Service"]["Id"], NextToken=instances["NextToken"]
     )
     assert len(instances["Instances"]) == 2
     assert "NextToken" not in instances
-    assert set(inst["Id"] for inst in instances["Instances"]) == set(instance_ids[2:])
+    assert {inst["Id"] for inst in instances["Instances"]} == set(instance_ids[2:])
 
 
 @mock_aws
@@ -233,7 +233,7 @@ def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
         ServiceName=srv_resp["Service"]["Name"],
     )
     assert len(instances["Instances"]) == 4
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-123",
         "i-456",
         "i-789",
@@ -246,7 +246,7 @@ def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
         QueryParameters={"attr1": "value3"},
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-789",
         "i-012",
     }
@@ -267,7 +267,7 @@ def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
         OptionalParameters={"attr2": "value2"},
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-789",
         "i-012",
     }
@@ -305,7 +305,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
         HealthStatus="ALL",
     )
     assert len(instances["Instances"]) == 4
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-123",
         "i-456",
         "i-789",
@@ -318,7 +318,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
         HealthStatus="UNHEALTHY",
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-789",
         "i-012",
     }
@@ -329,7 +329,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
         HealthStatus="HEALTHY",
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-123",
         "i-456",
     }
@@ -340,7 +340,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
         HealthStatus="HEALTHY_OR_ELSE_ALL",
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-123",
         "i-456",
     }
@@ -361,7 +361,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
         HealthStatus="HEALTHY_OR_ELSE_ALL",
     )
     assert len(instances["Instances"]) == 4
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == {
         "i-123",
         "i-456",
         "i-789",
@@ -388,7 +388,7 @@ def test_max_results_discover_instances(client, ns_resp, srv_resp):
         MaxResults=2,
     )
     assert len(instances["Instances"]) == 2
-    assert set(inst["InstanceId"] for inst in instances["Instances"]) == set(
+    assert {inst["InstanceId"] for inst in instances["Instances"]} == set(
         instance_ids[:2]
     )
 

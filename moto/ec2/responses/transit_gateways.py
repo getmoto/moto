@@ -6,30 +6,15 @@ from ._base_response import EC2BaseResponse
 class TransitGateways(EC2BaseResponse):
     def create_transit_gateway(self) -> ActionResult:
         description = self._get_param("Description") or None
-        options = self._get_multi_param_dict("Options")
-        tags = self._get_multi_param("TagSpecification")
+        options = self._get_param("Options", {})
+        tags = self._get_param("TagSpecifications", [])
         if tags:
-            tags = tags[0].get("Tag")
+            tags = tags[0].get("Tags")
 
         transit_gateway = self.ec2_backend.create_transit_gateway(
             description=description, options=options, tags=tags
         )
 
-        # creating default route table
-        transit_gateway_route_table = (
-            self.ec2_backend.create_transit_gateway_route_table(
-                transit_gateway_id=transit_gateway.id,
-                tags={},
-                default_association_route_table=True,
-                default_propagation_route_table=True,
-            )
-        )
-        transit_gateway.options["AssociationDefaultRouteTableId"] = (
-            transit_gateway_route_table.id
-        )
-        transit_gateway.options["PropagationDefaultRouteTableId"] = (
-            transit_gateway_route_table.id
-        )
         return ActionResult({"TransitGateway": transit_gateway})
 
     def delete_transit_gateway(self) -> ActionResult:
@@ -38,7 +23,7 @@ class TransitGateways(EC2BaseResponse):
         return ActionResult({"TransitGateway": transit_gateway})
 
     def describe_transit_gateways(self) -> ActionResult:
-        transit_gateway_ids = self._get_multi_param("TransitGatewayIds")
+        transit_gateway_ids = self._get_param("TransitGatewayIds", [])
         filters = self._filters_from_querystring()
         transit_gateways = self.ec2_backend.describe_transit_gateways(
             filters, transit_gateway_ids
@@ -48,7 +33,7 @@ class TransitGateways(EC2BaseResponse):
     def modify_transit_gateway(self) -> ActionResult:
         transit_gateway_id = self._get_param("TransitGatewayId")
         description = self._get_param("Description") or None
-        options = self._get_multi_param_dict("Options")
+        options = self._get_param("Options", {})
         transit_gateway = self.ec2_backend.modify_transit_gateway(
             transit_gateway_id=transit_gateway_id,
             description=description,

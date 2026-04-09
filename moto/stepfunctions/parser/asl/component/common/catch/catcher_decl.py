@@ -32,13 +32,13 @@ class CatcherOutput(dict):
 
 
 class CatcherDecl(EvalComponent):
-    DEFAULT_RESULT_PATH: ResultPath = ResultPath(result_path_src="$")
+    DEFAULT_RESULT_PATH: Final[ResultPath] = ResultPath(result_path_src="$")
 
     error_equals: Final[ErrorEqualsDecl]
-    next_decl: Next
-    result_path: Optional[ResultPath]
-    assign: Optional[AssignDecl]
-    output: Optional[Output]
+    next_decl: Final[Next]
+    result_path: Final[Optional[ResultPath]]
+    assign: Final[Optional[AssignDecl]]
+    output: Final[Optional[Output]]
     comment: Final[Optional[Comment]]
 
     def __init__(

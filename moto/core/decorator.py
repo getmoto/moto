@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional, TypeVar, Union, overload
 
 from moto import settings
 from moto.core.config import DefaultConfig

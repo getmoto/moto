@@ -77,7 +77,7 @@ def test_creating_bucket__invokes_lambda():
         "Lambda was not invoked after creating an S3 bucket. All logs: " + str(all_logs)
     )
 
-    event = json.loads(list([line for line in all_logs if expected_msg in line])[-1])
+    event = json.loads([line for line in all_logs if expected_msg in line][-1])
 
     assert event["detail-type"] == "Object Created"
     assert event["source"] == "aws.s3"

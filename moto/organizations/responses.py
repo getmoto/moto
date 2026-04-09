@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -15,7 +15,7 @@ class OrganizationsResponse(BaseResponse):
         return organizations_backends[self.current_account][self.partition]
 
     @property
-    def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def request_params(self) -> dict[str, Any]:  # type: ignore[misc]
         try:
             return json.loads(self.body)
         except ValueError:
@@ -75,10 +75,9 @@ class OrganizationsResponse(BaseResponse):
         response = {
             "OrganizationalUnits": [
                 {"Id": ou.id, "Arn": ou.arn, "Name": ou.name} for ou in ous
-            ]
+            ],
+            "NextToken": next_token,
         }
-        if next_token:
-            response["NextToken"] = next_token
         return json.dumps(response)
 
     def list_parents(self) -> str:
@@ -118,9 +117,7 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts(
             max_results=max_results, next_token=next_token
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Accounts": accounts, "NextToken": next_token}
         return json.dumps(response)
 
     def list_accounts_for_parent(self) -> str:
@@ -130,9 +127,10 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"Accounts": [a.describe() for a in accounts]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "Accounts": [a.describe() for a in accounts],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def move_account(self) -> str:
@@ -164,16 +162,32 @@ class OrganizationsResponse(BaseResponse):
         return "{}"
 
     def list_policies(self) -> str:
-        return json.dumps(self.organizations_backend.list_policies())
+        policy_type = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        policies, next_token = self.organizations_backend.list_policies(
+            policy_type=policy_type, max_results=max_results, next_token=next_token
+        )
+        response = {"Policies": policies, "NextToken": next_token}
+        return json.dumps(response)
 
     def delete_policy(self) -> str:
         self.organizations_backend.delete_policy(**self.request_params)
         return json.dumps({})
 
     def list_policies_for_target(self) -> str:
-        return json.dumps(
-            self.organizations_backend.list_policies_for_target(**self.request_params)
+        target_id = self._get_param("TargetId")
+        policy_type = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        policies, next_token = self.organizations_backend.list_policies_for_target(
+            target_id=target_id,
+            policy_type=policy_type,
+            max_results=max_results,
+            next_token=next_token,
         )
+        response = {"Policies": policies, "NextToken": next_token}
+        return json.dumps(response)
 
     def list_targets_for_policy(self) -> str:
         return json.dumps(

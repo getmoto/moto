@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
 from moto.stepfunctions.parser.asl.component.common.query_language import QueryLanguage
@@ -16,6 +14,9 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.iterator.distributed_iterator_worker import (
     DistributedIteratorWorker,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.job import (
+    JobPool,
+)
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
 
@@ -25,8 +26,6 @@ class DistributedIteratorEvalInput(DistributedIterationComponentEvalInput):
 
 
 class DistributedIterator(DistributedIterationComponent):
-    _eval_input: Optional[DistributedIteratorEvalInput]
-
     @classmethod
     def from_props(cls, props: TypedProps) -> DistributedIterator:
         item_processor = cls(
@@ -48,12 +47,17 @@ class DistributedIterator(DistributedIterationComponent):
         )
         return item_processor
 
-    def _create_worker(self, env: Environment) -> DistributedIteratorWorker:
+    def _create_worker(
+        self,
+        env: Environment,
+        eval_input: DistributedIteratorEvalInput,
+        job_pool: JobPool,
+    ) -> DistributedIteratorWorker:
         return DistributedIteratorWorker(
-            work_name=self._eval_input.state_name,
-            job_pool=self._job_pool,
+            work_name=eval_input.state_name,
+            job_pool=job_pool,
             env=env,
-            parameters=self._eval_input.parameters,
-            map_run_record=self._map_run_record,
-            item_selector=self._eval_input.item_selector,
+            parameters=eval_input.parameters,
+            map_run_record=eval_input.map_run_record,
+            item_selector=eval_input.item_selector,
         )

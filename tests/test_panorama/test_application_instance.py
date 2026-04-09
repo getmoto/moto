@@ -1,9 +1,8 @@
-import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 from unittest.mock import ANY
 
 import boto3
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -108,14 +107,14 @@ def test_describe_application_instance() -> None:
         "arn:aws:panorama:eu-west-1:123456789012:application-instance/"
     )
     assert response["Arn"].endswith(response_created["ApplicationInstanceId"])
-    assert isinstance(response["CreatedTime"], datetime.datetime)
+    assert isinstance(response["CreatedTime"], datetime)
     assert (
         response["DefaultRuntimeContextDevice"] == response_device_creation["DeviceId"]
     )
     assert response["DefaultRuntimeContextDeviceName"] == "not-a-device-name"
     assert response["Description"] == "not a description"
     assert response["HealthStatus"] == "RUNNING"
-    assert isinstance(response["LastUpdatedTime"], datetime.datetime)
+    assert isinstance(response["LastUpdatedTime"], datetime)
     assert response["Name"] == given_application_instance_name
     assert response["RuntimeRoleArn"] == given_application_instance_arn
     assert response["Status"] == "DEPLOYMENT_SUCCEEDED"
@@ -155,11 +154,11 @@ def test_create_application_instance_should_set_created_time() -> None:
     )
 
     # Then
-    assert response["CreatedTime"] == datetime.datetime(
-        2020, 1, 1, 12, 0, 0, tzinfo=tzutc()
+    assert response["CreatedTime"] == datetime(
+        2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc
     )
-    assert response["LastUpdatedTime"] == datetime.datetime(
-        2020, 1, 1, 12, 0, 0, tzinfo=tzutc()
+    assert response["LastUpdatedTime"] == datetime(
+        2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc
     )
 
 
@@ -200,7 +199,7 @@ def test_describe_application_instance_details() -> None:
         response["ApplicationInstanceId"] == response_created["ApplicationInstanceId"]
     )
     assert response.get("ApplicationInstanceIdToReplace") is None
-    assert isinstance(response["CreatedTime"], datetime.datetime)
+    assert isinstance(response["CreatedTime"], datetime)
     assert (
         response["DefaultRuntimeContextDevice"] == response_device_creation["DeviceId"]
     )
@@ -275,9 +274,7 @@ def test_list_application_instances() -> None:
     assert response_1["ApplicationInstances"][0]["Arn"].endswith(
         response_created_1["ApplicationInstanceId"]
     )
-    assert isinstance(
-        response_1["ApplicationInstances"][0]["CreatedTime"], datetime.datetime
-    )
+    assert isinstance(response_1["ApplicationInstances"][0]["CreatedTime"], datetime)
     assert (
         response_1["ApplicationInstances"][0]["DefaultRuntimeContextDevice"]
         == response_device_creation["DeviceId"]

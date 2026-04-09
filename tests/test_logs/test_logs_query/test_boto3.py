@@ -61,7 +61,7 @@ def test_get_query_results():
     )
 
     query_id = client.start_query(
-        logGroupName="test",
+        logGroupName=log_group_name,
         startTime=int(unix_time(utcnow() - timedelta(minutes=10))),
         endTime=int(unix_time(utcnow() + timedelta(minutes=10))),
         queryString="fields @message",
@@ -71,7 +71,7 @@ def test_get_query_results():
     assert resp["status"] == "Complete"
     assert len(resp["results"]) == 5
 
-    fields = set([row["field"] for field in resp["results"] for row in field])
+    fields = {row["field"] for field in resp["results"] for row in field}
     assert fields == {"@ptr", "@message"}
 
     messages = [
@@ -81,16 +81,16 @@ def test_get_query_results():
         if row["field"] == "@message"
     ]
     assert messages == [
-        "event nr 4",
-        "event nr 3",
-        "event nr 2",
-        "event nr 1",
         "event nr 0",
+        "event nr 1",
+        "event nr 2",
+        "event nr 3",
+        "event nr 4",
     ]
 
     # Only find events from last 2 minutes
     query_id = client.start_query(
-        logGroupName="test",
+        logGroupName=log_group_name,
         startTime=int(unix_time(utcnow() - timedelta(minutes=2, seconds=1))),
         endTime=int(unix_time(utcnow() - timedelta(seconds=1))),
         queryString="fields @message",
@@ -98,6 +98,7 @@ def test_get_query_results():
 
     resp = client.get_query_results(queryId=query_id)
     assert len(resp["results"]) == 2
+    assert isinstance(resp["results"][0][0]["value"], str)
 
     messages = [
         row["value"]
@@ -105,7 +106,7 @@ def test_get_query_results():
         for row in field
         if row["field"] == "@message"
     ]
-    assert messages == ["event nr 2", "event nr 1"]
+    assert messages == ["event nr 1", "event nr 2"]
 
 
 @mock_aws

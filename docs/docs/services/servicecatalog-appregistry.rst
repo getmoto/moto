@@ -27,14 +27,14 @@ servicecatalog-appregistry
 - [ ] get_application
 - [ ] get_associated_resource
 - [ ] get_attribute_group
-- [ ] get_configuration
+- [X] get_configuration
 - [X] list_applications
 - [ ] list_associated_attribute_groups
 - [ ] list_associated_resources
 - [ ] list_attribute_groups
 - [ ] list_attribute_groups_for_application
 - [ ] list_tags_for_resource
-- [ ] put_configuration
+- [X] put_configuration
 - [ ] sync_resource
 - [ ] tag_resource
 - [ ] untag_resource

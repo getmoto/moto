@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Set
+from typing import Any, Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -10,7 +10,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.failure_event imp
     FailureEvent,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -24,12 +24,12 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
 }
-_ERROR_NAME_CLIENT: str = "SQS.SdkClientException"
-_ERROR_NAME_AWS: str = "SQS.AmazonSQSException"
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+_ERROR_NAME_CLIENT: Final[str] = "SQS.SdkClientException"
+_ERROR_NAME_AWS: Final[str] = "SQS.AmazonSQSException"
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "sendmessage": {
         "DelaySeconds",
         "MessageAttributes",
@@ -45,7 +45,7 @@ class StateTaskServiceSqs(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -92,7 +92,7 @@ class StateTaskServiceSqs(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         # TODO: Stepfunctions automatically dumps to json MessageBody's definitions.
         #  Are these other similar scenarios?
@@ -104,10 +104,9 @@ class StateTaskServiceSqs(StateTaskServiceCallback):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         sqs_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         response = getattr(sqs_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 import requests
@@ -7,7 +9,7 @@ from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 from . import s3_aws_verified
-from .test_s3 import add_proxy_details
+from .test_s3 import add_proxy_details, enable_versioning
 
 
 @mock_aws
@@ -137,15 +139,18 @@ def test_get_bucket_tagging(bucket_name=None):
     with pytest.raises(ClientError) as exc:
         s3_client.get_bucket_tagging(Bucket=bucket_name)
 
+    metadata = exc.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchTagSet"
     assert err["Message"] == "The TagSet does not exist"
+    assert err["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws
 def test_delete_bucket_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
     s3_client.put_bucket_tagging(
@@ -164,14 +169,17 @@ def test_delete_bucket_tagging():
     with pytest.raises(ClientError) as err:
         s3_client.get_bucket_tagging(Bucket=bucket_name)
 
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "NoSuchTagSet"
-    assert err_value.response["Error"]["Message"] == "The TagSet does not exist"
+    metadata = err.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = err.value.response["Error"]
+    assert error["Code"] == "NoSuchTagSet"
+    assert error["Message"] == "The TagSet does not exist"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_put_object_tagging(bucket_name=None):
+def test_put_object_tagging_unknown_key(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     key = "key-with-tags"
 
@@ -192,6 +200,12 @@ def test_put_object_tagging(bucket_name=None):
     assert err["Message"] == "The specified key does not exist."
     assert err["Key"] == key
 
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_tagging_prefixed_with_aws(bucket_name=None):
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key = "key-with-tags"
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
 
     # using system tags will fail
@@ -205,6 +219,13 @@ def test_put_object_tagging(bucket_name=None):
     err_value = err.value
     assert err_value.response["Error"]["Code"] == "InvalidTag"
 
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_tagging_too_many_tags(bucket_name=None):
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key = "key-with-tags"
+    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
     # Can't put more than 10 tags at the same time
     with pytest.raises(ClientError) as exc:
         s3_client.put_object_tagging(
@@ -218,25 +239,80 @@ def test_put_object_tagging(bucket_name=None):
     assert err["Code"] == "BadRequest"
     assert err["Message"] == "Object tags cannot be greater than 10"
 
-    resp = s3_client.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "foo"},
-                {"Key": "item2", "Value": "bar"},
-                {"Key": "item3", "Value": ""},
-            ]
-        },
-    )
 
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_tagging_on_deleted_version(bucket_name=None):
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    enable_versioning(bucket_name=bucket_name, s3_client=s3_client)
+    key = "key-with-tags"
+    create1 = s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")[
+        "VersionId"
+    ]
+    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")["VersionId"]
+
+    deleted_version = s3_client.delete_object(
+        Bucket=bucket_name, Key=key, VersionId=create1
+    )["VersionId"]
+
+    # Put tags on deleted version
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={"TagSet": [{"Key": "tag0", "Value": "x"}]},
+            VersionId=deleted_version,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchVersion"
+    assert err["Message"] == "The specified version does not exist."
+    assert err["Key"] == key
+    assert err["VersionId"] == deleted_version
+
+    # Put tags on version that points to the delete marker
+    deleted_object = s3_client.delete_object(Bucket=bucket_name, Key=key)["VersionId"]
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={"TagSet": [{"Key": "tag0", "Value": "y"}]},
+            VersionId=deleted_object,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MethodNotAllowed"
+    assert (
+        err["Message"] == "The specified method is not allowed against this resource."
+    )
+    assert err["Method"] == "PUT"
+    assert err["ResourceType"] == "DeleteMarker"
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_tagging(bucket_name=None):
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key = "key-with-tags"
+    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    tags_to_set = [
+        {"Key": "item1", "Value": "foo"},
+        {"Key": "item2", "Value": "bar"},
+        {"Key": "item3", "Value": ""},
+    ]
+
+    resp = s3_client.put_object_tagging(
+        Bucket=bucket_name, Key=key, Tagging={"TagSet": tags_to_set}
+    )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    actual_tags = s3_client.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"]
+    assert all(tag in actual_tags for tag in tags_to_set)
 
 
 @mock_aws
 def test_put_object_tagging_on_earliest_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_resource = boto3.resource("s3")
@@ -261,7 +337,6 @@ def test_put_object_tagging_on_earliest_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -308,7 +383,7 @@ def test_put_object_tagging_on_earliest_version():
 @mock_aws
 def test_put_object_tagging_on_both_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_resource = boto3.resource("s3")
@@ -333,7 +408,6 @@ def test_put_object_tagging_on_both_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -393,7 +467,7 @@ def test_put_object_tagging_on_both_version():
 @mock_aws
 def test_put_object_tagging_with_single_tag():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -411,7 +485,7 @@ def test_put_object_tagging_with_single_tag():
 @mock_aws
 def test_get_object_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = str(uuid4())
     key = "key-with-tags"
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -442,13 +516,13 @@ def test_objects_tagging_with_same_key_name():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "file.txt"
 
-    bucket1 = "bucket-1"
+    bucket1 = str(uuid4())
     s3_client.create_bucket(Bucket=bucket1)
     tagging = "variable=one"
 
     s3_client.put_object(Bucket=bucket1, Body=b"test", Key=key_name, Tagging=tagging)
 
-    bucket2 = "bucket-2"
+    bucket2 = str(uuid4())
     s3_client.create_bucket(Bucket=bucket2)
     tagging2 = "variable=two"
 
@@ -468,12 +542,13 @@ def test_objects_tagging_with_same_key_name():
 @mock_aws
 def test_generate_url_for_tagged_object():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="my-bucket")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
     s3_client.put_object(
-        Bucket="my-bucket", Key="test.txt", Body=b"abc", Tagging="MyTag=value"
+        Bucket=bucket_name, Key="test.txt", Body=b"abc", Tagging="MyTag=value"
     )
     url = s3_client.generate_presigned_url(
-        "get_object", Params={"Bucket": "my-bucket", "Key": "test.txt"}
+        "get_object", Params={"Bucket": bucket_name, "Key": "test.txt"}
     )
     kwargs = {}
     if settings.is_test_proxy_mode():

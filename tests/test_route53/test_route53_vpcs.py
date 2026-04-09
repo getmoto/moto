@@ -17,7 +17,7 @@ def test_hosted_zone_private_zone_preserved():
     new_zone = conn.create_hosted_zone(
         Name="testdns.aws.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="Test"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "Test"},
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
@@ -42,7 +42,7 @@ def test_hosted_zone_private_zone_preserved():
     no_vpc_zone = conn.create_hosted_zone(
         Name=zone2_name,
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="Test without VPC"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "Test without VPC"},
     )
 
     zone_id = no_vpc_zone["HostedZone"]["Id"].split("/")[-1]
@@ -77,7 +77,7 @@ def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
         zones[zone] = conn.create_hosted_zone(
             Name=zone_name,
             CallerReference=str(hash("foo")),
-            HostedZoneConfig=dict(PrivateZone=True, Comment=f"test {zone} com"),
+            HostedZoneConfig={"PrivateZone": True, "Comment": f"test {zone} com"},
             VPC={"VPCRegion": region, "VPCId": vpc_id},
         )
 
@@ -105,7 +105,7 @@ def test_list_hosted_zones_by_vpc():
     zone_b = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "test com"},
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
     zone_id = zone_b["HostedZone"]["Id"].split("/")[2]
@@ -125,7 +125,7 @@ def test_route53_associate_vpc():
     zone = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment=""),
+        HostedZoneConfig={"PrivateZone": True, "Comment": ""},
     )
     zone_id = zone["HostedZone"]["Id"].split("/")[2]
 
@@ -173,7 +173,7 @@ def test_route53_associate_and_disassociate_vpc():
     zone = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "test com"},
         VPC={"VPCRegion": region, "VPCId": vpc_id1},
     )
     zone_id = zone["HostedZone"]["Id"].split("/")[2]
@@ -203,7 +203,7 @@ def test_route53_disassociate_last_vpc():
     zone = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "test com"},
         VPC={"VPCRegion": "us-east-1", "VPCId": vpc_id},
     )
     zone_id = zone["HostedZone"]["Id"].split("/")[2]

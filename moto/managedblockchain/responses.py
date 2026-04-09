@@ -1,6 +1,6 @@
 import json
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import ManagedBlockchainBackend, managedblockchain_backends
 from .utils import (
@@ -20,9 +20,9 @@ class ManagedBlockchainResponse(BaseResponse):
     def backend(self) -> ManagedBlockchainBackend:
         return managedblockchain_backends[self.current_account][self.region]
 
-    def list_networks(self) -> str:
+    def list_networks(self) -> ActionResult:
         networks = self.backend.list_networks()
-        return json.dumps({"Networks": [network.to_dict() for network in networks]})
+        return ActionResult(result={"Networks": networks})
 
     def create_network(self) -> str:
         name = self._get_param("Name")
@@ -46,15 +46,15 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def get_network(self) -> str:
+    def get_network(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         mbcnetwork = self.backend.get_network(network_id)
-        return json.dumps({"Network": mbcnetwork.get_format()})
+        return ActionResult(result={"Network": mbcnetwork})
 
-    def list_proposals(self) -> str:
+    def list_proposals(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         proposals = self.backend.list_proposals(network_id)
-        return json.dumps({"Proposals": [proposal.to_dict() for proposal in proposals]})
+        return ActionResult(result={"Proposals": proposals})
 
     def create_proposal(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)
@@ -69,11 +69,11 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def get_proposal(self) -> str:
+    def get_proposal(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         proposal_id = proposalid_from_managedblockchain_url(self.path)
         proposal = self.backend.get_proposal(network_id, proposal_id)
-        return json.dumps({"Proposal": proposal.get_format()})
+        return ActionResult(result={"Proposal": proposal})
 
     def list_proposal_votes(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)
@@ -81,30 +81,28 @@ class ManagedBlockchainResponse(BaseResponse):
         proposalvotes = self.backend.list_proposal_votes(network_id, proposal_id)
         return json.dumps({"ProposalVotes": proposalvotes})
 
-    def vote_on_proposal(self) -> str:
+    def vote_on_proposal(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         proposal_id = proposalid_from_managedblockchain_url(self.path)
         votermemberid = self._get_param("VoterMemberId")
         vote = self._get_param("Vote")
 
         self.backend.vote_on_proposal(network_id, proposal_id, votermemberid, vote)
-        return ""
+        return EmptyResult()
 
-    def list_invitations(self) -> str:
+    def list_invitations(self) -> ActionResult:
         invitations = self.backend.list_invitations()
-        return json.dumps(
-            {"Invitations": [invitation.to_dict() for invitation in invitations]}
-        )
+        return ActionResult(result={"Invitations": invitations})
 
     def reject_invitation(self) -> str:
         invitation_id = invitationid_from_managedblockchain_url(self.path)
         self.backend.reject_invitation(invitation_id)
         return ""
 
-    def list_members(self) -> str:
+    def list_members(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         members = self.backend.list_members(network_id)
-        return json.dumps({"Members": [member.to_dict() for member in members]})
+        return ActionResult(result={"Members": members})
 
     def create_member(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)
@@ -116,11 +114,11 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def get_member(self) -> str:
+    def get_member(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         member_id = memberid_from_managedblockchain_request(self.uri, self.body)
         member = self.backend.get_member(network_id, member_id)
-        return json.dumps({"Member": member.get_format()})
+        return ActionResult(result={"Member": member})
 
     def update_member(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)
@@ -135,12 +133,12 @@ class ManagedBlockchainResponse(BaseResponse):
         self.backend.delete_member(network_id, member_id)
         return ""
 
-    def list_nodes(self) -> str:
+    def list_nodes(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         member_id = memberid_from_managedblockchain_request(self.uri, self.body)
         status = self._get_param("status")
         nodes = self.backend.list_nodes(network_id, member_id, status)
-        return json.dumps({"Nodes": [node.to_dict() for node in nodes]})
+        return ActionResult(result={"Nodes": nodes})
 
     def create_node(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)
@@ -160,12 +158,12 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def get_node(self) -> str:
+    def get_node(self) -> ActionResult:
         network_id = networkid_from_managedblockchain_url(self.path)
         member_id = memberid_from_managedblockchain_request(self.uri, self.body)
         node_id = nodeid_from_managedblockchain_url(self.path)
         node = self.backend.get_node(network_id, member_id, node_id)
-        return json.dumps({"Node": node.get_format()})
+        return ActionResult(result={"Node": node})
 
     def update_node(self) -> str:
         network_id = networkid_from_managedblockchain_url(self.path)

@@ -2,7 +2,7 @@ import abc
 import datetime
 import threading
 from collections import OrderedDict
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Final, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.stepfunctions.parser.api import (
@@ -88,12 +88,12 @@ class ItemCounter(ProgressCounter):
 
 
 class MapRunRecord:
-    update_event: threading.Event
+    update_event: Final[threading.Event]
     map_state_machine_arn: Final[
         LongArn
     ]  # This is the original state machine arn plut the map run arn postfix.
-    execution_arn: Arn
-    map_run_arn: LongArn
+    execution_arn: Final[Arn]
+    map_run_arn: Final[LongArn]
     max_concurrency: int
     execution_counter: Final[ExecutionCounter]
     item_counter: Final[ItemCounter]
@@ -135,7 +135,7 @@ class MapRunRecord:
     @staticmethod
     def _generate_map_run_arns(
         state_machine_arn: Arn, label: Optional[str]
-    ) -> Tuple[LongArn, LongArn]:
+    ) -> tuple[LongArn, LongArn]:
         # Generate a new MapRunArn given the StateMachineArn, such that:
         # inp: arn:aws:states:<region>:111111111111:stateMachine:<ArnPart_0idx>
         # MRA: arn:aws:states:<region>:111111111111:mapRun:<ArnPart_0idx>/<MapRunArnPart0_0idx>:<MapRunArnPart1_0idx>
@@ -195,7 +195,7 @@ class MapRunRecord:
 
 
 class MapRunRecordPoolManager:
-    _pool: Dict[str, MapRunRecord]
+    _pool: dict[LongArn, MapRunRecord]
 
     def __init__(self):
         self._pool = OrderedDict()
@@ -203,8 +203,8 @@ class MapRunRecordPoolManager:
     def add(self, map_run_record: MapRunRecord) -> None:
         self._pool[map_run_record.map_run_arn] = map_run_record
 
-    def get(self, map_run_arn: str) -> Optional[MapRunRecord]:
+    def get(self, map_run_arn: LongArn) -> Optional[MapRunRecord]:
         return self._pool.get(map_run_arn)
 
-    def get_all(self) -> List[MapRunRecord]:
+    def get_all(self) -> list[MapRunRecord]:
         return list(self._pool.values())

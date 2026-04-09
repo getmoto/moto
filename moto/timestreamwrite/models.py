@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,9 +17,9 @@ class TimestreamTable(BaseModel):
         region_name: str,
         table_name: str,
         db_name: str,
-        retention_properties: Dict[str, int],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ):
         self.region_name = region_name
         self.name = table_name
@@ -37,14 +38,14 @@ class TimestreamTable(BaseModel):
                 }
             ]
         }
-        self.records: List[Dict[str, Any]] = []
+        self.records: list[dict[str, Any]] = []
         self.arn = f"arn:{get_partition(self.region_name)}:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
 
     def update(
         self,
-        retention_properties: Dict[str, int],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ) -> None:
         self.retention_properties = retention_properties
         if magnetic_store_write_properties is not None:
@@ -52,10 +53,10 @@ class TimestreamTable(BaseModel):
         if schema is not None:
             self.schema = schema
 
-    def write_records(self, records: List[Dict[str, Any]]) -> None:
+    def write_records(self, records: list[dict[str, Any]]) -> None:
         self.records.extend(records)
 
-    def description(self) -> Dict[str, Any]:
+    def description(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "TableName": self.name,
@@ -81,7 +82,7 @@ class TimestreamDatabase(BaseModel):
         self.arn = f"arn:{get_partition(self.region_name)}:timestream:{self.region_name}:{account_id}:database/{self.name}"
         self.created_on = unix_time()
         self.updated_on = unix_time()
-        self.tables: Dict[str, TimestreamTable] = dict()
+        self.tables: dict[str, TimestreamTable] = {}
 
     def update(self, kms_key_id: str) -> None:
         self.kms_key_id = kms_key_id
@@ -89,9 +90,9 @@ class TimestreamDatabase(BaseModel):
     def create_table(
         self,
         table_name: str,
-        retention_properties: Dict[str, int],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ) -> TimestreamTable:
         table = TimestreamTable(
             account_id=self.account_id,
@@ -108,9 +109,9 @@ class TimestreamDatabase(BaseModel):
     def update_table(
         self,
         table_name: str,
-        retention_properties: Dict[str, int],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ) -> TimestreamTable:
         table = self.tables[table_name]
         table.update(
@@ -131,7 +132,7 @@ class TimestreamDatabase(BaseModel):
     def list_tables(self) -> Iterable[TimestreamTable]:
         return self.tables.values()
 
-    def description(self) -> Dict[str, Any]:
+    def description(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "DatabaseName": self.name,
@@ -158,11 +159,11 @@ class TimestreamWriteBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.databases: Dict[str, TimestreamDatabase] = dict()
+        self.databases: dict[str, TimestreamDatabase] = {}
         self.tagging_service = TaggingService()
 
     def create_database(
-        self, database_name: str, kms_key_id: str, tags: List[Dict[str, str]]
+        self, database_name: str, kms_key_id: str, tags: list[dict[str, str]]
     ) -> TimestreamDatabase:
         database = TimestreamDatabase(
             self.account_id, self.region_name, database_name, kms_key_id
@@ -193,10 +194,10 @@ class TimestreamWriteBackend(BaseBackend):
         self,
         database_name: str,
         table_name: str,
-        retention_properties: Dict[str, int],
-        tags: List[Dict[str, str]],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        tags: list[dict[str, str]],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ) -> TimestreamTable:
         database = self.describe_database(database_name)
         table = database.create_table(
@@ -230,9 +231,9 @@ class TimestreamWriteBackend(BaseBackend):
         self,
         database_name: str,
         table_name: str,
-        retention_properties: Dict[str, int],
-        magnetic_store_write_properties: Dict[str, Any],
-        schema: Dict[str, Any],
+        retention_properties: dict[str, int],
+        magnetic_store_write_properties: dict[str, Any],
+        schema: dict[str, Any],
     ) -> TimestreamTable:
         database = self.describe_database(database_name)
         return database.update_table(
@@ -243,13 +244,13 @@ class TimestreamWriteBackend(BaseBackend):
         )
 
     def write_records(
-        self, database_name: str, table_name: str, records: List[Dict[str, Any]]
+        self, database_name: str, table_name: str, records: list[dict[str, Any]]
     ) -> None:
         database = self.describe_database(database_name)
         table = database.describe_table(table_name)
         table.write_records(records)
 
-    def describe_endpoints(self) -> Dict[str, List[Dict[str, Any]]]:
+    def describe_endpoints(self) -> dict[str, list[dict[str, Any]]]:
         # https://docs.aws.amazon.com/timestream/latest/developerguide/Using-API.endpoint-discovery.how-it-works.html
         # Usually, the address look like this:
         # ingest-cell1.timestream.us-east-1.amazonaws.com
@@ -266,13 +267,13 @@ class TimestreamWriteBackend(BaseBackend):
 
     def list_tags_for_resource(
         self, resource_arn: str
-    ) -> Dict[str, List[Dict[str, str]]]:
+    ) -> dict[str, list[dict[str, str]]]:
         return self.tagging_service.list_tags_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagging_service.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_arn, tag_keys)
 
 

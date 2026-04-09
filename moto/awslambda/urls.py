@@ -10,6 +10,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases/(?P<alias_name>[\w_-]+)$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/versions/?$": LambdaResponse.dispatch,
+    r"{0}/(?P<api_version>[^/]+)/event-source-mappings$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/event-source-mappings/$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/event-source-mappings/(?P<UUID>[\w_-]+)/?$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/invocations/?$": LambdaResponse.dispatch,

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 import localstack.services.cloudformation.provider_utils as util
 from localstack.services.cloudformation.resource_provider import (
@@ -16,7 +16,7 @@ from localstack.services.cloudformation.resource_provider import (
 class StepFunctionsActivityProperties(TypedDict):
     Name: Optional[str]
     Arn: Optional[str]
-    Tags: Optional[List[TagsEntry]]
+    Tags: Optional[list[TagsEntry]]
 
 
 class TagsEntry(TypedDict):

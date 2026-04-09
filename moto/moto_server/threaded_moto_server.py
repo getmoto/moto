@@ -1,5 +1,5 @@
 from threading import Event, Thread
-from typing import Optional, Tuple
+from typing import Optional
 
 from werkzeug.serving import BaseWSGIServer, make_server
 
@@ -34,9 +34,9 @@ class ThreadedMotoServer:
         self._thread.start()
         self._server_ready_event.wait()
 
-    def get_host_and_port(self) -> Tuple[str, int]:
+    def get_host_and_port(self) -> tuple[str, int]:
         assert self._server is not None, "Make sure to call start() first"
-        host, port = self._server.server_address
+        host, port = self._server.server_address[:2]
         return (str(host), port)
 
     def stop(self) -> None:

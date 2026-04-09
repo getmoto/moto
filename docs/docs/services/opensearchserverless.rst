@@ -17,27 +17,34 @@ opensearchserverless
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_get_collection
+- [ ] batch_get_collection_group
 - [ ] batch_get_effective_lifecycle_policy
 - [ ] batch_get_lifecycle_policy
 - [ ] batch_get_vpc_endpoint
 - [ ] create_access_policy
 - [X] create_collection
+- [ ] create_collection_group
+- [ ] create_index
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
 - [X] create_security_policy
 - [X] create_vpc_endpoint
 - [ ] delete_access_policy
 - [X] delete_collection
+- [ ] delete_collection_group
+- [ ] delete_index
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
 - [ ] delete_security_policy
 - [ ] delete_vpc_endpoint
 - [ ] get_access_policy
 - [ ] get_account_settings
+- [ ] get_index
 - [ ] get_policies_stats
 - [ ] get_security_config
 - [X] get_security_policy
 - [ ] list_access_policies
+- [ ] list_collection_groups
 - [X] list_collections
   
         Pagination is not yet implemented
@@ -57,6 +64,8 @@ opensearchserverless
 - [ ] update_access_policy
 - [ ] update_account_settings
 - [ ] update_collection
+- [ ] update_collection_group
+- [ ] update_index
 - [ ] update_lifecycle_policy
 - [ ] update_security_config
 - [X] update_security_policy

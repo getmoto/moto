@@ -13,7 +13,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 class StatePass(CommonStateField):
     def __init__(self):
-        super(StatePass, self).__init__(
+        super().__init__(
             state_entered_event_type=HistoryEventType.PassStateEntered,
             state_exited_event_type=HistoryEventType.PassStateExited,
         )
@@ -34,7 +34,7 @@ class StatePass(CommonStateField):
         self.parameters: Optional[Parameters] = None
 
     def from_state_props(self, state_props: StateProps) -> None:
-        super(StatePass, self).from_state_props(state_props)
+        super().from_state_props(state_props)
         self.result = state_props.get(Result)
         self.result_path = state_props.get(ResultPath) or ResultPath(
             result_path_src=ResultPath.DEFAULT_PATH

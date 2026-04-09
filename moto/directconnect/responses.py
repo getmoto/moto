@@ -23,7 +23,7 @@ class DirectConnectResponse(BaseResponse):
             connection_id=params.get("connectionId"),
         )
         return json.dumps(
-            dict(connections=[connection.to_dict() for connection in connections])
+            {"connections": [connection.to_dict() for connection in connections]}
         )
 
     def create_connection(self) -> str:
@@ -68,10 +68,10 @@ class DirectConnectResponse(BaseResponse):
             cak=cak,
         )
         return json.dumps(
-            dict(
-                connectionId=connection_id,
-                macSecKeys=[mac_sec_key.to_dict() for mac_sec_key in mac_sec_keys],
-            )
+            {
+                "connectionId": connection_id,
+                "macSecKeys": [mac_sec_key.to_dict() for mac_sec_key in mac_sec_keys],
+            }
         )
 
     def create_lag(self) -> str:
@@ -103,7 +103,7 @@ class DirectConnectResponse(BaseResponse):
         lags = self.directconnect_backend.describe_lags(
             lag_id=params.get("lagId"),
         )
-        return json.dumps(dict(lags=[lag.to_dict() for lag in lags]))
+        return json.dumps({"lags": [lag.to_dict() for lag in lags]})
 
     def disassociate_mac_sec_key(self) -> str:
         params = json.loads(self.body)
@@ -116,8 +116,32 @@ class DirectConnectResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                connectionId=connection_id,
-                macSecKeys=[mac_sec_key.to_dict()],
-            )
+            {
+                "connectionId": connection_id,
+                "macSecKeys": [mac_sec_key.to_dict()],
+            }
         )
+
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("resourceArn")
+        tags = params.get("tags")
+        self.directconnect_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("resourceArn")
+        tag_keys = params.get("tagKeys", [])
+        self.directconnect_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
+        return json.dumps({})
+
+    def describe_tags(self) -> str:
+        params = json.loads(self.body)
+        resource_arns = params.get("resourceArns")
+        tags = self.directconnect_backend.list_tags_for_resources(
+            resource_arns=resource_arns
+        )
+        return json.dumps(tags)

@@ -331,7 +331,7 @@ def test_execution_of_add_set_to_a_number(table):
         range_key=None,
         attrs={"id": {"S": "foo2"}, "s": {"N": "5"}},
     )
-    try:
+    with pytest.raises(IncorrectDataType):
         validated_ast = UpdateExpressionValidator(
             update_expression_ast,
             expression_attribute_names=None,
@@ -340,15 +340,6 @@ def test_execution_of_add_set_to_a_number(table):
             table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
-        expected_item = Item(
-            hash_key=DynamoType({"S": "id"}),
-            range_key=None,
-            attrs={"id": {"S": "foo2"}, "s": {"N": "15"}},
-        )
-        assert expected_item == item
-        assert False
-    except IncorrectDataType:
-        assert True
 
 
 def test_execution_of_add_to_a_set(table):
@@ -410,7 +401,7 @@ def test_execution_of__delete_element_from_set_invalid_value(
             table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
-        assert False, "Must raise exception"
+        raise AssertionError("Must raise exception")
     except IncorrectOperandType as e:
         assert e.operator_or_function == "operator: DELETE"
         assert e.operand_type == unexpected_data_type
@@ -434,7 +425,7 @@ def test_execution_of_delete_element_from_a_string_attribute(table):
             table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
-        assert False, "Must raise exception"
+        raise AssertionError("Must raise exception")
     except IncorrectDataType:
         assert True
 

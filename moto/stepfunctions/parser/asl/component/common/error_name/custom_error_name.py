@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.error_name.error_name import (
     ErrorName,
 )
 
-ILLEGAL_CUSTOM_ERROR_PREFIX: str = "States."
+ILLEGAL_CUSTOM_ERROR_PREFIX: Final[str] = "States."
 
 
 class CustomErrorName(ErrorName):

@@ -1,11 +1,10 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -33,8 +32,8 @@ def test_create_group():
     with pytest.raises(ClientError) as ex:
         conn.create_group(GroupName="my-group")
     err = ex.value.response["Error"]
-    assert err["Code"] == "Group my-group already exists"
-    assert err["Message"] is None
+    assert err["Code"] == "EntityAlreadyExists"
+    assert err["Message"] == "Group my-group already exists"
 
 
 @mock_aws
@@ -87,7 +86,7 @@ def test_get_all_groups():
     groups = conn.list_groups()["Groups"]
     assert len(groups) == 2
 
-    assert all([g["CreateDate"] for g in groups])
+    assert all(g["CreateDate"] for g in groups)
 
 
 @mock_aws
@@ -114,7 +113,8 @@ def test_add_user_to_unknown_group():
 @mock_aws
 def test_add_user_to_group():
     # Setup
-    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
+    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
+    frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal)
 
     group = "my-group"
     user = "my-user"
@@ -362,5 +362,5 @@ def test_update_group_with_existing_name():
     with pytest.raises(ClientError) as exc:
         conn.update_group(GroupName="existing1", NewGroupName="existing2")
     err = exc.value.response["Error"]
-    assert err["Code"] == "Conflict"
+    assert err["Code"] == "EntityAlreadyExists"
     assert err["Message"] == "Group existing2 already exists"

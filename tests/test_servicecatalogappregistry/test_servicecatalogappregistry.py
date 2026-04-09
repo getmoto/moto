@@ -82,3 +82,27 @@ def test_list_associated_resources():
     assert "arn" in resp["resources"][0]
     assert "resourceDetails" in resp["resources"][0]
     assert resp["resources"][0]["options"] == associate["options"]
+
+
+@mock_aws
+def test_get_configuration():
+    client = boto3.client("servicecatalog-appregistry", region_name="us-east-1")
+    resp = client.get_configuration()
+    assert "configuration" in resp
+    assert "tagQueryConfiguration" in resp["configuration"]
+    assert len(resp["configuration"]["tagQueryConfiguration"].keys()) == 0
+
+
+@mock_aws
+def test_put_configuration():
+    client = boto3.client("servicecatalog-appregistry", region_name="us-east-1")
+    tag_key = "testkey"
+    client.put_configuration(
+        configuration={"tagQueryConfiguration": {"tagKey": "testkey"}}
+    )
+    resp = client.get_configuration()
+
+    assert "configuration" in resp
+    assert "tagQueryConfiguration" in resp["configuration"]
+    assert "tagKey" in resp["configuration"]["tagQueryConfiguration"]
+    assert resp["configuration"]["tagQueryConfiguration"]["tagKey"] == tag_key

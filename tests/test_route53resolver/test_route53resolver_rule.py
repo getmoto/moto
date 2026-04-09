@@ -120,7 +120,7 @@ def test_route53resolver_invalid_create_rule_args():
 
 
 @mock_aws
-def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-locals
+def test_route53resolver_create_resolver_rule():
     """Test good create_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)

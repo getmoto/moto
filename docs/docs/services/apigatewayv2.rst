@@ -29,12 +29,17 @@ apigatewayv2
 - [X] create_integration
 - [X] create_integration_response
 - [X] create_model
+- [ ] create_portal
+- [ ] create_portal_product
+- [ ] create_product_page
+- [ ] create_product_rest_endpoint_page
 - [X] create_route
 - [X] create_route_response
   
         The following parameters are not yet implemented: ResponseModels, ResponseParameters
         
 
+- [ ] create_routing_rule
 - [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
@@ -47,12 +52,19 @@ apigatewayv2
 - [X] delete_integration
 - [X] delete_integration_response
 - [X] delete_model
+- [ ] delete_portal
+- [ ] delete_portal_product
+- [ ] delete_portal_product_sharing_policy
+- [ ] delete_product_page
+- [ ] delete_product_rest_endpoint_page
 - [X] delete_route
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
+- [ ] delete_routing_rule
 - [X] delete_stage
 - [X] delete_vpc_link
+- [ ] disable_portal
 - [ ] export_api
 - [X] get_api
 - [X] get_api_mapping
@@ -83,6 +95,11 @@ apigatewayv2
 - [X] get_model
 - [ ] get_model_template
 - [ ] get_models
+- [ ] get_portal
+- [ ] get_portal_product
+- [ ] get_portal_product_sharing_policy
+- [ ] get_product_page
+- [ ] get_product_rest_endpoint_page
 - [X] get_route
 - [X] get_route_response
 - [ ] get_route_responses
@@ -91,12 +108,22 @@ apigatewayv2
         Pagination is not yet implemented
         
 
+- [ ] get_routing_rule
 - [X] get_stage
 - [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links
 - [ ] import_api
+- [ ] list_portal_products
+- [ ] list_portals
+- [ ] list_product_pages
+- [ ] list_product_rest_endpoint_pages
+- [ ] list_routing_rules
+- [ ] preview_portal
+- [ ] publish_portal
+- [ ] put_portal_product_sharing_policy
+- [ ] put_routing_rule
 - [X] reimport_api
   
         Only YAML is supported at the moment. Full OpenAPI-support is not guaranteed. Only limited validation is implemented
@@ -117,6 +144,10 @@ apigatewayv2
 - [X] update_integration
 - [X] update_integration_response
 - [X] update_model
+- [ ] update_portal
+- [ ] update_portal_product
+- [ ] update_product_page
+- [ ] update_product_rest_endpoint_page
 - [X] update_route
 - [ ] update_route_response
 - [ ] update_stage

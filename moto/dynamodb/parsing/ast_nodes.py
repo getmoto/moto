@@ -241,9 +241,9 @@ class ExpressionSelector(LeafNode):
         try:
             super().__init__(children=[int(selection_index)])
         except ValueError:
-            assert (
-                False
-            ), "Expression selector must be an int, this is a bug in the moto library."
+            raise AssertionError(
+                "Expression selector must be an int, this is a bug in the moto library."
+            )
 
     def get_index(self):
         return self.children[0]
@@ -339,7 +339,7 @@ class NoneExistingPath(LeafNode):
         return self.children[0]
 
 
-class DepthFirstTraverser(object):
+class DepthFirstTraverser:
     """
     Helper class that allows depth first traversal and to implement custom processing for certain AST nodes. The
     processor of a node must return the new resulting node. This node will be placed in the tree. Processing of a
@@ -404,7 +404,7 @@ class DepthFirstTraverser(object):
         return self.traverse_node_recursively(node)
 
 
-class NodeDepthLeftTypeFetcher(object):
+class NodeDepthLeftTypeFetcher:
     """Helper class to fetch a node of a specific type. Depth left-first traversal"""
 
     def __init__(self, node_type, root_node):

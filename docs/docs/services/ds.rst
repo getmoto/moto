@@ -34,12 +34,14 @@ ds
 - [X] create_directory
   Create a fake Simple Ad Directory.
 
+- [ ] create_hybrid_ad
 - [X] create_log_subscription
 - [X] create_microsoft_ad
   Create a fake Microsoft Ad Directory.
 
 - [ ] create_snapshot
 - [X] create_trust
+- [ ] delete_ad_assessment
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
   Delete directory with the matching ID.
@@ -49,6 +51,8 @@ ds
 - [X] delete_trust
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
+- [ ] describe_ad_assessment
+- [ ] describe_ca_enrollment_policy
 - [ ] describe_certificate
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
@@ -58,6 +62,7 @@ ds
 - [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
+- [ ] describe_hybrid_ad_update
 - [X] describe_ldaps_settings
   Describe LDAPS settings for a Directory
 
@@ -69,6 +74,7 @@ ds
 - [ ] describe_snapshots
 - [X] describe_trusts
 - [ ] describe_update_directory
+- [ ] disable_ca_enrollment_policy
 - [ ] disable_client_authentication
 - [ ] disable_directory_data_access
 - [X] disable_ldaps
@@ -78,6 +84,7 @@ ds
 - [X] disable_sso
   Disable single-sign on for a directory.
 
+- [ ] enable_ca_enrollment_policy
 - [ ] enable_client_authentication
 - [ ] enable_directory_data_access
 - [X] enable_ldaps
@@ -91,6 +98,7 @@ ds
   Return hard-coded limits for the directories.
 
 - [ ] get_snapshot_limits
+- [ ] list_ad_assessments
 - [ ] list_certificates
 - [ ] list_ip_routes
 - [X] list_log_subscriptions
@@ -109,10 +117,12 @@ ds
 - [ ] reset_user_password
 - [ ] restore_from_snapshot
 - [ ] share_directory
+- [ ] start_ad_assessment
 - [ ] start_schema_extension
 - [ ] unshare_directory
 - [ ] update_conditional_forwarder
 - [ ] update_directory_setup
+- [ ] update_hybrid_ad
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
 - [X] update_settings

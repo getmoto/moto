@@ -42,8 +42,7 @@ def _validate_document_description(
     assert doc_description["Owner"] == ACCOUNT_ID
 
     difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
-    if difference.min > datetime.timedelta(minutes=1):
-        assert False
+    assert not difference.min > datetime.timedelta(minutes=1)
 
     assert doc_description["Status"] == "Active"
     assert doc_description["DocumentVersion"] == expected_document_version
@@ -217,8 +216,7 @@ def test_create_document():
     assert doc_description["Owner"] == ACCOUNT_ID
 
     difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
-    if difference.min > datetime.timedelta(minutes=1):
-        assert False
+    assert not difference.min > datetime.timedelta(minutes=1)
 
     assert doc_description["Status"] == "Active"
     assert doc_description["DocumentVersion"] == "1"

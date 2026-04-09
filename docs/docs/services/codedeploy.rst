@@ -52,15 +52,15 @@ codedeploy
 - [X] list_deployments
 - [ ] list_git_hub_account_token_names
 - [ ] list_on_premises_instances
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_lifecycle_event_hook_execution_status
 - [ ] register_application_revision
 - [ ] register_on_premises_instance
 - [ ] remove_tags_from_on_premises_instances
 - [ ] skip_wait_time_for_instance_termination
 - [ ] stop_deployment
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_application
 - [ ] update_deployment_group
 

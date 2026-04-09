@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This data is a verbatim copy of that produced using the AWS CLI (requires AWS
 # account) and jq utility to pull out the right part and reformat:
 #

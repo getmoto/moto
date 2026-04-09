@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -31,10 +31,10 @@ class DatasetGroup:
         self,
         account_id: str,
         region_name: str,
-        dataset_arns: List[str],
+        dataset_arns: list[str],
         dataset_group_name: str,
         domain: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.modified_date = self.creation_date
@@ -46,7 +46,7 @@ class DatasetGroup:
         self.tags = tags
         self._validate()
 
-    def update(self, dataset_arns: List[str]) -> None:
+    def update(self, dataset_arns: list[str]) -> None:
         self.dataset_arns = dataset_arns
         self.last_modified_date = iso_8601_datetime_without_milliseconds(datetime.now())
 
@@ -65,7 +65,7 @@ class DatasetGroup:
             message += "; ".join(errors)
             raise ValidationException(message)
 
-    def _validate_dataset_group_name(self) -> List[str]:
+    def _validate_dataset_group_name(self) -> list[str]:
         errors = []
         if not re.match(
             self.accepted_dataset_group_name_format, self.dataset_group_name
@@ -78,7 +78,7 @@ class DatasetGroup:
             )
         return errors
 
-    def _validate_dataset_group_name_len(self) -> List[str]:
+    def _validate_dataset_group_name_len(self) -> list[str]:
         errors = []
         if len(self.dataset_group_name) >= 64:
             errors.append(
@@ -88,7 +88,7 @@ class DatasetGroup:
             )
         return errors
 
-    def _validate_dataset_group_domain(self) -> List[str]:
+    def _validate_dataset_group_domain(self) -> list[str]:
         errors = []
         if self.domain not in self.accepted_dataset_types:
             errors.append(
@@ -103,15 +103,15 @@ class DatasetGroup:
 class ForecastBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.dataset_groups: Dict[str, DatasetGroup] = {}
-        self.datasets: Dict[str, str] = {}
+        self.dataset_groups: dict[str, DatasetGroup] = {}
+        self.datasets: dict[str, str] = {}
 
     def create_dataset_group(
         self,
         dataset_group_name: str,
         domain: str,
-        dataset_arns: List[str],
-        tags: List[Dict[str, str]],
+        dataset_arns: list[str],
+        tags: list[dict[str, str]],
     ) -> DatasetGroup:
         dataset_group = DatasetGroup(
             account_id=self.account_id,
@@ -150,7 +150,7 @@ class ForecastBackend(BaseBackend):
             raise ResourceNotFoundException("No resource found " + dataset_group_arn)
 
     def update_dataset_group(
-        self, dataset_group_arn: str, dataset_arns: List[str]
+        self, dataset_group_arn: str, dataset_arns: list[str]
     ) -> None:
         try:
             dsg = self.dataset_groups[dataset_group_arn]
@@ -165,7 +165,7 @@ class ForecastBackend(BaseBackend):
 
         dsg.update(dataset_arns)
 
-    def list_dataset_groups(self) -> List[DatasetGroup]:
+    def list_dataset_groups(self) -> list[DatasetGroup]:
         return [v for (_, v) in self.dataset_groups.items()]
 
 

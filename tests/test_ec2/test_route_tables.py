@@ -143,7 +143,7 @@ def test_route_tables_filters_standard():
         ]
     )["RouteTables"]
     assert any(
-        [route["GatewayId"] == igw.id for table in resp for route in table["Routes"]]
+        route["GatewayId"] == igw.id for table in resp for route in table["Routes"]
     )
 
     # Filter by route destination CIDR block
@@ -152,13 +152,11 @@ def test_route_tables_filters_standard():
             {"Name": "route.destination-cidr-block", "Values": ["10.0.0.4/24"]},
         ]
     )["RouteTables"]
-    assert any([route_table["RouteTableId"] == route_table2.id for route_table in resp])
+    assert any(route_table["RouteTableId"] == route_table2.id for route_table in resp)
     assert any(
-        [
-            route["DestinationCidrBlock"] == "10.0.0.4/24"
-            for table in resp
-            for route in table["Routes"]
-        ]
+        route["DestinationCidrBlock"] == "10.0.0.4/24"
+        for table in resp
+        for route in table["Routes"]
     )
 
     # Unsupported filter

@@ -1,4 +1,4 @@
-from typing import Final, List
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.common.error_name.error_name import (
     ErrorName,
@@ -27,7 +27,7 @@ class ErrorEqualsDecl(EvalComponent):
         typ=StatesErrorNameType.StatesTaskFailed
     )
 
-    def __init__(self, error_names: List[ErrorName]):
+    def __init__(self, error_names: list[ErrorName]):
         # The reserved name "States.ALL" in a Retrier’s "ErrorEquals" field is a wildcard
         # and matches any Error Name. Such a value MUST appear alone in the "ErrorEquals"
         # array and MUST appear in the last Retrier in the "Retry" array.
@@ -37,7 +37,7 @@ class ErrorEqualsDecl(EvalComponent):
             )
 
         # TODO: how to handle duplicate ErrorName?
-        self.error_names: List[ErrorName] = error_names
+        self.error_names: list[ErrorName] = error_names
 
     def _eval_body(self, env: Environment) -> None:
         """

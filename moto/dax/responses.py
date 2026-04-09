@@ -39,12 +39,12 @@ class DAXResponse(BaseResponse):
             sse_specification=sse_specification,
             encryption_type=encryption_type,
         )
-        return json.dumps(dict(Cluster=cluster.to_json()))
+        return json.dumps({"Cluster": cluster.to_json()})
 
     def delete_cluster(self) -> str:
         cluster_name = json.loads(self.body).get("ClusterName")
         cluster = self.dax_backend.delete_cluster(cluster_name)
-        return json.dumps(dict(Cluster=cluster.to_json()))
+        return json.dumps({"Cluster": cluster.to_json()})
 
     def describe_clusters(self) -> str:
         params = json.loads(self.body)
@@ -114,3 +114,23 @@ class DAXResponse(BaseResponse):
             node_ids_to_remove=node_ids_to_remove,
         )
         return json.dumps({"Cluster": cluster.to_json()})
+
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_name = params.get("ResourceName")
+        tags = params.get("Tags")
+        self.dax_backend.tag_resource(
+            resource_name=resource_name,
+            tags=tags,
+        )
+        return "{}"
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_name = params.get("ResourceName")
+        tag_keys = params.get("TagKeys")
+        self.dax_backend.untag_resource(
+            resource_name=resource_name,
+            tag_keys=tag_keys,
+        )
+        return "{}"

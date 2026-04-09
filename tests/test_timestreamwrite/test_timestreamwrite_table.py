@@ -10,7 +10,10 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import aws_verified
 
 
-@pytest.mark.aws_verified
+# @pytest.mark.aws_verified
+# This works in some accounts, but in other accounts there is a KMS error:
+#    The KMS key [.. arn of AWS-managed key..] doesn't exist, is disabled or you don't have sufficient permission to use it
+# Need to figure out what's going on
 @aws_verified
 def test_create_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")

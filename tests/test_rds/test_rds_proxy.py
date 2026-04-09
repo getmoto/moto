@@ -27,12 +27,12 @@ def test_create_db_proxy():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[{"Key": "TestKey", "Value": "TestValue"}],
@@ -51,12 +51,12 @@ def test_create_db_proxy():
             "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
-            "SecretArn": "TestSecretARN",
+            "SecretArn": "TestSecretARNLongerThan20Chars",
             "IAMAuth": "ENABLED",
             "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
         }
     ]
-    assert db_proxy["RoleArn"] == "TestArn"
+    assert db_proxy["RoleArn"] == "TestArnLongerThan20Chars"
     assert db_proxy["RequireTLS"] is True
     assert db_proxy["IdleClientTimeout"] == 1800
     assert db_proxy["DebugLogging"] is False
@@ -81,12 +81,12 @@ def test_describe_db_proxies():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[
@@ -109,12 +109,12 @@ def test_describe_db_proxies():
             "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
-            "SecretArn": "TestSecretARN",
+            "SecretArn": "TestSecretARNLongerThan20Chars",
             "IAMAuth": "ENABLED",
             "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
         }
     ]
-    assert db_proxy["RoleArn"] == "TestArn"
+    assert db_proxy["RoleArn"] == "TestArnLongerThan20Chars"
     assert db_proxy["RequireTLS"] is True
     assert db_proxy["IdleClientTimeout"] == 1800
     assert db_proxy["DebugLogging"] is False
@@ -139,12 +139,12 @@ def test_list_tags_db_proxy():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[
@@ -181,12 +181,12 @@ def test_create_db_proxy_invalid_subnet():
                     "Description": "Test Description",
                     "UserName": "Test Username",
                     "AuthScheme": "SECRETS",
-                    "SecretArn": "TestSecretARN",
+                    "SecretArn": "TestSecretARNLongerThan20Chars",
                     "IAMAuth": "ENABLED",
                     "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
                 },
             ],
-            RoleArn="TestArn",
+            RoleArn="TestArnLongerThan20Chars",
             VpcSubnetIds=[subnet_id, subnet_id_2],
             RequireTLS=True,
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],
@@ -214,12 +214,12 @@ def test_create_db_proxy_duplicate_name():
                 "Description": "Test Description",
                 "UserName": "Test Username",
                 "AuthScheme": "SECRETS",
-                "SecretArn": "TestSecretARN",
+                "SecretArn": "TestSecretARNLongerThan20Chars",
                 "IAMAuth": "ENABLED",
                 "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
             },
         ],
-        RoleArn="TestArn",
+        RoleArn="TestArnLongerThan20Chars",
         VpcSubnetIds=[subnet_id, subnet_id_2],
         RequireTLS=True,
         Tags=[{"Key": "TestKey", "Value": "TestValue"}],
@@ -233,12 +233,12 @@ def test_create_db_proxy_duplicate_name():
                     "Description": "Test Description",
                     "UserName": "Test Username",
                     "AuthScheme": "SECRETS",
-                    "SecretArn": "TestSecretARN",
+                    "SecretArn": "TestSecretARNLongerThan20Chars",
                     "IAMAuth": "ENABLED",
                     "ClientPasswordAuthType": "MYSQL_NATIVE_PASSWORD",
                 },
             ],
-            RoleArn="TestArn",
+            RoleArn="TestArnLongerThan20Chars",
             VpcSubnetIds=[subnet_id, subnet_id_2],
             RequireTLS=True,
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],

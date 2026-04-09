@@ -1,33 +1,16 @@
-from typing import Any, Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import Any, Optional, Union
 
-from moto.core.exceptions import RESTError
-
-# EC2 has a custom root-tag - <Response> vs <ErrorResponse>
-# `terraform destroy` will complain if the roottag is incorrect
-# See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html#api-error-response
-EC2_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Errors>
-    <Error>
-      <Code>{{error_type}}</Code>
-      <Message>{{message}}</Message>
-    </Error>
-  </Errors>
-  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
-</Response>
-"""
+from moto.core.exceptions import ServiceException
 
 
-class EC2ClientError(RESTError):
-    code = 400
-    # EC2 uses <RequestID> as tag name in the XML response
-    request_id_tag_name = "RequestID"
-    extended_templates = {"custom_response": EC2_ERROR_RESPONSE}
-    env = RESTError.extended_environment(extended_templates)
+class EC2ClientError(ServiceException):
+    pass
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        kwargs.setdefault("template", "custom_response")
-        super().__init__(*args, **kwargs)
+
+class DryRunClientError(EC2ClientError):
+    code = "DryRunOperation"
+    message = "Request would have succeeded, but DryRun flag is set."
 
 
 class DefaultVpcAlreadyExists(EC2ClientError):
@@ -196,7 +179,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
     def __init__(self, customer_gateway_id: str):
         super().__init__(
             "InvalidCustomerGatewayID.NotFound",
-            f"The customer gateway ID '{customer_gateway_id}' does not exist",
+            f"The customerGateway ID '{customer_gateway_id}' does not exist",
         )
 
 
@@ -251,6 +234,14 @@ class InvalidPermissionDuplicateError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.Duplicate", "The specified rule already exists"
+        )
+
+
+class DuplicateTransitGatewayAttachmentError(EC2ClientError):
+    def __init__(self, transit_gateway_id: str):
+        super().__init__(
+            "DuplicateTransitGatewayAttachment",
+            f"{transit_gateway_id} has non-deleted Transit Gateway Attachments with same VPC ID.",
         )
 
 
@@ -312,10 +303,18 @@ class InvalidInstanceTypeError(EC2ClientError):
 
 
 class InvalidAMIIdError(EC2ClientError):
-    def __init__(self, ami_id: Union[List[str], str]):
+    def __init__(self, ami_id: Union[list[str], str]):
+        if isinstance(ami_id, str):
+            message = f"The image id '[{ami_id}]' does not exist"
+        elif len(ami_id) > 1:
+            amis = ", ".join(ami_id)
+            message = f"The image ids '[{amis}]' do not exist"
+        else:
+            message = f"The image id '[{ami_id[0]}]' does not exist"
+
         super().__init__(
             "InvalidAMIID.NotFound",
-            f"The image id '[{ami_id}]' does not exist",
+            message,
         )
 
 
@@ -336,9 +335,10 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
 
 
 class MalformedAMIIdError(EC2ClientError):
-    def __init__(self, ami_id: List[str]):
+    def __init__(self, ami_id: list[str]):
+        # AWS only lists the first bad AMI in the error message
         super().__init__(
-            "InvalidAMIID.Malformed", f'Invalid id: "{ami_id}" (expecting "ami-...")'
+            "InvalidAMIID.Malformed", f'Invalid id: "{ami_id[0]}" (expecting "ami-...")'
         )
 
 
@@ -611,7 +611,7 @@ class CidrLimitExceeded(EC2ClientError):
     def __init__(self, vpc_id: str, max_cidr_limit: int):
         super().__init__(
             "CidrLimitExceeded",
-            f"This network '{vpc_id}' has met its maximum number of allowed CIDRs: {max_cidr_limit}",
+            f"This network {vpc_id} has met its maximum number of allowed CIDRs: {max_cidr_limit}",
         )
 
 
@@ -662,7 +662,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number: str):
+    def __init__(self, rule_number: int):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",
@@ -768,8 +768,25 @@ class InvalidLaunchTemplateNameNotFoundWithNameError(EC2ClientError):
     def __init__(self, name: str):
         super().__init__(
             "InvalidLaunchTemplateName.NotFoundException",
-            f"The specified launch template, with template name {name}, does not exist",
+            f"The specified launch template, with template name {name}, does not exist.",
         )
+
+
+class InvalidLaunchTemplateIdNotFound(EC2ClientError):
+    def __init__(self, template_id: str):
+        super().__init__(
+            "InvalidLaunchTemplateId.NotFound",
+            f"The specified launch template, with template ID {template_id}, does not exist.",
+        )
+
+
+class InvalidLaunchTemplateVersionNotFound(EC2ClientError):
+    def __init__(self, version: str, template_id: Optional[str] = None):
+        if template_id:
+            msg = f"Could not find the specified version {version} for the launch template with ID {template_id}."
+        else:
+            msg = f"The launch template version {version} is not found for the specified launch template."
+        super().__init__("InvalidLaunchTemplateId.VersionNotFound", msg)
 
 
 class InvalidParameterDependency(EC2ClientError):
@@ -828,6 +845,22 @@ class InvalidParameter(EC2ClientError):
         )
 
 
+class InvalidParameterValue(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameterValue",
+            message,
+        )
+
+
+class MissingParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "MissingParameter",
+            message,
+        )
+
+
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(
@@ -841,6 +874,14 @@ class InvalidCarrierGatewayID(EC2ClientError):
         super().__init__(
             "InvalidCarrierGatewayID.NotFound",
             f"The CarrierGateway ID '{carrier_gateway_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayID(EC2ClientError):
+    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
+        super().__init__(
+            "InvalidTransitGatewayID.NotFound",
+            msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",
         )
 
 
@@ -860,13 +901,51 @@ class UnknownVpcEndpointService(EC2ClientError):
         )
 
 
-class AuthFailureRestricted(RESTError):
+class AuthFailureRestricted(EC2ClientError):
     """Replicate real world issue https://github.com/aws/aws-cli/issues/1083"""
-
-    code = 401
 
     def __init__(self) -> None:
         super().__init__(
             "AuthFailure",
             "Unauthorized attempt to access restricted resource",
+        )
+
+
+class InvalidUserDataError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidUserData.Malformed",
+            message,
+        )
+
+
+class InvalidPrefixReservationType(EC2ClientError):
+    def __init__(self, reservation_type: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Value ({reservation_type}) for parameter reservationType is invalid.",
+        )
+
+
+class InvalidCidrReservationNotWithinSubnetCidr(EC2ClientError):
+    def __init__(self, cidr_block: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR should be within subnet CIDR block ({cidr_block})",
+        )
+
+
+class InvalidCidrReservationOverlapExisting(EC2ClientError):
+    def __init__(self, cidr: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Reservation CIDR {cidr} has overlap with existing reserved CIDR block",
+        )
+
+
+class InvalidCidrReservationNotFound(EC2ClientError):
+    def __init__(self, reservation_id: str):
+        super().__init__(
+            "InvalidSubnetCidrReservationID.NotFound",
+            f"The subnet-cidr-reservation ID '{reservation_id}' does not exist",
         )

@@ -1,6 +1,6 @@
 import datetime
 import hashlib
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -22,7 +22,7 @@ class Job(BaseModel):
             # Standard
             self.et = self.st + datetime.timedelta(seconds=5)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {}
 
 
@@ -34,7 +34,7 @@ class ArchiveJob(Job):
         self.archive_id = archive_id
         Job.__init__(self, tier)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = {
             "Action": "ArchiveRetrieval",
             "ArchiveId": self.archive_id,
@@ -68,7 +68,7 @@ class InventoryJob(Job):
         self.arn = arn
         Job.__init__(self, tier)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = {
             "Action": "InventoryRetrieval",
             "ArchiveSHA256TreeHash": None,
@@ -98,11 +98,11 @@ class Vault(BaseModel):
         self.st = datetime.datetime.now()
         self.vault_name = vault_name
         self.region = region
-        self.archives: Dict[str, Dict[str, Any]] = {}
-        self.jobs: Dict[str, Job] = {}
+        self.archives: dict[str, dict[str, Any]] = {}
+        self.jobs: dict[str, Job] = {}
         self.arn = f"arn:{get_partition(region)}:glacier:{region}:{account_id}:vaults/{vault_name}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         archives_size = 0
         for k in self.archives:
             archives_size += self.archives[k]["size"]
@@ -116,7 +116,7 @@ class Vault(BaseModel):
         }
         return d
 
-    def create_archive(self, body: bytes, description: str) -> Dict[str, Any]:
+    def create_archive(self, body: bytes, description: str) -> dict[str, Any]:
         archive_id = md5_hash(body).hexdigest()
         self.archives[archive_id] = {}
         self.archives[archive_id]["archive_id"] = archive_id
@@ -132,7 +132,7 @@ class Vault(BaseModel):
     def get_archive_body(self, archive_id: str) -> str:
         return self.archives[archive_id]["body"]
 
-    def get_archive_list(self) -> List[Dict[str, Any]]:
+    def get_archive_list(self) -> list[dict[str, Any]]:
         archive_list = []
         for a in self.archives:
             archive = self.archives[a]
@@ -146,7 +146,7 @@ class Vault(BaseModel):
             archive_list.append(aobj)
         return archive_list
 
-    def delete_archive(self, archive_id: str) -> Dict[str, Any]:
+    def delete_archive(self, archive_id: str) -> dict[str, Any]:
         return self.archives.pop(archive_id)
 
     def initiate_job(self, job_type: str, tier: str, archive_id: Optional[str]) -> str:
@@ -159,7 +159,7 @@ class Vault(BaseModel):
 
         return job_id
 
-    def list_jobs(self) -> List[Job]:
+    def list_jobs(self) -> list[Job]:
         return list(self.jobs.values())
 
     def describe_job(self, job_id: str) -> Optional[Job]:
@@ -170,7 +170,7 @@ class Vault(BaseModel):
         jobj = job.to_dict()  # type: ignore
         return jobj["Completed"]
 
-    def get_job_output(self, job_id: str) -> Union[str, Dict[str, Any]]:
+    def get_job_output(self, job_id: str) -> Union[str, dict[str, Any]]:
         job = self.describe_job(job_id)
         jobj = job.to_dict()  # type: ignore
         if jobj["Action"] == "InventoryRetrieval":
@@ -188,7 +188,7 @@ class Vault(BaseModel):
 class GlacierBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.vaults: Dict[str, Vault] = {}
+        self.vaults: dict[str, Vault] = {}
 
     def describe_vault(self, vault_name: str) -> Vault:
         if vault_name not in self.vaults:
@@ -198,7 +198,7 @@ class GlacierBackend(BaseBackend):
     def create_vault(self, vault_name: str) -> None:
         self.vaults[vault_name] = Vault(vault_name, self.account_id, self.region_name)
 
-    def list_vaults(self) -> List[Vault]:
+    def list_vaults(self) -> list[Vault]:
         return list(self.vaults.values())
 
     def delete_vault(self, vault_name: str) -> None:
@@ -215,13 +215,13 @@ class GlacierBackend(BaseBackend):
         vault = self.describe_vault(vault_name)
         return vault.describe_job(archive_id)
 
-    def list_jobs(self, vault_name: str) -> List[Job]:
+    def list_jobs(self, vault_name: str) -> list[Job]:
         vault = self.describe_vault(vault_name)
         return vault.list_jobs()
 
     def get_job_output(
         self, vault_name: str, job_id: str
-    ) -> Union[str, Dict[str, Any], None]:
+    ) -> Union[str, dict[str, Any], None]:
         vault = self.describe_vault(vault_name)
         if vault.job_ready(job_id):
             return vault.get_job_output(job_id)
@@ -234,7 +234,7 @@ class GlacierBackend(BaseBackend):
 
     def upload_archive(
         self, vault_name: str, body: bytes, description: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         vault = self.describe_vault(vault_name)
         return vault.create_archive(body, description)
 

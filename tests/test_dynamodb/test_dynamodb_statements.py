@@ -1,7 +1,9 @@
 from unittest import TestCase
+from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -88,27 +90,145 @@ def test_execute_statement_with_no_results(table_name=None):
     assert items == []
 
 
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_gsi=True)
+def test_execute_statement_on_gsi(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    create_items(table_name)
+    # Create GSI items
+    gsi_item1 = {"pk": {"S": "item1"}, "gsi_pk": {"S": "item1"}}
+    gsi_item2 = {"pk": {"S": "item2"}, "gsi_pk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=gsi_item1)
+    client.put_item(TableName=table_name, Item=gsi_item2)
+
+    # Query regular table
+    stmt = f"select * from {table_name}"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 4
+
+    # Query GSI
+    stmt = f"select * from {table_name}.test_gsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 2
+    assert gsi_item1 in items
+    assert gsi_item2 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_gsi_range=True)
+def test_execute_statement_on_gsi_with_range(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    create_items(table_name)
+    # Create GSI items with just PK
+    gsi_item1 = {"pk": {"S": "item1"}, "gsi_pk": {"S": "item1"}}
+    gsi_item2 = {"pk": {"S": "item2"}, "gsi_pk": {"S": "item2"}}
+    # Create GSI items with just SK
+    gsi_item3 = {"pk": {"S": "item3"}, "gsi_sk": {"S": "item3"}}
+    gsi_item4 = {"pk": {"S": "item4"}, "gsi_sk": {"S": "item4"}}
+    # Create GSI items with both PK and SK
+    gsi_item5 = {
+        "pk": {"S": "item5"},
+        "gsi_pk": {"S": "item5"},
+        "gsi_sk": {"S": "item5"},
+    }
+    gsi_item6 = {
+        "pk": {"S": "item6"},
+        "gsi_pk": {"S": "item5"},
+        "gsi_sk": {"S": "item6"},
+    }
+    client.put_item(TableName=table_name, Item=gsi_item1)
+    client.put_item(TableName=table_name, Item=gsi_item2)
+    client.put_item(TableName=table_name, Item=gsi_item3)
+    client.put_item(TableName=table_name, Item=gsi_item4)
+    client.put_item(TableName=table_name, Item=gsi_item5)
+    client.put_item(TableName=table_name, Item=gsi_item6)
+
+    # Query regular table - sanity check that everything is returned
+    items = client.execute_statement(Statement=f"select * from {table_name}")["Items"]
+    assert len(items) == 8
+
+    # Query GSI
+    # Only items with both GSI PK and GSI SK should be returned
+    stmt = f"select * from {table_name}.test_gsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 2
+    assert gsi_item5 in items
+    assert gsi_item6 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_lsi=True)
+def test_execute_statement_on_lsi(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    item1 = {"pk": {"S": "item1"}, "sk": {"S": "item1"}}
+    item2 = {"pk": {"S": "item1"}, "sk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=item1)
+    client.put_item(TableName=table_name, Item=item2)
+    # Create LSI items
+    lsi_item1 = {"pk": {"S": "item2"}, "sk": {"S": "item1"}, "lsi_sk": {"S": "item1"}}
+    lsi_item2 = {"pk": {"S": "item2"}, "sk": {"S": "item2"}, "lsi_sk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=lsi_item1)
+    client.put_item(TableName=table_name, Item=lsi_item2)
+
+    # Query Table
+    items = client.execute_statement(Statement=f"select * from {table_name}")["Items"]
+    assert item1 in items
+    assert item2 in items
+    assert lsi_item1 in items
+    assert lsi_item2 in items
+
+    # Query LSI
+    stmt = f"select * from {table_name}.test_lsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert lsi_item1 in items
+    assert lsi_item2 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=True)
+def test_execute_statement_on_unknown_gsi_table(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        # Query Unknown GSI
+        client.execute_statement(Statement=f"select * from {table_name}.test_gsi")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The table does not have the specified index"
+
+    with pytest.raises(ClientError) as exc:
+        # Query GSI on Unknown Table
+        client.execute_statement(Statement="select * from whatnow.test_gsi")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
+
+
 @mock_aws
 class TestExecuteTransaction(TestCase):
     def setUp(self):
+        self.table_name = f"T{uuid4()}"
         self.client = boto3.client("dynamodb", "us-east-1")
         self.client.create_table(
-            TableName="messages",
+            TableName=self.table_name,
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
         )
         self.item1 = {"id": {"S": "msg1"}, "body": {"S": "some text"}}
         self.item2 = {"id": {"S": "msg2"}, "body": {"S": "n/a"}, "unique": {"S": "key"}}
-        self.client.put_item(TableName="messages", Item=self.item1)
-        self.client.put_item(TableName="messages", Item=self.item2)
+        self.client.put_item(TableName=self.table_name, Item=self.item1)
+        self.client.put_item(TableName=self.table_name, Item=self.item2)
 
     def test_execute_transaction(self):
         items = self.client.execute_transaction(
             TransactStatements=[
-                {"Statement": "select id from messages"},
+                {"Statement": f"select id from {self.table_name}"},
                 {
-                    "Statement": "select * from messages where id = ?",
+                    "Statement": f"select * from {self.table_name} where id = ?",
                     "Parameters": [{"S": "msg2"}],
                 },
             ]
@@ -120,7 +240,9 @@ class TestExecuteTransaction(TestCase):
 class TestBatchExecuteStatement(TestCase):
     def setUp(self):
         self.client = boto3.client("dynamodb", "us-east-1")
-        for name in ["table1", "table2"]:
+        self.table1_name = f"T{uuid4()}"
+        self.table2_name = f"T{uuid4()}"
+        for name in [self.table1_name, self.table2_name]:
             self.client.create_table(
                 TableName=name,
                 KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -129,31 +251,31 @@ class TestBatchExecuteStatement(TestCase):
             )
         self.item1 = {"id": {"S": "msg1"}, "body": {"S": "some text"}}
         self.item2 = {"id": {"S": "msg2"}, "body": {"S": "n/a"}, "unique": {"S": "key"}}
-        self.client.put_item(TableName="table1", Item=self.item1)
-        self.client.put_item(TableName="table1", Item=self.item2)
-        self.client.put_item(TableName="table2", Item=self.item1)
+        self.client.put_item(TableName=self.table1_name, Item=self.item1)
+        self.client.put_item(TableName=self.table1_name, Item=self.item2)
+        self.client.put_item(TableName=self.table2_name, Item=self.item1)
 
     def test_execute_transaction(self):
         items = self.client.batch_execute_statement(
             Statements=[
                 {
-                    "Statement": "select id from table1 where id = ?",
+                    "Statement": f"select id from {self.table1_name} where id = ?",
                     "Parameters": [{"S": "msg1"}],
                 },
                 {
-                    "Statement": "select * from table2 where id = ?",
+                    "Statement": f"select * from {self.table2_name} where id = ?",
                     "Parameters": [{"S": "msg1"}],
                 },
                 {
-                    "Statement": "select * from table2 where id = ?",
+                    "Statement": f"select * from {self.table2_name} where id = ?",
                     "Parameters": [{"S": "msg2"}],
                 },
             ]
         )["Responses"]
         assert len(items) == 3
-        assert {"TableName": "table1", "Item": {"id": {"S": "msg1"}}} in items
-        assert {"TableName": "table2", "Item": self.item1} in items
-        assert {"TableName": "table2"} in items
+        assert {"TableName": self.table1_name, "Item": {"id": {"S": "msg1"}}} in items
+        assert {"TableName": self.table2_name, "Item": self.item1} in items
+        assert {"TableName": self.table2_name} in items
 
     def test_without_primary_key_in_where_clause(self):
         items = self.client.batch_execute_statement(
@@ -161,15 +283,15 @@ class TestBatchExecuteStatement(TestCase):
                 # Unknown table
                 {"Statement": "select id from unknown-table"},
                 # No WHERE-clause
-                {"Statement": "select id from table1"},
+                {"Statement": f"select id from {self.table1_name}"},
                 # WHERE-clause does not contain HashKey
                 {
-                    "Statement": "select * from table1 where body = ?",
+                    "Statement": f"select * from {self.table1_name} where body = ?",
                     "Parameters": [{"S": "msg1"}],
                 },
                 # Valid WHERE-clause
                 {
-                    "Statement": "select * from table2 where id = ?",
+                    "Statement": f"select * from {self.table2_name} where id = ?",
                     "Parameters": [{"S": "msg1"}],
                 },
             ]
@@ -187,7 +309,7 @@ class TestBatchExecuteStatement(TestCase):
                 "Message": "Select statements within BatchExecuteStatement must "
                 "specify the primary key in the where clause.",
             },
-            "TableName": "table1",
+            "TableName": self.table1_name,
         } in items
         assert {
             "Error": {
@@ -195,9 +317,9 @@ class TestBatchExecuteStatement(TestCase):
                 "Message": "Select statements within BatchExecuteStatement must "
                 "specify the primary key in the where clause.",
             },
-            "TableName": "table1",
+            "TableName": self.table1_name,
         } in items
-        assert {"TableName": "table2", "Item": self.item1} in items
+        assert {"TableName": self.table2_name, "Item": self.item1} in items
 
 
 @pytest.mark.aws_verified
@@ -338,8 +460,8 @@ def test_update_data(table_name=None):
 def test_batch_update__not_enough_parameters():
     ddb_cli = boto3.client("dynamodb", "us-east-1")
     ddb_res = boto3.resource("dynamodb", "us-east-1")
-    ddb_res.create_table(
-        TableName="users",
+    table = ddb_res.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
@@ -347,7 +469,7 @@ def test_batch_update__not_enough_parameters():
 
     statements = [
         {
-            "Statement": 'UPDATE users SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
+            "Statement": f'UPDATE {table.name} SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
             "Parameters": [{"S": "test5"}, {"S": "test6"}],
         }
     ]
@@ -366,8 +488,9 @@ def test_batch_update__not_enough_parameters():
 def test_batch_update():
     ddb_cli = boto3.client("dynamodb", "us-east-1")
     ddb_res = boto3.resource("dynamodb", "us-east-1")
+    table_name = f"T{uuid4()}"
     table = ddb_res.create_table(
-        TableName="users",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
@@ -381,20 +504,20 @@ def test_batch_update():
 
     statements = [
         {
-            "Statement": 'UPDATE users SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
+            "Statement": f'UPDATE {table_name} SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
             "Parameters": [{"S": "test5"}, {"S": "test6"}, {"S": "XXXX"}],
         },
-        {"Statement": "DELETE FROM users WHERE username='YYYY'"},
-        {"Statement": "INSERT INTO users value {'username': 'new'}"},
+        {"Statement": f"DELETE FROM {table_name} WHERE username='YYYY'"},
+        {"Statement": f"INSERT INTO {table_name} value {{'username': 'new'}}"},
     ]
     response = ddb_cli.batch_execute_statement(Statements=statements)["Responses"]
     assert response == [
-        {"TableName": "users"},
-        {"TableName": "users"},
-        {"TableName": "users"},
+        {"TableName": table_name},
+        {"TableName": table_name},
+        {"TableName": table_name},
     ]
 
-    users = ddb_res.Table("users").scan()["Items"]
+    users = table.scan()["Items"]
     assert len(users) == 2
 
     # Changed
@@ -418,8 +541,9 @@ def test_delete_data(table_name=None):
 @mock_aws
 def test_delete_data__with_sort_key():
     client = boto3.client("dynamodb", "us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "pk", "AttributeType": "S"},
             {"AttributeName": "sk", "AttributeType": "S"},
@@ -430,8 +554,8 @@ def test_delete_data__with_sort_key():
         ],
         BillingMode="PAY_PER_REQUEST",
     )
-    client.put_item(TableName="test", Item={"pk": {"S": "msg"}, "sk": {"S": "sth"}})
+    client.put_item(TableName=table_name, Item={"pk": {"S": "msg"}, "sk": {"S": "sth"}})
 
-    client.execute_statement(Statement="DELETE FROM \"test\" WHERE pk='msg'")
+    client.execute_statement(Statement=f"DELETE FROM \"{table_name}\" WHERE pk='msg'")
 
-    assert client.scan(TableName="test")["Items"] == []
+    assert client.scan(TableName=table_name)["Items"] == []

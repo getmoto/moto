@@ -1,0 +1,27 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListBootstrapActions": {
+        "limit_default": 50,
+        "unique_attribute": "name"
+      },
+      "ListClusters": {
+        "limit_default": 50,
+        "unique_attribute": "id"
+      },
+      "ListInstanceGroups": {
+        "limit_default": 50,
+        "unique_attribute": "id"
+      },
+      "ListInstances": {
+        "limit_default": 50,
+        "unique_attribute": "id"
+      },
+      "ListSteps": {
+        "limit_default": 50,
+        "unique_attribute": "id"
+      }
+    }
+  }
+}

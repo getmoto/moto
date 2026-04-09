@@ -57,12 +57,18 @@ def test_update_rest_api():
             "value": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
             '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
         },
+        {
+            "op": "replace",
+            "path": "/endpointConfiguration/types",
+            "value": "REGIONAL",
+        },
     ]
 
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.pop("binaryMediaTypes")
+
     assert response == {
         "id": api_id,
         "name": "new-name",
@@ -71,7 +77,7 @@ def test_update_rest_api():
         "apiKeySource": "AUTHORIZER",
         "policy": '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": '
         '"execute-api:Invoke", "Resource": ["execute-api:/*"]}]}',
-        "endpointConfiguration": {"types": ["EDGE"]},
+        "endpointConfiguration": {"types": ["REGIONAL"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
         "rootResourceId": root_resource_id,
@@ -1473,6 +1479,38 @@ def test_get_model_with_invalid_name():
 
 
 @mock_aws
+def test_delete_model():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    model_name = "testModel"
+
+    # Create a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description="test model",
+        contentType="application/json",
+    )
+
+    # Verify model exists
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 1
+
+    # Delete the model
+    client.delete_model(restApiId=rest_api_id, modelName=model_name)
+
+    # Verify model is gone
+    result = client.get_models(restApiId=rest_api_id)
+    assert len(result["items"]) == 0
+
+    # Deleting again should raise NotFoundException
+    with pytest.raises(ClientError) as ex:
+        client.delete_model(restApiId=rest_api_id, modelName=model_name)
+    assert ex.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
 def test_api_key_value_min_length():
     region_name = "us-east-1"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1948,6 +1986,27 @@ def test_get_api_key_unknown_apikey():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.get_api_key(apiKey="unknown")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_update_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    patch_operations = [{"op": "replace", "path": "/name", "value": "test"}]
+    with pytest.raises(ClientError) as ex:
+        client.update_api_key(apiKey="unknown", patchOperations=patch_operations)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_delete_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_api_key(apiKey="unknown")
     err = ex.value.response["Error"]
     assert err["Message"] == "Invalid API Key identifier specified"
     assert err["Code"] == "NotFoundException"

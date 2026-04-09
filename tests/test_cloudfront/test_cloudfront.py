@@ -65,7 +65,7 @@ def test_update_distribution():
 
     assert origin["ConnectionAttempts"] == 3
     assert origin["ConnectionTimeout"] == 10
-    assert origin["OriginShield"] == {"Enabled": False, "OriginShieldRegion": "None"}
+    assert origin["OriginShield"] == {"Enabled": False}
 
     assert config["OriginGroups"] == {"Quantity": 0}
 

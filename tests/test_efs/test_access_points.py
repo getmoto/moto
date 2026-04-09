@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from . import fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_efs  # noqa
 
 
 @pytest.fixture(scope="function", name="file_system")

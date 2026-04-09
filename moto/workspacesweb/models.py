@@ -2,7 +2,7 @@
 
 import datetime
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -43,12 +43,12 @@ class FakeUserSettings(BaseModel):
         self.paste_allowed = paste_allowed if paste_allowed else "Disabled"
         self.print_allowed = print_allowed if print_allowed else "Disabled"
         self.upload_allowed = upload_allowed if upload_allowed else "Disabled"
-        self.associated_portal_arns: List[str] = []
+        self.associated_portal_arns: list[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:user-settings/{_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "associatedPortalArns": self.associated_portal_arns,
             "additionalEncryptionContext": self.additional_encryption_context,
@@ -81,12 +81,12 @@ class FakeUserAccessLoggingSettings(BaseModel):
         )
         self.client_token = client_token
         self.kinesis_stream_arn = kinesis_stream_arn
-        self.associated_portal_arns: List[str] = []
+        self.associated_portal_arns: list[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:user-access-logging-settings/{_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "associatedPortalArns": self.associated_portal_arns,
             "kinesisStreamArn": self.kinesis_stream_arn,
@@ -97,8 +97,8 @@ class FakeUserAccessLoggingSettings(BaseModel):
 class FakeNetworkSettings(BaseModel):
     def __init__(
         self,
-        security_group_ids: List[str],
-        subnet_ids: List[str],
+        security_group_ids: list[str],
+        subnet_ids: list[str],
         vpc_id: str,
         region_name: str,
         account_id: str,
@@ -108,12 +108,12 @@ class FakeNetworkSettings(BaseModel):
         self.security_group_ids = security_group_ids
         self.subnet_ids = subnet_ids
         self.vpc_id = vpc_id
-        self.associated_portal_arns: List[str] = []
+        self.associated_portal_arns: list[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:network-settings/{_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "associatedPortalArns": self.associated_portal_arns,
             "networkSettingsArn": self.arn,
@@ -139,12 +139,12 @@ class FakeBrowserSettings(BaseModel):
         self.browser_policy = browser_policy
         self.client_token = client_token
         self.customer_managed_key = customer_managed_key
-        self.associated_portal_arns: List[str] = []
+        self.associated_portal_arns: list[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:browser-settings/{_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "associatedPortalArns": self.associated_portal_arns,
             "browserSettingsArn": self.arn,
@@ -192,7 +192,7 @@ class FakePortal(BaseModel):
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:portal/{_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "additionalEncryptionContext": self.additional_encryption_context,
             "authenticationType": self.authentication_type,
@@ -221,18 +221,18 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.network_settings: Dict[str, FakeNetworkSettings] = {}
-        self.browser_settings: Dict[str, FakeBrowserSettings] = {}
-        self.user_settings: Dict[str, FakeUserSettings] = {}
-        self.user_access_logging_settings: Dict[str, FakeUserAccessLoggingSettings] = {}
-        self.portals: Dict[str, FakePortal] = {}
+        self.network_settings: dict[str, FakeNetworkSettings] = {}
+        self.browser_settings: dict[str, FakeBrowserSettings] = {}
+        self.user_settings: dict[str, FakeUserSettings] = {}
+        self.user_access_logging_settings: dict[str, FakeUserAccessLoggingSettings] = {}
+        self.portals: dict[str, FakePortal] = {}
         self.tagger = TaggingService()
 
     def create_network_settings(
         self,
-        security_group_ids: List[str],
-        subnet_ids: List[str],
-        tags: Dict[str, str],
+        security_group_ids: list[str],
+        subnet_ids: list[str],
+        tags: dict[str, str],
         vpc_id: str,
     ) -> str:
         network_settings_object = FakeNetworkSettings(
@@ -247,13 +247,13 @@ class WorkSpacesWebBackend(BaseBackend):
             self.tag_resource("TEMP_CLIENT_TOKEN", network_settings_object.arn, tags)
         return network_settings_object.arn
 
-    def list_network_settings(self) -> List[Dict[str, str]]:
+    def list_network_settings(self) -> list[dict[str, str]]:
         return [
             {"networkSettingsArn": network_setting.arn, "vpcId": network_setting.vpc_id}
             for network_setting in self.network_settings.values()
         ]
 
-    def get_network_settings(self, network_settings_arn: str) -> Dict[str, Any]:
+    def get_network_settings(self, network_settings_arn: str) -> dict[str, Any]:
         return self.network_settings[network_settings_arn].to_dict()
 
     def delete_network_settings(self, network_settings_arn: str) -> None:
@@ -265,7 +265,7 @@ class WorkSpacesWebBackend(BaseBackend):
         browser_policy: str,
         client_token: str,
         customer_managed_key: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> str:
         browser_settings_object = FakeBrowserSettings(
             additional_encryption_context,
@@ -280,13 +280,13 @@ class WorkSpacesWebBackend(BaseBackend):
             self.tag_resource(client_token, browser_settings_object.arn, tags)
         return browser_settings_object.arn
 
-    def list_browser_settings(self) -> List[Dict[str, str]]:
+    def list_browser_settings(self) -> list[dict[str, str]]:
         return [
             {"browserSettingsArn": browser_setting.arn}
             for browser_setting in self.browser_settings.values()
         ]
 
-    def get_browser_settings(self, browser_settings_arn: str) -> Dict[str, Any]:
+    def get_browser_settings(self, browser_settings_arn: str) -> dict[str, Any]:
         return self.browser_settings[browser_settings_arn].to_dict()
 
     def delete_browser_settings(self, browser_settings_arn: str) -> None:
@@ -301,8 +301,8 @@ class WorkSpacesWebBackend(BaseBackend):
         display_name: str,
         instance_type: str,
         max_concurrent_sessions: str,
-        tags: Optional[List[Dict[str, str]]] = None,
-    ) -> Tuple[str, str]:
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> tuple[str, str]:
         portal_object = FakePortal(
             additional_encryption_context,
             authentication_type,
@@ -319,7 +319,7 @@ class WorkSpacesWebBackend(BaseBackend):
             self.tag_resource(client_token, portal_object.arn, tags)
         return portal_object.arn, portal_object.portal_endpoint
 
-    def list_portals(self) -> List[Dict[str, Any]]:
+    def list_portals(self) -> list[dict[str, Any]]:
         return [
             {
                 "authenticationType": portal.authentication_type,
@@ -344,7 +344,7 @@ class WorkSpacesWebBackend(BaseBackend):
             for portal in self.portals.values()
         ]
 
-    def get_portal(self, portal_arn: str) -> Dict[str, Any]:
+    def get_portal(self, portal_arn: str) -> dict[str, Any]:
         return self.portals[portal_arn].to_dict()
 
     def delete_portal(self, portal_arn: str) -> None:
@@ -352,7 +352,7 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def associate_browser_settings(
         self, browser_settings_arn: str, portal_arn: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         browser_settings_object = self.browser_settings[browser_settings_arn]
         portal_object = self.portals[portal_arn]
         browser_settings_object.associated_portal_arns.append(portal_arn)
@@ -361,7 +361,7 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def associate_network_settings(
         self, network_settings_arn: str, portal_arn: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         network_settings_object = self.network_settings[network_settings_arn]
         portal_object = self.portals[portal_arn]
         network_settings_object.associated_portal_arns.append(portal_arn)
@@ -405,7 +405,7 @@ class WorkSpacesWebBackend(BaseBackend):
             self.tag_resource(client_token, user_settings_object.arn, tags)
         return user_settings_object.arn
 
-    def get_user_settings(self, user_settings_arn: str) -> Dict[str, Any]:
+    def get_user_settings(self, user_settings_arn: str) -> dict[str, Any]:
         return self.user_settings[user_settings_arn].to_dict()
 
     def delete_user_settings(self, user_settings_arn: str) -> None:
@@ -428,7 +428,7 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def get_user_access_logging_settings(
         self, user_access_logging_settings_arn: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self.user_access_logging_settings[
             user_access_logging_settings_arn
         ].to_dict()
@@ -440,7 +440,7 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def associate_user_settings(
         self, portal_arn: str, user_settings_arn: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         user_settings_object = self.user_settings[user_settings_arn]
         portal_object = self.portals[portal_arn]
         user_settings_object.associated_portal_arns.append(portal_arn)
@@ -449,7 +449,7 @@ class WorkSpacesWebBackend(BaseBackend):
 
     def associate_user_access_logging_settings(
         self, portal_arn: str, user_access_logging_settings_arn: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         user_access_logging_settings_object = self.user_access_logging_settings[
             user_access_logging_settings_arn
         ]
@@ -460,13 +460,13 @@ class WorkSpacesWebBackend(BaseBackend):
         )
         return portal_arn, user_access_logging_settings_arn
 
-    def list_user_settings(self) -> List[Dict[str, str]]:
+    def list_user_settings(self) -> list[dict[str, str]]:
         return [
             {"userSettingsArn": user_settings.arn}
             for user_settings in self.user_settings.values()
         ]
 
-    def list_user_access_logging_settings(self) -> List[Dict[str, str]]:
+    def list_user_access_logging_settings(self) -> list[dict[str, str]]:
         return [
             {"userAccessLoggingSettingsArn": user_access_logging_settings.arn}
             for user_access_logging_settings in self.user_access_logging_settings.values()
@@ -478,7 +478,7 @@ class WorkSpacesWebBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: Any) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.tagger.get_tag_dict_for_resource(resource_arn)
         Tags = []
         for key, value in tags.items():

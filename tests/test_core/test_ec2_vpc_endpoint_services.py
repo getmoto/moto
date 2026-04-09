@@ -70,9 +70,11 @@ def test_describe_vpc_default_endpoint_services() -> None:
     # verifies the contents of some of the ServicesDetails entries, so the
     # focus of this unit test will be the larger components of the response.
     all_services = ec2.describe_vpc_endpoint_services()
-    assert set(all_services.keys()) == set(
-        ["ServiceNames", "ServiceDetails", "ResponseMetadata"]
-    )
+    assert set(all_services.keys()) == {
+        "ServiceNames",
+        "ServiceDetails",
+        "ResponseMetadata",
+    }
     assert len(all_services["ServiceDetails"]) == len(all_services["ServiceNames"])
     all_names = [x["ServiceName"] for x in all_services["ServiceDetails"]]
     assert set(all_names) == set(all_services["ServiceNames"])

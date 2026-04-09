@@ -1,5 +1,5 @@
 import functools
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any
 
 import requests.adapters
 
@@ -48,7 +48,7 @@ class DockerModel:
             self.docker_client.images.pull(full_name)
 
 
-def parse_image_ref(image_name: str) -> Tuple[str, str]:
+def parse_image_ref(image_name: str) -> tuple[str, str]:
     # podman does not support short container image name out of box - try to make a full name
     # See ParseDockerRef() in https://github.com/distribution/distribution/blob/main/reference/normalize.go
     parts = image_name.split("/")

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ..models import LogEvent, LogGroup, LogStream
@@ -20,8 +20,8 @@ class ParsedEvent:
         self.log_group = log_group
         self.fields = self._create_fields()
 
-    def _create_fields(self) -> Dict[str, Any]:
-        fields: Dict[str, Any] = {"@ptr": self.event.event_id}
+    def _create_fields(self) -> dict[str, Any]:
+        fields: dict[str, Any] = {"@ptr": self.event.event_id}
         if "@timestamp" in self.query.fields:
             fields["@timestamp"] = self.event.timestamp
         if "@message" in self.query.fields:
@@ -49,8 +49,8 @@ class ParsedEvent:
 
 
 def execute_query(
-    log_groups: List["LogGroup"], query: str, start_time: int, end_time: int
-) -> List[Dict[str, str]]:
+    log_groups: list["LogGroup"], query: str, start_time: int, end_time: int
+) -> list[dict[str, str]]:
     parsed = parse_query(query)
     all_events = _create_parsed_events(log_groups, parsed, start_time, end_time)
     sorted_events = sorted(all_events, reverse=parsed.sort_reversed())
@@ -61,8 +61,8 @@ def execute_query(
 
 
 def _create_parsed_events(
-    log_groups: List["LogGroup"], query: ParsedQuery, start_time: int, end_time: int
-) -> List["ParsedEvent"]:
+    log_groups: list["LogGroup"], query: ParsedQuery, start_time: int, end_time: int
+) -> list["ParsedEvent"]:
     def filter_func(event: "LogEvent") -> bool:
         # Start/End time is in epoch seconds
         # Event timestamp is in epoch milliseconds
@@ -74,7 +74,7 @@ def _create_parsed_events(
 
         return True
 
-    events: List["ParsedEvent"] = []
+    events: list[ParsedEvent] = []
     for group in log_groups:
         for stream in group.streams.values():
             events.extend(

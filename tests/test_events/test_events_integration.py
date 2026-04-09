@@ -256,6 +256,114 @@ def test_send_to_sqs_queue_with_custom_event_bus():
 
 
 @mock_aws
+def test_send_to_sqs_queue_with_input_transformer():
+    # given
+    client_events = boto3.client("events", "eu-central-1")
+    client_sqs = boto3.client("sqs", region_name="eu-central-1")
+
+    queue_url = client_sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+    queue_arn = client_sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+
+    rule_name = "test-rule"
+    client_events.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="ENABLED",
+    )
+    client_events.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "sqs",
+                "Arn": queue_arn,
+                "InputTransformer": {
+                    "InputPathsMap": {"name": "$.detail.name"},
+                    "InputTemplate": '{"transformed_name": "<name>"}',
+                },
+            }
+        ],
+    )
+
+    # when
+    client_events.put_events(
+        Entries=[
+            {
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"name": "hello"}),
+            }
+        ]
+    )
+
+    # then
+    response = client_sqs.receive_message(QueueUrl=queue_url)
+    assert len(response["Messages"]) == 1
+    body = json.loads(response["Messages"][0]["Body"])
+    assert body == {"transformed_name": "hello"}
+
+
+@mock_aws
+def test_send_to_sqs_queue_with_input_transformer_on_custom_event_bus():
+    # given
+    client_events = boto3.client("events", "eu-central-1")
+    client_sqs = boto3.client("sqs", region_name="eu-central-1")
+
+    event_bus_arn = client_events.create_event_bus(Name="mock")["EventBusArn"]
+    queue_url = client_sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+    queue_arn = client_sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+
+    rule_name = "test-rule"
+    client_events.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps(
+            {"source": ["test.source"], "detail-type": ["TEST_EVENT"]}
+        ),
+        State="ENABLED",
+        EventBusName=event_bus_arn,
+    )
+    client_events.put_targets(
+        Rule=rule_name,
+        EventBusName=event_bus_arn,
+        Targets=[
+            {
+                "Id": "sqs",
+                "Arn": queue_arn,
+                "InputTransformer": {
+                    "InputPathsMap": {
+                        "detail": "$.detail",
+                        "source": "$.source",
+                    },
+                    "InputTemplate": '{"event_source": "<source>", "event_detail": <detail>}',
+                },
+            }
+        ],
+    )
+
+    # when
+    client_events.put_events(
+        Entries=[
+            {
+                "Source": "test.source",
+                "DetailType": "TEST_EVENT",
+                "Detail": json.dumps({"key": "value"}),
+                "EventBusName": event_bus_arn,
+            }
+        ]
+    )
+
+    # then
+    response = client_sqs.receive_message(QueueUrl=queue_url)
+    assert len(response["Messages"]) == 1
+    body = json.loads(response["Messages"][0]["Body"])
+    assert body["event_source"] == "test.source"
+    assert body["event_detail"] == {"key": "value"}
+
+
+@mock_aws
 def test_moto_matches_none_value_with_exists_filter():
     pattern = {
         "source": ["test-source"],

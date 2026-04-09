@@ -1,13 +1,13 @@
 """SageMakerMetricsBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Dict, List, Union, cast
+from typing import Union, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.sagemaker import sagemaker_backends
 from moto.sagemaker.models import METRIC_STEP_TYPE
 
-RESPONSE_TYPE = Dict[str, List[Dict[str, Union[str, int]]]]
+RESPONSE_TYPE = dict[str, list[dict[str, Union[str, int]]]]
 
 
 class SageMakerMetricsBackend(BaseBackend):
@@ -20,7 +20,7 @@ class SageMakerMetricsBackend(BaseBackend):
     def batch_put_metrics(
         self,
         trial_component_name: str,
-        metric_data: List[Dict[str, Union[str, int, float, datetime]]],
+        metric_data: list[dict[str, Union[str, int, float, datetime]]],
     ) -> RESPONSE_TYPE:
         return_response: RESPONSE_TYPE = {"Errors": []}
 
@@ -36,8 +36,8 @@ class SageMakerMetricsBackend(BaseBackend):
             metric_name: str = cast(str, metric["MetricName"])
             if metric_name not in trial_component.metrics:
                 metric_timestamp: int = cast(int, metric["Timestamp"])
-                values_dict: Dict[int, Dict[str, Union[str, int, float, datetime]]] = {}
-                new_metric: Dict[str, Union[str, int, METRIC_STEP_TYPE]] = {
+                values_dict: dict[int, dict[str, Union[str, int, float, datetime]]] = {}
+                new_metric: dict[str, Union[str, int, METRIC_STEP_TYPE]] = {
                     "MetricName": metric_name,
                     "Timestamp": metric_timestamp,
                     "Values": values_dict,

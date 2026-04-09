@@ -11,5 +11,5 @@ def test_batch_list():
     backend = server.create_backend_app("batch")
     test_client = backend.test_client()
 
-    res = test_client.get("/v1/describecomputeenvironments")
+    res = test_client.post("/v1/describecomputeenvironments")
     assert res.status_code == 200

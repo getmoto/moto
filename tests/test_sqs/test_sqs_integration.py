@@ -69,7 +69,7 @@ def test_invoke_function_from_sqs_queue():
                 return
         time.sleep(0.5)
 
-    assert False, "Test Failed"
+    raise AssertionError("Test Failed")
 
 
 @mock_aws(config={"lambda": {"use_docker": False}})
@@ -80,7 +80,9 @@ def test_invoke_fake_function_from_sqs_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue_name = str(uuid.uuid4())[0:6]
     queue = sqs.create_queue(QueueName=queue_name)
-
+    queue.set_attributes(
+        Attributes={"ReceiveMessageWaitTimeSeconds": "2"}  # Coverage for Moto #9759
+    )
     fn_name = str(uuid.uuid4())[0:6]
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
@@ -104,6 +106,41 @@ def test_invoke_fake_function_from_sqs_queue():
     assert err["Message"] == "The specified log group does not exist."
 
 
+@mock_aws(config={"lambda": {"use_docker": False}})
+def test_disabled_event_source_mapping_does_not_invoke_lambda():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only set Config in DecoratorMode")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue_name = str(uuid.uuid4())[0:6]
+    queue = sqs.create_queue(QueueName=queue_name)
+
+    fn_name = str(uuid.uuid4())[0:6]
+    conn = boto3.client("lambda", region_name="us-east-1")
+    func = conn.create_function(
+        FunctionName=fn_name,
+        Runtime="python3.11",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": b"n/a"},
+    )
+
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes["QueueArn"],
+        FunctionName=func["FunctionArn"],
+        Enabled=False,
+    )
+    assert response["State"] == "Disabled"
+
+    queue.send_messages(Entries=[{"Id": "1", "MessageBody": "n/a"}])
+
+    # Lambda should not be invoked — log group should not exist
+    with pytest.raises(ClientError) as exc:
+        logs_conn.describe_log_streams(logGroupName=f"/aws/lambda/{fn_name}")
+    err = exc.value.response["Error"]
+    assert err["Message"] == "The specified log group does not exist."
+
+
 @mock_aws
 @requires_docker
 def test_invoke_function_from_sqs_fifo_queue():
@@ -119,7 +156,11 @@ def test_invoke_function_from_sqs_fifo_queue():
     queue_name = str(uuid.uuid4())[0:6] + ".fifo"
     queue = sqs.create_queue(
         QueueName=queue_name,
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+            "ReceiveMessageWaitTimeSeconds": "2",  # Coverage for Moto #9759
+        },
     )
 
     fn_name = str(uuid.uuid4())[0:6]
@@ -172,4 +213,4 @@ def test_invoke_function_from_sqs_fifo_queue():
 
         time.sleep(0.5)
 
-    assert False, "Test Failed"
+    raise AssertionError("Test Failed")

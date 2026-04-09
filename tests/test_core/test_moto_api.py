@@ -97,7 +97,7 @@ def test_model_data_is_emptied_as_necessary() -> None:
     # No instances exist, because we have just reset it
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            assert _class.instances == []  # type: ignore[attr-defined]
+            assert _class.instances_tracked == []  # type: ignore[attr-defined]
 
     # TODO: ensure that iam is not loaded, and IAM policies are not created
     # with mock_aws(load_static_data=False) ?
@@ -105,18 +105,18 @@ def test_model_data_is_emptied_as_necessary() -> None:
         # When just starting a mock, it is empty
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                assert _class.instances == []  # type: ignore[attr-defined]
+                assert _class.instances_tracked == []  # type: ignore[attr-defined]
 
         # After creating a queue, some data will be present
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
-        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
+        assert len(model_data["sqs"]["Queue"].instances_tracked) == 1  # type: ignore[attr-defined]
 
     # But after the mock ends, it is empty again
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            assert _class.instances == []  # type: ignore[attr-defined]
+            assert _class.instances_tracked == []  # type: ignore[attr-defined]
 
     # When we have multiple/nested mocks, the data should still be present after the first mock ends
     with mock_aws():
@@ -124,9 +124,9 @@ def test_model_data_is_emptied_as_necessary() -> None:
         conn.create_queue(QueueName="queue1")
         with mock_aws():
             # The data should still be here - instances should not reset if another mock is still active
-            assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
+            assert len(model_data["sqs"]["Queue"].instances_tracked) == 1  # type: ignore[attr-defined]
         # The data should still be here - the inner mock has exited, but the outer mock is still active
-        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
+        assert len(model_data["sqs"]["Queue"].instances_tracked) == 1  # type: ignore[attr-defined]
 
 
 @mock_aws
@@ -138,10 +138,10 @@ class TestModelDataResetForClassDecorator(TestCase):
         # No data is present at the beginning
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                assert _class.instances == []  # type: ignore[attr-defined]
+                assert _class.instances_tracked == []  # type: ignore[attr-defined]
 
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
     def test_should_find_bucket(self) -> None:
-        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
+        assert len(model_data["sqs"]["Queue"].instances_tracked) == 1  # type: ignore[attr-defined]

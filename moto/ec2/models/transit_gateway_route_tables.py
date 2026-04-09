@@ -1,10 +1,30 @@
-from typing import Any, Dict, List, Optional
+import itertools
+from datetime import datetime
+from typing import Any, Optional
 
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.utilities.utils import filter_resources
 
 from ..utils import random_transit_gateway_route_table_id
 from .core import TaggedEC2Resource
+
+
+class RouteTableAssociation:
+    def __init__(
+        self,
+        resource_id: str,
+        resource_type: str,
+        state: str,
+        transit_gateway_attachment_id: str,
+    ) -> None:
+        self.resourceId = resource_id
+        self.resourceType = resource_type
+        self.state = state
+        self.transitGatewayAttachmentId = transit_gateway_attachment_id
+
+
+class RouteTablePropagation(RouteTableAssociation):
+    pass
 
 
 class TransitGatewayRouteTable(TaggedEC2Resource):
@@ -12,7 +32,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self,
         backend: Any,
         transit_gateway_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ):
@@ -25,18 +45,22 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.default_association_route_table = default_association_route_table
         self.default_propagation_route_table = default_propagation_route_table
         self.state = "available"
-        self.routes: Dict[str, Dict[str, Optional[str]]] = {}
+        self.routes: dict[str, dict[str, Optional[str]]] = {}
         self.add_tags(tags or {})
-        self.route_table_association: Dict[str, str] = {}
-        self.route_table_propagation: List[Dict[str, str]] = []
+        self.route_table_associations: dict[str, RouteTableAssociation] = {}
+        self.route_table_propagation: list[RouteTablePropagation] = []
 
     @property
     def physical_resource_id(self) -> str:
         return self.id
 
     @property
-    def create_time(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self._created_at)
+    def create_time(self) -> datetime:
+        return self._created_at
+
+    @property
+    def creation_time(self) -> datetime:
+        return self.create_time
 
 
 class TransitGatewayRelations:
@@ -62,14 +86,14 @@ class TransitGatewayRelations:
 
 class TransitGatewayRouteTableBackend:
     def __init__(self) -> None:
-        self.transit_gateways_route_tables: Dict[str, TransitGatewayRouteTable] = {}
-        self.transit_gateway_associations: Dict[str, TransitGatewayRelations] = {}
-        self.transit_gateway_propagations: Dict[str, TransitGatewayRelations] = {}
+        self.transit_gateways_route_tables: dict[str, TransitGatewayRouteTable] = {}
+        self.transit_gateway_associations: dict[str, TransitGatewayRelations] = {}
+        self.transit_gateway_propagations: dict[str, TransitGatewayRelations] = {}
 
     def create_transit_gateway_route_table(
         self,
         transit_gateway_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ) -> TransitGatewayRouteTable:
@@ -87,7 +111,7 @@ class TransitGatewayRouteTableBackend:
 
     def get_all_transit_gateway_route_tables(
         self, transit_gateway_route_table_ids: Optional[str] = None, filters: Any = None
-    ) -> List[TransitGatewayRouteTable]:
+    ) -> list[TransitGatewayRouteTable]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         attr_pairs = (
@@ -125,7 +149,7 @@ class TransitGatewayRouteTableBackend:
         destination_cidr_block: str,
         transit_gateway_attachment_id: Optional[str] = None,
         blackhole: bool = False,
-    ) -> Dict[str, Optional[str]]:
+    ) -> dict[str, Optional[str]]:
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
         ]
@@ -134,7 +158,7 @@ class TransitGatewayRouteTableBackend:
         )
         transit_gateways_route_table.routes[destination_cidr_block] = {
             "destinationCidrBlock": destination_cidr_block,
-            "prefixListId": "",
+            "prefixListId": None,
             "state": "blackhole" if blackhole else "active",
             "type": "static",
         }
@@ -154,19 +178,19 @@ class TransitGatewayRouteTableBackend:
 
     def delete_transit_gateway_route(
         self, transit_gateway_route_table_id: str, destination_cidr_block: str
-    ) -> TransitGatewayRouteTable:
+    ) -> dict[str, Optional[str]]:
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
         ]
         transit_gateways_route_table.routes[destination_cidr_block]["state"] = "deleted"
-        return transit_gateways_route_table
+        return transit_gateways_route_table.routes.pop(destination_cidr_block)
 
     def search_transit_gateway_routes(
         self,
         transit_gateway_route_table_id: str,
         filters: Any,
         max_results: Optional[int] = None,
-    ) -> Dict[str, Dict[str, Optional[str]]]:
+    ) -> list[dict[str, Optional[str]]]:
         """
         The following filters are currently supported: type, state, route-search.exact-match
         """
@@ -174,7 +198,7 @@ class TransitGatewayRouteTableBackend:
             transit_gateway_route_table_id
         )
         if not transit_gateway_route_table:
-            return {}
+            return []
 
         attr_pairs = (
             ("type", "type"),
@@ -192,41 +216,38 @@ class TransitGatewayRouteTableBackend:
                         break
         if max_results:
             routes = routes[: int(max_results)]  # type: ignore
-        return routes
+        return list(routes.values())
 
     def set_route_table_association(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
-        self.transit_gateways_route_tables[
-            transit_gateway_route_table_id
-        ].route_table_association = {
-            "resourceId": self.transit_gateway_attachments[  # type: ignore[attr-defined]
-                transit_gateway_attachment_id
-            ].resource_id,
-            "resourceType": self.transit_gateway_attachments[  # type: ignore[attr-defined]
-                transit_gateway_attachment_id
-            ].resource_type,
-            "state": "associated",
-            "transitGatewayAttachmentId": transit_gateway_attachment_id,
-        }
+        table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
+        table.route_table_associations[transit_gateway_attachment_id] = (
+            RouteTableAssociation(
+                resource_id=attachment.resource_id,
+                resource_type=attachment.resource_type,
+                state="associated",
+                transit_gateway_attachment_id=transit_gateway_attachment_id,
+            )
+        )
 
-    def unset_route_table_association(self, tgw_rt_id: str) -> None:
+    def unset_route_table_association(self, tgw_rt_id: str, tgw_attach_id: str) -> None:
         tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
-        tgw_rt.route_table_association = {}
+        tgw_rt.route_table_associations.pop(tgw_attach_id)
 
     def set_route_table_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
         route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
         attchment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
-        route_table.route_table_propagation.append(
-            {
-                "resourceId": attchment.resource_id,
-                "resourceType": attchment.resource_type,
-                "state": "enabled",
-                "transitGatewayAttachmentId": transit_gateway_attachment_id,
-            }
+        propagation = RouteTablePropagation(
+            resource_id=attchment.resource_id,
+            resource_type=attchment.resource_type,
+            state="enabled",
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
         )
+        route_table.route_table_propagation.append(propagation)
 
     def disable_route_table_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
@@ -235,12 +256,12 @@ class TransitGatewayRouteTableBackend:
         route_table.route_table_propagation = [
             prop
             for prop in route_table.route_table_propagation
-            if prop["transitGatewayAttachmentId"] != transit_gateway_attachment_id
+            if prop.transitGatewayAttachmentId != transit_gateway_attachment_id
         ]
 
     def get_transit_gateway_route_table_associations(
-        self, transit_gateway_route_table_id: List[str], filters: Any = None
-    ) -> List[TransitGatewayRouteTable]:
+        self, transit_gateway_route_table_id: list[str], filters: Any = None
+    ) -> list[RouteTableAssociation]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         if transit_gateway_route_tables:
@@ -251,23 +272,24 @@ class TransitGatewayRouteTableBackend:
             ]
 
         attr_pairs = (
-            ("resource-id", "route_table_association", "resourceId"),
-            ("resource-type", "route_table_association", "resourceType"),
+            ("resource-id", "resourceId"),
+            ("resource-type", "resourceType"),
             (
                 "transit-gateway-attachment-id",
-                "route_table_association",
                 "transitGatewayAttachmentId",
             ),
         )
 
-        result = transit_gateway_route_tables
+        result: list[RouteTableAssociation] = []
+        for table in transit_gateway_route_tables:
+            result.extend(table.route_table_associations.values())
         if filters:
-            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+            result = filter_resources(result, filters, attr_pairs)
         return result
 
     def get_transit_gateway_route_table_propagations(
         self, transit_gateway_route_table_id: str, filters: Any = None
-    ) -> List[TransitGatewayRouteTable]:
+    ) -> list[RouteTablePropagation]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         if transit_gateway_route_tables:
@@ -278,18 +300,21 @@ class TransitGatewayRouteTableBackend:
             ]
 
         attr_pairs = (
-            ("resource-id", "route_table_propagation", "resourceId"),
-            ("resource-type", "route_table_propagation", "resourceType"),
+            ("resource-id", "resourceId"),
+            ("resource-type", "resourceType"),
             (
                 "transit-gateway-attachment-id",
-                "route_table_propagation",
                 "transitGatewayAttachmentId",
             ),
         )
 
-        result = transit_gateway_route_tables
+        result = list(
+            itertools.chain.from_iterable(
+                table.route_table_propagation for table in transit_gateway_route_tables
+            )
+        )
         if filters:
-            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+            result = filter_resources(result, filters, attr_pairs)
         return result
 
     def associate_transit_gateway_route_table(
@@ -359,7 +384,7 @@ class TransitGatewayRouteTableBackend:
         tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
         tgw_association.state = "disassociated"
 
-        self.unset_route_table_association(tgw_rt_id)
+        self.unset_route_table_association(tgw_rt_id, tgw_attach_id=tgw_attach_id)
         self.unset_attachment_association(tgw_attach_id)  # type: ignore[attr-defined]
 
         return tgw_association

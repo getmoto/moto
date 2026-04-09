@@ -7,10 +7,10 @@ def test_set_transition():
     backend = server.create_backend_app("moto_api")
     test_client = backend.test_client()
 
-    post_body = dict(
-        model_name="server::test1",
-        transition={"progression": "waiter", "wait_times": 3},
-    )
+    post_body = {
+        "model_name": "server::test1",
+        "transition": {"progression": "waiter", "wait_times": 3},
+    }
     resp = test_client.post(
         "http://localhost:5000/moto-api/state-manager/set-transition",
         data=json.dumps(post_body),
@@ -28,16 +28,16 @@ def test_unset_transition():
     backend = server.create_backend_app("moto_api")
     test_client = backend.test_client()
 
-    post_body = dict(
-        model_name="server::test2",
-        transition={"progression": "waiter", "wait_times": 3},
-    )
+    post_body = {
+        "model_name": "server::test2",
+        "transition": {"progression": "waiter", "wait_times": 3},
+    }
     test_client.post(
         "http://localhost:5000/moto-api/state-manager/set-transition",
         data=json.dumps(post_body),
     )
 
-    post_body = dict(model_name="server::test2")
+    post_body = {"model_name": "server::test2"}
     resp = test_client.post(
         "http://localhost:5000/moto-api/state-manager/unset-transition",
         data=json.dumps(post_body),

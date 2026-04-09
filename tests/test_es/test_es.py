@@ -204,6 +204,16 @@ def test_describe_elasticsearch_domain():
 
 
 @mock_aws
+def test_describe_elasticsearch_domain_config():
+    client = boto3.client("es", region_name="ap-southeast-1")
+    client.create_elasticsearch_domain(DomainName="motosearch")
+
+    resp = client.describe_elasticsearch_domain_config(DomainName="motosearch")
+    domain_config = resp["DomainConfig"]
+    assert domain_config["ElasticsearchClusterConfig"]["Options"]["InstanceCount"] == 1
+
+
+@mock_aws
 def test_list_domain_names_initial():
     client = boto3.client("es", region_name="eu-west-1")
     resp = client.list_domain_names()

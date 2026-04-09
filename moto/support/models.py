@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -63,10 +63,10 @@ class SupportCase(ManagedState):
 class SupportBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.check_status: Dict[str, str] = {}
-        self.cases: Dict[str, SupportCase] = {}
+        self.check_status: dict[str, str] = {}
+        self.cases: dict[str, SupportCase] = {}
 
-    def describe_trusted_advisor_checks(self) -> List[Dict[str, Any]]:
+    def describe_trusted_advisor_checks(self) -> list[dict[str, Any]]:
         """
         The Language-parameter is not yet implemented
         """
@@ -74,7 +74,7 @@ class SupportBackend(BaseBackend):
         checks = ADVISOR_CHECKS["checks"]
         return checks
 
-    def refresh_trusted_advisor_check(self, check_id: str) -> Dict[str, Any]:
+    def refresh_trusted_advisor_check(self, check_id: str) -> dict[str, Any]:
         self.advance_check_status(check_id)
         return {
             "status": {
@@ -131,7 +131,7 @@ class SupportBackend(BaseBackend):
         elif self.cases[case_id].severity_code == "critical":
             self.cases[case_id].severity_code = "low"
 
-    def resolve_case(self, case_id: str) -> Dict[str, Optional[str]]:
+    def resolve_case(self, case_id: str) -> dict[str, Optional[str]]:
         self.advance_case_status(case_id)
 
         return {
@@ -147,10 +147,10 @@ class SupportBackend(BaseBackend):
         severity_code: str,
         category_code: str,
         communication_body: str,
-        cc_email_addresses: List[str],
+        cc_email_addresses: list[str],
         language: str,
         attachment_set_id: str,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         The IssueType-parameter is not yet implemented
         """
@@ -176,11 +176,11 @@ class SupportBackend(BaseBackend):
 
     def describe_cases(
         self,
-        case_id_list: List[str],
+        case_id_list: list[str],
         include_resolved_cases: bool,
         next_token: Optional[str],
         include_communications: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         The following parameters have not yet been implemented:
         DisplayID, AfterTime, BeforeTime, MaxResults, Language

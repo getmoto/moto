@@ -1,12 +1,10 @@
-from typing import List, Tuple
-
 from moto.core.exceptions import JsonRESTError
 
 
 class RRValidationException(JsonRESTError):
     code = 400
 
-    def __init__(self, error_tuples: List[Tuple[str, str, str]]):
+    def __init__(self, error_tuples: list[tuple[str, str, str]]):
         """Validation errors are concatenated into one exception message.
 
         error_tuples is a list of tuples.  Each tuple contains:

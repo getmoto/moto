@@ -86,7 +86,8 @@ class WAFV2Response(BaseResponse):
             self.region = GLOBAL_REGION
         name = self._get_param("Name")
         _id = self._get_param("Id")
-        web_acl = self.wafv2_backend.get_web_acl(name, _id)
+        arn = self._get_param("ARN")
+        web_acl = self.wafv2_backend.get_web_acl(arn, name, _id)
         response = {"WebACL": web_acl.to_dict(), "LockToken": web_acl.lock_token}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
@@ -401,7 +402,7 @@ class WAFV2Response(BaseResponse):
             tags=tags,
             custom_response_bodies=custom_response_bodies,
         )
-        return 200, {}, json.dumps(dict(Summary=group.to_short_dict()))
+        return 200, {}, json.dumps({"Summary": group.to_short_dict()})
 
     def update_rule_group(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
@@ -424,7 +425,7 @@ class WAFV2Response(BaseResponse):
             lock_token=lock_token,
             custom_response_bodies=custom_response_bodies,
         )
-        return 200, {}, json.dumps(dict(NextLockToken=updated_group.lock_token))
+        return 200, {}, json.dumps({"NextLockToken": updated_group.lock_token})
 
     def delete_rule_group(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
@@ -439,7 +440,7 @@ class WAFV2Response(BaseResponse):
             id=id,
             lock_token=lock_token,
         )
-        return 200, {}, json.dumps(dict())
+        return 200, {}, json.dumps({})
 
     def get_rule_group(self) -> TYPE_RESPONSE:
         name = self._get_param("Name")
@@ -458,7 +459,7 @@ class WAFV2Response(BaseResponse):
         )
         group_dict = rule_group.to_dict()
         lock_token = group_dict.pop("LockToken")
-        return 200, {}, json.dumps(dict(RuleGroup=group_dict, LockToken=lock_token))
+        return 200, {}, json.dumps({"RuleGroup": group_dict, "LockToken": lock_token})
 
     def create_regex_pattern_set(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)

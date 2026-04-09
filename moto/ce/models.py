@@ -1,7 +1,7 @@
 """CostExplorerBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -32,9 +32,9 @@ class CostCategoryDefinition(BaseModel):
         name: str,
         effective_start: Optional[str],
         rule_version: str,
-        rules: List[Dict[str, Any]],
+        rules: list[dict[str, Any]],
         default_value: str,
-        split_charge_rules: List[Dict[str, Any]],
+        split_charge_rules: list[dict[str, Any]],
     ):
         self.name = name
         self.rule_version = rule_version
@@ -48,9 +48,9 @@ class CostCategoryDefinition(BaseModel):
         self,
         rule_version: str,
         effective_start: Optional[str],
-        rules: List[Dict[str, Any]],
+        rules: list[dict[str, Any]],
         default_value: str,
-        split_charge_rules: List[Dict[str, Any]],
+        split_charge_rules: list[dict[str, Any]],
     ) -> None:
         self.rule_version = rule_version
         self.rules = rules
@@ -58,7 +58,7 @@ class CostCategoryDefinition(BaseModel):
         self.split_charge_rules = split_charge_rules
         self.effective_start = effective_start or first_day()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "CostCategoryArn": self.arn,
             "Name": self.name,
@@ -75,9 +75,9 @@ class CostExplorerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.cost_categories: Dict[str, CostCategoryDefinition] = dict()
-        self.cost_usage_results_queue: List[Dict[str, Any]] = []
-        self.cost_usage_results: Dict[str, Dict[str, Any]] = {}
+        self.cost_categories: dict[str, CostCategoryDefinition] = {}
+        self.cost_usage_results_queue: list[dict[str, Any]] = []
+        self.cost_usage_results: dict[str, dict[str, Any]] = {}
         self.tagger = TaggingService()
 
     def create_cost_category_definition(
@@ -85,11 +85,11 @@ class CostExplorerBackend(BaseBackend):
         name: str,
         effective_start: Optional[str],
         rule_version: str,
-        rules: List[Dict[str, Any]],
+        rules: list[dict[str, Any]],
         default_value: str,
-        split_charge_rules: List[Dict[str, Any]],
-        tags: List[Dict[str, str]],
-    ) -> Tuple[str, str]:
+        split_charge_rules: list[dict[str, Any]],
+        tags: list[dict[str, str]],
+    ) -> tuple[str, str]:
         """
         The EffectiveOn and ResourceTags-parameters are not yet implemented
         """
@@ -120,7 +120,7 @@ class CostExplorerBackend(BaseBackend):
 
     def delete_cost_category_definition(
         self, cost_category_arn: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """
         The EffectiveOn-parameter is not yet implemented
         """
@@ -132,10 +132,10 @@ class CostExplorerBackend(BaseBackend):
         cost_category_arn: str,
         effective_start: Optional[str],
         rule_version: str,
-        rules: List[Dict[str, Any]],
+        rules: list[dict[str, Any]],
         default_value: str,
-        split_charge_rules: List[Dict[str, Any]],
-    ) -> Tuple[str, str]:
+        split_charge_rules: list[dict[str, Any]],
+    ) -> tuple[str, str]:
         """
         The EffectiveOn-parameter is not yet implemented
         """
@@ -150,16 +150,16 @@ class CostExplorerBackend(BaseBackend):
 
         return cost_category_arn, cost_category.effective_start
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def get_cost_and_usage(self, body: str) -> Dict[str, Any]:
+    def get_cost_and_usage(self, body: str) -> dict[str, Any]:
         """
         There is no validation yet on any of the input parameters.
 
@@ -202,7 +202,7 @@ class CostExplorerBackend(BaseBackend):
             ce = boto3.client("ce", region_name="us-east-1")
             resp = ce.get_cost_and_usage(...)
         """
-        default_result: Dict[str, Any] = {
+        default_result: dict[str, Any] = {
             "ResultsByTime": [],
             "DimensionValueAttributes": [],
         }

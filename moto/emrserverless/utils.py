@@ -1,5 +1,5 @@
 import string
-from typing import Any, Dict
+from typing import Any
 
 from moto.moto_api._internal import mock_random as random
 
@@ -17,9 +17,9 @@ def random_job_id() -> str:
     return random_id(size=16)
 
 
-def default_auto_start_configuration() -> Dict[str, bool]:
+def default_auto_start_configuration() -> dict[str, bool]:
     return {"enabled": True}
 
 
-def default_auto_stop_configuration() -> Dict[str, Any]:
+def default_auto_stop_configuration() -> dict[str, Any]:
     return {"enabled": True, "idleTimeoutMinutes": 15}

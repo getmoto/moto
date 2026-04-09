@@ -1,48 +1,71 @@
-from typing import Any
-
-from moto.core.exceptions import RESTError
-
-ERROR_WITH_ACCESS_POINT_NAME = """{% extends 'wrapped_single_error' %}
-{% block extra %}<AccessPointName>{{ name }}</AccessPointName>{% endblock %}
-"""
+from moto.core.exceptions import ServiceException
 
 
-ERROR_WITH_ACCESS_POINT_POLICY = """{% extends 'wrapped_single_error' %}
-{% block extra %}<AccessPointName>{{ name }}</AccessPointName>{% endblock %}
-"""
-
-
-class S3ControlError(RESTError):
-    extended_templates = {
-        "ap_not_found": ERROR_WITH_ACCESS_POINT_NAME,
-        "apf_not_found": ERROR_WITH_ACCESS_POINT_POLICY,
-    }
-    env = RESTError.extended_environment(extended_templates)
-
-    def __init__(self, *args: Any, **kwargs: Any):
-        kwargs.setdefault("template", "single_error")
-        super().__init__(*args, **kwargs)
+class S3ControlError(ServiceException):
+    pass
 
 
 class AccessPointNotFound(S3ControlError):
-    code = 404
+    code = "NoSuchAccessPoint"
 
-    def __init__(self, name: str, **kwargs: Any):
-        kwargs.setdefault("template", "ap_not_found")
-        kwargs["name"] = name
-        super().__init__(
-            "NoSuchAccessPoint", "The specified accesspoint does not exist", **kwargs
-        )
+    def __init__(self, name: str):
+        super().__init__("The specified accesspoint does not exist")
+        self.access_point_name = name
 
 
 class AccessPointPolicyNotFound(S3ControlError):
-    code = 404
+    code = "NoSuchAccessPointPolicy"
 
-    def __init__(self, name: str, **kwargs: Any):
-        kwargs.setdefault("template", "apf_not_found")
-        kwargs["name"] = name
+    def __init__(self, name: str):
+        super().__init__("The specified accesspoint policy does not exist")
+        self.access_point_name = name
+
+
+class MultiRegionAccessPointNotFound(S3ControlError):
+    code = "NoSuchMultiRegionAccessPoint"
+
+    def __init__(self, name: str):
+        super().__init__("The specified multi-region access point does not exist")
+        self.name = name
+
+
+class MultiRegionAccessPointPolicyNotFound(S3ControlError):
+    code = "NoSuchMultiRegionAccessPointPolicy"
+
+    def __init__(self, name: str):
         super().__init__(
-            "NoSuchAccessPointPolicy",
-            "The specified accesspoint policy does not exist",
-            **kwargs,
+            "The specified multi-region access point policy does not exist"
         )
+        self.name = name
+
+
+class MultiRegionAccessPointOperationNotFound(S3ControlError):
+    code = "NoSuchAsyncRequest"
+
+    def __init__(self, request_token: str):
+        super().__init__("The specified async request does not exist")
+        self.request_token_arn = request_token
+
+
+class NoSuchPublicAccessBlockConfiguration(S3ControlError):
+    # Note that this exception is in the different format then the S3 exception with the same name
+    # This exception should return a nested response `<ErrorResponse><Error>..`
+    # The S3 variant uses a flat `<Error>`-response
+    code = "NoSuchPublicAccessBlockConfiguration"
+
+    def __init__(self) -> None:
+        super().__init__("The public access block configuration was not found")
+
+
+class InvalidRequestException(S3ControlError):
+    code = "InvalidRequest"
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
+class StorageLensConfigurationNotFound(S3ControlError):
+    code = "NoSuchConfiguration"
+
+    def __init__(self, config_id: str):
+        super().__init__(f"The specified configuration does not exist: {config_id}")

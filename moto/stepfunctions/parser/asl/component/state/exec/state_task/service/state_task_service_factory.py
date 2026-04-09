@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Set
+from typing import Final
 
 from antlr4 import RecognitionException
 
@@ -44,7 +44,7 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state
     StateTaskServiceUnsupported,
 )
 
-_UNSUPPORTED_SERVICE_NAMES: Set[str] = {
+_UNSUPPORTED_SERVICE_NAMES: Final[set[str]] = {
     "athena",
     "bedrock",
     "codebuild",

@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Dict, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any, Optional
 
 from .exceptions import (
     DisabledCompatibilityVersioningException,
@@ -137,13 +138,13 @@ def validate_schema_version_id_pattern(schema_version_id: str) -> None:
         raise ParamValueContainsInvalidCharactersException(SCHEMA_VERSION_ID)
 
 
-def validate_number_of_tags(tags: Dict[str, str]) -> None:
+def validate_number_of_tags(tags: dict[str, str]) -> None:
     if len(tags) > MAX_TAGS_ALLOWED:
         raise InvalidNumberOfTagsException()
 
 
 def validate_registry_id(
-    registry_id: Dict[str, Any], registries: Dict[str, Any]
+    registry_id: dict[str, Any], registries: dict[str, Any]
 ) -> str:
     if not registry_id:
         return DEFAULT_REGISTRY_NAME
@@ -181,7 +182,7 @@ def validate_registry_params(
     registries: Any,
     registry_name: str,
     description: Optional[str] = None,
-    tags: Optional[Dict[str, str]] = None,
+    tags: Optional[dict[str, str]] = None,
 ) -> None:
     validate_registry_name_pattern_and_length(registry_name)
 
@@ -203,8 +204,8 @@ def validate_registry_params(
 
 
 def validate_schema_id(
-    schema_id: Dict[str, str], registries: Dict[str, Any]
-) -> Tuple[str, str, Optional[str]]:
+    schema_id: dict[str, str], registries: dict[str, Any]
+) -> tuple[str, str, Optional[str]]:
     schema_arn = schema_id.get(SCHEMA_ARN)
     registry_name = schema_id.get(REGISTRY_NAME)
     schema_name = schema_id.get(SCHEMA_NAME)
@@ -239,7 +240,7 @@ def validate_schema_params(
     schema_definition: str,
     num_schemas: int,
     description: Optional[str] = None,
-    tags: Optional[Dict[str, str]] = None,
+    tags: Optional[dict[str, str]] = None,
 ) -> None:
     validate_schema_name_pattern_and_length(schema_name)
 
@@ -298,11 +299,11 @@ def validate_register_schema_version_params(
 
 
 def validate_schema_version_params(  # type: ignore[return]
-    registries: Dict[str, Any],
-    schema_id: Optional[Dict[str, Any]],
+    registries: dict[str, Any],
+    schema_id: Optional[dict[str, Any]],
     schema_version_id: Optional[str],
-    schema_version_number: Optional[Dict[str, Any]],
-) -> Tuple[
+    schema_version_number: Optional[dict[str, Any]],
+) -> tuple[
     Optional[str],
     Optional[str],
     Optional[str],
@@ -346,11 +347,11 @@ def validate_schema_version_params(  # type: ignore[return]
 
 
 def validate_schema_version_number(
-    registries: Dict[str, Any],
+    registries: dict[str, Any],
     registry_name: str,
     schema_name: str,
-    schema_version_number: Dict[str, str],
-) -> Tuple[str, str]:
+    schema_version_number: dict[str, str],
+) -> tuple[str, str]:
     latest_version = schema_version_number.get(LATEST_VERSION)
     version_number = schema_version_number.get(VERSION_NUMBER)
     schema = registries[registry_name].schemas[schema_name]
@@ -363,8 +364,8 @@ def validate_schema_version_number(
 
 
 def validate_schema_version_metadata_pattern_and_length(
-    metadata_key_value: Dict[str, str],
-) -> Tuple[str, str]:
+    metadata_key_value: dict[str, str],
+) -> tuple[str, str]:
     metadata_key = metadata_key_value.get(METADATA_KEY)
     metadata_value = metadata_key_value.get(METADATA_VALUE)
 
@@ -375,7 +376,7 @@ def validate_schema_version_metadata_pattern_and_length(
 
 
 def validate_number_of_schema_version_metadata_allowed(
-    metadata: Dict[str, Any],
+    metadata: dict[str, Any],
 ) -> None:
     num_metadata_key_value_pairs = 0
     for m in metadata.values():
@@ -387,7 +388,7 @@ def validate_number_of_schema_version_metadata_allowed(
 
 def get_schema_version_if_definition_exists(
     schema_versions: Any, data_format: str, schema_definition: str
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     if data_format in ["AVRO", "JSON"]:
         for schema_version in schema_versions:
             if json.loads(schema_definition) == json.loads(
@@ -402,12 +403,12 @@ def get_schema_version_if_definition_exists(
 
 
 def get_put_schema_version_metadata_response(
-    schema_id: Dict[str, Any],
-    schema_version_number: Optional[Dict[str, str]],
+    schema_id: dict[str, Any],
+    schema_version_number: Optional[dict[str, str]],
     schema_version_id: str,
-    metadata_key_value: Dict[str, str],
-) -> Dict[str, Any]:
-    put_schema_version_metadata_response_dict: Dict[str, Any] = {}
+    metadata_key_value: dict[str, str],
+) -> dict[str, Any]:
+    put_schema_version_metadata_response_dict: dict[str, Any] = {}
     if schema_version_id:
         put_schema_version_metadata_response_dict[SCHEMA_VERSION_ID] = schema_version_id
     if schema_id:
@@ -445,7 +446,7 @@ def get_put_schema_version_metadata_response(
 
 def delete_schema_response(
     schema_name: str, schema_arn: str, status: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "SchemaName": schema_name,
         "SchemaArn": schema_arn,

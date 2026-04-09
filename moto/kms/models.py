@@ -1,15 +1,14 @@
 import json
 import os
-import typing
-from collections import defaultdict
+from collections.abc import Iterable
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -39,8 +38,8 @@ class Grant(BaseModel):
         key_id: str,
         name: str,
         grantee_principal: str,
-        operations: List[str],
-        constraints: Dict[str, Any],
+        operations: list[str],
+        constraints: dict[str, Any],
         retiring_principal: str,
     ):
         self.key_id = key_id
@@ -52,7 +51,7 @@ class Grant(BaseModel):
         self.id = mock_random.get_random_hex()
         self.token = mock_random.get_random_hex()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "KeyId": self.key_id,
             "GrantId": self.id,
@@ -62,6 +61,67 @@ class Grant(BaseModel):
             "Operations": self.operations,
             "Constraints": self.constraints,
         }
+
+
+class Alias(CloudFormationModel):
+    def __init__(self, account_id: str, region: str, name: str, key: "Key"):
+        self.alias_arn = f"arn:{get_partition(region)}:kms:{region}:{account_id}:{name}"
+        self.alias_name = name
+        self.target_key_id = key.id
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.alias_name
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend: KmsBackend = kms_backends[account_id][region_name]
+        backend.delete_alias(self.alias_name)
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kms-key.html
+        return "AWS::KMS::Alias"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.create_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: Any,
+        new_resource_name: str,
+        cloudformation_json: dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> "Alias":
+        kms_backend: KmsBackend = kms_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return kms_backend.update_alias(
+            alias_name=properties["AliasName"], target_key_id=properties["TargetKeyId"]
+        )
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return False
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        raise UnformattedGetAttTemplateException()
 
 
 class Key(CloudFormationModel):
@@ -87,7 +147,7 @@ class Key(CloudFormationModel):
         self.enabled = True
         self.multi_region = multi_region
         if self.multi_region:
-            self.multi_region_configuration: typing.Dict[str, Any] = {
+            self.multi_region_configuration: dict[str, Any] = {
                 "MultiRegionKeyType": "PRIMARY",
                 "PrimaryKey": {
                     "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
@@ -105,16 +165,17 @@ class Key(CloudFormationModel):
         self.arn = (
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
         )
-        self.grants: Dict[str, Grant] = dict()
+        self.grants: dict[str, Grant] = {}
 
-        self.rotations: List[Dict[str, Any]] = []
+        self.rotations: list[dict[str, Any]] = []
+        self.aliases: dict[str, Alias] = {}
 
     def add_grant(
         self,
         name: str,
         grantee_principal: str,
-        operations: List[str],
-        constraints: Dict[str, Any],
+        operations: list[str],
+        constraints: dict[str, Any],
         retiring_principal: str,
     ) -> Grant:
         grant = Grant(
@@ -128,11 +189,11 @@ class Key(CloudFormationModel):
         self.grants[grant.id] = grant
         return grant
 
-    def list_grants(self, grant_id: str) -> List[Grant]:
+    def list_grants(self, grant_id: str) -> list[Grant]:
         grant_ids = [grant_id] if grant_id else self.grants.keys()
         return [grant for _id, grant in self.grants.items() if _id in grant_ids]
 
-    def list_retirable_grants(self, retiring_principal: str) -> List[Grant]:
+    def list_retirable_grants(self, retiring_principal: str) -> list[Grant]:
         return [
             grant
             for grant in self.grants.values()
@@ -177,7 +238,7 @@ class Key(CloudFormationModel):
         return self.id
 
     @property
-    def encryption_algorithms(self) -> Optional[List[str]]:
+    def encryption_algorithms(self) -> Optional[list[str]]:
         if self.key_usage == "SIGN_VERIFY":
             return None
         elif self.key_spec == "SYMMETRIC_DEFAULT":
@@ -186,7 +247,7 @@ class Key(CloudFormationModel):
             return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
 
     @property
-    def signing_algorithms(self) -> List[str]:
+    def signing_algorithms(self) -> list[str]:
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None  # type: ignore[return-value]
         elif self.key_spec in KeySpec.ecc_key_specs():
@@ -204,7 +265,7 @@ class Key(CloudFormationModel):
         else:
             return []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         key_dict = {
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
@@ -292,8 +353,7 @@ class KmsBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: Optional[str] = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
-        self.keys: Dict[str, Key] = {}
-        self.key_to_aliases: Dict[str, Set[str]] = defaultdict(set)
+        self.keys: dict[str, Key] = {}
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
@@ -316,7 +376,7 @@ class KmsBackend(BaseBackend):
         key_usage: str,
         key_spec: str,
         description: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         multi_region: bool = False,
         origin: str = "AWS_KMS",
     ) -> Key:
@@ -385,8 +445,6 @@ class KmsBackend(BaseBackend):
 
     def delete_key(self, key_id: str) -> None:
         if key_id in self.keys:
-            if key_id in self.key_to_aliases:
-                self.key_to_aliases.pop(key_id)
             self.tagger.delete_all_tags_for_resource(key_id)
 
             self.keys.pop(key_id)
@@ -435,32 +493,50 @@ class KmsBackend(BaseBackend):
         return key_id
 
     def alias_exists(self, alias_name: str) -> bool:
-        for aliases in self.key_to_aliases.values():
-            if alias_name in aliases:
+        for key in self.keys.values():
+            if alias_name in key.aliases:
                 return True
 
         return False
 
-    def create_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> Alias:
         raw_key_id = self.get_key_id(target_key_id)
-        self.key_to_aliases[raw_key_id].add(alias_name)
+        key = self.keys[raw_key_id]
+        key.aliases[alias_name] = Alias(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=alias_name,
+            key=key,
+        )
+        return key.aliases[alias_name]
 
-    def update_alias(self, target_key_id: str, alias_name: str) -> None:
-        self.create_alias(target_key_id, alias_name)
+    def update_alias(self, target_key_id: str, alias_name: str) -> Alias:
+        raw_key_id = self.get_key_id(target_key_id)
+        for key in self.keys.values():
+            if alias_name in key.aliases and raw_key_id != key.id:
+                # Updating the Key that this is an alias of
+                alias = key.aliases.pop(alias_name)
+                alias.target_key_id = raw_key_id
+                self.keys[raw_key_id].aliases[alias_name] = alias
+                return alias
+        # TargetKeyId hasn't changed - nothing to update
+        return self.keys[raw_key_id].aliases[alias_name]
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
-        for aliases in self.key_to_aliases.values():
-            if alias_name in aliases:
-                aliases.remove(alias_name)
+        for key in self.keys.values():
+            if alias_name in key.aliases:
+                key.aliases.pop(alias_name, None)
 
-    def list_aliases(self) -> Dict[str, Set[str]]:
-        return self.key_to_aliases
+    def list_aliases(self, key_id: Optional[str] = None) -> Iterable[Alias]:
+        for key in self.keys.values():
+            if not key_id or key.id == key_id:
+                yield from key.aliases.values()
 
     def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
-        for key_id, aliases in dict(self.key_to_aliases).items():
-            if alias_name in ",".join(aliases):
-                return key_id
+        for key in self.keys.values():
+            if alias_name in key.aliases:
+                return key.id
         if alias_name in RESERVED_ALIASES:
             return self._generate_default_keys(alias_name)
         return None
@@ -501,14 +577,14 @@ class KmsBackend(BaseBackend):
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
             self.keys[key_id].key_state = "PendingDeletion"
-            self.keys[key_id].deletion_date = datetime.now() + timedelta(
+            self.keys[key_id].deletion_date = utcnow() + timedelta(
                 days=pending_window_in_days
             )
             return unix_time(self.keys[key_id].deletion_date)
 
     def encrypt(
-        self, key_id: str, plaintext: bytes, encryption_context: Dict[str, str]
-    ) -> Tuple[bytes, str]:
+        self, key_id: str, plaintext: bytes, encryption_context: dict[str, str]
+    ) -> tuple[bytes, str]:
         key_id = self.any_id_to_key_id(key_id)
 
         ciphertext_blob = encrypt(
@@ -521,8 +597,8 @@ class KmsBackend(BaseBackend):
         return ciphertext_blob, arn
 
     def decrypt(
-        self, ciphertext_blob: bytes, encryption_context: Dict[str, str]
-    ) -> Tuple[bytes, str]:
+        self, ciphertext_blob: bytes, encryption_context: dict[str, str]
+    ) -> tuple[bytes, str]:
         plaintext, key_id = decrypt(
             master_keys=self.keys,
             ciphertext_blob=ciphertext_blob,
@@ -534,10 +610,10 @@ class KmsBackend(BaseBackend):
     def re_encrypt(
         self,
         ciphertext_blob: bytes,
-        source_encryption_context: Dict[str, str],
+        source_encryption_context: dict[str, str],
         destination_key_id: str,
-        destination_encryption_context: Dict[str, str],
-    ) -> Tuple[bytes, str, str]:
+        destination_encryption_context: dict[str, str],
+    ) -> tuple[bytes, str, str]:
         destination_key_id = self.any_id_to_key_id(destination_key_id)
 
         plaintext, decrypting_arn = self.decrypt(
@@ -559,10 +635,10 @@ class KmsBackend(BaseBackend):
     def generate_data_key(
         self,
         key_id: str,
-        encryption_context: Dict[str, str],
+        encryption_context: dict[str, str],
         number_of_bytes: int,
         key_spec: str,
-    ) -> Tuple[bytes, bytes, str]:
+    ) -> tuple[bytes, bytes, str]:
         key_id = self.any_id_to_key_id(key_id)
 
         if key_spec:
@@ -587,7 +663,7 @@ class KmsBackend(BaseBackend):
         # Responses uses 'generate_data_key'
         pass
 
-    def list_resource_tags(self, key_id_or_arn: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_resource_tags(self, key_id_or_arn: str) -> dict[str, list[dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             return self.tagger.list_tags_for_resource(key_id)
@@ -596,7 +672,7 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def tag_resource(self, key_id_or_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, key_id_or_arn: str, tags: list[dict[str, str]]) -> None:
         key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.tag_resource(key_id, tags)
@@ -606,7 +682,7 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def untag_resource(self, key_id_or_arn: str, tag_names: List[str]) -> None:
+    def untag_resource(self, key_id_or_arn: str, tag_names: list[str]) -> None:
         key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.untag_resource_using_names(key_id, tag_names)
@@ -620,11 +696,11 @@ class KmsBackend(BaseBackend):
         self,
         key_id: str,
         grantee_principal: str,
-        operations: List[str],
+        operations: list[str],
         name: str,
-        constraints: Dict[str, Any],
+        constraints: dict[str, Any],
         retiring_principal: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         key = self.describe_key(key_id)
         grant = key.add_grant(
             name,
@@ -635,11 +711,11 @@ class KmsBackend(BaseBackend):
         )
         return grant.id, grant.token
 
-    def list_grants(self, key_id: str, grant_id: str) -> List[Grant]:
+    def list_grants(self, key_id: str, grant_id: str) -> list[Grant]:
         key = self.describe_key(key_id)
         return key.list_grants(grant_id)
 
-    def list_retirable_grants(self, retiring_principal: str) -> List[Grant]:
+    def list_retirable_grants(self, retiring_principal: str) -> list[Grant]:
         grants = []
         for key in self.keys.values():
             grants.extend(key.list_retirable_grants(retiring_principal))
@@ -660,10 +736,8 @@ class KmsBackend(BaseBackend):
     def __ensure_valid_sign_and_verify_key(self, key: Key) -> None:
         if key.key_usage != "SIGN_VERIFY":
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{key_id}' at 'KeyId' failed "
-                    "to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
-                ).format(key_id=key.id)
+                f"1 validation error detected: Value '{key.id}' at 'KeyId' failed "
+                "to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
             )
 
     def __ensure_valid_signing_algorithm(
@@ -671,29 +745,22 @@ class KmsBackend(BaseBackend):
     ) -> None:
         if signing_algorithm not in key.signing_algorithms:
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: "
-                    "{valid_sign_algorithms}"
-                ).format(
-                    signing_algorithm=signing_algorithm,
-                    valid_sign_algorithms=key.signing_algorithms,
-                )
+                f"1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                f"{key.signing_algorithms}"
             )
 
     def __ensure_valid_key_spec(self, key_spec: str) -> None:
         if key_spec not in KeySpec.key_specs():
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: "
-                    "{valid_key_specs}"
-                ).format(key_spec=key_spec, valid_key_specs=KeySpec.key_specs())
+                f"1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                f"{KeySpec.key_specs()}"
             )
 
     def sign(
         self, key_id: str, message: bytes, signing_algorithm: str
-    ) -> Tuple[str, bytes, str]:
+    ) -> tuple[str, bytes, str]:
         """
         Sign message using generated private key.
 
@@ -710,7 +777,7 @@ class KmsBackend(BaseBackend):
 
     def verify(
         self, key_id: str, message: bytes, signature: bytes, signing_algorithm: str
-    ) -> Tuple[str, bool, str]:
+    ) -> tuple[str, bool, str]:
         """
         Verify message using public key from generated private key.
 
@@ -724,14 +791,9 @@ class KmsBackend(BaseBackend):
 
         if signing_algorithm not in key.signing_algorithms:
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: "
-                    "{valid_sign_algorithms}"
-                ).format(
-                    signing_algorithm=signing_algorithm,
-                    valid_sign_algorithms=key.signing_algorithms,
-                )
+                f"1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                f"{key.signing_algorithms}"
             )
 
         return (
@@ -740,7 +802,7 @@ class KmsBackend(BaseBackend):
             signing_algorithm,
         )
 
-    def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
+    def get_public_key(self, key_id: str) -> tuple[Key, bytes]:
         key = self.describe_key(key_id)
         return key, key.private_key.public_key()
 
@@ -749,7 +811,7 @@ class KmsBackend(BaseBackend):
 
         rotation = {
             "KeyId": key_id,
-            "RotationDate": datetime.now().timestamp(),
+            "RotationDate": unix_time(),
             "RotationType": "ON_DEMAND",
         }
 
@@ -761,7 +823,7 @@ class KmsBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def list_key_rotations(
         self, key_id: str, limit: int, next_marker: str
-    ) -> List[Dict[str, Union[str, float]]]:
+    ) -> list[dict[str, Union[str, float]]]:
         key: Key = self.keys[self.get_key_id(key_id)]
 
         return key.rotations
@@ -771,9 +833,10 @@ class KmsBackend(BaseBackend):
         message: bytes,
         key_id: str,
         mac_algorithm: str,
-        grant_tokens: List[str],
+        grant_tokens: list[str],
         dry_run: bool,
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
+        key_id = self.any_id_to_key_id(key_id)
         key = self.keys[key_id]
 
         if (
@@ -793,7 +856,7 @@ class KmsBackend(BaseBackend):
         key_id: str,
         mac_algorithm: str,
         mac: str,
-        grant_tokens: List[str],
+        grant_tokens: list[str],
         dry_run: bool,
     ) -> None:
         regenerated_mac, _, _ = self.generate_mac(

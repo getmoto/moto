@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -83,7 +83,7 @@ class SWFValidationException(SWFClientError):
 
 
 class SWFDecisionValidationException(SWFClientError):
-    def __init__(self, problems: List[Dict[str, Any]]):
+    def __init__(self, problems: list[dict[str, Any]]):
         # messages
         messages = []
         for pb in problems:

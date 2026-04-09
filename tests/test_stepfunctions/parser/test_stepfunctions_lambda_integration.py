@@ -201,7 +201,7 @@ def test_state_machine_calling_lambda_fn(fn_name=None, fn_arn=None, sleep_time=0
         client.delete_state_machine(stateMachineArn=state_machine_arn)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")
 
 
 @aws_verified
@@ -268,7 +268,7 @@ def test_state_machine_calling_failing_lambda_fn(
         client.delete_state_machine(stateMachineArn=state_machine_arn)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")
 
 
 @aws_verified
@@ -319,4 +319,4 @@ def test_comments_on_lmb_function(fn_name=None, fn_arn=None, sleep_time=0):
         client.delete_state_machine(stateMachineArn=state_machine_arn)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")

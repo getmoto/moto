@@ -1,5 +1,4 @@
 import json
-from typing import Dict, Tuple
 
 from moto.core.responses import BaseResponse
 
@@ -22,7 +21,7 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
                 stream_name=stream_name, stream_arn=stream_arn
             )
         )
-        return json.dumps(dict(HLSStreamingSessionURL=hls_streaming_session_url))
+        return json.dumps({"HLSStreamingSessionURL": hls_streaming_session_url})
 
     def get_dash_streaming_session_url(self) -> str:
         stream_name = self._get_param("StreamName")
@@ -32,9 +31,9 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
                 stream_name=stream_name, stream_arn=stream_arn
             )
         )
-        return json.dumps(dict(DASHStreamingSessionURL=dash_streaming_session_url))
+        return json.dumps({"DASHStreamingSessionURL": dash_streaming_session_url})
 
-    def get_clip(self) -> Tuple[bytes, Dict[str, str]]:
+    def get_clip(self) -> tuple[bytes, dict[str, str]]:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         content_type, payload = self.kinesisvideoarchivedmedia_backend.get_clip(

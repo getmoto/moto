@@ -1,7 +1,7 @@
-from moto.core.responses import BaseResponse
+from ._base_response import EC2BaseResponse
 
 
-class Monitoring(BaseResponse):
+class Monitoring(EC2BaseResponse):
     def monitor_instances(self) -> str:
         self.error_on_dryrun()
 

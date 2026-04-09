@@ -55,7 +55,7 @@ def test_describe_stack_subresources():
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    assert any({f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls})
+    assert any(f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls)
 
     stack = res.Stack(stack_name)
     for s in stack.resource_summaries.all():
@@ -75,7 +75,7 @@ def test_list_stack_resources():
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    assert any({f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls})
+    assert any(f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls)
 
     queue = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"][0]
 

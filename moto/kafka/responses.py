@@ -33,12 +33,12 @@ class KafkaResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                clusterArn=cluster_arn,
-                clusterName=cluster_name,
-                state=state,
-                clusterType=cluster_type,
-            )
+            {
+                "clusterArn": cluster_arn,
+                "clusterName": cluster_name,
+                "state": state,
+                "clusterType": cluster_type,
+            }
         )
 
     def describe_cluster_v2(self) -> str:
@@ -46,7 +46,7 @@ class KafkaResponse(BaseResponse):
         cluster_info = self.kafka_backend.describe_cluster_v2(
             cluster_arn=cluster_arn,
         )
-        return json.dumps(dict(clusterInfo=cluster_info))
+        return json.dumps({"clusterInfo": cluster_info})
 
     def list_clusters_v2(self) -> str:
         cluster_name_filter = self._get_param("clusterNameFilter")
@@ -59,14 +59,16 @@ class KafkaResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
+        return json.dumps(
+            {"clusterInfoList": cluster_info_list, "nextToken": next_token}
+        )
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.kafka_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
@@ -75,7 +77,7 @@ class KafkaResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
@@ -84,7 +86,7 @@ class KafkaResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_cluster(self) -> str:
         broker_node_group_info = self._get_param("brokerNodeGroupInfo")
@@ -114,7 +116,7 @@ class KafkaResponse(BaseResponse):
             storage_mode=storage_mode,
         )
         return json.dumps(
-            dict(clusterArn=cluster_arn, clusterName=cluster_name, state=state)
+            {"clusterArn": cluster_arn, "clusterName": cluster_name, "state": state}
         )
 
     def describe_cluster(self) -> str:
@@ -122,7 +124,7 @@ class KafkaResponse(BaseResponse):
         cluster_info = self.kafka_backend.describe_cluster(
             cluster_arn=cluster_arn,
         )
-        return json.dumps(dict(clusterInfo=cluster_info))
+        return json.dumps({"clusterInfo": cluster_info})
 
     def delete_cluster(self) -> str:
         cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
@@ -131,7 +133,43 @@ class KafkaResponse(BaseResponse):
             cluster_arn=cluster_arn,
             current_version=current_version,
         )
-        return json.dumps(dict(clusterArn=cluster_arn, state=state))
+        return json.dumps({"clusterArn": cluster_arn, "state": state})
+
+    def put_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        current_version = self._get_param("currentVersion")
+        policy = self._get_param("policy")
+
+        new_version = self.kafka_backend.put_cluster_policy(
+            cluster_arn=cluster_arn,
+            current_version=current_version,
+            policy=policy,
+        )
+        return json.dumps({"currentVersion": new_version})
+
+    def get_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        policy, current_version = self.kafka_backend.get_cluster_policy(
+            cluster_arn=cluster_arn,
+        )
+
+        return json.dumps(
+            {
+                "currentVersion": current_version,
+                "policy": policy,
+            }
+        )
+
+    def delete_cluster_policy(self) -> str:
+        cluster_arn = unquote(
+            self.parsed_url.path.split("/clusters/")[-1].removesuffix("/policy")
+        )
+        self.kafka_backend.delete_cluster_policy(cluster_arn=cluster_arn)
+        return json.dumps({})
 
     def list_clusters(self) -> str:
         cluster_name_filter = self._get_param("clusterNameFilter")
@@ -144,4 +182,6 @@ class KafkaResponse(BaseResponse):
             next_token=next_token,
         )
 
-        return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
+        return json.dumps(
+            {"clusterInfoList": cluster_info_list, "nextToken": next_token}
+        )

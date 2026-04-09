@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -34,7 +34,7 @@ FRAMEWORKVERSIONS = [
     "1.2",
 ]
 
-EDITIONS: Dict[str, Any] = {
+EDITIONS: dict[str, Any] = {
     "STARTER": {
         "MaxMembers": 5,
         "MaxNodesPerMember": 2,
@@ -57,9 +57,9 @@ class ManagedBlockchainNetwork(BaseModel):
         name: str,
         framework: str,
         frameworkversion: str,
-        frameworkconfiguration: Dict[str, Any],
-        voting_policy: Dict[str, Any],
-        member_configuration: Dict[str, Any],
+        frameworkconfiguration: dict[str, Any],
+        voting_policy: dict[str, Any],
+        member_configuration: dict[str, Any],
         region: str,
         description: Optional[str] = None,
     ):
@@ -68,11 +68,18 @@ class ManagedBlockchainNetwork(BaseModel):
         self.name = name
         self.description = description
         self.framework = framework
-        self.frameworkversion = frameworkversion
-        self.frameworkconfiguration = frameworkconfiguration
+        self.framework_version = frameworkversion
+        self.framework_configuration = frameworkconfiguration
         self.voting_policy = voting_policy
         self.member_configuration = member_configuration
         self.region = region
+
+        self.framework_attributes = {
+            "Fabric": {
+                "OrderingServiceEndpoint": f"orderer.{self.id.lower()}.managedblockchain.{self.region}.amazonaws.com:30001",
+                "Edition": self.framework_configuration["Fabric"]["Edition"],
+            }
+        }
 
     @property
     def network_name(self) -> str:
@@ -81,10 +88,6 @@ class ManagedBlockchainNetwork(BaseModel):
     @property
     def network_framework(self) -> str:
         return self.framework
-
-    @property
-    def network_framework_version(self) -> str:
-        return self.frameworkversion
 
     @property
     def network_creationdate(self) -> str:
@@ -96,7 +99,7 @@ class ManagedBlockchainNetwork(BaseModel):
 
     @property
     def network_edition(self) -> str:
-        return self.frameworkconfiguration["Fabric"]["Edition"]
+        return self.framework_configuration["Fabric"]["Edition"]
 
     @property
     def vote_pol_proposal_duration(self) -> float:
@@ -110,48 +113,6 @@ class ManagedBlockchainNetwork(BaseModel):
     def vote_pol_threshold_comparator(self) -> str:
         return self.voting_policy["ApprovalThresholdPolicy"]["ThresholdComparator"]
 
-    def to_dict(self) -> Dict[str, Any]:
-        # Format for list_networks
-        d = {
-            "Id": self.id,
-            "Name": self.name,
-            "Framework": self.framework,
-            "FrameworkVersion": self.frameworkversion,
-            "Status": "AVAILABLE",
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-        }
-        if self.description is not None:
-            d["Description"] = self.description
-        return d
-
-    def get_format(self) -> Dict[str, Any]:
-        # Format for get_network
-        frameworkattributes = {
-            "Fabric": {
-                "OrderingServiceEndpoint": f"orderer.{self.id.lower()}.managedblockchain.{self.region}.amazonaws.com:30001",
-                "Edition": self.frameworkconfiguration["Fabric"]["Edition"],
-            }
-        }
-
-        vpcendpointname = (
-            f"com.amazonaws.{self.region}.managedblockchain.{self.id.lower()}"
-        )
-
-        d = {
-            "Id": self.id,
-            "Name": self.name,
-            "Framework": self.framework,
-            "FrameworkVersion": self.frameworkversion,
-            "FrameworkAttributes": frameworkattributes,
-            "VpcEndpointServiceName": vpcendpointname,
-            "VotingPolicy": self.voting_policy,
-            "Status": "AVAILABLE",
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-        }
-        if self.description is not None:
-            d["Description"] = self.description
-        return d
-
 
 class ManagedBlockchainProposal(BaseModel):
     def __init__(
@@ -161,7 +122,7 @@ class ManagedBlockchainProposal(BaseModel):
         memberid: str,
         membername: str,
         numofmembers: int,
-        actions: Dict[str, Any],
+        actions: dict[str, Any],
         network_expiration: float,
         network_threshold: float,
         network_threshold_comp: str,
@@ -169,7 +130,7 @@ class ManagedBlockchainProposal(BaseModel):
     ):
         # In general, passing all values instead of creating
         # an apparatus to look them up
-        self.id = proposal_id
+        self.proposal_id = proposal_id
         self.networkid = networkid
         self.memberid = memberid
         self.membername = membername
@@ -188,7 +149,7 @@ class ManagedBlockchainProposal(BaseModel):
         self.no_vote_count = 0
         self.outstanding_vote_count = self.numofmembers
         self.status = "IN_PROGRESS"
-        self.votes: Dict[str, Dict[str, str]] = {}
+        self.votes: dict[str, dict[str, str]] = {}
 
     @property
     def network_id(self) -> str:
@@ -199,10 +160,10 @@ class ManagedBlockchainProposal(BaseModel):
         return self.status
 
     @property
-    def proposal_votes(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def proposal_votes(self) -> dict[str, Any]:  # type: ignore[misc]
         return self.votes
 
-    def proposal_actions(self, action_type: str) -> List[Dict[str, Any]]:
+    def proposal_actions(self, action_type: str) -> list[dict[str, Any]]:
         if action_type.lower() == "invitations":
             if "Invitations" in self.actions:
                 return self.actions["Invitations"]
@@ -214,36 +175,6 @@ class ManagedBlockchainProposal(BaseModel):
     def check_to_expire_proposal(self) -> None:
         if utcnow() > self.expirationdate:
             self.status = "EXPIRED"
-
-    def to_dict(self) -> Dict[str, Any]:
-        # Format for list_proposals
-        return {
-            "ProposalId": self.id,
-            "ProposedByMemberId": self.memberid,
-            "ProposedByMemberName": self.membername,
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-        }
-
-    def get_format(self) -> Dict[str, Any]:
-        # Format for get_proposal
-        d = {
-            "ProposalId": self.id,
-            "NetworkId": self.networkid,
-            "Actions": self.actions,
-            "ProposedByMemberId": self.memberid,
-            "ProposedByMemberName": self.membername,
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "YesVoteCount": self.yes_vote_count,
-            "NoVoteCount": self.no_vote_count,
-            "OutstandingVoteCount": self.outstanding_vote_count,
-        }
-        if self.description is not None:
-            d["Description"] = self.description
-        return d
 
     def set_vote(self, votermemberid: str, votermembername: str, vote: str) -> None:
         if vote.upper() == "YES":
@@ -281,6 +212,25 @@ class ManagedBlockchainProposal(BaseModel):
             self.status = "REJECTED"
 
 
+class ManagedBlockchainNetworkSummary(BaseModel):
+    def __init__(
+        self,
+        networkid: str,
+        networkname: str,
+        networkdescription: Optional[str],
+        networkframework: str,
+        networkframeworkversion: str,
+        networkcreationdate: str,
+    ):
+        self.id = networkid
+        self.name = networkname
+        self.networkdescription = networkdescription
+        self.framework = networkframework
+        self.framework_workversion = networkframeworkversion
+        self.status = "AVAILABLE"
+        self.creation_date = networkcreationdate
+
+
 class ManagedBlockchainInvitation(BaseModel):
     def __init__(
         self,
@@ -294,13 +244,15 @@ class ManagedBlockchainInvitation(BaseModel):
         networkdescription: Optional[str] = None,
     ):
         self.id = invitation_id
-        self.networkid = networkid
-        self.networkname = networkname
-        self.networkdescription = networkdescription
-        self.networkframework = networkframework
-        self.networkframeworkversion = networkframeworkversion
-        self.networkstatus = "AVAILABLE"
-        self.networkcreationdate = networkcreationdate
+        self.network_summary = ManagedBlockchainNetworkSummary(
+            networkid=networkid,
+            networkname=networkname,
+            networkdescription=networkdescription,
+            networkframework=networkframework,
+            networkframeworkversion=networkframeworkversion,
+            networkcreationdate=networkcreationdate,
+        )
+
         self.status = "PENDING"
         self.region = region
 
@@ -313,26 +265,7 @@ class ManagedBlockchainInvitation(BaseModel):
 
     @property
     def invitation_networkid(self) -> str:
-        return self.networkid
-
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
-            "InvitationId": self.id,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "ExpirationDate": self.expirationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "Status": self.status,
-            "NetworkSummary": {
-                "Id": self.networkid,
-                "Name": self.networkname,
-                "Framework": self.networkframework,
-                "FrameworkVersion": self.networkframeworkversion,
-                "Status": self.networkstatus,
-                "CreationDate": self.networkcreationdate,
-            },
-        }
-        if self.networkdescription is not None:
-            d["NetworkSummary"]["Description"] = self.networkdescription
-        return d
+        return self.network_summary.id
 
     def accept_invitation(self) -> None:
         self.status = "ACCEPTED"
@@ -341,7 +274,7 @@ class ManagedBlockchainInvitation(BaseModel):
         self.status = "REJECTED"
 
     def set_network_status(self, network_status: str) -> None:
-        self.networkstatus = network_status
+        self.network_summary.status = network_status
 
 
 class ManagedBlockchainMember(BaseModel):
@@ -349,20 +282,28 @@ class ManagedBlockchainMember(BaseModel):
         self,
         member_id: str,
         networkid: str,
-        member_configuration: Dict[str, Any],
+        member_configuration: dict[str, Any],
         region: str,
     ):
         self.creationdate = utcnow()
         self.id = member_id
-        self.networkid = networkid
+        self.network_id = networkid
         self.member_configuration = member_configuration
+        self.log_publishing_configuration = member_configuration[
+            "LogPublishingConfiguration"
+        ]
+        self.description = member_configuration.get("Description")
         self.status = "AVAILABLE"
         self.region = region
-        self.description = None
 
-    @property
-    def network_id(self) -> str:
-        return self.networkid
+        self.framework_attributes = {
+            "Fabric": {
+                "AdminUsername": self.member_configuration["FrameworkConfiguration"][
+                    "Fabric"
+                ]["AdminUsername"],
+                "CaEndpoint": f"ca.{self.id.lower()}.{self.network_id.lower()}.managedblockchain.{self.region}.amazonaws.com:30002",
+            }
+        }
 
     @property
     def name(self) -> str:
@@ -372,52 +313,11 @@ class ManagedBlockchainMember(BaseModel):
     def member_status(self) -> str:
         return self.status
 
-    def to_dict(self) -> Dict[str, Any]:
-        # Format for list_members
-        d = {
-            "Id": self.id,
-            "Name": self.member_configuration["Name"],
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "IsOwned": True,
-        }
-        if "Description" in self.member_configuration:
-            self.description = self.member_configuration["Description"]
-        return d
-
-    def get_format(self) -> Dict[str, Any]:
-        # Format for get_member
-        frameworkattributes = {
-            "Fabric": {
-                "AdminUsername": self.member_configuration["FrameworkConfiguration"][
-                    "Fabric"
-                ]["AdminUsername"],
-                "CaEndpoint": f"ca.{self.id.lower()}.{self.networkid.lower()}.managedblockchain.{self.region}.amazonaws.com:30002",
-            }
-        }
-
-        d = {
-            "NetworkId": self.networkid,
-            "Id": self.id,
-            "Name": self.name,
-            "FrameworkAttributes": frameworkattributes,
-            "LogPublishingConfiguration": self.member_configuration[
-                "LogPublishingConfiguration"
-            ],
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-        }
-        if "Description" in self.member_configuration:
-            d["Description"] = self.description
-        return d
-
     def delete(self) -> None:
         self.status = "DELETED"
 
-    def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
-        self.member_configuration["LogPublishingConfiguration"] = (
-            logpublishingconfiguration
-        )
+    def update(self, logpublishingconfiguration: dict[str, Any]) -> None:
+        self.log_publishing_configuration = logpublishingconfiguration
 
 
 class ManagedBlockchainNode(BaseModel):
@@ -428,84 +328,55 @@ class ManagedBlockchainNode(BaseModel):
         memberid: str,
         availabilityzone: str,
         instancetype: str,
-        logpublishingconfiguration: Dict[str, Any],
+        logpublishingconfiguration: dict[str, Any],
         region: str,
     ):
-        self.creationdate = utcnow()
+        self.creation_date = utcnow()
         self.id = node_id
-        self.instancetype = instancetype
-        self.networkid = networkid
-        self.memberid = memberid
-        self.logpublishingconfiguration = logpublishingconfiguration
+        self.instance_type = instancetype
+        self.network_id = networkid
+        self.member_id = memberid
+        self.log_publishing_configuration = logpublishingconfiguration
         self.region = region
         self.status = "AVAILABLE"
-        self.availabilityzone = availabilityzone
-
-    @property
-    def member_id(self) -> str:
-        return self.memberid
+        self.availability_zone = availabilityzone
+        self.framework_attributes = {
+            "Fabric": {
+                "PeerEndpoint": f"{self.id.lower()}.{self.network_id.lower()}.{self.member_id.lower()}.managedblockchain.{self.region}.amazonaws.com:30003",
+                "PeerEventEndpoint": f"{self.id.lower()}.{self.network_id.lower()}.{self.member_id.lower()}.managedblockchain.{self.region}.amazonaws.com:30004",
+            }
+        }
 
     @property
     def node_status(self) -> str:
         return self.status
 
-    def to_dict(self) -> Dict[str, Any]:
-        # Format for list_nodes
-        return {
-            "Id": self.id,
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-            "AvailabilityZone": self.availabilityzone,
-            "InstanceType": self.instancetype,
-        }
-
-    def get_format(self) -> Dict[str, Any]:
-        # Format for get_node
-        frameworkattributes = {
-            "Fabric": {
-                "PeerEndpoint": f"{self.id.lower()}.{self.networkid.lower()}.{self.memberid.lower()}.managedblockchain.{self.region}.amazonaws.com:30003",
-                "PeerEventEndpoint": f"{self.id.lower()}.{self.networkid.lower()}.{self.memberid.lower()}.managedblockchain.{self.region}.amazonaws.com:30004",
-            }
-        }
-
-        return {
-            "NetworkId": self.networkid,
-            "MemberId": self.memberid,
-            "Id": self.id,
-            "InstanceType": self.instancetype,
-            "AvailabilityZone": self.availabilityzone,
-            "FrameworkAttributes": frameworkattributes,
-            "LogPublishingConfiguration": self.logpublishingconfiguration,
-            "Status": self.status,
-            "CreationDate": self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-        }
-
     def delete(self) -> None:
         self.status = "DELETED"
 
-    def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
+    def update(self, logpublishingconfiguration: dict[str, Any]) -> None:
         self.logpublishingconfiguration = logpublishingconfiguration
 
 
 class ManagedBlockchainBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.networks: Dict[str, ManagedBlockchainNetwork] = {}
-        self.members: Dict[str, ManagedBlockchainMember] = {}
-        self.proposals: Dict[str, ManagedBlockchainProposal] = {}
-        self.invitations: Dict[str, ManagedBlockchainInvitation] = {}
-        self.nodes: Dict[str, ManagedBlockchainNode] = {}
+        self.networks: dict[str, ManagedBlockchainNetwork] = {}
+        self.members: dict[str, ManagedBlockchainMember] = {}
+        self.proposals: dict[str, ManagedBlockchainProposal] = {}
+        self.invitations: dict[str, ManagedBlockchainInvitation] = {}
+        self.nodes: dict[str, ManagedBlockchainNode] = {}
 
     def create_network(
         self,
         name: str,
         framework: str,
         frameworkversion: str,
-        frameworkconfiguration: Dict[str, Any],
-        voting_policy: Dict[str, Any],
-        member_configuration: Dict[str, Any],
+        frameworkconfiguration: dict[str, Any],
+        voting_policy: dict[str, Any],
+        member_configuration: dict[str, Any],
         description: Optional[str] = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         # Check framework
         if framework not in FRAMEWORKS:
             raise BadRequestException("CreateNetwork", "Invalid request body")
@@ -548,7 +419,7 @@ class ManagedBlockchainBackend(BaseBackend):
         # Return the network and member ID
         return {"NetworkId": network_id, "MemberId": member_id}
 
-    def list_networks(self) -> List[ManagedBlockchainNetwork]:
+    def list_networks(self) -> list[ManagedBlockchainNetwork]:
         return list(self.networks.values())
 
     def get_network(self, network_id: str) -> ManagedBlockchainNetwork:
@@ -562,9 +433,9 @@ class ManagedBlockchainBackend(BaseBackend):
         self,
         networkid: str,
         memberid: str,
-        actions: Dict[str, Any],
+        actions: dict[str, Any],
         description: Optional[str] = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -616,7 +487,7 @@ class ManagedBlockchainBackend(BaseBackend):
         # Return the proposal ID
         return {"ProposalId": proposal_id}
 
-    def list_proposals(self, networkid: str) -> List[ManagedBlockchainProposal]:
+    def list_proposals(self, networkid: str) -> list[ManagedBlockchainProposal]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -709,9 +580,7 @@ class ManagedBlockchainBackend(BaseBackend):
                     networkid=networkid,
                     networkname=self.networks[networkid].network_name,
                     networkframework=self.networks[networkid].network_framework,
-                    networkframeworkversion=self.networks[
-                        networkid
-                    ].network_framework_version,
+                    networkframeworkversion=self.networks[networkid].framework_version,
                     networkcreationdate=self.networks[networkid].network_creationdate,
                     region=self.region_name,
                     networkdescription=self.networks[networkid].network_description,
@@ -721,7 +590,7 @@ class ManagedBlockchainBackend(BaseBackend):
             for propmember in self.proposals[proposalid].proposal_actions("Removals"):
                 self.delete_member(networkid, propmember["MemberId"])
 
-    def list_proposal_votes(self, networkid: str, proposalid: str) -> List[str]:
+    def list_proposal_votes(self, networkid: str, proposalid: str) -> list[str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -741,7 +610,7 @@ class ManagedBlockchainBackend(BaseBackend):
                     proposalvotesfornetwork.append(proposal_vote)
         return proposalvotesfornetwork
 
-    def list_invitations(self) -> List[ManagedBlockchainInvitation]:
+    def list_invitations(self) -> list[ManagedBlockchainInvitation]:
         return list(self.invitations.values())
 
     def reject_invitation(self, invitationid: str) -> None:
@@ -752,8 +621,8 @@ class ManagedBlockchainBackend(BaseBackend):
         self.invitations[invitationid].reject_invitation()
 
     def create_member(
-        self, invitationid: str, networkid: str, member_configuration: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, invitationid: str, networkid: str, member_configuration: dict[str, Any]
+    ) -> dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -808,7 +677,7 @@ class ManagedBlockchainBackend(BaseBackend):
         # Return the member ID
         return {"MemberId": member_id}
 
-    def list_members(self, networkid: str) -> List[ManagedBlockchainMember]:
+    def list_members(self, networkid: str) -> list[ManagedBlockchainMember]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -872,7 +741,7 @@ class ManagedBlockchainBackend(BaseBackend):
             del self.nodes[nodeid]
 
     def update_member(
-        self, networkid: str, memberid: str, logpublishingconfiguration: Dict[str, Any]
+        self, networkid: str, memberid: str, logpublishingconfiguration: dict[str, Any]
     ) -> None:
         # Check if network exists
         if networkid not in self.networks:
@@ -893,8 +762,8 @@ class ManagedBlockchainBackend(BaseBackend):
         memberid: str,
         availabilityzone: str,
         instancetype: str,
-        logpublishingconfiguration: Dict[str, Any],
-    ) -> Dict[str, str]:
+        logpublishingconfiguration: dict[str, Any],
+    ) -> dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -961,7 +830,7 @@ class ManagedBlockchainBackend(BaseBackend):
 
     def list_nodes(
         self, networkid: str, memberid: str, status: Optional[str] = None
-    ) -> List[ManagedBlockchainNode]:
+    ) -> list[ManagedBlockchainNode]:
         if networkid not in self.networks:
             raise ResourceNotFoundException(
                 "ListNodes", f"Network {networkid} not found."
@@ -1029,7 +898,7 @@ class ManagedBlockchainBackend(BaseBackend):
         networkid: str,
         memberid: str,
         nodeid: str,
-        logpublishingconfiguration: Dict[str, Any],
+        logpublishingconfiguration: dict[str, Any],
     ) -> None:
         # Check if network exists
         if networkid not in self.networks:

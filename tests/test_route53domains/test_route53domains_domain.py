@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
 
 import boto3
 import pytest
@@ -9,7 +8,7 @@ from moto import mock_aws
 
 
 @pytest.fixture(name="domain_parameters")
-def generate_domain_parameters() -> Dict:
+def generate_domain_parameters() -> dict:
     return {
         "DomainName": "domain.com",
         "DurationInYears": 3,
@@ -57,14 +56,14 @@ def generate_domain_parameters() -> Dict:
 
 
 @pytest.fixture(name="invalid_domain_parameters")
-def generate_invalid_domain_parameters(domain_parameters: Dict) -> Dict:
+def generate_invalid_domain_parameters(domain_parameters: dict) -> dict:
     domain_parameters["DomainName"] = "a"
     domain_parameters["DurationInYears"] = 500
     return domain_parameters
 
 
 @mock_aws
-def test_register_domain(domain_parameters: Dict):
+def test_register_domain(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     res = route53domains_client.register_domain(**domain_parameters)
 
@@ -77,14 +76,14 @@ def test_register_domain(domain_parameters: Dict):
         if operation["OperationId"] == operation_id:
             return
 
-    assert (
-        operation_id in [operation["OperationId"] for operation in operations]
-    ), "Could not find expected operation id returned from `register_domain` in operation list"
+    assert operation_id in [operation["OperationId"] for operation in operations], (
+        "Could not find expected operation id returned from `register_domain` in operation list"
+    )
 
 
 @mock_aws
 def test_register_domain_creates_hosted_zone(
-    domain_parameters: Dict,
+    domain_parameters: dict,
 ):
     """Test good register domain API calls."""
     route53domains_client = boto3.client("route53domains", region_name="global")
@@ -92,14 +91,14 @@ def test_register_domain_creates_hosted_zone(
     route53domains_client.register_domain(**domain_parameters)
 
     res = route53_client.list_hosted_zones()
-    assert "domain.com" in [
-        zone["Name"] for zone in res["HostedZones"]
-    ], "`register_domain` did not create a new hosted zone with the same name"
+    assert "domain.com" in [zone["Name"] for zone in res["HostedZones"]], (
+        "`register_domain` did not create a new hosted zone with the same name"
+    )
 
 
 @mock_aws
 def test_register_domain_fails_on_invalid_input(
-    invalid_domain_parameters: Dict,
+    invalid_domain_parameters: dict,
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
@@ -114,7 +113,7 @@ def test_register_domain_fails_on_invalid_input(
 
 
 @mock_aws
-def test_register_domain_fails_on_invalid_tld(domain_parameters: Dict):
+def test_register_domain_fails_on_invalid_tld(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
 
@@ -131,7 +130,7 @@ def test_register_domain_fails_on_invalid_tld(domain_parameters: Dict):
 
 
 @mock_aws
-def test_list_operations(domain_parameters: Dict):
+def test_list_operations(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     operations = route53domains_client.list_operations()["Operations"]
@@ -182,7 +181,7 @@ def test_list_operations_invalid_input():
 
 
 @mock_aws
-def test_get_operation_detail(domain_parameters: Dict):
+def test_get_operation_detail(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     res = route53domains_client.register_domain(**domain_parameters)
     expected_operation_id = res["OperationId"]
@@ -207,7 +206,7 @@ def test_get_nonexistent_operation_detail():
 
 
 @mock_aws
-def test_duplicate_requests(domain_parameters: Dict):
+def test_duplicate_requests(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     with pytest.raises(ClientError) as exc:
@@ -217,7 +216,7 @@ def test_duplicate_requests(domain_parameters: Dict):
 
 
 @mock_aws
-def test_domain_limit(domain_parameters: Dict):
+def test_domain_limit(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     params = domain_parameters.copy()
     for i in range(20):
@@ -233,7 +232,7 @@ def test_domain_limit(domain_parameters: Dict):
 
 
 @mock_aws
-def test_get_domain_detail(domain_parameters: Dict):
+def test_get_domain_detail(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     res = route53domains_client.get_domain_detail(
@@ -261,7 +260,7 @@ def test_get_invalid_domain_detail(domain_parameters):
 
 
 @mock_aws
-def test_list_domains(domain_parameters: Dict):
+def test_list_domains(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     res = route53domains_client.list_domains()
@@ -333,7 +332,7 @@ def test_list_domains(domain_parameters: Dict):
     ],
 )
 def test_list_domains_filters(
-    domain_parameters: Dict, filters: List[Dict], expected_domains_len: int
+    domain_parameters: dict, filters: list[dict], expected_domains_len: int
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
@@ -342,7 +341,7 @@ def test_list_domains_filters(
 
 
 @mock_aws
-def test_list_domains_sort_condition(domain_parameters: Dict):
+def test_list_domains_sort_condition(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     params = domain_parameters.copy()
     params["DomainName"] = "adomain.com"
@@ -363,7 +362,7 @@ def test_list_domains_sort_condition(domain_parameters: Dict):
 
 
 @mock_aws
-def test_list_domains_invalid_filter(domain_parameters: Dict):
+def test_list_domains_invalid_filter(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     filters = [
@@ -382,7 +381,7 @@ def test_list_domains_invalid_filter(domain_parameters: Dict):
 
 
 @mock_aws
-def test_list_domains_invalid_sort_condition(domain_parameters: Dict):
+def test_list_domains_invalid_sort_condition(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     sort = {
@@ -399,7 +398,7 @@ def test_list_domains_invalid_sort_condition(domain_parameters: Dict):
 
 @mock_aws
 def test_list_domains_sort_condition_not_the_same_as_filter_condition(
-    domain_parameters: Dict,
+    domain_parameters: dict,
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
@@ -423,7 +422,7 @@ def test_list_domains_sort_condition_not_the_same_as_filter_condition(
 
 
 @mock_aws
-def test_delete_domain(domain_parameters: Dict):
+def test_delete_domain(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     domains = route53domains_client.list_domains()["Domains"]
@@ -438,7 +437,7 @@ def test_delete_domain(domain_parameters: Dict):
 
 
 @mock_aws
-def test_delete_invalid_domain(domain_parameters: Dict):
+def test_delete_invalid_domain(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     domains = route53domains_client.list_domains()["Domains"]
     assert len(domains) == 0
@@ -460,7 +459,7 @@ def test_delete_invalid_domain(domain_parameters: Dict):
         ],
     ],
 )
-def test_update_domain_nameservers(domain_parameters: Dict, nameservers: List[Dict]):
+def test_update_domain_nameservers(domain_parameters: dict, nameservers: list[dict]):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     operation_id = route53domains_client.update_domain_nameservers(
@@ -523,7 +522,7 @@ def test_update_domain_nameservers(domain_parameters: Dict, nameservers: List[Di
     ],
 )
 def test_update_domain_nameservers_with_multiple_glue_ips(
-    domain_parameters: Dict, nameservers: List[Dict]
+    domain_parameters: dict, nameservers: list[dict]
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
@@ -536,7 +535,7 @@ def test_update_domain_nameservers_with_multiple_glue_ips(
 
 
 @mock_aws
-def test_update_domain_nameservers_requires_glue_ips(domain_parameters: Dict):
+def test_update_domain_nameservers_requires_glue_ips(domain_parameters: dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     domain_name = domain_parameters["DomainName"]

@@ -220,7 +220,7 @@ def test_split_shard_hashkey_out_of_bounds():
     assert err["Code"] == "InvalidArgumentException"
     assert (
         err["Message"]
-        == f"NewStartingHashKey 170141183460469231731687303715884000000 used in SplitShard() on shard shardId-000000000001 in stream my-stream under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey 170141183460469231731687303715884105728 and less than the shard's EndingHashKey 340282366920938463463374607431768211455."
+        == f"NewStartingHashKey 170141183460469231731687303715884000000 used in SplitShard() on shard shardId-000000000001 in stream my-stream under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey 170141183460469231731687303715884105728 and less than the shard's EndingHashKey 340282366920938463463374607431768211454."
     )
 
 
@@ -233,7 +233,7 @@ def test_split_shard():
     for index in range(1, 100):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -345,3 +345,15 @@ def test_update_shard_count(initial, target, expected_total):
     stream = resp["StreamDescriptionSummary"]
 
     assert stream["OpenShardCount"] == target
+
+
+@mock_aws
+def test_describe_limits():
+    """Test the describe_limits implementation."""
+    client = boto3.client("kinesis", region_name="us-west-2")
+    resp = client.describe_limits()
+
+    assert resp["ShardLimit"] == 6000
+    assert resp["OpenShardCount"] == 0
+    assert resp["OnDemandStreamCount"] == 0
+    assert resp["OnDemandStreamCountLimit"] == 50

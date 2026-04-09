@@ -1,9 +1,8 @@
-import json
-from typing import Any, Dict, Tuple, Union
+from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
-from .exceptions import ValidationException
+from .exceptions import ParameterNotFound, ValidationException
 from .models import SimpleSystemManagerBackend, ssm_backends
 
 
@@ -15,7 +14,7 @@ class SimpleSystemManagerResponse(BaseResponse):
     def ssm_backend(self) -> SimpleSystemManagerBackend:
         return ssm_backends[self.current_account][self.region]
 
-    def create_document(self) -> str:
+    def create_document(self) -> ActionResult:
         content = self._get_param("Content")
         requires = self._get_param("Requires")
         attachments = self._get_param("Attachments")
@@ -26,7 +25,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         target_type = self._get_param("TargetType")
         tags = self._get_param("Tags")
 
-        result = self.ssm_backend.create_document(
+        document = self.ssm_backend.create_document(
             content=content,
             requires=requires,
             attachments=attachments,
@@ -38,9 +37,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             tags=tags,
         )
 
-        return json.dumps({"DocumentDescription": result})
+        return ActionResult({"DocumentDescription": document.describe(tags=tags)})
 
-    def delete_document(self) -> str:
+    def delete_document(self) -> ActionResult:
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
         version_name = self._get_param("VersionName")
@@ -52,9 +51,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             force=force,
         )
 
-        return json.dumps({})
+        return EmptyResult()
 
-    def get_document(self) -> str:
+    def get_document(self) -> ActionResult:
         name = self._get_param("Name")
         version_name = self._get_param("VersionName")
         document_version = self._get_param("DocumentVersion")
@@ -67,9 +66,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             version_name=version_name,
         )
 
-        return json.dumps(document)
+        return ActionResult(document)
 
-    def describe_document(self) -> str:
+    def describe_document(self) -> ActionResult:
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
         version_name = self._get_param("VersionName")
@@ -78,9 +77,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             name=name, document_version=document_version, version_name=version_name
         )
 
-        return json.dumps({"Document": result})
+        return ActionResult({"Document": result})
 
-    def update_document(self) -> str:
+    def update_document(self) -> ActionResult:
         content = self._get_param("Content")
         attachments = self._get_param("Attachments")
         name = self._get_param("Name")
@@ -99,18 +98,18 @@ class SimpleSystemManagerResponse(BaseResponse):
             target_type=target_type,
         )
 
-        return json.dumps({"DocumentDescription": result})
+        return ActionResult({"DocumentDescription": result})
 
-    def update_document_default_version(self) -> str:
+    def update_document_default_version(self) -> ActionResult:
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
 
         result = self.ssm_backend.update_document_default_version(
             name=name, document_version=document_version
         )
-        return json.dumps({"Description": result})
+        return ActionResult({"Description": result})
 
-    def list_documents(self) -> str:
+    def list_documents(self) -> ActionResult:
         document_filter_list = self._get_param("DocumentFilterList")
         filters = self._get_param("Filters")
         max_results = self._get_param("MaxResults", 10)
@@ -123,15 +122,15 @@ class SimpleSystemManagerResponse(BaseResponse):
             token=next_token,
         )
 
-        return json.dumps({"DocumentIdentifiers": documents, "NextToken": token})
+        return ActionResult({"DocumentIdentifiers": documents, "NextToken": token})
 
-    def describe_document_permission(self) -> str:
+    def describe_document_permission(self) -> ActionResult:
         name = self._get_param("Name")
 
         result = self.ssm_backend.describe_document_permission(name=name)
-        return json.dumps(result)
+        return ActionResult(result)
 
-    def modify_document_permission(self) -> str:
+    def modify_document_permission(self) -> ActionResult:
         account_ids_to_add = self._get_param("AccountIdsToAdd")
         account_ids_to_remove = self._get_param("AccountIdsToRemove")
         name = self._get_param("Name")
@@ -145,33 +144,27 @@ class SimpleSystemManagerResponse(BaseResponse):
             shared_document_version=shared_document_version,
             permission_type=permission_type,
         )
-        return "{}"
+        return EmptyResult()
 
-    def delete_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def delete_parameter(self) -> ActionResult:
         name = self._get_param("Name")
-        result = self.ssm_backend.delete_parameter(name)
-        if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), dict(status=400)
-        return json.dumps({})
+        self.ssm_backend.delete_parameter(name)
+        return EmptyResult()
 
-    def delete_parameters(self) -> str:
+    def delete_parameters(self) -> ActionResult:
         names = self._get_param("Names")
         result = self.ssm_backend.delete_parameters(names)
 
-        response: Dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
 
         for name in names:
             if name in result:
                 response["DeletedParameters"].append(name)
             else:
                 response["InvalidParameters"].append(name)
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def get_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter(self) -> ActionResult:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
@@ -186,24 +179,20 @@ class SimpleSystemManagerResponse(BaseResponse):
         result = self.ssm_backend.get_parameter(name)
 
         if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), dict(status=400)
+            raise ParameterNotFound(f"Parameter {name} not found.")
 
         response = {"Parameter": result.response_object(with_decryption, self.region)}
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def get_parameters(self) -> str:
+    def get_parameters(self) -> ActionResult:
         names = self._get_param("Names")
         with_decryption = self._get_param("WithDecryption")
 
         result = self.ssm_backend.get_parameters(names)
 
-        response: Dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
 
-        for name, parameter in result.items():
+        for parameter in result.values():
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
@@ -211,9 +200,9 @@ class SimpleSystemManagerResponse(BaseResponse):
         for name in names:
             if name not in valid_param_names:
                 response["InvalidParameters"].append(name)
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def get_parameters_by_path(self) -> str:
+    def get_parameters_by_path(self) -> ActionResult:
         path = self._get_param("Path")
         with_decryption = self._get_param("WithDecryption")
         recursive = self._get_param("Recursive", False)
@@ -229,15 +218,15 @@ class SimpleSystemManagerResponse(BaseResponse):
             max_results=max_results,
         )
 
-        response: Dict[str, Any] = {"Parameters": [], "NextToken": next_token}
+        response: dict[str, Any] = {"Parameters": [], "NextToken": next_token}
 
         for parameter in result:
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def describe_parameters(self) -> str:
+    def describe_parameters(self) -> ActionResult:
         page_size = 10
         filters = self._get_param("Filters")
         parameter_filters = self._get_param("ParameterFilters")
@@ -250,7 +239,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.describe_parameters(filters, parameter_filters)
 
-        response: Dict[str, Any] = {"Parameters": []}
+        response: dict[str, Any] = {"Parameters": []}
 
         end = token + page_size
         for parameter in result[token:]:
@@ -261,9 +250,9 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response["NextToken"] = str(end)
                 break
 
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def put_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def put_parameter(self) -> ActionResult:
         name = self._get_param("Name")
         description = self._get_param("Description")
         value = self._get_param("Value")
@@ -290,10 +279,10 @@ class SimpleSystemManagerResponse(BaseResponse):
             policies=policies,
         )
 
-        response = {"Version": param.version}
-        return json.dumps(response)
+        response = {"Version": param.version, "Tier": param.tier}
+        return ActionResult(response)
 
-    def get_parameter_history(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter_history(self) -> ActionResult:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
         next_token = self._get_param("NextToken")
@@ -304,11 +293,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
 
         if result is None:
-            error = {
-                "__type": "ParameterNotFound",
-                "message": f"Parameter {name} not found.",
-            }
-            return json.dumps(error), dict(status=400)
+            raise ParameterNotFound(f"Parameter {name} not found.")
 
         response = {
             "Parameters": [
@@ -320,9 +305,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             "NextToken": new_next_token,
         }
 
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def label_parameter_version(self) -> str:
+    def label_parameter_version(self) -> ActionResult:
         name = self._get_param("Name")
         version = self._get_param("ParameterVersion")
         labels = self._get_param("Labels")
@@ -332,27 +317,39 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
 
         response = {"InvalidLabels": invalid_labels, "ParameterVersion": version}
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def add_tags_to_resource(self) -> str:
+    def unlabel_parameter_version(self) -> ActionResult:
+        name = self._get_param("Name")
+        version = self._get_param("ParameterVersion")
+        labels = self._get_param("Labels")
+
+        removed_labels, invalid_labels = self.ssm_backend.unlabel_parameter_version(
+            name, version, labels
+        )
+
+        response = {"RemovedLabels": removed_labels, "InvalidLabels": invalid_labels}
+        return ActionResult(response)
+
+    def add_tags_to_resource(self) -> ActionResult:
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
         self.ssm_backend.add_tags_to_resource(
             resource_type=resource_type, resource_id=resource_id, tags=tags
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def remove_tags_from_resource(self) -> str:
+    def remove_tags_from_resource(self) -> ActionResult:
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         keys = self._get_param("TagKeys")
         self.ssm_backend.remove_tags_from_resource(
             resource_type=resource_type, resource_id=resource_id, keys=keys
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         tags = self.ssm_backend.list_tags_for_resource(
@@ -360,9 +357,9 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         tag_list = [{"Key": k, "Value": v} for (k, v) in tags.items()]
         response = {"TagList": tag_list}
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def send_command(self) -> str:
+    def send_command(self) -> ActionResult:
         comment = self._get_param("Comment", "")
         document_name = self._get_param("DocumentName")
         timeout_seconds = self._get_int_param("TimeoutSeconds")
@@ -391,25 +388,25 @@ class SimpleSystemManagerResponse(BaseResponse):
             service_role_arn=service_role_arn,
             targets=targets,
         )
-        return json.dumps({"Command": command.response_object()})
+        return ActionResult({"Command": command.response_object()})
 
-    def list_commands(self) -> str:
+    def list_commands(self) -> ActionResult:
         command_id = self._get_param("CommandId")
         instance_id = self._get_param("InstanceId")
         commands = self.ssm_backend.list_commands(command_id, instance_id)
         response = {"Commands": [command.response_object() for command in commands]}
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def get_command_invocation(self) -> str:
+    def get_command_invocation(self) -> ActionResult:
         command_id = self._get_param("CommandId")
         instance_id = self._get_param("InstanceId")
         plugin_name = self._get_param("PluginName")
         response = self.ssm_backend.get_command_invocation(
             command_id, instance_id, plugin_name
         )
-        return json.dumps(response)
+        return ActionResult(response)
 
-    def create_maintenance_window(self) -> str:
+    def create_maintenance_window(self) -> ActionResult:
         name = self._get_param("Name")
         desc = self._get_param("Description", None)
         duration = self._get_int_param("Duration")
@@ -432,14 +429,14 @@ class SimpleSystemManagerResponse(BaseResponse):
             end_date=end_date,
             tags=tags,
         )
-        return json.dumps({"WindowId": window_id})
+        return ActionResult({"WindowId": window_id})
 
-    def get_maintenance_window(self) -> str:
+    def get_maintenance_window(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         window = self.ssm_backend.get_maintenance_window(window_id)
-        return json.dumps(window.to_json())
+        return ActionResult(window.to_json())
 
-    def register_target_with_maintenance_window(self) -> str:
+    def register_target_with_maintenance_window(self) -> ActionResult:
         window_target_id = self.ssm_backend.register_target_with_maintenance_window(
             window_id=self._get_param("WindowId"),
             resource_type=self._get_param("ResourceType"),
@@ -448,9 +445,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             name=self._get_param("Name"),
             description=self._get_param("Description"),
         )
-        return json.dumps({"WindowTargetId": window_target_id})
+        return ActionResult({"WindowTargetId": window_target_id})
 
-    def describe_maintenance_window_targets(self) -> str:
+    def describe_maintenance_window_targets(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         filters = self._get_param("Filters", [])
         targets = [
@@ -459,30 +456,30 @@ class SimpleSystemManagerResponse(BaseResponse):
                 window_id, filters
             )
         ]
-        return json.dumps({"Targets": targets})
+        return ActionResult({"Targets": targets})
 
-    def deregister_target_from_maintenance_window(self) -> str:
+    def deregister_target_from_maintenance_window(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         window_target_id = self._get_param("WindowTargetId")
         self.ssm_backend.deregister_target_from_maintenance_window(
             window_id, window_target_id
         )
-        return "{}"
+        return EmptyResult()
 
-    def describe_maintenance_windows(self) -> str:
+    def describe_maintenance_windows(self) -> ActionResult:
         filters = self._get_param("Filters", None)
         windows = [
             window.to_json()
             for window in self.ssm_backend.describe_maintenance_windows(filters)
         ]
-        return json.dumps({"WindowIdentities": windows})
+        return ActionResult({"WindowIdentities": windows})
 
-    def delete_maintenance_window(self) -> str:
+    def delete_maintenance_window(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         self.ssm_backend.delete_maintenance_window(window_id)
-        return "{}"
+        return EmptyResult()
 
-    def create_patch_baseline(self) -> str:
+    def create_patch_baseline(self) -> ActionResult:
         baseline_id = self.ssm_backend.create_patch_baseline(
             name=self._get_param("Name"),
             operating_system=self._get_param("OperatingSystem"),
@@ -501,22 +498,22 @@ class SimpleSystemManagerResponse(BaseResponse):
             sources=self._get_param("Sources", []),
             tags=self._get_param("Tags", []),
         )
-        return json.dumps({"BaselineId": baseline_id})
+        return ActionResult({"BaselineId": baseline_id})
 
-    def describe_patch_baselines(self) -> str:
+    def describe_patch_baselines(self) -> ActionResult:
         filters = self._get_param("Filters", None)
         baselines = [
             baseline.to_json()
             for baseline in self.ssm_backend.describe_patch_baselines(filters)
         ]
-        return json.dumps({"BaselineIdentities": baselines})
+        return ActionResult({"BaselineIdentities": baselines})
 
-    def delete_patch_baseline(self) -> str:
+    def delete_patch_baseline(self) -> ActionResult:
         baseline_id = self._get_param("BaselineId")
         self.ssm_backend.delete_patch_baseline(baseline_id)
-        return "{}"
+        return EmptyResult()
 
-    def register_task_with_maintenance_window(self) -> str:
+    def register_task_with_maintenance_window(self) -> ActionResult:
         window_task_id = self.ssm_backend.register_task_with_maintenance_window(
             window_id=self._get_param("WindowId"),
             targets=self._get_param("Targets"),
@@ -534,9 +531,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             cutoff_behavior=self._get_param("CutoffBehavior"),
             alarm_configurations=self._get_param("AlarmConfigurations"),
         )
-        return json.dumps({"WindowTaskId": window_task_id})
+        return ActionResult({"WindowTaskId": window_task_id})
 
-    def describe_maintenance_window_tasks(self) -> str:
+    def describe_maintenance_window_tasks(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         filters = self._get_param("Filters", [])
         tasks = [
@@ -545,12 +542,51 @@ class SimpleSystemManagerResponse(BaseResponse):
                 window_id, filters
             )
         ]
-        return json.dumps({"Tasks": tasks})
+        return ActionResult({"Tasks": tasks})
 
-    def deregister_task_from_maintenance_window(self) -> str:
+    def deregister_task_from_maintenance_window(self) -> ActionResult:
         window_id = self._get_param("WindowId")
         window_task_id = self._get_param("WindowTaskId")
         self.ssm_backend.deregister_task_from_maintenance_window(
             window_id, window_task_id
         )
-        return "{}"
+        return EmptyResult()
+
+    def get_patch_baseline_for_patch_group(self) -> ActionResult:
+        patch_group = self._get_param("PatchGroup")
+        operating_system = self._get_param("OperatingSystem")
+        baseline_id, patch_group, operating_system = (
+            self.ssm_backend.get_patch_baseline_for_patch_group(
+                patch_group=patch_group,
+                operating_system=operating_system,
+            )
+        )
+        return ActionResult(
+            {
+                "BaselineId": baseline_id,
+                "PatchGroup": patch_group,
+                "OperatingSystem": operating_system,
+            }
+        )
+
+    def deregister_patch_baseline_for_patch_group(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.deregister_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return ActionResult({"BaselineId": baseline_id, "PatchGroup": patch_group})
+
+    def register_patch_baseline_for_patch_group(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.register_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return ActionResult({"BaselineId": baseline_id, "PatchGroup": patch_group})

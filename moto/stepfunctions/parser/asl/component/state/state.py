@@ -4,7 +4,7 @@ import abc
 import datetime
 import logging
 from abc import ABC
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     ExecutionFailedEventDetails,
@@ -12,11 +12,9 @@ from moto.stepfunctions.parser.api import (
     HistoryEventType,
     StateEnteredEventDetails,
     StateExitedEventDetails,
+    TaskFailedEventDetails,
 )
 from moto.stepfunctions.parser.asl.component.common.assign.assign_decl import AssignDecl
-from moto.stepfunctions.parser.asl.component.common.catch.catch_outcome import (
-    CatchOutcome,
-)
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
@@ -33,15 +31,15 @@ from moto.stepfunctions.parser.asl.component.common.flow.next import Next
 from moto.stepfunctions.parser.asl.component.common.outputdecl import Output
 from moto.stepfunctions.parser.asl.component.common.path.input_path import (
     InputPath,
-    InputPathBase,
 )
-from moto.stepfunctions.parser.asl.component.common.path.output_path import (
-    OutputPath,
-    OutputPathBase,
-)
+from moto.stepfunctions.parser.asl.component.common.path.output_path import OutputPath
 from moto.stepfunctions.parser.asl.component.common.query_language import (
     QueryLanguage,
     QueryLanguageMode,
+)
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    JSONPATH_ROOT_PATH,
+    StringJsonPath,
 )
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.component.state.state_continue_with import (
@@ -56,6 +54,7 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.eval.program_state import ProgramRunning
 from moto.stepfunctions.parser.asl.eval.states import StateData
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+from moto.stepfunctions.parser.asl.utils.json_path import NoSuchJsonPathError
 from moto.stepfunctions.parser.quotas import is_within_size_quota
 
 LOG = logging.getLogger(__name__)
@@ -88,17 +87,14 @@ class CommonStateField(EvalComponent, ABC):
 
     output: Optional[Output]
 
-    state_entered_event_type: HistoryEventType
-    state_exited_event_type: Optional[HistoryEventType]
+    state_entered_event_type: Final[HistoryEventType]
+    state_exited_event_type: Final[Optional[HistoryEventType]]
 
     def __init__(
         self,
         state_entered_event_type: HistoryEventType,
         state_exited_event_type: Optional[HistoryEventType],
     ):
-        self.comment = None
-        self.input_path = InputPathBase(InputPathBase.DEFAULT_PATH)
-        self.output_path = OutputPathBase(OutputPathBase.DEFAULT_PATH)
         self.state_entered_event_type = state_entered_event_type
         self.state_exited_event_type = state_exited_event_type
 
@@ -115,11 +111,11 @@ class CommonStateField(EvalComponent, ABC):
         self.assign_decl = state_props.get(AssignDecl)
         # JSONPath sub-productions.
         if self.query_language.query_language_mode == QueryLanguageMode.JSONPath:
-            self.input_path = state_props.get(InputPath) or InputPathBase(
-                InputPathBase.DEFAULT_PATH
+            self.input_path = state_props.get(InputPath) or InputPath(
+                StringJsonPath(JSONPATH_ROOT_PATH)
             )
-            self.output_path = state_props.get(OutputPath) or OutputPathBase(
-                OutputPathBase.DEFAULT_PATH
+            self.output_path = state_props.get(OutputPath) or OutputPath(
+                StringJsonPath(JSONPATH_ROOT_PATH)
             )
             self.output = None
         # JSONata sub-productions.
@@ -199,8 +195,25 @@ class CommonStateField(EvalComponent, ABC):
             )
         )
 
+    def _eval_state_input(self, env: Environment) -> None:
+        # Filter the input onto the stack.
+        if self.input_path:
+            self.input_path.eval(env)
+        else:
+            env.stack.append(env.states.get_input())
+
     @abc.abstractmethod
     def _eval_state(self, env: Environment) -> None: ...
+
+    def _eval_state_output(self, env: Environment) -> None:
+        # Process output value as next state input.
+        if self.output_path:
+            self.output_path.eval(env=env)
+        elif self.output:
+            self.output.eval(env=env)
+        else:
+            current_output = env.stack.pop()
+            env.states.reset(input_value=current_output)
 
     def _eval_body(self, env: Environment) -> None:
         env.event_manager.add_event(
@@ -210,44 +223,43 @@ class CommonStateField(EvalComponent, ABC):
                 stateEnteredEventDetails=self._get_state_entered_event_details(env=env)
             ),
         )
-
         env.states.context_object.context_object_data["State"] = StateData(
             EnteredTime=datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
             Name=self.name,
         )
 
-        # Filter the input onto the stack.
-        if self.input_path:
-            self.input_path.eval(env)
-        else:
-            env.stack.append(env.states.get_input())
+        self._eval_state_input(env=env)
 
-        # Exec the state's logic.
-        self._eval_state(env)
-        #
+        try:
+            self._eval_state(env)
+        except NoSuchJsonPathError as no_such_json_path_error:
+            data_json_str = to_json_str(no_such_json_path_error.data)
+            cause = (
+                f"The JSONPath '{no_such_json_path_error.json_path}' specified for the field '{env.next_field_name}' "
+                f"could not be found in the input '{data_json_str}'"
+            )
+            raise FailureEventException(
+                failure_event=FailureEvent(
+                    env=env,
+                    error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
+                    event_type=HistoryEventType.TaskFailed,
+                    event_details=EventDetails(
+                        taskFailedEventDetails=TaskFailedEventDetails(
+                            error=StatesErrorNameType.StatesRuntime.to_name(),
+                            cause=cause,
+                        )
+                    ),
+                )
+            )
+
         if not isinstance(env.program_state(), ProgramRunning):
             return
 
-        # Obtain a reference to the state output.
-        output = env.stack[-1]
+        self._eval_state_output(env=env)
 
-        # CatcherOutputs (i.e. outputs of Catch blocks) are never subjects of output normalisers,
-        # the entire value is instead passed by value as input to the next state, or program output.
-        if not isinstance(output, CatchOutcome):
-            # Ensure the state's output is within state size quotas.
-            self._verify_size_quota(env=env, value=output)
+        self._verify_size_quota(env=env, value=env.states.get_input())
 
-            # Process output value as next state input.
-            if self.output_path:
-                self.output_path.eval(env=env)
-            elif self.output:
-                self.output.eval(env=env)
-            else:
-                current_output = env.stack.pop()
-                env.states.reset(input_value=current_output)
-
-            # Set next state or halt (end).
-            self._set_next(env)
+        self._set_next(env)
 
         if self.state_exited_event_type is not None:
             env.event_manager.add_event(

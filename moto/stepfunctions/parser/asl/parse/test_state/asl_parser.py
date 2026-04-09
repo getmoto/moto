@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from antlr4 import CommonTokenStream, InputStream, ParserRuleContext
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
@@ -17,7 +15,7 @@ from moto.stepfunctions.parser.asl.parse.test_state.preprocessor import (
 
 class TestStateAmazonStateLanguageParser(AmazonStateLanguageParser):
     @staticmethod
-    def parse(definition: str) -> Tuple[EvalComponent, ParserRuleContext]:
+    def parse(definition: str) -> tuple[EvalComponent, ParserRuleContext]:
         # Attempt to build the AST and look out for syntax errors.
         syntax_error_listener = SyntaxErrorListener()
 

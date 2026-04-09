@@ -1,9 +1,9 @@
 import string
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
@@ -33,14 +33,14 @@ class ActiveTrustedSigners:
     def __init__(self) -> None:
         self.enabled = False
         self.quantity = 0
-        self.signers: List[Any] = []
+        self.items: list[Any] = []
 
 
 class ActiveTrustedKeyGroups:
     def __init__(self) -> None:
         self.enabled = False
         self.quantity = 0
-        self.kg_key_pair_ids: List[Any] = []
+        self.items: list[Any] = []
 
 
 class LambdaFunctionAssociation:
@@ -51,77 +51,76 @@ class LambdaFunctionAssociation:
 
 
 class ForwardedValues:
-    def __init__(self, config: Dict[str, Any]):
-        self.query_string = config.get("QueryString", "false")
-        self.cookie_forward = config.get("Cookies", {}).get("Forward") or "none"
-        self.whitelisted_names = (
-            config.get("Cookies", {}).get("WhitelistedNames", {}).get("Items") or {}
-        )
-        self.whitelisted_names = self.whitelisted_names.get("Name") or []
-        if isinstance(self.whitelisted_names, str):
-            self.whitelisted_names = [self.whitelisted_names]
-        self.headers: List[Any] = []
-        self.query_string_cache_keys: List[Any] = []
-        self.cookies: List[Dict[str, Any]] = config.get("Cookies") or []
+    def __init__(self, config: dict[str, Any]):
+        if "QueryString" not in config:
+            config["QueryString"] = False
+        if "Cookies" not in config:
+            config["Cookies"] = {"Forward": "none"}
+        self.__dict__.update(config)
 
 
 class TrustedSigners:
-    def __init__(self, config: Dict[str, Any]):
-        items = config.get("Items") or {}
-        self.acct_nums = items.get("AwsAccountNumber") or []
-        if isinstance(self.acct_nums, str):
-            self.acct_nums = [self.acct_nums]
+    def __init__(self, config: dict[str, Any]):
+        self.items = config.get("Items", [])
+        self.quantity = len(self.items)
+        self.enabled = True if self.quantity else False
 
 
 class TrustedKeyGroups:
-    def __init__(self, config: Dict[str, Any]):
-        items = config.get("Items") or {}
-        self.group_ids = items.get("KeyGroup") or []
-        if isinstance(self.group_ids, str):
-            self.group_ids = [self.group_ids]
+    def __init__(self, config: dict[str, Any]):
+        self.items = config.get("Items", [])
+        self.quantity = len(self.items)
+        self.enabled = True if self.quantity > 0 else False
+
+
+class AllowedMethods:
+    def __init__(self, config: dict[str, Any]):
+        self.items = config.get("Items", ["HEAD", "GET"])
+        self.quantity = len(self.items)
+        cached_methods = config.get("CachedMethods", {})
+        cached_methods_items = cached_methods.get("Items", ["GET", "HEAD"])
+        self.cached_methods = {
+            "Items": cached_methods_items,
+            "Quantity": len(cached_methods_items),
+        }
 
 
 class DefaultCacheBehaviour:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.target_origin_id = config["TargetOriginId"]
         self.trusted_signers_enabled = False
         self.trusted_signers = TrustedSigners(config.get("TrustedSigners") or {})
         self.trusted_key_groups = TrustedKeyGroups(config.get("TrustedKeyGroups") or {})
         self.viewer_protocol_policy = config["ViewerProtocolPolicy"]
         methods = config.get("AllowedMethods", {})
-        self.allowed_methods = methods.get("Items", {}).get("Method", ["HEAD", "GET"])
-        self.cached_methods = (
-            methods.get("CachedMethods", {})
-            .get("Items", {})
-            .get("Method", ["GET", "HEAD"])
-        )
-        self.smooth_streaming = config.get("SmoothStreaming") or True
-        self.compress = config.get("Compress", "true").lower() == "true"
-        self.lambda_function_associations: List[Any] = []
-        self.function_associations: List[Any] = []
+        self.allowed_methods = AllowedMethods(methods)
+        self.smooth_streaming = config.get("SmoothStreaming", False)
+        self.compress = config.get("Compress", True)
+        self.lambda_function_associations = {"Quantity": 0}
+        self.function_associations = {"Quantity": 0}
         self.field_level_encryption_id = config.get("FieldLevelEncryptionId") or ""
         self.forwarded_values = ForwardedValues(config.get("ForwardedValues", {}))
         self.min_ttl = config.get("MinTTL") or 0
         self.default_ttl = config.get("DefaultTTL") or 0
         self.max_ttl = config.get("MaxTTL") or 0
         self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
+        self.cache_policy_id = config.get("CachePolicyId", "")
+        self.origin_request_policy_id = config.get("OriginRequestPolicyId")
+        self.response_headers_policy_id = config.get("ResponseHeadersPolicyId")
 
 
 class CacheBehaviour(DefaultCacheBehaviour):
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         super().__init__(config)
         self.path_pattern: str = config.get("PathPattern", "")
         methods = config.get("AllowedMethods", {})
-        self.cached_methods: List[str] = (
-            methods.get("CachedMethods", {}).get("Items", {}).get("Method", [])
-        )
-        self.allowed_methods: List[str] = methods.get("Items", {}).get("Method", [])
+        self.allowed_methods = AllowedMethods(methods)
         self.cache_policy_id = config.get("CachePolicyId", "")
         self.origin_request_policy_id = config.get("OriginRequestPolicyId", "")
 
 
 class Logging:
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         self.enabled = config.get("Enabled") or False
         self.include_cookies = config.get("IncludeCookies") or False
         self.bucket = config.get("Bucket") or ""
@@ -129,42 +128,42 @@ class Logging:
 
 
 class ViewerCertificate:
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         self.cloud_front_default_certificate = config.get(
             "CloudFrontDefaultCertificate", True
         )
-        if isinstance(self.cloud_front_default_certificate, str):
-            self.cloud_front_default_certificate = (
-                self.cloud_front_default_certificate.lower() == "true"
-            )
         self.iam_certificate_id = config.get("IAMCertificateId") or ""
         self.acm_certificate_arn = config.get("ACMCertificateArn") or ""
         self.ssl_support_method = config.get("SSLSupportMethod") or "sni-only"
-        self.min_protocol_version = config.get("MinimumProtocolVersion") or "TLSv1"
+        self.minimum_protocol_version = config.get("MinimumProtocolVersion") or "TLSv1"
         self.certificate_source = "cloudfront"
+        self.certificate = config.get("Certificate", "")
 
 
 class CustomOriginConfig:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.http_port = config.get("HTTPPort")
         self.https_port = config.get("HTTPSPort")
-        self.keep_alive = config.get("OriginKeepaliveTimeout") or 5
-        self.protocol_policy = config.get("OriginProtocolPolicy")
-        self.read_timeout = config.get("OriginReadTimeout") or 30
-        protocols = config.get("OriginSslProtocols", {}).get("Items") or {}
-        self.ssl_protocols = protocols.get("SslProtocol") or []
-        if isinstance(self.ssl_protocols, str):
-            self.ssl_protocols = [self.ssl_protocols]
+        self.origin_keepalive_timeout = config.get("OriginKeepaliveTimeout") or 5
+        self.origin_protocol_policy = config.get("OriginProtocolPolicy")
+        self.origin_read_timeout = config.get("OriginReadTimeout") or 30
+        protocols = config.get("OriginSslProtocols", {}).get("Items", [])
+        self.origin_ssl_protocols = {
+            "Quantity": len(protocols),
+            "Items": protocols,
+        }
 
 
 class Origin:
-    def __init__(self, origin: Dict[str, Any]):
+    def __init__(self, origin: dict[str, Any]):
         self.id = origin["Id"]
         self.domain_name = origin["DomainName"]
         self.origin_path = origin.get("OriginPath") or ""
         self.s3_access_identity = ""
         self.custom_origin = None
-        self.origin_shield = origin.get("OriginShield")
+        if "OriginShield" not in origin:
+            origin["OriginShield"] = {"Enabled": False}
+        self.origin_shield = origin["OriginShield"]
         self.connection_attempts = origin.get("ConnectionAttempts") or 3
         self.connection_timeout = origin.get("ConnectionTimeout") or 10
 
@@ -175,80 +174,82 @@ class Origin:
             self.s3_access_identity = origin["S3OriginConfig"]["OriginAccessIdentity"]
 
         if "CustomOriginConfig" in origin:
-            self.custom_origin = CustomOriginConfig(origin["CustomOriginConfig"])
+            self.custom_origin_config = CustomOriginConfig(origin["CustomOriginConfig"])
 
-        custom_headers = origin.get("CustomHeaders") or {}
-        custom_headers = custom_headers.get("Items") or {}
-        custom_headers = custom_headers.get("OriginCustomHeader") or []
-        if isinstance(custom_headers, dict):
-            # Happens if user only sends a single header
-            custom_headers = [custom_headers]
-        self.custom_headers = custom_headers
+        if "CustomHeaders" not in origin:
+            origin["CustomHeaders"] = {"Quantity": 0, "Items": []}
+        self.custom_headers = origin["CustomHeaders"]
 
 
-class GeoRestrictions:
-    def __init__(self, config: Dict[str, Any]):
-        config = config.get("GeoRestriction") or {}
-        self._type = config.get("RestrictionType", "none")
-        self.restrictions = (config.get("Items") or {}).get("Location") or []
+class GeoRestriction:
+    def __init__(self, config: dict[str, Any]):
+        self.restriction_type = config.get("RestrictionType", "none")
+        self.items = config.get("Items", [])
+        self.quantity = len(self.items)
+        if not self.quantity:
+            self.items = None
 
 
 class DistributionConfig:
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.aliases = ((config.get("Aliases") or {}).get("Items") or {}).get(
-            "CNAME"
-        ) or []
-        if isinstance(self.aliases, str):
-            self.aliases = [self.aliases]
-        self.comment = config.get("Comment") or ""
-        self.default_cache_behavior = DefaultCacheBehaviour(
-            config["DefaultCacheBehavior"]
+    def __init__(self, config: dict[str, Any]):
+        if "Aliases" not in config:
+            config["Aliases"] = {"Quantity": 0}
+        else:
+            config["Aliases"]["Quantity"] = len(config["Aliases"].get("Items", []))
+        if "OriginGroups" not in config:
+            config["OriginGroups"] = {"Quantity": 0}
+        if "CustomErrorResponses" not in config:
+            config["CustomErrorResponses"] = {"Quantity": 0}
+        if "ViewerCertificate" not in config:
+            config["ViewerCertificate"] = ViewerCertificate({})
+        else:
+            config["ViewerCertificate"] = ViewerCertificate(config["ViewerCertificate"])
+        config["Origins"]["Items"] = [Origin(o) for o in config["Origins"]["Items"]]
+        if "CacheBehaviors" not in config:
+            config["CacheBehaviors"] = {"Quantity": 0}
+        elif config["CacheBehaviors"].get("Quantity"):
+            config["CacheBehaviors"]["Items"] = [
+                CacheBehaviour(cb) for cb in config["CacheBehaviors"]["Items"]
+            ]
+        if "Restrictions" not in config:
+            config["Restrictions"] = {"GeoRestriction": GeoRestriction({})}
+        elif config.get("Restrictions", {}).get("GeoRestriction"):
+            config["Restrictions"]["GeoRestriction"] = GeoRestriction(
+                config["Restrictions"]["GeoRestriction"]
+            )
+        config["Logging"] = Logging(config.get("Logging", {}))
+        config["DefaultCacheBehavior"] = DefaultCacheBehaviour(
+            config.get("DefaultCacheBehavior", {})
         )
-        self.cache_behaviors: List[Any] = []
-        if config.get("CacheBehaviors", {}).get("Items"):
-            for _, v in config.get("CacheBehaviors", {}).get("Items").items():
-                self.cache_behaviors.append(CacheBehaviour(v))
-        self.custom_error_responses: List[Any] = []
-        self.logging = Logging(config.get("Logging") or {})
-        self.enabled = config.get("Enabled") or False
-        self.viewer_certificate = ViewerCertificate(
-            config.get("ViewerCertificate") or {}
-        )
-        self.geo_restriction = GeoRestrictions(config.get("Restrictions") or {})
-        self.caller_reference = config.get("CallerReference", str(random.uuid4()))
-        self.origins = config["Origins"]["Items"]["Origin"]
-        if not isinstance(self.origins, list):
-            self.origins = [self.origins]
-
-        # This check happens before any other Origins-validation
-        if self.default_cache_behavior.target_origin_id not in [
-            o["Id"] for o in self.origins
+        config["PriceClass"] = config.get("PriceClass", "PriceClass_All")
+        config["HttpVersion"] = config.get("HttpVersion", "http2")
+        config["IsIPV6Enabled"] = config.get("IsIPV6Enabled", True)
+        config["DefaultRootObject"] = config.get("DefaultRootObject", "")
+        config["WebACLId"] = config.get("WebACLId", "")
+        if config["DefaultCacheBehavior"].target_origin_id not in [
+            o.id for o in config["Origins"]["Items"]
         ]:
             raise OriginDoesNotExist
-
-        self.origins = [Origin(o) for o in self.origins]
-        self.price_class = config.get("PriceClass", "PriceClass_All")
-        self.http_version = config.get("HttpVersion", "http2")
-        self.is_ipv6_enabled = config.get("IsIPV6Enabled", "true").lower() == "true"
-        self.default_root_object = config.get("DefaultRootObject") or ""
-        self.web_acl_id = config.get("WebACLId") or ""
+        self.__dict__.update(config)
+        # HACK: this attribute is referenced in backend methods.
+        self.caller_reference = config["CallerReference"]
 
 
 class Distribution(BaseModel, ManagedState):
-    def __init__(self, account_id: str, region_name: str, config: Dict[str, Any]):
+    def __init__(self, account_id: str, region_name: str, config: dict[str, Any]):
         # Configured ManagedState
         super().__init__(
             "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
         )
         # Configure internal properties
         self.distribution_id = random_id()
+        self.id = self.distribution_id
         self.arn = f"arn:{get_partition(region_name)}:cloudfront:{account_id}:distribution/{self.distribution_id}"
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
         self.active_trusted_key_groups = ActiveTrustedKeyGroups()
-        self.origin_groups: List[Any] = []
-        self.alias_icp_recordals: List[Any] = []
+        self.origin_groups: list[Any] = []
+        self.alias_icp_recordals: list[Any] = []
         self.last_modified_time = "2021-11-27T10:34:26.802Z"
         self.in_progress_invalidation_batches = 0
         self.has_active_trusted_key_groups = False
@@ -261,16 +262,16 @@ class Distribution(BaseModel, ManagedState):
 
 
 class OriginAccessControl(BaseModel):
-    def __init__(self, config_dict: Dict[str, str]):
+    def __init__(self, config_dict: dict[str, str]):
         self.id = random_id()
         self.name = config_dict.get("Name")
         self.description = config_dict.get("Description")
         self.signing_protocol = config_dict.get("SigningProtocol")
-        self.signing_behaviour = config_dict.get("SigningBehavior")
+        self.signing_behavior = config_dict.get("SigningBehavior")
         self.origin_type = config_dict.get("OriginAccessControlOriginType")
         self.etag = random_id()
 
-    def update(self, config: Dict[str, str]) -> None:
+    def update(self, config: dict[str, str]) -> None:
         if "Name" in config:
             self.name = config["Name"]
         if "Description" in config:
@@ -278,26 +279,30 @@ class OriginAccessControl(BaseModel):
         if "SigningProtocol" in config:
             self.signing_protocol = config["SigningProtocol"]
         if "SigningBehavior" in config:
-            self.signing_behaviour = config["SigningBehavior"]
+            self.signing_behavior = config["SigningBehavior"]
         if "OriginAccessControlOriginType" in config:
             self.origin_type = config["OriginAccessControlOriginType"]
 
 
 class Invalidation(BaseModel):
-    def __init__(
-        self, distribution: Distribution, paths: Dict[str, Any], caller_ref: str
-    ):
-        self.invalidation_id = random_id()
-        self.create_time = iso_8601_datetime_with_milliseconds()
+    def __init__(self, distribution: Distribution, paths: list[str], caller_ref: str):
+        self.id = random_id()
+        self.create_time = utcnow()
         self.distribution = distribution
         self.status = "COMPLETED"
-
         self.paths = paths
         self.caller_ref = caller_ref
 
     @property
     def location(self) -> str:
-        return self.distribution.location + f"/invalidation/{self.invalidation_id}"
+        return self.distribution.location + f"/invalidation/{self.id}"
+
+    @property
+    def invalidation_batch(self) -> dict[str, Any]:
+        return {
+            "Paths": {"Quantity": len(self.paths), "Items": self.paths},
+            "CallerReference": self.caller_ref,
+        }
 
 
 class PublicKey(BaseModel):
@@ -306,7 +311,8 @@ class PublicKey(BaseModel):
         self.caller_ref = caller_ref
         self.name = name
         self.encoded_key = encoded_key
-        self.created = iso_8601_datetime_with_milliseconds()
+        self.created_time = utcnow()
+        self.comment = ""
         self.etag = random_id(length=14)
         self.location = (
             f"https://cloudfront.amazonaws.com/2020-05-31/public-key/{self.id}"
@@ -316,9 +322,18 @@ class PublicKey(BaseModel):
         if not self.encoded_key.endswith("\n"):
             self.encoded_key += "\n"
 
+    @property
+    def public_key_config(self) -> dict[str, str]:
+        return {
+            "CallerReference": self.caller_ref,
+            "Name": self.name,
+            "EncodedKey": self.encoded_key,
+            "Comment": self.comment,
+        }
+
 
 class KeyGroup(BaseModel):
-    def __init__(self, name: str, items: List[str]):
+    def __init__(self, name: str, items: list[str]):
         self.id = random_id(length=14)
         self.name = name
         self.items = items
@@ -327,20 +342,27 @@ class KeyGroup(BaseModel):
             f"https://cloudfront.amazonaws.com/2020-05-31/key-group/{self.id}"
         )
 
+    @property
+    def key_group_config(self) -> dict[str, Any]:
+        return {
+            "Items": self.items,
+            "Name": self.name,
+        }
+
 
 class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.distributions: Dict[str, Distribution] = dict()
-        self.invalidations: Dict[str, List[Invalidation]] = dict()
-        self.origin_access_controls: Dict[str, OriginAccessControl] = dict()
-        self.public_keys: Dict[str, PublicKey] = dict()
-        self.key_groups: Dict[str, KeyGroup] = dict()
+        self.distributions: dict[str, Distribution] = {}
+        self.invalidations: dict[str, list[Invalidation]] = {}
+        self.origin_access_controls: dict[str, OriginAccessControl] = {}
+        self.public_keys: dict[str, PublicKey] = {}
+        self.key_groups: dict[str, KeyGroup] = {}
         self.tagger = TaggingService()
 
     def create_distribution(
-        self, distribution_config: Dict[str, Any], tags: List[Dict[str, str]]
-    ) -> Tuple[Distribution, str, str]:
+        self, distribution_config: dict[str, Any], tags: list[dict[str, str]]
+    ) -> tuple[Distribution, str, str]:
         """
         Not all configuration options are supported yet.  Please raise an issue if
         we're not persisting/returning the correct attributes for your
@@ -350,8 +372,8 @@ class CloudFrontBackend(BaseBackend):
         return self.create_distribution_with_tags(distribution_config, tags)
 
     def create_distribution_with_tags(
-        self, distribution_config: Dict[str, Any], tags: List[Dict[str, str]]
-    ) -> Tuple[Distribution, str, str]:
+        self, distribution_config: dict[str, Any], tags: list[dict[str, str]]
+    ) -> tuple[Distribution, str, str]:
         dist = Distribution(self.account_id, self.region_name, distribution_config)
         caller_reference = dist.distribution_config.caller_reference
         existing_dist = self._distribution_with_caller_reference(caller_reference)
@@ -361,19 +383,21 @@ class CloudFrontBackend(BaseBackend):
         self.tagger.tag_resource(dist.arn, tags)
         return dist, dist.location, dist.etag
 
-    def get_distribution(self, distribution_id: str) -> Tuple[Distribution, str]:
+    def get_distribution(self, distribution_id: str) -> tuple[Distribution, str]:
         if distribution_id not in self.distributions:
             raise NoSuchDistribution
         dist = self.distributions[distribution_id]
         dist.advance()
         return dist, dist.etag
 
-    def get_distribution_config(self, distribution_id: str) -> Tuple[Distribution, str]:
+    def get_distribution_config(
+        self, distribution_id: str
+    ) -> tuple[DistributionConfig, str]:
         if distribution_id not in self.distributions:
             raise NoSuchDistribution
         dist = self.distributions[distribution_id]
         dist.advance()
-        return dist, dist.etag
+        return dist.distribution_config, dist.etag
 
     def delete_distribution(self, distribution_id: str, if_match: bool) -> None:
         """
@@ -386,13 +410,13 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         del self.distributions[distribution_id]
 
-    def list_distributions(self) -> Iterable[Distribution]:
+    def list_distributions(self) -> list[Distribution]:
         """
         Pagination is not supported yet.
         """
         for dist in self.distributions.values():
             dist.advance()
-        return self.distributions.values()
+        return list(self.distributions.values())
 
     def _distribution_with_caller_reference(
         self, reference: str
@@ -404,8 +428,8 @@ class CloudFrontBackend(BaseBackend):
         return None
 
     def update_distribution(
-        self, dist_config: Dict[str, Any], _id: str, if_match: bool
-    ) -> Tuple[Distribution, str, str]:
+        self, dist_config: dict[str, Any], _id: str, if_match: bool
+    ) -> tuple[Distribution, str, str]:
         """
         The IfMatch-value is ignored - any value is considered valid.
         Calling this function without a value is invalid, per AWS' behaviour
@@ -424,7 +448,7 @@ class CloudFrontBackend(BaseBackend):
         return dist, dist.location, dist.etag
 
     def create_invalidation(
-        self, dist_id: str, paths: Dict[str, Any], caller_ref: str
+        self, dist_id: str, paths: list[str], caller_ref: str
     ) -> Invalidation:
         dist, _ = self.get_distribution(dist_id)
         invalidation = Invalidation(dist, paths, caller_ref)
@@ -435,7 +459,7 @@ class CloudFrontBackend(BaseBackend):
 
         return invalidation
 
-    def list_invalidations(self, dist_id: str) -> Iterable[Invalidation]:
+    def list_invalidations(self, dist_id: str) -> list[Invalidation]:
         """
         Pagination is not yet implemented
         """
@@ -448,17 +472,23 @@ class CloudFrontBackend(BaseBackend):
             invalidations = self.invalidations[dist_id]
             if invalidations:
                 for invalidation in invalidations:
-                    if invalidation.invalidation_id == id:
+                    if invalidation.id == id:
                         return invalidation
         except KeyError:
             pass
         raise NoSuchInvalidation
 
-    def list_tags_for_resource(self, resource: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_tags_for_resource(self, resource: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
 
+    def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
+        self.tagger.tag_resource(resource, tags)
+
+    def untag_resource(self, resource: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource, tag_keys)
+
     def create_origin_access_control(
-        self, config_dict: Dict[str, str]
+        self, config_dict: dict[str, str]
     ) -> OriginAccessControl:
         control = OriginAccessControl(config_dict)
         self.origin_access_controls[control.id] = control
@@ -470,7 +500,7 @@ class CloudFrontBackend(BaseBackend):
         return self.origin_access_controls[control_id]
 
     def update_origin_access_control(
-        self, control_id: str, config: Dict[str, str]
+        self, control_id: str, config: dict[str, str]
     ) -> OriginAccessControl:
         """
         The IfMatch-parameter is not yet implemented
@@ -479,11 +509,11 @@ class CloudFrontBackend(BaseBackend):
         control.update(config)
         return control
 
-    def list_origin_access_controls(self) -> Iterable[OriginAccessControl]:
+    def list_origin_access_controls(self) -> list[OriginAccessControl]:
         """
         Pagination is not yet implemented
         """
-        return self.origin_access_controls.values()
+        return list(self.origin_access_controls.values())
 
     def delete_origin_access_control(self, control_id: str) -> None:
         """
@@ -507,13 +537,13 @@ class CloudFrontBackend(BaseBackend):
         """
         self.public_keys.pop(key_id, None)
 
-    def list_public_keys(self) -> List[PublicKey]:
+    def list_public_keys(self) -> list[PublicKey]:
         """
         Pagination is not yet implemented
         """
         return list(self.public_keys.values())
 
-    def create_key_group(self, name: str, items: List[str]) -> KeyGroup:
+    def create_key_group(self, name: str, items: list[str]) -> KeyGroup:
         key_group = KeyGroup(name=name, items=items)
         self.key_groups[key_group.id] = key_group
         return key_group
@@ -521,7 +551,7 @@ class CloudFrontBackend(BaseBackend):
     def get_key_group(self, group_id: str) -> KeyGroup:
         return self.key_groups[group_id]
 
-    def list_key_groups(self) -> List[KeyGroup]:
+    def list_key_groups(self) -> list[KeyGroup]:
         """
         Pagination is not yet implemented
         """

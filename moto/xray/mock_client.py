@@ -84,7 +84,7 @@ class MockXrayClient:
         self.stop()
 
 
-class XRaySegment(object):
+class XRaySegment:
     """
     XRay is request oriented, when a request comes in, normally middleware like django (or automatically in lambda) will mark
     the start of a segment, this stay open during the lifetime of the request. During that time subsegments may be generated

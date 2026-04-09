@@ -112,7 +112,7 @@ def test_put_config_rule_update_errors():
 
 
 @mock_aws
-def test_config_rule_errors():  # pylint: disable=too-many-statements
+def test_config_rule_errors():
     """Test various error conditions in ConfigRule instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
 
@@ -237,7 +237,7 @@ def test_aws_managed_rule_errors():
 
 
 @mock_aws
-def test_config_rules_scope_errors():  # pylint: disable=too-many-statements
+def test_config_rules_scope_errors():
     """Test various error conditions in ConfigRule.Scope instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
 

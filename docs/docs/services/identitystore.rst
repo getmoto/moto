@@ -31,7 +31,11 @@ identitystore
         
 
 - [ ] get_group_membership_id
-- [ ] get_user_id
+- [X] get_user_id
+  
+        The ExternalId alternate identifier is not yet implemented
+        
+
 - [ ] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member

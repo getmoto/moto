@@ -1,7 +1,8 @@
 import json
+from collections.abc import Callable
 from functools import wraps
 from time import sleep
-from typing import TYPE_CHECKING, Callable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 from uuid import uuid4
 
 import boto3
@@ -84,7 +85,7 @@ def verify_execution_result(
         sleep(10 if allow_aws_request() else 0.1)
     else:
         _teardown(client, iam, role_name, state_machine_arn)
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")
 
 
 def _teardown(client, iam, role_name, state_machine_arn):

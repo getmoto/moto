@@ -1,5 +1,5 @@
 from time import sleep
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -28,7 +28,7 @@ KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 class SWFBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.domains: List[Domain] = []
+        self.domains: list[Domain] = []
 
     def _get_domain(self, name: str, ignore_empty: bool = False) -> Domain:
         matching = [domain for domain in self.domains if domain.name == name]
@@ -45,7 +45,7 @@ class SWFBackend(BaseBackend):
 
     def list_domains(
         self, status: str, reverse_order: Optional[bool] = None
-    ) -> List[Domain]:
+    ) -> list[Domain]:
         domains = [domain for domain in self.domains if domain.status == status]
         domains = sorted(domains, key=lambda domain: domain.name)
         if reverse_order:
@@ -56,9 +56,9 @@ class SWFBackend(BaseBackend):
         self,
         domain_name: str,
         maximum_page_size: int,
-        tag_filter: Dict[str, str],
+        tag_filter: dict[str, str],
         reverse_order: bool,
-    ) -> List[WorkflowExecution]:
+    ) -> list[WorkflowExecution]:
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         if domain.status == "DEPRECATED":
@@ -78,11 +78,11 @@ class SWFBackend(BaseBackend):
     def list_closed_workflow_executions(
         self,
         domain_name: str,
-        tag_filter: Dict[str, str],
-        close_status_filter: Dict[str, str],
+        tag_filter: dict[str, str],
+        close_status_filter: dict[str, str],
         maximum_page_size: int,
         reverse_order: bool,
-    ) -> List[WorkflowExecution]:
+    ) -> list[WorkflowExecution]:
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         if domain.status == "DEPRECATED":
@@ -142,9 +142,9 @@ class SWFBackend(BaseBackend):
         domain_name: str,
         status: str,
         reverse_order: Optional[bool] = None,
-    ) -> List[GenericType]:
+    ) -> list[GenericType]:
         domain = self._get_domain(domain_name)
-        _types: List[GenericType] = domain.find_types(kind, status)
+        _types: list[GenericType] = domain.find_types(kind, status)
         _types = sorted(_types, key=lambda domain: domain.name)
         if reverse_order:
             _types = reversed(_types)  # type: ignore
@@ -191,7 +191,7 @@ class SWFBackend(BaseBackend):
         workflow_id: str,
         workflow_name: str,
         workflow_version: str,
-        tag_list: Optional[Dict[str, str]] = None,
+        tag_list: Optional[dict[str, str]] = None,
         workflow_input: Optional[str] = None,
         **kwargs: Any,
     ) -> WorkflowExecution:
@@ -223,7 +223,7 @@ class SWFBackend(BaseBackend):
         return domain.get_workflow_execution(workflow_id, run_id=run_id)
 
     def poll_for_decision_task(
-        self, domain_name: str, task_list: List[str], identity: Optional[str] = None
+        self, domain_name: str, task_list: list[str], identity: Optional[str] = None
     ) -> Optional[DecisionTask]:
         # process timeouts on all objects
         self._process_timeouts()
@@ -277,7 +277,7 @@ class SWFBackend(BaseBackend):
             return None
 
     def count_pending_decision_tasks(
-        self, domain_name: str, task_list: List[str]
+        self, domain_name: str, task_list: list[str]
     ) -> int:
         # process timeouts on all objects
         self._process_timeouts()
@@ -291,7 +291,7 @@ class SWFBackend(BaseBackend):
     def respond_decision_task_completed(
         self,
         task_token: str,
-        decisions: Optional[List[Dict[str, Any]]] = None,
+        decisions: Optional[list[dict[str, Any]]] = None,
         execution_context: Optional[str] = None,
     ) -> None:
         # process timeouts on all objects
@@ -345,7 +345,7 @@ class SWFBackend(BaseBackend):
             )
 
     def poll_for_activity_task(
-        self, domain_name: str, task_list: List[str], identity: Optional[str] = None
+        self, domain_name: str, task_list: list[str], identity: Optional[str] = None
     ) -> Optional[ActivityTask]:
         # process timeouts on all objects
         self._process_timeouts()
@@ -381,7 +381,7 @@ class SWFBackend(BaseBackend):
             return None
 
     def count_pending_activity_tasks(
-        self, domain_name: str, task_list: List[str]
+        self, domain_name: str, task_list: list[str]
     ) -> int:
         # process timeouts on all objects
         self._process_timeouts()

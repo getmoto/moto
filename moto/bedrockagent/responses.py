@@ -135,7 +135,7 @@ class AgentsforBedrockResponse(BaseResponse):
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tags = params.get("tags")
         self.bedrockagent_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
@@ -143,11 +143,11 @@ class AgentsforBedrockResponse(BaseResponse):
         self.bedrockagent_backend.untag_resource(
             resource_arn=resource_arn, tag_keys=tag_keys
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tags = self.bedrockagent_backend.list_tags_for_resource(
             resource_arn=resource_arn
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})

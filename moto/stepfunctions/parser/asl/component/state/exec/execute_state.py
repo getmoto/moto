@@ -3,7 +3,7 @@ import copy
 import logging
 import threading
 from threading import Thread
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.catch.catch_decl import CatchDecl
@@ -184,8 +184,8 @@ class ExecutionState(CommonStateField, abc.ABC):
         frame: Environment = env.open_frame()
         frame.states.reset(input_value=env.states.get_input())
         frame.stack = copy.deepcopy(env.stack)
-        execution_outputs: List[Any] = list()
-        execution_exceptions: List[Optional[Exception]] = [None]
+        execution_outputs: list[Any] = []
+        execution_exceptions: list[Optional[Exception]] = [None]
         terminated_event = threading.Event()
 
         def _exec_and_notify():
@@ -283,3 +283,11 @@ class ExecutionState(CommonStateField, abc.ABC):
                         break
 
                 self._handle_uncaught(env=env, failure_event=failure_event)
+
+    def _eval_state_output(self, env: Environment) -> None:
+        # Obtain a reference to the state output.
+        output = env.stack[-1]
+        # CatcherOutputs (i.e. outputs of Catch blocks) are never subjects of output normalisers,
+        # the entire value is instead passed by value as input to the next state, or program output.
+        if not isinstance(output, CatchOutcome):
+            super()._eval_state_output(env=env)

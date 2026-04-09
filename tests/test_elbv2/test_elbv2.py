@@ -16,10 +16,10 @@ def test_create_load_balancer():
     response, _, security_group, subnet1, subnet2, conn = create_load_balancer()
 
     lb = response["LoadBalancers"][0]
+    assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["DNSName"] == "my-lb-1.us-east-1.elb.amazonaws.com"
-    assert (
-        lb["LoadBalancerArn"]
-        == f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/50dc6c495c0c9188"
+    assert lb["LoadBalancerArn"].startswith(
+        f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/"
     )
     assert lb["SecurityGroups"] == [security_group.id]
     assert lb["AvailabilityZones"] == [
@@ -37,7 +37,9 @@ def test_create_load_balancer():
     assert tags == {"key_name": "a_value"}
 
 
-def create_load_balancer(load_balancer_type: str = "application"):
+def create_load_balancer(
+    load_balancer_type: str = "application", ip_address_type: str = "ipv4"
+):
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -58,6 +60,7 @@ def create_load_balancer(load_balancer_type: str = "application"):
         SecurityGroups=[security_group.id],
         Scheme="internal",
         Tags=[{"Key": "key_name", "Value": "a_value"}],
+        IpAddressType=ip_address_type,
         Type=load_balancer_type,
     )
     return response, vpc, security_group, subnet1, subnet2, conn
@@ -102,6 +105,7 @@ def test_describe_load_balancers():
 
     assert len(response["LoadBalancers"]) == 1
     lb = response["LoadBalancers"][0]
+    assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["LoadBalancerName"] == "my-lb"
     assert lb["State"]["Code"] == "active"
 
@@ -173,7 +177,7 @@ def test_add_remove_tags():
             ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "k", "Value": "b"}]
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "TooManyTagsError"
+    assert err["Code"] == "TooManyTags"
 
     conn.add_tags(
         ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "j", "Value": "c"}]
@@ -994,17 +998,26 @@ def test_handle_listener_rules():
                     "TargetGroups": [
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 1,
                         },
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 2,
+                            "Weight": 20,
                         },
                     ]
                 },
             },
         ],
     )
+    # test for default weights
+    rule_arn = rules["Rules"][0]["RuleArn"]
+    forward_rule = conn.describe_rules(RuleArns=[rule_arn])["Rules"][0]
+    assert len(forward_rule["Actions"]) == 1
+    assert len(forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]) == 2
+    weights = [
+        tg["Weight"]
+        for tg in forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]
+    ]
+    assert weights == [1, 20]
 
     # test for PriorityInUse
     with pytest.raises(ClientError):
@@ -1271,6 +1284,12 @@ def test_describe_ssl_policies():
             "ELBSecurityPolicy-2016-08",
         ]
     )
+
+    first_policy = resp["SslPolicies"][0]
+
+    # Assuming cipher order and priorty may change over time just checking name and protocol
+    assert first_policy["Name"] == "ELBSecurityPolicy-TLS-1-2-2017-01"
+    assert first_policy["SslProtocols"] == ["TLSv1.2"]
     assert len(resp["SslPolicies"]) == 2
 
 
@@ -1279,9 +1298,16 @@ def test_set_ip_address_type():
     response, _, security_group, subnet1, subnet2, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    # Internal LBs cant be dualstack yet
-    with pytest.raises(ClientError):
-        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    def get_ip_address_type(lb_arn: str) -> str:
+        response = client.describe_load_balancers(
+            LoadBalancerArns=[lb_arn],
+        )["LoadBalancers"][0]
+        return response["IpAddressType"]
+
+    assert get_ip_address_type(arn) == "ipv4"
+
+    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "dualstack"
 
     # Create internet facing one
     response = client.create_load_balancer(
@@ -1293,12 +1319,47 @@ def test_set_ip_address_type():
     )
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "ipv4"
 
+    client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
+    assert get_ip_address_type(arn) == "dualstack"
+
+    # validate that the ip address type must be one of the supported values
     with pytest.raises(ClientError) as ex:
-        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="internal")
+        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="invalid")
+
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'invalid' at 'ipAddressType' failed to satisfy constraint: Member must satisfy enum value set: [ipv4, dualstack]"
+    )
+
+
+@mock_aws
+def test_create_dualstack_load_balancer():
+    response, _, security_group, subnet1, subnet2, client = create_load_balancer(
+        ip_address_type="dualstack"
+    )
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    response = client.describe_load_balancers(LoadBalancerArns=[arn])["LoadBalancers"][
+        0
+    ]
+    assert response["IpAddressType"] == "dualstack"
+
+
+@mock_aws
+def test_ip_address_type_validation():
+    with pytest.raises(ClientError) as ex:
+        create_load_balancer(ip_address_type="invalid")
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'invalid' at 'ipAddressType' failed to satisfy constraint: Member must satisfy enum value set: [ipv4, dualstack]"
+    )
 
 
 @mock_aws
@@ -1443,6 +1504,37 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
 
 
 @mock_aws
+def test_modify_load_balancer_attributes_secondary_ips_auto_assigned_per_subnet():
+    response, _, _, _, _, client = create_load_balancer("network")
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "secondary_ips.auto_assigned.per_subnet", "Value": "3"}],
+    )
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http_drop_invalid_header_fields_enabled = list(
+        filter(
+            lambda item: item["Key"] == "secondary_ips.auto_assigned.per_subnet",
+            response["Attributes"],
+        )
+    )[0]
+    assert routing_http_drop_invalid_header_fields_enabled["Value"] == "3"
+
+
+@mock_aws
+def test_describe_load_balancer_attributes_default():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    assert {"Key": "access_logs.s3.bucket", "Value": ""} in attrs
+    assert {"Key": "access_logs.s3.prefix", "Value": ""} in attrs
+    assert {"Key": "deletion_protection.enabled", "Value": "false"} in attrs
+    assert {"Key": "load_balancing.cross_zone.enabled", "Value": "false"} in attrs
+
+
+@mock_aws
 def test_modify_load_balancer_attributes_connection_logs_s3():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1456,7 +1548,6 @@ def test_modify_load_balancer_attributes_connection_logs_s3():
         ],
     )
 
-    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
     assert {"Key": "connection_logs.s3.enabled", "Value": "true"} in attrs
     assert {"Key": "connection_logs.s3.bucket", "Value": "s3bucket"} in attrs
@@ -1527,7 +1618,7 @@ def test_modify_listener_http_to_https():
             DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
         )
     err = ex.value.response["Error"]
-    assert err["Code"] == "CertificateWereNotPassed"
+    assert err["Code"] == "InvalidConfigurationRequest"
     assert (
         err["Message"]
         == "You must provide a list containing exactly one certificate if the listener protocol is HTTPS."
@@ -1739,6 +1830,66 @@ def test_add_listener_certificate():
             ListenerArn=listener_arn, Certificates=[{"CertificateArn": google_arn}] * 50
         )
     assert exc.value.response["Error"]["Code"] == "TooManyCertificates"
+
+
+@mock_aws
+def test_describe_listener_certificates_with_default_field():
+    """Test that describe_listener_certificates returns IsDefault field.
+
+    The IsDefault field should be True for the default certificate and False
+    for SNI certificates.
+    """
+    client = boto3.client("elbv2", region_name="us-east-1")
+    acm = boto3.client("acm", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.1.0/24", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.2.0/24", AvailabilityZone="us-east-1b"
+    )
+
+    response = client.create_load_balancer(
+        Name="my-lb", Subnets=[subnet1.id, subnet2.id]
+    )
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    response = client.create_target_group(
+        Name="my-tg", Protocol="HTTPS", Port=443, VpcId=vpc.id
+    )
+    target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
+
+    response = acm.request_certificate(DomainName="example.com")
+    cert_arn = response["CertificateArn"]
+
+    response = client.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTPS",
+        Port=443,
+        Certificates=[{"CertificateArn": cert_arn}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )
+    listener_arn = response["Listeners"][0]["ListenerArn"]
+
+    client.add_listener_certificates(
+        ListenerArn=listener_arn, Certificates=[{"CertificateArn": cert_arn}]
+    )
+
+    certs = client.describe_listener_certificates(ListenerArn=listener_arn)[
+        "Certificates"
+    ]
+
+    assert len(certs) == 2
+
+    default_certs = [c for c in certs if c.get("IsDefault") is True]
+    sni_certs = [c for c in certs if c.get("IsDefault") is False]
+
+    assert len(default_certs) == 1, "Should have exactly one default certificate"
+    assert len(sni_certs) == 1, "Should have exactly one SNI certificate"
+    assert default_certs[0]["CertificateArn"] == cert_arn
+    assert sni_certs[0]["CertificateArn"] == cert_arn
 
 
 @mock_aws
@@ -2103,3 +2254,12 @@ def test_create_listener_with_alpn_policy():
 
     describe = conn.describe_listeners(ListenerArns=[listener_arn])["Listeners"][0]
     assert describe["AlpnPolicy"] == ["pol1", "pol2"]
+
+
+@mock_aws
+def test_describe_capacity_reservation():
+    lbs, _, _, _, _, conn = create_load_balancer()
+    load_balancer_arn = lbs["LoadBalancers"][0]["LoadBalancerArn"]
+    resp = conn.describe_capacity_reservation(LoadBalancerArn=load_balancer_arn)
+    for crs in resp["CapacityReservationState"]:
+        assert crs["State"]["Code"] == "provisioned"

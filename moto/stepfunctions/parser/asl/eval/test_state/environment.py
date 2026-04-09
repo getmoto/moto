@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Optional
 
 from moto.stepfunctions.parser.api import Arn, InspectionData, StateMachineType
 from moto.stepfunctions.parser.asl.eval.environment import Environment
@@ -31,7 +31,7 @@ class TestStateEnvironment(Environment):
         execution_type: StateMachineType,
         context: ContextObjectData,
         event_history_context: EventHistoryContext,
-        activity_store: Dict[Arn, Activity],
+        activity_store: dict[Arn, Activity],
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession] = None,
     ):
         super().__init__(
@@ -44,7 +44,7 @@ class TestStateEnvironment(Environment):
         )
         self.inspection_data = InspectionData()
 
-    def as_frame_of(  # pylint: disable=arguments-renamed
+    def as_frame_of(
         cls,
         env: TestStateEnvironment,
         event_history_frame_cache: Optional[EventHistoryContext] = None,
@@ -55,7 +55,7 @@ class TestStateEnvironment(Environment):
         frame.inspection_data = env.inspection_data
         return frame
 
-    def as_inner_frame_of(  # pylint: disable=arguments-renamed
+    def as_inner_frame_of(
         cls,
         env: TestStateEnvironment,
         variable_store: VariableStore,

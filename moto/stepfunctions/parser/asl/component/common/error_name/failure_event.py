@@ -1,4 +1,4 @@
-from typing import Final, Optional, Tuple
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     EvaluationFailedEventDetails,
@@ -16,8 +16,8 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 
 class FailureEvent:
-    state_name: str
-    source_event_id: int
+    state_name: Final[str]
+    source_event_id: Final[int]
     error_name: Final[Optional[ErrorName]]
     event_type: Final[HistoryEventType]
     event_details: Final[Optional[EventDetails]]
@@ -42,7 +42,7 @@ class FailureEventException(Exception):
     def __init__(self, failure_event: FailureEvent):
         self.failure_event = failure_event
 
-    def extract_error_cause_pair(self) -> Optional[Tuple[Optional[str], Optional[str]]]:
+    def extract_error_cause_pair(self) -> Optional[tuple[Optional[str], Optional[str]]]:
         if self.failure_event.event_details is None:
             return None
 

@@ -7,14 +7,14 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 
-from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
+from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow
 
 # PollForActivityTask endpoint
 
 
 @mock_aws
-def test_poll_for_activity_task_when_one_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_activity_task_when_one():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -42,8 +42,8 @@ def test_poll_for_activity_task_when_one_boto3():
 
 @pytest.mark.parametrize("task_name", ["activity-task-list", "non-existent-queue"])
 @mock_aws
-def test_poll_for_activity_task_when_none_boto3(task_name):
-    client = setup_workflow_boto3()
+def test_poll_for_activity_task_when_none(task_name):
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": task_name}
     )
@@ -59,8 +59,8 @@ def test_poll_for_activity_task_when_none_boto3(task_name):
     "task_name,cnt", [("activity-task-list", 1), ("non-existent", 0)]
 )
 @mock_aws
-def test_count_pending_activity_tasks_boto3(task_name, cnt):
-    client = setup_workflow_boto3()
+def test_count_pending_activity_tasks(task_name, cnt):
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -79,8 +79,8 @@ def test_count_pending_activity_tasks_boto3(task_name, cnt):
 
 
 @mock_aws
-def test_respond_activity_task_completed_boto3():
-    client = setup_workflow_boto3()
+def test_respond_activity_task_completed():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -108,8 +108,8 @@ def test_respond_activity_task_completed_boto3():
 
 
 @mock_aws
-def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
-    client = setup_workflow_boto3()
+def test_respond_activity_task_completed_on_closed_workflow_execution():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -132,8 +132,8 @@ def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
 
 
 @mock_aws
-def test_respond_activity_task_completed_with_task_already_completed_boto3():
-    client = setup_workflow_boto3()
+def test_respond_activity_task_completed_with_task_already_completed():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -159,8 +159,8 @@ def test_respond_activity_task_completed_with_task_already_completed_boto3():
 
 
 @mock_aws
-def test_respond_activity_task_failed_boto3():
-    client = setup_workflow_boto3()
+def test_respond_activity_task_failed():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -189,11 +189,11 @@ def test_respond_activity_task_failed_boto3():
 
 
 @mock_aws
-def test_respond_activity_task_completed_with_wrong_token_boto3():
+def test_respond_activity_task_completed_with_wrong_token():
     # NB: we just test ONE failure case for RespondActivityTaskFailed
     # because the safeguards are shared with RespondActivityTaskCompleted, so
     # no need to retest everything end-to-end.
-    client = setup_workflow_boto3()
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -215,8 +215,8 @@ def test_respond_activity_task_completed_with_wrong_token_boto3():
 
 
 @mock_aws
-def test_record_activity_task_heartbeat_boto3():
-    client = setup_workflow_boto3()
+def test_record_activity_task_heartbeat():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -232,8 +232,8 @@ def test_record_activity_task_heartbeat_boto3():
 
 
 @mock_aws
-def test_record_activity_task_heartbeat_with_wrong_token_boto3():
-    client = setup_workflow_boto3()
+def test_record_activity_task_heartbeat_with_wrong_token():
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]
@@ -252,10 +252,10 @@ def test_record_activity_task_heartbeat_with_wrong_token_boto3():
 
 
 @mock_aws
-def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout_boto3():
+def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
-    client = setup_workflow_boto3()
+    client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )["taskToken"]

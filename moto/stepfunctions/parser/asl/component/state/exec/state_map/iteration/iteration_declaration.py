@@ -12,10 +12,10 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 
 class IterationDecl(Component):
     comment: Final[Optional[Comment]]
-    query_language: QueryLanguage
+    query_language: Final[QueryLanguage]
     start_at: Final[StartAt]
     states: Final[States]
-    processor_config: ProcessorConfig
+    processor_config: Final[ProcessorConfig]
 
     def __init__(
         self,

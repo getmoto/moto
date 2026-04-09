@@ -105,7 +105,7 @@
             "ImaHeader": "test",
             "X-Foo": "abc"
           },
-          "body": "<OperationNameResult><Str>myname</Str><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Str>myname</Str><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp></OperationNameResponse>"
         }
       },
       {
@@ -134,7 +134,7 @@
             "ImaHeader": "test",
             "X-Foo": "abc"
           },
-          "body": "<OperationNameResult><Str/><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Str></Str><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp></OperationNameResponse>"
         }
       }
     ]
@@ -171,7 +171,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><Blob>dmFsdWU=</Blob></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Blob>dmFsdWU=</Blob></OperationNameResponse>"
         }
       }
     ]
@@ -214,7 +214,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><ListMember><member>abc</member><member>123</member></ListMember></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><ListMember><member>abc</member><member>123</member></ListMember></OperationNameResponse>"
         }
       }
     ]
@@ -258,7 +258,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><ListMember><item>abc</item><item>123</item></ListMember></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><ListMember><item>abc</item><item>123</item></ListMember></OperationNameResponse>"
         }
       }
     ]
@@ -302,7 +302,99 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><ListMember>abc</ListMember><ListMember>123</ListMember></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><ListMember>abc</ListMember><ListMember>123</ListMember></OperationNameResponse>"
+        }
+      },
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListMember": []
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse></OperationNameResponse>"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Flattened List with custom member name",
+    "metadata": {
+      "protocol": "rest-xml"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "Rules": {
+            "shape": "LifecycleRules",
+            "locationName": "Rule"
+          }
+        }
+      },
+      "LifecycleRules": {
+        "type": "list",
+        "member": {
+          "shape": "LifecycleRule"
+        },
+        "flattened": true
+      },
+      "LifecycleRule": {
+        "type": "structure",
+        "members": {
+          "Id": {
+            "shape": "StringType"
+          }
+        }
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "Rules": [
+            {
+              "Id": "abc"
+            },
+            {
+              "Id": "123"
+            }
+          ]
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Rule><Id>abc</Id></Rule><Rule><Id>123</Id></Rule></OperationNameResponse>"
+        }
+      },
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListMember": []
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse></OperationNameResponse>"
         }
       }
     ]
@@ -363,7 +455,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><Map><entry><key>qux</key><value><foo>bar</foo></value></entry><entry><key>baz</key><value><foo>bam</foo></value></entry></Map></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Map><entry><key>qux</key><value><foo>bar</foo></value></entry><entry><key>baz</key><value><foo>bam</foo></value></entry></Map></OperationNameResponse>"
         }
       }
     ]
@@ -413,7 +505,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><Map><key>qux</key><value>bar</value></Map><Map><key>baz</key><value>bam</value></Map></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Map><key>qux</key><value>bar</value></Map><Map><key>baz</key><value>bam</value></Map></OperationNameResponse>"
         }
       }
     ]
@@ -464,7 +556,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><Map><entry><foo>qux</foo><bar>bar</bar></entry><entry><foo>baz</foo><bar>bam</bar></entry></Map></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Map><entry><foo>qux</foo><bar>bar</bar></entry><entry><foo>baz</foo><bar>bam</bar></entry></Map></OperationNameResponse>"
         }
       }
     ]
@@ -520,7 +612,7 @@
           "headers": {
             "X-Foo": "baz"
           },
-          "body": "<OperationNameResult><Foo>abc</Foo></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<Data><Foo>abc</Foo></Data>"
         }
       }
     ]
@@ -712,7 +804,7 @@
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "<OperationNameResult><Foo/></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><Foo></Foo></OperationNameResponse>"
         }
       }
     ]
@@ -843,7 +935,7 @@
             "x-amz-timecustom": "1398796238",
             "x-amz-timeformat": "1398796238"
           },
-          "body": "<OperationNameResult><TimeArg>2014-04-29T18:30:38Z</TimeArg><TimeCustom>Tue, 29 Apr 2014 18:30:38 GMT</TimeCustom><TimeFormat>1398796238</TimeFormat><StructMember><foo>2014-04-29T18:30:38Z</foo><bar>1398796238</bar></StructMember></OperationNameResult>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><TimeArg>2014-04-29T18:30:38Z</TimeArg><TimeCustom>Tue, 29 Apr 2014 18:30:38 GMT</TimeCustom><TimeFormat>1398796238</TimeFormat><StructMember><foo>2014-04-29T18:30:38Z</foo><bar>1398796238</bar></StructMember></OperationNameResponse>"
         }
       }
     ]
@@ -1089,7 +1181,7 @@
         "response": {
           "status_code": 400,
           "headers": {},
-          "body": "<ErrorResponse><Error><Type>Sender</Type><Code>ExceptionShape</Code><Message>mymessage</Message><BodyMember>mybody</BodyMember></Error><RequestId>request-id</RequestId></ErrorResponse>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ErrorResponse><Error><Type>Sender</Type><Code>ExceptionShape</Code><Message>mymessage</Message><BodyMember>mybody</BodyMember></Error><RequestId>request-id</RequestId></ErrorResponse>"
         }
       },
       {
@@ -1107,7 +1199,7 @@
         "response": {
           "status_code": 400,
           "headers": {},
-          "body": "<ErrorResponse><Error><Type>Sender</Type><Code>OtherExceptionShape</Code><Message>mymessage</Message><BodyMember>mybody</BodyMember></Error><RequestId>request-id</RequestId></ErrorResponse>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ErrorResponse><Error><Type>Sender</Type><Code>OtherExceptionShape</Code><Message>mymessage</Message><BodyMember>mybody</BodyMember></Error><RequestId>request-id</RequestId></ErrorResponse>"
         }
       },
       {
@@ -1122,7 +1214,7 @@
         "response": {
           "status_code": 400,
           "headers": {},
-          "body": "<ErrorResponse><Error><Type>Sender</Type><Code>UndefinedShape</Code></Error><RequestId>request-id</RequestId></ErrorResponse>"
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ErrorResponse><Error><Type>Sender</Type><Code>UndefinedShape</Code></Error><RequestId>request-id</RequestId></ErrorResponse>"
         }
       }
     ]
@@ -1173,7 +1265,7 @@
               "response": {
                   "status_code": 200,
                   "headers": {},
-                  "body": "<OperationNameResult><UnionMember><S>string value</S></UnionMember></OperationNameResult>"
+                  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><UnionMember><S>string value</S></UnionMember></OperationNameResponse>"
               }
           },
           {
@@ -1189,7 +1281,7 @@
               "response": {
                   "status_code": 200,
                   "headers": {},
-                  "body": "<OperationNameResult><UnionMember><L><member>a</member><member>b</member></L></UnionMember></OperationNameResult>"
+                  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<OperationNameResponse><UnionMember><L><member>a</member><member>b</member></L></UnionMember></OperationNameResponse>"
               }
           }
       ]
@@ -1238,6 +1330,79 @@
               "x-amz-list-member": "one,two,three"
           },
           "body": ""
+        }
+      }
+    ]
+  },
+  {
+    "description": "XML Attribute",
+    "metadata": {
+      "protocol": "rest-xml",
+      "apiVersion": "2014-01-01"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "Grant": {
+            "shape": "Grant"
+          }
+        },
+        "payload": "Grant"
+      },
+      "Grant": {
+        "type": "structure",
+        "locationName": "Grant",
+        "members": {
+          "Grantee": {
+            "shape": "Grantee"
+          }
+        }
+      },
+      "Grantee": {
+        "type": "structure",
+        "members": {
+          "Type": {
+            "shape": "Type",
+            "locationName": "xsi:type",
+            "xmlAttribute": true
+          },
+          "EmailAddress": {
+            "shape": "StringType"
+          }
+        },
+        "xmlNamespace": {
+          "prefix": "xsi",
+          "uri": "http://www.w3.org/2001/XMLSchema-instance"
+        }
+      },
+      "Type": {
+        "type": "string"
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "Grant": {
+            "Grantee": {
+              "EmailAddress": "foo@example.com",
+              "Type": "CanonicalUser"
+            }
+          }
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<Grant><Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"CanonicalUser\"><EmailAddress>foo@example.com</EmailAddress></Grantee></Grant>"
         }
       }
     ]

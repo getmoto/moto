@@ -1,5 +1,5 @@
 import ipaddress
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.carrier_gateways import CarrierGateway
@@ -40,8 +40,42 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main_association_id = random_subnet_association_id() if main else None
-        self.associations: Dict[str, str] = {}
-        self.routes: Dict[str, Route] = {}
+        self._associations: dict[str, str] = {}
+        self._routes: dict[str, Route] = {}
+
+    @property
+    def route_table_id(self) -> str:
+        return self.id
+
+    @property
+    def routes(self) -> list["Route"]:
+        return list(self._routes.values())
+
+    @property
+    def associations(self) -> list[dict[str, Any]]:
+        result = []
+        if self.main_association_id is not None:
+            result.append(
+                {
+                    "RouteTableAssociationId": self.main_association_id,
+                    "RouteTableId": self.id,
+                    "Main": True,
+                    "AssociationState": {"State": "associated"},
+                }
+            )
+        for association_id, target_id in self._associations.items():
+            item: dict[str, Any] = {
+                "RouteTableAssociationId": association_id,
+                "RouteTableId": self.id,
+                "Main": False,
+                "AssociationState": {"State": "associated"},
+            }
+            if target_id.startswith("igw"):
+                item["GatewayId"] = target_id
+            elif target_id.startswith("subnet"):
+                item["SubnetId"] = target_id
+            result.append(item)
+        return result
 
     @property
     def owner_id(self) -> str:
@@ -97,44 +131,44 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         elif filter_name == "association.route-table-association-id":
             return self.all_associations_ids
         elif filter_name == "association.subnet-id":
-            return self.associations.values()
+            return self._associations.values()
         elif filter_name == "route.destination-cidr-block":
             return [
                 route.destination_cidr_block
-                for route in self.routes.values()
+                for route in self._routes.values()
                 if route.destination_cidr_block is not None
             ]
         elif filter_name == "route.gateway-id":
             return [
                 route.gateway.id
-                for route in self.routes.values()
+                for route in self._routes.values()
                 if route.gateway is not None
             ]
         elif filter_name == "route.vpc-peering-connection-id":
             return [
                 route.vpc_pcx.id
-                for route in self.routes.values()
+                for route in self._routes.values()
                 if route.vpc_pcx is not None
             ]
         elif filter_name == "route.nat-gateway-id":
             return [
                 route.nat_gateway.id
-                for route in self.routes.values()
+                for route in self._routes.values()
                 if route.nat_gateway is not None
             ]
         elif filter_name == "route.transit-gateway-id":
             return [
                 route.transit_gateway.id
-                for route in self.routes.values()
+                for route in self._routes.values()
                 if route.transit_gateway is not None
             ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 
     @property
-    def all_associations_ids(self) -> Set[str]:
+    def all_associations_ids(self) -> set[str]:
         # NOTE(yoctozepto): Doing an explicit copy to not touch the original.
-        all_associations = set(self.associations)
+        all_associations = set(self._associations)
         if self.main_association_id is not None:
             all_associations.add(self.main_association_id)
         return all_associations
@@ -178,6 +212,56 @@ class Route(CloudFormationModel):
         self.vpc_pcx = vpc_pcx
         self.carrier_gateway = carrier_gateway
         self.vpc_endpoint_id = vpc_endpoint_id
+
+    @property
+    def gateway_id(self) -> Optional[str]:
+        if self.local:
+            return "local"
+        if self.gateway:
+            return self.gateway.id
+        if self.vpc_endpoint_id:
+            return self.vpc_endpoint_id
+        return None
+
+    @property
+    def instance_id(self) -> Optional[str]:
+        return self.instance.id if self.instance else None
+
+    @property
+    def nat_gateway_id(self) -> Optional[str]:
+        return self.nat_gateway.id if self.nat_gateway else None
+
+    @property
+    def egress_only_internet_gateway_id(self) -> Optional[str]:
+        return self.egress_only_igw.id if self.egress_only_igw else None
+
+    @property
+    def transit_gateway_id(self) -> Optional[str]:
+        return self.transit_gateway.id if self.transit_gateway else None
+
+    @property
+    def network_interface_id(self) -> Optional[str]:
+        return self.interface.id if self.interface else None
+
+    @property
+    def vpc_peering_connection_id(self) -> Optional[str]:
+        return self.vpc_pcx.id if self.vpc_pcx else None
+
+    @property
+    def carrier_gateway_id(self) -> Optional[str]:
+        return self.carrier_gateway.id if self.carrier_gateway else None
+
+    @property
+    def destination_prefix_list_id(self) -> Optional[str]:
+        return self.destination_prefix_list.id if self.destination_prefix_list else None
+
+    @property
+    def origin(self) -> str:
+        return "CreateRouteTable" if self.local else "CreateRoute"
+
+    @property
+    def state(self) -> str:
+        return "active"
 
     @property
     def physical_resource_id(self) -> str:
@@ -231,12 +315,12 @@ class Route(CloudFormationModel):
 
 class RouteBackend:
     def __init__(self) -> None:
-        self.route_tables: Dict[str, RouteTable] = {}
+        self.route_tables: dict[str, RouteTable] = {}
 
     def create_route_table(
         self,
         vpc_id: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         main: bool = False,
     ) -> RouteTable:
         route_table_id = random_route_table_id()
@@ -270,8 +354,8 @@ class RouteBackend:
         return route_table
 
     def describe_route_tables(
-        self, route_table_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[RouteTable]:
+        self, route_table_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[RouteTable]:
         route_tables = list(self.route_tables.values())
 
         if route_table_ids:
@@ -283,7 +367,7 @@ class RouteBackend:
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(
                     set(route_table_ids).difference(
-                        set([route_table.id for route_table in route_tables])
+                        {route_table.id for route_table in route_tables}
                     )
                 )[0]
                 raise InvalidRouteTableIdError(invalid_id)
@@ -292,7 +376,7 @@ class RouteBackend:
 
     def delete_route_table(self, route_table_id: str) -> None:
         route_table = self.get_route_table(route_table_id)
-        if route_table.associations:
+        if route_table._associations:
             raise DependencyViolationError(
                 f"The routeTable '{route_table_id}' has dependencies and cannot be deleted."
             )
@@ -311,7 +395,7 @@ class RouteBackend:
         if route_tables_by_subnet:
             for association_id, check_subnet_id in route_tables_by_subnet[
                 0
-            ].associations.items():
+            ]._associations.items():
                 if subnet_id == check_subnet_id:
                     return association_id
 
@@ -320,17 +404,17 @@ class RouteBackend:
         if gateway_id is None:
             self.get_subnet(subnet_id)  # type: ignore[attr-defined]  # Validate subnet exists
             association_id = random_subnet_association_id()
-            route_table.associations[association_id] = subnet_id  # type: ignore[assignment]
+            route_table._associations[association_id] = subnet_id  # type: ignore[assignment]
             return association_id
         else:
             association_id = random_subnet_association_id()
-            route_table.associations[association_id] = gateway_id
+            route_table._associations[association_id] = gateway_id
             return association_id
 
     def disassociate_route_table(self, association_id: str) -> Optional[str]:
         for route_table in self.route_tables.values():
-            if association_id in route_table.associations:
-                return route_table.associations.pop(association_id, None)
+            if association_id in route_table._associations:
+                return route_table._associations.pop(association_id, None)
         raise InvalidAssociationIdError(association_id)
 
     def replace_route_table_association(
@@ -355,10 +439,10 @@ class RouteBackend:
             previous_route_table.main_association_id = None
             new_route_table.main_association_id = new_association_id
         else:
-            association_target_id = previous_route_table.associations.pop(
+            association_target_id = previous_route_table._associations.pop(
                 association_id
             )
-            new_route_table.associations[new_association_id] = association_target_id
+            new_route_table._associations[new_association_id] = association_target_id
         return new_association_id
 
     def create_route(
@@ -388,7 +472,7 @@ class RouteBackend:
 
         if vpc_endpoint_id:
             vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
-            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+            if not vpce[0].vpc_endpoint_type == "GatewayLoadBalancer":
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
                 # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
                 raise RouteNotSupportedError(vpc_endpoint_id)
@@ -444,7 +528,7 @@ class RouteBackend:
             if vpc_peering_connection_id
             else None,
         )
-        route_table.routes[route.id] = route
+        route_table._routes[route.id] = route
         return route
 
     def replace_route(
@@ -469,7 +553,7 @@ class RouteBackend:
         route_table = self.get_route_table(route_table_id)
         route_id = generate_route_id(route_table.id, cidr, destination_ipv6_cidr_block)
         try:
-            route = route_table.routes[route_id]
+            route = route_table._routes[route_id]
         except KeyError:
             # This should be 'raise InvalidRouteError(route_table_id, cidr)' in
             # line with the delete_route() equivalent, but for some reason AWS
@@ -507,7 +591,7 @@ class RouteBackend:
             else None
         )
 
-        route_table.routes[route.id] = route
+        route_table._routes[route.id] = route
         return route
 
     def delete_route(
@@ -524,7 +608,7 @@ class RouteBackend:
         if destination_prefix_list_id:
             cidr = destination_prefix_list_id
         route_id = generate_route_id(route_table_id, cidr)
-        deleted = route_table.routes.pop(route_id, None)
+        deleted = route_table._routes.pop(route_id, None)
         if not deleted:
             raise InvalidRouteError(route_table_id, cidr)
         return deleted
@@ -543,9 +627,9 @@ class RouteBackend:
         except ValueError:
             raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
-        if not route_table.routes:
+        if not route_table._routes:
             return
-        for route in route_table.routes.values():
+        for route in route_table._routes.values():
             if not route.destination_cidr_block:
                 continue
             if not route.local and ip_v4_network == ipaddress.IPv4Network(

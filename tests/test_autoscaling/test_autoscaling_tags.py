@@ -121,7 +121,7 @@ def test_describe_tags_no_filter():
     create_asgs(client, subnet)
 
     response = client.describe_tags()
-    len(response["Tags"]) == 4
+    assert len(response["Tags"]) == 4
     assert {
         "ResourceId": "test_asg",
         "ResourceType": "auto-scaling-group",
@@ -220,7 +220,7 @@ def test_describe_tags_filter_by_propgateatlaunch():
     response = client.describe_tags(
         Filters=[{"Name": "propagate-at-launch", "Values": ["True"]}]
     )
-    len(response["Tags"]) == 1
+    assert len(response["Tags"]) == 1
     assert response["Tags"] == [
         {
             "ResourceId": "test_asg",

@@ -11,7 +11,12 @@ from .test_helper_functions import CREATE_WEB_ACL_BODY
 @mock_aws
 @pytest.mark.parametrize(
     "region,partition",
-    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-gov-east-1", "aws-us-gov")],
+    [
+        ("us-east-1", "aws"),
+        ("cn-north-1", "aws-cn"),
+        ("us-gov-east-1", "aws-us-gov"),
+        ("eusc-de-east-1", "aws-eusc"),
+    ],
 )
 def test_create_web_acl(region, partition):
     conn = boto3.client("wafv2", region_name=region)
@@ -148,13 +153,46 @@ def test_create_web_acl_with_all_arguments():
 
 
 @mock_aws
-def test_get_web_acl():
+def test_get_web_acl_by_arn():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
+    web_acl_arn = conn.create_web_acl(**body)["Summary"]["ARN"]
+    wacl = conn.get_web_acl(ARN=web_acl_arn)["WebACL"]
+    assert wacl["Name"] == "John"
+    assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
+
+
+@mock_aws
+def test_get_non_existent_web_acl_by_arn():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    with pytest.raises(conn.exceptions.WAFNonexistentItemException) as error:
+        conn.get_web_acl(
+            ARN="arn:aws:wafv2:us-east-1:123456789012:regional/webacl/John/id"
+        )["WebACL"]
+    assert error
+
+
+@mock_aws
+def test_get_web_acl_by_id_and_name():
     conn = boto3.client("wafv2", region_name="us-east-1")
     body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
     web_acl_id = conn.create_web_acl(**body)["Summary"]["Id"]
     wacl = conn.get_web_acl(Name="John", Scope="REGIONAL", Id=web_acl_id)["WebACL"]
     assert wacl["Name"] == "John"
     assert wacl["Id"] == web_acl_id
+    assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
+
+
+@mock_aws
+def test_get_web_acl_by_arn_has_priority():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
+    web_acl_arn = conn.create_web_acl(**body)["Summary"]["ARN"]
+    wacl = conn.get_web_acl(
+        ARN=web_acl_arn, Name="wrong-name", Scope="REGIONAL", Id="wrong-id"
+    )["WebACL"]
+    assert wacl["Name"] == "John"
+    assert wacl["Id"] != "wrong-id"
     assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
 
 
@@ -323,10 +361,12 @@ def test_ip_set_crud():
             Addresses=["10.0.0.0/8"],
             LockToken="aaaaaaaaaaaaaaaaaa",  # invalid lock token
         )
-    e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
-    e.value.response["Error"][
-        "Message"
-    ] == "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+    err = e.value.response["Error"]
+    assert err["Code"] == "WAFOptimisticLockException"
+    assert (
+        err["Message"]
+        == "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+    )
 
     update_response = client.update_ip_set(
         Name="test-ip-set",
@@ -354,10 +394,8 @@ def test_ip_set_crud():
     assert len(list_response["IPSets"]) == 1
 
     assert all(
-        [
-            key in list_response["IPSets"][0]
-            for key in ["ARN", "Description", "Id", "LockToken", "Name"]
-        ]
+        key in list_response["IPSets"][0]
+        for key in ["ARN", "Description", "Id", "LockToken", "Name"]
     )
 
     client.delete_ip_set(
@@ -369,10 +407,12 @@ def test_ip_set_crud():
 
     with pytest.raises(ClientError) as e:
         client.get_ip_set(Name=summary["Name"], Scope="CLOUDFRONT", Id=summary["Id"])
-    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
-    e.value.response["Error"][
-        "Message"
-    ] == "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
+    err = e.value.response["Error"]
+    assert err["Code"] == "WAFNonexistentItemException"
+    assert (
+        err["Message"]
+        == "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
+    )
 
 
 @mock_aws

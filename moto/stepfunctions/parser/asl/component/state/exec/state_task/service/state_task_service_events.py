@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Final, Optional, Set
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
@@ -12,7 +12,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.failure_event imp
     FailureEvent,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -26,14 +26,14 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
 }
-_FAILED_ENTRY_ERROR_NAME: ErrorName = CustomErrorName(
+_FAILED_ENTRY_ERROR_NAME: Final[ErrorName] = CustomErrorName(
     error_name="EventBridge.FailedEntry"
 )
 
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {"putevents": {"Entries"}}
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {"putevents": {"Entries"}}
 
 
 class SfnFailedEntryCountException(RuntimeError):
@@ -48,7 +48,7 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -97,16 +97,15 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         self._normalised_request_parameters(env=env, parameters=normalised_parameters)
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         events_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         response = getattr(events_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

@@ -35,7 +35,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
                 type=type,
             )
         )
-        return json.dumps(dict(securityPolicyDetail=security_policy_detail.to_dict()))
+        return json.dumps({"securityPolicyDetail": security_policy_detail.to_dict()})
 
     def get_security_policy(self) -> str:
         params = json.loads(self.body)
@@ -45,7 +45,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             name=name,
             type=type,
         )
-        return json.dumps(dict(securityPolicyDetail=security_policy_detail.to_dict()))
+        return json.dumps({"securityPolicyDetail": security_policy_detail.to_dict()})
 
     def list_security_policies(self) -> str:
         params = json.loads(self.body)
@@ -58,11 +58,11 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                securityPolicySummaries=[
+            {
+                "securityPolicySummaries": [
                     sp.to_dict_list() for sp in security_policy_summaries
                 ]
-            )
+            }
         )
 
     def update_security_policy(self) -> str:
@@ -83,7 +83,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
                 type=type,
             )
         )
-        return json.dumps(dict(securityPolicyDetail=security_policy_detail.to_dict()))
+        return json.dumps({"securityPolicyDetail": security_policy_detail.to_dict()})
 
     def create_collection(self) -> str:
         params = json.loads(self.body)
@@ -102,7 +102,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             type=type,
         )
         return json.dumps(
-            dict(createCollectionDetail=create_collection_detail.to_dict())
+            {"createCollectionDetail": create_collection_detail.to_dict()}
         )
 
     def list_collections(self) -> str:
@@ -112,7 +112,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             collection_filters=collection_filters,
         )
         return json.dumps(
-            dict(collectionSummaries=[cs.to_dict_list() for cs in collection_summaries])
+            {"collectionSummaries": [cs.to_dict_list() for cs in collection_summaries]}
         )
 
     def create_vpc_endpoint(self) -> str:
@@ -132,7 +132,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(createVpcEndpointDetail=create_vpc_endpoint_detail.to_dict())
+            {"createVpcEndpointDetail": create_vpc_endpoint_detail.to_dict()}
         )
 
     def delete_collection(self) -> str:
@@ -144,7 +144,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             id=id,
         )
         return json.dumps(
-            dict(deleteCollectionDetail=delete_collection_detail.to_dict())
+            {"deleteCollectionDetail": delete_collection_detail.to_dict()}
         )
 
     def tag_resource(self) -> str:
@@ -155,7 +155,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
@@ -165,7 +165,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -173,7 +173,7 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
         tags = self.opensearchserverless_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def batch_get_collection(self) -> str:
         params = json.loads(self.body)
@@ -186,8 +186,8 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                collectionDetails=collection_details,
-                collectionErrorDetails=collection_error_details,
-            )
+            {
+                "collectionDetails": collection_details,
+                "collectionErrorDetails": collection_error_details,
+            }
         )

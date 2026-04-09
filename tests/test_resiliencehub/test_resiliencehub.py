@@ -140,7 +140,7 @@ def test_create_resilience_policy_missing_types():
             tier="NonCritical",
         )
     err = exc.value.response["Error"]
-    err["Message"] == "FailureType SOFTWARE does not exist"
+    assert err["Message"] == "FailureType SOFTWARE does not exist"
 
 
 @mock_aws
@@ -265,7 +265,7 @@ def test_list_resiliency_policies():
     policy2 = client.list_resiliency_policies(policyName="policy_2")[
         "resiliencyPolicies"
     ][0]
-    policy2["policyName"] == "policy_2"
+    assert policy2["policyName"] == "policy_2"
 
     page1 = client.list_resiliency_policies(maxResults=2)
     assert len(page1["resiliencyPolicies"]) == 2

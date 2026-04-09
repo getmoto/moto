@@ -1,6 +1,6 @@
 """TimestreamQueryBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -18,13 +18,13 @@ class ScheduledQuery(BaseModel):
         region_name: str,
         name: str,
         query_string: str,
-        schedule_configuration: Dict[str, str],
-        notification_configuration: Dict[str, Dict[str, str]],
-        target_configuration: Optional[Dict[str, Any]],
+        schedule_configuration: dict[str, str],
+        notification_configuration: dict[str, dict[str, str]],
+        target_configuration: Optional[dict[str, Any]],
         scheduled_query_execution_role_arn: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         kms_key_id: Optional[str],
-        error_report_configuration: Optional[Dict[str, Dict[str, str]]],
+        error_report_configuration: Optional[dict[str, dict[str, str]]],
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -44,7 +44,7 @@ class ScheduledQuery(BaseModel):
         self.arn = f"arn:{get_partition(region_name)}:timestream:{region_name}:{account_id}:scheduled-query/{name}"
         self.state = "ENABLED"
 
-    def description(self) -> Dict[str, Any]:
+    def description(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "Name": self.name,
@@ -65,22 +65,22 @@ class TimestreamQueryBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.scheduled_queries: Dict[str, ScheduledQuery] = {}
+        self.scheduled_queries: dict[str, ScheduledQuery] = {}
 
-        self.query_result_queue: Dict[Optional[str], List[Dict[str, Any]]] = {}
-        self.query_results: Dict[str, Dict[str, Any]] = {}
+        self.query_result_queue: dict[Optional[str], list[dict[str, Any]]] = {}
+        self.query_results: dict[str, dict[str, Any]] = {}
 
     def create_scheduled_query(
         self,
         name: str,
         query_string: str,
-        schedule_configuration: Dict[str, str],
-        notification_configuration: Dict[str, Dict[str, str]],
-        target_configuration: Optional[Dict[str, Any]],
+        schedule_configuration: dict[str, str],
+        notification_configuration: dict[str, dict[str, str]],
+        target_configuration: Optional[dict[str, Any]],
         scheduled_query_execution_role_arn: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         kms_key_id: Optional[str],
-        error_report_configuration: Dict[str, Dict[str, str]],
+        error_report_configuration: dict[str, dict[str, str]],
     ) -> ScheduledQuery:
         query = ScheduledQuery(
             account_id=self.account_id,
@@ -110,7 +110,7 @@ class TimestreamQueryBackend(BaseBackend):
         query = self.scheduled_queries[scheduled_query_arn]
         query.state = state
 
-    def query(self, query_string: str) -> Dict[str, Any]:
+    def query(self, query_string: str) -> dict[str, Any]:
         """
         Moto does not have a builtin time-series Database, so calling this endpoint will return zero results by default.
 
@@ -165,7 +165,7 @@ class TimestreamQueryBackend(BaseBackend):
             return self.query_results[query_string]
         return {"QueryId": str(uuid4()), "Rows": [], "ColumnInfo": []}
 
-    def describe_endpoints(self) -> List[Dict[str, Union[str, int]]]:
+    def describe_endpoints(self) -> list[dict[str, Union[str, int]]]:
         # https://docs.aws.amazon.com/timestream/latest/developerguide/Using-API.endpoint-discovery.how-it-works.html
         # Usually, the address look like this:
         # query-cell1.timestream.us-east-1.amazonaws.com

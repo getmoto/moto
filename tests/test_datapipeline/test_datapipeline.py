@@ -11,7 +11,7 @@ def get_value_from_fields(key, fields):
 
 
 @mock_aws
-def test_create_pipeline_boto3():
+def test_create_pipeline():
     conn = boto3.client("datapipeline", region_name="us-west-2")
 
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
@@ -61,7 +61,7 @@ PIPELINE_OBJECTS = [
 
 
 @mock_aws
-def test_creating_pipeline_definition_boto3():
+def test_creating_pipeline_definition():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
@@ -81,7 +81,7 @@ def test_creating_pipeline_definition_boto3():
 
 
 @mock_aws
-def test_describing_pipeline_objects_boto3():
+def test_describing_pipeline_objects():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
@@ -103,7 +103,7 @@ def test_describing_pipeline_objects_boto3():
 
 
 @mock_aws
-def test_activate_pipeline_boto3():
+def test_activate_pipeline():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
 
@@ -121,7 +121,7 @@ def test_activate_pipeline_boto3():
 
 
 @mock_aws
-def test_delete_pipeline_boto3():
+def test_delete_pipeline():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
@@ -134,7 +134,7 @@ def test_delete_pipeline_boto3():
 
 
 @mock_aws
-def test_listing_pipelines_boto3():
+def test_listing_pipelines():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res1 = conn.create_pipeline(name="mypipeline1", uniqueId="some-unique-id1")
     res2 = conn.create_pipeline(name="mypipeline2", uniqueId="some-unique-id2")
@@ -150,7 +150,7 @@ def test_listing_pipelines_boto3():
 
 
 @mock_aws
-def test_listing_paginated_pipelines_boto3():
+def test_listing_paginated_pipelines():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     for i in range(100):
         conn.create_pipeline(name=f"mypipeline{i}", uniqueId=f"some-unique-id{i}")

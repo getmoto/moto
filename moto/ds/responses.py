@@ -107,9 +107,10 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"DirectoryDescriptions": [x.to_dict() for x in directories]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "DirectoryDescriptions": [x.to_dict() for x in directories],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def disable_sso(self) -> str:
@@ -161,9 +162,7 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"Tags": tags}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": tags, "NextToken": next_token}
         return json.dumps(response)
 
     def create_trust(self) -> str:
@@ -183,7 +182,7 @@ class DirectoryServiceResponse(BaseResponse):
             conditional_forwarder_ip_addrs=conditional_forwarder_ip_addrs,
             selective_auth=selective_auth,
         )
-        return json.dumps(dict(TrustId=trust_id))
+        return json.dumps({"TrustId": trust_id})
 
     def describe_trusts(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -197,7 +196,7 @@ class DirectoryServiceResponse(BaseResponse):
             limit=limit,
         )
         trust_list = [trust.to_dict() for trust in trusts]
-        return json.dumps(dict(Trusts=trust_list, nextToken=next_token))
+        return json.dumps({"Trusts": trust_list, "nextToken": next_token})
 
     def delete_trust(self) -> str:
         trust_id = self._get_param("TrustId")
@@ -208,7 +207,7 @@ class DirectoryServiceResponse(BaseResponse):
             trust_id=trust_id,
             delete_associated_conditional_forwarder=delete_associated_conditional_forwarder,
         )
-        return json.dumps(dict(TrustId=trust_id))
+        return json.dumps({"TrustId": trust_id})
 
     def describe_ldaps_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -222,7 +221,7 @@ class DirectoryServiceResponse(BaseResponse):
             limit=limit,
         )
         ldaps = [ldap.to_dict() for ldap in ldaps_settings_info]
-        return json.dumps(dict(LDAPSSettingsInfo=ldaps, nextToken=next_token))
+        return json.dumps({"LDAPSSettingsInfo": ldaps, "nextToken": next_token})
 
     def enable_ldaps(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -253,11 +252,11 @@ class DirectoryServiceResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DirectoryId=directory_id,
-                SettingEntries=setting_entries,
-                NextToken=next_token,
-            )
+            {
+                "DirectoryId": directory_id,
+                "SettingEntries": setting_entries,
+                "NextToken": next_token,
+            }
         )
 
     def update_settings(self) -> str:
@@ -267,7 +266,7 @@ class DirectoryServiceResponse(BaseResponse):
             directory_id=directory_id,
             settings=settings,
         )
-        return json.dumps(dict(DirectoryId=directory_id))
+        return json.dumps({"DirectoryId": directory_id})
 
     def create_log_subscription(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -276,7 +275,7 @@ class DirectoryServiceResponse(BaseResponse):
             directory_id=directory_id,
             log_group_name=log_group_name,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_log_subscriptions(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -289,7 +288,7 @@ class DirectoryServiceResponse(BaseResponse):
         )
         list_subscriptions = [sub.to_dict() for sub in log_subscriptions]
         return json.dumps(
-            dict(LogSubscriptions=list_subscriptions, NextToken=next_token)
+            {"LogSubscriptions": list_subscriptions, "NextToken": next_token}
         )
 
     def delete_log_subscription(self) -> str:
@@ -297,4 +296,4 @@ class DirectoryServiceResponse(BaseResponse):
         self.ds_backend.delete_log_subscription(
             directory_id=directory_id,
         )
-        return json.dumps(dict())
+        return json.dumps({})

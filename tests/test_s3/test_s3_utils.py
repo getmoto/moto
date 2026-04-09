@@ -90,6 +90,32 @@ def test_parse_region_from_url():
         assert parse_region_from_url(url) == expected
 
 
+def test_parse_region_from_url_dualstack():
+    expected = "us-east-1"
+    for url in [
+        "https://s3.dualstack.us-east-1.amazonaws.com/bucket",
+        "https://bucket.s3.dualstack.us-east-1.amazonaws.com",
+    ]:
+        assert parse_region_from_url(url) == expected
+
+    expected = "ap-southeast-2"
+    for url in [
+        "https://s3.dualstack.ap-southeast-2.amazonaws.com/bucket",
+        "https://bucket.s3.dualstack.ap-southeast-2.amazonaws.com",
+    ]:
+        assert parse_region_from_url(url) == expected
+
+
+def test_parse_region_from_url_fips():
+    for url in [
+        "https://s3-fips.us-east-1.amazonaws.com/bucket",
+        "https://bucket.s3-fips.us-east-1.amazonaws.com",
+        "https://s3.fips.us-east-1.amazonaws.com/bucket",
+        "https://bucket.s3.fips.us-east-1.amazonaws.com",
+    ]:
+        assert parse_region_from_url(url) == "us-east-1"
+
+
 def test_checksum_sha256():
     checksum = b"h9FJy0JMA4dlbyEdJYn7Wx4WIpkhMJ6YWIQZzMqKc2I="
     assert compute_checksum(b"somedata", "SHA256") == checksum
@@ -107,8 +133,6 @@ def test_checksum_crc32():
 
 def test_checksum_crc32c():
     try:
-        import crc32c  # noqa # pylint: disable=unused-import
-
         assert compute_checksum(b"somedata", "CRC32C") == b"dB9qBQ=="
     except:  # noqa: E722 Do not use bare except
         # Optional library Can't be found - just revert to CRC32

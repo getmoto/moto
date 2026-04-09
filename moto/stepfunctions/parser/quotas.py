@@ -1,8 +1,10 @@
-from typing import Any
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
-MAX_STATE_SIZE_UTF8_BYTES: int = 256 * 1024  # 256 KB of data as a UTF-8 encoded string.
+MAX_STATE_SIZE_UTF8_BYTES: Final[int] = (
+    256 * 1024
+)  # 256 KB of data as a UTF-8 encoded string.
 
 
 def is_within_size_quota(value: Any) -> bool:

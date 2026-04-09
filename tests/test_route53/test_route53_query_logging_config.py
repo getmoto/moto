@@ -1,4 +1,4 @@
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 from unittest import SkipTest
 
 import boto3
@@ -132,7 +132,7 @@ def test_create_query_logging_config_bad_args():
 
 @mock_aws
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
-def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
+def test_create_query_logging_config_good_args(moto_server, route53_region):
     """Test a valid create_logging_config() request."""
     client_kwargs = {"region_name": route53_region}
     if route53_region != TEST_REGION:
@@ -150,6 +150,7 @@ def test_create_query_logging_config_good_args(moto_server, route53_region):  # 
     response = client.create_query_logging_config(
         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     config = response["QueryLoggingConfig"]
     assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
     assert config["CloudWatchLogsLogGroupArn"] == log_group_arn

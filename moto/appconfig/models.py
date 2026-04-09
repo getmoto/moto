@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -32,7 +33,7 @@ class HostedConfigurationVersion(BaseModel):
         self.content_type = content_type
         self.version_label = version_label
 
-    def get_headers(self) -> Dict[str, Any]:
+    def get_headers(self) -> dict[str, Any]:
         return {
             "application-id": self.app_id,
             "configuration-profile-id": self.config_id,
@@ -53,7 +54,7 @@ class ConfigurationProfile(BaseModel):
         description: str,
         location_uri: str,
         retrieval_role_arn: str,
-        validators: List[Dict[str, str]],
+        validators: list[dict[str, str]],
         _type: str,
     ):
         self.id = mock_random.get_random_hex(7)
@@ -65,7 +66,7 @@ class ConfigurationProfile(BaseModel):
         self.retrieval_role_arn = retrieval_role_arn
         self.validators = validators
         self._type = _type
-        self.config_versions: Dict[int, HostedConfigurationVersion] = dict()
+        self.config_versions: dict[int, HostedConfigurationVersion] = {}
 
     def create_version(
         self,
@@ -99,7 +100,7 @@ class ConfigurationProfile(BaseModel):
     def delete_version(self, version: int) -> None:
         self.config_versions.pop(version)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Id": self.id,
             "Name": self.name,
@@ -121,9 +122,9 @@ class Application(BaseModel):
         self.name = name
         self.description = description
 
-        self.config_profiles: Dict[str, ConfigurationProfile] = dict()
+        self.config_profiles: dict[str, ConfigurationProfile] = {}
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Id": self.id,
             "Name": self.name,
@@ -136,11 +137,11 @@ class AppConfigBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: Dict[str, Application] = dict()
+        self.applications: dict[str, Application] = {}
         self.tagger = TaggingService()
 
     def create_application(
-        self, name: str, description: Optional[str], tags: Dict[str, str]
+        self, name: str, description: Optional[str], tags: dict[str, str]
     ) -> Application:
         app = Application(
             name, description, region=self.region_name, account_id=self.account_id
@@ -174,9 +175,9 @@ class AppConfigBackend(BaseBackend):
         description: str,
         location_uri: str,
         retrieval_role_arn: str,
-        validators: List[Dict[str, str]],
+        validators: list[dict[str, str]],
         _type: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> ConfigurationProfile:
         config_profile = ConfigurationProfile(
             application_id=application_id,
@@ -213,7 +214,7 @@ class AppConfigBackend(BaseBackend):
         name: str,
         description: str,
         retrieval_role_arn: str,
-        validators: List[Dict[str, str]],
+        validators: list[dict[str, str]],
     ) -> ConfigurationProfile:
         config_profile = self.get_configuration_profile(
             application_id, config_profile_id
@@ -272,13 +273,13 @@ class AppConfigBackend(BaseBackend):
         )
         profile.delete_version(version=version)
 
-    def list_tags_for_resource(self, arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
 

@@ -7,6 +7,22 @@ class AppSyncExceptions(JsonRESTError):
     pass
 
 
+class AWSValidationException(AppSyncExceptions):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ValidationException", message)
+        self.description = json.dumps({"message": self.message})
+
+
+class ApiKeyValidityOutOfBoundsException(AppSyncExceptions):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ApiKeyValidityOutOfBoundsException", message)
+        self.description = json.dumps({"message": self.message})
+
+
 class GraphqlAPINotFound(AppSyncExceptions):
     code = 404
 
@@ -31,6 +47,14 @@ class GraphqlAPICacheNotFound(AppSyncExceptions):
             "NotFoundException",
             f"Unable to {op} the cache as it doesn't exist, please create the cache first.",
         )
+        self.description = json.dumps({"message": self.message})
+
+
+class EventsAPINotFound(AppSyncExceptions):
+    code = 404
+
+    def __init__(self, api_id: str):
+        super().__init__("NotFoundException", f"Events API {api_id} not found.")
         self.description = json.dumps({"message": self.message})
 
 

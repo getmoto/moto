@@ -1,4 +1,4 @@
-from typing import Final, List, Optional, TypedDict
+from typing import Final, Optional, TypedDict
 
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.csv_header_location import (
@@ -11,8 +11,8 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.re
     InputType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
-    MaxItems,
     MaxItemsDecl,
+    MaxItemsInt,
 )
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 
@@ -27,7 +27,7 @@ class CSVHeaderLocationOutput(str):
     GIVEN = "GIVEN"
 
 
-CSVHeadersOutput = List[str]
+CSVHeadersOutput = list[str]
 MaxItemsValueOutput = int
 
 
@@ -52,7 +52,7 @@ class ReaderConfig(EvalComponent):
         max_items_decl: Optional[MaxItemsDecl],
     ):
         self.input_type = input_type
-        self.max_items_decl = max_items_decl or MaxItems()
+        self.max_items_decl = max_items_decl or MaxItemsInt()
         self.csv_header_location = csv_header_location
         self.csv_headers = csv_headers
         # TODO: verify behaviours:

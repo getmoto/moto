@@ -14,9 +14,9 @@ def test_describe_instance_types():
     assert "InstanceType" in instance_types["InstanceTypes"][0]
     assert "SizeInMiB" in instance_types["InstanceTypes"][0]["MemoryInfo"]
 
-    ena_support = set(
+    ena_support = {
         t["NetworkInfo"]["EnaSupport"] for t in instance_types["InstanceTypes"]
-    )
+    }
     assert ena_support == {"required", "unsupported", "supported"}
 
 
@@ -48,14 +48,24 @@ def test_describe_instance_types_gpu_instance_types():
         instance_info["InstanceType"]: instance_info["GpuInfo"]
         for instance_info in instance_types["InstanceTypes"]
     }
+    for itype in instance_type_to_gpu_info.values():
+        for gpu in itype["Gpus"]:
+            # AWS seems to re-order these attributes every week
+            gpu["Workloads"] = sorted(gpu["Workloads"])
     assert instance_type_to_gpu_info == {
         "g4ad.8xlarge": {
             "Gpus": [
                 {
                     "Count": 2,
+                    "GpuPartitionSize": 1.0,
+                    "LogicalGpuCount": 2,
                     "Manufacturer": "AMD",
                     "MemoryInfo": {"SizeInMiB": 8192},
                     "Name": "Radeon Pro V520",
+                    "Workloads": [
+                        "graphics",
+                        "ml-ai",
+                    ],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
@@ -64,9 +74,14 @@ def test_describe_instance_types_gpu_instance_types():
             "Gpus": [
                 {
                     "Count": 1,
+                    "GpuPartitionSize": 1.0,
+                    "LogicalGpuCount": 1,
                     "Manufacturer": "NVIDIA",
                     "MemoryInfo": {"SizeInMiB": 16384},
                     "Name": "V100",
+                    "Workloads": [
+                        "ml-ai",
+                    ],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
@@ -186,7 +201,7 @@ def test_describe_instance_types_small_instances():
         {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
     ])  # fmt: skip
 
-    types = set(t["InstanceType"] for t in instance_types["InstanceTypes"])
+    types = {t["InstanceType"] for t in instance_types["InstanceTypes"]}
     assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
 
 

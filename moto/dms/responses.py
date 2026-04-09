@@ -21,6 +21,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         migration_type = self._get_param("MigrationType")
         table_mappings = self._get_param("TableMappings")
         replication_task_settings = self._get_param("ReplicationTaskSettings")
+        tags = self._get_param("Tags")
         replication_task = self.dms_backend.create_replication_task(
             replication_task_identifier=replication_task_identifier,
             source_endpoint_arn=source_endpoint_arn,
@@ -29,6 +30,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             migration_type=migration_type,
             table_mappings=table_mappings,
             replication_task_settings=replication_task_settings,
+            tags=tags,
         )
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
@@ -58,14 +60,14 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
     def describe_replication_tasks(self) -> str:
-        filters = self._get_list_prefix("Filters.member")
-        max_records = self._get_int_param("MaxRecords")
+        filters = self._get_param("Filters", [])
+        max_records = self._get_int_param("MaxRecords", 100)
         replication_tasks = self.dms_backend.describe_replication_tasks(
             filters=filters, max_records=max_records
         )
 
         return json.dumps(
-            dict(ReplicationTasks=[t.to_dict() for t in replication_tasks])
+            {"ReplicationTasks": [t.to_dict() for t in replication_tasks]}
         )
 
     def create_replication_instance(self) -> str:
@@ -74,27 +76,6 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         allocated_storage = params.get("AllocatedStorage")
         replication_instance_class = params.get("ReplicationInstanceClass")
         vpc_security_group_ids = self._get_param("VpcSecurityGroupIds")
-        if vpc_security_group_ids:
-            # If the parameter is directly available, use it
-            vpc_security_group_ids = (
-                vpc_security_group_ids.split(",")
-                if isinstance(vpc_security_group_ids, str)
-                else [vpc_security_group_ids]
-            )
-        else:
-            # If we need to extract from list prefix, get string values
-            vpc_security_group_list = self._get_list_prefix(
-                "VpcSecurityGroupIds.member"
-            )
-            vpc_security_group_ids = (
-                [
-                    sg_id.get("VpcSecurityGroupId", "")
-                    for sg_id in vpc_security_group_list
-                ]
-                if vpc_security_group_list
-                else None
-            )
-
         availability_zone = params.get("AvailabilityZone")
         replication_subnet_group_identifier = params.get(
             "ReplicationSubnetGroupIdentifier"
@@ -147,6 +128,13 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         # TODO: Add Marker (optional) to the response
         return json.dumps({"ReplicationInstances": instances_dict})
+
+    def delete_replication_instance(self) -> str:
+        replication_instance_arn = self._get_param("ReplicationInstanceArn")
+        replication_instance = self.dms_backend.delete_replication_instance(
+            replication_instance_arn=replication_instance_arn,
+        )
+        return json.dumps({"ReplicationInstance": replication_instance.to_dict()})
 
     def create_endpoint(self) -> str:
         params = json.loads(self.body)
@@ -224,9 +212,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                Endpoint={k: v for k, v in endpoint.to_dict().items() if v is not None}
-            )
+            {"Endpoint": {k: v for k, v in endpoint.to_dict().items() if v is not None}}
         )
 
     def describe_endpoints(self) -> str:
@@ -238,13 +224,20 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             filters=filters, max_records=max_records, marker=marker
         )
         return json.dumps(
-            dict(
-                Endpoints=[
+            {
+                "Endpoints": [
                     {k: v for k, v in endpoint.to_dict().items() if v is not None}
                     for endpoint in endpoints
                 ]
-            )
+            }
         )
+
+    def delete_endpoint(self) -> str:
+        endpoint_arn = self._get_param("EndpointArn")
+        endpoint = self.dms_backend.delete_endpoint(
+            endpoint_arn=endpoint_arn,
+        )
+        return json.dumps({"Endpoint": endpoint.to_dict()})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -265,4 +258,77 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         else:
             tag_list = self.dms_backend.list_tags_for_resource(resource_arn_list)
 
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
+
+    def create_replication_subnet_group(self) -> str:
+        params = json.loads(self.body)
+        replication_subnet_group_identifier = params.get(
+            "ReplicationSubnetGroupIdentifier"
+        )
+        replication_subnet_group_description = params.get(
+            "ReplicationSubnetGroupDescription"
+        )
+        subnet_ids = params.get("SubnetIds")
+        tags = params.get("Tags")
+        replication_subnet_group = self.dms_backend.create_replication_subnet_group(
+            replication_subnet_group_identifier=replication_subnet_group_identifier,
+            replication_subnet_group_description=replication_subnet_group_description,
+            subnet_ids=subnet_ids,
+            tags=tags,
+        )
+        return json.dumps(
+            {"ReplicationSubnetGroup": replication_subnet_group.to_dict()}
+        )
+
+    def describe_replication_subnet_groups(self) -> str:
+        params = json.loads(self.body)
+        filters = params.get("Filters", [])
+        max_records = params.get("MaxRecords")
+        marker = params.get("Marker")
+        replication_subnet_groups = self.dms_backend.describe_replication_subnet_groups(
+            filters=filters, max_records=max_records, marker=marker
+        )
+
+        return json.dumps(
+            {
+                "ReplicationSubnetGroups": [
+                    {
+                        k: v
+                        for k, v in replication_subnet_group.to_dict().items()
+                        if v is not None
+                    }
+                    for replication_subnet_group in replication_subnet_groups
+                ]
+            }
+        )
+
+    def delete_replication_subnet_group(self) -> str:
+        replication_subnet_group_identifier = self._get_param(
+            "ReplicationSubnetGroupIdentifier"
+        )
+        self.dms_backend.delete_replication_subnet_group(
+            replication_subnet_group_identifier=replication_subnet_group_identifier,
+        )
+        return json.dumps({})
+
+    def test_connection(self) -> str:
+        replication_instance_arn = self._get_param("ReplicationInstanceArn")
+        endpoint_arn = self._get_param("EndpointArn")
+        connection = self.dms_backend.test_connection(
+            replication_instance_arn=replication_instance_arn,
+            endpoint_arn=endpoint_arn,
+        )
+        return json.dumps({"Connection": connection.to_dict()})
+
+    def describe_connections(self) -> str:
+        data = json.loads(self.body)
+        filters = data.get("Filters", [])
+        max_records = data.get("MaxRecords")
+        marker = data.get("Marker")
+
+        connections = self.dms_backend.describe_connections(
+            filters=filters, max_records=max_records, marker=marker
+        )
+        connection_list = [c.to_dict() for c in connections]
+        # TODO: Add Marker (optional) to the response
+        return json.dumps({"Connections": connection_list})

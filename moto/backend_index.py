@@ -2,6 +2,7 @@
 import re
 
 backend_url_patterns = [
+    ("account", re.compile("https?://account\\.(.+)\\.amazonaws\\.com")),
     ("acm", re.compile("https?://acm\\.(.+)\\.amazonaws\\.com")),
     ("acmpca", re.compile("https?://acm-pca\\.(.+)\\.amazonaws\\.com")),
     ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
@@ -17,6 +18,12 @@ backend_url_patterns = [
     ),
     ("appmesh", re.compile("https?://appmesh\\.(.+)\\.amazonaws\\.com")),
     ("appsync", re.compile("https?://appsync\\.(.+)\\.amazonaws\\.com")),
+    (
+        "appsync",
+        re.compile(
+            "https?://([a-zA-Z0-9\\-_]+)\\.appsync-api\\.(.+)\\.amazonaws\\.com"
+        ),
+    ),
     ("athena", re.compile("https?://athena\\.(.+)\\.amazonaws\\.com")),
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),
     ("awslambda", re.compile("https?://lambda\\.(.+)\\.amazonaws\\.com")),
@@ -24,6 +31,11 @@ backend_url_patterns = [
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
     ("bedrock", re.compile("https?://bedrock\\.(.+)\\.amazonaws\\.com")),
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
+    (
+        "bedrockagentcorecontrol",
+        re.compile("https?://bedrock-agentcore-control\\.(.+)\\.amazonaws\\.com"),
+    ),
+    ("bedrockruntime", re.compile("https?://bedrock-runtime\\.(.+)\\.amazonaws\\.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
     ("clouddirectory", re.compile("https?://clouddirectory\\.(.+)\\.amazonaws\\.com")),
@@ -42,6 +54,11 @@ backend_url_patterns = [
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
     ("comprehend", re.compile("https?://comprehend\\.(.+)\\.amazonaws\\.com")),
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
+    ("connect", re.compile("https?://connect\\.(.+)\\.amazonaws\\.com")),
+    (
+        "connectcampaigns",
+        re.compile("https?://connect-campaigns\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("databrew", re.compile("https?://databrew\\.(.+)\\.amazonaws.com")),
     ("datapipeline", re.compile("https?://datapipeline\\.(.+)\\.amazonaws\\.com")),
     ("datasync", re.compile("https?://(.*\\.)?(datasync)\\.(.+)\\.amazonaws.com")),
@@ -74,10 +91,6 @@ backend_url_patterns = [
         re.compile(
             "https?://elasticbeanstalk\\.(?P<region>[a-zA-Z0-9\\-_]+)\\.amazonaws.com"
         ),
-    ),
-    (
-        "elastictranscoder",
-        re.compile("https?://elastictranscoder\\.(.+)\\.amazonaws.com"),
     ),
     ("elb", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
     ("elbv2", re.compile("https?://elasticloadbalancing\\.(.+)\\.amazonaws.com")),
@@ -120,6 +133,7 @@ backend_url_patterns = [
     ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
+    ("macie2", re.compile("https?://macie2\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
         re.compile("https?://managedblockchain\\.(.+)\\.amazonaws.com"),
@@ -127,6 +141,7 @@ backend_url_patterns = [
     ("mediaconnect", re.compile("https?://mediaconnect\\.(.+)\\.amazonaws.com")),
     ("medialive", re.compile("https?://medialive\\.(.+)\\.amazonaws.com")),
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
+    ("mediapackagev2", re.compile("https?://mediapackagev2\\.(.+)\\.amazonaws\\.com")),
     ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
     ("mediastoredata", re.compile("https?://data\\.mediastore\\.(.+)\\.amazonaws.com")),
     ("memorydb", re.compile("https?://memory-db\\.(.+)\\.amazonaws\\.com")),
@@ -146,14 +161,13 @@ backend_url_patterns = [
     ),
     ("networkmanager", re.compile("https?://networkmanager\\.(.+)\\.amazonaws\\.com")),
     ("opensearchserverless", re.compile("https?://aoss\\.(.+)\\.amazonaws\\.com")),
-    ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
     ("osis", re.compile("https?://osis\\.(.+)\\.amazonaws\\.com")),
     ("panorama", re.compile("https?://panorama\\.(.+)\\.amazonaws.com")),
     ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
+    ("pipes", re.compile("https?://pipes\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
-    ("qldb", re.compile("https?://qldb\\.(.+)\\.amazonaws\\.com")),
     ("quicksight", re.compile("https?://quicksight\\.(.+)\\.amazonaws\\.com")),
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),
@@ -168,18 +182,17 @@ backend_url_patterns = [
         re.compile("https?://resource-groups(-fips)?\\.(.+)\\.amazonaws.com"),
     ),
     ("resourcegroupstaggingapi", re.compile("https?://tagging\\.(.+)\\.amazonaws.com")),
-    ("robomaker", re.compile("https?://robomaker\\.(.+)\\.amazonaws\\.com")),
     ("route53", re.compile("https?://route53(\\..+)?\\.amazonaws.com")),
     ("route53domains", re.compile("https?://route53domains\\.(.+)\\.amazonaws\\.com")),
     (
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("s3", re.compile("https?://s3(?!(-control|tables))(.*)\\.amazonaws.com")),
+    ("s3", re.compile("https?://s3(?!(-control|tables|vectors))(.*)\\.amazonaws.com")),
     (
         "s3",
         re.compile(
-            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!(-control|tables))(.*)\\.amazonaws.com"
+            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!(-control|tables|vectors))(.*)\\.amazonaws.com"
         ),
     ),
     (
@@ -187,6 +200,7 @@ backend_url_patterns = [
         re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
     ("s3tables", re.compile("https?://s3tables\\.(.+)\\.amazonaws\\.com")),
+    ("s3vectors", re.compile("https?://s3vectors\\.(.+)\\.api\\.aws")),
     ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     (
         "sagemakermetrics",
@@ -224,6 +238,7 @@ backend_url_patterns = [
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
+    ("synthetics", re.compile("https?://synthetics\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
         "timestreaminfluxdb",
@@ -243,6 +258,7 @@ backend_url_patterns = [
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
     ("transfer", re.compile("https?://transfer\\.(.+)\\.amazonaws\\.com")),
+    ("vpclattice", re.compile("https?://vpc-lattice\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("workspaces", re.compile("https?://workspaces\\.(.+)\\.amazonaws\\.com")),
     ("workspacesweb", re.compile("https?://workspaces-web\\.(.+)\\.amazonaws\\.com")),

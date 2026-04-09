@@ -55,14 +55,8 @@ def test_delete_unknown_application():
     unknown_application_name = "myapp1"
 
     conn.create_application(ApplicationName=application_name)
-    with pytest.raises(ClientError) as exc:
-        conn.delete_application(ApplicationName=unknown_application_name)
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ApplicationNotFound"
-    assert (
-        err["Message"]
-        == f"Elastic Beanstalk application {unknown_application_name} not found."
-    )
+    resp = conn.delete_application(ApplicationName=unknown_application_name)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_aws
@@ -160,3 +154,5 @@ def test_list_available_solution_stacks():
     stacks = conn.list_available_solution_stacks()
     assert len(stacks["SolutionStacks"]) > 0
     assert len(stacks["SolutionStacks"]) == len(stacks["SolutionStackDetails"])
+    assert "SolutionStackName" in stacks["SolutionStackDetails"][0]
+    assert "PermittedFileTypes" in stacks["SolutionStackDetails"][0]

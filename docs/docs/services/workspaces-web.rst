@@ -20,6 +20,7 @@ workspaces-web
 - [ ] associate_data_protection_settings
 - [ ] associate_ip_access_settings
 - [X] associate_network_settings
+- [ ] associate_session_logger
 - [ ] associate_trust_store
 - [X] associate_user_access_logging_settings
 - [X] associate_user_settings
@@ -29,6 +30,7 @@ workspaces-web
 - [ ] create_ip_access_settings
 - [X] create_network_settings
 - [X] create_portal
+- [ ] create_session_logger
 - [ ] create_trust_store
 - [X] create_user_access_logging_settings
 - [X] create_user_settings
@@ -38,6 +40,7 @@ workspaces-web
 - [ ] delete_ip_access_settings
 - [X] delete_network_settings
 - [X] delete_portal
+- [ ] delete_session_logger
 - [ ] delete_trust_store
 - [X] delete_user_access_logging_settings
 - [X] delete_user_settings
@@ -45,6 +48,7 @@ workspaces-web
 - [ ] disassociate_data_protection_settings
 - [ ] disassociate_ip_access_settings
 - [ ] disassociate_network_settings
+- [ ] disassociate_session_logger
 - [ ] disassociate_trust_store
 - [ ] disassociate_user_access_logging_settings
 - [ ] disassociate_user_settings
@@ -57,6 +61,7 @@ workspaces-web
 - [X] get_portal
 - [ ] get_portal_service_provider_metadata
 - [ ] get_session
+- [ ] get_session_logger
 - [ ] get_trust_store
 - [ ] get_trust_store_certificate
 - [X] get_user_access_logging_settings
@@ -67,6 +72,7 @@ workspaces-web
 - [ ] list_ip_access_settings
 - [X] list_network_settings
 - [X] list_portals
+- [ ] list_session_loggers
 - [ ] list_sessions
 - [X] list_tags_for_resource
 - [ ] list_trust_store_certificates
@@ -81,6 +87,7 @@ workspaces-web
 - [ ] update_ip_access_settings
 - [ ] update_network_settings
 - [ ] update_portal
+- [ ] update_session_logger
 - [ ] update_trust_store
 - [ ] update_user_access_logging_settings
 - [ ] update_user_settings

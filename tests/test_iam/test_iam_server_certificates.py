@@ -94,3 +94,28 @@ def test_delete_unknown_server_cert():
     assert (
         err["Message"] == "The Server Certificate with name certname cannot be found."
     )
+
+
+@mock_aws
+def test_get_server_cert_with_certificate_chain():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    conn.upload_server_certificate(
+        ServerCertificateName="certname",
+        CertificateBody="certbody",
+        PrivateKey="privatekey",
+        CertificateChain="certchain",
+    )
+    cert = conn.get_server_certificate(ServerCertificateName="certname")[
+        "ServerCertificate"
+    ]
+    assert cert["CertificateBody"] == "certbody"
+    assert cert["CertificateChain"] == "certchain"
+    assert "Tags" not in cert
+    metadata = cert["ServerCertificateMetadata"]
+    assert metadata["Path"] == "/"
+    assert metadata["ServerCertificateName"] == "certname"
+    assert metadata["Arn"] == f"arn:aws:iam::{ACCOUNT_ID}:server-certificate/certname"
+    assert "ServerCertificateId" in metadata
+    assert isinstance(metadata["UploadDate"], datetime)
+    assert isinstance(metadata["Expiration"], datetime)

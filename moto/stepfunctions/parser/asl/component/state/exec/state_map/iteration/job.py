@@ -1,7 +1,7 @@
 import copy
 import logging
 import threading
-from typing import Any, Final, List, Optional, Set
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.program.program import Program
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
@@ -40,10 +40,10 @@ class JobPool:
     _worker_exception: Optional[Exception]
 
     _jobs_number: Final[int]
-    _open_jobs: Final[List[Job]]
-    _closed_jobs: Final[Set[JobClosed]]
+    _open_jobs: Final[list[Job]]
+    _closed_jobs: Final[set[JobClosed]]
 
-    def __init__(self, job_program: Program, job_inputs: List[Any]):
+    def __init__(self, job_program: Program, job_inputs: list[Any]):
         self._mutex = threading.Lock()
         self._termination_event = threading.Event()
         self._worker_exception = None
@@ -99,7 +99,7 @@ class JobPool:
 
             self._notify_on_termination()
 
-    def get_closed_jobs(self) -> List[JobClosed]:
+    def get_closed_jobs(self) -> list[JobClosed]:
         with self._mutex:
             closed_jobs = copy.deepcopy(self._closed_jobs)
         return sorted(closed_jobs, key=lambda closed_job: closed_job.job_index)

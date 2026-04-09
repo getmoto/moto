@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from boto3.dynamodb.conditions import Key
@@ -10,7 +12,7 @@ from tests.test_dynamodb import dynamodb_aws_verified
 
 @mock_aws
 def test_item_add_long_string_hash_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -52,7 +54,7 @@ def test_item_add_long_string_hash_key_exception():
 
 @mock_aws
 def test_item_add_long_string_nonascii_hash_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -100,7 +102,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
 
 @mock_aws
 def test_item_add_long_string_range_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -148,7 +150,7 @@ def test_item_add_long_string_range_key_exception():
 
 @mock_aws
 def test_put_long_string_gsi_range_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -247,7 +249,7 @@ def test_update_item_with_long_string_hash_key_exception(table_name=None):
 
 @mock_aws
 def test_update_item_with_long_string_range_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -293,7 +295,7 @@ def test_update_item_with_long_string_range_key_exception():
 
 @mock_aws
 def test_item_add_empty_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,
@@ -317,7 +319,7 @@ def test_item_add_empty_key_exception():
 
 @mock_aws
 def test_query_empty_key_exception():
-    name = "TestTable"
+    name = f"T{uuid4()}"
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
         TableName=name,

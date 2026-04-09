@@ -51,7 +51,7 @@ class BedrockResponse(BaseResponse):
             hyper_parameters=hyper_parameters,
             vpc_config=vpc_config,
         )
-        return json.dumps(dict(jobArn=job_arn))
+        return json.dumps({"jobArn": job_arn})
 
     def get_model_customization_job(self) -> str:
         job_identifier = self.path.split("/")[-1]
@@ -64,7 +64,7 @@ class BedrockResponse(BaseResponse):
         logging_config = (
             self.bedrock_backend.get_model_invocation_logging_configuration()
         )
-        return json.dumps(dict(loggingConfig=logging_config))
+        return json.dumps({"loggingConfig": logging_config})
 
     def put_model_invocation_logging_configuration(self) -> None:
         params = json.loads(self.body)
@@ -92,7 +92,7 @@ class BedrockResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -100,7 +100,7 @@ class BedrockResponse(BaseResponse):
         tags = self.bedrock_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def get_custom_model(self) -> str:
         model_identifier = unquote(self.path.split("/")[-1])
@@ -145,7 +145,7 @@ class BedrockResponse(BaseResponse):
             }
             for model in model_summaries
         ]
-        return json.dumps(dict(nextToken=next_token, modelSummaries=summaries))
+        return json.dumps({"nextToken": next_token, "modelSummaries": summaries})
 
     def list_model_customization_jobs(self) -> str:
         params = self._get_params()
@@ -184,10 +184,10 @@ class BedrockResponse(BaseResponse):
             for job in jobs
         ]
         return json.dumps(
-            dict(
-                nextToken=next_token,
-                modelCustomizationJobSummaries=job_summaries,
-            )
+            {
+                "nextToken": next_token,
+                "modelCustomizationJobSummaries": job_summaries,
+            }
         )
 
     def delete_custom_model(self) -> str:
@@ -195,15 +195,15 @@ class BedrockResponse(BaseResponse):
         self.bedrock_backend.delete_custom_model(
             model_identifier=model_identifier,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def stop_model_customization_job(self) -> str:
         job_identifier = self.path.split("/")[-2]
         self.bedrock_backend.stop_model_customization_job(
             job_identifier=job_identifier,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_model_invocation_logging_configuration(self) -> str:
         self.bedrock_backend.delete_model_invocation_logging_configuration()
-        return json.dumps(dict())
+        return json.dumps({})

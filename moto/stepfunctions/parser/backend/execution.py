@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -119,7 +119,7 @@ class Execution:
 
     exec_worker: Optional[ExecutionWorker]
 
-    _activity_store: Dict[Arn, Activity]
+    _activity_store: dict[Arn, Activity]
 
     def __init__(
         self,
@@ -132,8 +132,8 @@ class Execution:
         state_machine: StateMachineInstance,
         start_date: Timestamp,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
-        activity_store: Dict[Arn, Activity],
-        input_data: Optional[json] = None,
+        activity_store: dict[Arn, Activity],
+        input_data: str,
         trace_header: Optional[TraceHeader] = None,
     ):
         self.name = name
@@ -145,7 +145,7 @@ class Execution:
         self.region_name = region_name
         self.state_machine = state_machine
         self._cloud_watch_logging_session = cloud_watch_logging_session
-        self.input_data = input_data
+        self.input_data = json.loads(input_data)
         self.input_details = CloudWatchEventsExecutionDataDetails(included=True)
         self.trace_header = trace_header
         self.exec_status = None
@@ -244,7 +244,7 @@ class Execution:
 
     def to_history_output(self) -> GetExecutionHistoryOutput:
         env = self.exec_worker.env
-        event_history: HistoryEventList = list()
+        event_history: HistoryEventList = []
         if env is not None:
             # The execution has not started yet.
             event_history: HistoryEventList = env.event_manager.get_event_history()

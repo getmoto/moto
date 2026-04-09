@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -50,7 +50,7 @@ class EngineVersion(BaseModel):
         self.create_time = unix_time(create_time)
         self.update_time = self.create_time
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Options": self.options,
             "Status": {
@@ -70,25 +70,28 @@ class OpenSearchDomain(BaseModel):
         region: str,
         domain_name: str,
         engine_version: str,
-        cluster_config: Dict[str, Any],
-        ebs_options: Dict[str, Any],
+        cluster_config: dict[str, Any],
+        ebs_options: dict[str, Any],
         access_policies: str,
-        snapshot_options: Dict[str, int],
-        vpc_options: Dict[str, List[str]],
-        cognito_options: Dict[str, Any],
-        encryption_at_rest_options: Dict[str, Any],
-        node_to_node_encryption_options: Dict[str, bool],
-        advanced_options: Dict[str, str],
-        log_publishing_options: Dict[str, Any],
-        domain_endpoint_options: Dict[str, Any],
-        advanced_security_options: Dict[str, Any],
-        auto_tune_options: Dict[str, Any],
-        off_peak_window_options: Dict[str, Any],
-        software_update_options: Dict[str, bool],
+        snapshot_options: dict[str, int],
+        vpc_options: dict[str, list[str]],
+        cognito_options: dict[str, Any],
+        encryption_at_rest_options: dict[str, Any],
+        node_to_node_encryption_options: dict[str, bool],
+        advanced_options: dict[str, str],
+        log_publishing_options: dict[str, Any],
+        domain_endpoint_options: dict[str, Any],
+        advanced_security_options: dict[str, Any],
+        auto_tune_options: dict[str, Any],
+        off_peak_window_options: dict[str, Any],
+        software_update_options: dict[str, bool],
         is_es: bool,
         elasticsearch_version: Optional[str],
         elasticsearch_cluster_config: Optional[str],
     ):
+        # Add creation_date attribute
+        self.creation_date = unix_time(datetime.datetime.now())
+
         self.domain_id = f"{account_id}/{domain_name}"
         self.domain_name = domain_name
         self.arn = (
@@ -118,7 +121,8 @@ class OpenSearchDomain(BaseModel):
         self.auto_tune_options = auto_tune_options or {"State": "ENABLE_IN_PROGRESS"}
         if not self.auto_tune_options.get("State"):
             self.auto_tune_options["State"] = "ENABLED"
-        self.off_peak_windows_options = off_peak_window_options
+        # Rename to singular everywhere
+        self.off_peak_window_options = off_peak_window_options
         self.software_update_options = (
             software_update_options or default_software_update_options
         )
@@ -137,7 +141,7 @@ class OpenSearchDomain(BaseModel):
 
         if self.vpc_options is None:
             self.endpoint: Optional[str] = f"{domain_name}.{region}.es.amazonaws.com"
-            self.endpoints: Optional[Dict[str, str]] = None
+            self.endpoints: Optional[dict[str, str]] = None
         else:
             self.endpoint = None
             self.endpoints = {"vpc": f"{domain_name}.{region}.es.amazonaws.com"}
@@ -146,11 +150,10 @@ class OpenSearchDomain(BaseModel):
         self.deleted = True
         self.processing = True
 
-    def dct_options(self) -> Dict[str, Any]:
+    def dct_options(self) -> dict[str, Any]:
         return {
             "Endpoint": self.endpoint,
             "Endpoints": self.endpoints,
-            "EngineVersion": self.engine_version.to_dict(),
             "ClusterConfig": self.cluster_config,
             "EBSOptions": self.ebs_options,
             "AccessPolicies": self.access_policies,
@@ -164,19 +167,21 @@ class OpenSearchDomain(BaseModel):
             "DomainEndpointOptions": self.domain_endpoint_options,
             "AdvancedSecurityOptions": self.advanced_security_options,
             "AutoTuneOptions": self.auto_tune_options,
-            "OffPeakWindowsOptions": self.off_peak_windows_options,
+            # Use singular key and attribute
+            "OffPeakWindowOptions": self.off_peak_window_options,
             "SoftwareUpdateOptions": self.software_update_options,
             "ElasticsearchVersion": self.elasticsearch_version,
             "ElasticsearchClusterConfig": self.elasticsearch_cluster_config,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "DomainId": self.domain_id,
             "DomainName": self.domain_name,
             "ARN": self.arn,
             "Created": True,
             "Deleted": self.deleted,
+            "EngineVersion": self.engine_version.options,
             "Processing": self.processing,
             "UpgradeProcessing": False,
         }
@@ -185,30 +190,113 @@ class OpenSearchDomain(BaseModel):
                 dct[key] = value
         return dct
 
-    def to_config_dict(self) -> Dict[str, Any]:
-        dct: Dict[str, Any] = dict()
-        for key, value in self.dct_options().items():
-            if value is not None:
-                dct[key] = {"Options": value}
-        return dct
+    def _status_block(self) -> dict[str, Any]:
+        return {
+            "State": "Active",
+            "CreationDate": self.creation_date,
+            "UpdateDate": self.creation_date,
+            "UpdateVersion": 1,
+            "PendingDeletion": False,
+        }
+
+    def _wrap(self, options: Any) -> dict[str, Any]:
+        # Most DomainConfig sections only need {"Options": ...}
+        return {"Options": options}
+
+    def to_config_dict(self) -> dict[str, Any]:
+        cfg: dict[str, Any] = {}
+
+        # Cluster config section (key differs for ES vs OS)
+        cluster_key = "ElasticsearchClusterConfig" if self.is_es else "ClusterConfig"
+        cluster_opts = (
+            self.elasticsearch_cluster_config
+            if (self.is_es and self.elasticsearch_cluster_config)
+            else (self.cluster_config or default_cluster_config)
+        )
+        cfg[cluster_key] = self._wrap(cluster_opts)
+
+        # Version section:
+        # - OpenSearch expects Status for EngineVersion (use EngineVersion.to_dict()).
+        # - ES expects only Options for ElasticsearchVersion.
+        if self.is_es:
+            cfg["ElasticsearchVersion"] = self._wrap(
+                self.elasticsearch_version or self.engine_version.options
+            )
+        else:
+            cfg["EngineVersion"] = self.engine_version.to_dict()
+
+        # EBSOptions: default to minimal disabled if not provided
+        ebs_opts = (
+            self.ebs_options if self.ebs_options is not None else {"EBSEnabled": False}
+        )
+        cfg["EBSOptions"] = self._wrap(ebs_opts)
+
+        # Node-to-node encryption: default minimal
+        n2n_opts = (
+            self.node_to_node_encryption_options
+            if self.node_to_node_encryption_options is not None
+            else {"Enabled": False}
+        )
+        cfg["NodeToNodeEncryptionOptions"] = self._wrap(n2n_opts)
+
+        # Encryption at rest: default minimal
+        ear_opts = (
+            self.encryption_at_rest_options
+            if self.encryption_at_rest_options is not None
+            else {"Enabled": False}
+        )
+        cfg["EncryptionAtRestOptions"] = self._wrap(ear_opts)
+
+        # Access policies: default empty string
+        cfg["AccessPolicies"] = self._wrap(self.access_policies or "")
+
+        # Optional passthrough sections
+        if self.snapshot_options is not None:
+            cfg["SnapshotOptions"] = self._wrap(self.snapshot_options)
+        if self.vpc_options is not None:
+            cfg["VPCOptions"] = self._wrap(self.vpc_options)
+        if self.cognito_options is not None:
+            cfg["CognitoOptions"] = self._wrap(self.cognito_options)
+        if self.log_publishing_options is not None:
+            cfg["LogPublishingOptions"] = self._wrap(self.log_publishing_options)
+        if self.auto_tune_options is not None:
+            cfg["AutoTuneOptions"] = self._wrap(self.auto_tune_options)
+        if self.off_peak_window_options is not None:
+            cfg["OffPeakWindowOptions"] = self._wrap(self.off_peak_window_options)
+
+        # Always include with sensible defaults
+        cfg["AdvancedOptions"] = self._wrap(
+            self.advanced_options or default_advanced_options
+        )
+        cfg["DomainEndpointOptions"] = self._wrap(
+            self.domain_endpoint_options or default_domain_endpoint_options
+        )
+        cfg["AdvancedSecurityOptions"] = self._wrap(
+            self.advanced_security_options or default_advanced_security_options
+        )
+        cfg["SoftwareUpdateOptions"] = self._wrap(
+            self.software_update_options or default_software_update_options
+        )
+
+        return cfg
 
     def update(
         self,
-        cluster_config: Dict[str, Any],
-        ebs_options: Dict[str, Any],
+        cluster_config: dict[str, Any],
+        ebs_options: dict[str, Any],
         access_policies: str,
-        snapshot_options: Dict[str, int],
-        vpc_options: Dict[str, List[str]],
-        cognito_options: Dict[str, Any],
-        encryption_at_rest_options: Dict[str, Any],
-        node_to_node_encryption_options: Dict[str, bool],
-        advanced_options: Dict[str, str],
-        log_publishing_options: Dict[str, Any],
-        domain_endpoint_options: Dict[str, Any],
-        advanced_security_options: Dict[str, Any],
-        auto_tune_options: Dict[str, Any],
-        off_peak_window_options: Dict[str, Any],
-        software_update_options: Dict[str, bool],
+        snapshot_options: dict[str, int],
+        vpc_options: dict[str, list[str]],
+        cognito_options: dict[str, Any],
+        encryption_at_rest_options: dict[str, Any],
+        node_to_node_encryption_options: dict[str, bool],
+        advanced_options: dict[str, str],
+        log_publishing_options: dict[str, Any],
+        domain_endpoint_options: dict[str, Any],
+        advanced_security_options: dict[str, Any],
+        auto_tune_options: dict[str, Any],
+        off_peak_window_options: dict[str, Any],
+        software_update_options: dict[str, bool],
     ) -> None:
         self.cluster_config = cluster_config or self.cluster_config
         self.ebs_options = ebs_options or self.ebs_options
@@ -233,8 +321,9 @@ class OpenSearchDomain(BaseModel):
             advanced_security_options or self.advanced_security_options
         )
         self.auto_tune_options = auto_tune_options or self.auto_tune_options
-        self.off_peak_windows_options = (
-            off_peak_window_options or self.off_peak_windows_options
+        # Fix attribute name (singular)
+        self.off_peak_window_options = (
+            off_peak_window_options or self.off_peak_window_options
         )
         self.software_update_options = (
             software_update_options or self.software_update_options
@@ -247,29 +336,29 @@ class OpenSearchServiceBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.domains: Dict[str, OpenSearchDomain] = dict()
+        self.domains: dict[str, OpenSearchDomain] = {}
         self.tagger = TaggingService()
 
     def create_domain(
         self,
         domain_name: str,
         engine_version: str,
-        cluster_config: Dict[str, Any],
-        ebs_options: Dict[str, Any],
+        cluster_config: dict[str, Any],
+        ebs_options: dict[str, Any],
         access_policies: str,
-        snapshot_options: Dict[str, Any],
-        vpc_options: Dict[str, Any],
-        cognito_options: Dict[str, Any],
-        encryption_at_rest_options: Dict[str, Any],
-        node_to_node_encryption_options: Dict[str, Any],
-        advanced_options: Dict[str, Any],
-        log_publishing_options: Dict[str, Any],
-        domain_endpoint_options: Dict[str, Any],
-        advanced_security_options: Dict[str, Any],
-        tag_list: List[Dict[str, str]],
-        auto_tune_options: Dict[str, Any],
-        off_peak_window_options: Dict[str, Any],
-        software_update_options: Dict[str, Any],
+        snapshot_options: dict[str, Any],
+        vpc_options: dict[str, Any],
+        cognito_options: dict[str, Any],
+        encryption_at_rest_options: dict[str, Any],
+        node_to_node_encryption_options: dict[str, Any],
+        advanced_options: dict[str, Any],
+        log_publishing_options: dict[str, Any],
+        domain_endpoint_options: dict[str, Any],
+        advanced_security_options: dict[str, Any],
+        tag_list: list[dict[str, str]],
+        auto_tune_options: dict[str, Any],
+        off_peak_window_options: dict[str, Any],
+        software_update_options: dict[str, Any],
         is_es: bool,
         elasticsearch_version: Optional[str],
         elasticsearch_cluster_config: Optional[str],
@@ -303,8 +392,10 @@ class OpenSearchServiceBackend(BaseBackend):
             self.add_tags(domain.arn, tag_list)
         return domain
 
-    def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if domain_name not in self.domains:
+    def get_compatible_versions(
+        self, domain_name: Optional[str]
+    ) -> list[dict[str, Any]]:
+        if domain_name and domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 
@@ -319,58 +410,72 @@ class OpenSearchServiceBackend(BaseBackend):
             raise ResourceNotFoundException(domain_name)
         return self.domains[domain_name]
 
-    def describe_domain_config(self, domain_name: str) -> OpenSearchDomain:
-        return self.describe_domain(domain_name)
+    def describe_domain_config(self, domain_name: str) -> dict[str, Any]:
+        domain = self.describe_domain(domain_name)
+        return domain.to_config_dict()
 
     def update_domain_config(
         self,
         domain_name: str,
-        cluster_config: Dict[str, Any],
-        ebs_options: Dict[str, Any],
+        cluster_config: dict[str, Any],
+        ebs_options: dict[str, Any],
         access_policies: str,
-        snapshot_options: Dict[str, Any],
-        vpc_options: Dict[str, Any],
-        cognito_options: Dict[str, Any],
-        encryption_at_rest_options: Dict[str, Any],
-        node_to_node_encryption_options: Dict[str, Any],
-        advanced_options: Dict[str, Any],
-        log_publishing_options: Dict[str, Any],
-        domain_endpoint_options: Dict[str, Any],
-        advanced_security_options: Dict[str, Any],
-        auto_tune_options: Dict[str, Any],
-        off_peak_window_options: Dict[str, Any],
-        software_update_options: Dict[str, Any],
-    ) -> OpenSearchDomain:
-        domain = self.describe_domain(domain_name)
-        domain.update(
-            cluster_config=cluster_config,
-            ebs_options=ebs_options,
-            access_policies=access_policies,
-            snapshot_options=snapshot_options,
-            vpc_options=vpc_options,
-            cognito_options=cognito_options,
-            encryption_at_rest_options=encryption_at_rest_options,
-            node_to_node_encryption_options=node_to_node_encryption_options,
-            advanced_options=advanced_options,
-            log_publishing_options=log_publishing_options,
-            domain_endpoint_options=domain_endpoint_options,
-            advanced_security_options=advanced_security_options,
-            auto_tune_options=auto_tune_options,
-            off_peak_window_options=off_peak_window_options,
-            software_update_options=software_update_options,
+        snapshot_options: dict[str, Any],
+        vpc_options: dict[str, Any],
+        cognito_options: dict[str, Any],
+        encryption_at_rest_options: dict[str, Any],
+        node_to_node_encryption_options: dict[str, Any],
+        advanced_options: dict[str, Any],
+        log_publishing_options: dict[str, Any],
+        domain_endpoint_options: dict[str, Any],
+        advanced_security_options: dict[str, Any],
+        auto_tune_options: dict[str, Any],
+        off_peak_window_options: dict[str, Any],
+        software_update_options: dict[str, Any],
+    ) -> "OpenSearchDomain":
+        domain = self.domains[domain_name]
+        domain.cluster_config = cluster_config or domain.cluster_config
+        domain.ebs_options = ebs_options or domain.ebs_options
+        domain.access_policies = access_policies or domain.access_policies
+        domain.snapshot_options = snapshot_options or domain.snapshot_options
+        domain.vpc_options = vpc_options or domain.vpc_options
+        domain.cognito_options = cognito_options or domain.cognito_options
+        domain.encryption_at_rest_options = (
+            encryption_at_rest_options or domain.encryption_at_rest_options
+        )
+        domain.node_to_node_encryption_options = (
+            node_to_node_encryption_options or domain.node_to_node_encryption_options
+        )
+        domain.advanced_options = advanced_options or domain.advanced_options
+        domain.log_publishing_options = (
+            log_publishing_options or domain.log_publishing_options
+        )
+        domain.domain_endpoint_options = (
+            domain_endpoint_options or domain.domain_endpoint_options
+        )
+        domain.advanced_security_options = (
+            advanced_security_options or domain.advanced_security_options
+        )
+        domain.auto_tune_options = auto_tune_options or domain.auto_tune_options
+        # Fix attribute name (singular)
+        domain.off_peak_window_options = (
+            off_peak_window_options or domain.off_peak_window_options
+        )
+        domain.software_update_options = (
+            software_update_options or domain.software_update_options
         )
         return domain
 
-    def add_tags(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def add_tags(self, arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(arn, tags)
 
-    def list_tags(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags(self, arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(arn)["Tags"]
 
-    def remove_tags(self, arn: str, tag_keys: List[str]) -> None:
+    def remove_tags(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
-    def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
+    def list_domain_names(self, engine_type: str) -> list[dict[str, str]]:
         domains = []
         if engine_type and engine_type not in ["Elasticsearch", "OpenSearch"]:
             raise EngineTypeNotFoundException(engine_type)
@@ -386,7 +491,7 @@ class OpenSearchServiceBackend(BaseBackend):
                 )
         return domains
 
-    def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
+    def describe_domains(self, domain_names: list[str]) -> list[OpenSearchDomain]:
         queried_domains = []
         for domain_name in domain_names:
             if domain_name in self.domains:

@@ -1,0 +1,1002 @@
+[
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.0",
+  "MinimumRequiredMinorEngineVersion":"24",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.1",
+  "MinimumRequiredMinorEngineVersion":"14",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.11",
+  "MinimumRequiredMinorEngineVersion":"4",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.2",
+  "MinimumRequiredMinorEngineVersion":"11",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.3",
+  "MinimumRequiredMinorEngineVersion":"8",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.4",
+  "MinimumRequiredMinorEngineVersion":"8",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.5",
+  "MinimumRequiredMinorEngineVersion":"7",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"10.6",
+  "MinimumRequiredMinorEngineVersion":"5",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"11.4",
+  "MinimumRequiredMinorEngineVersion":"3",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ },
+ {
+  "Name":"MARIADB_AUDIT_PLUGIN",
+  "Description":"MariaDB Audit Plugin",
+  "EngineName":"mariadb",
+  "MajorEngineVersion":"11.8",
+  "MinimumRequiredMinorEngineVersion":"3",
+  "PortRequired":false,
+  "OptionsDependedOn":[],
+  "OptionsConflictsWith":[],
+  "Persistent":false,
+  "Permanent":false,
+  "RequiresAutoMinorEngineVersionUpgrade":false,
+  "VpcOnly":false,
+  "OptionGroupOptionSettings":[
+   {
+    "SettingName":"SERVER_AUDIT_EVENTS",
+    "SettingDescription":"Types of actions to be logged (connect, query, or table)",
+    "DefaultValue":"CONNECT,QUERY",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"CONNECT,QUERY,TABLE,QUERY_DDL,QUERY_DML,QUERY_DCL,QUERY_DML_NO_SELECT",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_PATH",
+    "SettingDescription":"File location for logs",
+    "DefaultValue":"/rdsdbdata/log/audit/",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_INCL_USERS",
+    "SettingDescription":"Include specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT",
+    "SettingDescription":"This setting is enabled for security and ensures that the plugin cannot be uninstalled at runtime",
+    "DefaultValue":"FORCE_PLUS_PERMANENT",
+    "ApplyType":"STATIC",
+    "AllowedValues":"FORCE_PLUS_PERMANENT",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_EXCL_USERS",
+    "SettingDescription":"Exclude specified users",
+    "ApplyType":"DYNAMIC",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_QUERY_LOG_LIMIT",
+    "SettingDescription":"Limit on the length of the query string in a record.",
+    "DefaultValue":"1024",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-2147483647",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATE_SIZE",
+    "SettingDescription":"Size limit of a log file before rotating",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"1-1000000000",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_FILE_ROTATIONS",
+    "SettingDescription":"Number of log rotations to save",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"0-100",
+    "IsModifiable":true,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   },
+   {
+    "SettingName":"SERVER_AUDIT_LOGGING",
+    "SettingDescription":"Determines if logging is turned on",
+    "DefaultValue":"ON",
+    "ApplyType":"DYNAMIC",
+    "AllowedValues":"ON",
+    "IsModifiable":false,
+    "IsRequired":false,
+    "MinimumEngineVersionPerAllowedValue":[]
+   }
+  ],
+  "CopyableCrossAccount":false
+ }
+]

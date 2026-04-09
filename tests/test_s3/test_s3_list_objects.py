@@ -1,4 +1,5 @@
 from unittest import SkipTest, mock
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -63,7 +64,7 @@ def test_list_object_versions_with_custom_limit():
         raise SkipTest("Can only set env var in DecoratorMode")
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_resource = boto3.resource("s3", region_name="us-east-1")
-    bucket_name = "foobar"
+    bucket_name = str(uuid4())
     bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
 

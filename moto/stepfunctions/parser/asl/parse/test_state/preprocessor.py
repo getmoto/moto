@@ -1,12 +1,9 @@
 import enum
+from typing import Final
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLParser import ASLParser
 from moto.stepfunctions.parser.asl.component.common.parargs import Parameters
-from moto.stepfunctions.parser.asl.component.common.path.input_path import (
-    InputPath,
-    InputPathContextObject,
-    InputPathVar,
-)
+from moto.stepfunctions.parser.asl.component.common.path.input_path import InputPath
 from moto.stepfunctions.parser.asl.component.common.path.result_path import ResultPath
 from moto.stepfunctions.parser.asl.component.common.query_language import QueryLanguage
 from moto.stepfunctions.parser.asl.component.common.result_selector import (
@@ -56,7 +53,8 @@ def _decorated_updates_inspection_data(method, inspection_data_key: InspectionDa
     def wrapper(env: TestStateEnvironment, *args, **kwargs):
         method(env, *args, **kwargs)
         result = to_json_str(env.stack[-1])
-        env.inspection_data[inspection_data_key.value] = result  # noqa: we know that the here value is a supported inspection data field by design.
+        # We know that the enum value used here corresponds to a supported inspection data field by design.
+        env.inspection_data[inspection_data_key.value] = result  # noqa
 
     return wrapper
 
@@ -64,17 +62,21 @@ def _decorated_updates_inspection_data(method, inspection_data_key: InspectionDa
 def _decorate_state_field(state_field: CommonStateField) -> None:
     if isinstance(state_field, ExecutionState):
         state_field._eval_execution = _decorated_updates_inspection_data(
-            method=state_field._eval_execution,  # noqa: as part of the decoration we access this protected member.
+            # As part of the decoration process, we intentionally access this protected member
+            # to facilitate the decorator's functionality.
+            method=state_field._eval_execution,  # noqa
             inspection_data_key=InspectionDataKey.RESULT,
         )
     elif isinstance(state_field, StateChoice):
         state_field._eval_body = _decorated_updated_choice_inspection_data(
-            method=state_field._eval_body  # noqa: as part of the decoration we access this protected member.
+            # As part of the decoration process, we intentionally access this protected member
+            # to facilitate the decorator's functionality.
+            method=state_field._eval_body  # noqa
         )
 
 
 class TestStatePreprocessor(Preprocessor):
-    STATE_NAME: str = "TestState"
+    STATE_NAME: Final[str] = "TestState"
 
     def visitState_decl_body(
         self, ctx: ASLParser.State_decl_bodyContext
@@ -92,32 +94,8 @@ class TestStatePreprocessor(Preprocessor):
         self._close_query_language_scope()
         return TestStateProgram(state_field)
 
-    def visitInput_path_decl_path(
-        self, ctx: ASLParser.Input_path_decl_pathContext
-    ) -> InputPath:
-        input_path: InputPath = super().visitInput_path_decl_path(ctx=ctx)
-        input_path._eval_body = _decorated_updates_inspection_data(
-            method=input_path._eval_body,  # noqa
-            inspection_data_key=InspectionDataKey.AFTER_INPUT_PATH,
-        )
-        return input_path
-
-    def visitInput_path_decl_path_context_object(
-        self, ctx: ASLParser.Input_path_decl_path_context_objectContext
-    ) -> InputPathContextObject:
-        input_path: InputPathContextObject = (
-            super().visitInput_path_decl_path_context_object(ctx=ctx)
-        )
-        input_path._eval_body = _decorated_updates_inspection_data(
-            method=input_path._eval_body,  # noqa
-            inspection_data_key=InspectionDataKey.AFTER_INPUT_PATH,
-        )
-        return input_path
-
-    def visitInput_path_decl_var(
-        self, ctx: ASLParser.Input_path_decl_varContext
-    ) -> InputPathVar:
-        input_path: InputPathVar = super().visitInput_path_decl_var(ctx=ctx)
+    def visitInput_path_decl(self, ctx: ASLParser.Input_path_declContext) -> InputPath:
+        input_path: InputPath = super().visitInput_path_decl(ctx=ctx)
         input_path._eval_body = _decorated_updates_inspection_data(
             method=input_path._eval_body,  # noqa
             inspection_data_key=InspectionDataKey.AFTER_INPUT_PATH,

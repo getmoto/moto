@@ -63,13 +63,7 @@ def get_basic_workflow_type():
     return WorkflowType(*args, **kwargs)
 
 
-def mock_basic_workflow_type(domain_name, conn):
-    args, kwargs = _generic_workflow_type_attributes()
-    conn.register_workflow_type(domain_name, *args, **kwargs)
-    return conn
-
-
-def mock_basic_workflow_type_boto3(domain_name, client):
+def mock_basic_workflow_type(domain_name, client):
     kwargs = _generic_workflow_type_attributes_boto3()
     client.register_workflow_type(domain=domain_name, **kwargs)
     return client
@@ -90,14 +84,14 @@ def auto_start_decision_tasks(wfe):
 
 
 # Setup a complete example workflow and return the connection object
-def setup_workflow_boto3():
+def setup_workflow():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain",
         workflowExecutionRetentionPeriodInDays="60",
         description="A test domain",
     )
-    mock_basic_workflow_type_boto3("test-domain", client)
+    mock_basic_workflow_type("test-domain", client)
     client.register_activity_type(
         domain="test-domain",
         name="test-activity",

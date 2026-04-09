@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -191,7 +190,7 @@ def test_describe_model_package_group():
         == "arn:aws:sagemaker:eu-west-1:123456789012:model-package-group/test-model-package-group"
     )
     assert resp["ModelPackageGroupStatus"] == "Completed"
-    assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())
+    assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @mock_aws

@@ -116,7 +116,7 @@ def test_create_cluster():
     assert isinstance(cluster["CreateTimestamp"], datetime)
     assert cluster["HsmType"] == "hsm1.medium"
     assert cluster["State"] == "ACTIVE"
-    assert cluster["SubnetMapping"] == {"subnet-12345678": "us-east-1"}
+    assert cluster["SubnetMapping"] == {"us-east-1": "subnet-12345678"}
     assert cluster["TagList"] == [{"Key": "Environment", "Value": "Production"}]
     assert "VpcId" in cluster
 

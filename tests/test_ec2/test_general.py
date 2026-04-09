@@ -11,8 +11,9 @@ def test_console_output():
     conn = boto3.resource("ec2", "us-east-1")
     instances = conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
-    output = instances[0].console_output()
-    assert output.get("Output") is not None
+    resp = instances[0].console_output()
+    output = resp.get("Output")
+    assert output.startswith("Linux version")
 
 
 @mock_aws

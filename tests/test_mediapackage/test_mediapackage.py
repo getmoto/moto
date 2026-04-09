@@ -11,7 +11,7 @@ def _create_channel_config(**kwargs):
     channel_id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(Description=description, Id=channel_id, Tags=tags)
+    channel_config = {"Description": description, "Id": channel_id, "Tags": tags}
     return channel_config
 
 
@@ -33,22 +33,22 @@ def _create_origin_endpoint_config(**kwargs):
     tags = kwargs.get("tags", {"Customer": "moto"})
     time_delay_seconds = kwargs.get("time_delay_seconds", 1)
     whitelist = kwargs.get("whitelist", ["whitelist"])
-    origin_endpoint_config = dict(
-        Authorization=authorization,
-        ChannelId=channel_id,
-        CmafPackage=cmaf_package,
-        DashPackage=dash_package,
-        Description=description,
-        HlsPackage=hls_package,
-        Id=endpoint_id,
-        ManifestName=manifest_name,
-        MssPackage=mss_package,
-        Origination=origination,
-        StartoverWindowSeconds=startover_window_seconds,
-        Tags=tags,
-        TimeDelaySeconds=time_delay_seconds,
-        Whitelist=whitelist,
-    )
+    origin_endpoint_config = {
+        "Authorization": authorization,
+        "ChannelId": channel_id,
+        "CmafPackage": cmaf_package,
+        "DashPackage": dash_package,
+        "Description": description,
+        "HlsPackage": hls_package,
+        "Id": endpoint_id,
+        "ManifestName": manifest_name,
+        "MssPackage": mss_package,
+        "Origination": origination,
+        "StartoverWindowSeconds": startover_window_seconds,
+        "Tags": tags,
+        "TimeDelaySeconds": time_delay_seconds,
+        "Whitelist": whitelist,
+    }
     return origin_endpoint_config
 
 
@@ -141,6 +141,8 @@ def test_create_origin_endpoint_succeeds():
     assert endpoint["Description"] == origin_endpoint_config["Description"]
     assert endpoint["HlsPackage"] == origin_endpoint_config["HlsPackage"]
     assert endpoint["Origination"] == "ALLOW"
+    assert endpoint["Whitelist"] == ["whitelist"]
+    assert endpoint["TimeDelaySeconds"] == 1
 
 
 @mock_aws
@@ -209,9 +211,11 @@ def test_update_origin_endpoint_succeeds():
         Id=endpoint_id,
         Description="updated-channel-description",
         ManifestName="updated-manifest-name",
+        Whitelist=["new-whitelist-item"],
     )
     assert endpoint["Description"] == "updated-channel-description"
     assert endpoint["ManifestName"] == "updated-manifest-name"
+    assert endpoint["Whitelist"] == ["new-whitelist-item"]
 
 
 @mock_aws

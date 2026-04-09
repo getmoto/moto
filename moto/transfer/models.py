@@ -1,12 +1,18 @@
 """TransferBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.utils import unix_time
-from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
+from moto.core.utils import camelcase_to_underscores, unix_time
+from moto.transfer.exceptions import (
+    ConnectorNotFound,
+    PublicKeyNotFound,
+    ServerNotFound,
+    UserNotFound,
+)
 
 from .types import (
+    Connector,
     Server,
     ServerDomain,
     ServerEndpointType,
@@ -22,29 +28,32 @@ class TransferBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.servers: Dict[str, Server] = {}
+        self.servers: dict[str, Server] = {}
+        self.connectors: dict[str, Connector] = {}
 
     def create_server(
         self,
         certificate: Optional[str],
         domain: Optional[ServerDomain],
-        endpoint_details: Optional[Dict[str, Any]],
+        endpoint_details: Optional[dict[str, Any]],
         endpoint_type: Optional[ServerEndpointType],
         host_key: str,
-        identity_provider_details: Optional[Dict[str, Any]],
+        identity_provider_details: Optional[dict[str, Any]],
         identity_provider_type: Optional[ServerIdentityProviderType],
         logging_role: Optional[str],
         post_authentication_login_banner: Optional[str],
         pre_authentication_login_banner: Optional[str],
-        protocols: Optional[List[ServerProtocols]],
-        protocol_details: Optional[Dict[str, Any]],
+        protocols: Optional[list[ServerProtocols]],
+        protocol_details: Optional[dict[str, Any]],
         security_policy_name: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
-        workflow_details: Optional[Dict[str, Any]],
-        structured_log_destinations: Optional[List[str]],
-        s3_storage_options: Optional[Dict[str, Optional[str]]],
+        tags: Optional[list[dict[str, str]]],
+        workflow_details: Optional[dict[str, Any]],
+        structured_log_destinations: Optional[list[str]],
+        s3_storage_options: Optional[dict[str, Optional[str]]],
     ) -> str:
         server = Server(
+            region_name=self.region_name,
+            account_id=self.account_id,
             certificate=certificate,
             domain=domain,
             endpoint_type=endpoint_type,
@@ -131,18 +140,21 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: Optional[List[Dict[str, Optional[str]]]],
+        home_directory_mappings: Optional[list[dict[str, Optional[str]]]],
         policy: Optional[str],
-        posix_profile: Optional[Dict[str, Any]],
+        posix_profile: Optional[dict[str, Any]],
         role: str,
         server_id: str,
         ssh_public_key_body: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         user_name: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         if server_id not in self.servers:
             ServerNotFound(server_id=server_id)
         user = User(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            server_id=server_id,
             home_directory=home_directory,
             home_directory_type=home_directory_type,
             policy=policy,
@@ -180,7 +192,7 @@ class TransferBackend(BaseBackend):
         self.servers[server_id].user_count += 1
         return server_id, user_name
 
-    def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
+    def describe_user(self, server_id: str, user_name: str) -> tuple[str, User]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
@@ -200,7 +212,7 @@ class TransferBackend(BaseBackend):
 
     def import_ssh_public_key(
         self, server_id: str, ssh_public_key_body: str, user_name: str
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
@@ -237,6 +249,86 @@ class TransferBackend(BaseBackend):
                     ssh_public_key_id=ssh_public_key_id,
                 )
         raise UserNotFound(user_name=user_name, server_id=server_id)
+
+    # TODO: implement pagination
+    def list_servers(self) -> list[Server]:
+        return list(self.servers.values())
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def create_connector(
+        self,
+        url: str,
+        access_role: str,
+        logging_role: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        as2_config: Optional[dict[str, Any]],
+        sftp_config: Optional[dict[str, Any]],
+        security_policy_name: Optional[str],
+    ) -> str:
+        connector = Connector(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            url=url,
+            access_role=access_role,
+            logging_role=logging_role,
+            as2_config={camelcase_to_underscores(k): v for k, v in as2_config.items()}
+            if as2_config
+            else None,
+            sftp_config={camelcase_to_underscores(k): v for k, v in sftp_config.items()}
+            if sftp_config
+            else None,
+            security_policy_name=security_policy_name,
+            tags=(tags or []),
+        )
+        connector_id = connector.connector_id
+        self.connectors[connector_id] = connector
+        return connector_id
+
+    def describe_connector(self, connector_id: str) -> Connector:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        return self.connectors[connector_id]
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def update_connector(
+        self,
+        connector_id: str,
+        url: Optional[str],
+        access_role: Optional[str],
+        logging_role: Optional[str],
+        as2_config: Optional[dict[str, Any]],
+        sftp_config: Optional[dict[str, Any]],
+        security_policy_name: Optional[str],
+    ) -> str:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        connector = self.connectors[connector_id]
+        if url is not None:
+            connector.url = url
+        if access_role is not None:
+            connector.access_role = access_role
+        if logging_role is not None:
+            connector.logging_role = logging_role
+        if security_policy_name is not None:
+            connector.security_policy_name = security_policy_name
+        if as2_config is not None:
+            connector.as2_config = {
+                camelcase_to_underscores(k): v for k, v in as2_config.items()
+            }
+        if sftp_config is not None:
+            connector.sftp_config = {
+                camelcase_to_underscores(k): v for k, v in sftp_config.items()
+            }
+        return connector_id
+
+    def delete_connector(self, connector_id: str) -> None:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        del self.connectors[connector_id]
+
+    # TODO: implement pagination
+    def list_connectors(self) -> list[Connector]:
+        return list(self.connectors.values())
 
 
 transfer_backends = BackendDict(TransferBackend, "transfer")

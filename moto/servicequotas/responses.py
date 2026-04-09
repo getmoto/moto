@@ -22,7 +22,7 @@ class ServiceQuotasResponse(BaseResponse):
         params = json.loads(self.body)
         service_code = str(params.get("ServiceCode"))
         quotas = self.backend.list_aws_default_service_quotas(service_code)
-        return json.dumps(dict(Quotas=quotas))
+        return json.dumps({"Quotas": quotas})
 
     def get_service_quota(self) -> str:
         params = json.loads(self.body)
@@ -32,4 +32,4 @@ class ServiceQuotasResponse(BaseResponse):
             service_code=service_code,
             quota_code=quota_code,
         )
-        return json.dumps(dict(Quota=quota))
+        return json.dumps({"Quota": quota})

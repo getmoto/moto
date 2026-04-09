@@ -65,6 +65,19 @@ def test_describe_logging_configuration():
 
 
 @mock_aws
+def test_describe_logging_configuration_no_config_set():
+    client = boto3.client("network-firewall", region_name="eu-west-1")
+    firewall = client.create_firewall(
+        FirewallName="test-firewall",
+        FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+    )["Firewall"]
+
+    resp = client.describe_logging_configuration(FirewallArn=firewall["FirewallArn"])
+    assert resp["FirewallArn"] == firewall["FirewallArn"]
+    assert resp["LoggingConfiguration"] == {}
+
+
+@mock_aws
 def test_update_logging_configuration():
     client = boto3.client("network-firewall", region_name="ap-southeast-1")
     firewall = client.create_firewall(
@@ -141,6 +154,7 @@ def test_describe_firewall():
     assert resp["Firewall"]["FirewallPolicyChangeProtection"] is False
     assert resp["Firewall"]["Description"] == "Test firewall"
     assert resp["Firewall"]["Tags"] == [{"Key": "Name", "Value": "test-firewall"}]
+    assert resp["UpdateToken"] == "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
 
     # Describe the firewall using the name
     resp_name = client.describe_firewall(FirewallName="test-firewall")

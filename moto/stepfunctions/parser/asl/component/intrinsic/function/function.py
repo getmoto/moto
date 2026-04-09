@@ -2,8 +2,8 @@ import abc
 from typing import Final
 
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_list import (
-    FunctionArgumentList,
+from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
+    ArgumentList,
 )
 from moto.stepfunctions.parser.asl.component.intrinsic.functionname.function_name import (
     FunctionName,
@@ -12,7 +12,8 @@ from moto.stepfunctions.parser.asl.component.intrinsic.functionname.function_nam
 
 class Function(EvalComponent, abc.ABC):
     name: FunctionName
+    argument_list: Final[ArgumentList]
 
-    def __init__(self, name: FunctionName, arg_list: FunctionArgumentList):
+    def __init__(self, name: FunctionName, argument_list: ArgumentList):
         self.name = name
-        self.arg_list: Final[FunctionArgumentList] = arg_list
+        self.argument_list = argument_list

@@ -72,8 +72,8 @@ directconnect
 - [ ] list_virtual_interface_test_history
 - [ ] start_bgp_failover_test
 - [ ] stop_bgp_failover_test
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_connection
 - [ ] update_direct_connect_gateway
 - [ ] update_direct_connect_gateway_association

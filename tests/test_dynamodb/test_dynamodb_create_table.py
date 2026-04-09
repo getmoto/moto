@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -13,8 +14,9 @@ from . import dynamodb_aws_verified
 @mock_aws
 def test_create_table_standard():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="messages",
+        TableName=table_name,
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -25,7 +27,7 @@ def test_create_table_standard():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
     )
-    actual = client.describe_table(TableName="messages")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
 
     assert actual["AttributeDefinitions"] == [
         {"AttributeName": "id", "AttributeType": "S"},
@@ -40,10 +42,11 @@ def test_create_table_standard():
         "WriteCapacityUnits": 5,
     }
     assert actual["TableSizeBytes"] == 0
-    assert actual["TableName"] == "messages"
+    assert actual["TableName"] == table_name
     assert actual["TableStatus"] == "ACTIVE"
     assert (
-        actual["TableArn"] == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
+        actual["TableArn"]
+        == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/{table_name}"
     )
     assert actual["KeySchema"] == [
         {"AttributeName": "id", "KeyType": "HASH"},
@@ -56,8 +59,9 @@ def test_create_table_standard():
 @mock_aws
 def test_create_table_with_local_index():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="messages",
+        TableName=table_name,
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -79,7 +83,7 @@ def test_create_table_with_local_index():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
     )
-    actual = client.describe_table(TableName="messages")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
 
     assert actual["AttributeDefinitions"] == [
         {"AttributeName": "id", "AttributeType": "S"},
@@ -104,10 +108,11 @@ def test_create_table_with_local_index():
         "WriteCapacityUnits": 5,
     }
     assert actual["TableSizeBytes"] == 0
-    assert actual["TableName"] == "messages"
+    assert actual["TableName"] == table_name
     assert actual["TableStatus"] == "ACTIVE"
     assert (
-        actual["TableArn"] == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
+        actual["TableArn"]
+        == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/{table_name}"
     )
     assert actual["KeySchema"] == [
         {"AttributeName": "id", "KeyType": "HASH"},
@@ -119,9 +124,8 @@ def test_create_table_with_local_index():
 @mock_aws
 def test_create_table_with_gsi():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-
     table = dynamodb.create_table(
-        TableName="users",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -149,11 +153,16 @@ def test_create_table_with_gsi():
                 "ReadCapacityUnits": 0,
                 "WriteCapacityUnits": 0,
             },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 12000,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 4000,
+            },
         }
     ]
 
     table = dynamodb.create_table(
-        TableName="users2",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -185,6 +194,11 @@ def test_create_table_with_gsi():
                 "ReadCapacityUnits": 3,
                 "WriteCapacityUnits": 5,
             },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 3,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 5,
+            },
         }
     ]
 
@@ -192,9 +206,10 @@ def test_create_table_with_gsi():
 @mock_aws
 def test_create_table_with_stream_specification():
     conn = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     resp = conn.create_table(
-        TableName="test-streams",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -211,7 +226,7 @@ def test_create_table_with_stream_specification():
     assert "LatestStreamLabel" in resp["TableDescription"]
     assert "LatestStreamArn" in resp["TableDescription"]
 
-    resp = conn.delete_table(TableName="test-streams")
+    resp = conn.delete_table(TableName=table_name)
 
     assert "StreamSpecification" in resp["TableDescription"]
 
@@ -219,9 +234,8 @@ def test_create_table_with_stream_specification():
 @mock_aws
 def test_create_table_with_tags():
     client = boto3.client("dynamodb", region_name="us-east-1")
-
     resp = client.create_table(
-        TableName="test-streams",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -237,24 +251,26 @@ def test_create_table_with_tags():
 @mock_aws
 def test_create_table_with_deletion_protection_enabled():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test-deletion_protection",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
         DeletionProtectionEnabled=True,
     )
 
-    actual = client.describe_table(TableName="test-deletion_protection")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert actual["DeletionProtectionEnabled"]
 
 
 @mock_aws
 def test_create_table_pay_per_request():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -266,7 +282,7 @@ def test_create_table_pay_per_request():
         BillingMode="PAY_PER_REQUEST",
     )
 
-    actual = client.describe_table(TableName="test1")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert actual["BillingModeSummary"] == {"BillingMode": "PAY_PER_REQUEST"}
     assert actual["ProvisionedThroughput"] == {
         "NumberOfDecreasesToday": 0,
@@ -278,8 +294,9 @@ def test_create_table_pay_per_request():
 @mock_aws
 def test_create_table__provisioned_throughput():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -291,7 +308,7 @@ def test_create_table__provisioned_throughput():
         ProvisionedThroughput={"ReadCapacityUnits": 2, "WriteCapacityUnits": 3},
     )
 
-    actual = client.describe_table(TableName="test1")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert actual["BillingModeSummary"] == {"BillingMode": "PROVISIONED"}
     assert actual["ProvisionedThroughput"] == {
         "NumberOfDecreasesToday": 0,
@@ -306,7 +323,7 @@ def test_create_table_without_specifying_throughput():
 
     with pytest.raises(ClientError) as exc:
         dynamodb_client.create_table(
-            TableName="my-table",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "some_field", "AttributeType": "S"}
             ],
@@ -328,7 +345,7 @@ def test_create_table_error_pay_per_request_with_provisioned_param():
 
     with pytest.raises(ClientError) as exc:
         client.create_table(
-            TableName="test1",
+            TableName=f"T{uuid4()}",
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "S"},
@@ -351,8 +368,9 @@ def test_create_table_error_pay_per_request_with_provisioned_param():
 @mock_aws
 def test_create_table_with_ssespecification__false():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -365,15 +383,16 @@ def test_create_table_with_ssespecification__false():
         SSESpecification={"Enabled": False},
     )
 
-    actual = client.describe_table(TableName="test1")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert "SSEDescription" not in actual
 
 
 @mock_aws
 def test_create_table_with_ssespecification__true():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -386,7 +405,7 @@ def test_create_table_with_ssespecification__true():
         SSESpecification={"Enabled": True},
     )
 
-    actual = client.describe_table(TableName="test1")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert "SSEDescription" in actual
     assert actual["SSEDescription"]["Status"] == "ENABLED"
     assert actual["SSEDescription"]["SSEType"] == "KMS"
@@ -397,8 +416,9 @@ def test_create_table_with_ssespecification__true():
 @mock_aws
 def test_create_table_with_ssespecification__custom_kms_key():
     client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
     client.create_table(
-        TableName="test1",
+        TableName=table_name,
         AttributeDefinitions=[
             {"AttributeName": "client", "AttributeType": "S"},
             {"AttributeName": "app", "AttributeType": "S"},
@@ -411,7 +431,7 @@ def test_create_table_with_ssespecification__custom_kms_key():
         SSESpecification={"Enabled": True, "KMSMasterKeyId": "custom-kms-key"},
     )
 
-    actual = client.describe_table(TableName="test1")["Table"]
+    actual = client.describe_table(TableName=table_name)["Table"]
     assert "SSEDescription" in actual
     assert actual["SSEDescription"]["Status"] == "ENABLED"
     assert actual["SSEDescription"]["SSEType"] == "KMS"
@@ -508,4 +528,125 @@ def test_create_table__specify_non_key_column():
     assert (
         err["Message"]
         == "1 validation error detected: Value 'SORT' at 'localSecondaryIndexes.1.member.keySchema.2.member.keyType' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+    )
+
+
+@mock_aws
+def test_create_table_with_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        WarmThroughput={
+            "ReadUnitsPerSecond": 15000,
+            "WriteUnitsPerSecond": 5000,
+        },
+    )
+    table = client.describe_table(TableName=table_name)["Table"]
+    assert table["WarmThroughput"] == {
+        "ReadUnitsPerSecond": 15000,
+        "WriteUnitsPerSecond": 5000,
+        "Status": "ACTIVE",
+    }
+
+
+@mock_aws
+def test_create_table_with_invalid_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_table(
+            TableName=f"T{uuid4()}",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+            ],
+            KeySchema=[
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+            WarmThroughput={
+                "ReadUnitsPerSecond": 12000,
+                "WriteUnitsPerSecond": 3000,  # Below deafult 4000
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for table is lower than initial throughput for OnDemand"
+        in err["Message"]
+    )
+
+
+@mock_aws
+def test_create_table_with_gsi_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_key", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "WarmThroughput": {
+                    "ReadUnitsPerSecond": 15000,
+                    "WriteUnitsPerSecond": 5000,
+                },
+            }
+        ],
+    )
+    table = client.describe_table(TableName=table_name)["Table"]
+    gsi = table["GlobalSecondaryIndexes"][0]
+    assert gsi["WarmThroughput"] == {
+        "ReadUnitsPerSecond": 15000,
+        "WriteUnitsPerSecond": 5000,
+        "Status": "ACTIVE",
+    }
+
+
+@mock_aws
+def test_create_table_with_invalid_gsi_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_table(
+            TableName=f"T{uuid4()}",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "gsi_key", "AttributeType": "S"},
+            ],
+            KeySchema=[
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "test_gsi",
+                    "KeySchema": [{"AttributeName": "gsi_key", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                    "WarmThroughput": {
+                        "ReadUnitsPerSecond": 10000,  # Below default 12000
+                        "WriteUnitsPerSecond": 5000,
+                    },
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for index test_gsi is lower than initial throughput for OnDemand"
+        in err["Message"]
     )

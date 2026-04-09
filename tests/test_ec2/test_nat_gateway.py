@@ -88,16 +88,8 @@ def test_delete_nat_gateway():
     nat_gateway_id = nat_gateway["NatGateway"]["NatGatewayId"]
     response = conn.delete_nat_gateway(NatGatewayId=nat_gateway_id)
 
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-    assert response == {
-        "NatGatewayId": nat_gateway_id,
-        "ResponseMetadata": {
-            "HTTPStatusCode": 200,
-            "RequestId": "741fc8ab-6ebe-452b-b92b-example",
-        },
-    }
+    assert response["NatGatewayId"] == nat_gateway_id
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_aws
@@ -260,12 +252,12 @@ def test_describe_nat_gateway_filter_vpc_id():
     )
 
 
-def retrieve_all_gateways(client, filters=[]):  # pylint: disable=W0102
-    resp = client.describe_nat_gateways(Filters=filters)
+def retrieve_all_gateways(client, filters=None):
+    resp = client.describe_nat_gateways(Filters=filters or [])
     all_gws = resp["NatGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_nat_gateways(Filters=filters, NextToken=token)
+        resp = client.describe_nat_gateways(Filters=filters or [], NextToken=token)
         all_gws.extend(resp["NatGateways"])
         token = resp.get("NextToken")
     return all_gws

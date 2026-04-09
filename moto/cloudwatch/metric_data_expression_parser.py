@@ -1,13 +1,14 @@
-from typing import Any, Dict, List, SupportsFloat, Tuple
+from datetime import datetime
+from typing import Any, SupportsFloat
 
 
 def parse_expression(
-    expression: str, results: List[Dict[str, Any]]
-) -> Tuple[List[SupportsFloat], List[str]]:
-    values: List[SupportsFloat] = []
-    timestamps: List[str] = []
+    expression: str, results: list[dict[str, Any]]
+) -> tuple[list[SupportsFloat], list[datetime]]:
+    values: list[SupportsFloat] = []
+    timestamps: list[datetime] = []
     for result in results:
         if result.get("id") == expression:
-            values.extend(result["vals"])
+            values.extend(result["values"])
             timestamps.extend(result["timestamps"])
     return values, timestamps

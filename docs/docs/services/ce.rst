@@ -84,8 +84,10 @@ ce
             resp = ce.get_cost_and_usage(...)
         
 
+- [ ] get_cost_and_usage_comparisons
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
+- [ ] get_cost_comparison_drivers
 - [ ] get_cost_forecast
 - [ ] get_dimension_values
 - [ ] get_reservation_coverage
@@ -103,6 +105,7 @@ ce
 - [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
+- [ ] list_cost_category_resource_associations
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback

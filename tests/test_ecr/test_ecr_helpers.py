@@ -5,7 +5,7 @@ import random
 
 
 def _generate_random_sha():
-    random_sha = hashlib.sha256(f"{random.randint(0,100)}".encode("utf-8")).hexdigest()
+    random_sha = hashlib.sha256(f"{random.randint(0, 100)}".encode()).hexdigest()
     return f"sha256:{random_sha}"
 
 
@@ -24,7 +24,7 @@ def _create_image_layers(n):
 
 def _create_image_digest(layers):
     layer_digests = "".join([layer["digest"] for layer in layers])
-    summed_digest = hashlib.sha256(f"{layer_digests}".encode("utf-8")).hexdigest()
+    summed_digest = hashlib.sha256(f"{layer_digests}".encode()).hexdigest()
     return f"sha256:{summed_digest}"
 
 

@@ -147,10 +147,7 @@ def test_policy_versions(iot_client):
         "policyVersions"
     ]
     assert len(policy_versions) == 5
-    assert (
-        list(map(lambda item: item["isDefaultVersion"], policy_versions)).count(True)
-        == 1
-    )
+    assert [item["isDefaultVersion"] for item in policy_versions].count(True) == 1
     default_policy = list(
         filter(lambda item: item["isDefaultVersion"], policy_versions)
     )
@@ -169,10 +166,7 @@ def test_policy_versions(iot_client):
         "policyVersions"
     ]
     assert len(policy_versions) == 5
-    assert (
-        list(map(lambda item: item["isDefaultVersion"], policy_versions)).count(True)
-        == 1
-    )
+    assert [item["isDefaultVersion"] for item in policy_versions].count(True) == 1
     default_policy = list(
         filter(lambda item: item["isDefaultVersion"], policy_versions)
     )

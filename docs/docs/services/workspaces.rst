@@ -55,6 +55,7 @@ workspaces
 - [ ] describe_connect_client_add_ins
 - [ ] describe_connection_alias_permissions
 - [ ] describe_connection_aliases
+- [ ] describe_custom_workspace_image_import
 - [ ] describe_image_associations
 - [ ] describe_ip_groups
 - [X] describe_tags
@@ -75,6 +76,7 @@ workspaces
 - [ ] disassociate_workspace_application
 - [ ] get_account_link
 - [ ] import_client_branding
+- [ ] import_custom_workspace_image
 - [ ] import_workspace_image
 - [ ] list_account_links
 - [ ] list_available_management_cidr_ranges
@@ -100,7 +102,7 @@ workspaces
 - [ ] start_workspaces_pool
 - [ ] stop_workspaces
 - [ ] stop_workspaces_pool
-- [ ] terminate_workspaces
+- [X] terminate_workspaces
 - [ ] terminate_workspaces_pool
 - [ ] terminate_workspaces_pool_session
 - [ ] update_connect_client_add_in

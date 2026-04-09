@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.events.models import EventsBackend, events_backends
@@ -13,7 +13,7 @@ class EventsHandler(BaseResponse):
     def events_backend(self) -> EventsBackend:
         return events_backends[self.current_account][self.region]
 
-    def _create_response(self, result: Any) -> Tuple[str, Dict[str, Any]]:
+    def _create_response(self, result: Any) -> tuple[str, dict[str, Any]]:
         """
         Creates a proper response for the API.
 
@@ -29,12 +29,12 @@ class EventsHandler(BaseResponse):
 
     def error(
         self, type_: str, message: str = "", status: int = 400
-    ) -> Tuple[str, Dict[str, Any]]:
-        headers: Dict[str, Any] = self.response_headers
+    ) -> tuple[str, dict[str, Any]]:
+        headers: dict[str, Any] = self.response_headers
         headers["status"] = status
         return json.dumps({"__type": type_, "message": message}), headers
 
-    def put_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def put_rule(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_pattern = self._get_param("EventPattern")
         scheduled_expression = self._get_param("ScheduleExpression")
@@ -57,7 +57,7 @@ class EventsHandler(BaseResponse):
         result = {"RuleArn": rule.arn}
         return self._create_response(result)
 
-    def delete_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def delete_rule(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_bus_arn = self._get_param("EventBusName")
 
@@ -67,7 +67,7 @@ class EventsHandler(BaseResponse):
 
         return "", self.response_headers
 
-    def describe_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_rule(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_bus_arn = self._get_param("EventBusName")
 
@@ -79,7 +79,7 @@ class EventsHandler(BaseResponse):
         result = rule.describe()
         return self._create_response(result)
 
-    def disable_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def disable_rule(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_bus_arn = self._get_param("EventBusName")
 
@@ -93,7 +93,7 @@ class EventsHandler(BaseResponse):
 
         return "", self.response_headers
 
-    def enable_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def enable_rule(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_bus_arn = self._get_param("EventBusName")
 
@@ -110,7 +110,7 @@ class EventsHandler(BaseResponse):
     def generate_presigned_url(self) -> None:
         pass
 
-    def list_rule_names_by_target(self) -> Tuple[str, Dict[str, Any]]:
+    def list_rule_names_by_target(self) -> tuple[str, dict[str, Any]]:
         target_arn = self._get_param("TargetArn")
         event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
@@ -130,7 +130,7 @@ class EventsHandler(BaseResponse):
 
         return json.dumps(res), self.response_headers
 
-    def list_rules(self) -> Tuple[str, Dict[str, Any]]:
+    def list_rules(self) -> tuple[str, dict[str, Any]]:
         prefix = self._get_param("NamePrefix")
         event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
@@ -149,7 +149,7 @@ class EventsHandler(BaseResponse):
 
         return json.dumps(rules_obj), self.response_headers
 
-    def list_targets_by_rule(self) -> Tuple[str, Dict[str, Any]]:
+    def list_targets_by_rule(self) -> tuple[str, dict[str, Any]]:
         rule_name = self._get_param("Rule")
         event_bus_arn = self._get_param("EventBusName")
         next_token = self._get_param("NextToken")
@@ -183,7 +183,7 @@ class EventsHandler(BaseResponse):
 
         return json.dumps(response)
 
-    def put_targets(self) -> Tuple[str, Dict[str, Any]]:
+    def put_targets(self) -> tuple[str, dict[str, Any]]:
         rule_name = self._get_param("Rule")
         event_bus_name = self._get_param("EventBusName")
         targets = self._get_param("Targets")
@@ -195,7 +195,7 @@ class EventsHandler(BaseResponse):
             self.response_headers,
         )
 
-    def remove_targets(self) -> Tuple[str, Dict[str, Any]]:
+    def remove_targets(self) -> tuple[str, dict[str, Any]]:
         rule_name = self._get_param("Rule")
         event_bus_name = self._get_param("EventBusName")
         ids = self._get_param("Ids")
@@ -235,26 +235,50 @@ class EventsHandler(BaseResponse):
 
         return ""
 
-    def describe_event_bus(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
 
         event_bus = self.events_backend.describe_event_bus(name)
-        response = {"Name": event_bus.name, "Arn": event_bus.arn}
+        response = {
+            "Arn": event_bus.arn,
+            "CreationTime": event_bus.creation_time,
+            "Name": event_bus.name,
+            "LastModifiedTime": event_bus.last_modified_time,
+        }
+
+        if event_bus.dead_letter_config:
+            response["DeadLetterConfig"] = event_bus.dead_letter_config
+
+        if event_bus.description:
+            response["Description"] = event_bus.description
+
+        if event_bus.kms_key_identifier:
+            response["KmsKeyIdentifier"] = event_bus.kms_key_identifier
 
         if event_bus.policy:
             response["Policy"] = event_bus.policy
 
         return json.dumps(response), self.response_headers
 
-    def create_event_bus(self) -> Tuple[str, Dict[str, Any]]:
+    def create_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         event_source_name = self._get_param("EventSourceName")
+        description = self._get_param("Description")
+        kms_key_identifier = self._get_param("KmsKeyIdentifier")
+        dead_letter_config = self._get_param("DeadLetterConfig")
         tags = self._get_param("Tags")
 
-        event_bus = self.events_backend.create_event_bus(name, event_source_name, tags)
+        event_bus = self.events_backend.create_event_bus(
+            name=name,
+            event_source_name=event_source_name,
+            description=description,
+            kms_key_identifier=kms_key_identifier,
+            dead_letter_config=dead_letter_config,
+            tags=tags,
+        )
         return json.dumps({"EventBusArn": event_bus.arn}), self.response_headers
 
-    def list_event_buses(self) -> Tuple[str, Dict[str, Any]]:
+    def list_event_buses(self) -> tuple[str, dict[str, Any]]:
         name_prefix = self._get_param("NamePrefix")
         # ToDo: add 'NextToken' & 'Limit' parameters
 
@@ -269,21 +293,21 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"EventBuses": response}), self.response_headers
 
-    def delete_event_bus(self) -> Tuple[str, Dict[str, Any]]:
+    def delete_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
 
         self.events_backend.delete_event_bus(name)
 
         return "", self.response_headers
 
-    def list_tags_for_resource(self) -> Tuple[str, Dict[str, Any]]:
+    def list_tags_for_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
 
         result = self.events_backend.list_tags_for_resource(arn)
 
         return json.dumps(result), self.response_headers
 
-    def tag_resource(self) -> Tuple[str, Dict[str, Any]]:
+    def tag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
         tags = self._get_param("Tags")
 
@@ -291,7 +315,7 @@ class EventsHandler(BaseResponse):
 
         return "{}", self.response_headers
 
-    def untag_resource(self) -> Tuple[str, Dict[str, Any]]:
+    def untag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
         tags = self._get_param("TagKeys")
 
@@ -299,7 +323,7 @@ class EventsHandler(BaseResponse):
 
         return "{}", self.response_headers
 
-    def create_archive(self) -> Tuple[str, Dict[str, Any]]:
+    def create_archive(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ArchiveName")
         source_arn = self._get_param("EventSourceArn")
         description = self._get_param("Description")
@@ -321,14 +345,14 @@ class EventsHandler(BaseResponse):
             self.response_headers,
         )
 
-    def describe_archive(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_archive(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ArchiveName")
 
         result = self.events_backend.describe_archive(name)
 
         return json.dumps(result), self.response_headers
 
-    def list_archives(self) -> Tuple[str, Dict[str, Any]]:
+    def list_archives(self) -> tuple[str, dict[str, Any]]:
         name_prefix = self._get_param("NamePrefix")
         source_arn = self._get_param("EventSourceArn")
         state = self._get_param("State")
@@ -337,7 +361,7 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"Archives": result}), self.response_headers
 
-    def update_archive(self) -> Tuple[str, Dict[str, Any]]:
+    def update_archive(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ArchiveName")
         description = self._get_param("Description")
         event_pattern = self._get_param("EventPattern")
@@ -349,14 +373,14 @@ class EventsHandler(BaseResponse):
 
         return json.dumps(result), self.response_headers
 
-    def delete_archive(self) -> Tuple[str, Dict[str, Any]]:
+    def delete_archive(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ArchiveName")
 
         self.events_backend.delete_archive(name)
 
         return "", self.response_headers
 
-    def start_replay(self) -> Tuple[str, Dict[str, Any]]:
+    def start_replay(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ReplayName")
         description = self._get_param("Description")
         source_arn = self._get_param("EventSourceArn")
@@ -370,14 +394,14 @@ class EventsHandler(BaseResponse):
 
         return json.dumps(result), self.response_headers
 
-    def describe_replay(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_replay(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ReplayName")
 
         result = self.events_backend.describe_replay(name)
 
         return json.dumps(result), self.response_headers
 
-    def list_replays(self) -> Tuple[str, Dict[str, Any]]:
+    def list_replays(self) -> tuple[str, dict[str, Any]]:
         name_prefix = self._get_param("NamePrefix")
         source_arn = self._get_param("EventSourceArn")
         state = self._get_param("State")
@@ -386,14 +410,14 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"Replays": result}), self.response_headers
 
-    def cancel_replay(self) -> Tuple[str, Dict[str, Any]]:
+    def cancel_replay(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("ReplayName")
 
         result = self.events_backend.cancel_replay(name)
 
         return json.dumps(result), self.response_headers
 
-    def create_connection(self) -> Tuple[str, Dict[str, Any]]:
+    def create_connection(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         description = self._get_param("Description")
         authorization_type = self._get_param("AuthorizationType")
@@ -415,7 +439,7 @@ class EventsHandler(BaseResponse):
             self.response_headers,
         )
 
-    def list_connections(self) -> Tuple[str, Dict[str, Any]]:
+    def list_connections(self) -> tuple[str, dict[str, Any]]:
         connections = self.events_backend.list_connections()
         result = []
         for connection in connections:
@@ -432,27 +456,27 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"Connections": result}), self.response_headers
 
-    def describe_connection(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_connection(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         result = self.events_backend.describe_connection(name)
         return json.dumps(result), self.response_headers
 
-    def update_connection(self) -> Tuple[str, Dict[str, Any]]:
-        updates = dict(
-            name=self._get_param("Name"),
-            description=self._get_param("Description"),
-            authorization_type=self._get_param("AuthorizationType"),
-            auth_parameters=self._get_param("AuthParameters"),
-        )
+    def update_connection(self) -> tuple[str, dict[str, Any]]:
+        updates = {
+            "name": self._get_param("Name"),
+            "description": self._get_param("Description"),
+            "authorization_type": self._get_param("AuthorizationType"),
+            "auth_parameters": self._get_param("AuthParameters"),
+        }
         result = self.events_backend.update_connection(**updates)
         return self._create_response(result)
 
-    def delete_connection(self) -> Tuple[str, Dict[str, Any]]:
+    def delete_connection(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         result = self.events_backend.delete_connection(name)
         return json.dumps(result), self.response_headers
 
-    def create_api_destination(self) -> Tuple[str, Dict[str, Any]]:
+    def create_api_destination(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         description = self._get_param("Description")
         connection_arn = self._get_param("ConnectionArn")
@@ -472,7 +496,7 @@ class EventsHandler(BaseResponse):
         )
         return self._create_response(result)
 
-    def list_api_destinations(self) -> Tuple[str, Dict[str, Any]]:
+    def list_api_destinations(self) -> tuple[str, dict[str, Any]]:
         destinations = self.events_backend.list_api_destinations()
         result = []
         for destination in destinations:
@@ -491,27 +515,27 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"ApiDestinations": result}), self.response_headers
 
-    def describe_api_destination(self) -> Tuple[str, Dict[str, Any]]:
+    def describe_api_destination(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         result = self.events_backend.describe_api_destination(name)
         return self._create_response(result)
 
-    def update_api_destination(self) -> Tuple[str, Dict[str, Any]]:
-        updates = dict(
-            connection_arn=self._get_param("ConnectionArn"),
-            description=self._get_param("Description"),
-            http_method=self._get_param("HttpMethod"),
-            invocation_endpoint=self._get_param("InvocationEndpoint"),
-            invocation_rate_limit_per_second=self._get_param(
+    def update_api_destination(self) -> tuple[str, dict[str, Any]]:
+        updates = {
+            "connection_arn": self._get_param("ConnectionArn"),
+            "description": self._get_param("Description"),
+            "http_method": self._get_param("HttpMethod"),
+            "invocation_endpoint": self._get_param("InvocationEndpoint"),
+            "invocation_rate_limit_per_second": self._get_param(
                 "InvocationRateLimitPerSecond"
             ),
-            name=self._get_param("Name"),
-        )
+            "name": self._get_param("Name"),
+        }
 
         result = self.events_backend.update_api_destination(**updates)
         return self._create_response(result)
 
-    def delete_api_destination(self) -> Tuple[str, Dict[str, Any]]:
+    def delete_api_destination(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
         self.events_backend.delete_api_destination(name)
         return self._create_response({})

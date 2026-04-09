@@ -22,4 +22,7 @@ url_paths = {
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/settings$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/public-sharing-settings$": QuickSightResponse.dispatch,
+    r"{0}/resources/(?P<resource_arn>[^/].+)/tags$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[\d]+)/data-sources$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[\d]+)/data-sources/(?P<datasourceid>[^/.]+)$": QuickSightResponse.dispatch,
 }

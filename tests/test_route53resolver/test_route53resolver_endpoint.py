@@ -296,7 +296,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
 
 
 @mock_aws
-def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many-locals
+def test_route53resolver_create_resolver_endpoint():
     """Test good create_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)

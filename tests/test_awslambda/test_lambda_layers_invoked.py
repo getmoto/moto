@@ -37,7 +37,7 @@ def test_invoke_local_lambda_layers():
     #
     # Download layer as a ZIP file
     # curl $(aws lambda get-layer-version-by-arn --arn "..." --query "Content.Location" --output text) --output klayer.zip
-    requests_location = "resources/klayer_311_16.zip"
+    requests_location = "resources/klayer_311_19.zip"
     requests_layer = pkgutil.get_data(__name__, requests_location)
 
     layer_arn = conn.publish_layer_version(
@@ -70,4 +70,4 @@ def test_invoke_local_lambda_layers():
         FunctionName=function_arn, Payload="{}", LogType="Tail"
     )
     msg = success_result["Payload"].read().decode("utf-8")
-    assert msg == '"2.32.3"'
+    assert msg == '"2.32.4"'

@@ -1,7 +1,8 @@
 import re
 import time
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -43,13 +44,13 @@ class TrailStatus:
         self.is_logging = False
         self.stopped = utcnow()
 
-    def description(self) -> Dict[str, Any]:
+    def description(self) -> dict[str, Any]:
         if self.is_logging:
             self.latest_delivery_time = datetime2int(utcnow())
             self.latest_delivery_attempt = iso_8601_datetime_without_milliseconds(
                 utcnow()
             )
-        desc: Dict[str, Any] = {
+        desc: dict[str, Any] = {
             "IsLogging": self.is_logging,
             "LatestDeliveryAttemptTime": self.latest_delivery_attempt,
             "LatestNotificationAttemptTime": "",
@@ -107,9 +108,9 @@ class Trail(BaseModel):
         self.check_bucket_exists()
         self.check_topic_exists()
         self.status = TrailStatus()
-        self.event_selectors: List[Dict[str, Any]] = list()
-        self.advanced_event_selectors: List[Dict[str, Any]] = list()
-        self.insight_selectors: List[Dict[str, str]] = list()
+        self.event_selectors: list[dict[str, Any]] = []
+        self.advanced_event_selectors: list[dict[str, Any]] = []
+        self.insight_selectors: list[dict[str, str]] = []
 
     @property
     def arn(self) -> str:
@@ -163,8 +164,8 @@ class Trail(BaseModel):
 
     def put_event_selectors(
         self,
-        event_selectors: List[Dict[str, Any]],
-        advanced_event_selectors: List[Dict[str, Any]],
+        event_selectors: list[dict[str, Any]],
+        advanced_event_selectors: list[dict[str, Any]],
     ) -> None:
         if event_selectors:
             self.event_selectors = event_selectors
@@ -172,13 +173,13 @@ class Trail(BaseModel):
             self.event_selectors = []
             self.advanced_event_selectors = advanced_event_selectors
 
-    def get_event_selectors(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    def get_event_selectors(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         return self.event_selectors, self.advanced_event_selectors
 
-    def put_insight_selectors(self, insight_selectors: List[Dict[str, str]]) -> None:
+    def put_insight_selectors(self, insight_selectors: list[dict[str, str]]) -> None:
         self.insight_selectors.extend(insight_selectors)
 
-    def get_insight_selectors(self) -> List[Dict[str, str]]:
+    def get_insight_selectors(self) -> list[dict[str, str]]:
         return self.insight_selectors
 
     def update(
@@ -215,14 +216,14 @@ class Trail(BaseModel):
         if kms_key_id is not None:
             self.kms_key_id = kms_key_id
 
-    def short(self) -> Dict[str, str]:
+    def short(self) -> dict[str, str]:
         return {
             "Name": self.trail_name,
             "TrailARN": self.arn,
             "HomeRegion": self.region_name,
         }
 
-    def description(self, include_region: bool = False) -> Dict[str, Any]:
+    def description(self, include_region: bool = False) -> dict[str, Any]:
         desc = {
             "Name": self.trail_name,
             "S3BucketName": self.bucket_name,
@@ -252,7 +253,7 @@ class CloudTrailBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.trails: Dict[str, Trail] = dict()
+        self.trails: dict[str, Trail] = {}
         self.tagging_service = TaggingService(tag_name="TagsList")
 
     def create_trail(
@@ -268,7 +269,7 @@ class CloudTrailBackend(BaseBackend):
         cw_log_group_arn: str,
         cw_role_arn: str,
         kms_key_id: str,
-        tags_list: List[Dict[str, str]],
+        tags_list: list[dict[str, str]],
     ) -> Trail:
         trail = Trail(
             self.account_id,
@@ -377,9 +378,9 @@ class CloudTrailBackend(BaseBackend):
     def put_event_selectors(
         self,
         trail_name: str,
-        event_selectors: List[Dict[str, Any]],
-        advanced_event_selectors: List[Dict[str, Any]],
-    ) -> Tuple[str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+        event_selectors: list[dict[str, Any]],
+        advanced_event_selectors: list[dict[str, Any]],
+    ) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]]:
         trail = self.get_trail(trail_name)
         trail.put_event_selectors(event_selectors, advanced_event_selectors)
         trail_arn = trail.arn
@@ -387,22 +388,22 @@ class CloudTrailBackend(BaseBackend):
 
     def get_event_selectors(
         self, trail_name: str
-    ) -> Tuple[str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+    ) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]]:
         trail = self.get_trail(trail_name)
         event_selectors, advanced_event_selectors = trail.get_event_selectors()
         return trail.arn, event_selectors, advanced_event_selectors
 
-    def add_tags(self, resource_id: str, tags_list: List[Dict[str, str]]) -> None:
+    def add_tags(self, resource_id: str, tags_list: list[dict[str, str]]) -> None:
         self.tagging_service.tag_resource(resource_id, tags_list)
 
-    def remove_tags(self, resource_id: str, tags_list: List[Dict[str, str]]) -> None:
+    def remove_tags(self, resource_id: str, tags_list: list[dict[str, str]]) -> None:
         self.tagging_service.untag_resource_using_tags(resource_id, tags_list)
 
-    def list_tags(self, resource_id_list: List[str]) -> List[Dict[str, Any]]:
+    def list_tags(self, resource_id_list: list[str]) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
-        resp: List[Dict[str, Any]] = [{"ResourceId": r_id} for r_id in resource_id_list]
+        resp: list[dict[str, Any]] = [{"ResourceId": r_id} for r_id in resource_id_list]
         for item in resp:
             item["TagsList"] = self.tagging_service.list_tags_for_resource(
                 item["ResourceId"]
@@ -410,15 +411,15 @@ class CloudTrailBackend(BaseBackend):
         return resp
 
     def put_insight_selectors(
-        self, trail_name: str, insight_selectors: List[Dict[str, str]]
-    ) -> Tuple[str, List[Dict[str, str]]]:
+        self, trail_name: str, insight_selectors: list[dict[str, str]]
+    ) -> tuple[str, list[dict[str, str]]]:
         trail = self.get_trail(trail_name)
         trail.put_insight_selectors(insight_selectors)
         return trail.arn, insight_selectors
 
     def get_insight_selectors(
         self, trail_name: str
-    ) -> Tuple[str, List[Dict[str, str]]]:
+    ) -> tuple[str, list[dict[str, str]]]:
         trail = self.get_trail(trail_name)
         return trail.arn, trail.get_insight_selectors()
 

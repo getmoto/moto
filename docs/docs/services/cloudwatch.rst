@@ -14,35 +14,40 @@ cloudwatch
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] delete_alarm_mute_rule
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
 - [X] delete_dashboards
-- [ ] delete_insight_rules
+- [X] delete_insight_rules
 - [ ] delete_metric_stream
+- [ ] describe_alarm_contributors
 - [ ] describe_alarm_history
 - [X] describe_alarms
 - [ ] describe_alarms_for_metric
 - [ ] describe_anomaly_detectors
-- [ ] describe_insight_rules
+- [X] describe_insight_rules
 - [ ] disable_alarm_actions
-- [ ] disable_insight_rules
+- [X] disable_insight_rules
 - [ ] enable_alarm_actions
-- [ ] enable_insight_rules
+- [X] enable_insight_rules
+- [ ] get_alarm_mute_rule
 - [X] get_dashboard
 - [ ] get_insight_rule_report
 - [X] get_metric_data
 - [X] get_metric_statistics
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
+- [ ] list_alarm_mute_rules
 - [X] list_dashboards
 - [ ] list_managed_insight_rules
 - [ ] list_metric_streams
 - [X] list_metrics
 - [X] list_tags_for_resource
+- [ ] put_alarm_mute_rule
 - [ ] put_anomaly_detector
 - [ ] put_composite_alarm
 - [X] put_dashboard
-- [ ] put_insight_rule
+- [X] put_insight_rule
 - [ ] put_managed_insight_rules
 - [X] put_metric_alarm
 - [X] put_metric_data

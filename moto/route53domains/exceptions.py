@@ -1,5 +1,3 @@
-from typing import List
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -26,7 +24,7 @@ class DuplicateRequestException(JsonRESTError):
 class InvalidInputException(JsonRESTError):
     code = 400
 
-    def __init__(self, error_msgs: List[str]):
+    def __init__(self, error_msgs: list[str]):
         error_msgs_str = "\n\t".join(error_msgs)
         super().__init__(
             "InvalidInput", f"The requested item is not acceptable.\n\t{error_msgs_str}"

@@ -17,8 +17,12 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] attach_cluster_node_volume
+- [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
+- [ ] batch_reboot_cluster_nodes
+- [ ] batch_replace_cluster_nodes
 - [ ] create_action
 - [ ] create_algorithm
 - [ ] create_app
@@ -44,6 +48,7 @@ sagemaker
 - [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
+- [ ] create_hub_content_presigned_urls
 - [ ] create_hub_content_reference
 - [ ] create_human_task_ui
 - [X] create_hyper_parameter_tuning_job
@@ -53,6 +58,7 @@ sagemaker
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
+- [ ] create_mlflow_app
 - [ ] create_mlflow_tracking_server
 - [X] create_model
 - [X] create_model_bias_job_definition
@@ -70,6 +76,7 @@ sagemaker
 - [ ] create_partner_app_presigned_url
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
+- [ ] create_presigned_mlflow_app_url
 - [ ] create_presigned_mlflow_tracking_server_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
@@ -115,6 +122,7 @@ sagemaker
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_mlflow_app
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
 - [X] delete_model_bias_job_definition
@@ -130,10 +138,12 @@ sagemaker
 - [ ] delete_optimization_job
 - [ ] delete_partner_app
 - [X] delete_pipeline
+- [ ] delete_processing_job
 - [ ] delete_project
 - [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
+- [ ] delete_training_job
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -148,6 +158,7 @@ sagemaker
 - [ ] describe_auto_ml_job
 - [X] describe_auto_ml_job_v2
 - [X] describe_cluster
+- [ ] describe_cluster_event
 - [X] describe_cluster_node
 - [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
@@ -177,6 +188,7 @@ sagemaker
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
+- [ ] describe_mlflow_app
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
 - [X] describe_model_bias_job_definition
@@ -196,6 +208,7 @@ sagemaker
 - [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_reserved_capacity
 - [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
@@ -207,6 +220,7 @@ sagemaker
 - [ ] describe_user_profile
 - [ ] describe_workforce
 - [ ] describe_workteam
+- [ ] detach_cluster_node_volume
 - [ ] disable_sagemaker_servicecatalog_portfolio
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
@@ -226,6 +240,7 @@ sagemaker
 - [ ] list_associations
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_cluster_events
 - [X] list_cluster_nodes
 - [ ] list_cluster_scheduler_configs
 - [X] list_clusters
@@ -258,6 +273,7 @@ sagemaker
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
+- [ ] list_mlflow_apps
 - [ ] list_mlflow_tracking_servers
 - [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
@@ -285,6 +301,7 @@ sagemaker
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
+- [ ] list_pipeline_versions
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -300,6 +317,7 @@ sagemaker
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
+- [ ] list_ultra_servers_by_reserved_capacity
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams
@@ -322,6 +340,7 @@ sagemaker
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
+- [ ] start_session
 - [X] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage
@@ -363,6 +382,7 @@ sagemaker
 - [ ] update_inference_component
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
+- [ ] update_mlflow_app
 - [ ] update_mlflow_tracking_server
 - [X] update_model_card
 - [X] update_model_package
@@ -373,6 +393,7 @@ sagemaker
 - [ ] update_partner_app
 - [X] update_pipeline
 - [ ] update_pipeline_execution
+- [ ] update_pipeline_version
 - [ ] update_project
 - [ ] update_space
 - [ ] update_training_job

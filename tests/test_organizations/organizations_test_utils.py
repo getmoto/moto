@@ -1,8 +1,12 @@
 import datetime
 import re
+import sys
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.organizations import utils
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 def test_make_random_org_id():
@@ -91,15 +95,19 @@ def validate_organizational_unit(org, response):
 
 
 def validate_account(org, account):
-    assert sorted(account.keys()) == [
-        "Arn",
-        "Email",
-        "Id",
-        "JoinedMethod",
-        "JoinedTimestamp",
-        "Name",
-        "Status",
-    ]
+    sorted_account_keys = sorted(
+        [
+            "Arn",
+            "Email",
+            "Id",
+            "JoinedMethod",
+            "JoinedTimestamp",
+            "Name",
+            "Status",
+        ]
+        + (["State"] if LooseVersion(boto3_version) >= LooseVersion("1.40.27") else [])
+    )
+    assert sorted(account.keys()) == sorted_account_keys
     assert re.match(utils.ACCOUNT_ID_REGEX, account["Id"])
     assert account["Arn"] == (
         utils.ACCOUNT_ARN_FORMAT.format(
@@ -109,6 +117,8 @@ def validate_account(org, account):
     assert re.match(utils.EMAIL_REGEX, account["Email"])
     assert account["JoinedMethod"] in ["INVITED", "CREATED"]
     assert account["Status"] in ["ACTIVE", "SUSPENDED"]
+    if LooseVersion(boto3_version) >= LooseVersion("1.40.27"):
+        assert account["State"] in ["ACTIVE", "SUSPENDED"]
     assert isinstance(account["Name"], str)
     assert isinstance(account["JoinedTimestamp"], datetime.datetime)
 
@@ -125,12 +135,33 @@ def validate_create_account_status(create_status):
     assert re.match(utils.CREATE_ACCOUNT_STATUS_ID_REGEX, create_status["Id"])
     assert re.match(utils.ACCOUNT_ID_REGEX, create_status["AccountId"])
     assert isinstance(create_status["AccountName"], str)
-    assert create_status["State"] == "SUCCEEDED"
+    if LooseVersion(boto3_version) >= LooseVersion("1.40.27"):
+        assert create_status["State"] == "SUCCEEDED"
     assert isinstance(create_status["RequestedTimestamp"], datetime.datetime)
     assert isinstance(create_status["CompletedTimestamp"], datetime.datetime)
 
 
-def validate_policy_summary(org, summary):
+def validate_resource_control_policy_summary(org, summary):
+    assert isinstance(summary, dict)
+    assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
+    assert summary["Arn"] == (
+        utils.RCP_ARN_FORMAT.format(
+            "aws", org["MasterAccountId"], org["Id"], summary["Id"]
+        )
+    )
+    assert isinstance(summary["Name"], str)
+    assert isinstance(summary["Description"], str)
+    assert summary["Type"] == "RESOURCE_CONTROL_POLICY"
+    assert isinstance(summary["AwsManaged"], bool)
+
+
+def validate_resource_control_policy(org, response):
+    assert isinstance(response["PolicySummary"], dict)
+    assert isinstance(response["Content"], str)
+    validate_resource_control_policy_summary(org, response["PolicySummary"])
+
+
+def validate_service_control_policy_summary(org, summary):
     assert isinstance(summary, dict)
     assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
     assert summary["Arn"] == (
@@ -147,4 +178,4 @@ def validate_policy_summary(org, summary):
 def validate_service_control_policy(org, response):
     assert isinstance(response["PolicySummary"], dict)
     assert isinstance(response["Content"], str)
-    validate_policy_summary(org, response["PolicySummary"])
+    validate_service_control_policy_summary(org, response["PolicySummary"])

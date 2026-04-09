@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.utilities.utils import get_partition
 
@@ -9,13 +9,13 @@ def parameter_arn(account_id: str, region: str, parameter_name: str) -> str:
     return f"arn:{get_partition(region)}:ssm:{region}:{account_id}:parameter/{parameter_name}"
 
 
-def convert_to_tree(parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
+def convert_to_tree(parameters: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Convert input into a smaller, less redundant data set in tree form
     Input: [{"Name": "/a/b/c", "Value": "af-south-1", ...}, ..]
     Output: {"a": {"b": {"c": {"Value": af-south-1}, ..}, ..}, ..}
     """
-    tree_dict: Dict[str, Any] = {}
+    tree_dict: dict[str, Any] = {}
     for p in parameters:
         current_level = tree_dict
         for path in p["Name"].split("/"):
@@ -28,13 +28,13 @@ def convert_to_tree(parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
     return tree_dict
 
 
-def convert_to_params(tree: Dict[str, Any]) -> List[Dict[str, Any]]:
+def convert_to_params(tree: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Inverse of 'convert_to_tree'
     """
 
     def m(
-        tree: Dict[str, Any], params: List[Dict[str, Any]], current_path: str = ""
+        tree: dict[str, Any], params: list[dict[str, Any]], current_path: str = ""
     ) -> None:
         for key, value in tree.items():
             if key == "Value":
@@ -42,6 +42,6 @@ def convert_to_params(tree: Dict[str, Any]) -> List[Dict[str, Any]]:
             else:
                 m(value, params, current_path + "/" + key)
 
-    params: List[Dict[str, Any]] = []
+    params: list[dict[str, Any]] = []
     m(tree, params)
     return params

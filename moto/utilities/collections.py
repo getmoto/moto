@@ -1,7 +1,7 @@
-from typing import Any, List
+from typing import Any
 
 
-def select_attributes(obj: Any, attributes: List[str]) -> Any:
+def select_attributes(obj: Any, attributes: list[str]) -> Any:
     """Select a subset of attributes from the given dict (returns a copy)"""
     attributes = attributes if isinstance(attributes, (list, tuple)) else [attributes]  # type: ignore
     return {k: v for k, v in obj.items() if k in attributes}

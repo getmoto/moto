@@ -1,5 +1,5 @@
 import abc
-from typing import Final, List, Tuple
+from typing import Final
 
 from antlr4 import CommonTokenStream, InputStream, ParserRuleContext
 from antlr4.error.ErrorListener import ErrorListener
@@ -11,13 +11,13 @@ from moto.stepfunctions.parser.asl.parse.preprocessor import Preprocessor
 
 
 class SyntaxErrorListener(ErrorListener):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
     def __init__(self):
         super().__init__()
-        self.errors = list()
+        self.errors = []
 
-    def syntaxError(  # pylint: disable=arguments-renamed
+    def syntaxError(
         self, recognizer, offending_symbol, line, column, message, exception
     ):
         log_parts = [f"line {line}:{column}"]
@@ -30,9 +30,9 @@ class SyntaxErrorListener(ErrorListener):
 
 
 class ASLParserException(Exception):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
-    def __init__(self, errors: List[str]):
+    def __init__(self, errors: list[str]):
         self.errors = errors
 
     def __str__(self):
@@ -50,7 +50,7 @@ class ASLParserException(Exception):
 
 class AmazonStateLanguageParser(abc.ABC):
     @staticmethod
-    def parse(definition: str) -> Tuple[EvalComponent, ParserRuleContext]:
+    def parse(definition: str) -> tuple[EvalComponent, ParserRuleContext]:
         # Attempt to build the AST and look out for syntax errors.
         syntax_error_listener = SyntaxErrorListener()
 

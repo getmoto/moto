@@ -15,15 +15,19 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import camelcase_to_underscores
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     Queue,
+    sqs_backends,
 )
 from moto.utilities.distutils_version import LooseVersion
 from tests import aws_verified
 from tests.test_sqs import sqs_aws_verified
+
+BOTOCORE_VERSION = sys.modules["botocore"].__version__
 
 TEST_POLICY = """
 {
@@ -44,7 +48,7 @@ TEST_POLICY = """
 }
 """
 
-MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
+MOCK_DEDUPLICATION_TIME_IN_SECONDS = 1
 REGION = "us-east-1"
 
 
@@ -133,19 +137,10 @@ def test_create_queue_with_different_attributes_fail():
     assert new_response["QueueUrl"] == response.get("QueueUrl")
 
 
-@mock_aws
-def test_create_fifo_queue():
-    # given
+@sqs_aws_verified(fifo_queue=True)
+@pytest.mark.aws_verified
+def test_create_fifo_queue(account_id, queue_name=None, queue_url=None):
     sqs = boto3.client("sqs", region_name=REGION)
-    queue_name = f"{str(uuid4())[0:6]}.fifo"
-
-    # when
-    queue_url = sqs.create_queue(
-        QueueName=queue_name, Attributes={"FifoQueue": "true"}
-    )["QueueUrl"]
-
-    # then
-    assert queue_name in queue_url
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
@@ -160,9 +155,9 @@ def test_create_fifo_queue():
     assert isinstance(attributes["LastModifiedTimestamp"], str)
     assert attributes["FifoQueue"] == "true"
     assert attributes["FifoThroughputLimit"] == "perQueue"
-    assert attributes["MaximumMessageSize"] == "262144"
+    assert attributes["MaximumMessageSize"] == "1048576"
     assert attributes["MessageRetentionPeriod"] == "345600"
-    assert attributes["QueueArn"] == (f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{queue_name}")
+    assert attributes["QueueArn"] == f"arn:aws:sqs:{REGION}:{account_id}:{queue_name}"
     assert attributes["ReceiveMessageWaitTimeSeconds"] == "0"
     assert attributes["VisibilityTimeout"] == "30"
 
@@ -209,7 +204,7 @@ def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
 
     new_queue = sqs.create_queue(QueueName=q_name)
-    assert q_name in getattr(new_queue, "url")
+    assert q_name in new_queue.url
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
     assert queue.attributes.get("QueueArn").split(":")[-1] == q_name
@@ -328,6 +323,64 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "attribute_name,attribute_value",
+    [
+        ("DelaySeconds", "5"),
+        ("KmsDataKeyReusePeriodSeconds", "300"),
+        ("MaximumMessageSize", "262144"),
+        ("MessageRetentionPeriod", "345600"),
+        ("ReceiveMessageWaitTimeSeconds", "10"),
+        ("VisibilityTimeout", "30"),
+    ],
+)
+def test_set_attributes_integer_fields_conversion(attribute_name, attribute_value):
+    """Test that integer fields are properly converted from strings to integers."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+
+    client = boto3.client("sqs", region_name=REGION)
+    queue_name = str(uuid4())[0:6]
+
+    # KMS attributes require KmsMasterKeyId to be set
+    attributes = {attribute_name: attribute_value}
+    if attribute_name == "KmsDataKeyReusePeriodSeconds":
+        attributes["KmsMasterKeyId"] = "alias/MyKey"
+
+    q_resp = client.create_queue(QueueName=queue_name, Attributes=attributes)
+    queue_url = q_resp["QueueUrl"]
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == attribute_value
+
+    # Verify internal value is stored as integer
+    backend = sqs_backends[ACCOUNT_ID][REGION]
+    queue = backend.get_queue(queue_name)
+    internal_attr_name = camelcase_to_underscores(attribute_name)
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(attribute_value)
+
+    # Update attribute
+    new_value = str(int(attribute_value) + 1)
+    client.set_queue_attributes(
+        QueueUrl=queue_url, Attributes={attribute_name: new_value}
+    )
+
+    attrs = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=[attribute_name]
+    )
+    assert attrs["Attributes"][attribute_name] == new_value
+
+    # Verify updated value is still integer internally
+    internal_value = getattr(queue, internal_attr_name)
+    assert isinstance(internal_value, int)
+    assert internal_value == int(new_value)
+
+
+@mock_aws
 def test_set_queue_attribute_empty_redrive_removes_attr():
     client = boto3.client("sqs", region_name=REGION)
 
@@ -385,9 +438,14 @@ def _verify_unknown_queue_error(e, op_name="GetQueueUrl", status_code=400):
     assert e.value.operation_name == op_name
     assert response["ResponseMetadata"]["HTTPStatusCode"] == status_code
     assert "AWS.SimpleQueueService.NonExistentQueue" == response["Error"]["Code"]
-
-    botocore_version = sys.modules["botocore"].__version__
-    if LooseVersion(botocore_version) >= LooseVersion("1.34.90"):
+    headers = response["ResponseMetadata"]["HTTPHeaders"]
+    if "x-amzn-errortype" in headers:
+        expected_value = "com.amazonaws.sqs#QueueDoesNotExist"
+        assert headers["x-amzn-errortype"] == expected_value
+    if "x-amzn-query-error" in headers:
+        expected_value = "AWS.SimpleQueueService.NonExistentQueue;Sender"
+        assert headers["x-amzn-query-error"] == expected_value
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.34.90"):
         assert response["Error"]["Message"] == "The specified queue does not exist."
     else:
         assert (
@@ -404,6 +462,7 @@ def test_message_send_without_attributes():
     assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
     assert "MD5OfMessageAttributes" not in msg
     assert " \n" not in msg.get("MessageId")
+    assert "SequenceNumber" not in msg
 
     messages = queue.receive_messages()
     assert len(messages) == 1
@@ -434,7 +493,7 @@ def test_message_send_with_attributes():
 def test_message_retention_period():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"MessageRetentionPeriod": "3"}
+        QueueName=str(uuid4())[0:6], Attributes={"MessageRetentionPeriod": "1"}
     )
     queue.send_message(
         MessageBody="derp",
@@ -459,32 +518,9 @@ def test_message_retention_period():
         },
     )
 
-    time.sleep(5)
+    time.sleep(2)
     messages = queue.receive_messages()
     assert len(messages) == 0
-
-
-@mock_aws
-def test_queue_retention_period():
-    sqs = boto3.resource("sqs", region_name=REGION)
-    queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"MessageRetentionPeriod": "3"}
-    )
-
-    time.sleep(5)
-
-    queue.send_message(
-        MessageBody="derp",
-        MessageAttributes={
-            "SOME_Valid.attribute-Name": {
-                "StringValue": "1493147359900",
-                "DataType": "Number",
-            }
-        },
-    )
-
-    messages = queue.receive_messages()
-    assert len(messages) == 1
 
 
 @mock_aws
@@ -499,7 +535,7 @@ def test_message_with_invalid_attributes():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute name 'öther_encodings' is invalid. "
         "Attribute name can contain A-Z, a-z, 0-9, underscore (_), "
@@ -597,7 +633,7 @@ def test_message_with_attributes_invalid_datatype():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute 'timestamp' has an invalid message "
         "attribute type, the set of supported type "
@@ -631,22 +667,6 @@ def test_send_message_with_message_group_id():
 
 
 @mock_aws
-def test_send_message_with_message_group_id_standard_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
-    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-
-    with pytest.raises(ClientError) as ex:
-        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
-
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == (
-        "Value group_id_1 for parameter MessageGroupId is invalid. "
-        "Reason: The request include parameter that is not valid for this queue type."
-    )
-
-
-@mock_aws
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
@@ -674,8 +694,7 @@ def test_set_queue_attributes():
 def _get_common_url(region):
     # Different versions of botocore return different URLs
     # See https://github.com/boto/botocore/issues/2705
-    boto3_version = sys.modules["botocore"].__version__
-    if LooseVersion(boto3_version) >= LooseVersion("1.29.0"):
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.29.0"):
         return f"https://sqs.{region}.amazonaws.com"
     common_name_enabled = (
         os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
@@ -790,7 +809,7 @@ def test_get_queue_attributes():
     assert isinstance(response["Attributes"]["CreatedTimestamp"], str)
     assert response["Attributes"]["DelaySeconds"] == "0"
     assert isinstance(response["Attributes"]["LastModifiedTimestamp"], str)
-    assert response["Attributes"]["MaximumMessageSize"] == "262144"
+    assert response["Attributes"]["MaximumMessageSize"] == "1048576"
     assert response["Attributes"]["MessageRetentionPeriod"] == "345600"
     assert response["Attributes"]["QueueArn"] == (
         f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}"
@@ -811,7 +830,7 @@ def test_get_queue_attributes():
 
     assert response["Attributes"] == {
         "ApproximateNumberOfMessages": "0",
-        "MaximumMessageSize": "262144",
+        "MaximumMessageSize": "1048576",
         "QueueArn": f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}",
         "VisibilityTimeout": "30",
         "RedrivePolicy": json.dumps(
@@ -845,10 +864,6 @@ def test_get_queue_attributes_errors():
 
     with pytest.raises(ClientError) as client_error:
         client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[""])
-    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
-
-    with pytest.raises(ClientError) as client_error:
-        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
@@ -1089,11 +1104,11 @@ def test_send_receive_message_timestamps():
     try:
         int(sent_timestamp)
     except ValueError:
-        assert False, "sent_timestamp not an int"
+        raise AssertionError("sent_timestamp not an int")
     try:
         int(approximate_first_receive_timestamp)
     except ValueError:
-        assert False, "aproximate_first_receive_timestamp not an int"
+        raise AssertionError("aproximate_first_receive_timestamp not an int")
 
 
 @mock_aws
@@ -1343,12 +1358,13 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
 
     body = "this is a test message"
 
-    client.send_message(
+    resp = client.send_message(
         QueueUrl=queue_url,
         MessageBody=body,
         MessageDeduplicationId="123",
         MessageGroupId="456",
     )
+    assert "SequenceNumber" in resp
 
     message = client.receive_message(
         QueueUrl=queue_url, AttributeNames=[attribute_name], MaxNumberOfMessages=2
@@ -1380,6 +1396,9 @@ def test_get_queue_attributes_no_param():
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    assert "Attributes" not in queue_attrs
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert "Attributes" not in queue_attrs
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
@@ -1490,7 +1509,7 @@ def test_send_large_message_fails():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
-        "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes."
+        f"One or more parameters are invalid. Reason: Message must be shorter than {MAXIMUM_MESSAGE_LENGTH} bytes."
     )
 
 
@@ -1498,7 +1517,7 @@ def test_send_large_message_fails():
 def test_message_becomes_inflight_when_received():
     sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
     )
 
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
@@ -1516,7 +1535,7 @@ def test_message_becomes_inflight_when_received():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     # Wait
-    time.sleep(3)
+    time.sleep(1.1)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
@@ -1572,7 +1591,7 @@ def test_change_message_visibility():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    time.sleep(2)
+    time.sleep(1.1)
 
     # Message now becomes visible
     queue.reload()
@@ -1655,7 +1674,7 @@ def test_change_message_visibility_on_old_message():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    time.sleep(2)
+    time.sleep(1.1)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
@@ -1669,7 +1688,7 @@ def test_change_message_visibility_on_old_message():
     # Docs indicate this should throw a MessageNotInflight, but this is allowed in AWS
     original_message.change_visibility(VisibilityTimeout=100)
 
-    time.sleep(2)
+    time.sleep(1.2)
 
     # Message is not yet available, because of the visibility-timeout
     messages = queue.receive_messages(MaxNumberOfMessages=1)
@@ -1680,7 +1699,7 @@ def test_change_message_visibility_on_old_message():
 def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
     )
 
     queue.send_message(MessageBody="test message")
@@ -1690,14 +1709,16 @@ def test_change_message_visibility_on_visible_message():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    time.sleep(2)
+    # Sleep longer then timeout - message is available again
+    time.sleep(1.1)
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     assert len(messages) == 1
 
     messages[0].change_visibility(VisibilityTimeout=100)
 
-    time.sleep(2)
+    # Sleep longer then original timeout, but shorter then new timeout - message is not yet available
+    time.sleep(1.1)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
@@ -1751,7 +1772,7 @@ def test_delete_message_after_visibility_timeout():
 
     m1_retrieved = queue.receive_messages()[0]
 
-    time.sleep(VISIBILITY_TIMEOUT + 1)
+    time.sleep(VISIBILITY_TIMEOUT + 0.1)
 
     m1_retrieved.delete()
 
@@ -1831,7 +1852,7 @@ def test_delete_message_using_old_receipt_handle():
 
 
 @mock_aws
-def test_send_message_batch():
+def test_fifo_send_message_batch():
     client = boto3.client("sqs", region_name=REGION)
     response = client.create_queue(
         QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
@@ -1868,6 +1889,8 @@ def test_send_message_batch():
     )
 
     assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1", "id_2"]
+    for entry in response["Successful"]:
+        assert "SequenceNumber" in entry
 
     response = client.receive_message(
         QueueUrl=queue_url,
@@ -1917,7 +1940,10 @@ def test_delete_message_batch_with_duplicates():
     with pytest.raises(ClientError) as e:
         client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
     ex = e.value
-    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+    assert (
+        ex.response["Error"]["Code"]
+        == "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
+    )
 
     # no messages are deleted
     messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
@@ -1946,9 +1972,9 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
     response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
 
-    assert response["Successful"] == [
-        {"Id": messages[0]["MessageId"]}
-    ], "delete ok for real message"
+    assert response["Successful"] == [{"Id": messages[0]["MessageId"]}], (
+        "delete ok for real message"
+    )
 
     assert response["Failed"] == [
         {
@@ -2099,11 +2125,10 @@ def test_send_message_batch_errors(queue_name=None, queue_url=None):
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(
-            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
+            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 1048577}]
         )
     assert client_error.value.response["Error"]["Message"] == (
-        "Batch requests cannot be longer than 262144 bytes. "
-        "You have sent 262145 bytes."
+        "Batch requests cannot be longer than 1048576 bytes. You have sent 1048577 bytes."
     )
 
     with pytest.raises(ClientError) as client_error:
@@ -2209,7 +2234,7 @@ def test_batch_change_message_visibility_on_old_message():
 
     original_message = messages[0]
 
-    time.sleep(2)
+    time.sleep(1.1)
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     assert messages[0].receipt_handle != original_message.receipt_handle
@@ -2942,9 +2967,17 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
 
 
 @mock_aws
-def test_send_message_fails_when_message_size_greater_than_max_message_size():
+@pytest.mark.parametrize(
+    "message_size_limit",
+    (
+        12345,
+        500_000,  # Above old limit of 262144
+    ),
+)
+def test_send_message_fails_when_message_size_greater_than_max_message_size(
+    message_size_limit: int,
+):
     sqs = boto3.resource("sqs", region_name="eu-west-3")
-    message_size_limit = 12345
     queue = sqs.create_queue(
         QueueName=str(uuid4()),
         Attributes={"MaximumMessageSize": str(message_size_limit)},
@@ -3020,7 +3053,7 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     )
 
     msg_queue.send_message(MessageBody="first", MessageGroupId="1")
-    time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 5)
+    time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 0.1)
     msg_queue.send_message(MessageBody="first", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     assert len(messages) == 2
@@ -3038,7 +3071,7 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
     msg_queue.send_message(MessageBody="first", MessageGroupId="1")
 
     sha256 = hashlib.sha256()
-    sha256.update("first".encode("utf-8"))
+    sha256.update(b"first")
     deduplicationid = sha256.hexdigest()
 
     msg_queue.send_message(
@@ -3129,14 +3162,109 @@ def test_message_attributes_contains_trace_header():
         },
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert (
         messages[0]["Attributes"]["AWSTraceHeader"]
         == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
     )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "MessageGroupId",
+        "MessageDeduplicationId",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "SenderId",
+        "SentTimestamp",
+        "SequenceNumber",
+    ],
+)
+def test_message_system_attributes_contains_system_attribute(attribute):
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = [attribute]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = [attribute]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
+
+    assert messages[0]["Attributes"].get(attribute) is not None
+
+
+@mock_aws
+def test_message_system_attributes_contains_all_attributes():
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
+
+    assert messages[0]["Attributes"]["MessageGroupId"] == "group1"
+    assert messages[0]["Attributes"]["MessageDeduplicationId"] == "dedup1"
+    assert messages[0]["Attributes"]["ApproximateFirstReceiveTimestamp"] is not None
+    assert messages[0]["Attributes"]["ApproximateReceiveCount"] == "1"
+    assert messages[0]["Attributes"]["SenderId"] is not None
+    assert messages[0]["Attributes"]["SentTimestamp"] is not None
+    assert messages[0]["Attributes"]["SequenceNumber"] is not None
 
 
 @mock_aws
@@ -3199,7 +3327,7 @@ def test_message_delay_is_more_than_15_minutes():
             {
                 "Id": "id_1",
                 "MessageBody": "body_1",
-                "DelaySeconds": 3,
+                "DelaySeconds": 1,
                 "MessageAttributes": {
                     "attribute_name_1": {
                         "StringValue": "attribute_value_1",
@@ -3221,10 +3349,11 @@ def test_message_delay_is_more_than_15_minutes():
     )
 
     assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1"]
-
     assert sorted([entry["Id"] for entry in response["Failed"]]) == ["id_2"]
+    for entry in response["Successful"]:
+        assert "SequenceNumber" not in entry
 
-    time.sleep(4)
+    time.sleep(1.1)
 
     response = client.receive_message(
         QueueUrl=queue_url,

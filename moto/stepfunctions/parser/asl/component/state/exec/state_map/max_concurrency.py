@@ -12,19 +12,16 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
     StatesErrorNameType,
 )
-from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value_terminal import (
-    JSONataTemplateValueTerminalExpression,
-)
-from moto.stepfunctions.parser.asl.component.common.variable_sample import (
-    VariableSample,
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    StringJSONata,
+    StringSampler,
 )
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
-from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
-DEFAULT_MAX_CONCURRENCY_VALUE: int = 0  # No limit.
+DEFAULT_MAX_CONCURRENCY_VALUE: Final[int] = 0  # No limit.
 
 
 class MaxConcurrencyDecl(EvalComponent, abc.ABC):
@@ -37,7 +34,7 @@ class MaxConcurrencyDecl(EvalComponent, abc.ABC):
 
 
 class MaxConcurrency(MaxConcurrencyDecl):
-    max_concurrency_value: int
+    max_concurrency_value: Final[int]
 
     def __init__(self, num: int = DEFAULT_MAX_CONCURRENCY_VALUE):
         super().__init__()
@@ -48,50 +45,36 @@ class MaxConcurrency(MaxConcurrencyDecl):
 
 
 class MaxConcurrencyJSONata(MaxConcurrencyDecl):
-    jsonata_template_value_terminal_expression: Final[
-        JSONataTemplateValueTerminalExpression
-    ]
+    string_jsonata: Final[StringJSONata]
 
-    def __init__(
-        self,
-        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
-    ):
+    def __init__(self, string_jsonata: StringJSONata):
         super().__init__()
-        self.jsonata_template_value_terminal_expression = (
-            jsonata_template_value_terminal_expression
-        )
+        self.string_jsonata = string_jsonata
 
     def _eval_max_concurrency(self, env: Environment) -> int:
-        self.jsonata_template_value_terminal_expression.eval(env=env)
+        self.string_jsonata.eval(env=env)
         # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
         seconds = int(env.stack.pop())
         return seconds
 
 
-class MaxConcurrencyPathVar(MaxConcurrency):
-    variable_sample: VariableSample
-
-    def __init__(self, variable_sample: VariableSample):
-        super().__init__()
-        self.variable_sample = variable_sample
-
-    def _eval_max_concurrency(self, env: Environment) -> int:
-        self.variable_sample.eval(env=env)
-        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
-        max_concurrency: int = int(env.stack.pop())
-        return max_concurrency
-
-
 class MaxConcurrencyPath(MaxConcurrency):
-    max_concurrency_path: str
+    string_sampler: Final[StringSampler]
 
-    def __init__(self, max_concurrency_path: str):
+    def __init__(self, string_sampler: StringSampler):
         super().__init__()
-        self.max_concurrency_path = max_concurrency_path
+        self.string_sampler = string_sampler
 
     def _eval_max_concurrency(self, env: Environment) -> int:
-        inp = env.stack[-1]
-        max_concurrency_value = extract_json(self.max_concurrency_path, inp)
+        self.string_sampler.eval(env=env)
+        max_concurrency_value = env.stack.pop()
+
+        if not isinstance(max_concurrency_value, int):
+            try:
+                max_concurrency_value = int(max_concurrency_value)
+            except Exception:
+                # Pass the wrong type forward.
+                pass
 
         error_cause = None
         if not isinstance(max_concurrency_value, int):
@@ -100,7 +83,7 @@ class MaxConcurrencyPath(MaxConcurrency):
                 if not isinstance(max_concurrency_value, str)
                 else max_concurrency_value
             )
-            error_cause = f'The MaxConcurrencyPath field refers to value "{value_str}" which is not a valid integer: {self.max_concurrency_path}'
+            error_cause = f'The MaxConcurrencyPath field refers to value "{value_str}" which is not a valid integer: {self.string_sampler.literal_value}'
         elif max_concurrency_value < 0:
             error_cause = f"Expected non-negative integer for MaxConcurrency, got '{max_concurrency_value}' instead."
 

@@ -28,18 +28,19 @@ ram
 - [X] enable_sharing_with_aws_organization
 - [ ] get_permission
 - [ ] get_resource_policies
-- [ ] get_resource_share_associations
+- [X] get_resource_share_associations
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
 - [ ] list_permission_associations
 - [ ] list_permission_versions
-- [ ] list_permissions
+- [X] list_permissions
 - [ ] list_principals
 - [ ] list_replace_permission_associations_work
 - [ ] list_resource_share_permissions
-- [ ] list_resource_types
+- [X] list_resource_types
 - [ ] list_resources
+- [ ] list_source_associations
 - [ ] promote_permission_created_from_policy
 - [ ] promote_resource_share_created_from_policy
 - [ ] reject_resource_share_invitation

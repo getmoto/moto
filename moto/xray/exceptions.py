@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class BadSegmentException(Exception):
@@ -15,8 +15,8 @@ class BadSegmentException(Exception):
     def __repr__(self) -> str:
         return f"<BadSegment {self.id}-{self.code}-{self.message}>"
 
-    def to_dict(self) -> Dict[str, Any]:
-        result: Dict[str, Any] = {}
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         if self.id is not None:
             result["Id"] = self.id
         if self.code is not None:

@@ -60,7 +60,7 @@ def s3():
 
 
 @pytest.fixture(scope="function")
-def log_group_name(logs):  # pylint: disable=redefined-outer-name
+def log_group_name(logs):
     name = "/moto/logs_test/" + str(uuid4())[0:5]
     logs.create_log_group(logGroupName=name)
     yield name
@@ -68,7 +68,7 @@ def log_group_name(logs):  # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture()
-def bucket_name(s3, account_id):  # pylint: disable=redefined-outer-name
+def bucket_name(s3, account_id):
     name = f"moto-logs-test-{str(uuid4())[0:6]}"
     s3.create_bucket(Bucket=name)
     policy = copy.copy(S3_POLICY)
@@ -103,7 +103,7 @@ def bucket_name(s3, account_id):  # pylint: disable=redefined-outer-name
 
 
 @pytest.mark.aws_verified
-def test_create_export_task_happy_path(logs, s3, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
+def test_create_export_task_happy_path(logs, s3, log_group_name, bucket_name):
     fromTime = 1611316574
     to = 1642852574
     resp = logs.create_export_task(
@@ -140,7 +140,7 @@ def test_create_export_task_happy_path(logs, s3, log_group_name, bucket_name):  
 
 
 @pytest.mark.aws_verified
-def test_cancel_unknown_export_task(logs):  # pylint: disable=redefined-outer-name
+def test_cancel_unknown_export_task(logs):
     with pytest.raises(ClientError) as exc:
         logs.cancel_export_task(taskId=str(uuid4()))
     err = exc.value.response["Error"]
@@ -152,7 +152,7 @@ def test_cancel_unknown_export_task(logs):  # pylint: disable=redefined-outer-na
 def test_create_export_task_raises_ClientError_when_bucket_not_found(
     logs,
     log_group_name,
-):  # pylint: disable=redefined-outer-name
+):
     destination = "368a7022dea3dd621"
     fromTime = 1611316574
     to = 1642852574
@@ -175,7 +175,7 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
 def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
     logs,
     bucket_name,
-):  # pylint: disable=redefined-outer-name
+):
     with pytest.raises(logs.exceptions.ResourceNotFoundException) as exc:
         logs.create_export_task(
             logGroupName=f"/aws/nonexisting/{str(uuid4())[0:6]}",
@@ -189,7 +189,7 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
 
 
 @pytest.mark.aws_verified
-def test_create_export_executes_export_task(logs, s3, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
+def test_create_export_executes_export_task(logs, s3, log_group_name, bucket_name):
     fromTime = int(unix_time_millis(datetime.now() - timedelta(days=1)))
     to = int(unix_time_millis(datetime.now() + timedelta(days=1)))
 
@@ -223,7 +223,7 @@ def test_create_export_executes_export_task(logs, s3, log_group_name, bucket_nam
     assert "aws-logs-write-test" in key_names
 
 
-def test_describe_export_tasks_happy_path(logs, s3, log_group_name):  # pylint: disable=redefined-outer-name
+def test_describe_export_tasks_happy_path(logs, s3, log_group_name):
     destination = "mybucket"
     fromTime = 1611316574
     to = 1642852574
@@ -244,7 +244,7 @@ def test_describe_export_tasks_happy_path(logs, s3, log_group_name):  # pylint: 
     assert resp["exportTasks"][0]["status"]["message"] == "Completed successfully"
 
 
-def test_describe_export_tasks_out_of_order_timestamps(logs, s3, log_group_name):  # pylint: disable=redefined-outer-name
+def test_describe_export_tasks_out_of_order_timestamps(logs, s3, log_group_name):
     destination = "mybucket"
     fromTime = 1000
     to = 500
@@ -265,7 +265,7 @@ def test_describe_export_tasks_out_of_order_timestamps(logs, s3, log_group_name)
     assert resp["exportTasks"][0]["status"]["message"] == "Task is active"
 
 
-def test_describe_export_tasks_task_id(logs, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
+def test_describe_export_tasks_task_id(logs, log_group_name, bucket_name):
     fromTime = 1611316574
     to = 1642852574
     resp = logs.create_export_task(
@@ -287,6 +287,6 @@ def test_describe_export_tasks_task_id(logs, log_group_name, bucket_name):  # py
 
 def test_describe_export_tasks_raises_ResourceNotFoundException_task_id_not_found(
     logs,
-):  # pylint: disable=redefined-outer-name
+):
     with pytest.raises(logs.exceptions.ResourceNotFoundException):
         logs.describe_export_tasks(taskId="368a7022dea3dd621")

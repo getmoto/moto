@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 import localstack.services.cloudformation.provider_utils as util
 from localstack.services.cloudformation.resource_provider import (
@@ -29,7 +29,7 @@ class StepFunctionsStateMachineProperties(TypedDict):
     StateMachineName: Optional[str]
     StateMachineRevisionId: Optional[str]
     StateMachineType: Optional[str]
-    Tags: Optional[List[TagsEntry]]
+    Tags: Optional[list[TagsEntry]]
     TracingConfiguration: Optional[TracingConfiguration]
     EncryptionConfiguration: Optional[EncryptionConfiguration]
 
@@ -43,7 +43,7 @@ class LogDestination(TypedDict):
 
 
 class LoggingConfiguration(TypedDict):
-    Destinations: Optional[List[LogDestination]]
+    Destinations: Optional[list[LogDestination]]
     IncludeExecutionData: Optional[bool]
     Level: Optional[str]
 
@@ -230,7 +230,7 @@ class StepFunctionsStateMachineProvider(
         )
 
 
-def _apply_substitutions(definition: str, substitutions: Dict[str, str]) -> str:
+def _apply_substitutions(definition: str, substitutions: dict[str, str]) -> str:
     substitution_regex = re.compile(
         "\\${[a-zA-Z0-9_]+}"
     )  # might be a bit too strict in some cases

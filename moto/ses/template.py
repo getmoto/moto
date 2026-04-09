@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 from moto.utilities.tokenizer import GenericTokenizer
 
@@ -7,7 +7,7 @@ from .exceptions import MissingRenderingAttributeException
 
 class BlockProcessor:
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         self.template = template
         self.template_data = template_data
@@ -22,7 +22,7 @@ class BlockProcessor:
 
 class EachBlockProcessor(BlockProcessor):
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         self.template = template
         self.tokenizer = tokenizer
@@ -51,7 +51,7 @@ class EachBlockProcessor(BlockProcessor):
                     )
                     # If we've reached the end, we should stop processing
                     # Our parent will continue with whatever comes after {{/each}}
-                    if type(_processor) == EachEndBlockProcessor:
+                    if type(_processor) is EachEndBlockProcessor:
                         break
                     # If we've encountered another processor, they can continue
                     parsed += _processor.parse()
@@ -65,7 +65,7 @@ class EachBlockProcessor(BlockProcessor):
 
 class EachEndBlockProcessor(BlockProcessor):
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         super().__init__(template, template_data, tokenizer)
 
@@ -76,7 +76,7 @@ class EachEndBlockProcessor(BlockProcessor):
 
 class IfBlockProcessor(BlockProcessor):
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         super().__init__(template, template_data, tokenizer)
 
@@ -97,9 +97,9 @@ class IfBlockProcessor(BlockProcessor):
                 _processor = get_processor(self.tokenizer)(
                     self.template, self.template_data, self.tokenizer
                 )
-                if type(_processor) == IfEndBlockProcessor:
+                if type(_processor) is IfEndBlockProcessor:
                     break
-                elif type(_processor) == ElseBlockProcessor:
+                elif type(_processor) is ElseBlockProcessor:
                     self.parse_contents = not self.parse_contents
                     continue
                 if self.parse_contents:
@@ -115,7 +115,7 @@ class IfBlockProcessor(BlockProcessor):
 
 class IfEndBlockProcessor(BlockProcessor):
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         super().__init__(template, template_data, tokenizer)
 
@@ -126,7 +126,7 @@ class IfEndBlockProcessor(BlockProcessor):
 
 class ElseBlockProcessor(BlockProcessor):
     def __init__(
-        self, template: str, template_data: Dict[str, Any], tokenizer: GenericTokenizer
+        self, template: str, template_data: dict[str, Any], tokenizer: GenericTokenizer
     ):
         super().__init__(template, template_data, tokenizer)
 
@@ -146,7 +146,7 @@ class VarBlockProcessor(BlockProcessor):
         return data
 
 
-def get_processor(tokenizer: GenericTokenizer) -> Type[BlockProcessor]:
+def get_processor(tokenizer: GenericTokenizer) -> type[BlockProcessor]:
     if tokenizer.peek(5) == "#each":
         return EachBlockProcessor
     if tokenizer.peek(5) == "/each":
@@ -162,7 +162,7 @@ def get_processor(tokenizer: GenericTokenizer) -> Type[BlockProcessor]:
 
 def parse_template(
     template: str,
-    template_data: Dict[str, Any],
+    template_data: dict[str, Any],
     tokenizer: Optional[GenericTokenizer] = None,
 ) -> str:
     tokenizer = tokenizer or GenericTokenizer(template)

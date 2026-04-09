@@ -1,10 +1,10 @@
 from typing import Any
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class STSClientError(RESTError):
-    code = 400
+class STSClientError(ServiceException):
+    pass
 
 
 class STSValidationError(STSClientError):

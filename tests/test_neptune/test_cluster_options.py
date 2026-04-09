@@ -8,7 +8,11 @@ def test_db_cluster_options():
     # Verified against AWS on 23-02-2023
     # We're not checking the exact data here, that is already done in TF
     client = boto3.client("neptune", region_name="us-east-1")
-    response = client.describe_orderable_db_instance_options(Engine="neptune")
+    paginator = client.get_paginator("describe_orderable_db_instance_options")
+    page_iterator = paginator.paginate(Engine="neptune")
+    response = {"OrderableDBInstanceOptions": []}
+    for page in page_iterator:
+        response["OrderableDBInstanceOptions"] += page["OrderableDBInstanceOptions"]
     assert len(response["OrderableDBInstanceOptions"]) == 286
 
     response = client.describe_orderable_db_instance_options(

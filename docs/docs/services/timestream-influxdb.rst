@@ -42,6 +42,8 @@ timestream-influxdb
 - [ ] list_db_instances_for_cluster
 - [X] list_db_parameter_groups
 - [X] list_tags_for_resource
+- [ ] reboot_db_cluster
+- [ ] reboot_db_instance
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_db_cluster

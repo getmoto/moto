@@ -1,6 +1,6 @@
 """Unit tests for lakeformation-supported APIs."""
 
-from typing import Dict, Optional
+from typing import Optional
 
 import boto3
 import pytest
@@ -155,9 +155,10 @@ def test_grant_permissions_staggered():
 
     resp = client.list_permissions()
     assert len(resp["PrincipalResourcePermissions"]) == 1
-    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
-        ["DESCRIBE", "CREATE_TABLE"]
-    )
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == {
+        "DESCRIBE",
+        "CREATE_TABLE",
+    }
 
 
 @mock_aws
@@ -257,7 +258,7 @@ def grant_data_location_permissions(
     )
 
 
-def db_response(principal: str, catalog_id: str, db: str) -> Dict:
+def db_response(principal: str, catalog_id: str, db: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {
@@ -271,7 +272,7 @@ def db_response(principal: str, catalog_id: str, db: str) -> Dict:
     }
 
 
-def table_response(principal: str, catalog_id: str, db: str, table: str) -> Dict:
+def table_response(principal: str, catalog_id: str, db: str, table: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {
@@ -287,7 +288,7 @@ def table_response(principal: str, catalog_id: str, db: str, table: str) -> Dict
     }
 
 
-def catalog_response(principal: str) -> Dict:
+def catalog_response(principal: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {"Catalog": {}},
@@ -298,7 +299,7 @@ def catalog_response(principal: str) -> Dict:
 
 def data_location_response(
     principal: str, resource_arn: str, catalog_id: Optional[str] = None
-) -> Dict:
+) -> dict:
     response = {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {"DataLocation": {"ResourceArn": resource_arn}},
@@ -522,17 +523,16 @@ def test_revoke_permissions():
         "Database": {"Name": "db"}
     }
     # compare as sets to be order independent
-    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
-        ["SELECT", "ALTER"]
-    )
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == {
+        "SELECT",
+        "ALTER",
+    }
     assert set(
         resp["PrincipalResourcePermissions"][0]["PermissionsWithGrantOption"]
-    ) == set(
-        [
-            "SELECT",
-            "DROP",
-        ]
-    )
+    ) == {
+        "SELECT",
+        "DROP",
+    }
 
 
 @mock_aws

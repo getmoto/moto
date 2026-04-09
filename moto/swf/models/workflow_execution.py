@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from threading import Lock
 from threading import Timer as ThreadingTimer
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
@@ -95,20 +96,20 @@ class WorkflowExecution(BaseModel):
             "openLambdaFunctions": 0,
         }
         # events
-        self._events: List[HistoryEvent] = []
+        self._events: list[HistoryEvent] = []
         # child workflows
-        self.child_workflow_executions: List[WorkflowExecution] = []
+        self.child_workflow_executions: list[WorkflowExecution] = []
         self._previous_started_event_id: Optional[int] = None
         # timers/thread utils
         self.threading_lock = Lock()
-        self._timers: Dict[str, Timer] = {}
+        self._timers: dict[str, Timer] = {}
 
     def __repr__(self) -> str:
         return f"WorkflowExecution(run_id: {self.run_id})"
 
     def _get_from_kwargs_or_workflow_type(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         local_key: str,
         workflow_type_key: Optional[str] = None,
     ) -> Any:
@@ -122,7 +123,7 @@ class WorkflowExecution(BaseModel):
         return value
 
     @property
-    def _configuration_keys(self) -> List[str]:
+    def _configuration_keys(self) -> list[str]:
         return [
             "executionStartToCloseTimeout",
             "childPolicy",
@@ -130,11 +131,11 @@ class WorkflowExecution(BaseModel):
             "taskStartToCloseTimeout",
         ]
 
-    def to_short_dict(self) -> Dict[str, str]:
+    def to_short_dict(self) -> dict[str, str]:
         return {"workflowId": self.workflow_id, "runId": self.run_id}
 
-    def to_medium_dict(self) -> Dict[str, Any]:
-        hsh: Dict[str, Any] = {
+    def to_medium_dict(self) -> dict[str, Any]:
+        hsh: dict[str, Any] = {
             "execution": self.to_short_dict(),
             "workflowType": self.workflow_type.to_short_dict(),
             "startTimestamp": 1420066800.123,
@@ -145,8 +146,8 @@ class WorkflowExecution(BaseModel):
             hsh["tagList"] = self.tag_list
         return hsh
 
-    def to_full_dict(self) -> Dict[str, Any]:
-        hsh: Dict[str, Any] = {
+    def to_full_dict(self) -> dict[str, Any]:
+        hsh: dict[str, Any] = {
             "executionInfo": self.to_medium_dict(),
             "executionConfiguration": {"taskList": {"name": self.task_list}},
         }
@@ -171,8 +172,8 @@ class WorkflowExecution(BaseModel):
             hsh["latestActivityTaskTimestamp"] = self.latest_activity_task_timestamp
         return hsh
 
-    def to_list_dict(self) -> Dict[str, Any]:
-        hsh: Dict[str, Any] = {
+    def to_list_dict(self) -> dict[str, Any]:
+        hsh: dict[str, Any] = {
             "execution": {"workflowId": self.workflow_id, "runId": self.run_id},
             "workflowType": self.workflow_type.to_short_dict(),
             "startTimestamp": self.start_timestamp,
@@ -311,11 +312,11 @@ class WorkflowExecution(BaseModel):
         self.start_decision_task(decision_task.task_token, identity=identity)
 
     @property
-    def decision_tasks(self) -> List[DecisionTask]:
+    def decision_tasks(self) -> list[DecisionTask]:
         return [t for t in self.domain.decision_tasks if t.workflow_execution == self]
 
     @property
-    def activity_tasks(self) -> List[ActivityTask]:
+    def activity_tasks(self) -> list[ActivityTask]:
         return [t for t in self.domain.activity_tasks if t.workflow_execution == self]
 
     def _find_decision_task(self, task_token: str) -> DecisionTask:
@@ -339,7 +340,7 @@ class WorkflowExecution(BaseModel):
     def complete_decision_task(
         self,
         task_token: str,
-        decisions: Optional[List[Dict[str, Any]]] = None,
+        decisions: Optional[list[dict[str, Any]]] = None,
         execution_context: Optional[str] = None,
     ) -> None:
         # 'decisions' can be None per boto.swf defaults, so replace it with something iterable
@@ -363,8 +364,8 @@ class WorkflowExecution(BaseModel):
         self.latest_execution_context = execution_context
 
     def _check_decision_attributes(
-        self, kind: str, value: Dict[str, Any], decision_id: int
-    ) -> List[Dict[str, str]]:
+        self, kind: str, value: dict[str, Any], decision_id: int
+    ) -> list[dict[str, str]]:
         problems = []
         constraints = DECISIONS_FIELDS.get(kind, {})
         for key, constraint in constraints.items():
@@ -377,7 +378,7 @@ class WorkflowExecution(BaseModel):
                 )
         return problems
 
-    def validate_decisions(self, decisions: List[Dict[str, Any]]) -> None:
+    def validate_decisions(self, decisions: list[dict[str, Any]]) -> None:
         """
         Performs some basic validations on decisions. The real SWF service
         seems to break early and *not* process any decision if there's a
@@ -427,7 +428,7 @@ class WorkflowExecution(BaseModel):
         if any(problems):
             raise SWFDecisionValidationException(problems)
 
-    def handle_decisions(self, event_id: int, decisions: List[Dict[str, Any]]) -> None:
+    def handle_decisions(self, event_id: int, decisions: list[dict[str, Any]]) -> None:
         """
         Handles a Decision according to SWF docs.
         See: http://docs.aws.amazon.com/amazonswf/latest/apireference/API_Decision.html
@@ -508,7 +509,7 @@ class WorkflowExecution(BaseModel):
             details=details,
         )
 
-    def schedule_activity_task(self, event_id: int, attributes: Dict[str, Any]) -> None:
+    def schedule_activity_task(self, event_id: int, attributes: dict[str, Any]) -> None:
         # Helper function to avoid repeating ourselves in the next sections
         def fail_schedule_activity_task(_type: "ActivityType", _cause: str) -> None:
             # TODO: implement other possible failure mode: OPEN_ACTIVITIES_LIMIT_EXCEEDED
@@ -648,7 +649,7 @@ class WorkflowExecution(BaseModel):
     def terminate(
         self,
         child_policy: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        details: Optional[dict[str, Any]] = None,
         reason: Optional[str] = None,
     ) -> None:
         # TODO: handle child policy for child workflows here
@@ -668,7 +669,7 @@ class WorkflowExecution(BaseModel):
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
 
-    def signal(self, signal_name: str, workflow_input: Dict[str, Any]) -> None:
+    def signal(self, signal_name: str, workflow_input: dict[str, Any]) -> None:
         self._add_event(
             "WorkflowExecutionSignaled", signal_name=signal_name, input=workflow_input
         )
@@ -721,7 +722,7 @@ class WorkflowExecution(BaseModel):
             timeout_type=task.timeout_type,
         )
 
-    def record_marker(self, event_id: int, attributes: Dict[str, Any]) -> None:
+    def record_marker(self, event_id: int, attributes: dict[str, Any]) -> None:
         self._add_event(
             "MarkerRecorded",
             decision_task_completed_event_id=event_id,
@@ -729,7 +730,7 @@ class WorkflowExecution(BaseModel):
             marker_name=attributes["markerName"],
         )
 
-    def start_timer(self, event_id: int, attributes: Dict[str, Any]) -> None:
+    def start_timer(self, event_id: int, attributes: dict[str, Any]) -> None:
         timer_id = attributes["timerId"]
         existing_timer = self._timers.get(timer_id)
         if existing_timer and existing_timer.is_alive():

@@ -1,6 +1,6 @@
 import datetime
 from threading import Thread
-from typing import Dict, Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -29,14 +29,16 @@ from moto.stepfunctions.parser.backend.activity import Activity
 from moto.stepfunctions.parser.backend.execution_worker_comm import (
     ExecutionWorkerCommunication,
 )
+from moto.stepfunctions.parser.mocking.mock_config import MockTestCase
 from moto.stepfunctions.parser.utils import TMP_THREADS
 
 
 class ExecutionWorker:
-    _evaluation_details: EvaluationDetails
-    _execution_communication: ExecutionWorkerCommunication
-    _cloud_watch_logging_session: Optional[CloudWatchLoggingSession]
-    _activity_store: Dict[Arn, Activity]
+    _evaluation_details: Final[EvaluationDetails]
+    _execution_communication: Final[ExecutionWorkerCommunication]
+    _cloud_watch_logging_session: Final[Optional[CloudWatchLoggingSession]]
+    _mock_test_case: Final[Optional[MockTestCase]]
+    _activity_store: dict[Arn, Activity]
 
     env: Optional[Environment]
 
@@ -45,11 +47,13 @@ class ExecutionWorker:
         evaluation_details: EvaluationDetails,
         exec_comm: ExecutionWorkerCommunication,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
-        activity_store: Dict[Arn, Activity],
+        activity_store: dict[Arn, Activity],
+        mock_test_case: Optional[MockTestCase] = None,
     ):
         self._evaluation_details = evaluation_details
         self._execution_communication = exec_comm
         self._cloud_watch_logging_session = cloud_watch_logging_session
+        self._mock_test_case = mock_test_case
         self._activity_store = activity_store
         self.env = None
 
@@ -78,6 +82,7 @@ class ExecutionWorker:
             event_history_context=EventHistoryContext.of_program_start(),
             cloud_watch_logging_session=self._cloud_watch_logging_session,
             activity_store=self._activity_store,
+            mock_test_case=self._mock_test_case,
         )
 
     def _execution_logic(self):

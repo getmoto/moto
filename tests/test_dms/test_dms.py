@@ -22,7 +22,18 @@ def test_create_and_get_replication_task():
     )
 
     tasks = client.describe_replication_tasks(
-        Filters=[{"Name": "replication-task-id", "Values": ["test"]}]
+        Filters=[
+            {"Name": "replication-task-id", "Values": ["test"]},
+            {"Name": "migration-type", "Values": ["full-load"]},
+            {
+                "Name": "endpoint-arn",
+                "Values": ["source-endpoint-arn", "target-endpoint-arn"],
+            },
+            {
+                "Name": "replication-instance-arn",
+                "Values": ["replication-instance-arn"],
+            },
+        ]
     )
 
     assert len(tasks["ReplicationTasks"]) == 1
@@ -207,6 +218,32 @@ def test_delete_replication_task_throws_resource_not_found_error():
 
 
 @mock_aws
+def test_describe_replication_tasks_no_filters():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    client.create_replication_task(
+        ReplicationTaskIdentifier="test-1",
+        SourceEndpointArn="source-endpoint-1-arn",
+        TargetEndpointArn="target-endpoint-1-arn",
+        ReplicationInstanceArn="replication-instance-1-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+    )
+    client.create_replication_task(
+        ReplicationTaskIdentifier="test-2",
+        SourceEndpointArn="source-endpoint-2-arn",
+        TargetEndpointArn="target-endpoint-2-arn",
+        ReplicationInstanceArn="replication-instance-2-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+    )
+
+    tasks = client.describe_replication_tasks()
+
+    assert len(tasks["ReplicationTasks"]) == 2
+
+
+@mock_aws
 def test_create_replication_instance():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -237,6 +274,9 @@ def test_create_replication_instance():
     assert instance["AutoMinorVersionUpgrade"] is True
     assert instance["PubliclyAccessible"] is True
     assert instance["NetworkType"] == "IPV4"
+    assert instance["VpcSecurityGroups"] == [
+        {"Status": "active", "VpcSecurityGroupId": "sg-12345"}
+    ]
 
     arn = instance["ReplicationInstanceArn"]
     assert arn.startswith("arn:aws:dms:us-east-1:")
@@ -246,10 +286,20 @@ def test_create_replication_instance():
         Filters=[{"Name": "replication-instance-id", "Values": ["test-instance"]}]
     )
     assert len(response["ReplicationInstances"]) == 1
-    assert (
-        response["ReplicationInstances"][0]["ReplicationInstanceIdentifier"]
-        == "test-instance"
-    )
+    instance = response["ReplicationInstances"][0]
+    assert instance["ReplicationInstanceIdentifier"] == "test-instance"
+    assert instance["ReplicationInstanceClass"] == "dms.t2.micro"
+    assert instance["AllocatedStorage"] == 50
+    assert instance["AvailabilityZone"] == "us-east-1a"
+    assert instance["ReplicationInstanceStatus"] == "available"
+    assert instance["MultiAZ"] is False
+    assert instance["EngineVersion"] == "3.4.6"
+    assert instance["AutoMinorVersionUpgrade"] is True
+    assert instance["PubliclyAccessible"] is True
+    assert instance["NetworkType"] == "IPV4"
+    assert instance["VpcSecurityGroups"] == [
+        {"Status": "active", "VpcSecurityGroupId": "sg-12345"}
+    ]
 
 
 @mock_aws
@@ -285,6 +335,41 @@ def test_describe_replication_instances():
     instances = response["ReplicationInstances"]
     assert len(instances) == 1
     assert instances[0]["ReplicationInstanceIdentifier"] == "test-instance-2"
+
+
+@mock_aws
+def test_delete_replication_instance():
+    client = boto3.client("dms", region_name="us-east-2")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+    client.delete_replication_instance(ReplicationInstanceArn=replication_instance_arn)
+    replication_instances = client.describe_replication_instances(
+        Filters=[
+            {"Name": "replication-instance-arn", "Values": [replication_instance_arn]}
+        ]
+    )
+
+    assert len(replication_instances["ReplicationInstances"]) == 0
+
+
+@mock_aws
+def test_delete_replication_instance_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_replication_instance(ReplicationInstanceArn="does-not-exist")
+
+    assert ex.value.operation_name == "DeleteReplicationInstance"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Replication instance could not be found."
+    )
 
 
 @mock_aws
@@ -383,6 +468,36 @@ def test_describe_endpoints_filter():
 
 
 @mock_aws
+def test_delete_endpoint():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+    )
+    endpoint_arn = response["Endpoint"]["EndpointArn"]
+    client.delete_endpoint(EndpointArn=endpoint_arn)
+
+    endpoints = client.describe_endpoints(
+        Filters=[{"Name": "endpoint-id", "Values": ["test-endpoint"]}]
+    )
+    assert len(endpoints["Endpoints"]) == 0
+
+
+@mock_aws
+def test_delete_endpoint_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_endpoint(EndpointArn="does-not-exist")
+
+    assert ex.value.operation_name == "DeleteEndpoint"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert ex.value.response["Error"]["Message"] == "Endpoint could not be found."
+
+
+@mock_aws
 def test_list_tags_for_resource_replication_instance():
     client = boto3.client("dms", region_name="eu-west-1")
 
@@ -440,3 +555,383 @@ def test_list_tags_for_resource_endpoints():
 
     resp = client.list_tags_for_resource(ResourceArnList=[endpoint_arn1, endpoint_arn2])
     assert len(resp["TagList"]) == 2
+
+
+@mock_aws
+def test_create_replication_subnet_group():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    response = client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-12345"],
+    )
+
+    replication_subnet_group = response["ReplicationSubnetGroup"]
+
+    assert replication_subnet_group["ReplicationSubnetGroupIdentifier"] == "test-group"
+    assert (
+        replication_subnet_group["ReplicationSubnetGroupDescription"]
+        == "description for test-group"
+    )
+    assert replication_subnet_group["VpcId"] == "vpc-12345"
+    assert replication_subnet_group["SubnetGroupStatus"] == "Complete"
+
+
+@mock_aws
+def test_create_replication_subnet_group_throws_resource_already_exists():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-OD12345"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier="test-group",
+            ReplicationSubnetGroupDescription="description for test-group",
+            SubnetIds=["subnet-OD12345"],
+        )
+
+    assert ex.value.operation_name == "CreateReplicationSubnetGroup"
+    assert ex.value.response["Error"]["Code"] == "ResourceAlreadyExistsFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The resource you are attempting to create already exists."
+    )
+
+
+@mock_aws
+def test_describe_replication_subnet_groups():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    for i in range(3):
+        client.create_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier=f"test-group-{i}",
+            ReplicationSubnetGroupDescription=f"description for test-group-{i}",
+            SubnetIds=["subnet-12345"],
+        )
+
+    response = client.describe_replication_subnet_groups()
+    assert len(response["ReplicationSubnetGroups"]) == 3
+
+    group_filter = {"Name": "replication-subnet-group-id", "Values": ["test-group-1"]}
+    response = client.describe_replication_subnet_groups(Filters=[group_filter])
+    assert len(response["ReplicationSubnetGroups"]) == 1
+
+    group_filter = {"Name": "replication-subnet-group-id", "Values": ["no-grou["]}
+    response = client.describe_replication_subnet_groups(Filters=[group_filter])
+    assert len(response["ReplicationSubnetGroups"]) == 0
+
+
+@mock_aws
+def test_delete_replication_subnet_group():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-12345"],
+    )
+
+    client.delete_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group"
+    )
+
+    response = client.describe_replication_subnet_groups()
+    assert len(response["ReplicationSubnetGroups"]) == 0
+
+
+@mock_aws
+def test_delete_replication_subnet_group_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier="does-not-exist"
+        )
+
+    assert ex.value.operation_name == "DeleteReplicationSubnetGroup"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Replication subnet group could not be found."
+    )
+
+
+@mock_aws
+def test_test_connection():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_arn, EndpointArn=endpoint_arn
+    )
+    connection = response["Connection"]
+    assert connection["ReplicationInstanceArn"] == replication_instance_arn
+    assert connection["EndpointArn"] == endpoint_arn
+    assert connection["Status"] == "testing"
+    assert connection["EndpointIdentifier"] == "test-endpoint"
+    assert connection["ReplicationInstanceIdentifier"] == "test-instance"
+
+
+@mock_aws
+def test_test_connection_throws_resource_not_found_error_for_missing_replication_instance():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Testi Endpoint"}],
+    )
+    endpoint_arn = response["Endpoint"]["EndpointArn"]
+
+    with pytest.raises(ClientError) as ex:
+        response = client.test_connection(
+            ReplicationInstanceArn="does-not-exist", EndpointArn=endpoint_arn
+        )
+
+    assert ex.value.operation_name == "TestConnection"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Replication instance could not be found."
+    )
+
+
+@mock_aws
+def test_test_connection_throws_resource_not_found_error_for_missing_endpoint():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+
+    with pytest.raises(ClientError) as ex:
+        response = client.test_connection(
+            ReplicationInstanceArn=replication_instance_arn,
+            EndpointArn="not-a-valid-endpoint",
+        )
+
+    assert ex.value.operation_name == "TestConnection"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert ex.value.response["Error"]["Message"] == "Endpoint could not be found."
+
+
+@mock_aws
+def test_describe_connections():
+    client = boto3.client("dms", region_name="eu-west-1")
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_arn, EndpointArn=endpoint_arn
+    )
+    connection = response["Connection"]
+    assert connection["ReplicationInstanceArn"] == replication_instance_arn
+    assert connection["EndpointArn"] == endpoint_arn
+    assert connection["Status"] == "testing"
+    assert connection["EndpointIdentifier"] == "test-endpoint"
+    assert connection["ReplicationInstanceIdentifier"] == "test-instance"
+
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 1
+    connection = response["Connections"][0]
+    assert connection["ReplicationInstanceArn"] == replication_instance_arn
+    assert connection["EndpointArn"] == endpoint_arn
+    assert connection["Status"] == "successful"
+    assert connection["EndpointIdentifier"] == "test-endpoint"
+    assert connection["ReplicationInstanceIdentifier"] == "test-instance"
+
+
+@mock_aws
+def test_describe_connections_removal_of_replication_instance_removes_connection():
+    client = boto3.client("dms", region_name="eu-west-1")
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_1_arn = response["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint-1",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_1_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_1_arn, EndpointArn=endpoint_1_arn
+    )
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-2",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_2_arn = response["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint-2",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_2_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_2_arn, EndpointArn=endpoint_2_arn
+    )
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 2
+
+    response = client.describe_replication_instances()
+    assert len(response["ReplicationInstances"]) == 2
+    client.delete_replication_instance(
+        ReplicationInstanceArn=replication_instance_1_arn
+    )
+    response = client.describe_replication_instances()
+    assert len(response["ReplicationInstances"]) == 1
+
+    # The connection should have been removed as its no longer valid
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 1
+
+
+@mock_aws
+def test_describe_connections_removal_of_endpoint_removes_connection():
+    client = boto3.client("dms", region_name="eu-west-1")
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_1_arn = response["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint-1",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_1_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_1_arn, EndpointArn=endpoint_1_arn
+    )
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-2",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_2_arn = response["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint-2",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_2_arn = response["Endpoint"]["EndpointArn"]
+    response = client.test_connection(
+        ReplicationInstanceArn=replication_instance_2_arn, EndpointArn=endpoint_2_arn
+    )
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 2
+
+    response = client.describe_endpoints()
+    assert len(response["Endpoints"]) == 2
+    client.delete_endpoint(EndpointArn=endpoint_1_arn)
+    response = client.describe_endpoints()
+    assert len(response["Endpoints"]) == 1
+
+    # The connection should have been removed as its no longer valid
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 1
+
+
+@mock_aws
+def test_describe_connections_filters():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    replication_instance_arn = ""
+    endpoint_arn = ""
+    for i in range(3):
+        response = client.create_replication_instance(
+            ReplicationInstanceIdentifier=f"test-instance-{i}",
+            ReplicationInstanceClass="dms.t2.micro",
+            EngineVersion="3.4.5",
+        )
+        replication_instance_arn = response["ReplicationInstance"][
+            "ReplicationInstanceArn"
+        ]
+        response = client.create_endpoint(
+            EndpointIdentifier=f"test-endpoint-{i}",
+            EndpointType="source",
+            EngineName="mysql",
+        )
+        endpoint_arn = response["Endpoint"]["EndpointArn"]
+        response = client.test_connection(
+            ReplicationInstanceArn=replication_instance_arn, EndpointArn=endpoint_arn
+        )
+
+    response = client.describe_connections()
+    assert len(response["Connections"]) == 3
+
+    replication_instance_filter = {
+        "Name": "replication-instance-arn",
+        "Values": [replication_instance_arn],
+    }
+    response = client.describe_connections(Filters=[replication_instance_filter])
+    assert len(response["Connections"]) == 1
+
+    endpoint_filter = {"Name": "endpoint-arn", "Values": [endpoint_arn]}
+    response = client.describe_connections(Filters=[endpoint_filter])
+    assert len(response["Connections"]) == 1
+
+    response = client.describe_connections(
+        Filters=[replication_instance_filter, endpoint_filter]
+    )
+    assert len(response["Connections"]) == 1
+
+    invalid_replication_instance_filter = {
+        "Name": "replication-instance-arn",
+        "Values": ["invalid"],
+    }
+    response = client.describe_connections(
+        Filters=[invalid_replication_instance_filter]
+    )
+    assert len(response["Connections"]) == 0
+
+    invalid_endpoint_filter = {"Name": "endpoint-arn", "Values": ["invalid"]}
+    response = client.describe_connections(Filters=[invalid_endpoint_filter])
+    assert len(response["Connections"]) == 0
