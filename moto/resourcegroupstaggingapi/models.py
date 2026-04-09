@@ -1445,7 +1445,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for value in get_ec2_values(volume.id):  # type: ignore[assignment]
                 yield value
 
-
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
             for key, tag_value in tag_dict.items():
