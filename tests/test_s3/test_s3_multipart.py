@@ -12,6 +12,7 @@ from botocore.client import ClientError
 
 import moto.s3.models as s3model
 from moto import mock_aws, settings
+from moto.core.compat import HAS_CRC32C, HAS_CRT
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
@@ -28,6 +29,11 @@ if settings.TEST_DECORATOR_MODE:
 else:
     REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
     EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
+
+CHECKSUM_ALGORITHM_AVAILABLE = {
+    "CRC32C": False if not settings.TEST_DECORATOR_MODE else HAS_CRC32C,
+    "CRC64NVME": False if not settings.TEST_DECORATOR_MODE else HAS_CRT,
+}
 
 
 def reduced_min_part_size(func):
@@ -546,6 +552,9 @@ def test_multipart_checksums(
     expected_type,
     expected_checksum,
 ):
+    can_check = CHECKSUM_ALGORITHM_AVAILABLE.get(checksum_algorithm, True)
+    if not can_check:
+        return pytest.skip(f"Checksum algorithm {checksum_algorithm} is not available")
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 

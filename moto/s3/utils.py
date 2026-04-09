@@ -8,9 +8,9 @@ from collections.abc import Iterator
 from typing import Any, Optional, Union
 from urllib.parse import urlparse
 
-from awscrt import checksums as crt_checksums
 from requests.structures import CaseInsensitiveDict
 
+from moto.core.compat import HAS_CRT
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 log = logging.getLogger(__name__)
@@ -213,7 +213,13 @@ def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) ->
     elif algorithm == "CRC32":
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
     elif algorithm == "CRC64NVME":
-        hashed_body = crt_checksums.crc64nvme(body).to_bytes(8, "big")
+        if HAS_CRT:
+            from awscrt import checksums
+
+            hashed_body = checksums.crc64nvme(body).to_bytes(8, "big")
+        else:
+            # Optional library Can't be found - just revert to CRC32
+            hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
     if encode_base64:
