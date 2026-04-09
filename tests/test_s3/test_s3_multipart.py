@@ -14,6 +14,7 @@ import moto.s3.models as s3model
 from moto import mock_aws, settings
 from moto.core.compat import HAS_CRC32C, HAS_CRT
 from moto.s3.responses import DEFAULT_REGION_NAME
+from moto.s3.utils import compute_checksum
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
     get_s3_default_key_buffer_size,
@@ -163,6 +164,68 @@ def test_multipart_upload(key: str):
     # we should get both parts as the key contents
     response = client.get_object(Bucket=bucket.name, Key=key)
     assert response["Body"].read() == part1 + part2
+
+
+@mock_aws
+@reduced_min_part_size
+def test_multipart_upload_checksum_has_composite_suffix():
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
+
+    part1 = b"0" * REDUCED_PART_SIZE
+    part2 = b"1"
+
+    multipart = client.create_multipart_upload(
+        Bucket=bucket.name,
+        Key="the-key",
+        ChecksumAlgorithm="SHA256",
+    )
+    up1 = client.upload_part(
+        Body=BytesIO(part1),
+        PartNumber=1,
+        Bucket=bucket.name,
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+    )
+    up2 = client.upload_part(
+        Body=BytesIO(part2),
+        PartNumber=2,
+        Bucket=bucket.name,
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+    )
+
+    client.complete_multipart_upload(
+        Bucket=bucket.name,
+        Key="the-key",
+        MultipartUpload={
+            "Parts": [
+                {"ETag": up1["ETag"], "PartNumber": 1},
+                {"ETag": up2["ETag"], "PartNumber": 2},
+            ]
+        },
+        UploadId=multipart["UploadId"],
+    )
+
+    response = client.get_object(
+        Bucket=bucket.name,
+        Key="the-key",
+        ChecksumMode="ENABLED",
+    )
+    checksum = response["ChecksumSHA256"]
+
+    expected_composite = (
+        compute_checksum(
+            compute_checksum(part1, "SHA256", encode_base64=False)
+            + compute_checksum(part2, "SHA256", encode_base64=False),
+            "SHA256",
+        ).decode("utf-8")
+        + "-2"
+    )
+
+    assert checksum == expected_composite
+    assert checksum.endswith("-2")
 
 
 @pytest.mark.aws_verified
