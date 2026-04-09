@@ -16,6 +16,7 @@ from moto.core.compat import HAS_CRC32C, HAS_CRT
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
+    TEST_SERVER_MODE,
     get_s3_default_key_buffer_size,
     is_test_proxy_mode,
 )
@@ -423,6 +424,10 @@ def test_multipart_etag_quotes_stripped():
 def test_multipart_composite_checksum_reports_parts_correctly(
     part_count, expected_composite_checksum, expected_checksum_qualified
 ):
+    if TEST_SERVER_MODE:
+        return pytest.skip(
+            "Can't use @reduced_min_part_size in server mode. Checksums won't match."
+        )
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -552,6 +557,10 @@ def test_multipart_checksums(
     expected_type,
     expected_checksum,
 ):
+    if TEST_SERVER_MODE:
+        return pytest.skip(
+            "Can't use @reduced_min_part_size in server mode. Checksums won't match."
+        )
     can_check = CHECKSUM_ALGORITHM_AVAILABLE.get(checksum_algorithm, True)
     if not can_check:
         return pytest.skip(f"Checksum algorithm {checksum_algorithm} is not available")
