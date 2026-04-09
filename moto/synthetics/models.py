@@ -1,12 +1,11 @@
 """SyntheticsBackend class with methods for supported APIs."""
 
-import datetime
 import uuid
 from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
 
 class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few-public-methods
@@ -50,7 +49,7 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
         self.artifact_config = artifact_config
         self.state = "READY"
 
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         self.timeline = {
             "Created": now,
             "LastModified": now,

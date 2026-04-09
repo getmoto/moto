@@ -924,8 +924,6 @@ class S3Response(BaseResponse):
                     raise IllegalLocationConstraintException()
                 if location_constraint != self.region:
                     raise IncompatibleLocationConstraintException(location_constraint)
-            if self.body and not location_constraint:
-                raise MalformedXML()
 
             bucket_region = (
                 location_constraint if location_constraint else DEFAULT_REGION_NAME

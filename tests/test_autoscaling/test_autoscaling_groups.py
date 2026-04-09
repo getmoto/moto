@@ -4,6 +4,7 @@ import boto3
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
@@ -256,6 +257,72 @@ class TestAutoScalingGroup(TestCase):
             VPCZoneIdentifier=self.mocked_networking["subnet1"],
         )
 
+    def test_mixed_instance_calculations(self):
+        lt_name = "test_launch_template"
+        ec2_client = boto3.client("ec2", region_name="us-east-1")
+        ec2_client.create_launch_template(
+            LaunchTemplateName=lt_name,
+            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"},
+        )
+
+        # Format: (Desired, OD_Base, OD_Percent, Expected_Instance_Count)
+        # Assumes Override Weight = 4
+        scenarios = [
+            # Case A: Base (8) >= Desired (8).
+            # Entire capacity is On-Demand. 8 units / 4 weight = 2 instances.
+            (8, 8, 0, 2),
+            # Case B: Base (2) < Desired (8).
+            # Base: 2 units -> 1 inst.
+            # Remaining 6 units: 50% OD (3 units->1 inst) + 50% Spot (3 units->1 inst).
+            # Total = 3 instances.
+            (8, 2, 50, 3),
+            # Case C: Base (0) < Desired (8). Pure Percentage Split.
+            # 25% OD (2 units -> 1 inst) + 75% Spot (6 units -> 2 inst).
+            # Total = 3 instances.
+            (8, 0, 25, 3),
+        ]
+
+        for i, (desired, base, pct, expected_count) in enumerate(scenarios):
+            group_name = f"mixed_instance_tester_{i}"
+
+            self.as_client.create_auto_scaling_group(
+                AutoScalingGroupName=group_name,
+                MinSize=0,
+                MaxSize=10,
+                DesiredCapacity=desired,
+                VPCZoneIdentifier=self.mocked_networking["subnet1"],
+                MixedInstancesPolicy={
+                    "LaunchTemplate": {
+                        "LaunchTemplateSpecification": {
+                            "LaunchTemplateName": lt_name,
+                            "Version": "$Latest",
+                        },
+                        "Overrides": [
+                            {"InstanceType": "t2.micro", "WeightedCapacity": "4"}
+                        ],
+                    },
+                    "InstancesDistribution": {
+                        "OnDemandBaseCapacity": base,
+                        "OnDemandPercentageAboveBaseCapacity": pct,
+                        "OnDemandAllocationStrategy": "prioritized",
+                        "SpotAllocationStrategy": "capacity-optimized",
+                    },
+                },
+            )
+
+            group = self.as_client.describe_auto_scaling_groups(
+                AutoScalingGroupNames=[group_name]
+            )["AutoScalingGroups"][0]
+
+            actual_count = len(group["Instances"])
+
+            err_msg = (
+                f"Scenario {i} Failed: "
+                f"Desired={desired}, Base={base}, Pct={pct}. "
+                f"Expected {expected_count} instances, but got {actual_count}."
+            )
+            assert actual_count == expected_count, err_msg
+
 
 @mock_aws
 def test_launch_template_with_tags():
@@ -297,3 +364,35 @@ def test_launch_template_with_tags():
     tags = instances["Reservations"][0]["Instances"][0]["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Key": "from_lt", "Value": "val"} in tags
+
+
+@mock_aws
+def test_launch_template_with_user_data():
+    mocked_networking = setup_networking()
+    user_data = Base64EncodedString.from_raw_string("test user data")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    template = ec2_client.create_launch_template(
+        LaunchTemplateName="test_launch_template",
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "InstanceType": "t2.micro",
+            "UserData": str(user_data),
+        },
+    )["LaunchTemplate"]
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="myasgroup",
+        MinSize=2,
+        MaxSize=3,
+        LaunchTemplate={"LaunchTemplateId": template["LaunchTemplateId"]},
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    resp = ec2_client.describe_instances(
+        Filters=[{"Name": "tag:aws:autoscaling:groupName", "Values": ["myasgroup"]}]
+    )
+    instances = resp["Reservations"][0]["Instances"]
+    for instance in instances:
+        attr_resp = ec2_client.describe_instance_attribute(
+            InstanceId=instance["InstanceId"], Attribute="userData"
+        )
+        assert attr_resp["UserData"]["Value"] == str(user_data)

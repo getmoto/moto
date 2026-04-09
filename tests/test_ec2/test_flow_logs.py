@@ -67,6 +67,46 @@ def test_create_flow_logs_s3(region, partition):
 
 
 @mock_aws
+@pytest.mark.parametrize("region", ["us-west-2", "cn-north-1"])
+def test_create_flow_logs_max_aggregation_interval(region):
+    s3 = boto3.resource("s3", region_name=region)
+    client = boto3.client("ec2", region_name=region)
+
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    bucket_name = str(uuid4())
+    bucket = s3.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": region},
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogDestination="arn:aws:s3:::" + bucket.name,
+            DryRun=True,
+        )
+    assert_dryrun_error(ex)
+
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+        MaxAggregationInterval=600,  # check explicitly set interval
+    )["FlowLogIds"]
+    flow_logs = client.describe_flow_logs(FlowLogIds=[response[0]])["FlowLogs"]
+    assert len(flow_logs) == 1
+
+    flow_log = flow_logs[0]
+    assert flow_log["MaxAggregationInterval"] == 600
+
+
+@mock_aws
 def test_create_multiple_flow_logs_s3():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")

@@ -56,7 +56,8 @@ class StateTaskServiceAwsSdk(StateTaskServiceCallback):
 
         # Revert to returning the resource's service name and log the missing binding.
         LOG.warning(
-            f"No normalised service error name for aws-sdk integration was found for service: '{service_name}'"
+            "No normalised service error name for aws-sdk integration was found for service: '%s'",
+            service_name,
         )
         return service_name
 

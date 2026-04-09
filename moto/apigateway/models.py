@@ -16,6 +16,7 @@ except ImportError:
     # Only used in < 0.7.x
     # (Also exists in 0.7.0, but throws a warning)
     from openapi_spec_validator import validate_spec as validate  # type: ignore
+
 from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -225,7 +226,7 @@ class Integration(BaseModel):
         selection_pattern: str,
         response_templates: dict[str, str],
         response_parameters: dict[str, str],
-        content_handling: str,
+        content_handling: Optional[str] = None,
     ) -> IntegrationResponse:
         integration_response = IntegrationResponse(
             status_code,
@@ -1797,17 +1798,40 @@ class APIGatewayBackend(BaseBackend):
 
             for method_type, method_doc in resource_doc.items():
                 method_type = method_type.upper()
-                if method_doc.get("x-amazon-apigateway-integration") is None:
-                    self.put_method(function_id, resource.id, method_type, None)
-                    method_responses = method_doc.get("responses", {}).items()
-                    for response_code, _ in method_responses:
-                        self.put_method_response(
-                            function_id,
-                            resource.id,
-                            method_type,
-                            response_code,
-                            response_models=None,
-                            response_parameters=None,
+                self.put_method(function_id, resource.id, method_type, None)
+                method_responses = method_doc.get("responses", {}).items()
+                for response_code, _ in method_responses:
+                    self.put_method_response(
+                        function_id,
+                        resource.id,
+                        method_type,
+                        response_code,
+                        response_models=None,
+                        response_parameters=None,
+                    )
+
+                # Add integration if defined
+                if method_doc.get("x-amazon-apigateway-integration"):
+                    integration = method_doc.get("x-amazon-apigateway-integration")
+                    integration_args = self._build_integration_args(integration)
+
+                    self.put_integration(
+                        function_id=function_id,
+                        resource_id=resource.id,
+                        method_type=method_type,
+                        **{k: v for k, v in integration_args.items() if v is not None},
+                    )
+
+                    responses_args = self._build_integration_responses_args(integration)
+
+                    for response in responses_args:
+                        kwargs = {k: v for k, v in response.items() if v is not None}
+
+                        self.put_integration_response(
+                            function_id=function_id,
+                            resource_id=resource.id,
+                            method_type=method_type,
+                            **kwargs,
                         )
 
         return self.get_rest_api(function_id)
@@ -2104,7 +2128,7 @@ class APIGatewayBackend(BaseBackend):
         selection_pattern: str,
         response_templates: dict[str, str],
         response_parameters: dict[str, str],
-        content_handling: str,
+        content_handling: Optional[str] = None,
     ) -> IntegrationResponse:
         integration = self.get_integration(function_id, resource_id, method_type)
         if integration:
@@ -2606,6 +2630,58 @@ class APIGatewayBackend(BaseBackend):
 
     def get_account(self) -> Account:
         return self.account
+
+    def _build_integration_args(
+        self, x_amaz_apigw_integ: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "integration_type": x_amaz_apigw_integ.get("type"),
+            "uri": x_amaz_apigw_integ.get("uri"),
+            "integration_method": x_amaz_apigw_integ.get("httpMethod"),
+            "credentials": x_amaz_apigw_integ.get("credentials"),
+            "request_templates": x_amaz_apigw_integ.get("requestTemplates"),
+            "passthrough_behavior": x_amaz_apigw_integ.get("passthroughBehavior"),
+            "tls_config": x_amaz_apigw_integ.get("tlsConfig"),
+            "cache_namespace": x_amaz_apigw_integ.get("cacheNamespace"),
+            "timeout_in_millis": x_amaz_apigw_integ.get("timeoutInMillis"),
+            "request_parameters": x_amaz_apigw_integ.get("requestParameters"),
+            "content_handling": x_amaz_apigw_integ.get("contentHandling"),
+            "connection_type": x_amaz_apigw_integ.get("connectionType"),
+        }
+
+    def _build_integration_responses_args(
+        self, x_amaz_apigw_integ: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Extract IntegrationResponse arguments from the integration."""
+        responses = x_amaz_apigw_integ.get("responses", {})
+
+        result = []
+
+        for pattern, response_config in responses.items():
+            status_code = response_config.get("statusCode")
+
+            # API Gateway: "default" → selection_pattern = ""
+            if pattern == "default":
+                selection_pattern = ""
+            else:
+                selection_pattern = pattern
+
+            response_templates = response_config.get("responseTemplates", {}) or {}
+            response_parameters = response_config.get("responseParameters", {}) or {}
+
+            content_handling = response_config.get("contentHandling")
+
+            result.append(
+                {
+                    "status_code": status_code,
+                    "selection_pattern": selection_pattern,
+                    "response_templates": response_templates,
+                    "response_parameters": response_parameters,
+                    "content_handling": content_handling,
+                }
+            )
+
+        return result
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")

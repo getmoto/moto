@@ -128,8 +128,9 @@ class MotoIdManager:
             if found_id := id_source(id_source_context):
                 if found_id in existing_ids:
                     log.debug(
-                        f"Found id {found_id} for resource {id_source_context.get('resource_identifier')}, "
-                        "but a resource already exists with this id."
+                        "Found id %s for resource %s, but a resource already exists with this id.",
+                        found_id,
+                        id_source_context.get("resource_identifier"),
                     )
                 else:
                     return found_id

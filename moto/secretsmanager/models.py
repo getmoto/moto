@@ -520,11 +520,15 @@ class SecretsManagerBackend(BaseBackend):
                 # TODO perhaps there should be a check if the secret id is valid identifier
                 # and add an error to the list if not
                 try:
-                    # TODO investigate the behaviour when the secret doesn't exist or has been deleted,
-                    # might need to add an error to the list
                     secret_list.append(self.get_secret_value(secret_id, "", ""))
-                except (SecretNotFoundException, InvalidRequestException):
-                    pass
+                except (SecretNotFoundException, InvalidRequestException) as e:
+                    errors.append(
+                        {
+                            "SecretId": secret_id,
+                            "ErrorCode": e.error_type,
+                            "Message": e.message,
+                        }
+                    )
 
         if filters:
             for secret in self.secrets.values():
@@ -790,6 +794,10 @@ class SecretsManagerBackend(BaseBackend):
         # If it exists, then return the existing secret
         if existing_secret:
             return existing_secret
+
+        # If it is the first version add AWSCURRENT to the versions
+        if not secret.versions and "AWSCURRENT" not in version_stages:
+            version_stages.append("AWSCURRENT")
 
         secret, _ = self._add_secret(
             secret_id,

@@ -1804,11 +1804,19 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "eu-west-3"
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eu-west-3"
  },
  {

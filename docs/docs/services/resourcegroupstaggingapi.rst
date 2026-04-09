@@ -19,6 +19,7 @@ resourcegroupstaggingapi
 - [X] get_resources
 - [X] get_tag_keys
 - [X] get_tag_values
+- [ ] list_required_tags
 - [ ] start_report_creation
 - [X] tag_resources
   

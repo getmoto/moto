@@ -726,15 +726,12 @@ class DynamoHandler(BaseResponse):
             )
 
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
+        if projection_expression is None and expression_attribute_names:
+            raise MockValidationException(
+                "ExpressionAttributeNames can only be specified when using expressions"
+            )
         if expression_attribute_names == {}:
-            if projection_expression is None:
-                raise MockValidationException(
-                    "ExpressionAttributeNames can only be specified when using expressions"
-                )
-            else:
-                raise MockValidationException(
-                    "ExpressionAttributeNames must not be empty"
-                )
+            raise MockValidationException("ExpressionAttributeNames must not be empty")
 
         if not all(k in table.attribute_keys for k in key):
             raise ProvidedKeyDoesNotExist

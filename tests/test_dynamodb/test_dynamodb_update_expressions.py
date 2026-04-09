@@ -36,7 +36,7 @@ def test_update_different_map_elements_in_single_request(table_name=None):
         Key={"pk": "example_id"},
         UpdateExpression=(
             """
-            ADD 
+            ADD
               MyTotalCount :MyCount
             """
         ),

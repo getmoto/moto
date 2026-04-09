@@ -17,6 +17,8 @@ dms
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
 - [ ] batch_start_recommendations
+- [ ] cancel_metadata_model_conversion
+- [ ] cancel_metadata_model_creation
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_data_migration
 - [ ] create_data_provider
@@ -70,8 +72,11 @@ dms
 - [ ] describe_fleet_advisor_schema_object_summary
 - [ ] describe_fleet_advisor_schemas
 - [ ] describe_instance_profiles
+- [ ] describe_metadata_model
 - [ ] describe_metadata_model_assessments
+- [ ] describe_metadata_model_children
 - [ ] describe_metadata_model_conversions
+- [ ] describe_metadata_model_creations
 - [ ] describe_metadata_model_exports_as_script
 - [ ] describe_metadata_model_exports_to_target
 - [ ] describe_metadata_model_imports
@@ -100,6 +105,7 @@ dms
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] export_metadata_model_assessment
+- [ ] get_target_selection_rules
 - [ ] import_certificate
 - [X] list_tags_for_resource
 - [ ] modify_conversion_configuration
@@ -124,6 +130,7 @@ dms
 - [ ] start_extension_pack_association
 - [ ] start_metadata_model_assessment
 - [ ] start_metadata_model_conversion
+- [ ] start_metadata_model_creation
 - [ ] start_metadata_model_export_as_script
 - [ ] start_metadata_model_export_to_target
 - [ ] start_metadata_model_import

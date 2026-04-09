@@ -354,7 +354,7 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
           <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
             {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}

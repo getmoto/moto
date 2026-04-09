@@ -1,10 +1,9 @@
 """Unit tests for dsql-supported APIs."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -24,7 +23,9 @@ def test_create_cluster():
     assert resp["deletionProtectionEnabled"] is True
     assert resp["status"] == "CREATING"
     if not settings.TEST_SERVER_MODE:
-        assert resp["creationTime"] == datetime(2024, 12, 22, 12, 34, tzinfo=tzutc())
+        assert resp["creationTime"] == datetime(
+            2024, 12, 22, 12, 34, tzinfo=timezone.utc
+        )
 
 
 @mock_aws
@@ -57,7 +58,7 @@ def test_get_cluster():
     assert get_resp["status"] == "CREATING"
     if not settings.TEST_SERVER_MODE:
         assert get_resp["creationTime"] == datetime(
-            2024, 12, 22, 12, 34, tzinfo=tzutc()
+            2024, 12, 22, 12, 34, tzinfo=timezone.utc
         )
 
 

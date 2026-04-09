@@ -115,7 +115,12 @@ class InstanceType(dict[str, Any]):
         self.update(INSTANCE_TYPES[name])
 
     def __getattr__(self, name: str) -> str:
-        return self[name]
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
     def __setattr__(self, name: str, value: str) -> None:
         self[name] = value

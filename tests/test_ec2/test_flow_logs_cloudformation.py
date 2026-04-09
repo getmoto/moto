@@ -34,7 +34,7 @@ def test_flow_logs_by_cloudformation():
                     "TrafficType": "ALL",
                     "LogDestinationType": "s3",
                     "LogDestination": "arn:aws:s3:::" + bucket.name,
-                    "MaxAggregationInterval": "60",
+                    "MaxAggregationInterval": 60,
                     "Tags": [{"Key": "foo", "Value": "bar"}],
                 },
             }

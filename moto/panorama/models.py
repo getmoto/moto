@@ -1,10 +1,8 @@
 import base64
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
-
-from dateutil.tz import tzutc
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -115,8 +113,8 @@ class Device(BaseObject):
             {"Version": "0.2.1"},
         ]
         self.brand: str = "AWS_PANORAMA"  # AWS_PANORAMA | LENOVO
-        self.created_time = datetime.now(tzutc())
-        self.last_updated_time = datetime.now(tzutc())
+        self.created_time = datetime.now(timezone.utc)
+        self.last_updated_time = datetime.now(timezone.utc)
         self.current_networking_status = {
             "Ethernet0Status": {
                 "ConnectionStatus": "CONNECTED",
@@ -128,7 +126,7 @@ class Device(BaseObject):
                 "HwAddress": "8C:0F:6F:60:F4:F1",
                 "IpAddress": "--",
             },
-            "LastUpdatedTime": datetime.now(tzutc()),
+            "LastUpdatedTime": datetime.now(timezone.utc),
             "NtpStatus": {
                 "ConnectionStatus": "CONNECTED",
                 "IpAddress": "91.224.149.41:123",
@@ -139,7 +137,7 @@ class Device(BaseObject):
         self.device_connection_status: str = "ONLINE"  # "ONLINE"|"OFFLINE"|"AWAITING_CREDENTIALS"|"NOT_AVAILABLE"|"ERROR"
         self.latest_device_job = {"JobType": "REBOOT", "Status": "COMPLETED"}
         self.latest_software = "6.2.1"
-        self.lease_expiration_time = datetime.now(tzutc()) + timedelta(days=5)
+        self.lease_expiration_time = datetime.now(timezone.utc) + timedelta(days=5)
         self.serial_number = "GAD81E29013274749"
         self.type: str = "PANORAMA_APPLIANCE"  # "PANORAMA_APPLIANCE_DEVELOPER_KIT", "PANORAMA_APPLIANCE"
 
@@ -249,7 +247,7 @@ class Package(BaseObject):
         self.category = category
         self.description = description
         self.name = name
-        now = datetime.now(tzutc())
+        now = datetime.now(timezone.utc)
         self.created_time = now
         self.last_updated_time = now
         self.package_name = package_name
@@ -294,7 +292,7 @@ class ApplicationInstance(BaseObject):
         self.name = name
         self.runtime_role_arn = runtime_role_arn
         self.tags = tags
-        now = datetime.now(tzutc())
+        now = datetime.now(timezone.utc)
         self.created_time = now
         self.last_updated_time = now
         name = f"{self.name}-{self.created_time}"
@@ -320,7 +318,7 @@ class ApplicationInstance(BaseObject):
     def add_new_runtime_context_states(
         self, desired_state: str, device_reported_status: str
     ) -> None:
-        now = datetime.now(tzutc())
+        now = datetime.now(timezone.utc)
         self.runtime_context_states.append(
             {
                 "DesiredState": desired_state,
@@ -360,7 +358,7 @@ class Node(BaseObject):
         template_type: str,
     ) -> None:
         self.job_id = job_id
-        now = datetime.now(tzutc())
+        now = datetime.now(timezone.utc)
         self.created_time = now
         self.last_updated_time = now
         self.job_tags = job_tags

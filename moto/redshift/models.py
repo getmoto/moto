@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import datetime
 from collections import OrderedDict
 from collections.abc import Iterable
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
-
-from dateutil.tz import tzutc
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -161,8 +159,8 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             "LoggingEnabled": "false",  # Lower case is required in response so we use string to simplify
             "BucketName": "",
             "S3KeyPrefix": "",
-            "LastSuccessfulDeliveryTime": datetime.datetime.now(),
-            "LastFailureTime": datetime.datetime.now(),
+            "LastSuccessfulDeliveryTime": datetime.now(),
+            "LastFailureTime": datetime.now(),
             "LastFailureMessage": "",
             "LogDestinationType": "",
             "LogExports": [],
@@ -627,10 +625,7 @@ class RedshiftBackend(BaseBackend):
             raise ClusterAlreadyExistsFaultError()
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
-        snapshot_id = (
-            f"rs:{cluster_identifier}-"
-            f"{datetime.datetime.now(tzutc()).strftime('%Y-%m-%d-%H-%M')}"
-        )
+        snapshot_id = f"rs:{cluster_identifier}-{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M')}"
         # Automated snapshots don't copy over the tags
         self.create_cluster_snapshot(
             cluster_identifier,
@@ -1078,9 +1073,7 @@ class RedshiftBackend(BaseBackend):
             raise InvalidParameterValueError(
                 "Token duration must be between 900 and 3600 seconds"
             )
-        expiration = datetime.datetime.now(tzutc()) + datetime.timedelta(
-            0, duration_seconds
-        )
+        expiration = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds)
         if cluster_identifier in self.clusters:
             user_prefix = "IAM:" if auto_create is False else "IAMA:"
             db_user = user_prefix + db_user

@@ -214,7 +214,12 @@ class IAMRequestBase(metaclass=ABCMeta):
         action: str,
     ):
         log.debug(
-            f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}"
+            "Creating %s with method=%s, path=%s, data=%s, headers=%s",
+            self.__class__.__name__,
+            method,
+            path,
+            data,
+            headers,
         )
         self.account_id = account_id
         self._method = method

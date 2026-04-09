@@ -16,4 +16,5 @@ url_paths = {
     "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)/tagging$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/tags/(?P<arn>[\w_:%-]+)$": S3ControlResponse.dispatch,
 }

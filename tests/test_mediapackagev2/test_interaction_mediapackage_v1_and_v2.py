@@ -11,7 +11,7 @@ Some services will have two API's that act on the same resources, like SES and S
 
 These tests are here simply to verify that, for MediaPackage, there is no overlap.
 
-V1 Channels cannot be retrieved in V2, nor vice versa 
+V1 Channels cannot be retrieved in V2, nor vice versa
 """
 
 

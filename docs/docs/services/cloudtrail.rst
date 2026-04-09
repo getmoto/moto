@@ -49,6 +49,7 @@ cloudtrail
 - [ ] list_event_data_stores
 - [ ] list_import_failures
 - [ ] list_imports
+- [ ] list_insights_data
 - [ ] list_insights_metric_data
 - [ ] list_public_keys
 - [ ] list_queries

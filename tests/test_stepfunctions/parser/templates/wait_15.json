@@ -1,0 +1,15 @@
+{
+    "Comment": "A state machine that simply waits, and then finishes",
+    "StartAt": "WaitState",
+    "States": {
+        "WaitState": {
+            "Type": "Wait",
+            "Seconds": 15,
+            "Next": "SuccessState"
+        },
+        "SuccessState": {
+            "Type": "Succeed",
+            "Comment": "The state machine completes successfully."
+        }
+    }
+}

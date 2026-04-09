@@ -100,11 +100,13 @@ class SerializationContext:
 
 class TimestampSerializer:
     TIMESTAMP_FORMAT_ISO8601 = "iso8601"
+    TIMESTAMP_FORMAT_ISO8601_ZEROED = "iso8601_zeroed"
     TIMESTAMP_FORMAT_RFC822 = "rfc822"
     TIMESTAMP_FORMAT_UNIX = "unixtimestamp"
 
     ISO8601 = "%Y-%m-%dT%H:%M:%SZ"
     ISO8601_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
+    ISO8601_MICRO_ZEROED = "%Y-%m-%dT%H:%M:%S.000Z"
 
     def __init__(self, default_format: str) -> None:
         self.default_format = default_format
@@ -124,6 +126,9 @@ class TimestampSerializer:
         else:
             timestamp_format = self.ISO8601
         return value.strftime(timestamp_format)
+
+    def _timestamp_iso8601_zeroed(self, value: datetime) -> str:
+        return value.strftime(self.ISO8601_MICRO_ZEROED)
 
     @staticmethod
     def _timestamp_unixtimestamp(value: datetime) -> float:
@@ -888,6 +893,8 @@ class QueryJSONSerializer(QuerySerializer):
 
 
 class EC2Serializer(QuerySerializer):
+    DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601_ZEROED
+
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
         body_serialized = xmltodict.unparse(
             body,

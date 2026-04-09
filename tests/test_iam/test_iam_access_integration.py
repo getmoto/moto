@@ -1,9 +1,8 @@
 import csv
-import datetime
+from datetime import datetime
 from unittest import SkipTest
 
 import boto3
-from dateutil.parser import parse
 
 from moto import mock_aws, settings
 from moto.iam.models import IAMBackend, iam_backends
@@ -57,7 +56,7 @@ def test_mark_role_as_last_used():
     iam2.create_role(RoleName="name", AssumeRolePolicyDocument="example")
 
     role = iam.get_role(RoleName=role_name)["Role"]
-    assert isinstance(role["RoleLastUsed"]["LastUsedDate"], datetime.datetime)
+    assert isinstance(role["RoleLastUsed"]["LastUsedDate"], datetime)
 
     if not settings.TEST_SERVER_MODE:
         iam: IAMBackend = iam_backends[DEFAULT_ACCOUNT_ID]["global"]
@@ -92,4 +91,5 @@ def test_get_credential_report_content__set_last_used_automatically():
     report_dict = csv.DictReader(report.split("\n"))
     user = next(report_dict)
 
-    assert parse(user["access_key_1_last_used_date"])
+    date_format = "%Y-%m-%dT%H:%M:%S+00:00"
+    assert datetime.strptime(user["access_key_1_last_used_date"], date_format)

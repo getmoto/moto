@@ -8,58 +8,46 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from tests import aws_verified
+from tests.test_s3vectors import s3vectors_aws_verified
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@aws_verified
+@s3vectors_aws_verified()
 @pytest.mark.aws_verified
-def test_create_and_get_vector_bucket(account_id):
+def test_create_and_get_vector_bucket(account_id, bucket_name=None):
     client = boto3.client("s3vectors", region_name="us-east-1")
-    bucket_name = str(uuid4())
-    client.create_vector_bucket(vectorBucketName=bucket_name)
 
-    try:
-        get_by_name = client.get_vector_bucket(vectorBucketName=bucket_name)[
-            "vectorBucket"
-        ]
-        bucket_arn = get_by_name["vectorBucketArn"]
+    get_by_name = client.get_vector_bucket(vectorBucketName=bucket_name)["vectorBucket"]
+    bucket_arn = get_by_name["vectorBucketArn"]
 
-        assert get_by_name["vectorBucketName"] == bucket_name
-        assert (
-            bucket_arn
-            == f"arn:aws:s3vectors:us-east-1:{account_id}:bucket/{bucket_name}"
-        )
-        assert get_by_name["encryptionConfiguration"] == {"sseType": "AES256"}
+    assert get_by_name["vectorBucketName"] == bucket_name
+    assert (
+        bucket_arn == f"arn:aws:s3vectors:us-east-1:{account_id}:bucket/{bucket_name}"
+    )
+    assert get_by_name["encryptionConfiguration"] == {"sseType": "AES256"}
 
-        get_by_arn = client.get_vector_bucket(vectorBucketArn=bucket_arn)[
-            "vectorBucket"
-        ]
-        assert get_by_arn["vectorBucketName"] == bucket_name
-        assert get_by_arn["vectorBucketArn"] == bucket_arn
-        assert get_by_arn["encryptionConfiguration"] == {"sseType": "AES256"}
-    finally:
-        client.delete_vector_bucket(vectorBucketName=bucket_name)
+    get_by_arn = client.get_vector_bucket(vectorBucketArn=bucket_arn)["vectorBucket"]
+    assert get_by_arn["vectorBucketName"] == bucket_name
+    assert get_by_arn["vectorBucketArn"] == bucket_arn
+    assert get_by_arn["encryptionConfiguration"] == {"sseType": "AES256"}
 
 
-@aws_verified
+@s3vectors_aws_verified()
 @pytest.mark.aws_verified
-def test_create_and_list_vector_buckets():
+def test_create_and_list_vector_buckets(bucket_name=None):
     client = boto3.client("s3vectors", region_name="us-east-1")
-    bucket_name = str(uuid4())
-    client.create_vector_bucket(vectorBucketName=bucket_name)
 
-    try:
-        bucket_list = client.list_vector_buckets()["vectorBuckets"]
-        bucket_names = [b["vectorBucketName"] for b in bucket_list]
-        assert bucket_name in bucket_names
-    finally:
-        client.delete_vector_bucket(vectorBucketName=bucket_name)
+    bucket_list = client.list_vector_buckets()["vectorBuckets"]
+    bucket_names = [b["vectorBucketName"] for b in bucket_list]
+    assert bucket_name in bucket_names
 
-        bucket_list = client.list_vector_buckets()["vectorBuckets"]
-        bucket_names = [b["vectorBucketName"] for b in bucket_list]
-        assert bucket_name not in bucket_names
+    client.delete_vector_bucket(vectorBucketName=bucket_name)
+
+    bucket_list = client.list_vector_buckets()["vectorBuckets"]
+    bucket_names = [b["vectorBucketName"] for b in bucket_list]
+    assert bucket_name not in bucket_names
 
 
 @aws_verified
@@ -146,25 +134,17 @@ def test_create_vector_bucket_with_invalid_chars(bucket_name):
     assert err["Message"] == "Invalid vector bucket name"
 
 
-@aws_verified
+@s3vectors_aws_verified()
 @pytest.mark.aws_verified
-def test_create_vector_bucket_twice():
+def test_create_vector_bucket_twice(bucket_name=None):
     client = boto3.client("s3vectors", region_name="us-east-1")
-    bucket_name = str(uuid4())
 
-    # Initial creation works just fine
-    client.create_vector_bucket(vectorBucketName=bucket_name)
-    try:
-        # Second creation will fail
-        with pytest.raises(ClientError) as exc:
-            client.create_vector_bucket(vectorBucketName=bucket_name)
-        err = exc.value.response["Error"]
-        assert err["Code"] == "ConflictException"
-        assert (
-            err["Message"] == "A vector bucket with the specified name already exists"
-        )
-    finally:
-        client.delete_vector_bucket(vectorBucketName=bucket_name)
+    # Second creation will fail
+    with pytest.raises(ClientError) as exc:
+        client.create_vector_bucket(vectorBucketName=bucket_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "A vector bucket with the specified name already exists"
 
 
 @aws_verified
@@ -173,5 +153,8 @@ def test_delete_unknown_vector_bucket():
     client = boto3.client("s3vectors", region_name="us-east-1")
     bucket_name = str(uuid4())
 
-    # Passes without any problems
-    client.delete_vector_bucket(vectorBucketName=bucket_name)
+    with pytest.raises(ClientError) as exc:
+        client.delete_vector_bucket(vectorBucketName=bucket_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "The specified vector bucket could not be found"

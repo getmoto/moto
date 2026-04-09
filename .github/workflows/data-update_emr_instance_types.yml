@@ -24,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v6
@@ -42,7 +42,7 @@ jobs:
         pip install boto3
         python scripts/emr_get_releases.py
     - name: Create PR
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         branch: 'chore-update-emr-instance-types-${{ github.run_number }}'
         title: 'chore: update EMR Instance Types'

@@ -1,6 +1,8 @@
 """Unit tests for servicecatalog-supported APIs."""
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -380,3 +382,153 @@ def test_describe_portfolio():
     assert non_existent_response["Tags"] == []
     assert non_existent_response["TagOptions"] == []
     assert non_existent_response["Budgets"] == []
+
+
+@mock_aws
+def test_create_product():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    tags = [{"Key": "testkey", "Value": "testvalue"}]
+    response = client.create_product(
+        Name="Test Product",
+        Owner="Test Owner",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        Tags=tags,
+    )
+
+    assert "ProductViewDetail" in response
+    assert "Tags" in response
+
+    product_view_detail = response["ProductViewDetail"]
+    product_view_summary = product_view_detail["ProductViewSummary"]
+
+    assert product_view_detail["Status"] == "AVAILABLE"
+    assert ":product/" in product_view_detail["ProductARN"]
+    assert "CreatedTime" in product_view_detail
+    assert response["Tags"] == tags
+
+    assert "Test Product" == product_view_summary["Name"]
+    assert "ProductId" in product_view_summary
+    assert "Name" in product_view_summary
+    assert "Test Owner" == product_view_summary["Owner"]
+    assert "CLOUD_FORMATION_TEMPLATE" == product_view_summary["Type"]
+
+
+@mock_aws
+def test_create_product_with_idempotency_token():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    response = client.create_product(
+        Name="Test Product",
+        Owner="Test Owner",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        IdempotencyToken="test_idempotency_token",
+    )
+
+    assert "ProductViewDetail" in response
+    assert "Tags" in response
+
+    product_view_detail = response["ProductViewDetail"]
+    product_view_summary = product_view_detail["ProductViewSummary"]
+
+    assert "Test Product" == product_view_summary["Name"]
+    assert "ProductId" in product_view_summary
+    assert "Name" in product_view_summary
+    assert "Test Owner" == product_view_summary["Owner"]
+    assert "CLOUD_FORMATION_TEMPLATE" == product_view_summary["Type"]
+
+    response2 = client.create_product(
+        Name="Test Product",
+        Owner="Test Owner",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        IdempotencyToken="test_idempotency_token",
+    )
+
+    assert response["ProductViewDetail"] == response2["ProductViewDetail"]
+
+
+@mock_aws
+def test_describe_product():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    tags = [{"Key": "testkey", "Value": "testvalue"}]
+    response = client.create_product(
+        Name="Test Product",
+        Owner="Test Owner",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        Tags=tags,
+    )
+
+    assert "ProductViewDetail" in response
+    assert "Tags" in response
+
+    product_id = response["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    response = client.describe_product(Id=product_id)
+
+    product = response["ProductViewSummary"]
+    assert product["Id"] == product_id
+    assert product["Name"] == "Test Product"
+
+    response = client.describe_product(Name="Test Product")
+
+    product = response["ProductViewSummary"]
+    assert product["Id"] == product_id
+    assert product["Name"] == "Test Product"
+
+
+@mock_aws
+def test_describe_product_exception():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_product()
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParametersException"
+    assert err["Message"] == "Either Id or Name must be specified."
+
+    nonexistent_id = "NONEXISTENTID"
+    with pytest.raises(ClientError) as exc:
+        client.describe_product(Id=nonexistent_id)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Product with Id '{nonexistent_id}' not found."
+
+    nonexistent_name = "NONEXISTENTNAME"
+    with pytest.raises(ClientError) as exc:
+        client.describe_product(Name=nonexistent_name)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Product with Name '{nonexistent_name}' not found."
+
+
+@mock_aws
+def test_delete_product():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    tags = [{"Key": "testkey", "Value": "testvalue"}]
+    response = client.create_product(
+        Name="Test Product",
+        Owner="Test Owner",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        Tags=tags,
+    )
+
+    assert "ProductViewDetail" in response
+    assert "Tags" in response
+
+    product_id = response["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client.delete_product(
+        Id=product_id,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_product(Id=product_id)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Product with Id '{product_id}' not found."

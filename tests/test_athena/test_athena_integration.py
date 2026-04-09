@@ -96,7 +96,7 @@ def test_athena_csv_result(bucket_name=None):
 k1 string,
 k2 string,
 k3 int
-) 
+)
 ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat'

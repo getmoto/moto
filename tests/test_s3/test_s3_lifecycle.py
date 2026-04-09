@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -11,7 +12,8 @@ from moto.s3.responses import DEFAULT_REGION_NAME
 @mock_aws
 def test_lifecycle_with_filters():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     # Create a lifecycle rule with a Filter (no tags):
     lfc = {
@@ -25,9 +27,9 @@ def test_lifecycle_with_filters():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["Filter"]["Prefix"] == ""
     assert not result["Rules"][0]["Filter"].get("And")
@@ -47,9 +49,9 @@ def test_lifecycle_with_filters():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
@@ -58,16 +60,16 @@ def test_lifecycle_with_filters():
     lfc["Rules"][0].pop("Filter")
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # With a tag:
     lfc["Rules"][0]["Filter"] = {"Tag": {"Key": "mytag", "Value": "mytagvalue"}}
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     with pytest.raises(KeyError):
         assert result["Rules"][0]["Filter"]["Prefix"]
@@ -85,9 +87,9 @@ def test_lifecycle_with_filters():
         }
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert not result["Rules"][0]["Filter"].get("Prefix")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
@@ -106,9 +108,9 @@ def test_lifecycle_with_filters():
         ],
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert not result["Rules"][0]["Filter"].get("Prefix")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
@@ -128,9 +130,9 @@ def test_lifecycle_with_filters():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     with pytest.raises(KeyError):
         assert result["Rules"][0]["Filter"]["And"]["Prefix"]
@@ -146,23 +148,23 @@ def test_lifecycle_with_filters():
     lfc["Rules"][0]["Prefix"] = ""
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     lfc["Rules"][0]["Prefix"] = "some/path"
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # No filters -- just a prefix:
     del lfc["Rules"][0]["Filter"]
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert not result["Rules"][0].get("Filter")
     assert result["Rules"][0]["Prefix"] == "some/path"
 
@@ -174,7 +176,7 @@ def test_lifecycle_with_filters():
     }
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
@@ -190,7 +192,7 @@ def test_lifecycle_with_filters():
     }
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
@@ -212,9 +214,9 @@ def test_lifecycle_with_filters():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")["Rules"]
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)["Rules"]
     assert len(result) == 2
     assert result[0]["ID"] == "wholebucket"
     assert result[1]["ID"] == "Tags"
@@ -223,7 +225,8 @@ def test_lifecycle_with_filters():
 @mock_aws
 def test_lifecycle_with_eodm():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -236,18 +239,18 @@ def test_lifecycle_with_eodm():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"]
 
     # Set to False:
     lfc["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"] = False
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert not result["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"]
 
@@ -255,7 +258,7 @@ def test_lifecycle_with_eodm():
     lfc["Rules"][0]["Expiration"]["Days"] = 7
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
     del lfc["Rules"][0]["Expiration"]["Days"]
@@ -263,7 +266,7 @@ def test_lifecycle_with_eodm():
     lfc["Rules"][0]["Expiration"]["Date"] = datetime(2015, 1, 1)
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
@@ -271,7 +274,8 @@ def test_lifecycle_with_eodm():
 @mock_aws
 def test_lifecycle_with_nve():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -284,18 +288,18 @@ def test_lifecycle_with_nve():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 30
 
     # Change NoncurrentDays:
     lfc["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] = 10
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 10
 
@@ -305,7 +309,8 @@ def test_lifecycle_with_nve():
 @mock_aws
 def test_lifecycle_with_nvt():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -320,9 +325,9 @@ def test_lifecycle_with_nvt():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] == 30
     assert (
@@ -333,18 +338,18 @@ def test_lifecycle_with_nvt():
     # Change NoncurrentDays:
     lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 10
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] == 10
 
     # Change StorageClass:
     lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"] = "GLACIER"
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert (
         result["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"]
@@ -355,7 +360,7 @@ def test_lifecycle_with_nvt():
     del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"]
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
     lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 30
@@ -363,7 +368,7 @@ def test_lifecycle_with_nvt():
     del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"]
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
-            Bucket="bucket", LifecycleConfiguration=lfc
+            Bucket=bucket_name, LifecycleConfiguration=lfc
         )
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
@@ -371,7 +376,8 @@ def test_lifecycle_with_nvt():
 @mock_aws
 def test_lifecycle_with_multiple_nvt():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -387,9 +393,9 @@ def test_lifecycle_with_multiple_nvt():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionTransitions"][0] == {
         "NoncurrentDays": 30,
@@ -404,7 +410,8 @@ def test_lifecycle_with_multiple_nvt():
 @mock_aws
 def test_lifecycle_with_multiple_transitions():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -420,9 +427,9 @@ def test_lifecycle_with_multiple_transitions():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["Transitions"][0] == {
         "Days": 30,
@@ -437,7 +444,8 @@ def test_lifecycle_with_multiple_transitions():
 @mock_aws
 def test_lifecycle_with_aimu():
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="bucket")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     lfc = {
         "Rules": [
@@ -450,9 +458,9 @@ def test_lifecycle_with_aimu():
         ]
     }
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert (
         result["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 7
@@ -461,9 +469,9 @@ def test_lifecycle_with_aimu():
     # Change DaysAfterInitiation:
     lfc["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] = 30
     client.put_bucket_lifecycle_configuration(
-        Bucket="bucket", LifecycleConfiguration=lfc
+        Bucket=bucket_name, LifecycleConfiguration=lfc
     )
-    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
     assert (
         result["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
@@ -477,10 +485,10 @@ def test_lifecycle_with_aimu():
 def test_lifecycle_with_glacier_transition():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     client.put_bucket_lifecycle_configuration(
-        Bucket="foobar",
+        Bucket=bucket.name,
         LifecycleConfiguration={
             "Rules": [
                 {
@@ -493,7 +501,7 @@ def test_lifecycle_with_glacier_transition():
         },
     )
 
-    response = client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    response = client.get_bucket_lifecycle_configuration(Bucket=bucket.name)
     assert "Rules" in response
     rules = response["Rules"]
     assert len(rules) == 1
@@ -508,13 +516,13 @@ def test_lifecycle_with_glacier_transition():
 def test_lifecycle_multi():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     date = "2022-10-12T00:00:00.000Z"
     storage_class = "GLACIER"
 
     client.put_bucket_lifecycle_configuration(
-        Bucket="foobar",
+        Bucket=bucket.name,
         LifecycleConfiguration={
             "Rules": [
                 {"ID": "1", "Prefix": "1/", "Status": "Enabled"},
@@ -547,7 +555,7 @@ def test_lifecycle_multi():
     )
 
     # read the lifecycle back
-    rules = client.get_bucket_lifecycle_configuration(Bucket="foobar")["Rules"]
+    rules = client.get_bucket_lifecycle_configuration(Bucket=bucket.name)["Rules"]
 
     for rule in rules:
         if rule["ID"] == "1":
@@ -580,19 +588,19 @@ def test_lifecycle_multi():
 def test_lifecycle_delete():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3_resource.create_bucket(Bucket="foobar")
+    bucket = s3_resource.create_bucket(Bucket=str(uuid4()))
 
     client.put_bucket_lifecycle_configuration(
-        Bucket="foobar",
+        Bucket=bucket.name,
         LifecycleConfiguration={
             "Rules": [{"ID": "myid", "Prefix": "", "Status": "Enabled"}]
         },
     )
 
-    client.delete_bucket_lifecycle(Bucket="foobar")
+    client.delete_bucket_lifecycle(Bucket=bucket.name)
 
     with pytest.raises(ClientError) as ex:
-        client.get_bucket_lifecycle_configuration(Bucket="foobar")
+        client.get_bucket_lifecycle_configuration(Bucket=bucket.name)
     assert ex.value.response["Error"]["Code"] == "NoSuchLifecycleConfiguration"
     assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"
@@ -603,29 +611,30 @@ def test_lifecycle_delete():
 def test_lifecycle_empty_configuration():
     """Test that empty lifecycle configuration (no rules) works correctly"""
     client = boto3.client("s3", DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="foobar")
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
 
     # Set lifecycle configuration with rules first
     client.put_bucket_lifecycle_configuration(
-        Bucket="foobar",
+        Bucket=bucket_name,
         LifecycleConfiguration={
             "Rules": [{"ID": "myid", "Prefix": "", "Status": "Enabled"}]
         },
     )
 
     # Verify it exists
-    result = client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert len(result["Rules"]) == 1
 
     # Set empty lifecycle configuration (should delete all rules)
     client.put_bucket_lifecycle_configuration(
-        Bucket="foobar",
+        Bucket=bucket_name,
         LifecycleConfiguration={"Rules": []},
     )
 
     # Verify it's deleted
     with pytest.raises(ClientError) as ex:
-        client.get_bucket_lifecycle_configuration(Bucket="foobar")
+        client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
     assert ex.value.response["Error"]["Code"] == "NoSuchLifecycleConfiguration"
     assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"

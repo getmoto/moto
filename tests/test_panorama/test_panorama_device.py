@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -105,7 +104,7 @@ def test_describe_device() -> None:
         resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp["Brand"] == "AWS_PANORAMA"
-    assert resp["CreatedTime"] == datetime(2020, 1, 1, 12, 0, tzinfo=tzutc())
+    assert resp["CreatedTime"] == datetime(2020, 1, 1, 12, 0, tzinfo=timezone.utc)
     assert resp["CurrentNetworkingStatus"] == {
         "Ethernet0Status": {
             "ConnectionStatus": "CONNECTED",
@@ -117,7 +116,7 @@ def test_describe_device() -> None:
             "HwAddress": "8C:0F:6F:60:F4:F1",
             "IpAddress": "--",
         },
-        "LastUpdatedTime": datetime(2020, 1, 1, 12, 0, tzinfo=tzutc()),
+        "LastUpdatedTime": datetime(2020, 1, 1, 12, 0, tzinfo=timezone.utc),
         "NtpStatus": {
             "ConnectionStatus": "CONNECTED",
             "IpAddress": "91.224.149.41:123",
@@ -131,7 +130,9 @@ def test_describe_device() -> None:
     assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg"
     assert resp["LatestDeviceJob"] == {"JobType": "REBOOT", "Status": "COMPLETED"}
     assert resp["LatestSoftware"] == "6.2.1"
-    assert resp["LeaseExpirationTime"] == datetime(2020, 1, 6, 12, 0, tzinfo=tzutc())
+    assert resp["LeaseExpirationTime"] == datetime(
+        2020, 1, 6, 12, 0, tzinfo=timezone.utc
+    )
     assert resp["Name"] == "test-device-name"
     assert resp["ProvisioningStatus"] == "SUCCEEDED"
     assert resp["SerialNumber"] == "GAD81E29013274749"

@@ -5,10 +5,8 @@ import re
 import string
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional, Union, cast
-
-from dateutil.tz import tzutc
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -1074,7 +1072,7 @@ class ModelPackageGroup(BaseObject):
             account_id=account_id,
             region_name=region_name,
         )
-        datetime_now = datetime.now(tzutc())
+        datetime_now = datetime.now(timezone.utc)
         self.model_package_group_name = model_package_group_name
         self.arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
@@ -1120,7 +1118,7 @@ class FakeModelCard(BaseObject):
         creation_time: Optional[str] = None,
         last_modified_time: Optional[str] = None,
     ) -> None:
-        datetime_now = str(datetime.now(tzutc()))
+        datetime_now = str(datetime.now(timezone.utc))
         self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
         self.model_card_name = model_card_name
         self.model_card_version = model_card_version
@@ -1269,7 +1267,7 @@ class ModelPackage(BaseObject):
                 else model_package_name.lower()
             ),
         )
-        datetime_now = datetime.now(tzutc())
+        datetime_now = datetime.now(timezone.utc)
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
@@ -1368,7 +1366,7 @@ class ModelPackage(BaseObject):
         return response
 
     def modifications_done(self) -> None:
-        self.last_modified_time = datetime.now(tzutc())
+        self.last_modified_time = datetime.now(timezone.utc)
         self.last_modified_by = self.created_by
 
     def set_model_approval_status(self, model_approval_status: Optional[str]) -> None:
@@ -4433,11 +4431,11 @@ class SageMakerModelBackend(BaseBackend):
     ) -> list[ModelPackageGroup]:
         if isinstance(creation_time_before, int):
             creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=tzutc()
+                creation_time_before, tz=timezone.utc
             )
         if isinstance(creation_time_after, int):
             creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=tzutc()
+                creation_time_after, tz=timezone.utc
             )
         model_package_group_summary_list = list(
             filter(
@@ -4497,11 +4495,11 @@ class SageMakerModelBackend(BaseBackend):
     ) -> list[ModelPackage]:
         if isinstance(creation_time_before, int):
             creation_time_before_datetime = datetime.fromtimestamp(
-                creation_time_before, tz=tzutc()
+                creation_time_before, tz=timezone.utc
             )
         if isinstance(creation_time_after, int):
             creation_time_after_datetime = datetime.fromtimestamp(
-                creation_time_after, tz=tzutc()
+                creation_time_after, tz=timezone.utc
             )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
@@ -5604,7 +5602,7 @@ class SageMakerModelBackend(BaseBackend):
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist.")
 
-        datetime_now = str(datetime.now(tzutc()))
+        datetime_now = str(datetime.now(timezone.utc))
 
         first_version = self.model_cards[model_card_name][0]
         creation_time = first_version.creation_time
@@ -5961,9 +5959,9 @@ class FakeTrialComponent(BaseObject):
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.arn,
-                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=tzutc()).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                "TimeStamp": datetime.fromtimestamp(
+                    timestamp_int, tz=timezone.utc
+                ).strftime("%Y-%m-%d %H:%M:%S"),
                 "Max": max(metrics_steps_values),
                 "Min": min(metrics_steps_values),
                 "Last": metrics_steps[max_step]["Value"],

@@ -20,14 +20,23 @@ network-firewall
 - [ ] associate_availability_zones
 - [ ] associate_firewall_policy
 - [ ] associate_subnets
+- [ ] attach_rule_groups_to_proxy_configuration
 - [X] create_firewall
 - [ ] create_firewall_policy
+- [ ] create_proxy
+- [ ] create_proxy_configuration
+- [ ] create_proxy_rule_group
+- [ ] create_proxy_rules
 - [ ] create_rule_group
 - [ ] create_tls_inspection_configuration
 - [ ] create_vpc_endpoint_association
 - [ ] delete_firewall
 - [ ] delete_firewall_policy
 - [ ] delete_network_firewall_transit_gateway_attachment
+- [ ] delete_proxy
+- [ ] delete_proxy_configuration
+- [ ] delete_proxy_rule_group
+- [ ] delete_proxy_rules
 - [ ] delete_resource_policy
 - [ ] delete_rule_group
 - [ ] delete_tls_inspection_configuration
@@ -37,12 +46,17 @@ network-firewall
 - [ ] describe_firewall_policy
 - [ ] describe_flow_operation
 - [X] describe_logging_configuration
+- [ ] describe_proxy
+- [ ] describe_proxy_configuration
+- [ ] describe_proxy_rule
+- [ ] describe_proxy_rule_group
 - [ ] describe_resource_policy
 - [ ] describe_rule_group
 - [ ] describe_rule_group_metadata
 - [ ] describe_rule_group_summary
 - [ ] describe_tls_inspection_configuration
 - [ ] describe_vpc_endpoint_association
+- [ ] detach_rule_groups_from_proxy_configuration
 - [ ] disassociate_availability_zones
 - [ ] disassociate_subnets
 - [ ] get_analysis_report_results
@@ -51,6 +65,9 @@ network-firewall
 - [X] list_firewalls
 - [ ] list_flow_operation_results
 - [ ] list_flow_operations
+- [ ] list_proxies
+- [ ] list_proxy_configurations
+- [ ] list_proxy_rule_groups
 - [ ] list_rule_groups
 - [ ] list_tags_for_resource
 - [ ] list_tls_inspection_configurations
@@ -70,6 +87,11 @@ network-firewall
 - [ ] update_firewall_policy
 - [ ] update_firewall_policy_change_protection
 - [X] update_logging_configuration
+- [ ] update_proxy
+- [ ] update_proxy_configuration
+- [ ] update_proxy_rule
+- [ ] update_proxy_rule_group_priorities
+- [ ] update_proxy_rule_priorities
 - [ ] update_rule_group
 - [ ] update_subnet_change_protection
 - [ ] update_tls_inspection_configuration

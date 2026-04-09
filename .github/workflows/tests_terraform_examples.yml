@@ -12,7 +12,7 @@ jobs:
     outputs:
       folders: ${{ steps.set-folders.outputs.folders }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: set-folders
         name: Get Services
         shell: bash
@@ -31,7 +31,7 @@ jobs:
         service: ${{ fromJson(needs.find-jobs.outputs.folders )}}
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Start MotoServer
       uses: ./.github/actions/run_moto_server
     - name: Set up Terraform

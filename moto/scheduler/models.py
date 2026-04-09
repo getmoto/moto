@@ -1,12 +1,12 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
 
 import datetime
-from collections.abc import Iterable
 from typing import Any, Optional, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcfromtimestamp, utcnow
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -156,6 +156,21 @@ class ScheduleGroup(BaseModel):
 class EventBridgeSchedulerBackend(BaseBackend):
     """Implementation of EventBridgeScheduler APIs."""
 
+    PAGINATION_MODEL = {
+        "list_schedule_groups": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "arn",
+        },
+        "list_schedules": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "arn",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.schedules: list[Schedule] = []
@@ -245,9 +260,13 @@ class EventBridgeSchedulerBackend(BaseBackend):
         )
         return schedule
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_schedules(
-        self, group_names: Optional[str], state: Optional[str]
-    ) -> Iterable[Schedule]:
+        self,
+        group_names: Optional[str],
+        state: Optional[str],
+        name_prefix: Optional[str] = None,
+    ) -> list[Schedule]:
         """
         The following parameters are not yet implemented: MaxResults, NamePrefix, NextToken
         """
@@ -256,7 +275,10 @@ class EventBridgeSchedulerBackend(BaseBackend):
             if not group_names or group.name in group_names:
                 for schedule in group.schedules.values():
                     if not state or schedule.state == state:
-                        results.append(schedule)
+                        if not name_prefix or schedule.name.startswith(name_prefix):
+                            results.append(schedule)
+        # Sort by creation date, newest first
+        results.sort(key=lambda x: x.creation_date, reverse=True)
         return results
 
     def create_schedule_group(
@@ -277,11 +299,24 @@ class EventBridgeSchedulerBackend(BaseBackend):
             raise ScheduleGroupNotFound(group_name or "default")
         return self.schedule_groups[group_name or "default"]
 
-    def list_schedule_groups(self) -> Iterable[ScheduleGroup]:
-        """
-        The MaxResults-parameter and pagination options are not yet implemented
-        """
-        return self.schedule_groups.values()
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_schedule_groups(
+        self, name_prefix: Optional[str] = None
+    ) -> list[ScheduleGroup]:
+        results = []
+        for group in self.schedule_groups.values():
+            if not name_prefix or group.name.startswith(name_prefix):
+                results.append(group)
+        # Sort by:
+        # 1. Default group first
+        # 2. Then by creation date, newest first
+        results.sort(
+            key=lambda x: (
+                x.name != "default",  # False (default) comes before True (non-default)
+                -1 * (x.created_on or 0),  # Sort by creation date desc, handling None
+            )
+        )
+        return results
 
     def delete_schedule_group(self, name: Optional[str]) -> None:
         self.schedule_groups.pop(name or "default")

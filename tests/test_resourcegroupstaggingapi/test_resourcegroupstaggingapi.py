@@ -7,7 +7,6 @@ from botocore.client import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
-from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
 
 
 @mock_aws
@@ -379,19 +378,22 @@ def test_get_resources_ec2():
     # 1 Entry for AMI
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:image"])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "image/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:image/{image_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
     # As were iterating the same data, this rules out that the test above was a fluke
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:instance"])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:instance/{instance_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
     # Basic test of tag filters
     resp = rtapi.get_resources(
         TagFilters=[{"Key": "MY_TAG1", "Values": ["MY_VALUE1", "some_other_value"]}]
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    expected_arn = f"arn:aws:ec2:eu-central-1:{ACCOUNT_ID}:instance/{instance_id}"
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == expected_arn
 
 
 @mock_aws
@@ -678,6 +680,128 @@ def test_get_tag_values_cloudwatch():
     assert {"Key": "key-2", "Value": "value-2"} in resp["ResourceTagMappingList"][0][
         "Tags"
     ]
+
+
+@mock_aws
+def test_get_resources_sesv2():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    # Create two tagged contact lists
+    for i in range(1, 3):
+        i_str = str(i)
+
+        sesv2.create_contact_list(
+            ContactListName="test-contact-list-" + i_str,
+            Tags=[
+                {"Key": "Test", "Value": i_str},
+            ],
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["ses:contact-list"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
+    sesv2.create_configuration_set(
+        ConfigurationSetName="test-configuration-set",
+        Tags=[{"Key": "ConfigKey", "Value": "ConfigValue"}],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:configuration-set"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "ConfigKey", "Value": "ConfigValue"}
+    ]
+
+    # dedicated-ip-pool
+    sesv2.create_dedicated_ip_pool(
+        PoolName="test-dedicated-ip-pool",
+        Tags=[{"Key": "PoolKey", "Value": "PoolValue"}],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:dedicated-ip-pool"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "PoolKey", "Value": "PoolValue"}
+    ]
+
+    # email-identity
+    sesv2.create_email_identity(
+        EmailIdentity="email-identity",
+        Tags=[{"Key": "IdentityKey", "Value": "IdentityValue"}],
+    )
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:email-identity"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "IdentityKey", "Value": "IdentityValue"}
+    ]
+
+
+@mock_aws
+def test_tag_sesv2_resources():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    sesv2.create_contact_list(ContactListName="contact-list-no-tags")
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 0
+
+    arn = "arn:aws:ses:us-east-1:123456789012:contact-list/contact-list-no-tags"
+    rtapi.tag_resources(
+        ResourceARNList=[arn],
+        Tags={"newKey": "newVal"},
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "newKey", "Value": "newVal"}
+    ]
+
+    resp = sesv2.list_tags_for_resource(ResourceArn=arn)
+    assert resp["Tags"] == [{"Key": "newKey", "Value": "newVal"}]
+
+
+@mock_aws
+def test_untag_sesv2_resources():
+    sesv2 = boto3.client("sesv2", region_name="us-east-1")
+
+    sesv2.create_contact_list(
+        ContactListName="contact-list-with-tags",
+        Tags=[{"Key": "KeyToRemove", "Value": "ValueToRemove"}],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [
+        {"Key": "KeyToRemove", "Value": "ValueToRemove"}
+    ]
+
+    arn = "arn:aws:ses:us-east-1:123456789012:contact-list/contact-list-with-tags"
+
+    rtapi.untag_resources(
+        ResourceARNList=[arn],
+        TagKeys=["KeyToRemove"],
+    )
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["ses:contact-list"])
+    assert len(resp["ResourceTagMappingList"]) == 0
+
+    resp = sesv2.list_tags_for_resource(ResourceArn=arn)
+    assert resp["Tags"] == []
 
 
 @mock_aws
@@ -1083,6 +1207,9 @@ def test_get_resources_sqs():
     resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
     assert len(resp["ResourceTagMappingList"]) == 2
 
+    resp = rtapi.get_resources(ResourceTypeFilters=["sqs:queue"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
     # Test tag filtering
     resp = rtapi.get_resources(
         ResourceTypeFilters=["sqs"],
@@ -1091,119 +1218,9 @@ def test_get_resources_sqs():
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
-
-def create_directory():
-    ec2_client = boto3.client("ec2", region_name="eu-central-1")
-    ds_client = boto3.client("ds", region_name="eu-central-1")
-    directory_id = create_test_directory(ds_client, ec2_client)
-    return directory_id
-
-
-@mock_aws
-def test_get_resources_workspaces():
-    workspaces = boto3.client("workspaces", region_name="eu-central-1")
-
-    # Create two tagged Workspaces
-    directory_id = create_directory()
-    workspaces.register_workspace_directory(DirectoryId=directory_id)
-    workspaces.create_workspaces(
-        Workspaces=[
-            {
-                "DirectoryId": directory_id,
-                "UserName": "Administrator",
-                "BundleId": "wsb-bh8rsxt14",
-                "Tags": [
-                    {"Key": "Test", "Value": "1"},
-                ],
-            },
-            {
-                "DirectoryId": directory_id,
-                "UserName": "Administrator",
-                "BundleId": "wsb-bh8rsxt14",
-                "Tags": [
-                    {"Key": "Test", "Value": "2"},
-                ],
-            },
-        ]
-    )
-
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
-
-    # Basic test
-    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces"])
-    assert len(resp["ResourceTagMappingList"]) == 2
-
-    # Test tag filtering
+    # Test tag filtering with sqs:queue
     resp = rtapi.get_resources(
-        ResourceTypeFilters=["workspaces"],
-        TagFilters=[{"Key": "Test", "Values": ["1"]}],
-    )
-    assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
-
-
-@mock_aws
-def test_get_resources_workspace_directories():
-    workspaces = boto3.client("workspaces", region_name="eu-central-1")
-
-    # Create two tagged Workspaces Directories
-    for i in range(1, 3):
-        i_str = str(i)
-        directory_id = create_directory()
-        workspaces.register_workspace_directory(
-            DirectoryId=directory_id,
-            Tags=[{"Key": "Test", "Value": i_str}],
-        )
-
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
-
-    # Basic test
-    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces-directory"])
-    assert len(resp["ResourceTagMappingList"]) == 2
-
-    # Test tag filtering
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["workspaces-directory"],
-        TagFilters=[{"Key": "Test", "Values": ["1"]}],
-    )
-    assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
-
-
-@mock_aws
-def test_get_resources_workspace_images():
-    workspaces = boto3.client("workspaces", region_name="eu-central-1")
-
-    # Create two tagged Workspace Images
-    directory_id = create_directory()
-    workspaces.register_workspace_directory(DirectoryId=directory_id)
-    resp = workspaces.create_workspaces(
-        Workspaces=[
-            {
-                "DirectoryId": directory_id,
-                "UserName": "Administrator",
-                "BundleId": "wsb-bh8rsxt14",
-            },
-        ]
-    )
-    workspace_id = resp["PendingRequests"][0]["WorkspaceId"]
-    for i in range(1, 3):
-        i_str = str(i)
-        _ = workspaces.create_workspace_image(
-            Name=f"test-image-{i_str}",
-            Description="Test workspace image",
-            WorkspaceId=workspace_id,
-            Tags=[{"Key": "Test", "Value": i_str}],
-        )
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
-
-    # Basic test
-    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces-image"])
-    assert len(resp["ResourceTagMappingList"]) == 2
-
-    # Test tag filtering
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["workspaces-image"],
+        ResourceTypeFilters=["sqs:queue"],
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
@@ -1786,43 +1803,6 @@ def test_get_resources_stepfunction():
     assert {"Key": "Name", "Value": "Alice"} in resp["ResourceTagMappingList"][0][
         "Tags"
     ]
-
-
-@mock_aws
-def test_get_resources_workspacesweb():
-    ww_client = boto3.client("workspaces-web", region_name="ap-southeast-1")
-    arn = ww_client.create_portal(
-        additionalEncryptionContext={"Key1": "Encryption", "Key2": "Context"},
-        authenticationType="Standard",
-        clientToken="TestClient",
-        customerManagedKey="abcd1234-5678-90ab-cdef-FAKEKEY",
-        displayName="TestDisplayName",
-        instanceType="TestInstanceType",
-        maxConcurrentSessions=5,
-        tags=[
-            {"Key": "TestKey", "Value": "TestValue"},
-            {"Key": "TestKey2", "Value": "TestValue2"},
-        ],
-    )["portalArn"]
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="ap-southeast-1")
-    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces-web"])
-    assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "TestKey", "Value": "TestValue"} in resp["ResourceTagMappingList"][
-        0
-    ]["Tags"]
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["workspaces-web"],
-        TagFilters=[{"Key": "TestKey3", "Values": ["TestValue3"]}],
-    )
-    assert len(resp["ResourceTagMappingList"]) == 0
-    ww_client.tag_resource(
-        resourceArn=arn, tags=[{"Key": "TestKey3", "Value": "TestValue3"}]
-    )
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["workspaces-web"],
-        TagFilters=[{"Key": "TestKey3", "Values": ["TestValue3"]}],
-    )
-    assert len(resp["ResourceTagMappingList"]) == 1
 
 
 @pytest.mark.parametrize("resource_type", ["secretsmanager", "secretsmanager:secret"])

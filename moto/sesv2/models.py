@@ -16,6 +16,7 @@ from ..ses.models import (
     RawMessage,
     ses_backends,
 )
+from ..ses.utils import get_arn
 
 PAGINATION_MODEL = {
     "list_dedicated_ip_pools": {
@@ -39,6 +40,8 @@ PAGINATION_MODEL = {
 }
 
 
+# TODO
+# ListTagsForResource, TagResource, UntagResource to do
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
@@ -53,6 +56,13 @@ class SESV2Backend(BaseBackend):
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
         new_list = ContactList(name, str(description), topics)
+
+        if params.get("Tags"):
+            self.core_backend.tagger.tag_resource(
+                arn=get_arn(self, "ses", f"contact-list/{name}"),
+                tags=params["Tags"],
+            )
+
         self.core_backend.contacts_lists[name] = new_list
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
@@ -114,10 +124,16 @@ class SESV2Backend(BaseBackend):
     def create_email_identity(
         self,
         email_identity: str,
-        tags: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
+        if tags:
+            self.core_backend.tagger.tag_resource(
+                arn=get_arn(self, "ses", f"email-identity/{email_identity}"),
+                tags=tags,
+            )
+
         return self.core_backend.create_email_identity_v2(
             email_identity, tags, dkim_signing_attributes, configuration_set_name
         )
@@ -175,6 +191,13 @@ class SESV2Backend(BaseBackend):
             new_pool = DedicatedIpPool(
                 pool_name=pool_name, tags=tags, scaling_mode=scaling_mode
             )
+
+            if tags:
+                self.core_backend.tagger.tag_resource(
+                    arn=get_arn(self, "ses", f"dedicated-ip-pool/{pool_name}"),
+                    tags=tags,
+                )
+
             self.core_backend.dedicated_ip_pools[pool_name] = new_pool
 
     def delete_dedicated_ip_pool(self, pool_name: str) -> None:
@@ -232,6 +255,16 @@ class SESV2Backend(BaseBackend):
         email_id = self.get_email_identity(email_identity)
 
         return email_id.policies
+
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
+        self.core_backend.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.core_backend.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        tags = self.core_backend.tagger.list_tags_for_resource(resource_arn)
+        return tags.get("Tags", [])
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

@@ -679,7 +679,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         try:
             import docker
         except ImportError as err:
-            logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
+            logger.error(
+                "Failed to run AWS Batch container %s. Error %s", self.name, err
+            )
             self._mark_stopped(success=False)
             return
 
@@ -929,13 +931,15 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
                 except Exception as err:
                     logger.error(
-                        f"Failed to run AWS Batch container {self.name}. Error {err}"
+                        "Failed to run AWS Batch container %s. Error %s", self.name, err
                     )
                     self._mark_stopped(success=False)
 
             self._mark_stopped(success=True)
         except Exception as err:
-            logger.error(f"Failed to run AWS Batch container {self.name}. Error {err}")
+            logger.error(
+                "Failed to run AWS Batch container %s. Error %s", self.name, err
+            )
             self._mark_stopped(success=False)
         finally:
             for container in containers:
@@ -991,7 +995,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         successful_dependencies.add(dependent_id)
                     if dependent_job.status == JobStatus.FAILED:
                         logger.error(
-                            f"Terminating job {self.name} due to failed dependency {dependent_job.name}"
+                            "Terminating job %s due to failed dependency %s",
+                            self.name,
+                            dependent_job.name,
                         )
                         self._mark_stopped(success=False)
                         return False

@@ -21,6 +21,8 @@ sagemaker
 - [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
+- [ ] batch_reboot_cluster_nodes
+- [ ] batch_replace_cluster_nodes
 - [ ] create_action
 - [ ] create_algorithm
 - [ ] create_app

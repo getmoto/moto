@@ -6,7 +6,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
+
+USER_DATA_1 = Base64EncodedString.from_raw_string("some user data")
+USER_DATA_2 = Base64EncodedString.from_raw_string("some other user data")
 
 
 def get_subnet_id(conn):
@@ -29,7 +33,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
                 "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "my-key",
                 "SecurityGroups": [{"GroupId": "sg-123"}],
-                "UserData": "some user data",
+                "UserData": str(USER_DATA_1),
                 "InstanceType": "t2.small",
                 "BlockDeviceMappings": [
                     {
@@ -57,7 +61,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
                 "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "my-key",
                 "SecurityGroups": [{"GroupId": "sg-123"}],
-                "UserData": "some user data",
+                "UserData": str(USER_DATA_2),
                 "InstanceType": "t2.large",
                 "Monitoring": {"Enabled": True},
                 "SubnetId": subnet_id,
@@ -148,8 +152,11 @@ def test_create_spot_fleet_with_lowest_price():
     assert launch_spec["Monitoring"] == {"Enabled": True}
     assert launch_spec["SpotPrice"] == "0.13"
     assert launch_spec["SubnetId"] == subnet_id
-    assert launch_spec["UserData"] == "some user data"
+    assert launch_spec["UserData"] == str(USER_DATA_1)
     assert launch_spec["WeightedCapacity"] == 2.0
+
+    second_launch_spec = spot_fleet_config["LaunchSpecifications"][1]
+    assert second_launch_spec["UserData"] == str(USER_DATA_2)
 
     instances = get_active_instances(conn, spot_fleet_id)
     assert len(instances) == 3

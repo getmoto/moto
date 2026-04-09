@@ -1,5 +1,6 @@
 import datetime
 import time
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -156,7 +157,7 @@ def test_locked_object_governance_mode(bypass_governance_retention, bucket_name=
 
         # We know we couldn't delete the initial version ID
         # Can we delete the DeleteVersion
-        response = s3_client.delete_objects(
+        s3_client.delete_objects(
             Bucket=bucket_name,
             Delete={
                 "Objects": [
@@ -289,7 +290,7 @@ def test_locked_object_compliance_mode(bypass_governance_retention, bucket_name=
 
 @mock_aws
 def test_fail_locked_object():
-    bucket_name = "locked-bucket2"
+    bucket_name = str(uuid4())
     key_name = "file.txt"
     seconds_lock = 2
 
@@ -319,7 +320,7 @@ def test_fail_locked_object():
 def test_put_object_lock():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "put-lock-bucket-test"
+    bucket_name = str(uuid4())
     key_name = "file.txt"
     seconds_lock = 1
 
@@ -419,7 +420,7 @@ def test_put_default_lock():
     # do not run this test in aws, it will block the deletion for a whole day
 
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
-    bucket_name = "put-default-lock-bucket"
+    bucket_name = str(uuid4())
     key_name = "file.txt"
 
     days = 1
@@ -468,7 +469,7 @@ def test_put_default_lock():
 def test_put_object_legal_hold_with_versions():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "put-legal-bucket"
+    bucket_name = str(uuid4())
     key_name = "file.txt"
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
@@ -530,7 +531,7 @@ def test_put_object_legal_hold_with_versions():
 def test_put_object_lock_with_versions():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "put-lock-bucket-test"
+    bucket_name = str(uuid4())
     key_name = "file.txt"
     seconds_lock = 2
 

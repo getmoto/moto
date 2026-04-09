@@ -43,6 +43,7 @@ s3
 - [X] delete_object_tagging
 - [X] delete_objects
 - [X] delete_public_access_block
+- [ ] get_bucket_abac
 - [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
@@ -115,6 +116,7 @@ s3
         
 
 - [X] list_parts
+- [ ] put_bucket_abac
 - [X] put_bucket_accelerate_configuration
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration

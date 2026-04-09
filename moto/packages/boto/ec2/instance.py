@@ -45,8 +45,13 @@ class InstancePlacement:
 
     def __init__(self, zone: Any = None, group_name: Any = None, tenancy: Any = None):
         self.zone = zone
-        self.group_name = group_name
-        self.tenancy = tenancy
+        self.group_name = group_name or ""
+        self.tenancy = tenancy or "default"
+        self.host_id: Optional[str] = None
+
+    @property
+    def availability_zone(self) -> Optional[str]:
+        return self.zone
 
     def __repr__(self) -> Any:
         return self.zone
@@ -64,10 +69,10 @@ class Reservation(EC2Object):
                      Reservation.
     """
 
-    def __init__(self, reservation_id: Any) -> None:
+    def __init__(self, reservation_id: Any, owner_id: Any = None) -> None:
         super().__init__(connection=None)
         self.id = reservation_id
-        self.owner_id = None
+        self.owner_id = owner_id
         self.groups: Any = []
         self.instances: Any = []
 
@@ -133,8 +138,6 @@ class Instance(TaggedEC2Object):
     def __init__(self, connection: Any = None):
         super().__init__(connection)
         self.dns_name = None
-        self.public_dns_name = None
-        self.private_dns_name = None
         self.key_name = None
         self.kernel = None
         self.ramdisk = None
@@ -143,22 +146,17 @@ class Instance(TaggedEC2Object):
         self.monitored = False
         self.monitoring_state = None
         self.spot_instance_request_id = None
-        self.subnet_id = None
-        self.private_ip_address = None
         self.ip_address = None
         self.requester_id = None
         self._in_monitoring_element = False
         self.persistent = False
-        self.root_device_name = None
-        self.root_device_type = None
-        self.state_reason = None
         self.group_name = None
         self.client_token = None
         self.eventsSet = None
         self.groups: Any = []
         self.platform = None
         self.interfaces: Any = []
-        self.hypervisor = None
+        self.hypervisor = "xen"
         self.virtualization_type: Optional[str] = None
         self.architecture: Optional[str] = None
         self.instance_profile = None
@@ -169,13 +167,9 @@ class Instance(TaggedEC2Object):
         return f"Instance:{self.id}"  # type: ignore
 
     @property
-    def state(self) -> str:
-        return self._state.name  # type: ignore
+    def placement(self) -> InstancePlacement:
+        return self._placement
 
     @property
-    def state_code(self) -> str:
-        return self._state.code  # type: ignore
-
-    @property
-    def placement(self) -> str:
+    def availability_zone(self) -> str:
         return self._placement.zone

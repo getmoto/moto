@@ -1,12 +1,11 @@
-import datetime
 from copy import deepcopy
+from datetime import datetime, timezone
 from unittest import SkipTest, mock
 from unittest.mock import PropertyMock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -327,7 +326,7 @@ def test_create_cluster_generates_valid_cluster_arn(ClusterBuilder):
 
 @mock_aws
 def test_create_cluster_generates_valid_cluster_created_timestamp(ClusterBuilder):
-    cluster_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    cluster_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(cluster_create_time):
         _, generated_test_data = ClusterBuilder()
     result_time = generated_test_data.cluster_describe_output[
@@ -607,7 +606,7 @@ def test_create_nodegroup_generates_valid_nodegroup_arn(NodegroupBuilder):
 
 @mock_aws
 def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupBuilder):
-    ng_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    ng_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(ng_create_time):
         _, generated_test_data = NodegroupBuilder()
 
@@ -622,7 +621,7 @@ def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupB
 def test_create_nodegroup_generates_valid_nodegroup_modified_timestamp(
     NodegroupBuilder,
 ):
-    ng_mod_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    ng_mod_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(ng_mod_time):
         _, generated_test_data = NodegroupBuilder()
     result_time = generated_test_data.nodegroup_describe_output[
@@ -1057,7 +1056,7 @@ def test_create_fargate_profile_generates_valid_profile_arn(FargateProfileBuilde
 def test_create_fargate_profile_generates_valid_created_timestamp(
     FargateProfileBuilder,
 ):
-    fp_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    fp_create_time = datetime(2013, 11, 27, 1, 42, tzinfo=timezone.utc)
     with freeze_time(fp_create_time):
         _, generated_test_data = FargateProfileBuilder()
     result_time = generated_test_data.fargate_describe_output[

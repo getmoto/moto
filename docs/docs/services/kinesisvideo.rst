@@ -30,6 +30,7 @@ kinesisvideo
 - [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
+- [ ] describe_stream_storage_configuration
 - [X] get_data_endpoint
 - [ ] get_signaling_channel_endpoint
 - [ ] list_edge_agent_configurations
@@ -52,4 +53,5 @@ kinesisvideo
 - [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
+- [ ] update_stream_storage_configuration
 

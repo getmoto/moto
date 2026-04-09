@@ -95,6 +95,7 @@ securityhub
         Returns findings based on optional filters and sort criteria.
         
 
+- [ ] get_findings_trends_v2
 - [ ] get_findings_v2
 - [ ] get_insight_results
 - [ ] get_insights
@@ -102,6 +103,7 @@ securityhub
 - [ ] get_master_account
 - [ ] get_members
 - [ ] get_resources_statistics_v2
+- [ ] get_resources_trends_v2
 - [ ] get_resources_v2
 - [ ] get_security_control_definition
 - [ ] invite_members

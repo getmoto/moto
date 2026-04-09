@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  description: description
+  version: '1'
+  title: doc
+paths:
+  /:
+    get:
+      description: Method description.
+      responses:
+        '200':
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empty'
+      x-amazon-apigateway-integration:
+        type: "HTTP"
+        httpMethod: "GET"
+        uri: "https://nlb.example.com:8080/api/"
+        connectionType: "VPC_LINK"
+        connectionId: "abc123"
+        requestTemplates: {}
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.X-Frame-Options: "'SAMEORIGIN'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Strict-Transport-Security: "'15768000'"
+              method.response.header.X-XSS-Protection: "'1; mode = block'"
+              method.response.header.Access-Control-Allow-Headers: "'x-apigateway-header,x-amz-date,content-type'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.X-Content-Type-Options: "'nosniff'"
+              method.response.header.Referrer-Policy: "'no-referrer'"
+        requestParameters:
+          integration.request.header.x-amz-date: "method.request.header.x-amz-date"
+          integration.request.header.content-type: "method.request.header.content-type"
+          integration.request.header.x-apigateway-header: "method.request.header.x-apigateway-header"
+  /test:
+    post:
+      description: Method description.
+      responses:
+        '200':
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empty'
+      x-amazon-apigateway-integration:
+        type: "HTTP"
+        httpMethod: "POST"
+        uri: "https://nlb.example.com:8080/api/test"
+        connectionType: "VPC_LINK"
+        connectionId: "abc123"
+        requestTemplates: {}
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.X-Frame-Options: "'SAMEORIGIN'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Strict-Transport-Security: "'15768000'"
+              method.response.header.X-XSS-Protection: "'1; mode = block'"
+              method.response.header.Access-Control-Allow-Headers: "'x-apigateway-header,x-amz-date,content-type'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.X-Content-Type-Options: "'nosniff'"
+              method.response.header.Referrer-Policy: "'no-referrer'"
+        requestParameters:
+          integration.request.header.x-amz-date: "method.request.header.x-amz-date"
+          integration.request.header.content-type: "method.request.header.content-type"
+          integration.request.header.x-apigateway-header: "method.request.header.x-apigateway-header"
+    
+x-amazon-apigateway-documentation:
+  version: 1.0.3
+  documentationParts:
+    - location:
+        type: API
+      properties:
+        description: API description
+        info:
+          description: API info description 4
+          version: API info version 3
+    - location:
+        type: METHOD
+        method: GET
+      properties:
+        description: Method description.
+    - location:
+        type: MODEL
+        name: Empty
+      properties:
+        title: Empty Schema
+    - location:
+        type: RESPONSE
+        method: GET
+        statusCode: '200'
+      properties:
+        description: 200 response
+servers:
+  - url: /
+components:
+  schemas:
+    Empty:
+      type: object
+      title: Empty Schema

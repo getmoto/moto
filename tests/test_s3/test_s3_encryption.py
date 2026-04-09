@@ -10,21 +10,23 @@ from moto import mock_aws
 @mock_aws
 def test_encryption_on_new_bucket_fails():
     conn = boto3.client("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    conn.create_bucket(Bucket=bucket_name)
 
     with pytest.raises(ClientError) as exc:
-        conn.get_bucket_encryption(Bucket="mybucket")
+        conn.get_bucket_encryption(Bucket=bucket_name)
     err = exc.value.response["Error"]
     assert err["Code"] == "ServerSideEncryptionConfigurationNotFoundError"
     assert err["Message"] == "The server side encryption configuration was not found"
-    assert err["BucketName"] == "mybucket"
+    assert err["BucketName"] == bucket_name
 
 
 @mock_aws
 def test_put_and_get_encryption():
     # Create Bucket so that test can run
     conn = boto3.client("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    conn.create_bucket(Bucket=bucket_name)
 
     sse_config = {
         "Rules": [
@@ -38,10 +40,10 @@ def test_put_and_get_encryption():
     }
 
     conn.put_bucket_encryption(
-        Bucket="mybucket", ServerSideEncryptionConfiguration=sse_config
+        Bucket=bucket_name, ServerSideEncryptionConfiguration=sse_config
     )
 
-    resp = conn.get_bucket_encryption(Bucket="mybucket")
+    resp = conn.get_bucket_encryption(Bucket=bucket_name)
     assert "ServerSideEncryptionConfiguration" in resp
     return_config = sse_config.copy()
     return_config["Rules"][0]["BucketKeyEnabled"] = False
@@ -52,7 +54,8 @@ def test_put_and_get_encryption():
 def test_delete_and_get_encryption():
     # Create Bucket so that test can run
     conn = boto3.client("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket="mybucket")
+    bucket_name = str(uuid4())
+    conn.create_bucket(Bucket=bucket_name)
 
     sse_config = {
         "Rules": [
@@ -66,13 +69,13 @@ def test_delete_and_get_encryption():
     }
 
     conn.put_bucket_encryption(
-        Bucket="mybucket", ServerSideEncryptionConfiguration=sse_config
+        Bucket=bucket_name, ServerSideEncryptionConfiguration=sse_config
     )
 
-    conn.delete_bucket_encryption(Bucket="mybucket")
+    conn.delete_bucket_encryption(Bucket=bucket_name)
     # GET now fails, after deleting it, as it no longer exists
     with pytest.raises(ClientError) as exc:
-        conn.get_bucket_encryption(Bucket="mybucket")
+        conn.get_bucket_encryption(Bucket=bucket_name)
     err = exc.value.response["Error"]
     assert err["Code"] == "ServerSideEncryptionConfigurationNotFoundError"
 

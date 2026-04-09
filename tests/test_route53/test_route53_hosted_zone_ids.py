@@ -68,11 +68,17 @@ def test_hosted_zone_id_in_change_tags(hosted_zone=None):
             AddTags=[{"Key": "foo", "Value": "bar"}],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidInput"
-    assert (
-        err["Message"]
-        == f"1 validation error detected: Value '{full_zone_id}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32"
-    )
+
+    assert (err["Code"], err["Message"]) in [
+        # Usually this is the exception that AWS returns
+        # Moto will always return this
+        (
+            "InvalidInput",
+            f"1 validation error detected: Value '{full_zone_id}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32",
+        ),
+        # Sometimes (1 in 10 times), AWS will return this error
+        ("NoSuchHostedZone", f"No hosted zone found with ID: {full_zone_id}"),
+    ]
 
     # if we naively limit the id-length to 32, we get a NoSuchHostedZone-exception (as expected)
     with pytest.raises(ClientError) as exc:
@@ -98,11 +104,15 @@ def test_hosted_zone_id_in_change_tags(hosted_zone=None):
             ResourceType="hostedzone", ResourceId=full_zone_id
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidInput"
-    assert (
-        err["Message"]
-        == f"1 validation error detected: Value '{full_zone_id}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32"
-    )
+    assert (err["Code"], err["Message"]) in [
+        # Usually this is the exception that AWS returns. Moto will always return this
+        (
+            "InvalidInput",
+            f"1 validation error detected: Value '{full_zone_id}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32",
+        ),
+        # Sometimes (1 in 10 times), AWS will return this error
+        ("NoSuchHostedZone", f"No hosted zone found with ID: {full_zone_id}"),
+    ]
 
     # Test retrieval of tags with stripped ID
     tags = client.list_tags_for_resource(

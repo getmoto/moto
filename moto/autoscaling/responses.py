@@ -1,5 +1,6 @@
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.ec2.utils import parse_user_data
 from moto.utilities.aws_headers import amz_crc32
 
 from .models import AutoScalingBackend, autoscaling_backends
@@ -20,6 +21,7 @@ class AutoScalingResponse(BaseResponse):
 
     def create_launch_configuration(self) -> ActionResult:
         params = self._get_params()
+        user_data = parse_user_data(params.get("UserData"))
         self.autoscaling_backend.create_launch_configuration(
             name=params.get("LaunchConfigurationName"),  # type: ignore[arg-type]
             image_id=params.get("ImageId"),  # type: ignore[arg-type]
@@ -27,7 +29,7 @@ class AutoScalingResponse(BaseResponse):
             ramdisk_id=params.get("RamdiskId"),  # type: ignore[arg-type]
             kernel_id=params.get("KernelId"),  # type: ignore[arg-type]
             security_groups=self._get_param("SecurityGroups", []),
-            user_data=params.get("UserData"),  # type: ignore[arg-type]
+            user_data=user_data,
             instance_type=params.get("InstanceType"),  # type: ignore[arg-type]
             instance_monitoring=self._get_param("InstanceMonitoring.Enabled", False),
             instance_profile_name=params.get("IamInstanceProfile"),

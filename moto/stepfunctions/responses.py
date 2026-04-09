@@ -207,7 +207,7 @@ class StepFunctionResponse(BaseResponse):
         execution = self.stepfunction_backend.describe_execution(arn)
         response = {
             "executionArn": arn,
-            "input": json.dumps(execution.execution_input),
+            "input": execution.execution_input,
             "name": execution.name,
             "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
             "stateMachineArn": execution.state_machine_arn,

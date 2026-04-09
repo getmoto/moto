@@ -784,7 +784,7 @@ class ContainerInstance(BaseModel):
         ec2_instance = ec2_backend.get_instance(ec2_instance_id)
         self.attributes = {
             "ecs.ami-id": ec2_instance.image_id,
-            "ecs.availability-zone": ec2_instance.placement,
+            "ecs.availability-zone": ec2_instance.availability_zone,
             "ecs.instance-type": ec2_instance.instance_type,
             "ecs.os-type": ec2_instance.platform
             if ec2_instance.platform == "windows"

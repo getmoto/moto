@@ -892,6 +892,18 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-central-1"
  },
@@ -3397,6 +3409,10 @@
  },
  {
   "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
   "Location": "eu-central-1"
  },
  {

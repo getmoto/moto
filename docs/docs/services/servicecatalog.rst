@@ -28,7 +28,7 @@ servicecatalog
 - [ ] create_constraint
 - [X] create_portfolio
 - [X] create_portfolio_share
-- [ ] create_product
+- [X] create_product
 - [ ] create_provisioned_product_plan
 - [ ] create_provisioning_artifact
 - [ ] create_service_action
@@ -36,7 +36,7 @@ servicecatalog
 - [ ] delete_constraint
 - [X] delete_portfolio
 - [X] delete_portfolio_share
-- [ ] delete_product
+- [X] delete_product
 - [ ] delete_provisioned_product_plan
 - [ ] delete_provisioning_artifact
 - [ ] delete_service_action
@@ -48,7 +48,7 @@ servicecatalog
 - [X] describe_portfolio_shares
   TODO: Implement pagination
 
-- [ ] describe_product
+- [X] describe_product
 - [ ] describe_product_as_admin
 - [ ] describe_product_view
 - [ ] describe_provisioned_product

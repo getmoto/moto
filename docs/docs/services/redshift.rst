@@ -114,6 +114,7 @@ redshift
 - [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
+- [ ] get_identity_center_auth_token
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
@@ -132,6 +133,7 @@ redshift
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
 - [ ] modify_integration
+- [ ] modify_lakehouse_configuration
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period

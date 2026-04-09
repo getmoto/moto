@@ -84,6 +84,7 @@ glue
 - [X] delete_dev_endpoint
 - [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
+- [ ] delete_integration_resource_property
 - [ ] delete_integration_table_properties
 - [X] delete_job
 - [ ] delete_ml_transform
@@ -213,6 +214,7 @@ glue
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
 - [ ] list_entities
+- [ ] list_integration_resource_properties
 - [X] list_jobs
 - [ ] list_ml_transforms
 - [X] list_registries
