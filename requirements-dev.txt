@@ -10,8 +10,6 @@ typing-extensions
 packaging
 build
 prompt_toolkit
-awscrt
-crc32c
 
 # type stubs that mypy doesn't install automatically
 botocore-stubs
