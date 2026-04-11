@@ -1,0 +1,13 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListJobRuns": {
+        "unique_attribute": "id"
+      },
+      "ListVirtualClusters": {
+        "unique_attribute": "id"
+      }
+    }
+  }
+}
