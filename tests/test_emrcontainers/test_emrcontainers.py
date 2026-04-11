@@ -1,14 +1,16 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from unittest import SkipTest
 from unittest.mock import patch
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 DEFAULT_REGION = "us-east-1"
 
@@ -177,9 +179,9 @@ class TestDescribeVirtualCluster:
                 "type": "EKS",
             },
             "createdAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "id": self.virtual_cluster_ids[0],
             "name": "test-emr-virtual-cluster",
@@ -199,7 +201,7 @@ class TestDescribeVirtualCluster:
 
 
 class TestListVirtualClusters:
-    today = datetime.now()
+    today = utcnow()
     yesterday = today - timedelta(days=1)
     tomorrow = today + timedelta(days=1)
 
@@ -252,9 +254,15 @@ class TestListVirtualClusters:
     def test_next_token(self):
         resp = self.client.list_virtual_clusters(maxResults=2)
         assert len(resp["virtualClusters"]) == 2
+        assert "nextToken" in resp
 
         resp = self.client.list_virtual_clusters(nextToken=resp["nextToken"])
         assert len(resp["virtualClusters"]) == 2
+        assert "nextToken" not in resp
+
+        resp = self.client.list_virtual_clusters(maxResults=4)
+        assert len(resp["virtualClusters"]) == 4
+        assert "nextToken" not in resp
 
 
 class TestStartJobRun:
@@ -412,7 +420,7 @@ class TestCancelJobRun:
 
 
 class TestListJobRuns:
-    today = datetime.now()
+    today = utcnow()
     yesterday = today - timedelta(days=1)
     tomorrow = today + timedelta(days=1)
 
@@ -499,15 +507,15 @@ class TestDescribeJobRun:
                 f"/jobruns/{self.job_list[2]}"
             ),
             "createdAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "executionRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers",
             "finishedAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=1, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "id": self.job_list[2],
             "jobDriver": {
