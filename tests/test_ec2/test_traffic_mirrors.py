@@ -63,7 +63,6 @@ def test_create_traffic_mirror_target():
         ClientToken=client_token,
         DryRun=False,
     )
-
     metadata = response["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 200
     assert metadata["RetryAttempts"] == 0
@@ -104,6 +103,28 @@ def test_describe_traffic_mirror_filters():
 
 
 @mock_aws
+def test_describe_traffic_mirror_filters_by_filtering():
+    client = boto3.client("ec2", REGION)
+    client.create_traffic_mirror_filter()
+    client.create_traffic_mirror_filter()
+    response = client.create_traffic_mirror_filter()
+
+    traffic_mirror_filter_id = response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    filters = [
+        {"Name": "traffic-mirror-filter-id", "Values": [traffic_mirror_filter_id]}
+    ]
+
+    described_traffic_mirrors = client.describe_traffic_mirror_filters(Filters=filters)[
+        "TrafficMirrorFilters"
+    ]
+
+    assert len(described_traffic_mirrors) == 1
+    my_traffic_mirror_filter = described_traffic_mirrors[0]
+    assert my_traffic_mirror_filter["TrafficMirrorFilterId"] == traffic_mirror_filter_id
+
+
+@mock_aws
 def test_describe_traffic_mirror_filters_by_id():
     client = boto3.client("ec2", REGION)
     client.create_traffic_mirror_filter()
@@ -127,6 +148,34 @@ def test_describe_traffic_mirror_targets():
     client = boto3.client("ec2", REGION)
     response = client.describe_traffic_mirror_targets()
     assert response["TrafficMirrorTargets"] == []
+
+
+@mock_aws
+def test_describe_traffic_mirror_targets_by_filtering():
+    client = boto3.client("ec2", REGION)
+    client.create_traffic_mirror_target(
+        NetworkInterfaceId="test_network_interface_id_1"
+    )
+    client.create_traffic_mirror_target(
+        NetworkInterfaceId="test_network_interface_id_2"
+    )
+    response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="test_network_interface_id_3"
+    )
+
+    traffic_mirror_target_id = response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    filters = [
+        {"Name": "traffic-mirror-target-id", "Values": [traffic_mirror_target_id]}
+    ]
+
+    described_traffic_mirrors = client.describe_traffic_mirror_targets(Filters=filters)[
+        "TrafficMirrorTargets"
+    ]
+
+    assert len(described_traffic_mirrors) == 1
+    my_traffic_mirror_target = described_traffic_mirrors[0]
+    assert my_traffic_mirror_target["TrafficMirrorTargetId"] == traffic_mirror_target_id
 
 
 @mock_aws
