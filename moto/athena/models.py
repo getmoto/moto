@@ -227,7 +227,13 @@ class AthenaBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 50,
             "unique_attribute": "id",
-        }
+        },
+        "list_databases": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -371,45 +377,13 @@ class AthenaBackend(BaseBackend):
             "Parameters": db.parameters,
         }
 
-    def list_databases(
-        self, catalog_name: str, max_results: Optional[int], next_token: Optional[str]
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_databases(self, catalog_name: str) -> list[Database]:
         all_dbs = [
             db for db in self.databases.values() if db.catalog_name == catalog_name
         ]
-        # Sort for stable pagination
         all_dbs.sort(key=lambda d: d.name)
-
-        # Handle pagination
-        start = 0
-        if next_token:
-            for i, db in enumerate(all_dbs):
-                if db.name == next_token:
-                    start = i
-                    break
-
-        if max_results:
-            page = all_dbs[start : start + max_results]
-            new_next_token = (
-                all_dbs[start + max_results].name
-                if start + max_results < len(all_dbs)
-                else None
-            )
-        else:
-            page = all_dbs[start:]
-            new_next_token = None
-
-        return (
-            [
-                {
-                    "Name": db.name,
-                    "Description": db.description,
-                    "Parameters": db.parameters,
-                }
-                for db in page
-            ],
-            new_next_token,
-        )
+        return all_dbs
 
     def _store_predefined_query_results(self, exec_id: str) -> None:
         if exec_id not in self.query_results and self.query_results_queue:

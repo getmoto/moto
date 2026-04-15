@@ -226,10 +226,19 @@ class AthenaResponse(BaseResponse):
         catalog_name = self._get_param("CatalogName")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        database_list, new_next_token = self.athena_backend.list_databases(
-            catalog_name, max_results, next_token
+        databases, new_next_token = self.athena_backend.list_databases(
+            catalog_name, max_results=max_results, next_token=next_token
         )
-        result: dict[str, Any] = {"DatabaseList": database_list}
+        result: dict[str, Any] = {
+            "DatabaseList": [
+                {
+                    "Name": db.name,
+                    "Description": db.description,
+                    "Parameters": db.parameters,
+                }
+                for db in databases
+            ]
+        }
         if new_next_token:
             result["NextToken"] = new_next_token
         return json.dumps(result)
