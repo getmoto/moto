@@ -97,6 +97,7 @@ backend_url_patterns = [
     ("es", re.compile("https?://es\\.(.+)\\.amazonaws\\.com")),
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
     ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
+    ("fis", re.compile("https?://fis\\.(.+)\\.amazonaws\\.com")),
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
     ("fsx", re.compile("https?://fsx\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier\\.(.+)\\.amazonaws.com")),
