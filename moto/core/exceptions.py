@@ -1,7 +1,6 @@
 import json
 from typing import Any, Optional
 
-from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
 
 from moto.core.mime_types import APP_XML
@@ -45,81 +44,35 @@ class ServiceException(Exception):
             msg = args[1]
         else:
             msg = self.message.format(**kwargs)
-        Exception.__init__(self, msg)
+        super().__init__(msg)
         self.message = msg
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
 
 
-SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-    <Code>{{error_type}}</Code>
-    <Message><![CDATA[{{message}}]]></Message>
-    {% block extra %}{% endblock %}
-    <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
-</Error>
-"""
-
-WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<ErrorResponse{% if xmlns is defined %} xmlns="{{xmlns}}"{% endif %}>
-    <Error>
-        <Code>{{error_type}}</Code>
-        <Message><![CDATA[{{message}}]]></Message>
-        {% if include_type_sender %}
-        <Type>Sender</Type>
-        {% endif %}
-        {% block extra %}{% endblock %}
-        <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
-    </Error>
-</ErrorResponse>"""
-
-ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-  <ErrorResponse>
-    <Errors>
-      <Error>
-        <Code>{{error_type}}</Code>
-        <Message><![CDATA[{{message}}]]></Message>
-        {% block extra %}{% endblock %}
-      </Error>
-    </Errors>
-  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
-</ErrorResponse>
-"""
-
-
-class RESTError(HTTPException):
+# Deprecated: do not import or use outside this module.
+class _RESTError(HTTPException):
     code = 400
-    # most APIs use <RequestId>, but some APIs (including EC2, S3) use <RequestID>
-    request_id_tag_name = "RequestId"
-
     # When this field is set, the `Type` field will be included in the response
     # This indicates that the fault lies with the client
     include_type_sender = True
 
-    templates = {
-        "single_error": SINGLE_ERROR_RESPONSE,
-        "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
-        "error": ERROR_RESPONSE,
-    }
-    env = Environment(loader=DictLoader(templates))
-
-    def __init__(
-        self, error_type: str, message: str, template: str = "error", **kwargs: Any
-    ):
+    def __init__(self, error_type: str, message: str, _: str = "", **__: Any):
         super().__init__()
         self.error_type = error_type
         self.message = message
+        error = {
+            "Code": error_type,
+            "Message": message,
+        }
+        if self.include_type_sender:
+            error["Type"] = "Sender"
+        response = {"ErrorResponse": {"Errors": {"Error": error}}}
+        from xmltodict import unparse
 
-        if template in self.env.list_templates():
-            self.description: str = self.__class__.env.get_template(template).render(
-                error_type=error_type,
-                message=message,
-                request_id_tag=self.request_id_tag_name,
-                include_type_sender=self.include_type_sender,
-                **kwargs,
-            )
-            self.content_type = APP_XML
+        self.description = unparse(response, full_document=True)
+        self.content_type = APP_XML
 
     def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [
@@ -132,24 +85,17 @@ class RESTError(HTTPException):
         return self.error_type
 
     def get_body(self, *args: Any, **kwargs: Any) -> str:
-        return self.description
+        return self.description or ""
 
     def to_json(self) -> "JsonRESTError":
         err = JsonRESTError(error_type=self.error_type, message=self.message)
         err.code = self.code
         return err
 
-    @classmethod
-    def extended_environment(cls, extended_templates: dict[str, str]) -> Environment:
-        templates = cls.templates | extended_templates
-        return Environment(loader=DictLoader(templates))
 
-
-class JsonRESTError(RESTError):
-    def __init__(
-        self, error_type: str, message: str, template: str = "error_json", **kwargs: Any
-    ):
-        super().__init__(error_type, message, template, **kwargs)
+class JsonRESTError(_RESTError):
+    def __init__(self, error_type: str, message: str, _: str = "", **kwargs: Any):
+        super().__init__(error_type, message, **kwargs)
         self.description: str = json.dumps(
             {"__type": self.error_type, "message": self.message}
         )
@@ -165,7 +111,7 @@ class JsonRESTError(RESTError):
         return self.description
 
 
-class SignatureDoesNotMatchError(RESTError):
+class SignatureDoesNotMatchError(_RESTError):
     code = 403
 
     def __init__(self) -> None:
@@ -175,7 +121,7 @@ class SignatureDoesNotMatchError(RESTError):
         )
 
 
-class InvalidClientTokenIdError(RESTError):
+class InvalidClientTokenIdError(_RESTError):
     code = 403
 
     def __init__(self) -> None:
@@ -185,7 +131,7 @@ class InvalidClientTokenIdError(RESTError):
         )
 
 
-class AccessDeniedError(RESTError):
+class AccessDeniedError(_RESTError):
     code = 403
 
     def __init__(self, user_arn: str, action: str):
@@ -194,7 +140,7 @@ class AccessDeniedError(RESTError):
         )
 
 
-class AuthFailureError(RESTError):
+class AuthFailureError(_RESTError):
     code = 401
 
     def __init__(self) -> None:

@@ -15,7 +15,6 @@ from moto.connectcampaigns.models import (
     connectcampaigns_backends,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.exceptions import RESTError
 from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -45,6 +44,9 @@ from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
+from moto.resourcegroupstaggingapi.exceptions import (
+    ResourceGroupsTaggingAPIError as RESTError,
+)
 from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends

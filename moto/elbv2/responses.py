@@ -1,8 +1,8 @@
 from typing import Optional
 
-from moto.core.exceptions import RESTError
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.serialize import return_if_not_empty
+from moto.elbv2.exceptions import ELBClientError as RESTError
 
 from .exceptions import ListenerOrBalancerMissingError, TargetGroupNotFoundError
 from .models import ELBv2Backend, elbv2_backends

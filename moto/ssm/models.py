@@ -12,7 +12,6 @@ import yaml
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
@@ -46,6 +45,7 @@ from .exceptions import (
     ParameterVersionNotFound,
     ValidationException,
 )
+from .exceptions import SSMException as RESTError
 from .utils import convert_to_params, parameter_arn
 
 

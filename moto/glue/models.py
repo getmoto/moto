@@ -291,7 +291,11 @@ class GlueBackend(BaseBackend):
         del self.databases[database_name]
 
     def create_table(
-        self, database_name: str, table_name: str, table_input: dict[str, Any]
+        self,
+        database_name: str,
+        table_name: str,
+        table_input: dict[str, Any],
+        open_table_format_input: Optional[dict[str, Any]] = None,
     ) -> "FakeTable":
         database = self.get_database(database_name)
 
@@ -299,7 +303,11 @@ class GlueBackend(BaseBackend):
             raise TableAlreadyExistsException()
 
         table = FakeTable(
-            database_name, table_name, table_input, catalog_id=self.account_id
+            database_name,
+            table_name,
+            table_input,
+            catalog_id=self.account_id,
+            open_table_format_input=open_table_format_input,
         )
         database.tables[table_name] = table
         return table
@@ -1686,6 +1694,7 @@ class FakeTable(BaseModel):
         table_name: str,
         table_input: dict[str, Any],
         catalog_id: str,
+        open_table_format_input: Optional[dict[str, Any]] = None,
     ):
         self.database_name = database_name
         self.name = table_name
@@ -1694,6 +1703,9 @@ class FakeTable(BaseModel):
         self.created_time = utcnow()
         self.updated_time: Optional[datetime] = None
         self._current_version = 1
+        if open_table_format_input and "IcebergInput" in open_table_format_input:
+            table_input.setdefault("Parameters", {})
+            table_input["Parameters"]["table_type"] = "ICEBERG"
         self.versions: dict[str, dict[str, Any]] = {
             str(self._current_version): table_input
         }

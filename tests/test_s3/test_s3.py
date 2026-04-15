@@ -3105,6 +3105,7 @@ def test_request_partial_content_should_contain_actual_content_length():
     try:
         file.get(Range=requested_range)
     except botocore.client.ClientError as exc:
+        assert exc.response["ResponseMetadata"]["HTTPStatusCode"] == 416
         assert exc.response["Error"]["Code"] == "InvalidRange"
         assert (
             exc.response["Error"]["Message"] == "The requested range is not satisfiable"
@@ -3604,3 +3605,80 @@ def test_list_bucket_inventory_configurations():
         ]
         == DEFAULT_ACCOUNT_ID
     )
+
+
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_list_buckets():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = str(uuid.uuid4())
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets()
+    assert [b["Name"] for b in resp["Buckets"]] == [bucket, bucket2]
+
+
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_list_buckets_with_max_buckets():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = str(uuid.uuid4())
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets(MaxBuckets=1)
+    assert [b["Name"] for b in resp["Buckets"]] == [bucket]
+
+
+@mock_aws
+def test_list_buckets_with_prefix():
+    client = boto3.client("s3", region_name="us-east-1")
+    prefix = "prefix"
+    prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+    bucket2 = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=prefixed_bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    resp = client.list_buckets(Prefix=prefix)
+    assert [b["Name"] for b in resp["Buckets"]] == [prefixed_bucket]
+
+
+@mock_aws
+def test_list_buckets_with_bucket_region():
+    client = boto3.client("s3", region_name="us-east-1")
+    us_east_1_bucket = str(uuid.uuid4())
+    us_east_2_bucket = str(uuid.uuid4())
+
+    client.create_bucket(Bucket=us_east_1_bucket)
+    client.create_bucket(
+        Bucket=us_east_2_bucket,
+        CreateBucketConfiguration={"LocationConstraint": "us-east-2"},
+    )
+
+    resp = client.list_buckets(BucketRegion="us-east-2")
+
+    assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_bucket]
+
+
+@mock_aws
+def test_list_buckets_with_prefix_and_bucket_region():
+    client = boto3.client("s3", region_name="us-east-1")
+    prefix = "prefix"
+    us_east_1_prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+    us_east_2_prefixed_bucket = f"{prefix}-{uuid.uuid4()}"
+
+    client.create_bucket(Bucket=us_east_1_prefixed_bucket)
+    client.create_bucket(
+        Bucket=us_east_2_prefixed_bucket,
+        CreateBucketConfiguration={"LocationConstraint": "us-east-2"},
+    )
+
+    resp = client.list_buckets(Prefix=prefix, BucketRegion="us-east-2")
+
+    assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_prefixed_bucket]

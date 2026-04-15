@@ -122,6 +122,30 @@
       }
     },
     "shapes": {
+      "_Condition": {"type":"string"},
+      "_ResourceType": {"type":"string"},
+      "AccessDenied": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "AccessForbidden": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "ArgumentName":{"type":"string"},
+      "ArgumentValue":{"type":"string"},
+      "BucketAlreadyExists": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 409},
+        "exception": true
+      },
       "BucketAlreadyOwnedByYou": {
         "type": "structure",
         "members": {
@@ -138,11 +162,83 @@
         "error": {"httpStatusCode": 409},
         "exception": true
       },
+      "CrossLocationLoggingProhibited": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidAccessKeyId": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidArgument": {
+        "type": "structure",
+        "members": {
+          "ArgumentName": {"shape": "ArgumentName"},
+          "ArgumentValue": {"shape": "ArgumentValue"}
+        },
+        "exception": true
+      },
+      "InvalidObjectState": {
+        "type": "structure",
+        "members": {
+          "StorageClass": {"shape": "StorageClass"}
+        },
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidRange": {
+        "type": "structure",
+        "members": {
+          "ActualObjectSize": {"shape": "ContentLength"},
+          "RangeRequested": {"shape": "Range"}
+        },
+        "error": {"httpStatusCode": 416},
+        "exception": true
+      },
       "InvalidRequest": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
         },
+        "exception": true
+      },
+      "InvalidStorageClass": {
+        "type": "structure",
+        "members": {
+          "StorageClass": {"shape": "StorageClass"}
+        },
+        "error": {"httpStatusCode": 400},
+        "exception": true
+      },
+      "InvalidToken": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 400},
+        "exception": true
+      },
+      "MethodNotAllowed": {
+        "type": "structure",
+        "members": {
+          "Method": {"shape": "AllowedMethod"},
+          "ResourceType": {"shape": "_ResourceType"}
+        },
+        "error": {"httpStatusCode": 405},
+        "exception": true
+      },
+      "NoSuchBucket": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
         "exception": true
       },
       "NoSuchBucketPolicy": {
@@ -161,6 +257,20 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "NoSuchKey": {
+        "type": "structure",
+        "members": {
+          "Key": {"shape": "ObjectKey"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchInventoryConfig": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
       "NoSuchLifecycleConfiguration": {
         "type": "structure",
         "members": {
@@ -169,10 +279,33 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "NoSuchPublicAccessBlockConfiguration": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
       "NoSuchTagSet": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchUpload": {
+        "type": "structure",
+        "members": {
+          "UploadId": {"shape": "MultipartUploadId"}
+        },
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "NoSuchVersion": {
+        "type": "structure",
+        "members": {
+          "Key": {"shape": "ObjectKey"},
+          "VersionId": {"shape": "ObjectVersionId"}
         },
         "error": {"httpStatusCode": 404},
         "exception": true
@@ -185,12 +318,34 @@
         "error": {"httpStatusCode": 404},
         "exception": true
       },
+      "ObjectLockConfigurationNotFoundError": {
+        "type": "structure",
+        "members": {},
+        "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "ObjectNotInActiveTierError": {
+        "type": "structure",
+        "members": {
+          "Key": {"shape": "ObjectKey"}
+        },
+        "error": {"httpStatusCode": 403},
+        "exception": true
+      },
       "OwnershipControlsNotFoundError": {
         "type": "structure",
         "members": {
           "BucketName": {"shape": "BucketName"}
         },
         "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "PreconditionFailed": {
+        "type": "structure",
+        "members": {
+          "Condition": {"shape": "_Condition"}
+        },
+        "error": {"httpStatusCode": 412},
         "exception": true
       },
       "ReplicationConfigurationNotFoundError": {
@@ -207,6 +362,14 @@
           "BucketName": {"shape": "BucketName"}
         },
         "error": {"httpStatusCode": 404},
+        "exception": true
+      },
+      "SignatureDoesNotMatch": {
+        "type": "structure",
+        "members": {
+          "BucketName": {"shape": "BucketName"}
+        },
+        "error": {"httpStatusCode": 403},
         "exception": true
       }
     }

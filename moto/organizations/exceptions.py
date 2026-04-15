@@ -1,9 +1,11 @@
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class AccountAlreadyRegisteredException(JsonRESTError):
-    code = 400
+class OrganizationsClientError(ServiceException):
+    pass
 
+
+class AccountAlreadyRegisteredException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AccountAlreadyRegisteredException",
@@ -11,9 +13,7 @@ class AccountAlreadyRegisteredException(JsonRESTError):
         )
 
 
-class AccountAlreadyClosedException(JsonRESTError):
-    code = 400
-
+class AccountAlreadyClosedException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AccountAlreadyClosedException",
@@ -21,9 +21,7 @@ class AccountAlreadyClosedException(JsonRESTError):
         )
 
 
-class AccountNotRegisteredException(JsonRESTError):
-    code = 400
-
+class AccountNotRegisteredException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AccountNotRegisteredException",
@@ -31,18 +29,14 @@ class AccountNotRegisteredException(JsonRESTError):
         )
 
 
-class AccountNotFoundException(JsonRESTError):
-    code = 400
-
+class AccountNotFoundException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AccountNotFoundException", "You specified an account that doesn't exist."
         )
 
 
-class AlreadyInOrganizationException(JsonRESTError):
-    code = 400
-
+class AlreadyInOrganizationException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AlreadyInOrganizationException",
@@ -50,9 +44,7 @@ class AlreadyInOrganizationException(JsonRESTError):
         )
 
 
-class AWSOrganizationsNotInUseException(JsonRESTError):
-    code = 400
-
+class AWSOrganizationsNotInUseException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "AWSOrganizationsNotInUseException",
@@ -60,23 +52,17 @@ class AWSOrganizationsNotInUseException(JsonRESTError):
         )
 
 
-class ConstraintViolationException(JsonRESTError):
-    code = 400
-
+class ConstraintViolationException(OrganizationsClientError):
     def __init__(self, message: str):
         super().__init__("ConstraintViolationException", message)
 
 
-class InvalidInputException(JsonRESTError):
-    code = 400
-
+class InvalidInputException(OrganizationsClientError):
     def __init__(self, message: str):
         super().__init__("InvalidInputException", message)
 
 
-class DuplicateOrganizationalUnitException(JsonRESTError):
-    code = 400
-
+class DuplicateOrganizationalUnitException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "DuplicateOrganizationalUnitException",
@@ -84,18 +70,14 @@ class DuplicateOrganizationalUnitException(JsonRESTError):
         )
 
 
-class DuplicatePolicyException(JsonRESTError):
-    code = 400
-
+class DuplicatePolicyException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "DuplicatePolicyException", "A policy with the same name already exists."
         )
 
 
-class OrganizationNotEmptyException(JsonRESTError):
-    code = 400
-
+class OrganizationNotEmptyException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "OrganizationNotEmptyException",
@@ -103,9 +85,7 @@ class OrganizationNotEmptyException(JsonRESTError):
         )
 
 
-class PolicyTypeAlreadyEnabledException(JsonRESTError):
-    code = 400
-
+class PolicyTypeAlreadyEnabledException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "PolicyTypeAlreadyEnabledException",
@@ -113,9 +93,7 @@ class PolicyTypeAlreadyEnabledException(JsonRESTError):
         )
 
 
-class PolicyTypeNotEnabledException(JsonRESTError):
-    code = 400
-
+class PolicyTypeNotEnabledException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "PolicyTypeNotEnabledException",
@@ -123,26 +101,20 @@ class PolicyTypeNotEnabledException(JsonRESTError):
         )
 
 
-class RootNotFoundException(JsonRESTError):
-    code = 400
-
+class RootNotFoundException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "RootNotFoundException", "You specified a root that doesn't exist."
         )
 
 
-class TargetNotFoundException(JsonRESTError):
-    code = 400
-
+class TargetNotFoundException(OrganizationsClientError):
     def __init__(self) -> None:
         super().__init__(
             "TargetNotFoundException", "You specified a target that doesn't exist."
         )
 
 
-class PolicyNotFoundException(JsonRESTError):
-    code = 400
-
+class PolicyNotFoundException(OrganizationsClientError):
     def __init__(self, message: str) -> None:
         super().__init__("PolicyNotFoundException", message)

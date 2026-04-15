@@ -97,6 +97,11 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.map_public_ip_on_launch = map_public_ip_on_launch
         self.assign_ipv6_address_on_creation = ipv6_native
         self.ipv6_cidr_block_associations: dict[str, dict[str, Any]] = {}
+        self.private_dns_name_options_on_launch = {
+            "HostnameType": "ip-name",
+            "EnableResourceNameDnsARecord": False,
+            "EnableResourceNameDnsAAAARecord": False,
+        }
         if ipv6_cidr_block:
             self.attach_ipv6_cidr_block_associations(ipv6_cidr_block)
 
@@ -633,11 +638,15 @@ class SubnetBackend:
         raise InvalidSubnetIdError(subnet_id)
 
     def modify_subnet_attribute(
-        self, subnet_id: str, attr_name: str, attr_value: str
+        self, subnet_id: str, attr_name: str, attr_value: bool
     ) -> None:
         subnet = self.get_subnet(subnet_id)
         if attr_name in ("map_public_ip_on_launch", "assign_ipv6_address_on_creation"):
             setattr(subnet, attr_name, attr_value)
+        elif attr_name == "enable_resource_name_dns_a_record_on_launch":
+            subnet.private_dns_name_options_on_launch[
+                "EnableResourceNameDnsARecord"
+            ] = attr_value
         else:
             raise InvalidParameterValueError(attr_name)
 

@@ -1,158 +1,118 @@
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class DoesNotExistException(JsonRESTError):
-    code = 400
+class SSMException(ServiceException):
+    pass
 
+
+class DoesNotExistException(SSMException):
     def __init__(self, window_id: str):
         super().__init__(
             "DoesNotExistException", f"Maintenance window {window_id} does not exist"
         )
 
 
-class InvalidFilterKey(JsonRESTError):
-    code = 400
-
+class InvalidFilterKey(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidFilterKey", message)
 
 
-class InvalidFilterOption(JsonRESTError):
-    code = 400
-
+class InvalidFilterOption(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidFilterOption", message)
 
 
-class InvalidFilterValue(JsonRESTError):
-    code = 400
-
+class InvalidFilterValue(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidFilterValue", message)
 
 
-class InvalidResourceId(JsonRESTError):
-    code = 400
-
+class InvalidResourceId(SSMException):
     def __init__(self) -> None:
         super().__init__("InvalidResourceId", "Invalid Resource Id")
 
 
-class InvalidResourceType(JsonRESTError):
-    code = 400
-
+class InvalidResourceType(SSMException):
     def __init__(self) -> None:
         super().__init__("InvalidResourceType", "Invalid Resource Type")
 
 
-class ParameterNotFound(JsonRESTError):
-    code = 400
-
+class ParameterNotFound(SSMException):
     def __init__(self, message: str):
         super().__init__("ParameterNotFound", message)
 
 
-class ParameterVersionNotFound(JsonRESTError):
-    code = 400
-
+class ParameterVersionNotFound(SSMException):
     def __init__(self, message: str):
         super().__init__("ParameterVersionNotFound", message)
 
 
-class ParameterVersionLabelLimitExceeded(JsonRESTError):
-    code = 400
-
+class ParameterVersionLabelLimitExceeded(SSMException):
     def __init__(self, message: str):
         super().__init__("ParameterVersionLabelLimitExceeded", message)
 
 
-class ValidationException(JsonRESTError):
-    code = 400
-
+class ValidationException(SSMException):
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
 
 
-class DocumentAlreadyExists(JsonRESTError):
-    code = 400
-
+class DocumentAlreadyExists(SSMException):
     def __init__(self, message: str):
         super().__init__("DocumentAlreadyExists", message)
 
 
-class DocumentPermissionLimit(JsonRESTError):
-    code = 400
-
+class DocumentPermissionLimit(SSMException):
     def __init__(self, message: str):
         super().__init__("DocumentPermissionLimit", message)
 
 
-class InvalidPermissionType(JsonRESTError):
-    code = 400
-
+class InvalidPermissionType(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidPermissionType", message)
 
 
-class InvalidDocument(JsonRESTError):
-    code = 400
-
+class InvalidDocument(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidDocument", message)
 
 
-class InvalidDocumentOperation(JsonRESTError):
-    code = 400
-
+class InvalidDocumentOperation(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidDocumentOperation", message)
 
 
-class AccessDeniedException(JsonRESTError):
-    code = 400
-
+class AccessDeniedException(SSMException):
     def __init__(self, message: str):
         super().__init__("AccessDeniedException", message)
 
 
-class InvalidDocumentContent(JsonRESTError):
-    code = 400
-
+class InvalidDocumentContent(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidDocumentContent", message)
 
 
-class InvalidDocumentVersion(JsonRESTError):
-    code = 400
-
+class InvalidDocumentVersion(SSMException):
     def __init__(self, message: str):
         super().__init__("InvalidDocumentVersion", message)
 
 
-class DuplicateDocumentVersionName(JsonRESTError):
-    code = 400
-
+class DuplicateDocumentVersionName(SSMException):
     def __init__(self, message: str):
         super().__init__("DuplicateDocumentVersionName", message)
 
 
-class DuplicateDocumentContent(JsonRESTError):
-    code = 400
-
+class DuplicateDocumentContent(SSMException):
     def __init__(self, message: str):
         super().__init__("DuplicateDocumentContent", message)
 
 
-class ParameterMaxVersionLimitExceeded(JsonRESTError):
-    code = 400
-
+class ParameterMaxVersionLimitExceeded(SSMException):
     def __init__(self, message: str):
         super().__init__("ParameterMaxVersionLimitExceeded", message)
 
 
-class ParameterAlreadyExists(JsonRESTError):
-    code = 400
-
+class ParameterAlreadyExists(SSMException):
     def __init__(self) -> None:
         super().__init__(
             "ParameterAlreadyExists",
@@ -160,9 +120,7 @@ class ParameterAlreadyExists(JsonRESTError):
         )
 
 
-class AlreadyExistsException(JsonRESTError):
-    code = 400
-
+class AlreadyExistsException(SSMException):
     def __init__(self, operating_system: str) -> None:
         super().__init__(
             "AlreadyExistsException",
@@ -170,9 +128,7 @@ class AlreadyExistsException(JsonRESTError):
         )
 
 
-class BaselineDoesNotExistException(JsonRESTError):
-    code = 400
-
+class BaselineDoesNotExistException(SSMException):
     def __init__(self) -> None:
         super().__init__(
             "DoesNotExistException", "Patch Baseline to be retrieved does not exist."

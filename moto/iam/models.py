@@ -15,7 +15,6 @@ from cryptography.hazmat.backends import default_backend
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
@@ -48,6 +47,7 @@ from .exceptions import (
     TooManyTags,
     ValidationError,
 )
+from .exceptions import IAMException as RESTError
 from .utils import (
     generate_access_key_id_from_account_id,
     random_access_key,

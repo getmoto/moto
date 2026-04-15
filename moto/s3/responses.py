@@ -28,7 +28,7 @@ from moto.s3bucket_path.utils import (
 )
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from ..core.exceptions import ServiceException, SignatureDoesNotMatchError
+from ..core.exceptions import SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
     BucketAccessDeniedError,
@@ -241,7 +241,12 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action()
 
         # No bucket specified. Listing all buckets
-        all_buckets = self.backend.list_buckets()
+        prefix = self._get_param("prefix")
+        bucket_region = self._get_param("bucket-region")
+        max_buckets = self._get_param("max-buckets")
+        all_buckets = self.backend.list_buckets(
+            prefix=prefix, bucket_region=bucket_region, max_buckets=max_buckets
+        )
         buckets = [
             {"Name": bucket.name, "CreationDate": bucket.creation_date_ISO8601}
             for bucket in all_buckets
@@ -382,9 +387,7 @@ class S3Response(BaseResponse):
         try:
             response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
-        except ServiceException as e:
-            response = self.serialized(ActionResult(e))
+            response = self.serialized(ActionResult(s3error))
 
         return self._send_response(response)
 
@@ -698,6 +701,8 @@ class S3Response(BaseResponse):
                 },
                 "StorageClass": "STANDARD",
                 "Initiated": "2010-11-10T20:48:33.000Z",
+                "ChecksumAlgorithm": upload.metadata.get("x-amz-checksum-algorithm"),
+                "ChecksumType": upload.metadata.get("x-amz-checksum-type"),
             }
             for upload in multiparts
         ]
@@ -1853,7 +1858,7 @@ class S3Response(BaseResponse):
         try:
             response = self._key_response(request, full_url)
         except S3ClientError as s3error:
-            response = s3error.code, {}, s3error.description
+            response = self.serialized(ActionResult(s3error))
 
         status_code, response_headers, response_content = self._send_response(response)
 
@@ -1867,7 +1872,7 @@ class S3Response(BaseResponse):
                     request, response_headers, response_content
                 )
             except S3ClientError as s3error:
-                return s3error.code, {}, s3error.description
+                return self.serialized(ActionResult(s3error))
         return status_code, response_headers, response_content
 
     def _key_response(self, request: Any, full_url: str) -> TYPE_RESPONSE:
@@ -1986,9 +1991,16 @@ class S3Response(BaseResponse):
             self.headers.get("x-amz-checksum-mode") == "ENABLED"
             and key.checksum_algorithm
         ):
+            qualified_checksum = key.checksum_value
+            if key.checksum_type == "COMPOSITE":
+                qualified_checksum = f"{key.checksum_value}-{key.checksum_parts}"
+
             response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
-                key.checksum_value
+                qualified_checksum
             )
+
+            if key.checksum_type:
+                response_headers["x-amz-checksum-type"] = key.checksum_type
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
@@ -2028,7 +2040,8 @@ class S3Response(BaseResponse):
             "ObjectSize": response_keys["size"],
             "StorageClass": response_keys["storage_class"],
         }
-
+        if checksum:
+            result["Checksum"]["ChecksumType"] = checksum.get("type")
         self.data["Action"] = "GetObjectAttributes"
         status, headers, body = self.serialized(ActionResult(result))
         headers.update(response_headers)
@@ -3094,7 +3107,7 @@ class S3Response(BaseResponse):
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             acl = self._acl_from_headers(request.headers)
 
-            multipart_id = self.backend.create_multipart_upload(
+            multipart = self.backend.create_multipart_upload(
                 bucket_name,
                 key_name,
                 metadata,
@@ -3117,7 +3130,11 @@ class S3Response(BaseResponse):
                     {
                         "Bucket": bucket_name,
                         "Key": key_name,
-                        "UploadId": multipart_id,
+                        "UploadId": multipart.id,
+                        "ChecksumAlgorithm": multipart.metadata.get(
+                            "x-amz-checksum-algorithm"
+                        ),
+                        "ChecksumType": multipart.metadata.get("x-amz-checksum-type"),
                     }
                 )
             )

@@ -263,6 +263,7 @@ def test_create_agent_runtime_endpoint_conflict():
             agentRuntimeId=runtime_id,
             name="my_endpoint",
         )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
     assert exc.value.response["Error"]["Code"] == "ConflictException"
 
 
@@ -310,6 +311,7 @@ def test_get_agent_runtime_endpoint_not_found():
             agentRuntimeId=runtime_id,
             endpointName="nonexistent",
         )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 

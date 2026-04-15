@@ -2,15 +2,17 @@
 
 import re
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import patch
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
 
@@ -292,14 +294,14 @@ class TestGetApplication:
             "autoStopConfiguration": {"enabled": True, "idleTimeoutMinutes": 15},
             "tags": {},
             "createdAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "updatedAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
         }
         return {**response, **extra_configuration}
@@ -400,14 +402,14 @@ class TestListApplication:
             "state": "STARTED",
             "stateDetails": "",
             "createdAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "updatedAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
         }
 
@@ -516,14 +518,14 @@ class TestUpdateApplication:
             "autoStopConfiguration": {"enabled": True, "idleTimeoutMinutes": 15},
             "tags": {},
             "createdAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
             "updatedAt": (
-                datetime.today()
+                utcnow()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
+                .replace(tzinfo=tzutc())
             ),
         }
         return {**response, **extra_configuration}

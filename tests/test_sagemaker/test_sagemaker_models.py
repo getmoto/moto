@@ -72,9 +72,9 @@ def test_delete_model(sagemaker_client):
 
 
 def test_delete_model_not_found(sagemaker_client):
-    with pytest.raises(ClientError) as err:
+    with pytest.raises(ClientError, match="Could not find model") as err:
         sagemaker_client.delete_model(ModelName="blah")
-    assert err.value.response["Error"]["Code"] == "404"
+    assert err.value.response["Error"]["Code"] == "ValidationException"
 
 
 def test_list_models(sagemaker_client):
