@@ -1,9 +1,24 @@
 from threading import Event, Thread
 from typing import Optional
 
-from werkzeug.serving import BaseWSGIServer, make_server
+from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler, make_server
 
 from .werkzeug_app import DomainDispatcherApplication, create_backend_app
+
+
+class _MotoRequestHandler(WSGIRequestHandler):
+    def handle_expect_100(self) -> bool:
+        """Suppress the duplicate ``100 Continue`` from BaseHTTPRequestHandler.
+
+        Werkzeug's ``run_wsgi()`` already sends its own ``100 Continue``
+        when it sees the ``Expect`` header.  The default
+        ``BaseHTTPRequestHandler.parse_request()`` sends a second one,
+        resulting in two ``100 Continue`` responses on the wire.
+
+        Returning ``True`` without writing anything prevents the duplicate
+        while letting werkzeug send exactly one ``100 Continue`` later.
+        """
+        return True
 
 
 class ThreadedMotoServer:
@@ -21,7 +36,13 @@ class ThreadedMotoServer:
     def _server_entry(self) -> None:
         app = DomainDispatcherApplication(create_backend_app)
 
-        self._server = make_server(self._ip_address, self._port, app, True)
+        self._server = make_server(
+            self._ip_address,
+            self._port,
+            app,
+            threaded=True,
+            request_handler=_MotoRequestHandler,
+        )
         self._server_ready_event.set()
         self._server.serve_forever()
 
