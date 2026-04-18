@@ -103,7 +103,7 @@ class VPCLatticeListener(BaseModel):
         )
         self.name: str = name
         self.protocol: str = protocol
-        self.port: int = port
+        self.port: int = port or 443
         self.default_action: dict[str, Any] = default_action
         self.client_token: str = client_token
         self.tags: dict[str, str] = tags or {}
@@ -981,7 +981,6 @@ class VPCLatticeBackend(BaseBackend):
     def get_service_network_service_association(
         self, service_network_service_association_identifier: str
     ) -> VPCLatticeServiceNetworkServiceAssociation:
-
         if service_network_service_association_identifier.startswith("arn:"):
             assoc_id = service_network_service_association_identifier.rsplit("/", 1)[-1]
         else:
