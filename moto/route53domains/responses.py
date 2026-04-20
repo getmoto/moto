@@ -8,7 +8,7 @@ from moto.route53domains.validators import Route53Domain, Route53DomainsOperatio
 
 class Route53DomainsResponse(BaseResponse):
     def __init__(self) -> None:
-        super().__init__(service_name="route53-domains")
+        super().__init__(service_name="route53domains")
 
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
