@@ -297,7 +297,7 @@ def generate_dns_from_ip(ip: Any, dns_type: str = "internal") -> str:
 
 
 def random_mac_address() -> str:
-    return f"02:00:00:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x"
+    return f"02:00:00:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}"
 
 
 def randor_ipv4_cidr() -> str:
