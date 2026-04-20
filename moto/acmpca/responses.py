@@ -13,7 +13,7 @@ class ACMPCAResponse(BaseResponse):
     """Handler for ACMPCA requests and responses."""
 
     def __init__(self) -> None:
-        super().__init__(service_name="acmpca")
+        super().__init__(service_name="acm-pca")
 
     @property
     def acmpca_backend(self) -> ACMPCABackend:

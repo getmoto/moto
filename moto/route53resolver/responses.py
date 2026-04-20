@@ -14,7 +14,7 @@ class Route53ResolverResponse(BaseResponse):
     """Handler for Route53Resolver requests and responses."""
 
     def __init__(self) -> None:
-        super().__init__(service_name="route53-resolver")
+        super().__init__(service_name="route53resolver")
 
     @property
     def route53resolver_backend(self) -> Route53ResolverBackend:
