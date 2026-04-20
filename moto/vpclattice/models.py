@@ -106,6 +106,8 @@ class VPCLatticeListener(BaseModel):
         self.port: int = port or 443
         self.default_action: dict[str, Any] = default_action
         self.client_token: str = client_token
+        self.createdAt = datetime.now(timezone.utc).isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
         self.tags: dict[str, str] = tags or {}
 
     def to_dict(self) -> dict[str, Any]:
@@ -118,6 +120,8 @@ class VPCLatticeListener(BaseModel):
             "serviceArn": self.service_arn,
             "serviceId": self.service_identifier,
             "defaultAction": self.default_action,
+            "createdAt": self.createdAt,
+            "lastUpdatedAt": self.last_updated_at,
         }
 
 
@@ -126,8 +130,8 @@ class VPCLatticeServiceNetworkResourceAssociation(BaseModel):
         self,
         region: str,
         account_id: str,
-        service_network_identifier: str,
-        resource_configuration_identifier: str,
+        service_network: VPCLatticeServiceNetwork,
+        # resource_configuration: VPCLatticeResourceConfiguration,
         private_dns_enabled: bool,
         client_token: str,
         tags: Optional[dict[str, str]],
@@ -138,13 +142,17 @@ class VPCLatticeServiceNetworkResourceAssociation(BaseModel):
             f"arn:aws:vpc-lattice:{region}:{account_id}:"
             f"servicenetworkresourceassociation/{self.id}"
         )
-        self.service_network_id: str = service_network_identifier
-        self.resource_id: str = resource_configuration_identifier
-        self.created_by: str = "user"
+        self.service_network_id: str = service_network.id
+        self.service_network_name: str = service_network.name
+        self.service_network_arn: str = service_network.arn
+        # self.resource_configuration_id: str = resource_configuration.id
+        # self.resource_configuration_arn: str = resource_configuration.arn
+        # self.resource_configuration_name: str = resource_configuration.name
+        self.created_by: str = account_id
         self.created_at: str = now_iso
-        self.last_updated_at: str = now_iso
         self.status: str = "ACTIVE"
         self.client_token: str = client_token
+        self.last_updated_at: str = now_iso
         self.private_dns_enabled: bool = private_dns_enabled
         self.tags: dict[str, str] = tags or {}
 
@@ -152,13 +160,17 @@ class VPCLatticeServiceNetworkResourceAssociation(BaseModel):
         return {
             "id": self.id,
             "arn": self.arn,
-            "serviceNetworkId": self.service_network_id,
-            "resourceId": self.resource_id,
-            "createdBy": self.created_by,
-            "privateDnsEnabled": self.private_dns_enabled,
-            "createdAt": self.created_at,
-            "lastUpdatedAt": self.last_updated_at,
             "status": self.status,
+            "createdBy": self.created_by,
+            "createdAt": self.created_at,
+            # "resourceConfigurationId": self.resource_configuration_id,
+            # "resourceConfigurationArn": self.resource_configuration_arn,
+            # "resourceConfigurationName": self.resource_configuration_name,
+            "serviceNetworkId": self.service_network_id,
+            "serviceNetworkName": self.service_network_name,
+            "serviceNetworkArn": self.service_network_arn,
+            "lastUpdatedAt": self.last_updated_at,
+            "privateDnsEnabled": self.private_dns_enabled,
         }
 
 
@@ -177,7 +189,7 @@ class VPCLatticeServiceNetworkServiceAssociation(BaseModel):
         self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkserviceassociation/{self.id}"
         self.service_network_id: str = service_network_identifier
         self.service_id: str = service_identifier
-        self.created_by: str = "user"
+        self.created_by: str = account_id
         self.created_at: str = now_iso
         self.last_updated_at: str = now_iso
         self.status: str = "ACTIVE"
@@ -305,6 +317,9 @@ class VPCLatticeTargetGroup(BaseModel):
         self.client_token: str = client_token
         self.tags: dict[str, str] = tags or {}
         self.status: str = "CREATE_IN_PROGRESS"
+        self.vpcIdentifer: Optional[str] = self.config.get("vpcIdentifier")
+        self.createdAt = datetime.now(timezone.utc).isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -313,6 +328,9 @@ class VPCLatticeTargetGroup(BaseModel):
             "name": self.name,
             "type": self.type,
             "config": self.config,
+            "createdAt": self.createdAt,
+            "vpcIdentifier": self.vpcIdentifer,
+            "lastUpdatedAt": self.last_updated_at,
             "status": self.status,
         }
 
@@ -806,12 +824,7 @@ class VPCLatticeBackend(BaseBackend):
     def get_listener(
         self, service_identifier: str, listener_identifier: str
     ) -> VPCLatticeListener:
-        if listener_identifier.startswith("arn:"):
-            listener_id = listener_identifier.rsplit("/", 1)[-1]
-        else:
-            listener_id = listener_identifier
-
-        listener = self.listeners.get(listener_id)
+        listener = self.listeners.get(listener_identifier)
         if not listener:
             raise ResourceNotFoundException(f"Listener {listener_identifier} not found")
 
@@ -854,17 +867,11 @@ class VPCLatticeBackend(BaseBackend):
         )
         self.target_groups[target_group.id] = target_group
         self.tag_resource(target_group.arn, tags or {})
-
         target_group.status = "ACTIVE"
         return target_group
 
     def get_target_group(self, target_group_identifier: str) -> VPCLatticeTargetGroup:
-        if target_group_identifier.startswith("arn:"):
-            target_group_id = target_group_identifier.rsplit("/", 1)[-1]
-        else:
-            target_group_id = target_group_identifier
-
-        target_group = self.target_groups.get(target_group_id)
+        target_group = self.target_groups.get(target_group_identifier)
         if not target_group:
             raise ResourceNotFoundException(
                 f"Target group {target_group_identifier} not found"
@@ -905,8 +912,8 @@ class VPCLatticeBackend(BaseBackend):
         assoc = VPCLatticeServiceNetworkResourceAssociation(
             self.region_name,
             self.account_id,
-            service_network.id,
-            resource_config_identifier,
+            service_network,
+            # resource_config,
             private_dns_enabled,
             client_token,
             tags,
@@ -918,14 +925,9 @@ class VPCLatticeBackend(BaseBackend):
     def get_service_network_resource_association(
         self, service_network_resource_association_identifier: str
     ) -> VPCLatticeServiceNetworkResourceAssociation:
-        if service_network_resource_association_identifier.startswith("arn:"):
-            assoc_id = service_network_resource_association_identifier.rsplit("/", 1)[
-                -1
-            ]
-        else:
-            assoc_id = service_network_resource_association_identifier
-
-        assoc = self.service_network_resource_associations.get(assoc_id)
+        assoc = self.service_network_resource_associations.get(
+            service_network_resource_association_identifier
+        )
         if not assoc:
             raise ResourceNotFoundException(
                 f"Service network resource association {service_network_resource_association_identifier} not found"
@@ -981,12 +983,9 @@ class VPCLatticeBackend(BaseBackend):
     def get_service_network_service_association(
         self, service_network_service_association_identifier: str
     ) -> VPCLatticeServiceNetworkServiceAssociation:
-        if service_network_service_association_identifier.startswith("arn:"):
-            assoc_id = service_network_service_association_identifier.rsplit("/", 1)[-1]
-        else:
-            assoc_id = service_network_service_association_identifier
-
-        assoc = self.service_network_service_associations.get(assoc_id)
+        assoc = self.service_network_service_associations.get(
+            service_network_service_association_identifier
+        )
         if not assoc:
             raise ResourceNotFoundException(
                 f"Service network service association {service_network_service_association_identifier} not found"
@@ -999,7 +998,6 @@ class VPCLatticeBackend(BaseBackend):
         service_network_identifier: Optional[str] = None,
         service_identifier: Optional[str] = None,
     ) -> list[VPCLatticeServiceNetworkServiceAssociation]:
-        """List service network service associations."""
         associations = list(self.service_network_service_associations.values())
         if service_network_identifier:
             associations = [
