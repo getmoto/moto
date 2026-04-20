@@ -1720,3 +1720,79 @@ def test_start_live_tail_returns_session_events():
     assert result["timestamp"] == now + 1
     with pytest.raises(StopIteration):
         next(event_stream)
+
+
+@mock_aws
+def test_start_live_tail_rejects_more_than_ten_log_groups():
+    client = boto3.client("logs", TEST_REGION)
+    log_group_arns = []
+    for index in range(11):
+        log_group_name = f"live-tail-group-{index}"
+        client.create_log_group(logGroupName=log_group_name)
+        log_group_arns.append(
+            client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+                0
+            ]["logGroupArn"]
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(logGroupIdentifiers=log_group_arns)
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "1 validation error detected: Value at 'logGroupIdentifiers' failed to satisfy constraint: Member must have length less than or equal to 10"
+    )
+
+
+@mock_aws
+def test_start_live_tail_rejects_stream_names_and_prefixes_together():
+    client = boto3.client("logs", TEST_REGION)
+    client.create_log_group(logGroupName="live-tail-group")
+    client.create_log_stream(
+        logGroupName="live-tail-group", logStreamName="application-stream"
+    )
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(
+            logGroupIdentifiers=[log_group["logGroupArn"]],
+            logStreamNames=["application-stream"],
+            logStreamNamePrefixes=["application"],
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "Only one of logStreamNames or logStreamNamePrefixes can be provided."
+    )
+
+
+@mock_aws
+def test_start_live_tail_rejects_stream_filters_with_multiple_log_groups():
+    client = boto3.client("logs", TEST_REGION)
+    log_group_arns = []
+    for log_group_name in ("live-tail-group-a", "live-tail-group-b"):
+        client.create_log_group(logGroupName=log_group_name)
+        log_group_arns.append(
+            client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+                0
+            ]["logGroupArn"]
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(
+            logGroupIdentifiers=log_group_arns,
+            logStreamNamePrefixes=["application"],
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+    )
