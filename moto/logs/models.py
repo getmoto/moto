@@ -1177,7 +1177,9 @@ class LogsBackend(BaseBackend):
             raise InvalidParameterException(
                 msg="Only one of logStreamNames or logStreamNamePrefixes can be provided."
             )
-        if (log_stream_names or log_stream_name_prefixes) and len(log_group_identifiers) != 1:
+        if (log_stream_names or log_stream_name_prefixes) and len(
+            log_group_identifiers
+        ) != 1:
             raise InvalidParameterException(
                 msg="logStreamNames and logStreamNamePrefixes can only be used with a single log group."
             )
@@ -1605,7 +1607,9 @@ class LogsBackend(BaseBackend):
         streams = list(log_group.streams.values())
         if log_stream_names:
             return [
-                stream for stream in streams if stream.log_stream_name in log_stream_names
+                stream
+                for stream in streams
+                if stream.log_stream_name in log_stream_names
             ]
         if log_stream_name_prefixes:
             return [
