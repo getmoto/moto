@@ -7,6 +7,7 @@ from moto.core.responses import BaseResponse
 
 from .exceptions import InvalidParameterException
 from .models import LogsBackend, logs_backends
+from .utils import serialize_start_live_tail
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -333,6 +334,23 @@ class LogsResponse(BaseResponse):
                 "nextToken": next_token,
                 "searchedLogStreams": searched_streams,
             }
+        )
+
+    def start_live_tail(self) -> tuple[bytes, dict[str, str]]:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        log_stream_names = self._get_param("logStreamNames")
+        log_stream_name_prefixes = self._get_param("logStreamNamePrefixes")
+        log_event_filter_pattern = self._get_param("logEventFilterPattern")
+
+        session_start, session_update = self.logs_backend.start_live_tail(
+            log_group_identifiers=log_group_identifiers,
+            log_stream_names=log_stream_names,
+            log_stream_name_prefixes=log_stream_name_prefixes,
+            log_event_filter_pattern=log_event_filter_pattern,
+        )
+        return (
+            serialize_start_live_tail(session_start, session_update),
+            {"content-type": "application/vnd.amazon.eventstream"},
         )
 
     def put_retention_policy(self) -> str:

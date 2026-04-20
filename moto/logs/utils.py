@@ -1,3 +1,8 @@
+import binascii
+import json
+import struct
+from typing import Any, Optional
+
 PAGINATION_MODEL = {
     "describe_log_groups": {
         "input_token": "next_token",
@@ -57,3 +62,39 @@ class EventMessageFilter:
 
     def matches(self, message: str) -> bool:
         return self.filter_type.matches(message)  # type: ignore
+
+
+def _create_event_stream_header(key: bytes, value: bytes) -> bytes:
+    return struct.pack("b", len(key)) + key + struct.pack("!bh", 7, len(value)) + value
+
+
+def _create_event_stream_message(event_type: bytes, payload: bytes) -> bytes:
+    headers = _create_event_stream_header(b":message-type", b"event")
+    headers += _create_event_stream_header(b":event-type", event_type)
+    headers += _create_event_stream_header(b":content-type", b"application/json")
+
+    headers_length = struct.pack("!I", len(headers))
+    total_length = struct.pack("!I", len(payload) + len(headers) + 16)
+    prelude = total_length + headers_length
+
+    prelude_crc = struct.pack("!I", binascii.crc32(prelude))
+    message_crc = struct.pack(
+        "!I", binascii.crc32(prelude + prelude_crc + headers + payload)
+    )
+
+    return prelude + prelude_crc + headers + payload + message_crc
+
+
+def serialize_start_live_tail(
+    session_start: dict[str, Any], session_update: dict[str, Any]
+) -> bytes:
+    """Serialize a minimal CloudWatch Logs StartLiveTail event stream."""
+    return (
+        _create_event_stream_message(b"initial-response", b"{}")
+        + _create_event_stream_message(
+            b"sessionStart", json.dumps(session_start).encode("utf-8")
+        )
+        + _create_event_stream_message(
+            b"sessionUpdate", json.dumps(session_update).encode("utf-8")
+        )
+    )

@@ -146,7 +146,7 @@ logs
 - [X] put_retention_policy
 - [X] put_subscription_filter
 - [ ] put_transformer
-- [ ] start_live_tail
+- [X] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
@@ -159,4 +159,3 @@ logs
 - [ ] update_delivery_configuration
 - [ ] update_log_anomaly_detector
 - [ ] update_scheduled_query
-

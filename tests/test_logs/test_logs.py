@@ -1674,3 +1674,49 @@ def test_delete_delivery_source():
         client.delete_delivery_source(name="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_start_live_tail_returns_session_events():
+    client = boto3.client("logs", TEST_REGION)
+    now = int(unix_time_millis())
+    client.create_log_group(logGroupName="live-tail-group")
+    client.create_log_stream(
+        logGroupName="live-tail-group", logStreamName="application-stream"
+    )
+    client.put_log_events(
+        logGroupName="live-tail-group",
+        logStreamName="application-stream",
+        logEvents=[
+            {"timestamp": now, "message": "info startup complete"},
+            {"timestamp": now + 1, "message": "error unable to connect"},
+        ],
+    )
+
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+    response = client.start_live_tail(
+        logGroupIdentifiers=[log_group["logGroupArn"]],
+        logStreamNames=["application-stream"],
+        logEventFilterPattern="error",
+    )
+
+    event_stream = iter(response["responseStream"])
+    session_start = next(event_stream)
+    session_update = next(event_stream)
+
+    assert session_start["sessionStart"]["logGroupIdentifiers"] == [
+        log_group["logGroupArn"]
+    ]
+    assert session_start["sessionStart"]["logStreamNames"] == ["application-stream"]
+    assert session_update["sessionUpdate"]["sessionMetadata"] == {"sampled": False}
+    assert len(session_update["sessionUpdate"]["sessionResults"]) == 1
+    result = session_update["sessionUpdate"]["sessionResults"][0]
+    assert result["ingestionTime"] > 0
+    assert result["logGroupIdentifier"] == log_group["logGroupArn"]
+    assert result["logStreamName"] == "application-stream"
+    assert result["message"] == "error unable to connect"
+    assert result["timestamp"] == now + 1
+    with pytest.raises(StopIteration):
+        next(event_stream)

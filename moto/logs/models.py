@@ -1161,6 +1161,69 @@ class LogsBackend(BaseBackend):
             log_stream_name, start_time, end_time, limit, next_token, start_from_head
         )
 
+    def start_live_tail(
+        self,
+        log_group_identifiers: list[str],
+        log_stream_names: Optional[list[str]],
+        log_stream_name_prefixes: Optional[list[str]],
+        log_event_filter_pattern: Optional[str],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        if len(log_group_identifiers) > 10:
+            raise InvalidParameterException(
+                msg="1 validation error detected: Value at 'logGroupIdentifiers' failed "
+                "to satisfy constraint: Member must have length less than or equal to 10"
+            )
+        if log_stream_names and log_stream_name_prefixes:
+            raise InvalidParameterException(
+                msg="Only one of logStreamNames or logStreamNamePrefixes can be provided."
+            )
+        if (log_stream_names or log_stream_name_prefixes) and len(log_group_identifiers) != 1:
+            raise InvalidParameterException(
+                msg="logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+            )
+
+        log_groups = [
+            self._find_live_tail_log_group(log_group_identifier)
+            for log_group_identifier in log_group_identifiers
+        ]
+
+        stream_results: list[dict[str, Any]] = []
+        event_filter = EventMessageFilter(log_event_filter_pattern or "")
+        for log_group in log_groups:
+            matching_streams = self._get_live_tail_streams(
+                log_group,
+                log_stream_names=log_stream_names or [],
+                log_stream_name_prefixes=log_stream_name_prefixes or [],
+            )
+            for log_stream in matching_streams:
+                for event in log_stream.events:
+                    if event_filter.matches(event.message):
+                        stream_results.append(
+                            {
+                                "ingestionTime": event.ingestion_time,
+                                "logGroupIdentifier": log_group.arn,
+                                "logStreamName": log_stream.log_stream_name,
+                                "message": event.message,
+                                "timestamp": event.timestamp,
+                            }
+                        )
+
+        stream_results = sorted(stream_results, key=lambda event: event["timestamp"])
+        sampled = len(stream_results) > 500
+        session_update = {
+            "sessionMetadata": {"sampled": sampled},
+            "sessionResults": stream_results[:500],
+        }
+        session_start = {
+            "requestId": str(mock_random.uuid4()),
+            "sessionId": str(mock_random.uuid4()),
+            "logGroupIdentifiers": [log_group.arn for log_group in log_groups],
+            "logStreamNames": log_stream_names or [],
+            "logStreamNamePrefixes": log_stream_name_prefixes or [],
+            "logEventFilterPattern": log_event_filter_pattern or "",
+        }
+        return session_start, session_update
+
     def filter_log_events(
         self,
         log_group_name: str,
@@ -1527,6 +1590,33 @@ class LogsBackend(BaseBackend):
         if not log_group:
             raise ResourceNotFoundException()
         return log_group
+
+    def _find_live_tail_log_group(self, log_group_identifier: str) -> LogGroup:
+        if log_group_identifier in self.groups:
+            return self.groups[log_group_identifier]
+        return self._find_log_group(log_group_id=log_group_identifier)
+
+    @staticmethod
+    def _get_live_tail_streams(
+        log_group: LogGroup,
+        log_stream_names: list[str],
+        log_stream_name_prefixes: list[str],
+    ) -> list[LogStream]:
+        streams = list(log_group.streams.values())
+        if log_stream_names:
+            return [
+                stream for stream in streams if stream.log_stream_name in log_stream_names
+            ]
+        if log_stream_name_prefixes:
+            return [
+                stream
+                for stream in streams
+                if any(
+                    stream.log_stream_name.startswith(prefix)
+                    for prefix in log_stream_name_prefixes
+                )
+            ]
+        return streams
 
     def put_delivery_destination(
         self,
