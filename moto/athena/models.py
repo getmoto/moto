@@ -1,8 +1,13 @@
+import re
 import time
 from datetime import datetime
 from typing import Any, Optional
 
-from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
+from moto.athena.exceptions import (
+    InvalidArgumentException,
+    MetadataException,
+    QueryStillRunning,
+)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -169,6 +174,20 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
         self.tags = tags
 
 
+class Database(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str = "",
+        parameters: Optional[dict[str, str]] = None,
+    ):
+        self.catalog_name = catalog_name
+        self.name = database_name
+        self.description = description
+        self.parameters = parameters or {}
+
+
 class NamedQuery(BaseModel):
     def __init__(
         self,
@@ -208,7 +227,13 @@ class AthenaBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 50,
             "unique_attribute": "id",
-        }
+        },
+        "list_databases": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -222,6 +247,14 @@ class AthenaBackend(BaseBackend):
         self.query_results_queue: list[QueryResults] = []
         self.prepared_statements: dict[str, PreparedStatement] = {}
         self.tagger = TaggingService()
+        # databases keyed by (catalog_name, database_name)
+        self.databases: dict[tuple[str, str], Database] = {}
+
+        # AWS pre-creates a "default" database under AwsDataCatalog
+        self.databases[("AwsDataCatalog", "default")] = Database(
+            catalog_name="AwsDataCatalog",
+            database_name="default",
+        )
 
         # Initialise with the primary workgroup
         self.create_work_group(
@@ -291,9 +324,66 @@ class AthenaBackend(BaseBackend):
         )
         self.executions[execution.id] = execution
 
+        self._process_ddl(query, context)
         self._store_predefined_query_results(execution.id)
 
         return execution.id
+
+    _CREATE_DB_PATTERN = re.compile(
+        r"^\s*CREATE\s+(?:DATABASE|SCHEMA)\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`;`]+)`?\s*",
+        re.IGNORECASE,
+    )
+    _DROP_DB_PATTERN = re.compile(
+        r"^\s*DROP\s+(?:DATABASE|SCHEMA)\s+(?:IF\s+EXISTS\s+)?`?([^\s`;`]+)`?\s*",
+        re.IGNORECASE,
+    )
+
+    def _process_ddl(self, query: str, context: Optional[str]) -> None:
+        catalog_name = "AwsDataCatalog"
+        if context and isinstance(context, dict):
+            catalog_name = context.get("Catalog", "AwsDataCatalog")
+
+        match = self._CREATE_DB_PATTERN.match(query)
+        if match:
+            db_name = match.group(1).lower()
+            key = (catalog_name, db_name)
+            if key not in self.databases:
+                self.databases[key] = Database(
+                    catalog_name=catalog_name,
+                    database_name=db_name,
+                )
+            return
+
+        match = self._DROP_DB_PATTERN.match(query)
+        if match:
+            db_name = match.group(1).lower()
+            key = (catalog_name, db_name)
+            self.databases.pop(key, None)
+            return
+
+    def get_database(self, catalog_name: str, database_name: str) -> dict[str, Any]:
+        key = (catalog_name, database_name.lower())
+        if key not in self.databases:
+            raise MetadataException(
+                f"An error occurred (EntityNotFoundException) when calling the "
+                f"GetDatabase operation: Database {database_name} not found. "
+                f"(Service: AmazonDataCatalog; Status Code: 400; "
+                f"Error Code: EntityNotFoundException)"
+            )
+        db = self.databases[key]
+        return {
+            "Name": db.name,
+            "Description": db.description,
+            "Parameters": db.parameters,
+        }
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_databases(self, catalog_name: str) -> list[Database]:
+        all_dbs = [
+            db for db in self.databases.values() if db.catalog_name == catalog_name
+        ]
+        all_dbs.sort(key=lambda d: d.name)
+        return all_dbs
 
     def _store_predefined_query_results(self, exec_id: str) -> None:
         if exec_id not in self.query_results and self.query_results_queue:
