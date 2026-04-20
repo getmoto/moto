@@ -1,7 +1,7 @@
 import binascii
 import json
 import struct
-from typing import Any, Optional
+from typing import Any
 
 PAGINATION_MODEL = {
     "describe_log_groups": {
