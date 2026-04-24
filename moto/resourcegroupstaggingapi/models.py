@@ -1242,6 +1242,52 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{sub.arn}", "Tags": tags}
 
+            # Listener
+            for listener in self.vpclattice_backend.listeners.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    listener.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{listener.arn}", "Tags": tags}
+
+            # Target Group
+            for vpc_target_group in self.vpclattice_backend.target_groups.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    vpc_target_group.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{vpc_target_group.arn}", "Tags": tags}
+
+            # Service Network Resource Association
+            for (
+                service_network_resource_association
+            ) in self.vpclattice_backend.service_network_resource_associations.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    service_network_resource_association.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": f"{service_network_resource_association.arn}",
+                    "Tags": tags,
+                }
+
+            # Service Network Service Association
+            for (
+                service_network_service_association
+            ) in self.vpclattice_backend.service_network_service_associations.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    service_network_service_association.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": f"{service_network_service_association.arn}",
+                    "Tags": tags,
+                }
+
         # Workspaces
         if self.workspaces_backend and (
             not resource_type_filters or "workspaces" in resource_type_filters
