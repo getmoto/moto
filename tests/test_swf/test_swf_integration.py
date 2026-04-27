@@ -68,7 +68,7 @@ def test_rgtapi_tag_resources():
 
     domain_arn = _register_and_describe_domain(
         swf, "my-domain", tags=[{"key": "k1", "value": "v1"}]
-    )
+    )["domainInfo"]["arn"]
 
     rtapi.tag_resources(
         ResourceARNList=[domain_arn],
@@ -89,7 +89,7 @@ def test_rgtapi_untag_resources():
         swf,
         "my-domain",
         tags=[{"key": "k1", "value": "v1"}, {"key": "k2", "value": "v2"}],
-    )
+    )["domainInfo"]["arn"]
 
     rtapi.tag_resources(
         ResourceARNList=[domain_arn],
