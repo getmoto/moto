@@ -1,4 +1,5 @@
 """fis base URL and path."""
+
 from .responses import FISResponse
 
 url_bases = [
