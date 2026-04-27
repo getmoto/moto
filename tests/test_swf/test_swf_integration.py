@@ -20,8 +20,12 @@ def test_rgtapi_get_resources():
     swf = boto3.client("swf", region_name="us-east-1")
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
 
-    a_arn = _register_and_describe_domain(swf, "domain-a", tags=[{"key": "env", "value": "prod"}])["domainInfo"]["arn"]
-    b_arn = _register_and_describe_domain(swf, "domain-b", tags=[{"key": "env", "value": "dev"}])["domainInfo"]["arn"]
+    a_arn = _register_and_describe_domain(
+        swf, "domain-a", tags=[{"key": "env", "value": "prod"}]
+    )["domainInfo"]["arn"]
+    b_arn = _register_and_describe_domain(
+        swf, "domain-b", tags=[{"key": "env", "value": "dev"}]
+    )["domainInfo"]["arn"]
     # domain with no tags should not appear
     c_arn = _register_and_describe_domain(swf, "domain-c")["domainInfo"]["arn"]
 
@@ -39,8 +43,12 @@ def test_rgtapi_get_resources_with_tag_filter():
     swf = boto3.client("swf", region_name="us-east-1")
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
 
-    _register_and_describe_domain(swf, "domain-prod", tags=[{"key": "env", "value": "prod"}])
-    _register_and_describe_domain(swf, "domain-dev", tags=[{"key": "env", "value": "dev"}])
+    _register_and_describe_domain(
+        swf, "domain-prod", tags=[{"key": "env", "value": "prod"}]
+    )
+    _register_and_describe_domain(
+        swf, "domain-dev", tags=[{"key": "env", "value": "dev"}]
+    )
 
     resp = rtapi.get_resources(
         ResourceTypeFilters=["swf"],
@@ -58,7 +66,9 @@ def test_rgtapi_tag_resources():
     swf = boto3.client("swf", region_name="us-east-1")
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
 
-    domain_arn = _register_and_describe_domain(swf, "my-domain", tags=[{"key": "k1", "value": "v1"}])
+    domain_arn = _register_and_describe_domain(
+        swf, "my-domain", tags=[{"key": "k1", "value": "v1"}]
+    )
 
     rtapi.tag_resources(
         ResourceARNList=[domain_arn],

@@ -55,7 +55,9 @@ def test_tag_resource():
 @mock_aws
 def test_tag_resource_updates_existing_key():
     client = boto3.client("swf", region_name="us-east-1")
-    arn = _register_and_describe_domain(client, tags=[{"key": "k1", "value": "old"}])["domainInfo"]["arn"]
+    arn = _register_and_describe_domain(client, tags=[{"key": "k1", "value": "old"}])[
+        "domainInfo"
+    ]["arn"]
 
     client.tag_resource(
         resourceArn=arn,
@@ -85,7 +87,9 @@ def test_untag_resource():
 @mock_aws
 def test_untag_resource_nonexistent_key():
     client = boto3.client("swf", region_name="us-east-1")
-    arn = _register_and_describe_domain(client, tags=[{"key": "k1", "value": "v1"}])["domainInfo"]["arn"]
+    arn = _register_and_describe_domain(client, tags=[{"key": "k1", "value": "v1"}])[
+        "domainInfo"
+    ]["arn"]
 
     # Should not raise
     client.untag_resource(resourceArn=arn, tagKeys=["nonexistent"])

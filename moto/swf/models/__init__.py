@@ -126,7 +126,6 @@ class SWFBackend(BaseBackend):
         if tags:
             self.tagger.tag_resource(domain.to_short_dict()["arn"], tags)
 
-
     def deprecate_domain(self, name: str) -> None:
         domain = self._get_domain(name)
         if domain.status == "DEPRECATED":

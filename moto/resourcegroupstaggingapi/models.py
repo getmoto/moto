@@ -1199,10 +1199,16 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": state_machine.arn, "Tags": tags}
 
         # SWF
-        if not resource_type_filters or "swf" in resource_type_filters or "swf:domain" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "swf" in resource_type_filters
+            or "swf:domain" in resource_type_filters
+        ):
             for domain in self.swf_backend.domains:
                 domain_arn = domain.to_short_dict()["arn"]
-                tags = self.swf_backend.tagger.list_tags_for_resource(domain_arn)["Tags"]
+                tags = self.swf_backend.tagger.list_tags_for_resource(domain_arn)[
+                    "Tags"
+                ]
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": domain_arn, "Tags": tags}
