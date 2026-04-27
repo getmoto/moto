@@ -1775,9 +1775,8 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_instance_status_no_instances():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     all_status = client.describe_instance_status()["InstanceStatuses"]
     assert len(all_status) == 0
