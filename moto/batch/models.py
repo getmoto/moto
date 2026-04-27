@@ -1,18 +1,17 @@
-import datetime
 import logging
 import re
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from itertools import cycle
 from sys import platform
 from time import sleep
 from typing import Any, Optional, Union
 
-import dateutil.parser
-
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.parse import default_timestamp_parser
 from moto.core.utils import unix_time_millis
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import EC2Backend, ec2_backends
@@ -46,7 +45,7 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 JOB_NAME_REGEX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$")
 
 
-def datetime2int_milliseconds(date: datetime.datetime) -> int:
+def datetime2int_milliseconds(date: datetime) -> int:
     """
     AWS returns timestamps in milliseconds
     We don't use milliseconds timestamps internally,
@@ -55,7 +54,7 @@ def datetime2int_milliseconds(date: datetime.datetime) -> int:
     return int(date.timestamp() * 1000)
 
 
-def datetime2int(date: datetime.datetime) -> int:
+def datetime2int(date: datetime) -> int:
     return int(time.mktime(date.timetuple()))
 
 
@@ -550,9 +549,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_queue = job_queue
         self.backend = backend
         self.job_queue.jobs.append(self)
-        self.job_created_at = datetime.datetime.now()
-        self.job_started_at = datetime.datetime(1970, 1, 1)
-        self.job_stopped_at = datetime.datetime(1970, 1, 1)
+        self.job_created_at = datetime.now()
+        self.job_started_at = datetime(1970, 1, 1)
+        self.job_stopped_at = datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
         self.depends_on = depends_on
@@ -909,7 +908,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 sleep(0.5)
             # TODO setup ecs container instance
 
-            self.job_started_at = datetime.datetime.now()
+            self.job_started_at = datetime.now()
 
             self._start_attempt()
 
@@ -977,7 +976,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     max_time = None
                     if self._get_attempt_duration():
                         attempt_duration = self._get_attempt_duration()
-                        max_time = self.job_started_at + datetime.timedelta(
+                        max_time = self.job_started_at + timedelta(
                             seconds=attempt_duration  # type: ignore[arg-type]
                         )
 
@@ -985,7 +984,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         container.reload()
                         time.sleep(0.5)
 
-                        if max_time and datetime.datetime.now() > max_time:
+                        if max_time and datetime.now() > max_time:
                             raise Exception(
                                 "Job time exceeded the configured attemptDurationSeconds"
                             )
@@ -1025,8 +1024,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     for line in logs_stdout + logs_stderr:
                         date, line = line.split(" ", 1)
                         date_obj = (
-                            dateutil.parser.parse(date)
-                            .astimezone(datetime.timezone.utc)
+                            default_timestamp_parser(date)
+                            .astimezone(timezone.utc)
                             .replace(tzinfo=None)
                         )
                         date = unix_time_millis(date_obj)
@@ -1076,7 +1075,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         # Ensure that job_stopped/job_stopped_at-attributes are set first
         # The describe-method needs them immediately when status is set
         self.job_stopped = True
-        self.job_stopped_at = datetime.datetime.now()
+        self.job_stopped_at = datetime.now()
         self.status = JobStatus.SUCCEEDED if success else JobStatus.FAILED
         self._stop_attempt()
 
