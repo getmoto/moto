@@ -9,7 +9,7 @@ name: "DataUpdate_EMRInstanceTypes"
 
 on:
   schedule:
-    - cron: '00 4 * * 0'
+    - cron: '00 4 1 * *'
   workflow_dispatch:
 
 jobs:

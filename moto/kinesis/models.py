@@ -237,7 +237,7 @@ class Stream(CloudFormationModel):
         step = 2**128 // shard_count
         hash_ranges = itertools.chain(
             ((i, i * step, (i + 1) * step - 1) for i in range(shard_count - 1)),
-            [(shard_count - 1, (shard_count - 1) * step, 2**128)],
+            [(shard_count - 1, (shard_count - 1) * step, 2**128 - 1)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)

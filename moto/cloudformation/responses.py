@@ -707,9 +707,7 @@ class CloudFormationResponse(BaseResponse):
             try:
                 policy_body = self._get_stack_from_s3_url(policy_url)
             except S3ClientError as s3_e:
-                raise ValidationError(
-                    message=f"S3 error: Access Denied: {s3_e.error_type}"
-                )
+                raise ValidationError(message=f"S3 error: Access Denied: {s3_e.code}")
         self.cloudformation_backend.set_stack_policy(
             stack_name, policy_body=policy_body
         )

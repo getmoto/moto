@@ -50,7 +50,7 @@ ZaW/2R7DvQDtxCkFkVaxUeHvENm6IyqVhf6Q5oN12kDSrJozzx7I7tHjhBK7V5Xo
 TyS4NU4EhSyzGgj2x6axDd1hHRjblEpJ80LoiXlmUDzputBXyO5mkcrplcVvlIJi
 WmKjrDn2zzKxDX5nwvkskpIjYlJcrQu4iCX1/YwZ1yNqF9LryjlilphHCACiHbhI
 RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b
- -----END CERTIFICATE-----"""
+-----END CERTIFICATE-----"""
 # Added aws root CA as AWS returns chain you gave it + root CA (provided or not)
 # so for now a cheap response is just give any old root CA
 
@@ -139,7 +139,9 @@ class CertBundle(BaseModel):
         self.cert = certificate
         self.key = private_key
         # AWS always returns your chain + root CA
-        self.chain = chain + b"\n" + AWS_ROOT_CA if chain else AWS_ROOT_CA
+        self.chain = (
+            chain + b"\n" + AWS_ROOT_CA + b"\n" if chain else AWS_ROOT_CA + b"\n"
+        )
         self.tags = TagHolder()
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum

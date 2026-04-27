@@ -5,7 +5,7 @@ from .models import Ec2InstanceConnectBackend, ec2instanceconnect_backends
 
 class Ec2InstanceConnectResponse(BaseResponse):
     def __init__(self) -> None:
-        super().__init__(service_name="ec2-instanceconnect")
+        super().__init__(service_name="ec2-instance-connect")
 
     @property
     def ec2instanceconnect_backend(self) -> Ec2InstanceConnectBackend:

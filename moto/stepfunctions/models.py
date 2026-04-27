@@ -2,7 +2,7 @@ import json
 import re
 from datetime import datetime, timezone
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -58,6 +58,29 @@ class StateMachineInstance:
         self.description: Optional[str] = None
 
 
+class StateMachineAlias(CloudFormationModel):
+    def __init__(
+        self,
+        name: str,
+        statemachine_arn: str,
+        routing_configuration: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ):
+        self.name = name
+        self.statemachine_arn = statemachine_arn
+        self.arn = f"{statemachine_arn}:{name}"
+        self.description = description
+        self.routing_configuration = routing_configuration
+        self.creation_date = utcnow()
+        self.update_date = self.creation_date
+
+    def update(self, **kwargs: Any) -> None:
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(self, key, value)
+        self.update_date = utcnow()
+
+
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
     def __init__(
         self, source: StateMachineInstance, version: int, description: Optional[str]
@@ -102,6 +125,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         )
         self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
+        self.aliases: dict[str, StateMachineAlias] = {}
         self.latest_version: Optional[StateMachineVersion] = None
         self.backend = backend
 
@@ -629,9 +653,44 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
+    def create_state_machine_alias(
+        self,
+        name: str,
+        routing_configuration: list[dict[str, Any]],
+        description: Optional[str],
+    ) -> StateMachineAlias:
+        state_version_arn = routing_configuration[0]["stateMachineVersionArn"]
+        # Get the corresponding sm version
+        sm_version, sm = next(
+            (
+                (v, sm)
+                for sm in self.state_machines
+                for v in sm.versions.values()
+                if v.arn == state_version_arn
+            ),
+            (None, None),
+        )
+        if not sm_version:
+            raise StateMachineDoesNotExist(
+                f"State Machine Version Does Not Exist: '{state_version_arn}'"
+            )
+
+        # if sm_version exists then sm exists
+        sm = cast(StateMachine, sm)
+        alias = StateMachineAlias(name, sm.arn, routing_configuration, description)
+        sm.aliases[name] = alias
+        return alias
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machines(self) -> list[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_state_machine_aliases(self, arn: str) -> list[StateMachineAlias]:
+        sm = next((x for x in self.state_machines if x.arn == arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+        return sorted(sm.aliases.values(), key=lambda x: x.creation_date)
 
     def describe_state_machine(self, arn: str) -> StateMachine:
         self._validate_machine_arn(arn)
@@ -653,11 +712,49 @@ class StepFunctionBackend(BaseBackend):
             raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
         return sm  # type: ignore[return-value]
 
+    def describe_state_machine_alias(self, arn: str) -> StateMachineAlias:
+        arn_parts = arn.rsplit(":", 1)
+
+        state_machine_arn = arn_parts[0]
+        alias_name = arn_parts[1]
+
+        self._validate_machine_arn(state_machine_arn)
+
+        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{state_machine_arn}'"
+            )
+
+        alias = sm.aliases.get(alias_name)
+        if not alias:
+            raise ResourceNotFound(f"State Machine Alias Does Not Exist: '{arn}'")
+
+        return alias
+
     def delete_state_machine(self, arn: str) -> None:
         self._validate_machine_arn(arn)
         sm = next((x for x in self.state_machines if x.arn == arn), None)
         if sm:
             self.state_machines.remove(sm)
+
+    def delete_state_machine_alias(self, arn: str) -> None:
+        arn_parts = arn.rsplit(":", 1)
+        state_machine_arn = arn_parts[0]
+        alias_name = arn_parts[1]
+
+        self._validate_machine_arn(state_machine_arn)
+
+        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        if not sm:
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{state_machine_arn}'"
+            )
+
+        if alias_name not in sm.aliases:
+            raise ResourceNotFound(f"State Machine Alias Does Not Exist: '{arn}'")
+
+        del sm.aliases[alias_name]
 
     def update_state_machine(
         self,
@@ -685,6 +782,22 @@ class StepFunctionBackend(BaseBackend):
         if publish:
             sm.publish(version_description)
         return sm
+
+    def update_state_machine_alias(
+        self,
+        arn: str,
+        description: Optional[str],
+        routing_configuration: Optional[list[dict[str, Any]]],
+    ) -> StateMachineAlias:
+        alias = self.describe_state_machine_alias(arn=arn)
+
+        if routing_configuration:
+            alias.update(routing_configuration=routing_configuration)
+
+        if description is not None:
+            alias.update(description=description)
+
+        return alias
 
     def start_execution(
         self, state_machine_arn: str, name: str, execution_input: str

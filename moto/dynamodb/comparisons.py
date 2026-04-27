@@ -913,11 +913,7 @@ class ConditionExpressionParser:
     def _is_redundant_parenthesized_child(
         self, parent_kind: Optional[str], child_kind: str
     ) -> bool:
-        if parent_kind == self.Kind.OR:
-            return child_kind in {self.Kind.OR, self.Kind.AND}
-        if parent_kind == self.Kind.AND:
-            return child_kind == self.Kind.AND
-        return False
+        return child_kind == self.Kind.PARENTHESES
 
     def _assert(self, condition: bool, message: str, nodes: Iterable[Node]) -> None:
         if not condition:

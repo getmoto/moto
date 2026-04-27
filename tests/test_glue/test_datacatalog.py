@@ -1730,3 +1730,51 @@ def test_crawl_filter_missing_field():
         exc.value.response["Error"]["Message"]
         == "Invalid Filter Provided: FieldName: CRAWL_ID, FilterOperator: NE, FieldValue: null"
     )
+
+
+@mock_aws
+def test_create_table_with_open_table_format_input():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "mydb"
+    helpers.create_database(client, database_name)
+
+    table_name = "iceberg_table"
+    table_input = helpers.create_table_input(database_name, table_name)
+
+    client.create_table(
+        DatabaseName=database_name,
+        TableInput=table_input,
+        OpenTableFormatInput={
+            "IcebergInput": {
+                "MetadataOperation": "CREATE",
+                "Version": "2",
+            }
+        },
+    )
+
+    response = helpers.get_table(client, database_name, table_name)
+    table = response["Table"]
+
+    assert table["Name"] == table_name
+    assert table["Parameters"]["table_type"] == "ICEBERG"
+
+
+@mock_aws
+def test_create_table_without_open_table_format_input_has_no_iceberg_type():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "mydb"
+    helpers.create_database(client, database_name)
+
+    table_name = "regular_table"
+    table_input = helpers.create_table_input(database_name, table_name)
+
+    client.create_table(
+        DatabaseName=database_name,
+        TableInput=table_input,
+    )
+
+    response = helpers.get_table(client, database_name, table_name)
+    table = response["Table"]
+
+    assert table["Name"] == table_name
+    assert table.get("Parameters", {}).get("table_type") != "ICEBERG"

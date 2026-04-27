@@ -12,6 +12,8 @@ include moto/ec2/resources/ecs/optimized_amis/*.json
 include moto/elasticache/*/*.json
 include moto/emr/*/*.json
 include moto/emr/resources/*.json
+include moto/emrcontainers/*/*.json
+include moto/emrserverless/*/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
 include moto/medialive/*/*.json
@@ -23,6 +25,8 @@ include moto/rds/*/*.json
 include moto/rds/resources/cluster_options/*.json
 include moto/rds/resources/option_group_options/*.json
 include moto/route53/*/*.json
+include moto/s3/*/*.json
+include moto/s3control/*/*.json
 include moto/sqs/*/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json

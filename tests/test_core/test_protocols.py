@@ -9,9 +9,9 @@ from enum import Enum
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from botocore.awsrequest import HeadersDict
 from botocore.utils import parse_timestamp
 from dateutil.tz import tzutc
+from werkzeug.datastructures import Headers, MultiDict
 
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parse import PROTOCOL_PARSERS
@@ -82,14 +82,13 @@ def _compliance_timestamp_parser(value):
 
 
 def _build_query_params(query_string, body, headers):
-    def mock_multidict(data):
-        params = parse_qs(data, keep_blank_values=True)
-        params = {k: v if len(v) > 1 else v[0] for k, v in params.items()}
-        return params
+    def multidict_from_querystring(qs):
+        params = parse_qs(qs, keep_blank_values=True)
+        return MultiDict(params)
 
-    query_params = mock_multidict(query_string)
+    query_params = multidict_from_querystring(query_string)
     if headers.get("Content-Type", "").startswith("application/x-www-form-urlencoded"):
-        body_params = mock_multidict(body)
+        body_params = multidict_from_querystring(body)
         query_params.update(body_params)
     return query_params
 
@@ -97,7 +96,7 @@ def _build_query_params(query_string, body, headers):
 def _create_request_dict(given, serialized):
     method = serialized.get("method", given.get("http", {}).get("method", "POST"))
     # We need the headers to be case-insensitive
-    headers = HeadersDict(serialized.get("headers", {}))
+    headers = Headers(serialized.get("headers", {}))
     uri = serialized.get("uri", "/")
     parsed_uri = urlparse(uri)
     query_string = parsed_uri.query
@@ -149,20 +148,21 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
     result = case["result"] if "error" not in case else _create_exception(case)
     resp = serializer.serialize(result)  # _to_response(result)
     assert resp["body"] == case["response"]["body"]
-    assert "Content-Type" in resp["headers"]
     protocol_to_content_type = {
         "ec2": "text/xml",
         "json": "application/x-amz-json-1.0",
         "query": "text/xml",
         "query-json": "application/json",
-        "rest-xml": "text/xml",
+        "rest-xml": "application/xml",
         "rest-json": "application/json",
     }
-    assert resp["headers"]["Content-Type"] == protocol_to_content_type[protocol]
+    if resp["body"]:
+        content_type = resp["headers"]["Content-Type"]
+        assert content_type == protocol_to_content_type[protocol]
     headers_expected = case["response"]["headers"]
     # TODO: Get rid of this if once we get the headers sorted for all responses
     if headers_expected:
-        del resp["headers"]["Content-Type"]
+        resp["headers"].pop("Content-Type", None)
         assert resp["headers"] == headers_expected
     assert resp["status_code"] == case["response"]["status_code"]
 

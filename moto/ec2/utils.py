@@ -4,6 +4,7 @@ import hashlib
 import ipaddress
 import re
 from collections.abc import Callable
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, TypeVar, Union
 
 from cryptography.hazmat.backends import default_backend
@@ -15,8 +16,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from moto.core.serialize import TimestampSerializer
 from moto.core.types import Base64EncodedString
-from moto.core.utils import utcnow
 from moto.ec2.exceptions import InvalidUserDataError
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -57,6 +58,8 @@ EC2_RESOURCE_TO_PREFIX = {
     "subnet": "subnet",
     "subnet-ipv6-cidr-block-association": "subnet-cidr-assoc",
     "reservation": "r",
+    "traffic-mirror-filter": "traf-mir-fil",
+    "traffic-mirror-target": "traf-mir-tar",
     "volume": "vol",
     "vpc": "vpc",
     "vpc-endpoint": "vpce",
@@ -225,6 +228,14 @@ def random_transit_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"])
 
 
+def random_traffic_mirror_filter_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-filter"])
+
+
+def random_traffic_mirror_target_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-target"])
+
+
 def random_transit_gateway_route_table_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"])
 
@@ -286,7 +297,7 @@ def generate_dns_from_ip(ip: Any, dns_type: str = "internal") -> str:
 
 
 def random_mac_address() -> str:
-    return f"02:00:00:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x:{random.randint(0, 255)}02x"
+    return f"02:00:00:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}"
 
 
 def randor_ipv4_cidr() -> str:
@@ -321,10 +332,8 @@ def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> dict[str, str
     }
 
 
-def utc_date_and_time() -> str:
-    x = utcnow()
-    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+def format_timestamp(dt: datetime) -> str:
+    return dt.strftime(TimestampSerializer.ISO8601_MICRO_ZEROED)
 
 
 def split_route_id(route_id: str) -> tuple[str, str]:
@@ -518,6 +527,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     if isinstance(value, bool):
         if str(value).lower() in filter_value:
+            return True
+        return False
+
+    if isinstance(value, datetime):
+        if format_timestamp(value) in filter_value:
             return True
         return False
 

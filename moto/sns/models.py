@@ -171,7 +171,7 @@ class Topic(CloudFormationModel):
         sns_backend = sns_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
-        topic = sns_backend.create_topic(resource_name)
+        topic = sns_backend.create_topic(resource_name, properties)
         for subscription in properties.get("Subscription", []):
             sns_backend.subscribe(
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
@@ -284,7 +284,7 @@ class Subscription(BaseModel):
                 )
             else:
                 raw_message_attributes = {}
-                for key, value in message_attributes.items():  # type: ignore
+                for key, value in (message_attributes or {}).items():
                     attr_type = "StringValue"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):

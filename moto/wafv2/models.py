@@ -574,7 +574,15 @@ class WAFV2Backend(BaseBackend):
             raise WAFOptimisticLockException()
         self.wacls.pop(arn)
 
-    def get_web_acl(self, name: str, _id: str) -> FakeWebACL:
+    def get_web_acl(
+        self, arn: Optional[str], name: Optional[str], _id: Optional[str]
+    ) -> FakeWebACL:
+        if arn:
+            wacl = self.wacls.get(arn)
+            if wacl is None:
+                raise WAFNonexistentItemException
+            return wacl
+
         for wacl in self.wacls.values():
             if wacl.name == name and wacl.id == _id:
                 return wacl
@@ -620,7 +628,7 @@ class WAFV2Backend(BaseBackend):
         token_domains: Optional[list[str]],
         association_config: Optional[dict[str, Any]],
     ) -> str:
-        acl = self.get_web_acl(name, _id)
+        acl = self.get_web_acl(None, name, _id)
         if acl.lock_token != lock_token:
             raise WAFOptimisticLockException()
         rule_objs = (

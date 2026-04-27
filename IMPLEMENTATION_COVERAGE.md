@@ -566,7 +566,7 @@
 
 ## athena
 <details>
-<summary>35% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -592,7 +592,7 @@
 - [ ] get_capacity_assignment_configuration
 - [X] get_capacity_reservation
 - [X] get_data_catalog
-- [ ] get_database
+- [X] get_database
 - [X] get_named_query
 - [ ] get_notebook_metadata
 - [X] get_prepared_statement
@@ -610,7 +610,7 @@
 - [ ] list_calculation_executions
 - [X] list_capacity_reservations
 - [X] list_data_catalogs
-- [ ] list_databases
+- [X] list_databases
 - [ ] list_engine_versions
 - [ ] list_executors
 - [X] list_named_queries

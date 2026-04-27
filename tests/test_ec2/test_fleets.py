@@ -22,6 +22,11 @@ def get_subnet_id(conn):
 
 
 def get_launch_template(conn, instance_type="t2.micro", ami_id=EXAMPLE_AMI_ID):
+    # We're going to place some instances in this region
+    # Not all availability zones will support the requested instances types
+    # So here we make sure that we're placing them in the main zone
+    # (Most tests run against `us-east-1`, so availability zone will be `us-east-1a`)
+    azone = conn.meta._client_config.region_name + "a"
     launch_template = conn.create_launch_template(
         LaunchTemplateName="test" + str(uuid4()),
         LaunchTemplateData={
@@ -37,6 +42,9 @@ def get_launch_template(conn, instance_type="t2.micro", ami_id=EXAMPLE_AMI_ID):
                     ],
                 }
             ],
+            "Placement": {
+                "AvailabilityZone": azone,
+            },
         },
     )["LaunchTemplate"]
     launch_template_id = launch_template["LaunchTemplateId"]
@@ -1177,6 +1185,11 @@ def test_create_instant_fleet_with_launch_template_overrides(
             fleet_request["SpotOptions"] = {"AllocationStrategy": "lowest-price"}
 
         fleet_response = ctxt.ec2.create_fleet(**fleet_request)
+
+        if errors := fleet_response.get("Errors"):
+            # Errors only occur occasionally
+            # But when they occur, we want to know about them help us debug the problem
+            print(errors)  # noqa
 
         try:
             assert "FleetId" in fleet_response

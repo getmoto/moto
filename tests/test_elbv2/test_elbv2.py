@@ -1618,7 +1618,7 @@ def test_modify_listener_http_to_https():
             DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
         )
     err = ex.value.response["Error"]
-    assert err["Code"] == "CertificateWereNotPassed"
+    assert err["Code"] == "InvalidConfigurationRequest"
     assert (
         err["Message"]
         == "You must provide a list containing exactly one certificate if the listener protocol is HTTPS."

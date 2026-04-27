@@ -28,6 +28,13 @@ class InvalidArgumentException(JsonRESTError):
         super().__init__("InvalidArgumentException", message)
 
 
+class MetadataException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("MetadataException", message)
+
+
 class QueryStillRunning(JsonRESTError):
     def __init__(self, current_status: Optional[str]):
         msg = f"Query has not yet finished. Current state: {current_status}"
