@@ -15,6 +15,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
+    AccessDeniedException,
     InvalidKeyUsageException,
     KMSInvalidMacException,
     ValidationException,
@@ -597,14 +598,24 @@ class KmsBackend(BaseBackend):
         return ciphertext_blob, arn
 
     def decrypt(
-        self, ciphertext_blob: bytes, encryption_context: dict[str, str]
+        self,
+        ciphertext_blob: bytes,
+        encryption_context: dict[str, str],
+        key_id: Optional[str] = None,
     ) -> tuple[bytes, str]:
-        plaintext, key_id = decrypt(
+        plaintext, actual_key_id = decrypt(
             master_keys=self.keys,
             ciphertext_blob=ciphertext_blob,
             encryption_context=encryption_context,
         )
-        arn = self.keys[key_id].arn
+        if key_id is not None:
+            requested_key_id = self.any_id_to_key_id(key_id)
+            if requested_key_id != actual_key_id:
+                raise AccessDeniedException(
+                    "The ciphertext refers to a customer master key that does not exist, "
+                    "does not exist in this region, or you are not allowed to access."
+                )
+        arn = self.keys[actual_key_id].arn
         return plaintext, arn
 
     def re_encrypt(
