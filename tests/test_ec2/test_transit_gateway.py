@@ -1,11 +1,10 @@
 from time import sleep
-from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_ec2 import (
     delete_tg_attachments,
@@ -17,8 +16,6 @@ from tests.test_ec2 import (
 
 @mock_aws
 def test_describe_transit_gateways():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateways()
     assert response["TransitGateways"] == []
@@ -190,18 +187,16 @@ def test_modify_transit_gateway():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_transit_gateway_vpc_attachments():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_vpc_attachments()
     assert response["TransitGatewayVpcAttachments"] == []
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_transit_gateway_attachments():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_attachments()
     assert response["TransitGatewayAttachments"] == []
@@ -341,9 +336,8 @@ def test_create_and_describe_transit_gateway_vpc_attachment(
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_transit_gateway_route_tables():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_route_tables()
     assert response["TransitGatewayRouteTables"] == []

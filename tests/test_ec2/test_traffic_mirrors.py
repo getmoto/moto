@@ -1,10 +1,8 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
+from moto import mock_aws
 
 REGION = "us-east-1"
 
@@ -94,9 +92,8 @@ def test_create_traffic_mirror_target_invalid_input():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_traffic_mirror_filters():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", REGION)
     response = client.describe_traffic_mirror_filters()
     assert response["TrafficMirrorFilters"] == []
@@ -142,9 +139,8 @@ def test_describe_traffic_mirror_filters_by_id():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_traffic_mirror_targets():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", REGION)
     response = client.describe_traffic_mirror_targets()
     assert response["TrafficMirrorTargets"] == []

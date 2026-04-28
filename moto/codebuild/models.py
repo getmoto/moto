@@ -2,10 +2,9 @@ import datetime
 from collections import defaultdict
 from typing import Any, Optional
 
-from dateutil import parser
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.parse import default_timestamp_parser
 from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
@@ -284,7 +283,7 @@ class CodeBuildBackend(BaseBackend):
                 if build["id"] in ids:
                     build["phases"] = self._set_phases(build["phases"])
                     build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        parser.parse(build["startTime"])
+                        default_timestamp_parser(build["startTime"])
                         + datetime.timedelta(minutes=mock_random.randint(1, 5))
                     )
                     build["currentPhase"] = "COMPLETED"
@@ -318,7 +317,7 @@ class CodeBuildBackend(BaseBackend):
                     # set completion properties with variable completion time
                     build["phases"] = self._set_phases(build["phases"])
                     build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        parser.parse(build["startTime"])
+                        default_timestamp_parser(build["startTime"])
                         + datetime.timedelta(minutes=mock_random.randint(1, 5))
                     )
                     build["currentPhase"] = "COMPLETED"
