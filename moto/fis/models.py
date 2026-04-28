@@ -57,8 +57,6 @@ class ExperimentTemplate(BaseModel):
 
 
 class FISBackend(BaseBackend):
-    """Implementation of FIS APIs."""
-
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.experiment_templates: dict[str, ExperimentTemplate] = {}

@@ -6,8 +6,6 @@ from .models import FISBackend, fis_backends
 
 
 class FISResponse(BaseResponse):
-    """Handler for FIS requests and responses."""
-
     def __init__(self) -> None:
         super().__init__(service_name="fis")
 
