@@ -1,12 +1,11 @@
 from datetime import datetime
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
+from moto import mock_aws
 
 from .helpers import assert_dryrun_error, check_private_key
 
@@ -92,9 +91,8 @@ moto@github.com"""
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_key_pairs_empty():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
     assert client.describe_key_pairs()["KeyPairs"] == []
 
