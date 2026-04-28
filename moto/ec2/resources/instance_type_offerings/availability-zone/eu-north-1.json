@@ -2140,6 +2140,10 @@
   "Location": "eu-north-1a"
  },
  {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-north-1a"
  },
@@ -4488,6 +4492,10 @@
   "Location": "eu-north-1b"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-north-1b"
  },
@@ -6717,6 +6725,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eu-north-1c"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "eu-north-1c"
  },
  {

@@ -2336,6 +2336,10 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apse2-az1"
  },
@@ -9125,6 +9129,10 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
   "Location": "apse2-az3"
  },
  {

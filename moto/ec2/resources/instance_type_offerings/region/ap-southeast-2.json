@@ -2336,6 +2336,10 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-southeast-2"
  },

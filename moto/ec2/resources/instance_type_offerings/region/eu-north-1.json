@@ -2276,6 +2276,14 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-north-1"
  },

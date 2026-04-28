@@ -3928,6 +3928,10 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "u7in-24tb.224xlarge",
   "Location": "us-east-2a"
  },

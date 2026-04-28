@@ -2196,6 +2196,10 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-southeast-2a"
  },
@@ -5669,6 +5673,10 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
   "Location": "ap-southeast-2b"
  },
  {
