@@ -16,7 +16,7 @@ jobs:
         uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64
         with:
           ruby-version: ${{ matrix.ruby-version }}
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
