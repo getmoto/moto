@@ -7,7 +7,7 @@ from moto.utilities.docker_utilities import parse_image_ref
     "image_name,expected",
     [
         ("python", ("docker.io/library/python", "latest")),
-        ("python:3.9", ("docker.io/library/python", "3.9")),
+        ("python:3.14", ("docker.io/library/python", "3.14")),
         ("docker.io/python", ("docker.io/library/python", "latest")),
         ("localhost/foobar", ("localhost/foobar", "latest")),
         ("lambci/lambda:python2.7", ("docker.io/lambci/lambda", "python2.7")),
