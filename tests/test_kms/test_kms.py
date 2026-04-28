@@ -777,6 +777,33 @@ def test_generate_data_key_decrypt():
     assert resp1["Plaintext"] == resp2["Plaintext"]
 
 
+@mock_aws
+def test_decrypt_validates_key_id():
+    client = boto3.client("kms", region_name="us-east-1")
+    key1 = client.create_key(Description="key-1")
+    key2 = client.create_key(Description="key-2")
+    key1_id = key1["KeyMetadata"]["KeyId"]
+    key2_id = key2["KeyMetadata"]["KeyId"]
+
+    # Encrypt with key1
+    encrypt_resp = client.encrypt(KeyId=key1_id, Plaintext=b"hello world")
+
+    # Decrypt with correct key-id should succeed
+    decrypt_resp = client.decrypt(
+        CiphertextBlob=encrypt_resp["CiphertextBlob"], KeyId=key1_id
+    )
+    assert decrypt_resp["Plaintext"] == b"hello world"
+
+    # Decrypt without key-id should still succeed (key-id is optional)
+    decrypt_resp = client.decrypt(CiphertextBlob=encrypt_resp["CiphertextBlob"])
+    assert decrypt_resp["Plaintext"] == b"hello world"
+
+    # Decrypt with wrong key-id should raise AccessDeniedException
+    with pytest.raises(ClientError) as exc:
+        client.decrypt(CiphertextBlob=encrypt_resp["CiphertextBlob"], KeyId=key2_id)
+    assert exc.value.response["Error"]["Code"] == "AccessDeniedException"
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [
