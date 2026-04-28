@@ -2,6 +2,7 @@ from time import sleep
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.utilities.tagging_service import TaggingService
 
 from ..exceptions import (
     SWFDomainAlreadyExistsFault,
@@ -29,6 +30,7 @@ class SWFBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.domains: list[Domain] = []
+        self.tagger = TaggingService()
 
     def _get_domain(self, name: str, ignore_empty: bool = False) -> Domain:
         matching = [domain for domain in self.domains if domain.name == name]
@@ -109,6 +111,7 @@ class SWFBackend(BaseBackend):
         name: str,
         workflow_execution_retention_period_in_days: int,
         description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> None:
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
@@ -120,6 +123,8 @@ class SWFBackend(BaseBackend):
             description=description,
         )
         self.domains.append(domain)
+        if tags:
+            self.tagger.tag_resource(domain.to_short_dict()["arn"], tags)
 
     def deprecate_domain(self, name: str) -> None:
         domain = self._get_domain(name)
