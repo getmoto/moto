@@ -252,9 +252,9 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def named_tuple_to_dict(
-        self, value: Optional[NamedTuple]
-    ) -> Optional[dict[str, Any]]:
+    # Need a Optional here, as 'NamedTuple | None' only works in 3.14+
+    # https://github.com/astral-sh/ruff/issues/19144#issuecomment-3036476276
+    def named_tuple_to_dict(self, value: Optional[NamedTuple]) -> dict[str, Any] | None:
         if value:
             return value._asdict()
         return None

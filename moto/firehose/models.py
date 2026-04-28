@@ -17,7 +17,7 @@ import json
 import warnings
 from gzip import GzipFile
 from time import time
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -337,7 +337,7 @@ class FirehoseBackend(BaseBackend):
 
     def list_delivery_streams(
         self,
-        limit: Optional[int],
+        limit: int | None,
         delivery_stream_type: str,
         exclusive_start_delivery_stream_name: str,
     ) -> dict[str, Any]:
@@ -379,7 +379,7 @@ class FirehoseBackend(BaseBackend):
         self,
         delivery_stream_name: str,
         exclusive_start_tag_key: str,
-        limit: Optional[int],
+        limit: int | None,
     ) -> dict[str, Any]:
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}
@@ -694,7 +694,7 @@ class FirehoseBackend(BaseBackend):
         # S3 backup if it is disabled.  If backup is enabled, you can't update
         # the delivery stream to disable it."
 
-    def lookup_name_from_arn(self, arn: str) -> Optional[DeliveryStream]:
+    def lookup_name_from_arn(self, arn: str) -> DeliveryStream | None:
         """Given an ARN, return the associated delivery stream name."""
         return self.delivery_streams.get(arn.split("/")[-1])
 

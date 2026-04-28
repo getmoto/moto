@@ -1,7 +1,7 @@
 """EventBridgePipesBackend class with methods for supported APIs."""
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -32,7 +32,7 @@ class PipeStatus(str, Enum):
     DELETED = "DELETED"
 
     @classmethod
-    def status_transitions(self) -> list[tuple[Optional[str], str]]:
+    def status_transitions(self) -> list[tuple[str | None, str]]:
         return [
             (PipeStatus.CREATING.value, PipeStatus.RUNNING.value),
             (PipeStatus.STARTING.value, PipeStatus.RUNNING.value),
@@ -53,15 +53,15 @@ class Pipe(BaseModel, ManagedState):
         source: str,
         target: str,
         role_arn: str,
-        description: Optional[str] = None,
-        desired_state: Optional[str] = None,
-        source_parameters: Optional[dict[str, Any]] = None,
-        enrichment: Optional[str] = None,
-        enrichment_parameters: Optional[dict[str, Any]] = None,
-        target_parameters: Optional[dict[str, Any]] = None,
-        tags: Optional[dict[str, str]] = None,
-        log_configuration: Optional[dict[str, Any]] = None,
-        kms_key_identifier: Optional[str] = None,
+        description: str | None = None,
+        desired_state: str | None = None,
+        source_parameters: dict[str, Any] | None = None,
+        enrichment: str | None = None,
+        enrichment_parameters: dict[str, Any] | None = None,
+        target_parameters: dict[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
+        log_configuration: dict[str, Any] | None = None,
+        kms_key_identifier: str | None = None,
     ):
         ManagedState.__init__(
             self, "pipes::pipe", transitions=PipeStatus.status_transitions()
@@ -88,7 +88,7 @@ class Pipe(BaseModel, ManagedState):
         self.state_reason = None
 
     @property
-    def current_state(self) -> Optional[str]:
+    def current_state(self) -> str | None:
         return self.status
 
     @property
@@ -107,18 +107,18 @@ class EventBridgePipesBackend(BaseBackend):
     def create_pipe(
         self,
         name: str,
-        description: Optional[str],
-        desired_state: Optional[str],
+        description: str | None,
+        desired_state: str | None,
         source: str,
-        source_parameters: Optional[dict[str, Any]],
-        enrichment: Optional[str],
-        enrichment_parameters: Optional[dict[str, Any]],
+        source_parameters: dict[str, Any] | None,
+        enrichment: str | None,
+        enrichment_parameters: dict[str, Any] | None,
         target: str,
-        target_parameters: Optional[dict[str, Any]],
+        target_parameters: dict[str, Any] | None,
         role_arn: str,
-        tags: Optional[dict[str, str]],
-        log_configuration: Optional[dict[str, Any]],
-        kms_key_identifier: Optional[str],
+        tags: dict[str, str] | None,
+        log_configuration: dict[str, Any] | None,
+        kms_key_identifier: str | None,
     ) -> Pipe:
         pipe = Pipe(
             name=name,
@@ -197,11 +197,11 @@ class EventBridgePipesBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_pipes(  # type: ignore[misc]
         self,
-        name_prefix: Optional[str],
-        desired_state: Optional[str],
-        current_state: Optional[str],
-        source_prefix: Optional[str],
-        target_prefix: Optional[str],
+        name_prefix: str | None,
+        desired_state: str | None,
+        current_state: str | None,
+        source_prefix: str | None,
+        target_prefix: str | None,
     ) -> list[dict[str, Any]]:
         """List pipes with optional filtering and pagination."""
         filtered_pipes = list(self.pipes.values())

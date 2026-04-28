@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -86,8 +86,8 @@ class OpenSearchDomain(BaseModel):
         off_peak_window_options: dict[str, Any],
         software_update_options: dict[str, bool],
         is_es: bool,
-        elasticsearch_version: Optional[str],
-        elasticsearch_cluster_config: Optional[str],
+        elasticsearch_version: str | None,
+        elasticsearch_cluster_config: str | None,
     ):
         # Add creation_date attribute
         self.creation_date = unix_time(datetime.datetime.now())
@@ -140,8 +140,8 @@ class OpenSearchDomain(BaseModel):
                 self.cluster_config[key] = value
 
         if self.vpc_options is None:
-            self.endpoint: Optional[str] = f"{domain_name}.{region}.es.amazonaws.com"
-            self.endpoints: Optional[dict[str, str]] = None
+            self.endpoint: str | None = f"{domain_name}.{region}.es.amazonaws.com"
+            self.endpoints: dict[str, str] | None = None
         else:
             self.endpoint = None
             self.endpoints = {"vpc": f"{domain_name}.{region}.es.amazonaws.com"}
@@ -360,8 +360,8 @@ class OpenSearchServiceBackend(BaseBackend):
         off_peak_window_options: dict[str, Any],
         software_update_options: dict[str, Any],
         is_es: bool,
-        elasticsearch_version: Optional[str],
-        elasticsearch_cluster_config: Optional[str],
+        elasticsearch_version: str | None,
+        elasticsearch_cluster_config: str | None,
     ) -> OpenSearchDomain:
         domain = OpenSearchDomain(
             account_id=self.account_id,
@@ -392,9 +392,7 @@ class OpenSearchServiceBackend(BaseBackend):
             self.add_tags(domain.arn, tag_list)
         return domain
 
-    def get_compatible_versions(
-        self, domain_name: Optional[str]
-    ) -> list[dict[str, Any]]:
+    def get_compatible_versions(self, domain_name: str | None) -> list[dict[str, Any]]:
         if domain_name and domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return compatible_versions

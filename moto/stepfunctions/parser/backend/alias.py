@@ -4,7 +4,7 @@ import copy
 import datetime
 import random
 import threading
-from typing import Final, Optional
+from typing import Final
 
 from moto.stepfunctions.parser.api import (
     AliasDescription,
@@ -20,9 +20,9 @@ from moto.stepfunctions.parser.utils import token_generator
 
 class Alias:
     _mutex: Final[threading.Lock]
-    update_date: Optional[datetime.datetime]
+    update_date: datetime.datetime | None
     name: Final[CharacterRestrictedName]
-    _description: Optional[AliasDescription]
+    _description: AliasDescription | None
     _routing_configuration_list: RoutingConfigurationList
     _state_machine_version_arns: list[Arn]
     _execution_probability_distribution: list[int]
@@ -34,7 +34,7 @@ class Alias:
         self,
         state_machine_arn: Arn,
         name: CharacterRestrictedName,
-        description: Optional[AliasDescription],
+        description: AliasDescription | None,
         routing_configuration_list: RoutingConfigurationList,
     ):
         self._mutex = threading.Lock()
@@ -82,7 +82,7 @@ class Alias:
 
     def update(
         self,
-        description: Optional[AliasDescription],
+        description: AliasDescription | None,
         routing_configuration_list: RoutingConfigurationList,
     ) -> None:
         with self._mutex:

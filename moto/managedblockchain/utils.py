@@ -1,7 +1,7 @@
 import json
 import re
 import string
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from moto.moto_api._internal import mock_random as random
@@ -83,7 +83,7 @@ def member_name_exist_in_network(
 
 
 def number_of_members_in_network(
-    members: dict[str, Any], networkid: str, member_status: Optional[str] = None
+    members: dict[str, Any], networkid: str, member_status: str | None = None
 ) -> int:
     return len(
         [
@@ -123,7 +123,7 @@ def get_node_id() -> str:
 
 
 def number_of_nodes_in_member(
-    nodes: dict[str, Any], memberid: str, node_status: Optional[str] = None
+    nodes: dict[str, Any], memberid: str, node_status: str | None = None
 ) -> int:
     return len(
         [

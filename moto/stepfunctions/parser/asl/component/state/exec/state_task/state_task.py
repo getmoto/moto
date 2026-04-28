@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskTimedOutEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
@@ -31,8 +30,8 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 class StateTask(ExecutionState, abc.ABC):
     resource: Resource
-    parargs: Optional[Parargs]
-    credentials: Optional[Credentials]
+    parargs: Parargs | None
+    credentials: Credentials | None
 
     def __init__(self):
         super().__init__(
@@ -46,7 +45,7 @@ class StateTask(ExecutionState, abc.ABC):
         self.parargs = state_props.get(Parargs)
         self.credentials = state_props.get(Credentials)
 
-    def _get_supported_parameters(self) -> Optional[set[str]]:  # noqa
+    def _get_supported_parameters(self) -> set[str] | None:  # noqa
         return None
 
     def _eval_parameters(self, env: Environment) -> dict:

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -82,7 +80,7 @@ class SchemaNotFoundException(EntityNotFoundException):
         self,
         schema_name: str,
         registry_name: str,
-        schema_arn: Optional[str],
+        schema_arn: str | None,
         null: str = "null",
     ):
         super().__init__(
@@ -93,11 +91,11 @@ class SchemaNotFoundException(EntityNotFoundException):
 class SchemaVersionNotFoundFromSchemaIdException(EntityNotFoundException):
     def __init__(
         self,
-        registry_name: Optional[str],
-        schema_name: Optional[str],
-        schema_arn: Optional[str],
-        version_number: Optional[str],
-        latest_version: Optional[str],
+        registry_name: str | None,
+        schema_name: str | None,
+        schema_arn: str | None,
+        version_number: str | None,
+        latest_version: str | None,
         null: str = "null",
         false: str = "false",
     ):
@@ -124,7 +122,7 @@ class IllegalSessionStateException(GlueClientError):
 
 
 class RegistryNotFoundException(EntityNotFoundException):
-    def __init__(self, resource: str, param_name: str, param_value: Optional[str]):
+    def __init__(self, resource: str, param_name: str, param_value: str | None):
         super().__init__(
             resource + " is not found. " + param_name + ": " + param_value,  # type: ignore
         )
@@ -301,7 +299,7 @@ class DisabledCompatibilityVersioningException(GSRInvalidInputException):
         self,
         schema_name: str,
         registry_name: str,
-        schema_arn: Optional[str],
+        schema_arn: str | None,
         null: str = "null",
     ):
         super().__init__(

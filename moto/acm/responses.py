@@ -1,13 +1,12 @@
 import base64
 import json
-from typing import Union
 
 from moto.core.responses import BaseResponse
 
 from .exceptions import AWSValidationException
 from .models import AWSCertificateManagerBackend, acm_backends
 
-GENERIC_RESPONSE_TYPE = Union[str, tuple[str, dict[str, int]]]
+GENERIC_RESPONSE_TYPE = str | tuple[str, dict[str, int]]
 
 
 class AWSCertificateManagerResponse(BaseResponse):

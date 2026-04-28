@@ -4,7 +4,7 @@ import copy
 import datetime
 import logging
 import threading
-from typing import Final, Optional
+from typing import Final
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.stepfunctions.parser.api import (
@@ -62,10 +62,10 @@ class EventManager:
     _mutex: Final[threading.Lock]
     _event_id_gen: EventIdGenerator
     _history_event_list: Final[HistoryEventList]
-    _cloud_watch_logging_session: Final[Optional[CloudWatchLoggingSession]]
+    _cloud_watch_logging_session: Final[CloudWatchLoggingSession | None]
 
     def __init__(
-        self, cloud_watch_logging_session: Optional[CloudWatchLoggingSession] = None
+        self, cloud_watch_logging_session: CloudWatchLoggingSession | None = None
     ):
         self._mutex = threading.Lock()
         self._event_id_gen = EventIdGenerator()
@@ -76,7 +76,7 @@ class EventManager:
         self,
         context: EventHistoryContext,
         event_type: HistoryEventType,
-        event_details: Optional[EventDetails] = None,
+        event_details: EventDetails | None = None,
         timestamp: Timestamp = None,
         update_source_event_id: bool = True,
     ) -> int:
@@ -117,7 +117,7 @@ class EventManager:
         source_event_id: int,
         event_type: HistoryEventType,
         timestamp: datetime.datetime,
-        event_details: Optional[EventDetails],
+        event_details: EventDetails | None,
     ) -> HistoryEvent:
         history_event = HistoryEvent()
         if event_details is not None:
@@ -134,7 +134,7 @@ class EventManager:
         source_event_id: int,
         event_type: HistoryEventType,
         timestamp: datetime.datetime,
-        event_details: Optional[EventDetails],
+        event_details: EventDetails | None,
     ):
         history_event = self._create_history_event(
             event_id=event_id,
@@ -158,7 +158,7 @@ class EventManager:
         event_type: HistoryEventType,
         timestamp: datetime.datetime,
         execution_arn: LongArn,
-        event_details: Optional[EventDetails],
+        event_details: EventDetails | None,
         include_execution_data: bool,
     ) -> HistoryLog:
         log = HistoryLog(
@@ -188,7 +188,7 @@ class EventManager:
         source_event_id: int,
         event_type: HistoryEventType,
         timestamp: datetime.datetime,
-        event_details: Optional[EventDetails],
+        event_details: EventDetails | None,
     ):
         # No logging session for this execution.
         if self._cloud_watch_logging_session is None:

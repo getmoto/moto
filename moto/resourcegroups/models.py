@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,9 +18,9 @@ class FakeResourceGroup(BaseModel):
         region_name: str,
         name: str,
         resource_query: dict[str, str],
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        configuration: Optional[list[dict[str, Any]]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
+        configuration: list[dict[str, Any]] | None = None,
     ):
         self.errors: list[str] = []
         description = description or ""
@@ -211,9 +211,9 @@ class FakeTagSyncTask(BaseModel):
         group_arn: str,
         group_name: str,
         role_arn: str,
-        tag_key: Optional[str] = None,
-        tag_value: Optional[str] = None,
-        resource_query: Optional[dict[str, str]] = None,
+        tag_key: str | None = None,
+        tag_value: str | None = None,
+        resource_query: dict[str, str] | None = None,
     ):
         self.group_arn = group_arn
         self.group_name = group_name
@@ -374,9 +374,9 @@ class ResourceGroupsBackend(BaseBackend):
         self,
         name: str,
         resource_query: dict[str, str],
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        configuration: Optional[list[dict[str, Any]]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
+        configuration: list[dict[str, Any]] | None = None,
     ) -> FakeResourceGroup:
         tags = tags or {}
         group = FakeResourceGroup(
@@ -437,7 +437,7 @@ class ResourceGroupsBackend(BaseBackend):
             del group.tags[key]
 
     def update_group(
-        self, group_name: str, description: Optional[str] = None
+        self, group_name: str, description: str | None = None
     ) -> FakeResourceGroup:
         if description:
             self.groups.by_name[group_name].description = description
@@ -450,9 +450,7 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.by_name[group_name].resource_query = resource_query
         return self.groups.by_name[group_name]
 
-    def get_group_configuration(
-        self, group_name: str
-    ) -> Optional[list[dict[str, Any]]]:
+    def get_group_configuration(self, group_name: str) -> list[dict[str, Any]] | None:
         group = self.groups.by_name[group_name]
         return group.configuration
 
@@ -464,8 +462,8 @@ class ResourceGroupsBackend(BaseBackend):
 
     def list_tag_sync_tasks(
         self,
-        filters: Optional[list[dict[str, str]]] = None,
-        max_results: Optional[int] = None,
+        filters: list[dict[str, str]] | None = None,
+        max_results: int | None = None,
     ) -> list[dict[str, Any]]:
         tag_sync_tasks = []
         for task in self.tag_sync_tasks.values():
@@ -476,9 +474,9 @@ class ResourceGroupsBackend(BaseBackend):
         self,
         group: str,
         role_arn: str,
-        tag_key: Optional[str] = None,
-        tag_value: Optional[str] = None,
-        resource_query: Optional[dict[str, str]] = None,
+        tag_key: str | None = None,
+        tag_value: str | None = None,
+        resource_query: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         group_arn, group_name = None, None
         group_arn_regex = r"arn:aws(-[a-z]+)*:resource-groups:[a-z]{2}(-[a-z]+)+-\d{1}:[0-9]{12}:group/([a-zA-Z0-9_\.-]{1,300}|[a-zA-Z0-9_\.-]{1,150}/[a-z0-9]{26})"

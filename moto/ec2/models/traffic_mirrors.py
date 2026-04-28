@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import filter_resources
@@ -16,9 +16,9 @@ class TrafficMirrorFilter(TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend: Any,
-        description: Optional[str],
-        tag_specifications: Optional[list[dict[str, Any]]],
-        client_token: Optional[str],
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_traffic_mirror_filter_id()
@@ -57,12 +57,12 @@ class TrafficMirrorTarget(TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend: Any,
-        network_interface_id: Optional[str],
-        network_load_balancer_arn: Optional[str],
-        description: Optional[str],
-        tag_specifications: Optional[list[dict[str, Any]]],
-        client_token: Optional[str],
-        gateway_load_balancer_endpoint_id: Optional[str],
+        network_interface_id: str | None,
+        network_load_balancer_arn: str | None,
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
+        gateway_load_balancer_endpoint_id: str | None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_traffic_mirror_target_id()
@@ -110,8 +110,8 @@ class TrafficMirrorTarget(TaggedEC2Resource):
 
     @staticmethod
     def _determine_traffic_mirror_target_type(
-        values: dict[str, Optional[str]],
-    ) -> Optional[str]:
+        values: dict[str, str | None],
+    ) -> str | None:
         target_fields = {
             "NetworkInterfaceId": "network-interface",
             "NetworkLoadBalancerArn": "network-load-balancer",
@@ -137,9 +137,9 @@ class TrafficMirrorsBackend:
 
     def create_traffic_mirror_filter(
         self,
-        description: Optional[str],
-        tag_specifications: Optional[list[dict[str, Any]]],
-        client_token: Optional[str],
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
     ) -> TrafficMirrorFilter:
         mirror_filter = TrafficMirrorFilter(
             self, description, tag_specifications, client_token
@@ -150,12 +150,12 @@ class TrafficMirrorsBackend:
 
     def create_traffic_mirror_target(
         self,
-        network_interface_id: Optional[str],
-        network_load_balancer_arn: Optional[str],
-        description: Optional[str],
-        tag_specifications: Optional[list[dict[str, Any]]],
-        client_token: Optional[str],
-        gateway_load_balancer_endpoint_id: Optional[str],
+        network_interface_id: str | None,
+        network_load_balancer_arn: str | None,
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
+        gateway_load_balancer_endpoint_id: str | None,
     ) -> TrafficMirrorTarget:
         mirror_target = TrafficMirrorTarget(
             self,
@@ -172,8 +172,8 @@ class TrafficMirrorsBackend:
 
     def describe_traffic_mirror_filters(
         self,
-        traffic_mirror_filter_ids: Optional[list[str]],
-        filters: Optional[list[Any]],
+        traffic_mirror_filter_ids: list[str] | None,
+        filters: list[Any] | None,
     ) -> list[TrafficMirrorFilter]:
         traffic_mirror_filters = list(self.traffic_mirror_filters.values())
 
@@ -197,8 +197,8 @@ class TrafficMirrorsBackend:
 
     def describe_traffic_mirror_targets(
         self,
-        traffic_mirror_target_ids: Optional[list[str]],
-        filters: Optional[list[Any]],
+        traffic_mirror_target_ids: list[str] | None,
+        filters: list[Any] | None,
     ) -> list[TrafficMirrorTarget]:
         traffic_mirror_targets = list(self.traffic_mirror_targets.values())
 

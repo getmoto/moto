@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -115,7 +115,7 @@ class ConfigurationProfile(BaseModel):
 
 class Application(BaseModel):
     def __init__(
-        self, name: str, description: Optional[str], region: str, account_id: str
+        self, name: str, description: str | None, region: str, account_id: str
     ):
         self.id = mock_random.get_random_hex(7)
         self.arn = f"arn:{get_partition(region)}:appconfig:{region}:{account_id}:application/{self.id}"
@@ -141,7 +141,7 @@ class AppConfigBackend(BaseBackend):
         self.tagger = TaggingService()
 
     def create_application(
-        self, name: str, description: Optional[str], tags: dict[str, str]
+        self, name: str, description: str | None, tags: dict[str, str]
     ) -> Application:
         app = Application(
             name, description, region=self.region_name, account_id=self.account_id

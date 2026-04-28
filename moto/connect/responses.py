@@ -1,7 +1,7 @@
 """Handles incoming connect requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -58,7 +58,7 @@ class ConnectResponse(BaseResponse):
         next_token = self._get_param("nextToken")
 
         results: list[dict[str, str]]
-        token: Optional[str]
+        token: str | None
         results, token = self.connect_backend.list_analytics_data_associations(
             instance_id=instance_id,
             data_set_id=data_set_id,
@@ -102,7 +102,7 @@ class ConnectResponse(BaseResponse):
         next_token = self._get_param("nextToken")
 
         results: list[dict[str, Any]]
-        token: Optional[str]
+        token: str | None
         results, token = self.connect_backend.list_instances(
             max_results=max_results,
             next_token=next_token,

@@ -1,10 +1,7 @@
 from collections.abc import Iterator
-from typing import Union
 
 
-def string_equals_operation(
-    expected_value: Union[list[str], str], actual_value: str
-) -> bool:
+def string_equals_operation(expected_value: list[str] | str, actual_value: str) -> bool:
     if isinstance(expected_value, str):
         return actual_value == expected_value
 
@@ -23,7 +20,7 @@ class TrustCondition:
     def __init__(
         self,
         condition: str,
-        expected_value: list[Union[list[str], str]],
+        expected_value: list[list[str] | str],
         expected_value_source: list[str],
     ) -> None:
         self._condition = condition
@@ -49,7 +46,7 @@ class TrustCondition:
         return True
 
 
-ConditionData = dict[str, dict[str, Union[str, list[str]]]]
+ConditionData = dict[str, dict[str, str | list[str]]]
 
 
 class TrustRelationShipConditions:
@@ -59,9 +56,7 @@ class TrustRelationShipConditions:
         self._conditions: list[TrustCondition] = []
         for conditions_operation, condition_values in conditions.items():
             expected_value_source: list[str] = list(condition_values.keys())
-            expected_value_data: list[Union[str, list[str]]] = list(
-                condition_values.values()
-            )
+            expected_value_data: list[str | list[str]] = list(condition_values.values())
 
             self._conditions.append(
                 TrustCondition(

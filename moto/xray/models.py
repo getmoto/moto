@@ -2,7 +2,7 @@ import bisect
 import datetime
 import json
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -43,7 +43,7 @@ class TraceSegment(BaseModel):
         trace_id: str,
         start_time: float,
         raw: Any,
-        end_time: Optional[float] = None,
+        end_time: float | None = None,
         in_progress: bool = False,
         service: Any = None,
         user: Any = None,
@@ -59,13 +59,13 @@ class TraceSegment(BaseModel):
         self.name = name
         self.id = segment_id
         self.trace_id = trace_id
-        self._trace_version: Optional[int] = None
-        self._original_request_start_time: Optional[datetime.datetime] = None
+        self._trace_version: int | None = None
+        self._original_request_start_time: datetime.datetime | None = None
         self._trace_identifier = None
         self.start_time = start_time
-        self._start_date: Optional[datetime.datetime] = None
+        self._start_date: datetime.datetime | None = None
         self.end_time = end_time
-        self._end_date: Optional[datetime.datetime] = None
+        self._end_date: datetime.datetime | None = None
         self.in_progress = in_progress
         self.service = service
         self.user = user

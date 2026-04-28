@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -19,10 +19,10 @@ class FakeBot:
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[dict[str, Any]],
+        data_privacy: dict[str, Any] | None,
         idle_session_ttl_in_seconds: int,
         bot_type: str,
-        bot_members: Optional[dict[str, Any]],
+        bot_members: dict[str, Any] | None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -57,9 +57,9 @@ class FakeBotAlias:
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[dict[str, Any]],
-        conversation_log_settings: Optional[dict[str, Any]],
-        sentiment_analysis_settings: Optional[dict[str, Any]],
+        bot_alias_locale_settings: dict[str, Any] | None,
+        conversation_log_settings: dict[str, Any] | None,
+        sentiment_analysis_settings: dict[str, Any] | None,
         bot_id: str,
     ):
         self.account_id = account_id
@@ -107,12 +107,12 @@ class LexModelsV2Backend(BaseBackend):
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[dict[str, Any]],
+        data_privacy: dict[str, Any] | None,
         idle_session_ttl_in_seconds: int,
-        bot_tags: Optional[dict[str, str]],
-        test_bot_alias_tags: Optional[dict[str, str]],
+        bot_tags: dict[str, str] | None,
+        test_bot_alias_tags: dict[str, str] | None,
         bot_type: str,
-        bot_members: Optional[dict[str, Any]],
+        bot_members: dict[str, Any] | None,
     ) -> dict[str, Any]:
         bot = FakeBot(
             account_id=self.account_id,
@@ -183,10 +183,10 @@ class LexModelsV2Backend(BaseBackend):
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[dict[str, Any]],
+        data_privacy: dict[str, Any] | None,
         idle_session_ttl_in_seconds: int,
         bot_type: str,
-        bot_members: Optional[dict[str, Any]],
+        bot_members: dict[str, Any] | None,
     ) -> dict[str, Any]:
         bot = self.bots[bot_id]
 
@@ -239,11 +239,11 @@ class LexModelsV2Backend(BaseBackend):
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[dict[str, Any]],
-        conversation_log_settings: Optional[dict[str, Any]],
-        sentiment_analysis_settings: Optional[dict[str, Any]],
+        bot_alias_locale_settings: dict[str, Any] | None,
+        conversation_log_settings: dict[str, Any] | None,
+        sentiment_analysis_settings: dict[str, Any] | None,
         bot_id: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> dict[str, Any]:
         bot_alias = FakeBotAlias(
             self.account_id,
@@ -301,9 +301,9 @@ class LexModelsV2Backend(BaseBackend):
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[dict[str, Any]],
-        conversation_log_settings: Optional[dict[str, Any]],
-        sentiment_analysis_settings: Optional[dict[str, Any]],
+        bot_alias_locale_settings: dict[str, Any] | None,
+        conversation_log_settings: dict[str, Any] | None,
+        sentiment_analysis_settings: dict[str, Any] | None,
         bot_id: str,
     ) -> dict[str, Any]:
         ba = self.bot_aliases[bot_alias_id]
@@ -333,7 +333,7 @@ class LexModelsV2Backend(BaseBackend):
 
     def list_bot_aliases(
         self, bot_id: str, max_results: int
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], str | None]:
         bot_alias_summaries = [
             {
                 "botAliasId": ba.id,

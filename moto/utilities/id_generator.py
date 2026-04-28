@@ -2,14 +2,14 @@ import abc
 import logging
 import threading
 from collections.abc import Callable
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict
 
 from moto.moto_api._internal import mock_random
 
 log = logging.getLogger(__name__)
 
-ExistingIds = Union[list[str], None]
-Tags = Union[dict[str, str], list[dict[str, str]], None]
+ExistingIds = list[str] | None
+Tags = dict[str, str] | list[dict[str, str]] | None
 
 # Custom resource tag to override the generated resource ID.
 TAG_KEY_CUSTOM_ID = "_custom_id_"
@@ -57,7 +57,7 @@ class MotoIdManager:
     use the `id_manager` instance created below."""
 
     _custom_ids: dict[str, str]
-    _id_sources: list[Callable[[IdSourceContext], Union[str, None]]]
+    _id_sources: list[Callable[[IdSourceContext], str | None]]
 
     _lock: threading.RLock
 
@@ -69,9 +69,7 @@ class MotoIdManager:
         self.add_id_source(self.get_id_from_tags)
         self.add_id_source(self.get_custom_id_from_context)
 
-    def get_custom_id(
-        self, resource_identifier: ResourceIdentifier
-    ) -> Union[str, None]:
+    def get_custom_id(self, resource_identifier: ResourceIdentifier) -> str | None:
         # retrieves a custom_id for a resource. Returns None if no id were registered
         # that matches the `resource_identifier`
         return self._custom_ids.get(resource_identifier.unique_identifier)
@@ -90,13 +88,11 @@ class MotoIdManager:
         with self._lock:
             self._custom_ids.pop(resource_identifier.unique_identifier, None)
 
-    def add_id_source(
-        self, id_source: Callable[[IdSourceContext], Union[str, None]]
-    ) -> None:
+    def add_id_source(self, id_source: Callable[[IdSourceContext], str | None]) -> None:
         self._id_sources.append(id_source)
 
     @staticmethod
-    def get_id_from_tags(id_source_context: IdSourceContext) -> Union[str, None]:
+    def get_id_from_tags(id_source_context: IdSourceContext) -> str | None:
         if not (tags := id_source_context.get("tags")):
             return None
 
@@ -115,15 +111,13 @@ class MotoIdManager:
 
     def get_custom_id_from_context(
         self, id_source_context: IdSourceContext
-    ) -> Union[str, None]:
+    ) -> str | None:
         # retrieves a custom_id for a resource. Returns None
         if resource_identifier := id_source_context.get("resource_identifier"):
             return self.get_custom_id(resource_identifier)
         return None
 
-    def find_id_from_sources(
-        self, id_source_context: IdSourceContext
-    ) -> Union[str, None]:
+    def find_id_from_sources(self, id_source_context: IdSourceContext) -> str | None:
         existing_ids = id_source_context.get("existing_ids") or []
         for id_source in self._id_sources:
             if found_id := id_source(id_source_context):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -39,7 +39,7 @@ class TaggableResourceMixin:
     resource_type = ""
 
     def __init__(
-        self, account_id: str, region_name: str, tags: Optional[list[dict[str, Any]]]
+        self, account_id: str, region_name: str, tags: list[dict[str, Any]] | None
     ):
         self.account_id = account_id
         self.region = region_name
@@ -90,11 +90,11 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         publicly_accessible: bool,
         encrypted: bool,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        iam_roles_arn: Optional[list[str]] = None,
-        enhanced_vpc_routing: Optional[bool] = False,
+        tags: list[dict[str, str]] | None = None,
+        iam_roles_arn: list[str] | None = None,
+        enhanced_vpc_routing: bool | None = False,
         restored_from_snapshot: bool = False,
-        kms_key_id: Optional[str] = None,
+        kms_key_id: str | None = None,
     ):
         super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
@@ -153,7 +153,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         self.iam_roles_arn = iam_roles_arn or []
         self.restored_from_snapshot = restored_from_snapshot
         self.kms_key_id = kms_key_id
-        self.cluster_snapshot_copy_status: Optional[dict[str, Any]] = None
+        self.cluster_snapshot_copy_status: dict[str, Any] | None = None
         self.total_storage_capacity = 0
         self.logging_details = {
             "LoggingEnabled": "false",  # Lower case is required in response so we use string to simplify
@@ -324,7 +324,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         return self.total_storage_capacity
 
     @property
-    def restore_status(self) -> Optional[dict[str, Any]]:
+    def restore_status(self) -> dict[str, Any] | None:
         if not self.restored_from_snapshot:
             return None
         status = {
@@ -356,7 +356,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         description: str,
         subnet_ids: list[str],
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         super().__init__(ec2_backend.account_id, region_name, tags)
         self.ec2_backend = ec2_backend
@@ -429,7 +429,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         description: str,
         account_id: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         super().__init__(account_id, region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
@@ -453,7 +453,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         description: str,
         account_id: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         super().__init__(account_id, region_name, tags)
         self.name = cluster_parameter_group_name
@@ -503,8 +503,8 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         snapshot_identifier: str,
         account_id: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        iam_roles_arn: Optional[list[str]] = None,
+        tags: list[dict[str, str]] | None = None,
+        iam_roles_arn: list[str] | None = None,
         snapshot_type: str = "manual",
     ):
         super().__init__(account_id, region_name, tags)
@@ -650,8 +650,8 @@ class RedshiftBackend(BaseBackend):
 
     def describe_clusters(
         self,
-        cluster_identifier: Optional[str] = None,
-        tag_keys: Optional[list[str]] = None,
+        cluster_identifier: str | None = None,
+        tag_keys: list[str] | None = None,
     ) -> list[Cluster]:
         if cluster_identifier:
             if cluster_identifier in self.clusters:
@@ -745,7 +745,7 @@ class RedshiftBackend(BaseBackend):
         description: str,
         subnet_ids: list[str],
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> SubnetGroup:
         subnet_group = SubnetGroup(
             self.ec2_backend,
@@ -759,7 +759,7 @@ class RedshiftBackend(BaseBackend):
         return subnet_group
 
     def describe_cluster_subnet_groups(
-        self, subnet_identifier: Optional[str] = None
+        self, subnet_identifier: str | None = None
     ) -> list[SubnetGroup]:
         if subnet_identifier:
             if subnet_identifier in self.subnet_groups:
@@ -776,7 +776,7 @@ class RedshiftBackend(BaseBackend):
         self,
         cluster_security_group_name: str,
         description: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> SecurityGroup:
         security_group = SecurityGroup(
             cluster_security_group_name,
@@ -789,7 +789,7 @@ class RedshiftBackend(BaseBackend):
         return security_group
 
     def describe_cluster_security_groups(
-        self, security_group_name: Optional[str] = None
+        self, security_group_name: str | None = None
     ) -> list[SecurityGroup]:
         if security_group_name:
             if security_group_name in self.security_groups:
@@ -822,7 +822,7 @@ class RedshiftBackend(BaseBackend):
         group_family: str,
         description: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> ParameterGroup:
         parameter_group = ParameterGroup(
             cluster_parameter_group_name,
@@ -837,7 +837,7 @@ class RedshiftBackend(BaseBackend):
         return parameter_group
 
     def describe_cluster_parameter_groups(
-        self, parameter_group_name: Optional[str] = None
+        self, parameter_group_name: str | None = None
     ) -> list[ParameterGroup]:
         if parameter_group_name:
             if parameter_group_name in self.parameter_groups:
@@ -878,7 +878,7 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier: str,
         snapshot_identifier: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]],
+        tags: list[dict[str, str]] | None,
         snapshot_type: str = "manual",
     ) -> Snapshot:
         cluster = self.clusters.get(cluster_identifier)
@@ -899,9 +899,9 @@ class RedshiftBackend(BaseBackend):
 
     def describe_cluster_snapshots(
         self,
-        cluster_identifier: Optional[str] = None,
-        snapshot_identifier: Optional[str] = None,
-        snapshot_type: Optional[str] = None,
+        cluster_identifier: str | None = None,
+        snapshot_identifier: str | None = None,
+        snapshot_type: str | None = None,
     ) -> list[Snapshot]:
         snapshot_types = (
             ["automated", "manual"] if snapshot_type is None else [snapshot_type]

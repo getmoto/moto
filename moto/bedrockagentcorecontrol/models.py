@@ -1,7 +1,7 @@
 """BedrockAgentCoreControl models."""
 
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -23,12 +23,12 @@ class AgentRuntime(BaseModel, ManagedState):
         agent_runtime_artifact: dict[str, Any],
         role_arn: str,
         network_configuration: dict[str, Any],
-        description: Optional[str],
-        authorizer_configuration: Optional[dict[str, Any]],
-        request_header_configuration: Optional[dict[str, Any]],
-        protocol_configuration: Optional[dict[str, Any]],
-        lifecycle_configuration: Optional[dict[str, Any]],
-        environment_variables: Optional[dict[str, str]],
+        description: str | None,
+        authorizer_configuration: dict[str, Any] | None,
+        request_header_configuration: dict[str, Any] | None,
+        protocol_configuration: dict[str, Any] | None,
+        lifecycle_configuration: dict[str, Any] | None,
+        environment_variables: dict[str, str] | None,
     ):
         ManagedState.__init__(
             self,
@@ -81,12 +81,12 @@ class AgentRuntime(BaseModel, ManagedState):
         agent_runtime_artifact: dict[str, Any],
         role_arn: str,
         network_configuration: dict[str, Any],
-        description: Optional[str],
-        authorizer_configuration: Optional[dict[str, Any]],
-        request_header_configuration: Optional[dict[str, Any]],
-        protocol_configuration: Optional[dict[str, Any]],
-        lifecycle_configuration: Optional[dict[str, Any]],
-        environment_variables: Optional[dict[str, str]],
+        description: str | None,
+        authorizer_configuration: dict[str, Any] | None,
+        request_header_configuration: dict[str, Any] | None,
+        protocol_configuration: dict[str, Any] | None,
+        lifecycle_configuration: dict[str, Any] | None,
+        environment_variables: dict[str, str] | None,
     ) -> None:
         self.agent_runtime_artifact = agent_runtime_artifact
         self.role_arn = role_arn
@@ -130,8 +130,8 @@ class AgentRuntimeEndpoint(BaseModel, ManagedState):
         account_id: str,
         agent_runtime: "AgentRuntime",
         name: str,
-        agent_runtime_version: Optional[str],
-        description: Optional[str],
+        agent_runtime_version: str | None,
+        description: str | None,
     ):
         ManagedState.__init__(
             self,
@@ -159,8 +159,8 @@ class AgentRuntimeEndpoint(BaseModel, ManagedState):
 
     def update(
         self,
-        agent_runtime_version: Optional[str],
-        description: Optional[str],
+        agent_runtime_version: str | None,
+        description: str | None,
     ) -> None:
         if agent_runtime_version is not None:
             self.target_version = agent_runtime_version
@@ -191,13 +191,13 @@ class Gateway(BaseModel, ManagedState):
         role_arn: str,
         protocol_type: str,
         authorizer_type: str,
-        description: Optional[str],
-        protocol_configuration: Optional[dict[str, Any]],
-        authorizer_configuration: Optional[dict[str, Any]],
-        kms_key_arn: Optional[str],
-        interceptor_configurations: Optional[list[dict[str, Any]]],
-        policy_engine_configuration: Optional[dict[str, Any]],
-        exception_level: Optional[str],
+        description: str | None,
+        protocol_configuration: dict[str, Any] | None,
+        authorizer_configuration: dict[str, Any] | None,
+        kms_key_arn: str | None,
+        interceptor_configurations: list[dict[str, Any]] | None,
+        policy_engine_configuration: dict[str, Any] | None,
+        exception_level: str | None,
     ):
         ManagedState.__init__(
             self,
@@ -233,13 +233,13 @@ class Gateway(BaseModel, ManagedState):
         role_arn: str,
         protocol_type: str,
         authorizer_type: str,
-        description: Optional[str],
-        protocol_configuration: Optional[dict[str, Any]],
-        authorizer_configuration: Optional[dict[str, Any]],
-        kms_key_arn: Optional[str],
-        interceptor_configurations: Optional[list[dict[str, Any]]],
-        policy_engine_configuration: Optional[dict[str, Any]],
-        exception_level: Optional[str],
+        description: str | None,
+        protocol_configuration: dict[str, Any] | None,
+        authorizer_configuration: dict[str, Any] | None,
+        kms_key_arn: str | None,
+        interceptor_configurations: list[dict[str, Any]] | None,
+        policy_engine_configuration: dict[str, Any] | None,
+        exception_level: str | None,
     ) -> None:
         self.name = name
         self.role_arn = role_arn
@@ -314,9 +314,9 @@ class GatewayTarget(BaseModel, ManagedState):
         gateway: Gateway,
         name: str,
         target_configuration: dict[str, Any],
-        description: Optional[str],
-        credential_provider_configurations: Optional[list[dict[str, Any]]],
-        metadata_configuration: Optional[dict[str, Any]],
+        description: str | None,
+        credential_provider_configurations: list[dict[str, Any]] | None,
+        metadata_configuration: dict[str, Any] | None,
     ):
         ManagedState.__init__(
             self,
@@ -343,9 +343,9 @@ class GatewayTarget(BaseModel, ManagedState):
         self,
         name: str,
         target_configuration: dict[str, Any],
-        description: Optional[str],
-        credential_provider_configurations: Optional[list[dict[str, Any]]],
-        metadata_configuration: Optional[dict[str, Any]],
+        description: str | None,
+        credential_provider_configurations: list[dict[str, Any]] | None,
+        metadata_configuration: dict[str, Any] | None,
     ) -> None:
         self.name = name
         self.target_configuration = target_configuration
@@ -395,10 +395,10 @@ class Memory(BaseModel, ManagedState):
         account_id: str,
         name: str,
         event_expiry_duration: int,
-        description: Optional[str],
-        encryption_key_arn: Optional[str],
-        memory_execution_role_arn: Optional[str],
-        memory_strategies: Optional[list[dict[str, Any]]],
+        description: str | None,
+        encryption_key_arn: str | None,
+        memory_execution_role_arn: str | None,
+        memory_strategies: list[dict[str, Any]] | None,
     ):
         ManagedState.__init__(
             self,
@@ -453,10 +453,10 @@ class Memory(BaseModel, ManagedState):
 
     def update(
         self,
-        description: Optional[str],
-        event_expiry_duration: Optional[int],
-        memory_execution_role_arn: Optional[str],
-        memory_strategies: Optional[dict[str, Any]],
+        description: str | None,
+        event_expiry_duration: int | None,
+        memory_execution_role_arn: str | None,
+        memory_strategies: dict[str, Any] | None,
     ) -> None:
         if description is not None:
             self.description = description
@@ -539,13 +539,13 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         agent_runtime_artifact: dict[str, Any],
         role_arn: str,
         network_configuration: dict[str, Any],
-        description: Optional[str],
-        authorizer_configuration: Optional[dict[str, Any]],
-        request_header_configuration: Optional[dict[str, Any]],
-        protocol_configuration: Optional[dict[str, Any]],
-        lifecycle_configuration: Optional[dict[str, Any]],
-        environment_variables: Optional[dict[str, str]],
-        tags: Optional[dict[str, str]],
+        description: str | None,
+        authorizer_configuration: dict[str, Any] | None,
+        request_header_configuration: dict[str, Any] | None,
+        protocol_configuration: dict[str, Any] | None,
+        lifecycle_configuration: dict[str, Any] | None,
+        environment_variables: dict[str, str] | None,
+        tags: dict[str, str] | None,
     ) -> AgentRuntime:
         runtime = AgentRuntime(
             region_name=self.region_name,
@@ -580,12 +580,12 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         agent_runtime_artifact: dict[str, Any],
         role_arn: str,
         network_configuration: dict[str, Any],
-        description: Optional[str],
-        authorizer_configuration: Optional[dict[str, Any]],
-        request_header_configuration: Optional[dict[str, Any]],
-        protocol_configuration: Optional[dict[str, Any]],
-        lifecycle_configuration: Optional[dict[str, Any]],
-        environment_variables: Optional[dict[str, str]],
+        description: str | None,
+        authorizer_configuration: dict[str, Any] | None,
+        request_header_configuration: dict[str, Any] | None,
+        protocol_configuration: dict[str, Any] | None,
+        lifecycle_configuration: dict[str, Any] | None,
+        environment_variables: dict[str, str] | None,
     ) -> AgentRuntime:
         runtime = self._get_runtime(agent_runtime_id)
         runtime.update(
@@ -625,9 +625,9 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         self,
         agent_runtime_id: str,
         name: str,
-        agent_runtime_version: Optional[str],
-        description: Optional[str],
-        tags: Optional[dict[str, str]],
+        agent_runtime_version: str | None,
+        description: str | None,
+        tags: dict[str, str] | None,
     ) -> AgentRuntimeEndpoint:
         runtime = self._get_runtime(agent_runtime_id)
         key = (agent_runtime_id, name)
@@ -667,8 +667,8 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         self,
         agent_runtime_id: str,
         endpoint_name: str,
-        agent_runtime_version: Optional[str],
-        description: Optional[str],
+        agent_runtime_version: str | None,
+        description: str | None,
     ) -> AgentRuntimeEndpoint:
         endpoint = self.get_agent_runtime_endpoint(agent_runtime_id, endpoint_name)
         endpoint.update(
@@ -708,14 +708,14 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         role_arn: str,
         protocol_type: str,
         authorizer_type: str,
-        description: Optional[str],
-        protocol_configuration: Optional[dict[str, Any]],
-        authorizer_configuration: Optional[dict[str, Any]],
-        kms_key_arn: Optional[str],
-        interceptor_configurations: Optional[list[dict[str, Any]]],
-        policy_engine_configuration: Optional[dict[str, Any]],
-        exception_level: Optional[str],
-        tags: Optional[dict[str, str]],
+        description: str | None,
+        protocol_configuration: dict[str, Any] | None,
+        authorizer_configuration: dict[str, Any] | None,
+        kms_key_arn: str | None,
+        interceptor_configurations: list[dict[str, Any]] | None,
+        policy_engine_configuration: dict[str, Any] | None,
+        exception_level: str | None,
+        tags: dict[str, str] | None,
     ) -> Gateway:
         gateway = Gateway(
             region_name=self.region_name,
@@ -752,13 +752,13 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         role_arn: str,
         protocol_type: str,
         authorizer_type: str,
-        description: Optional[str],
-        protocol_configuration: Optional[dict[str, Any]],
-        authorizer_configuration: Optional[dict[str, Any]],
-        kms_key_arn: Optional[str],
-        interceptor_configurations: Optional[list[dict[str, Any]]],
-        policy_engine_configuration: Optional[dict[str, Any]],
-        exception_level: Optional[str],
+        description: str | None,
+        protocol_configuration: dict[str, Any] | None,
+        authorizer_configuration: dict[str, Any] | None,
+        kms_key_arn: str | None,
+        interceptor_configurations: list[dict[str, Any]] | None,
+        policy_engine_configuration: dict[str, Any] | None,
+        exception_level: str | None,
     ) -> Gateway:
         gateway = self._get_gateway(gateway_identifier)
         gateway.update(
@@ -800,9 +800,9 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         gateway_identifier: str,
         name: str,
         target_configuration: dict[str, Any],
-        description: Optional[str],
-        credential_provider_configurations: Optional[list[dict[str, Any]]],
-        metadata_configuration: Optional[dict[str, Any]],
+        description: str | None,
+        credential_provider_configurations: list[dict[str, Any]] | None,
+        metadata_configuration: dict[str, Any] | None,
     ) -> GatewayTarget:
         gateway = self._get_gateway(gateway_identifier)
         target = GatewayTarget(
@@ -832,9 +832,9 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         target_id: str,
         name: str,
         target_configuration: dict[str, Any],
-        description: Optional[str],
-        credential_provider_configurations: Optional[list[dict[str, Any]]],
-        metadata_configuration: Optional[dict[str, Any]],
+        description: str | None,
+        credential_provider_configurations: list[dict[str, Any]] | None,
+        metadata_configuration: dict[str, Any] | None,
     ) -> GatewayTarget:
         gateway = self._get_gateway(gateway_identifier)
         target = self._get_gateway_target(gateway.gateway_id, target_id)
@@ -874,11 +874,11 @@ class BedrockAgentCoreControlBackend(BaseBackend):
         self,
         name: str,
         event_expiry_duration: int,
-        description: Optional[str],
-        encryption_key_arn: Optional[str],
-        memory_execution_role_arn: Optional[str],
-        memory_strategies: Optional[list[dict[str, Any]]],
-        tags: Optional[dict[str, str]],
+        description: str | None,
+        encryption_key_arn: str | None,
+        memory_execution_role_arn: str | None,
+        memory_strategies: list[dict[str, Any]] | None,
+        tags: dict[str, str] | None,
     ) -> Memory:
         memory = Memory(
             region_name=self.region_name,
@@ -906,10 +906,10 @@ class BedrockAgentCoreControlBackend(BaseBackend):
     def update_memory(
         self,
         memory_id: str,
-        description: Optional[str],
-        event_expiry_duration: Optional[int],
-        memory_execution_role_arn: Optional[str],
-        memory_strategies: Optional[dict[str, Any]],
+        description: str | None,
+        event_expiry_duration: int | None,
+        memory_execution_role_arn: str | None,
+        memory_strategies: dict[str, Any] | None,
     ) -> Memory:
         memory = self._get_memory(memory_id)
         memory.update(
