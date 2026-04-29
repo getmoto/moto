@@ -1,11 +1,13 @@
 """Unit tests for kms-supported APIs."""
 
 import base64
+import hmac
 
 import boto3
 import pytest
 
 from moto import mock_aws
+from moto.kms.models import TAG_KEY_CUSTOM_KEY_MATERIAL
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -154,3 +156,65 @@ def test_verify_mac_fails_for_another_key_id():
             Message=base64.b64encode(b"Hello World"),
             Mac=mac,
         )
+
+
+@mock_aws
+def test_generate_mac_allows_aliases():
+    # Arrange
+    my_alias = "alias/test-1234"
+    key_id = create_hmac_key()
+
+    # Act + Assert
+    client = boto3.client("kms", region_name="eu-central-1")
+    client.create_alias(
+        AliasName=my_alias,
+        TargetKeyId=key_id,
+    )
+    mac_key_id = client.generate_mac(
+        KeyId=my_alias,
+        MacAlgorithm="HMAC_SHA_256",
+        Message=base64.b64encode(b"aliases work fine"),
+    )["KeyId"]
+
+    assert mac_key_id == key_id
+
+
+@mock_aws
+def test_create_key_custom_key_material_hmac():
+    # Arrange
+    custom_key_material = b"custom test key material"
+    custom_key_tag_value = base64.b64encode(custom_key_material).decode("utf-8")
+    message = "some important message"
+    key_spec = "HMAC_256"
+    mac_algo = "HMAC_SHA_256"
+
+    h = hmac.HMAC(custom_key_material, message.encode("utf-8"), "SHA256")
+    expected_mac = h.digest()
+
+    # Act
+    client = boto3.client("kms", region_name="eu-central-1")
+
+    key_id = client.create_key(
+        KeySpec=key_spec,
+        KeyUsage="GENERATE_VERIFY_MAC",
+        Tags=[
+            {"TagKey": TAG_KEY_CUSTOM_KEY_MATERIAL, "TagValue": custom_key_tag_value}
+        ],
+    )["KeyMetadata"]["KeyId"]
+
+    mac = client.generate_mac(
+        KeyId=key_id,
+        Message=message,
+        MacAlgorithm=mac_algo,
+    )["Mac"]
+    verify_mac_response = client.verify_mac(
+        KeyId=key_id,
+        Message=message,
+        MacAlgorithm=mac_algo,
+        Mac=expected_mac,
+    )
+
+    # Assert
+    assert mac == expected_mac
+
+    assert verify_mac_response["MacValid"]

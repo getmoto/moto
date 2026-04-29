@@ -20,14 +20,22 @@ kms
 - [ ] create_custom_key_store
 - [X] create_grant
 - [X] create_key
-  
+
         The provided Policy currently does not need to be valid. If it is valid, Moto will perform authorization checks on key-related operations, just like AWS does.
 
         These authorization checks are quite basic for now. Moto will only throw an AccessDeniedException if the following conditions are met:
          - The principal is set to "*"
          - The resource is set to "*"
          - The Action matches `describe_key`
-        
+
+        One may use two addition Moto-specific Tag keys to influence how Moto creates Keys:
+
+        - ``_custom_key_material_`` is a *base64* encoded means of providing the master key material rather than having Moto generate it
+
+          Be aware that this key material is still subject to the cryptographic constraints for the key use
+        - ``_custom_id_`` is the desired Key Id (this Tag key is actually not KMS specific but is useful in generate-key for the same deterministic behavior)
+
+        They may be used together or separate depending on the deterministic behavior required
 
 - [X] decrypt
 - [X] delete_alias
@@ -70,11 +78,11 @@ kms
 - [X] rotate_key_on_demand
 - [X] schedule_key_deletion
 - [X] sign
-  
+
         Sign message using generated private key.
 
         - grant_tokens are not implemented
-        
+
 
 - [X] tag_resource
 - [X] untag_resource
@@ -83,12 +91,11 @@ kms
 - [X] update_key_description
 - [ ] update_primary_region
 - [X] verify
-  
+
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
         - The MessageType-parameter DIGEST is not yet implemented
-        
+
 
 - [X] verify_mac
-

@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from collections.abc import Iterable
@@ -14,6 +15,7 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
+from ..utilities.id_generator import TAG_KEY_CUSTOM_ID
 from .exceptions import (
     AccessDeniedException,
     InvalidKeyUsageException,
@@ -31,6 +33,11 @@ from .utils import (
     generate_master_key,
     generate_private_key,
 )
+
+TAG_KEY_CUSTOM_KEY_MATERIAL = "_custom_key_material_"
+"""Allow the caller to influence the behavior of ``create-key`` such that it is deterministic
+
+This value must be base64 to survive the --tag serialization process"""
 
 
 class Grant(BaseModel):
@@ -136,8 +143,29 @@ class Key(CloudFormationModel):
         region: str,
         multi_region: bool = False,
         origin: str = "AWS_KMS",
+        tags: Optional[list[dict[str, str]]] = None,
     ):
-        self.id = generate_key_id(multi_region)
+        key_id = generate_key_id(multi_region)
+        key_material: Optional[bytes] = None
+        if tags is not None:
+            maybe_id = [
+                it["TagValue"].strip()
+                for it in tags
+                if it.get("TagKey", "") == TAG_KEY_CUSTOM_ID
+            ]
+            if maybe_id:
+                # for this exercise, it is an error to not include the TagValue
+                key_id = maybe_id[0]
+            maybe_material = [
+                it["TagValue"].strip()
+                for it in tags
+                if it.get("TagKey", "") == TAG_KEY_CUSTOM_KEY_MATERIAL
+            ]
+            if maybe_material:
+                key_material = base64.b64decode(maybe_material[0])
+        if key_material is None:
+            key_material = generate_master_key()
+        self.id = key_id
         self.creation_date = unix_time()
         self.account_id = account_id
         self.region = region
@@ -158,7 +186,9 @@ class Key(CloudFormationModel):
             }
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
-        self.key_material = generate_master_key()
+        if key_material is None:
+            raise TypeError("not without key_material")
+        self.key_material = key_material
         self.origin = origin
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
@@ -400,6 +430,7 @@ class KmsBackend(BaseBackend):
             self.region_name,
             multi_region,
             origin,
+            tags=tags or [],
         )
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
