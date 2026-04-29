@@ -411,7 +411,9 @@ class FilterPolicyMatcher:
                     if attributes_based_check:
                         if dict_body.get(field, {}).get("Type", "") == "Number":
                             checks = value
-                            numeric_ranges = zip(checks[0::2], checks[1::2])
+                            numeric_ranges = zip(
+                                checks[0::2], checks[1::2], strict=False
+                            )
                             if _numeric_match(
                                 numeric_ranges, float(dict_body[field]["Value"])
                             ):
@@ -421,7 +423,7 @@ class FilterPolicyMatcher:
                             return False
 
                         checks = value
-                        numeric_ranges = zip(checks[0::2], checks[1::2])
+                        numeric_ranges = zip(checks[0::2], checks[1::2], strict=False)
                         if _numeric_match(numeric_ranges, dict_body[field]):
                             return True
 

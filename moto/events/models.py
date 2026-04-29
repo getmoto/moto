@@ -1062,7 +1062,9 @@ class EventPattern:
                 if not isinstance(val, (int, float)):
                     return False
                 as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
-                operators_and_values = zip(filter_value[::2], filter_value[1::2])
+                operators_and_values = zip(
+                    filter_value[::2], filter_value[1::2], strict=False
+                )
                 numeric_matches = [
                     as_function[operator](val, value)
                     for operator, value in operators_and_values

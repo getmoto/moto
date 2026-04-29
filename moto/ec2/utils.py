@@ -5,7 +5,7 @@ import ipaddress
 import re
 from collections.abc import Callable
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, TypedDict, TypeVar, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -24,8 +24,6 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
-
     HashType: TypeAlias = hashlib._Hash
 
 EC2_RESOURCE_TO_PREFIX = {
