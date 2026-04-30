@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -493,7 +493,7 @@ class WorkSpacesBackend(BaseBackend):
         )
 
     def describe_workspace_directories(
-        self, directory_ids: Optional[list[str]] = None
+        self, directory_ids: list[str] | None = None
     ) -> list[WorkSpaceDirectory]:
         """Return info on all directories or directories with matching IDs."""
         # Pagination not yet implemented
@@ -583,7 +583,7 @@ class WorkSpacesBackend(BaseBackend):
         return workspace_image.to_dict()
 
     def describe_workspace_images(
-        self, image_ids: Optional[list[str]], image_type: Optional[str]
+        self, image_ids: list[str] | None, image_type: str | None
     ) -> list[dict[str, Any]]:
         # Pagination not yet implemented
         workspace_images = list(self.workspace_images.values())

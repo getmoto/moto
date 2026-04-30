@@ -2,7 +2,7 @@ import datetime
 import re
 from collections import OrderedDict
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -55,7 +55,7 @@ class FakeListener(BaseModel):
         load_balancer_port: str,
         instance_port: str,
         protocol: str,
-        ssl_certificate_id: Optional[str],
+        ssl_certificate_id: str | None,
     ):
         self.load_balancer_port = load_balancer_port
         self.instance_port = instance_port
@@ -87,14 +87,14 @@ class LoadBalancer(CloudFormationModel):
         name: str,
         zones: list[str],
         ports: list[dict[str, Any]],
-        scheme: Optional[str],
-        vpc_id: Optional[str],
-        subnets: Optional[list[str]],
-        security_groups: Optional[list[str]],
+        scheme: str | None,
+        vpc_id: str | None,
+        subnets: list[str] | None,
+        security_groups: list[str] | None,
     ):
         self.account_id = account_id
         self.name = name
-        self.health_check: Optional[FakeHealthCheck] = None
+        self.health_check: FakeHealthCheck | None = None
         self.instance_sparse_ids: list[str] = []
         self.instance_autoscaling_ids: list[str] = []
         self.availability_zones = zones
@@ -335,8 +335,8 @@ class ELBBackend(BaseBackend):
         zones: list[str],
         ports: list[dict[str, Any]],
         scheme: str = "internet-facing",
-        subnets: Optional[list[str]] = None,
-        security_groups: Optional[list[str]] = None,
+        subnets: list[str] | None = None,
+        security_groups: list[str] | None = None,
     ) -> LoadBalancer:
         vpc_id = None
         ec2_backend = ec2_backends[self.account_id][self.region_name]
@@ -387,7 +387,7 @@ class ELBBackend(BaseBackend):
 
     def create_load_balancer_listeners(
         self, name: str, ports: list[dict[str, Any]]
-    ) -> Optional[LoadBalancer]:
+    ) -> LoadBalancer | None:
         balancer = self.load_balancers.get(name, None)
         if balancer:
             for port in ports:
@@ -473,7 +473,7 @@ class ELBBackend(BaseBackend):
 
     def delete_load_balancer_listeners(
         self, name: str, ports: list[str]
-    ) -> Optional[LoadBalancer]:
+    ) -> LoadBalancer | None:
         balancer = self.get_load_balancer(name)
         listeners = []
         if balancer:
@@ -524,7 +524,7 @@ class ELBBackend(BaseBackend):
 
     def set_load_balancer_listener_ssl_certificate(
         self, name: str, lb_port: str, ssl_certificate_id: str
-    ) -> Optional[LoadBalancer]:
+    ) -> LoadBalancer | None:
         balancer = self.load_balancers.get(name, None)
         if balancer:
             for idx, listener in enumerate(balancer.listeners):
@@ -585,11 +585,11 @@ class ELBBackend(BaseBackend):
     def modify_load_balancer_attributes(
         self,
         load_balancer_name: str,
-        cross_zone: Optional[dict[str, Any]] = None,
-        connection_settings: Optional[dict[str, Any]] = None,
-        connection_draining: Optional[dict[str, Any]] = None,
-        access_log: Optional[dict[str, Any]] = None,
-        additional_attributes: Optional[list[dict[str, str]]] = None,
+        cross_zone: dict[str, Any] | None = None,
+        connection_settings: dict[str, Any] | None = None,
+        connection_draining: dict[str, Any] | None = None,
+        access_log: dict[str, Any] | None = None,
+        additional_attributes: list[dict[str, str]] | None = None,
     ) -> None:
         load_balancer = self.get_load_balancer(load_balancer_name)
         if cross_zone:
@@ -642,7 +642,7 @@ class ELBBackend(BaseBackend):
         self,
         load_balancer_name: str,
         policy_name: str,
-        cookie_expiration_period: Optional[int],
+        cookie_expiration_period: int | None,
     ) -> LoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
         policy = LbCookieStickinessPolicy(policy_name, cookie_expiration_period)

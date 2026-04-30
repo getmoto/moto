@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
@@ -708,8 +708,8 @@ class GlueResponse(BaseResponse):
         trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
 
-        predicate_input: Optional[dict[str, Union[str, list[dict[str, str]]]]] = (
-            self._get_param("Predicate")
+        predicate_input: dict[str, str | list[dict[str, str]]] | None = self._get_param(
+            "Predicate"
         )
         if predicate_input:
             predicate = Predicate(predicate_input)

@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from typing import Final, Optional
+from typing import Final
 
 from localstack.aws.api import CommonServiceException, RequestContext
 from localstack.services.plugins import ServiceLifecycleHook
@@ -282,7 +282,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
             )
 
     def _get_execution(self, context: RequestContext, execution_arn: Arn) -> Execution:
-        execution: Optional[Execution] = self.get_store(context).executions.get(
+        execution: Execution | None = self.get_store(context).executions.get(
             execution_arn
         )
         if not execution:
@@ -292,7 +292,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
     def _get_executions(
         self,
         context: RequestContext,
-        execution_status: Optional[ExecutionStatus] = None,
+        execution_status: ExecutionStatus | None = None,
     ):
         store = self.get_store(context)
         execution: list[Execution] = list(store.executions.values())
@@ -306,7 +306,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         return execution
 
     def _get_activity(self, context: RequestContext, activity_arn: Arn) -> Activity:
-        maybe_activity: Optional[Activity] = self.get_store(context).activities.get(
+        maybe_activity: Activity | None = self.get_store(context).activities.get(
             activity_arn, None
         )
         if maybe_activity is None:
@@ -321,7 +321,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         state_machine_type: StateMachineType,
         logging_configuration: LoggingConfiguration,
         tracing_configuration: TracingConfiguration,
-    ) -> Optional[StateMachineRevision]:
+    ) -> StateMachineRevision | None:
         # CreateStateMachine's idempotency check is based on the state machine name, definition, type,
         # LoggingConfiguration and TracingConfiguration.
         # If a following request has a different roleArn or tags, Step Functions will ignore these differences and
@@ -349,11 +349,11 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
 
     def _idempotent_start_execution(
         self,
-        execution: Optional[Execution],
+        execution: Execution | None,
         state_machine: StateMachineInstance,
         name: Name,
         input_data: SensitiveData,
-    ) -> Optional[Execution]:
+    ) -> Execution | None:
         # StartExecution is idempotent for STANDARD workflows. For a STANDARD workflow,
         # if you call StartExecution with the same name and input as a running execution,
         # the call succeeds and return the same response as the original request.
@@ -378,7 +378,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
 
     def _revision_by_name(
         self, context: RequestContext, name: str
-    ) -> Optional[StateMachineInstance]:
+    ) -> StateMachineInstance | None:
         state_machines: list[StateMachineInstance] = list(
             self.get_store(context).state_machines.values()
         )
@@ -460,7 +460,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
 
         # CreateStateMachine is an idempotent API. Subsequent requests won't create a duplicate resource if it was
         # already created.
-        idem_state_machine: Optional[StateMachineRevision] = self._idempotent_revision(
+        idem_state_machine: StateMachineRevision | None = self._idempotent_revision(
             context=context,
             name=state_machine_name,
             definition=state_machine_definition,
@@ -475,8 +475,8 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
             )
 
         # Assert this state machine name is unique.
-        state_machine_with_name: Optional[StateMachineRevision] = (
-            self._revision_by_name(context=context, name=state_machine_name)
+        state_machine_with_name: StateMachineRevision | None = self._revision_by_name(
+            context=context, name=state_machine_name
         )
         if state_machine_with_name is not None:
             raise StateMachineAlreadyExists(
@@ -717,7 +717,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         self._validate_state_machine_alias_arn(
             state_machine_alias_arn=state_machine_alias_arn
         )
-        alias: Optional[Alias] = self.get_store(context=context).aliases.get(
+        alias: Alias | None = self.get_store(context=context).aliases.get(
             state_machine_alias_arn
         )
         if alias is None:
@@ -815,7 +815,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
     @staticmethod
     def _get_mock_test_case(
         state_machine_arn: str, state_machine_name: str
-    ) -> Optional[MockTestCase]:
+    ) -> MockTestCase | None:
         """Extract and load a mock test case from a state machine ARN if present."""
         parts = state_machine_arn.split("#")
         if len(parts) != 2:
@@ -848,11 +848,11 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         base_arn = self._get_state_machine_arn(state_machine_arn)
         store = self.get_store(context=context)
 
-        alias: Optional[Alias] = store.aliases.get(base_arn)
+        alias: Alias | None = store.aliases.get(base_arn)
         alias_sample_state_machine_version_arn = (
             alias.sample() if alias is not None else None
         )
-        unsafe_state_machine: Optional[StateMachineInstance] = store.state_machines.get(
+        unsafe_state_machine: StateMachineInstance | None = store.state_machines.get(
             alias_sample_state_machine_version_arn or base_arn
         )
         if not unsafe_state_machine:
@@ -948,7 +948,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         self._validate_state_machine_arn(state_machine_arn)
 
         base_arn = self._get_state_machine_arn(state_machine_arn)
-        unsafe_state_machine: Optional[StateMachineInstance] = self.get_store(
+        unsafe_state_machine: StateMachineInstance | None = self.get_store(
             context
         ).state_machines.get(base_arn)
         if not unsafe_state_machine:
@@ -1035,7 +1035,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
 
     @staticmethod
     def _list_execution_filter(
-        ex: Execution, state_machine_arn: str, status_filter: Optional[str]
+        ex: Execution, state_machine_arn: str, status_filter: str | None
     ) -> bool:
         state_machine_reference_arn_set = {
             ex.state_machine_arn,
@@ -1536,7 +1536,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
     ) -> DescribeMapRunOutput:
         store = self.get_store(context)
         for execution in store.executions.values():
-            map_run_record: Optional[MapRunRecord] = (
+            map_run_record: MapRunRecord | None = (
                 execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
             )
             if map_run_record is not None:
@@ -1579,7 +1579,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         # TODO: investigate behaviour of empty requests.
         store = self.get_store(context)
         for execution in store.executions.values():
-            map_run_record: Optional[MapRunRecord] = (
+            map_run_record: MapRunRecord | None = (
                 execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
             )
             if map_run_record is not None:
@@ -1609,7 +1609,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
             definition=definition, static_analysers=[TestStateStaticAnalyser()]
         )
 
-        name: Optional[Name] = f"TestState-{short_uid()}"
+        name: Name | None = f"TestState-{short_uid()}"
         arn = stepfunctions_state_machine_arn(
             name=name, account_id=context.account_id, region_name=context.region
         )
@@ -1695,7 +1695,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         self,
         context: RequestContext,
         task_token: TaskToken,
-        worker_name: Optional[Name],
+        worker_name: Name | None,
     ) -> None:
         executions: list[Execution] = self._get_executions(context)
         for execution in executions:
@@ -1708,7 +1708,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         raise InvalidToken()
 
     @staticmethod
-    def _pull_activity_task(activity: Activity) -> Optional[ActivityTask]:
+    def _pull_activity_task(activity: Activity) -> ActivityTask | None:
         seconds_left = 60
         while seconds_left > 0:
             try:
@@ -1728,7 +1728,7 @@ class StepFunctionsProvider(StepfunctionsApi, ServiceLifecycleHook):
         self._validate_activity_arn(activity_arn)
 
         activity = self._get_activity(context=context, activity_arn=activity_arn)
-        maybe_task: Optional[ActivityTask] = self._pull_activity_task(activity=activity)
+        maybe_task: ActivityTask | None = self._pull_activity_task(activity=activity)
         if maybe_task is not None:
             self._send_activity_task_started(
                 context, maybe_task.task_token, worker_name=worker_name

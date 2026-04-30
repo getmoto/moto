@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import bz2
 import codecs
@@ -17,7 +19,7 @@ from collections.abc import Iterator
 from enum import Enum
 from importlib import reload
 from io import BytesIO
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from moto.cloudwatch.models import MetricDatum
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -99,7 +101,7 @@ class TransitionDefaultMinimumObjectSize(Enum):
 
 
 class FakeDeleteMarker(BaseModel):
-    def __init__(self, key: "FakeKey"):
+    def __init__(self, key: FakeKey):
         self.key = key
         self.name = key.name
         self.last_modified = utcnow()
@@ -121,22 +123,22 @@ class FakeKey(BaseModel, ManagedState):
         value: bytes,
         account_id: str,
         region_name: str,
-        storage: Optional[str] = "STANDARD",
-        etag: Optional[str] = None,
+        storage: str | None = "STANDARD",
+        etag: str | None = None,
         is_versioned: bool = False,
-        version_id: Optional[str] = None,
-        max_buffer_size: Optional[int] = None,
-        multipart: Optional["FakeMultipart"] = None,
-        bucket_name: Optional[str] = None,
-        encryption: Optional[str] = None,
-        kms_key_id: Optional[str] = None,
+        version_id: str | None = None,
+        max_buffer_size: int | None = None,
+        multipart: FakeMultipart | None = None,
+        bucket_name: str | None = None,
+        encryption: str | None = None,
+        kms_key_id: str | None = None,
         bucket_key_enabled: Any = None,
-        lock_mode: Optional[str] = None,
-        lock_legal_status: Optional[str] = None,
-        lock_until: Optional[str] = None,
-        checksum_value: Optional[str] = None,
-        checksum_type: Optional[str] = None,
-        checksum_parts: Optional[int] = None,
+        lock_mode: str | None = None,
+        lock_legal_status: str | None = None,
+        lock_until: str | None = None,
+        checksum_value: str | None = None,
+        checksum_type: str | None = None,
+        checksum_parts: int | None = None,
     ):
         ManagedState.__init__(
             self,
@@ -151,12 +153,12 @@ class FakeKey(BaseModel, ManagedState):
         self.region_name = region_name
         self.partition = get_partition(region_name)
         self.last_modified = utcnow()
-        self.acl: Optional[FakeAcl] = get_canned_acl("private")
-        self.website_redirect_location: Optional[str] = None
-        self.checksum_algorithm: Optional[str] = None
-        self._storage_class: Optional[str] = storage if storage else "STANDARD"
+        self.acl: FakeAcl | None = get_canned_acl("private")
+        self.website_redirect_location: str | None = None
+        self.checksum_algorithm: str | None = None
+        self._storage_class: str | None = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
-        self._expiry: Optional[datetime.datetime] = None
+        self._expiry: datetime.datetime | None = None
         self._etag = etag
         self._version_id = version_id
         self._is_versioned = is_versioned
@@ -185,7 +187,7 @@ class FakeKey(BaseModel, ManagedState):
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
 
-    def safe_name(self, encoding_type: Optional[str] = None) -> str:
+    def safe_name(self, encoding_type: str | None = None) -> str:
         if encoding_type == "url":
             return urllib.parse.quote(self.name)
         return self.name
@@ -220,7 +222,7 @@ class FakeKey(BaseModel, ManagedState):
         self.contentsize = len(new_value)
 
     @property
-    def status(self) -> Optional[str]:
+    def status(self) -> str | None:
         previous = self._status
         new_status = super().status
         if previous != "RESTORED" and new_status == "RESTORED":
@@ -251,15 +253,15 @@ class FakeKey(BaseModel, ManagedState):
                 metadata["Content-Encoding"] = encoding
         self._metadata.update(metadata)
 
-    def set_storage_class(self, storage: Optional[str]) -> None:
+    def set_storage_class(self, storage: str | None) -> None:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
         self._storage_class = storage
 
-    def set_expiry(self, expiry: Optional[datetime.datetime]) -> None:
+    def set_expiry(self, expiry: datetime.datetime | None) -> None:
         self._expiry = expiry
 
-    def set_acl(self, acl: Optional["FakeAcl"]) -> None:
+    def set_acl(self, acl: FakeAcl | None) -> None:
         self.acl = acl
 
     def restore(self, days: int) -> None:
@@ -358,11 +360,11 @@ class FakeKey(BaseModel, ManagedState):
         return self.contentsize
 
     @property
-    def storage_class(self) -> Optional[str]:
+    def storage_class(self) -> str | None:
         return self._storage_class
 
     @property
-    def expiry_date(self) -> Optional[str]:
+    def expiry_date(self) -> str | None:
         if self._expiry is not None:
             return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
         return None
@@ -443,11 +445,11 @@ class FakeMultipart(BaseModel):
         metadata: CaseInsensitiveDict,  # type: ignore
         account_id: str,
         region_name: str,
-        storage: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        acl: Optional["FakeAcl"] = None,
-        sse_encryption: Optional[str] = None,
-        kms_key_id: Optional[str] = None,
+        storage: str | None = None,
+        tags: dict[str, str] | None = None,
+        acl: FakeAcl | None = None,
+        sse_encryption: str | None = None,
+        kms_key_id: str | None = None,
     ):
         self.key_name = key_name
         self.metadata = metadata
@@ -467,9 +469,9 @@ class FakeMultipart(BaseModel):
 
     def complete(
         self, body: Iterator[tuple[int, str]]
-    ) -> tuple[bytearray, str, Optional[tuple[str, str, int]]]:
-        checksum_algo: Optional[str] = self.metadata.get("x-amz-checksum-algorithm")
-        checksum_type: Optional[str] = self.metadata.get("x-amz-checksum-type")
+    ) -> tuple[bytearray, str, tuple[str, str, int] | None]:
+        checksum_algo: str | None = self.metadata.get("x-amz-checksum-algorithm")
+        checksum_type: str | None = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
@@ -532,7 +534,7 @@ class FakeMultipart(BaseModel):
 
 
 class MultipartChecksumBuilder:
-    def __init__(self, checksum_algorithm: Optional[str], checksum_type: Optional[str]):
+    def __init__(self, checksum_algorithm: str | None, checksum_type: str | None):
         self.complete_object = bytearray()
         self.checksum = bytearray()
 
@@ -558,7 +560,7 @@ class MultipartChecksumBuilder:
 
         self.part_count += 1
 
-    def build(self) -> Optional[tuple[str, str, int]]:
+    def build(self) -> tuple[str, str, int] | None:
         if self.checksum_type == "COMPOSITE":
             return (
                 self.checksum_type,
@@ -631,7 +633,7 @@ class FakeGrant(BaseModel):
 
 
 class FakeAcl(BaseModel):
-    def __init__(self, grants: Optional[list[FakeGrant]] = None):
+    def __init__(self, grants: list[FakeGrant] | None = None):
         self.grants = grants or []
 
     @property
@@ -721,14 +723,14 @@ def get_canned_acl(acl: str) -> FakeAcl:
 
 
 class LifecycleFilter(BaseModel):
-    tag_key: Optional[str]
-    tag_value: Optional[str]
+    tag_key: str | None
+    tag_value: str | None
 
     def __init__(
         self,
-        prefix: Optional[str] = None,
-        tag: Optional[tuple[str, str]] = None,
-        and_filter: Optional["LifecycleAndFilter"] = None,
+        prefix: str | None = None,
+        tag: tuple[str, str] | None = None,
+        and_filter: LifecycleAndFilter | None = None,
     ):
         self.prefix = prefix
         (self.tag_key, self.tag_value) = tag if tag else (None, None)
@@ -758,9 +760,7 @@ class LifecycleFilter(BaseModel):
 
 
 class LifecycleAndFilter(BaseModel):
-    def __init__(
-        self, prefix: Optional[str] = None, tags: Optional[dict[str, str]] = None
-    ):
+    def __init__(self, prefix: str | None = None, tags: dict[str, str] | None = None):
         self.prefix = prefix
         self.tags = tags or {}
 
@@ -781,9 +781,9 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleTransition(BaseModel):
     def __init__(
         self,
-        date: Optional[str] = None,
-        days: Optional[int] = None,
-        storage_class: Optional[str] = None,
+        date: str | None = None,
+        days: int | None = None,
+        storage_class: str | None = None,
     ):
         self.date = date
         self.days = days
@@ -802,7 +802,7 @@ class LifecycleTransition(BaseModel):
 
 class LifeCycleNoncurrentVersionTransition(BaseModel):
     def __init__(
-        self, days: int, storage_class: str, newer_versions: Optional[int] = None
+        self, days: int, storage_class: str, newer_versions: int | None = None
     ):
         self.newer_versions = newer_versions
         self.days = days
@@ -822,19 +822,19 @@ class LifeCycleNoncurrentVersionTransition(BaseModel):
 class LifecycleRule(BaseModel):
     def __init__(
         self,
-        rule_id: Optional[str] = None,
-        prefix: Optional[str] = None,
-        lc_filter: Optional[LifecycleFilter] = None,
-        status: Optional[str] = None,
-        expiration_days: Optional[str] = None,
-        expiration_date: Optional[str] = None,
-        transitions: Optional[list[LifecycleTransition]] = None,
-        expired_object_delete_marker: Optional[str] = None,
-        nve_noncurrent_days: Optional[str] = None,
+        rule_id: str | None = None,
+        prefix: str | None = None,
+        lc_filter: LifecycleFilter | None = None,
+        status: str | None = None,
+        expiration_days: str | None = None,
+        expiration_date: str | None = None,
+        transitions: list[LifecycleTransition] | None = None,
+        expired_object_delete_marker: str | None = None,
+        nve_noncurrent_days: str | None = None,
         noncurrent_version_transitions: Optional[
             list[LifeCycleNoncurrentVersionTransition]
         ] = None,
-        aimu_days: Optional[str] = None,
+        aimu_days: str | None = None,
     ):
         self.id = rule_id
         self.prefix = prefix
@@ -931,8 +931,8 @@ class Notification(BaseModel):
         self,
         arn: str,
         events: list[str],
-        filters: Optional[dict[str, Any]] = None,
-        notification_id: Optional[str] = None,
+        filters: dict[str, Any] | None = None,
+        notification_id: str | None = None,
     ):
         self.id = notification_id or "".join(
             random.choice(string.ascii_letters + string.digits) for _ in range(50)
@@ -996,10 +996,10 @@ class Notification(BaseModel):
 class NotificationConfiguration(BaseModel):
     def __init__(
         self,
-        topic: Optional[list[dict[str, Any]]] = None,
-        queue: Optional[list[dict[str, Any]]] = None,
-        cloud_function: Optional[list[dict[str, Any]]] = None,
-        event_bridge: Optional[dict[str, Any]] = None,
+        topic: list[dict[str, Any]] | None = None,
+        queue: list[dict[str, Any]] | None = None,
+        cloud_function: list[dict[str, Any]] | None = None,
+        event_bridge: dict[str, Any] | None = None,
     ):
         self.topic = (
             [
@@ -1071,10 +1071,10 @@ class NotificationConfiguration(BaseModel):
 class PublicAccessBlock(BaseModel):
     def __init__(
         self,
-        block_public_acls: Optional[Union[str, bool]],
-        ignore_public_acls: Optional[Union[str, bool]],
-        block_public_policy: Optional[Union[str, bool]],
-        restrict_public_buckets: Optional[Union[str, bool]],
+        block_public_acls: str | int | None,
+        ignore_public_acls: str | int | None,
+        block_public_policy: str | int | None,
+        restrict_public_buckets: str | int | None,
     ):
         self.block_public_acls = ensure_boolean(block_public_acls)
         self.ignore_public_acls = ensure_boolean(ignore_public_acls)
@@ -1103,7 +1103,7 @@ class FakeBucket(CloudFormationModel):
         name: str,
         account_id: str,
         region_name: str,
-        bucket_namespace: Optional[str] = None,
+        bucket_namespace: str | None = None,
     ):
         self.name = name
         self.account_id = account_id
@@ -1112,24 +1112,24 @@ class FakeBucket(CloudFormationModel):
         self.partition = get_partition(region_name)
         self.keys = _VersionedKeyStore()
         self.multiparts = MultipartDict()
-        self.versioning_status: Optional[str] = None
+        self.versioning_status: str | None = None
         self.rules: list[LifecycleRule] = []
-        self.policy: Optional[bytes] = None
-        self.website_configuration: Optional[bytes] = None
-        self.acl: Optional[FakeAcl] = get_canned_acl("private")
+        self.policy: bytes | None = None
+        self.website_configuration: bytes | None = None
+        self.acl: FakeAcl | None = get_canned_acl("private")
         self.cors: list[CorsRule] = []
         self.logging: dict[str, Any] = {}
-        self.notification_configuration: Optional[NotificationConfiguration] = None
-        self.accelerate_configuration: Optional[str] = None
+        self.notification_configuration: NotificationConfiguration | None = None
+        self.accelerate_configuration: str | None = None
         self.payer = "BucketOwner"
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.public_access_block: Optional[PublicAccessBlock] = None
-        self.encryption: Optional[dict[str, Any]] = None
+        self.public_access_block: PublicAccessBlock | None = None
+        self.encryption: dict[str, Any] | None = None
         self.object_lock_enabled = False
-        self.default_lock_mode: Optional[str] = ""
-        self.default_lock_days: Optional[int] = 0
-        self.default_lock_years: Optional[int] = 0
-        self.ownership_rule: Optional[dict[str, Any]] = None
+        self.default_lock_mode: str | None = ""
+        self.default_lock_days: int | None = 0
+        self.default_lock_years: int | None = 0
+        self.ownership_rule: dict[str, Any] | None = None
         self.inventory_configs: dict[str, FakeBucketInventoryConfiguration] = {}
         s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
@@ -1353,7 +1353,7 @@ class FakeBucket(CloudFormationModel):
 
     @staticmethod
     def _log_permissions_enabled_policy(
-        target_bucket: "FakeBucket", target_prefix: Optional[str]
+        target_bucket: FakeBucket, target_prefix: str | None
     ) -> bool:
         target_bucket_policy = target_bucket.policy
         if target_bucket_policy:
@@ -1382,7 +1382,7 @@ class FakeBucket(CloudFormationModel):
         return False
 
     @staticmethod
-    def _log_permissions_enabled_acl(target_bucket: "FakeBucket") -> bool:
+    def _log_permissions_enabled_acl(target_bucket: FakeBucket) -> bool:
         write = read_acp = False
         for grant in target_bucket.acl.grants:  # type: ignore
             # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
@@ -1404,7 +1404,7 @@ class FakeBucket(CloudFormationModel):
         return write and read_acp
 
     def set_logging(
-        self, logging_config: Optional[dict[str, Any]], bucket_backend: "S3Backend"
+        self, logging_config: dict[str, Any] | None, bucket_backend: S3Backend
     ) -> None:
         if not logging_config:
             self.logging = {}
@@ -1438,7 +1438,7 @@ class FakeBucket(CloudFormationModel):
         self.logging = logging_config
 
     def set_notification_configuration(
-        self, notification_config: Optional[dict[str, Any]]
+        self, notification_config: dict[str, Any] | None
     ) -> None:
         if not notification_config:
             self.notification_configuration = None
@@ -1493,7 +1493,7 @@ class FakeBucket(CloudFormationModel):
             return self.website_url
         raise UnformattedGetAttTemplateException()
 
-    def set_acl(self, acl: Optional[FakeAcl]) -> None:
+    def set_acl(self, acl: FakeAcl | None) -> None:
         self.acl = acl
 
     @property
@@ -1537,7 +1537,7 @@ class FakeBucket(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeBucket":
+    ) -> FakeBucket:
         partition = get_partition(region_name)
         backend = s3_backends[account_id][partition]
         bucket = backend.create_bucket(resource_name, region_name)
@@ -1563,7 +1563,7 @@ class FakeBucket(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeBucket":
+    ) -> FakeBucket:
         properties = cloudformation_json["Properties"]
         backend = s3_backends[account_id][get_partition(region_name)]
         # BucketName is not mandatory - a random name will be autogenerated if not supplied
@@ -1721,8 +1721,8 @@ class FakeBucketInventoryConfiguration(BaseModel):
         destination: dict[str, Any],
         is_enabled: bool,
         schedule: dict[str, Any],
-        filters: Optional[dict[str, Any]] = None,
-        optional_fields: Optional[list[str]] = None,
+        filters: dict[str, Any] | None = None,
+        optional_fields: list[str] | None = None,
     ):
         self.id = id
         self.destination = destination
@@ -1941,7 +1941,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         region_name: str,
-        bucket_namespace: Optional[str] = None,
+        bucket_namespace: str | None = None,
     ) -> FakeBucket:
         if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
@@ -1985,9 +1985,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def list_buckets(
         self,
-        prefix: Optional[str],
-        bucket_region: Optional[str],
-        max_buckets: Optional[str],
+        prefix: str | None,
+        bucket_region: str | None,
+        max_buckets: str | None,
     ) -> list[FakeBucket]:
         buckets = self.buckets
         if prefix:
@@ -2025,7 +2025,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def head_bucket(self, bucket_name: str) -> FakeBucket:
         return self.get_bucket(bucket_name)
 
-    def delete_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+    def delete_bucket(self, bucket_name: str) -> FakeBucket | None:
         bucket = self.get_bucket(bucket_name)
         if bucket.keys:
             # Can't delete a bucket with keys
@@ -2034,7 +2034,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
 
-    def delete_table_storage_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+    def delete_table_storage_bucket(self, bucket_name: str) -> FakeBucket | None:
         bucket = self.get_bucket(bucket_name)
         assert isinstance(bucket, FakeTableStorageBucket)
         # table storage buckets can be deleted while not empty
@@ -2047,29 +2047,29 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         s3_backends.bucket_accounts.pop(bucket_name, None)
         return self.table_buckets.pop(bucket_name)
 
-    def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
+    def get_bucket_accelerate_configuration(self, bucket_name: str) -> str | None:
         bucket = self.get_bucket(bucket_name)
         return bucket.accelerate_configuration
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
         self.get_bucket(bucket_name).versioning_status = status
 
-    def get_bucket_versioning(self, bucket_name: str) -> Optional[str]:
+    def get_bucket_versioning(self, bucket_name: str) -> str | None:
         return self.get_bucket(bucket_name).versioning_status
 
-    def get_bucket_encryption(self, bucket_name: str) -> Optional[dict[str, Any]]:
+    def get_bucket_encryption(self, bucket_name: str) -> dict[str, Any] | None:
         return self.get_bucket(bucket_name).encryption
 
     def list_object_versions(
         self,
         bucket_name: str,
-        delimiter: Optional[str] = None,
-        key_marker: Optional[str] = None,
-        max_keys: Optional[int] = 1000,
+        delimiter: str | None = None,
+        key_marker: str | None = None,
+        max_keys: int | None = 1000,
         prefix: str = "",
-        version_id_marker: Optional[str] = None,
+        version_id_marker: str | None = None,
     ) -> tuple[
-        list[FakeKey], list[str], list[FakeDeleteMarker], Optional[str], Optional[str]
+        list[FakeKey], list[str], list[FakeDeleteMarker], str | None, str | None
     ]:
         """
         The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
@@ -2081,8 +2081,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         common_prefixes: set[str] = set()
         requested_versions: list[FakeKey] = []
         delete_markers: list[FakeDeleteMarker] = []
-        next_key_marker: Optional[str] = None
-        next_version_id_marker: Optional[str] = None
+        next_key_marker: str | None = None
+        next_version_id_marker: str | None = None
         all_versions = list(
             itertools.chain(
                 *(
@@ -2096,7 +2096,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         last_name = None
 
         skip_versions = True
-        last_item_added: Union[None, FakeKey, FakeDeleteMarker] = None
+        last_item_added: None | FakeKey | FakeDeleteMarker = None
         for version in all_versions:
             name = version.name
             # guaranteed to be sorted - so the first key with this name will be the latest
@@ -2182,7 +2182,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             next_version_id_marker,
         )
 
-    def get_bucket_policy(self, bucket_name: str) -> Optional[bytes]:
+    def get_bucket_policy(self, bucket_name: str) -> bytes | None:
         return self.get_bucket(bucket_name).policy
 
     def put_bucket_policy(self, bucket_name: str, policy: bytes) -> None:
@@ -2207,9 +2207,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def delete_bucket_encryption(self, bucket_name: str) -> None:
         self.get_bucket(bucket_name).encryption = None
 
-    def get_bucket_ownership_controls(
-        self, bucket_name: str
-    ) -> Optional[dict[str, Any]]:
+    def get_bucket_ownership_controls(self, bucket_name: str) -> dict[str, Any] | None:
         return self.get_bucket(bucket_name).ownership_rule
 
     def put_bucket_ownership_controls(
@@ -2220,7 +2218,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def delete_bucket_ownership_controls(self, bucket_name: str) -> None:
         self.get_bucket(bucket_name).ownership_rule = None
 
-    def get_bucket_replication(self, bucket_name: str) -> Optional[dict[str, Any]]:
+    def get_bucket_replication(self, bucket_name: str) -> dict[str, Any] | None:
         bucket = self.get_bucket(bucket_name)
         return getattr(bucket, "replication", None)
 
@@ -2266,7 +2264,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.website_configuration = website_configuration
 
-    def get_bucket_website_configuration(self, bucket_name: str) -> Optional[bytes]:
+    def get_bucket_website_configuration(self, bucket_name: str) -> bytes | None:
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
@@ -2287,19 +2285,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         key_name: str,
         value: bytes,
-        storage: Optional[str] = None,
-        etag: Optional[str] = None,
-        multipart: Optional[FakeMultipart] = None,
-        encryption: Optional[str] = None,
-        kms_key_id: Optional[str] = None,
+        storage: str | None = None,
+        etag: str | None = None,
+        multipart: FakeMultipart | None = None,
+        encryption: str | None = None,
+        kms_key_id: str | None = None,
         bucket_key_enabled: Any = None,
-        lock_mode: Optional[str] = None,
-        lock_legal_status: Optional[str] = None,
-        lock_until: Optional[str] = None,
-        checksum_value: Optional[str] = None,
+        lock_mode: str | None = None,
+        lock_legal_status: str | None = None,
+        lock_until: str | None = None,
+        checksum_value: str | None = None,
         # arguments to handle notification
-        request_method: Optional[str] = "PUT",
-        disable_notification: Optional[bool] = False,
+        request_method: str | None = "PUT",
+        disable_notification: bool | None = False,
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
@@ -2372,8 +2370,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        acl: Optional[FakeAcl],
-        disable_notification: Optional[bool] = False,
+        acl: FakeAcl | None,
+        disable_notification: bool | None = False,
     ) -> None:
         key = self.get_object(bucket_name, key_name)
         # TODO: Support the XML-based ACL format
@@ -2396,7 +2394,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        version_id: Optional[str],
+        version_id: str | None,
         legal_hold_status: dict[str, Any],
     ) -> None:
         key = self.get_object(bucket_name, key_name, version_id=version_id)
@@ -2406,8 +2404,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        version_id: Optional[str],
-        retention: tuple[Optional[str], Optional[str]],
+        version_id: str | None,
+        retention: tuple[str | None, str | None],
     ) -> None:
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         key.lock_mode = retention[0]  # type: ignore
@@ -2443,10 +2441,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        version_id: Optional[str] = None,
-        part_number: Optional[str] = None,
+        version_id: str | None = None,
+        part_number: str | None = None,
         return_delete_marker: bool = False,
-    ) -> Optional[FakeKey]:
+    ) -> FakeKey | None:
         bucket = self.get_bucket(bucket_name)
 
         key = None
@@ -2476,9 +2474,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        version_id: Optional[str] = None,
-        part_number: Optional[str] = None,
-    ) -> Optional[FakeKey]:
+        version_id: str | None = None,
+        part_number: str | None = None,
+    ) -> FakeKey | None:
         obj = self.get_object(
             bucket_name, key_name, version_id, part_number, return_delete_marker=True
         )
@@ -2486,15 +2484,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise HeadOnDeleteMarker(obj)
         return obj
 
-    def get_object_acl(self, key: FakeKey) -> Optional[FakeAcl]:
+    def get_object_acl(self, key: FakeKey) -> FakeAcl | None:
         return key.acl
 
-    def get_object_legal_hold(self, key: FakeKey) -> Optional[str]:
+    def get_object_legal_hold(self, key: FakeKey) -> str | None:
         return key.lock_legal_status
 
     def get_object_lock_configuration(
         self, bucket_name: str
-    ) -> tuple[bool, Optional[str], Optional[int], Optional[int]]:
+    ) -> tuple[bool, str | None, int | None, int | None]:
         bucket = self.get_bucket(bucket_name)
         if not bucket.object_lock_enabled:
             raise ObjectLockConfigurationNotFoundError
@@ -2511,7 +2509,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_object_tagging(
         self,
         key: FakeKey,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> FakeKey:
         # get bucket for eventbridge notification
         # we can assume that the key has its bucket
@@ -2553,9 +2551,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         lock_enabled: bool,
-        mode: Optional[str] = None,
-        days: Optional[int] = None,
-        years: Optional[int] = None,
+        mode: str | None = None,
+        days: int | None = None,
+        years: int | None = None,
     ) -> None:
         bucket = self.get_bucket(bucket_name)
         if not bucket.is_versioned:
@@ -2637,7 +2635,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.set_accelerate_configuration(accelerate_configuration)
 
     def put_public_access_block(
-        self, bucket_name: str, pub_block_config: Optional[dict[str, Any]]
+        self, bucket_name: str, pub_block_config: dict[str, Any] | None
     ) -> None:
         bucket = self.get_bucket(bucket_name)
 
@@ -2685,7 +2683,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         metadata: CaseInsensitiveDict,  # type: ignore
         storage_type: str,
         tags: dict[str, str],
-        acl: Optional[FakeAcl],
+        acl: FakeAcl | None,
         sse_encryption: str,
         kms_key_id: str,
     ) -> FakeMultipart:
@@ -2707,7 +2705,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[tuple[int, str]]
-    ) -> Optional[FakeKey]:
+    ) -> FakeKey | None:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
         value, etag, checksum_details = multipart.complete(body)
@@ -2772,7 +2770,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         part_id: int,
         src_bucket_name: str,
         src_key_name: str,
-        src_version_id: Optional[str],
+        src_version_id: str | None,
         start_byte: int,
         end_byte: int,
     ) -> FakeKey:
@@ -2789,11 +2787,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_objects(
         self,
         bucket: FakeBucket,
-        prefix: Optional[str],
-        delimiter: Optional[str],
-        marker: Optional[str],
-        max_keys: Optional[int],
-    ) -> tuple[set[FakeKey], set[str], bool, Optional[str]]:
+        prefix: str | None,
+        delimiter: str | None,
+        marker: str | None,
+        max_keys: int | None,
+    ) -> tuple[set[FakeKey], set[str], bool, str | None]:
         """
         The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
 
@@ -2846,12 +2844,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def list_objects_v2(
         self,
         bucket: FakeBucket,
-        prefix: Optional[str],
-        delimiter: Optional[str],
-        continuation_token: Optional[str],
-        start_after: Optional[str],
+        prefix: str | None,
+        delimiter: str | None,
+        continuation_token: str | None,
+        start_after: str | None,
         max_keys: int,
-    ) -> tuple[set[Union[FakeKey, str]], bool, Optional[str]]:
+    ) -> tuple[set[FakeKey | str], bool, str | None]:
         """
         The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
 
@@ -2906,7 +2904,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return result_keys, is_truncated, next_continuation_token
 
     @staticmethod
-    def _get_name(key: Union[str, FakeKey]) -> str:
+    def _get_name(key: str | FakeKey) -> str:
         if isinstance(key, FakeKey):
             return key.name
         else:
@@ -2919,7 +2917,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return delete_marker
 
     def delete_object_tagging(
-        self, bucket_name: str, key_name: str, version_id: Optional[str] = None
+        self, bucket_name: str, key_name: str, version_id: str | None = None
     ) -> None:
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         bucket = self.get_bucket(bucket_name)
@@ -2937,7 +2935,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self,
         bucket_name: str,
         key_name: str,
-        version_id: Optional[str] = None,
+        version_id: str | None = None,
         bypass: bool = False,
     ) -> tuple[bool, dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
@@ -3012,7 +3010,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         objects: list[dict[str, Any]],
         bypass_retention: bool = False,
-    ) -> tuple[list[tuple[str, Optional[str], Optional[str]]], list[str]]:
+    ) -> tuple[list[tuple[str, str | None, str | None]], list[str]]:
         deleted = []
         errors = []
         for object_ in objects:
@@ -3044,17 +3042,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         src_key: FakeKey,
         dest_bucket_name: str,
         dest_key_name: str,
-        storage: Optional[str] = None,
-        encryption: Optional[str] = None,
-        kms_key_id: Optional[str] = None,
+        storage: str | None = None,
+        encryption: str | None = None,
+        kms_key_id: str | None = None,
         bucket_key_enabled: Any = None,
-        mdirective: Optional[str] = None,
-        metadata: Optional[Any] = None,
-        website_redirect_location: Optional[str] = None,
-        lock_mode: Optional[str] = None,
-        lock_legal_status: Optional[str] = None,
-        lock_until: Optional[str] = None,
-        provided_version_id: Optional[str] = None,
+        mdirective: str | None = None,
+        metadata: Any | None = None,
+        website_redirect_location: str | None = None,
+        lock_mode: str | None = None,
+        lock_legal_status: str | None = None,
+        lock_until: str | None = None,
+        provided_version_id: str | None = None,
     ) -> None:
         bucket = self.get_bucket(dest_bucket_name)
         if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
@@ -3115,11 +3113,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             new_key,
         )
 
-    def put_bucket_acl(self, bucket_name: str, acl: Optional[FakeAcl]) -> None:
+    def put_bucket_acl(self, bucket_name: str, acl: FakeAcl | None) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.set_acl(acl)
 
-    def get_bucket_acl(self, bucket_name: str) -> Optional[FakeAcl]:
+    def get_bucket_acl(self, bucket_name: str) -> FakeAcl | None:
         bucket = self.get_bucket(bucket_name)
         return bucket.acl
 
@@ -3148,7 +3146,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def get_bucket_notification_configuration(
         self, bucket_name: str
-    ) -> Optional[NotificationConfiguration]:
+    ) -> NotificationConfiguration | None:
         bucket = self.get_bucket(bucket_name)
         return bucket.notification_configuration
 
@@ -3220,7 +3218,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             ], bytes_scanned
 
     def restore_object(
-        self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
+        self, bucket_name: str, key_name: str, days: str | None, type_: str | None
     ) -> bool:
         key = self.get_object(bucket_name, key_name)
         if not key:
@@ -3260,7 +3258,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return
 
     def get_bucket_inventory_configuration(
-        self, bucket_name: str, id: str, expected_bucket_owner: Optional[str] = None
+        self, bucket_name: str, id: str, expected_bucket_owner: str | None = None
     ) -> FakeBucketInventoryConfiguration:
         bucket = self.get_bucket(bucket_name)
 
@@ -3289,7 +3287,7 @@ class S3BackendDict(BackendDict[S3Backend]):
         backend: Any,
         service_name: str,
         use_boto3_regions: bool = True,
-        additional_regions: Optional[list[str]] = None,
+        additional_regions: list[str] | None = None,
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 

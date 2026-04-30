@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -154,10 +154,10 @@ class Filter(BaseModel):
 
     def update(
         self,
-        action: Optional[str],
-        description: Optional[str],
-        finding_criteria: Optional[dict[str, Any]],
-        rank: Optional[int],
+        action: str | None,
+        description: str | None,
+        finding_criteria: dict[str, Any] | None,
+        rank: int | None,
     ) -> None:
         if action is not None:
             self.action = action

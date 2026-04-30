@@ -1,7 +1,7 @@
 import importlib
 import os
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Union, overload
 
 import moto
 
@@ -192,7 +192,7 @@ def list_of_moto_modules() -> Iterable[str]:
             yield backend
 
 
-def get_service_from_url(url: str) -> Optional[str]:
+def get_service_from_url(url: str) -> str | None:
     from moto.backend_index import backend_url_patterns
 
     for service, pattern in backend_url_patterns:

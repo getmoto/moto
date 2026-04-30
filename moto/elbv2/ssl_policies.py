@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 # AWS Docs: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/describe-ssl-policies.html
 
@@ -357,7 +357,7 @@ SSL_POLICIES = {
 }
 
 
-def build_policy(name: str, data: dict[str, Any]) -> dict[str, Optional[object]]:
+def build_policy(name: str, data: dict[str, Any]) -> dict[str, object] | None:
     # Adding priority numbers to ciphers and restructuring output to required format
     ciphers = [
         {"Name": c, "Priority": i + 1} for i, c in enumerate(data.get("ciphers", []))

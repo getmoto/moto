@@ -1,7 +1,6 @@
 import re
 import string
 from re import Pattern
-from typing import Union
 
 from moto.moto_api._internal import mock_random as random
 
@@ -128,7 +127,7 @@ def make_random_policy_id() -> str:
     return "p-" + "".join(random.choice(CHARSET) for x in range(POLICY_ID_SIZE))
 
 
-def fullmatch(regex: Union[Pattern[str], str], s: str, flags: int = 0) -> bool:
+def fullmatch(regex: Pattern[str] | str, s: str, flags: int = 0) -> bool:
     """Emulate python-3.4 re.fullmatch()."""
     m = re.match(regex, s, flags=flags)
     if m and m.span()[1] == len(s):

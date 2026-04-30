@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -121,7 +121,7 @@ class Resource:
 
 
 class AppVersion(BaseModel):
-    def __init__(self, app_arn: str, version_name: Optional[str], identifier: int):
+    def __init__(self, app_arn: str, version_name: str | None, identifier: int):
         self.app_arn = app_arn
         self.eks_sources: list[dict[str, Any]] = []
         self.source_arns: list[str] = []

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
@@ -41,7 +41,7 @@ class HistoryEvent(BaseModel):
         self,
         event_id: int,
         event_type: str,
-        event_timestamp: Optional[float] = None,
+        event_timestamp: float | None = None,
         **kwargs: Any,
     ):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:

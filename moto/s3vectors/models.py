@@ -1,7 +1,7 @@
 """S3VectorsBackend class with methods for supported APIs."""
 
 from collections.abc import Iterable
-from typing import Any, Literal, Optional, TypedDict
+from typing import Any, Literal, TypedDict
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -83,7 +83,7 @@ class VectorBucket(BaseModel):
         }
 
         self.indexes: dict[str, Index] = {}
-        self.policy: Optional[str] = None
+        self.policy: str | None = None
 
 
 class S3VectorsBackend(BaseBackend):
@@ -113,8 +113,8 @@ class S3VectorsBackend(BaseBackend):
 
     def get_vector_bucket(
         self,
-        vector_bucket_name: Optional[str] = None,
-        vector_bucket_arn: Optional[str] = None,
+        vector_bucket_name: str | None = None,
+        vector_bucket_arn: str | None = None,
     ) -> VectorBucket:
         if vector_bucket_name:
             for vector_bucket in self.vector_buckets.values():
@@ -131,7 +131,7 @@ class S3VectorsBackend(BaseBackend):
                 raise VectorBucketNotEmpty
             self.vector_buckets.pop(bucket.vector_bucket_arn, None)
 
-    def list_vector_buckets(self, prefix: Optional[str]) -> list[VectorBucket]:
+    def list_vector_buckets(self, prefix: str | None) -> list[VectorBucket]:
         return [
             bucket
             for bucket in self.vector_buckets.values()

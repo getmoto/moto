@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     ClassVar,
-    Optional,
     TypeVar,
 )
 from urllib.parse import urlparse
@@ -71,7 +70,7 @@ class ActionAuthenticatorMixin:
         self._authenticate_and_authorize_action(IAMRequest, resource)
 
     def _authenticate_and_authorize_s3_action(
-        self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
+        self, bucket_name: str | None = None, key_name: str | None = None
     ) -> None:
         arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
         resource = f"arn:{get_partition(self.region)}:s3:::{arn}"  # type: ignore[attr-defined]

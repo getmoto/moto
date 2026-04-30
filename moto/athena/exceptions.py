@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -36,6 +35,6 @@ class MetadataException(JsonRESTError):
 
 
 class QueryStillRunning(JsonRESTError):
-    def __init__(self, current_status: Optional[str]):
+    def __init__(self, current_status: str | None):
         msg = f"Query has not yet finished. Current state: {current_status}"
         super().__init__("InvalidRequestException", msg)

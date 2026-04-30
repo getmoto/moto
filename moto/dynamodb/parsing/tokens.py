@@ -1,5 +1,4 @@
 import re
-from typing import Union
 
 from moto.dynamodb.exceptions import (
     InvalidExpressionAttributeNameKey,
@@ -54,7 +53,7 @@ class Token:
         NUMBER: "Number",
     }
 
-    def __init__(self, token_type: Union[int, str], value: str):
+    def __init__(self, token_type: int | str, value: str):
         assert (
             token_type in self.SPECIAL_CHARACTERS
             or token_type in self.PLACEHOLDER_NAMES
@@ -153,7 +152,7 @@ class ExpressionTokenizer:
 
         return ExpressionTokenizer(input_expression_str)._make_list()
 
-    def add_token(self, token_type: Union[int, str], token_value: str) -> None:
+    def add_token(self, token_type: int | str, token_value: str) -> None:
         self.token_list.append(Token(token_type, token_value))
 
     def add_token_from_stage(self, token_type: int) -> None:

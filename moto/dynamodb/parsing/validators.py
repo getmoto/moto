@@ -5,7 +5,7 @@ See docstring class Validator below for more details on validation
 from abc import abstractmethod
 from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Union
+from typing import Any
 
 from moto.dynamodb.exceptions import (
     AttributeDoesNotExist,
@@ -92,13 +92,13 @@ class ExpressionPathResolver:
 
     def resolve_expression_path(
         self, item: Item, update_expression_path: UpdateExpressionPath
-    ) -> Union[NoneExistingPath, DDBTypedValue]:
+    ) -> NoneExistingPath | DDBTypedValue:
         assert isinstance(update_expression_path, UpdateExpressionPath)
         return self.resolve_expression_path_nodes(item, update_expression_path.children)
 
     def resolve_expression_path_nodes(
         self, item: Item, update_expression_path_nodes: list[Node]
-    ) -> Union[NoneExistingPath, DDBTypedValue]:
+    ) -> NoneExistingPath | DDBTypedValue:
         target = item.attrs
 
         for child in update_expression_path_nodes:
@@ -167,12 +167,10 @@ class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):  # type: ignor
 
     def pre_processing_of_child(
         self,
-        parent_node: Union[
-            UpdateExpressionSetAction,
-            UpdateExpressionRemoveAction,
-            UpdateExpressionDeleteAction,
-            UpdateExpressionAddAction,
-        ],
+        parent_node: UpdateExpressionSetAction
+        | UpdateExpressionRemoveAction
+        | UpdateExpressionDeleteAction
+        | UpdateExpressionAddAction,
         child_id: int,
     ) -> None:
         """
@@ -214,7 +212,7 @@ class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):  # type: ignor
 
     def resolve_expression_path(
         self, node: DDBTypedValue
-    ) -> Union[NoneExistingPath, DDBTypedValue]:
+    ) -> NoneExistingPath | DDBTypedValue:
         return ExpressionPathResolver(
             self.expression_attribute_names
         ).resolve_expression_path(self.item, node)

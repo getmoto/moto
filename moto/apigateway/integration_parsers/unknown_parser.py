@@ -1,5 +1,3 @@
-from typing import Union
-
 import requests
 
 from ..models import Integration
@@ -13,6 +11,6 @@ class TypeUnknownParser(IntegrationParser):
 
     def invoke(
         self, request: requests.PreparedRequest, integration: Integration
-    ) -> tuple[int, Union[str, bytes]]:
+    ) -> tuple[int, str | bytes]:
         _type = integration.integration_type
         raise NotImplementedError(f"The {_type} type has not been implemented")

@@ -1,6 +1,6 @@
 """TransferBackend class with methods for supported APIs."""
 
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import camelcase_to_underscores, unix_time
@@ -33,23 +33,23 @@ class TransferBackend(BaseBackend):
 
     def create_server(
         self,
-        certificate: Optional[str],
-        domain: Optional[ServerDomain],
-        endpoint_details: Optional[dict[str, Any]],
-        endpoint_type: Optional[ServerEndpointType],
+        certificate: str | None,
+        domain: ServerDomain | None,
+        endpoint_details: dict[str, Any] | None,
+        endpoint_type: ServerEndpointType | None,
         host_key: str,
-        identity_provider_details: Optional[dict[str, Any]],
-        identity_provider_type: Optional[ServerIdentityProviderType],
-        logging_role: Optional[str],
-        post_authentication_login_banner: Optional[str],
-        pre_authentication_login_banner: Optional[str],
-        protocols: Optional[list[ServerProtocols]],
-        protocol_details: Optional[dict[str, Any]],
-        security_policy_name: Optional[str],
-        tags: Optional[list[dict[str, str]]],
-        workflow_details: Optional[dict[str, Any]],
-        structured_log_destinations: Optional[list[str]],
-        s3_storage_options: Optional[dict[str, Optional[str]]],
+        identity_provider_details: dict[str, Any] | None,
+        identity_provider_type: ServerIdentityProviderType | None,
+        logging_role: str | None,
+        post_authentication_login_banner: str | None,
+        pre_authentication_login_banner: str | None,
+        protocols: list[ServerProtocols] | None,
+        protocol_details: dict[str, Any] | None,
+        security_policy_name: str | None,
+        tags: list[dict[str, str]] | None,
+        workflow_details: dict[str, Any] | None,
+        structured_log_destinations: list[str] | None,
+        s3_storage_options: dict[str, str | None] | None,
     ) -> str:
         server = Server(
             region_name=self.region_name,
@@ -138,15 +138,15 @@ class TransferBackend(BaseBackend):
 
     def create_user(
         self,
-        home_directory: Optional[str],
-        home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: Optional[list[dict[str, Optional[str]]]],
-        policy: Optional[str],
-        posix_profile: Optional[dict[str, Any]],
+        home_directory: str | None,
+        home_directory_type: UserHomeDirectoryType | None,
+        home_directory_mappings: list[dict[str, str | None]] | None,
+        policy: str | None,
+        posix_profile: dict[str, Any] | None,
         role: str,
         server_id: str,
-        ssh_public_key_body: Optional[str],
-        tags: Optional[list[dict[str, str]]],
+        ssh_public_key_body: str | None,
+        tags: list[dict[str, str]] | None,
         user_name: str,
     ) -> tuple[str, str]:
         if server_id not in self.servers:
@@ -259,11 +259,11 @@ class TransferBackend(BaseBackend):
         self,
         url: str,
         access_role: str,
-        logging_role: Optional[str],
-        tags: Optional[list[dict[str, str]]],
-        as2_config: Optional[dict[str, Any]],
-        sftp_config: Optional[dict[str, Any]],
-        security_policy_name: Optional[str],
+        logging_role: str | None,
+        tags: list[dict[str, str]] | None,
+        as2_config: dict[str, Any] | None,
+        sftp_config: dict[str, Any] | None,
+        security_policy_name: str | None,
     ) -> str:
         connector = Connector(
             region_name=self.region_name,
@@ -293,12 +293,12 @@ class TransferBackend(BaseBackend):
     def update_connector(
         self,
         connector_id: str,
-        url: Optional[str],
-        access_role: Optional[str],
-        logging_role: Optional[str],
-        as2_config: Optional[dict[str, Any]],
-        sftp_config: Optional[dict[str, Any]],
-        security_policy_name: Optional[str],
+        url: str | None,
+        access_role: str | None,
+        logging_role: str | None,
+        as2_config: dict[str, Any] | None,
+        sftp_config: dict[str, Any] | None,
+        security_policy_name: str | None,
     ) -> str:
         if connector_id not in self.connectors:
             raise ConnectorNotFound(connector_id=connector_id)

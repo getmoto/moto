@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -51,7 +51,7 @@ class SQSResponse(BaseResponse):
         # Fallback to reading from the URL for botocore
         return self.path.split("/")[-1]
 
-    def _get_validated_visibility_timeout(self, timeout: Optional[str] = None) -> int:
+    def _get_validated_visibility_timeout(self, timeout: str | None = None) -> int:
         """
         :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILITY_TIMEOUT
         :raises TypeError: If visibility timeout was not specified
