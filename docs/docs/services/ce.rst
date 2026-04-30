@@ -20,20 +20,20 @@ ce
 - [ ] create_anomaly_subscription
 - [X] create_cost_category_definition
   
-        The EffectiveOn and ResourceTags-parameters are not yet implemented
-        
+The EffectiveOn and ResourceTags-parameters are not yet implemented
+
 
 - [ ] delete_anomaly_monitor
 - [ ] delete_anomaly_subscription
 - [X] delete_cost_category_definition
   
-        The EffectiveOn-parameter is not yet implemented
-        
+The EffectiveOn-parameter is not yet implemented
+
 
 - [X] describe_cost_category_definition
   
-        The EffectiveOn-parameter is not yet implemented
-        
+The EffectiveOn-parameter is not yet implemented
+
 
 - [ ] get_anomalies
 - [ ] get_anomaly_monitors
@@ -42,47 +42,47 @@ ce
 - [ ] get_commitment_purchase_analysis
 - [X] get_cost_and_usage
   
-        There is no validation yet on any of the input parameters.
+There is no validation yet on any of the input parameters.
 
-        Cost or usage is not tracked by Moto, so this call will return nothing by default.
+Cost or usage is not tracked by Moto, so this call will return nothing by default.
 
-        You can use a dedicated API to override this, by configuring a queue of expected results.
+You can use a dedicated API to override this, by configuring a queue of expected results.
 
-        A request to `get_cost_and_usage` will take the first result from that queue, and assign it to the provided parameters. Subsequent requests using the same parameters will return the same result. Other requests using different parameters will take the next result from the queue, or return an empty result if the queue is empty.
+A request to `get_cost_and_usage` will take the first result from that queue, and assign it to the provided parameters. Subsequent requests using the same parameters will return the same result. Other requests using different parameters will take the next result from the queue, or return an empty result if the queue is empty.
 
-        Configure this queue by making an HTTP request to `/moto-api/static/ce/cost-and-usage-results`. An example invocation looks like this:
+Configure this queue by making an HTTP request to `/moto-api/static/ce/cost-and-usage-results`. An example invocation looks like this:
 
-        .. sourcecode:: python
+.. sourcecode:: python
 
-            result = {
-                "results": [
+    result = {
+        "results": [
+            {
+                "ResultsByTime": [
                     {
-                        "ResultsByTime": [
-                            {
-                                "TimePeriod": {"Start": "2024-01-01", "End": "2024-01-02"},
-                                "Total": {
-                                    "BlendedCost": {"Amount": "0.0101516483", "Unit": "USD"}
-                                },
-                                "Groups": [],
-                                "Estimated": False
-                            }
-                        ],
-                        "DimensionValueAttributes": [{"Value": "v", "Attributes": {"a": "b"}}]
-                    },
-                    {
-                        ...
-                    },
-                ]
-            }
-            resp = requests.post(
-                "http://motoapi.amazonaws.com/moto-api/static/ce/cost-and-usage-results",
-                json=expected_results,
-            )
-            assert resp.status_code == 201
+                        "TimePeriod": {"Start": "2024-01-01", "End": "2024-01-02"},
+                        "Total": {
+                            "BlendedCost": {"Amount": "0.0101516483", "Unit": "USD"}
+                        },
+                        "Groups": [],
+                        "Estimated": False
+                    }
+                ],
+                "DimensionValueAttributes": [{"Value": "v", "Attributes": {"a": "b"}}]
+            },
+            {
+                ...
+            },
+        ]
+    }
+    resp = requests.post(
+        "http://motoapi.amazonaws.com/moto-api/static/ce/cost-and-usage-results",
+        json=expected_results,
+    )
+    assert resp.status_code == 201
 
-            ce = boto3.client("ce", region_name="us-east-1")
-            resp = ce.get_cost_and_usage(...)
-        
+    ce = boto3.client("ce", region_name="us-east-1")
+    resp = ce.get_cost_and_usage(...)
+
 
 - [ ] get_cost_and_usage_comparisons
 - [ ] get_cost_and_usage_with_resources
@@ -119,7 +119,7 @@ ce
 - [ ] update_cost_allocation_tags_status
 - [X] update_cost_category_definition
   
-        The EffectiveOn-parameter is not yet implemented
-        
+The EffectiveOn-parameter is not yet implemented
+
 
 

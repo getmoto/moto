@@ -59,19 +59,19 @@ events
 - [X] list_targets_by_rule
 - [X] put_events
   
-        The following targets are supported at the moment:
+The following targets are supported at the moment:
 
-         - CloudWatch Log Group
-         - EventBridge Archive
-         - SQS Queue + FIFO Queue
-         - Cross-region/account EventBus
-         - HTTP requests (only enabled when MOTO_EVENTS_INVOKE_HTTP=true)
-        
+ - CloudWatch Log Group
+ - EventBridge Archive
+ - SQS Queue + FIFO Queue
+ - Cross-region/account EventBus
+ - HTTP requests (only enabled when MOTO_EVENTS_INVOKE_HTTP=true)
+
 
 - [X] put_partner_events
   
-        Validation of the entries is not yet implemented.
-        
+Validation of the entries is not yet implemented.
+
 
 - [X] put_permission
 - [X] put_rule

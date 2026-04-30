@@ -26,15 +26,15 @@ ssm
 - [X] create_document
 - [X] create_maintenance_window
   
-        Creates a maintenance window. No error handling or input validation has been implemented yet.
-        
+Creates a maintenance window. No error handling or input validation has been implemented yet.
+
 
 - [ ] create_ops_item
 - [ ] create_ops_metadata
 - [X] create_patch_baseline
   
-        Registers a patch baseline. No error handling or input validation has been implemented yet.
-        
+Registers a patch baseline. No error handling or input validation has been implemented yet.
+
 
 - [ ] create_resource_data_sync
 - [ ] delete_activation
@@ -43,8 +43,8 @@ ssm
 - [ ] delete_inventory
 - [X] delete_maintenance_window
   
-        Delete a maintenance window.
-        
+Delete a maintenance window.
+
 
 - [ ] delete_ops_item
 - [ ] delete_ops_metadata
@@ -52,8 +52,8 @@ ssm
 - [X] delete_parameters
 - [X] delete_patch_baseline
   
-        Assumes the provided BaselineId exists. No error handling has been implemented yet.
-        
+Assumes the provided BaselineId exists. No error handling has been implemented yet.
+
 
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
@@ -63,8 +63,8 @@ ssm
 
 - [X] deregister_target_from_maintenance_window
   
-        Deregisters a target from a maintenance window. No error handling has been implemented yet.
-        
+Deregisters a target from a maintenance window. No error handling has been implemented yet.
+
 
 - [X] deregister_task_from_maintenance_window
 - [ ] describe_activations
@@ -77,8 +77,8 @@ ssm
 - [X] describe_document
 - [X] describe_document_permission
   
-        Parameters max_results, permission_type, and next_token not yet implemented
-        
+Parameters max_results, permission_type, and next_token not yet implemented
+
 
 - [ ] describe_effective_instance_associations
 - [ ] describe_effective_patches_for_patch_baseline
@@ -95,24 +95,24 @@ ssm
 - [ ] describe_maintenance_window_schedule
 - [X] describe_maintenance_window_targets
   
-        Describes all targets for a maintenance window. No error handling has been implemented yet.
-        
+Describes all targets for a maintenance window. No error handling has been implemented yet.
+
 
 - [X] describe_maintenance_window_tasks
 - [X] describe_maintenance_windows
   
-        Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
-        The NextExecutionTime-field is not returned.
+Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
+The NextExecutionTime-field is not returned.
 
-        
+
 
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
 - [X] describe_patch_baselines
   
-        Returns all baselines. No pagination has been implemented yet.
-        
+Returns all baselines. No pagination has been implemented yet.
+
 
 - [ ] describe_patch_group_state
 - [ ] describe_patch_groups
@@ -132,8 +132,8 @@ ssm
 - [ ] get_inventory_schema
 - [X] get_maintenance_window
   
-        The NextExecutionTime-field is not returned.
-        
+The NextExecutionTime-field is not returned.
+
 
 - [ ] get_maintenance_window_execution
 - [ ] get_maintenance_window_execution_task
@@ -160,8 +160,8 @@ ssm
 - [ ] list_command_invocations
 - [X] list_commands
   
-        Pagination and the Filters-parameter is not yet implemented
-        
+Pagination and the Filters-parameter is not yet implemented
+
 
 - [ ] list_compliance_items
 - [ ] list_compliance_summaries
@@ -188,8 +188,8 @@ ssm
 
 - [X] register_target_with_maintenance_window
   
-        Registers a target with a maintenance window. No error handling has been implemented yet.
-        
+Registers a target with a maintenance window. No error handling has been implemented yet.
+
 
 - [X] register_task_with_maintenance_window
 - [X] remove_tags_from_resource

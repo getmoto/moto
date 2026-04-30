@@ -38,59 +38,59 @@ athena
 - [ ] get_capacity_assignment_configuration
 - [X] get_capacity_reservation
 - [X] get_data_catalog
-- [ ] get_database
+- [X] get_database
 - [X] get_named_query
 - [ ] get_notebook_metadata
 - [X] get_prepared_statement
 - [X] get_query_execution
 - [X] get_query_results
   
-        Queries are not executed by Moto, so this call will always return 0 rows by default.
+Queries are not executed by Moto, so this call will always return 0 rows by default.
 
-        You can use a dedicated API to override this, by configuring a queue of expected results.
+You can use a dedicated API to override this, by configuring a queue of expected results.
 
-        A request to `get_query_results` will take the first result from that queue, and assign it to the provided QueryExecutionId. Subsequent requests using the same QueryExecutionId will return the same result. Other requests using a different QueryExecutionId will take the next result from the queue, or return an empty result if the queue is empty.
+A request to `get_query_results` will take the first result from that queue, and assign it to the provided QueryExecutionId. Subsequent requests using the same QueryExecutionId will return the same result. Other requests using a different QueryExecutionId will take the next result from the queue, or return an empty result if the queue is empty.
 
-        Configuring this queue by making an HTTP request to `/moto-api/static/athena/query-results`. An example invocation looks like this:
+Configuring this queue by making an HTTP request to `/moto-api/static/athena/query-results`. An example invocation looks like this:
 
-        .. sourcecode:: python
+.. sourcecode:: python
 
-            expected_results = {
-                "account_id": "123456789012",  # This is the default - can be omitted
-                "region": "us-east-1",  # This is the default - can be omitted
-                "results": [
-                    {
-                        "rows": [{"Data": [{"VarCharValue": "1"}]}],
-                        "column_info": [{
-                            "CatalogName": "string",
-                            "SchemaName": "string",
-                            "TableName": "string",
-                            "Name": "string",
-                            "Label": "string",
-                            "Type": "string",
-                            "Precision": 123,
-                            "Scale": 123,
-                            "Nullable": "NOT_NULL",
-                            "CaseSensitive": True,
-                        }],
-                    },
-                    # other results as required
-                ],
-            }
-            resp = requests.post(
-                "http://motoapi.amazonaws.com/moto-api/static/athena/query-results",
-                json=expected_results,
-            )
-            assert resp.status_code == 201
+    expected_results = {
+        "account_id": "123456789012",  # This is the default - can be omitted
+        "region": "us-east-1",  # This is the default - can be omitted
+        "results": [
+            {
+                "rows": [{"Data": [{"VarCharValue": "1"}]}],
+                "column_info": [{
+                    "CatalogName": "string",
+                    "SchemaName": "string",
+                    "TableName": "string",
+                    "Name": "string",
+                    "Label": "string",
+                    "Type": "string",
+                    "Precision": 123,
+                    "Scale": 123,
+                    "Nullable": "NOT_NULL",
+                    "CaseSensitive": True,
+                }],
+            },
+            # other results as required
+        ],
+    }
+    resp = requests.post(
+        "http://motoapi.amazonaws.com/moto-api/static/athena/query-results",
+        json=expected_results,
+    )
+    assert resp.status_code == 201
 
-            client = boto3.client("athena", region_name="us-east-1")
-            details = client.get_query_execution(QueryExecutionId="any_id")["QueryExecution"]
+    client = boto3.client("athena", region_name="us-east-1")
+    details = client.get_query_execution(QueryExecutionId="any_id")["QueryExecution"]
 
-        .. note:: The exact QueryExecutionId is not relevant here, but will likely be whatever value is returned by start_query_execution
+.. note:: The exact QueryExecutionId is not relevant here, but will likely be whatever value is returned by start_query_execution
 
-        Query results will also be stored in the S3 output location (in CSV format).
+Query results will also be stored in the S3 output location (in CSV format).
 
-        
+
 
 - [X] get_query_runtime_statistics
 - [ ] get_resource_dashboard
@@ -104,7 +104,7 @@ athena
 - [ ] list_calculation_executions
 - [X] list_capacity_reservations
 - [X] list_data_catalogs
-- [ ] list_databases
+- [X] list_databases
 - [ ] list_engine_versions
 - [ ] list_executors
 - [X] list_named_queries

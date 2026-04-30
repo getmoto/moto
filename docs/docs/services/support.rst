@@ -18,15 +18,15 @@ support
 - [ ] add_communication_to_case
 - [X] create_case
   
-        The IssueType-parameter is not yet implemented
-        
+The IssueType-parameter is not yet implemented
+
 
 - [ ] describe_attachment
 - [X] describe_cases
   
-        The following parameters have not yet been implemented:
-        DisplayID, AfterTime, BeforeTime, MaxResults, Language
-        
+The following parameters have not yet been implemented:
+DisplayID, AfterTime, BeforeTime, MaxResults, Language
+
 
 - [ ] describe_communications
 - [ ] describe_create_case_options
@@ -38,8 +38,8 @@ support
 - [ ] describe_trusted_advisor_check_summaries
 - [X] describe_trusted_advisor_checks
   
-        The Language-parameter is not yet implemented
-        
+The Language-parameter is not yet implemented
+
 
 - [X] refresh_trusted_advisor_check
 - [X] resolve_case

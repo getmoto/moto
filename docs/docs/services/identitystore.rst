@@ -27,14 +27,14 @@ identitystore
 - [X] describe_user
 - [X] get_group_id
   
-        The ExternalId alternate identifier is not yet implemented
-        
+The ExternalId alternate identifier is not yet implemented
+
 
 - [ ] get_group_membership_id
 - [X] get_user_id
   
-        The ExternalId alternate identifier is not yet implemented
-        
+The ExternalId alternate identifier is not yet implemented
+
 
 - [ ] is_member_in_groups
 - [X] list_group_memberships

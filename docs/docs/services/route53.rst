@@ -73,27 +73,27 @@ route53
 - [X] list_health_checks
 - [X] list_hosted_zones
   
-        The parameters DelegationSetId and HostedZoneType are not yet implemented
-        
+The parameters DelegationSetId and HostedZoneType are not yet implemented
+
 
 - [X] list_hosted_zones_by_name
 - [X] list_hosted_zones_by_vpc
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_query_logging_configs
   Return a list of query logging configs.
 
 - [X] list_resource_record_sets
   
-        The StartRecordIdentifier-parameter is not yet implemented
-        
+The StartRecordIdentifier-parameter is not yet implemented
+
 
 - [X] list_reusable_delegation_sets
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_tags_for_resource
 - [X] list_tags_for_resources

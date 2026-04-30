@@ -19,16 +19,16 @@ resiliencehub
 - [ ] batch_update_recommendation_status
 - [X] create_app
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [X] create_app_version_app_component
 - [X] create_app_version_resource
 - [ ] create_recommendation_template
 - [X] create_resiliency_policy
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] delete_app
 - [ ] delete_app_assessment
@@ -54,40 +54,40 @@ resiliencehub
 - [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
   
-        Moto will not actually execute any assessments, so this operation will return an empty list by default.
-        You can use a dedicated API to override this, by configuring a queue of expected results.
+Moto will not actually execute any assessments, so this operation will return an empty list by default.
+You can use a dedicated API to override this, by configuring a queue of expected results.
 
-        A request to `list_app_assessments` will take the first result from that queue, with subsequent calls with the same parameters returning the same result.
+A request to `list_app_assessments` will take the first result from that queue, with subsequent calls with the same parameters returning the same result.
 
-        Calling `list_app_assessments` with a different set of parameters will return the second result from that queue - and so on, or an empty list of the queue is empty.
+Calling `list_app_assessments` with a different set of parameters will return the second result from that queue - and so on, or an empty list of the queue is empty.
 
-        Configure this queue by making an HTTP request to `/moto-api/static/resilience-hub-assessments/response`. An example invocation looks like this:
+Configure this queue by making an HTTP request to `/moto-api/static/resilience-hub-assessments/response`. An example invocation looks like this:
 
-        .. sourcecode:: python
+.. sourcecode:: python
 
-            summary1 = {"appArn": "app_arn1", "appVersion": "some version", ...}
-            summary2 = {"appArn": "app_arn2", ...}
-            results = {"results": [[summary1, summary2], [summary2]], "region": "us-east-1"}
-            resp = requests.post(
-                "http://motoapi.amazonaws.com/moto-api/static/resilience-hub-assessments/response",
-                json=results,
-            )
+    summary1 = {"appArn": "app_arn1", "appVersion": "some version", ...}
+    summary2 = {"appArn": "app_arn2", ...}
+    results = {"results": [[summary1, summary2], [summary2]], "region": "us-east-1"}
+    resp = requests.post(
+        "http://motoapi.amazonaws.com/moto-api/static/resilience-hub-assessments/response",
+        json=results,
+    )
 
-            assert resp.status_code == 201
+    assert resp.status_code == 201
 
-            client = boto3.client("lambda", region_name="us-east-1")
-            # First result
-            resp = client.list_app_assessments() # [summary1, summary2]
-            # Second result
-            resp = client.list_app_assessments(assessmentStatus="Pending") # [summary2]
+    client = boto3.client("lambda", region_name="us-east-1")
+    # First result
+    resp = client.list_app_assessments() # [summary1, summary2]
+    # Second result
+    resp = client.list_app_assessments(assessmentStatus="Pending") # [summary2]
 
-        If you're using MotoServer, make sure to make this request to where MotoServer is running:
+If you're using MotoServer, make sure to make this request to where MotoServer is running:
 
-        .. sourcecode:: python
+.. sourcecode:: python
 
-            http://localhost:5000/moto-api/static/resilience-hub-assessments/response
+    http://localhost:5000/moto-api/static/resilience-hub-assessments/response
 
-        
+
 
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
@@ -98,8 +98,8 @@ resiliencehub
 - [X] list_app_versions
 - [X] list_apps
   
-        The FromAssessmentTime/ToAssessmentTime-parameters are not yet implemented
-        
+The FromAssessmentTime/ToAssessmentTime-parameters are not yet implemented
+
 
 - [ ] list_metrics
 - [ ] list_recommendation_templates

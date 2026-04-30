@@ -18,24 +18,24 @@ config
 - [X] batch_get_aggregate_resource_config
   Returns configuration of resource for current regional backend.
 
-        Item is returned in AWS Config format.
+Item is returned in AWS Config format.
 
-        As far a moto goes -- the only real difference between this function
-        and the `batch_get_resource_config` function is that this will require
-        a Config Aggregator be set up a priori and can search based on resource
-        regions.
+As far a moto goes -- the only real difference between this function
+and the `batch_get_resource_config` function is that this will require
+a Config Aggregator be set up a priori and can search based on resource
+regions.
 
-        Note: moto will IGNORE the resource account ID in the search query.
-        
+Note: moto will IGNORE the resource account ID in the search query.
+
 
 - [X] batch_get_resource_config
   Returns configuration of resource for the current regional backend.
 
-        Item is returned in AWS Config format.
+Item is returned in AWS Config format.
 
-        :param resource_keys:
-        :param backend_region:
-        
+:param resource_keys:
+:param backend_region:
+
 
 - [X] delete_aggregation_authorization
 - [X] delete_config_rule
@@ -86,10 +86,10 @@ config
 - [ ] describe_remediation_execution_status
 - [X] describe_retention_configurations
   
-        This will return the retention configuration if one is present.
+This will return the retention configuration if one is present.
 
-        This should only receive at most 1 name in. It will raise a ValidationException if more than 1 is supplied.
-        
+This should only receive at most 1 name in. It will raise a ValidationException if more than 1 is supplied.
+
 
 - [ ] disassociate_resource_types
 - [ ] get_aggregate_compliance_details_by_config_rule
@@ -111,49 +111,49 @@ config
 - [X] get_resource_config_history
   Returns configuration of resource for the current regional backend.
 
-        Item returned in AWS Config format.
+Item returned in AWS Config format.
 
-        NOTE: This is --NOT-- returning history as it is not supported in
-        moto at this time. (PR's welcome!)
+NOTE: This is --NOT-- returning history as it is not supported in
+moto at this time. (PR's welcome!)
 
-        As such, the later_time, earlier_time, limit, and next_token are
-        ignored as this will only return 1 item. (If no items, it raises an
-        exception).
-        
+As such, the later_time, earlier_time, limit, and next_token are
+ignored as this will only return 1 item. (If no items, it raises an
+exception).
+
 
 - [ ] get_resource_evaluation_summary
 - [ ] get_stored_query
 - [X] list_aggregate_discovered_resources
   Queries AWS Config listing function that must exist for resource backend.
 
-        As far a moto goes -- the only real difference between this function
-        and the `list_discovered_resources` function is that this will require
-        a Config Aggregator be set up a priori and can search based on resource
-        regions.
+As far a moto goes -- the only real difference between this function
+and the `list_discovered_resources` function is that this will require
+a Config Aggregator be set up a priori and can search based on resource
+regions.
 
-        :param aggregator_name:
-        :param resource_type:
-        :param filters:
-        :param limit:
-        :param next_token:
-        :return:
-        
+:param aggregator_name:
+:param resource_type:
+:param filters:
+:param limit:
+:param next_token:
+:return:
+
 
 - [ ] list_configuration_recorders
 - [ ] list_conformance_pack_compliance_scores
 - [X] list_discovered_resources
   Queries against AWS Config (non-aggregated) listing function.
 
-        The listing function must exist for the resource backend.
+The listing function must exist for the resource backend.
 
-        :param resource_type:
-        :param backend_region:
-        :param ids:
-        :param name:
-        :param limit:
-        :param next_token:
-        :return:
-        
+:param resource_type:
+:param backend_region:
+:param ids:
+:param name:
+:param limit:
+:param next_token:
+:return:
+
 
 - [ ] list_resource_evaluations
 - [ ] list_stored_queries
@@ -164,10 +164,10 @@ config
 - [X] put_config_rule
   Add/Update config rule for evaluating resource compliance.
 
-        TBD - Only the "accounting" of config rules are handled at the
-        moment.  No events are created or triggered.  There is no
-        interaction with the config recorder.
-        
+TBD - Only the "accounting" of config rules are handled at the
+moment.  No events are created or triggered.  There is no
+interaction with the config recorder.
+
 
 - [X] put_configuration_aggregator
 - [X] put_configuration_recorder
@@ -188,10 +188,10 @@ config
 - [ ] select_aggregate_resource_config
 - [X] select_resource_config
   
-        This method doesn't actually execute SQL but uses predefined results
-        that can be configured through the moto API. Modeled after AWS Athena's approach.
-        Also need to implement pagination.
-        
+This method doesn't actually execute SQL but uses predefined results
+that can be configured through the moto API. Modeled after AWS Athena's approach.
+Also need to implement pagination.
+
 
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
@@ -204,8 +204,8 @@ config
 - [X] untag_resource
   Remove tags in config with a matching ARN.
 
-        If the tags in the tag_keys don't match any keys for that
-        ARN, they're just ignored.
-        
+If the tags in the tag_keys don't match any keys for that
+ARN, they're just ignored.
+
 
 

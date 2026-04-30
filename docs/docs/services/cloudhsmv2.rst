@@ -29,8 +29,8 @@ cloudhsmv2
 - [ ] initialize_cluster
 - [X] list_tags
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] modify_backup_attributes
 - [ ] modify_cluster

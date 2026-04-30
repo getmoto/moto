@@ -24,8 +24,8 @@ appconfig
 - [ ] create_extension_association
 - [X] create_hosted_configuration_version
   
-        The LatestVersionNumber-parameter is not yet implemented
-        
+The LatestVersionNumber-parameter is not yet implemented
+
 
 - [X] delete_application
 - [X] delete_configuration_profile
