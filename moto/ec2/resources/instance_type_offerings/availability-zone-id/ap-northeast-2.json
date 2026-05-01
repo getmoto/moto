@@ -1836,18 +1836,6 @@
   "Location": "apne2-az1"
  },
  {
-  "InstanceType": "p3.16xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "p3.8xlarge",
-  "Location": "apne2-az1"
- },
- {
   "InstanceType": "p5.48xlarge",
   "Location": "apne2-az1"
  },
@@ -6721,18 +6709,6 @@
  },
  {
   "InstanceType": "m8i.xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "apne2-az3"
  },
  {

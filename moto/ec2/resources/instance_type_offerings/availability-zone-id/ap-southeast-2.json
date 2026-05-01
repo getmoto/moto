@@ -920,18 +920,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "f1.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "f1.2xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "apse2-az1"
  },
@@ -2336,6 +2324,10 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apse2-az1"
  },
@@ -2345,18 +2337,6 @@
  },
  {
   "InstanceType": "mac2-m2pro.metal",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "apse2-az1"
  },
  {
@@ -3353,6 +3333,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "apse2-az1"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "apse2-az1"
  },
  {
@@ -9124,6 +9108,10 @@
   "Location": "apse2-az3"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "apse2-az3"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apse2-az3"
  },
@@ -10129,6 +10117,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "apse2-az3"
  },
  {
