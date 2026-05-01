@@ -1312,6 +1312,10 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "euc2-az1"
  },

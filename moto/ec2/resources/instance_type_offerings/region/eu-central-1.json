@@ -1064,14 +1064,6 @@
   "Location": "eu-central-1"
  },
  {
-  "InstanceType": "f1.2xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "eu-central-1"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "eu-central-1"
  },
@@ -2709,18 +2701,6 @@
  },
  {
   "InstanceType": "mac2-m2.metal",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "eu-central-1"
  },
  {

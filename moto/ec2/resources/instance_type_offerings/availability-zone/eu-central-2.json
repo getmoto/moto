@@ -1312,6 +1312,10 @@
   "Location": "eu-central-2a"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-central-2a"
  },

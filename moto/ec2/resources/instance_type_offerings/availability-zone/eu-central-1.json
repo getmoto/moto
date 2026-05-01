@@ -2584,18 +2584,6 @@
   "Location": "eu-central-1a"
  },
  {
-  "InstanceType": "p3.16xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "p3.8xlarge",
-  "Location": "eu-central-1a"
- },
- {
   "InstanceType": "p4d.24xlarge",
   "Location": "eu-central-1a"
  },
@@ -3329,6 +3317,46 @@
  },
  {
   "InstanceType": "r7i.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
   "Location": "eu-central-1a"
  },
  {
@@ -5020,14 +5048,6 @@
   "Location": "eu-central-1b"
  },
  {
-  "InstanceType": "f1.2xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "eu-central-1b"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "eu-central-1b"
  },
@@ -6629,18 +6649,6 @@
  },
  {
   "InstanceType": "m8id.xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -9013,14 +9021,6 @@
  },
  {
   "InstanceType": "dl2q.24xlarge",
-  "Location": "eu-central-1c"
- },
- {
-  "InstanceType": "f1.2xlarge",
-  "Location": "eu-central-1c"
- },
- {
-  "InstanceType": "f1.4xlarge",
   "Location": "eu-central-1c"
  },
  {
