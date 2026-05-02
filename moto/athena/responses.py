@@ -1,5 +1,5 @@
 import json
-from typing import Any, Union
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -14,7 +14,7 @@ class AthenaResponse(BaseResponse):
     def athena_backend(self) -> AthenaBackend:
         return athena_backends[self.current_account][self.region]
 
-    def create_work_group(self) -> Union[tuple[str, dict[str, int]], str]:
+    def create_work_group(self) -> tuple[str, dict[str, int]] | str:
         name = self._get_param("Name")
         description = self._get_param("Description")
         configuration = self._get_param("Configuration", {})
@@ -46,7 +46,7 @@ class AthenaResponse(BaseResponse):
         self.athena_backend.delete_work_group(name)
         return "{}"
 
-    def start_query_execution(self) -> Union[tuple[str, dict[str, int]], str]:
+    def start_query_execution(self) -> tuple[str, dict[str, int]] | str:
         query = self._get_param("QueryString")
         context = self._get_param("QueryExecutionContext")
         config = self._get_param("ResultConfiguration")
@@ -104,14 +104,14 @@ class AthenaResponse(BaseResponse):
             )
         return json.dumps(result)
 
-    def create_capacity_reservation(self) -> Union[tuple[str, dict[str, int]], str]:
+    def create_capacity_reservation(self) -> tuple[str, dict[str, int]] | str:
         name = self._get_param("Name")
         target_dpus = self._get_param("TargetDpus")
         tags = self._get_param("Tags")
         self.athena_backend.create_capacity_reservation(name, target_dpus, tags)
         return json.dumps({})
 
-    def get_capacity_reservation(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def get_capacity_reservation(self) -> str | tuple[str, dict[str, int]]:
         name = self._get_param("Name")
         capacity_reservation = self.athena_backend.get_capacity_reservation(name)
         if not capacity_reservation:
@@ -157,7 +157,7 @@ class AthenaResponse(BaseResponse):
             {"status": status},
         )
 
-    def create_named_query(self) -> Union[tuple[str, dict[str, int]], str]:
+    def create_named_query(self) -> tuple[str, dict[str, int]] | str:
         name = self._get_param("Name")
         description = self._get_param("Description")
         database = self._get_param("Database")
@@ -191,7 +191,7 @@ class AthenaResponse(BaseResponse):
             {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
         )
 
-    def list_tags_for_resource(self) -> Union[tuple[str, dict[str, int]], str]:
+    def list_tags_for_resource(self) -> tuple[str, dict[str, int]] | str:
         resource_arn = self._get_param("ResourceARN")
         tags = self.athena_backend.list_tags_for_resource(resource_arn)
         if not tags:
@@ -243,7 +243,7 @@ class AthenaResponse(BaseResponse):
             result["NextToken"] = new_next_token
         return json.dumps(result)
 
-    def create_data_catalog(self) -> Union[tuple[str, dict[str, int]], str]:
+    def create_data_catalog(self) -> tuple[str, dict[str, int]] | str:
         name = self._get_param("Name")
         catalog_type = self._get_param("Type")
         description = self._get_param("Description")
@@ -273,7 +273,7 @@ class AthenaResponse(BaseResponse):
         )
         return json.dumps({"NamedQueryIds": named_query_ids, "NextToken": next_token})
 
-    def create_prepared_statement(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def create_prepared_statement(self) -> str | tuple[str, dict[str, int]]:
         statement_name = self._get_param("StatementName")
         work_group = self._get_param("WorkGroup")
         query_statement = self._get_param("QueryStatement")
@@ -307,7 +307,7 @@ class AthenaResponse(BaseResponse):
             }
         )
 
-    def get_query_runtime_statistics(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def get_query_runtime_statistics(self) -> str | tuple[str, dict[str, int]]:
         query_execution_id = self._get_param("QueryExecutionId")
 
         ps = self.athena_backend.get_query_runtime_statistics(

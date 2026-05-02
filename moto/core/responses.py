@@ -10,9 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     Any,
-    Optional,
     TypeVar,
-    Union,
     cast,
 )
 from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
@@ -202,7 +200,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
 
-    def __init__(self, service_name: Optional[str] = None):
+    def __init__(self, service_name: str | None = None):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
@@ -317,7 +315,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.partition = get_partition(self.region)
-        self.uri_match: Optional[re.Match[str]] = None
+        self.uri_match: re.Match[str] | None = None
 
         self.headers = request.headers
         if "host" not in self.headers:
@@ -541,7 +539,7 @@ class BaseResponse(ActionAuthenticatorMixin):
                 se_headers["status"] = se_status
                 response = se_body, se_headers  # type: ignore[assignment]
             except HTTPException as http_error:
-                response_headers: dict[str, Union[str, int]] = dict(
+                response_headers: dict[str, str | int] = dict(
                     http_error.get_headers() or []
                 )
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
@@ -621,7 +619,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[int, TYPE_IF_NONE]:
+    ) -> int | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
@@ -631,7 +629,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[float, TYPE_IF_NONE]:
+    ) -> float | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             return float(val)
@@ -641,7 +639,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[bool, TYPE_IF_NONE]:
+    ) -> bool | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             val = str(val)

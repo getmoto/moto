@@ -4804,18 +4804,6 @@
   "Location": "ca-central-1b"
  },
  {
-  "InstanceType": "p3.16xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "p3.8xlarge",
-  "Location": "ca-central-1b"
- },
- {
   "InstanceType": "p4d.24xlarge",
   "Location": "ca-central-1b"
  },

@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.exceptions import ServiceException
 
@@ -79,7 +79,7 @@ class InvalidParameterCombination(EC2ClientError):
 
 
 class MalformedDHCPOptionsIdError(EC2ClientError):
-    def __init__(self, dhcp_options_id: Optional[str]):
+    def __init__(self, dhcp_options_id: str | None):
         super().__init__(
             "InvalidDhcpOptionsId.Malformed",
             f'Invalid id: "{dhcp_options_id}" (expecting "dopt-...")',
@@ -303,7 +303,7 @@ class InvalidInstanceTypeError(EC2ClientError):
 
 
 class InvalidAMIIdError(EC2ClientError):
-    def __init__(self, ami_id: Union[list[str], str]):
+    def __init__(self, ami_id: list[str] | str):
         if isinstance(ami_id, str):
             message = f"The image id '[{ami_id}]' does not exist"
         elif len(ami_id) > 1:
@@ -327,7 +327,7 @@ class UnvailableAMIIdError(EC2ClientError):
 
 
 class InvalidAMIAttributeItemValueError(EC2ClientError):
-    def __init__(self, attribute: str, value: Union[str, Iterable[str], None]):
+    def __init__(self, attribute: str, value: str | Iterable[str] | None):
         super().__init__(
             "InvalidAMIAttributeItemValue",
             f'Invalid attribute item value "{value}" for {attribute} item type.',
@@ -603,7 +603,7 @@ class MotoNotImplementedError(NotImplementedError):
 
 
 class FilterNotImplementedError(MotoNotImplementedError):
-    def __init__(self, filter_name: str, method_name: Optional[str]):
+    def __init__(self, filter_name: str, method_name: str | None):
         super().__init__(f"The filter '{filter_name}' for {method_name}")
 
 
@@ -644,7 +644,7 @@ class LastEniDetachError(OperationNotPermitted):
 
 class InvalidAvailabilityZoneError(EC2ClientError):
     def __init__(
-        self, availability_zone_value: Optional[str], valid_availability_zones: str
+        self, availability_zone_value: str | None, valid_availability_zones: str
     ):
         super().__init__(
             "InvalidParameterValue",
@@ -781,7 +781,7 @@ class InvalidLaunchTemplateIdNotFound(EC2ClientError):
 
 
 class InvalidLaunchTemplateVersionNotFound(EC2ClientError):
-    def __init__(self, version: str, template_id: Optional[str] = None):
+    def __init__(self, version: str, template_id: str | None = None):
         if template_id:
             msg = f"Could not find the specified version {version} for the launch template with ID {template_id}."
         else:
@@ -878,7 +878,7 @@ class InvalidCarrierGatewayID(EC2ClientError):
 
 
 class InvalidTransitGatewayID(EC2ClientError):
-    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
+    def __init__(self, transit_gateway_id: str, msg: str | None = None):
         super().__init__(
             "InvalidTransitGatewayID.NotFound",
             msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",

@@ -1,5 +1,4 @@
 import abc
-from typing import Union
 
 from requests.models import PreparedRequest
 
@@ -10,5 +9,5 @@ class IntegrationParser:
     @abc.abstractmethod
     def invoke(
         self, request: PreparedRequest, integration: Integration
-    ) -> tuple[int, Union[str, bytes]]:
+    ) -> tuple[int, str | bytes]:
         pass

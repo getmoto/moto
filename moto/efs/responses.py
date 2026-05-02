@@ -1,11 +1,11 @@
 import json
-from typing import Any, Union
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
 from .models import EFSBackend, efs_backends
 
-TYPE_RESPONSE = tuple[str, dict[str, Union[str, int]]]
+TYPE_RESPONSE = tuple[str, dict[str, str | int]]
 
 
 class EFSResponse(BaseResponse):

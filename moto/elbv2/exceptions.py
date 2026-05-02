@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.exceptions import ServiceException
 
@@ -140,7 +140,7 @@ class ResourceInUseError(ELBClientError):
 
 
 class RuleNotFoundError(ELBClientError):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         msg = msg or "The specified rule does not exist."
         super().__init__("RuleNotFound", msg)
 

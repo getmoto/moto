@@ -1,6 +1,6 @@
 import abc
 import copy
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
@@ -48,7 +48,7 @@ class StringExpression(EvalComponent, abc.ABC):
     def __init__(self, literal_value: str):
         self.literal_value = literal_value
 
-    def _field_name(self) -> Optional[str]:
+    def _field_name(self) -> str | None:
         return None
 
 

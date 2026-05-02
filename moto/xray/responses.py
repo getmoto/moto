@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Any, Union
+from typing import Any
 from urllib.parse import urlsplit
 
 from moto.core.exceptions import AWSError
@@ -44,7 +44,7 @@ class XRayResponse(BaseResponse):
         return ""
 
     # PutTraceSegments
-    def trace_segments(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def trace_segments(self) -> str | tuple[str, dict[str, int]]:
         docs = self._get_param("TraceSegmentDocuments")
 
         if docs is None:
@@ -72,7 +72,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetTraceSummaries
-    def trace_summaries(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def trace_summaries(self) -> str | tuple[str, dict[str, int]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         if start_time is None:
@@ -122,7 +122,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # BatchGetTraces
-    def traces(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def traces(self) -> str | tuple[str, dict[str, int]]:
         trace_ids = self._get_param("TraceIds")
 
         if trace_ids is None:
@@ -145,7 +145,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetServiceGraph - just a dummy response for now
-    def service_graph(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def service_graph(self) -> str | tuple[str, dict[str, int]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         # next_token = self._get_param('NextToken')  # not implemented yet
@@ -167,7 +167,7 @@ class XRayResponse(BaseResponse):
         return json.dumps(result)
 
     # GetTraceGraph - just a dummy response for now
-    def trace_graph(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def trace_graph(self) -> str | tuple[str, dict[str, int]]:
         trace_ids = self._get_param("TraceIds")
         # next_token = self._get_param('NextToken')  # not implemented yet
 

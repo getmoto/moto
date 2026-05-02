@@ -3,7 +3,7 @@ import json
 import threading
 import time
 from collections.abc import Callable
-from typing import Any, Final, Optional, Union
+from typing import Any, Final
 
 from moto.stepfunctions.parser.api import (
     HistoryEventExecutionDataDetails,
@@ -68,7 +68,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Optional[Any]]:
+    ) -> Callable[[], Any] | None:
         raise RuntimeError(
             f"Unsupported .sync callback procedure in resource {self.resource.resource_arn}"
         )
@@ -79,7 +79,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Optional[Any]]:
+    ) -> Callable[[], Any] | None:
         raise RuntimeError(
             f"Unsupported .sync2 callback procedure in resource {self.resource.resource_arn}"
         )
@@ -89,9 +89,9 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         timeout_seconds: int,
         callback_endpoint: CallbackEndpoint,
-        heartbeat_endpoint: Optional[HeartbeatEndpoint],
+        heartbeat_endpoint: HeartbeatEndpoint | None,
     ) -> CallbackOutcome:
-        outcome: Optional[CallbackOutcome]
+        outcome: CallbackOutcome | None
         if heartbeat_endpoint is not None:
             outcome = self._wait_for_task_token_heartbeat(
                 env, callback_endpoint, heartbeat_endpoint
@@ -107,12 +107,12 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
     def _eval_sync(
         self,
         env: Environment,
-        sync_resolver: Callable[[], Optional[Any]],
-        timeout_seconds: Optional[int],
-        callback_endpoint: Optional[CallbackEndpoint],
-        heartbeat_endpoint: Optional[HeartbeatEndpoint],
-    ) -> Union[CallbackOutcome, Any]:
-        callback_output: Optional[CallbackOutcome] = None
+        sync_resolver: Callable[[], Any] | None,
+        timeout_seconds: int | None,
+        callback_endpoint: CallbackEndpoint | None,
+        heartbeat_endpoint: HeartbeatEndpoint | None,
+    ) -> CallbackOutcome | Any:
+        callback_output: CallbackOutcome | None = None
 
         # Listen for WaitForTaskToken signals if an endpoint is provided.
         if callback_endpoint is not None:
@@ -137,7 +137,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
             #       an exception in this thread will invalidate env, and therefore the worker thread.
             #       hence why here there are no explicit stopping logic for thread_wait_for_task_token.
 
-        sync_result: Optional[Any] = None
+        sync_result: Any | None = None
         while env.is_running():
             sync_result = sync_resolver()
             if callback_output or sync_result:
@@ -157,7 +157,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         task_output = env.stack.pop()
 
         # Initialise the waitForTaskToken Callback endpoint for this task if supported.
-        callback_endpoint: Optional[CallbackEndpoint] = None
+        callback_endpoint: CallbackEndpoint | None = None
         if ResourceCondition.WaitForTaskToken in self._supported_integration_patterns:
             callback_id = env.states.context_object.context_object_data["Task"]["Token"]
             callback_endpoint = env.callback_pool_manager.get(callback_id)
@@ -167,7 +167,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         timeout_seconds = env.stack.pop()
 
         # Setup resources for heartbeat workloads if necessary.
-        heartbeat_endpoint: Optional[HeartbeatEndpoint] = None
+        heartbeat_endpoint: HeartbeatEndpoint | None = None
         if self.heartbeat:
             self.heartbeat.eval(env=env)
             heartbeat_seconds = env.stack.pop()
@@ -178,7 +178,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
             )
 
         # Collect the output of the integration pattern.
-        outcome: Union[CallbackOutcome, Any]
+        outcome: CallbackOutcome | Any
         try:
             if self.resource.condition == ResourceCondition.WaitForTaskToken:
                 outcome = self._eval_wait_for_task_token(
@@ -245,7 +245,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         self,
         timeout_seconds: int,
         callback_endpoint: CallbackEndpoint,
-    ) -> Optional[CallbackOutcome]:
+    ) -> CallbackOutcome | None:
         # Awaits a callback notification and returns the outcome received.
         # If the operation times out or is interrupted it returns None.
 
@@ -254,7 +254,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         # discarded by the main process.
         # Note: although this is the same timeout value, this can only decay strictly after the first timeout
         #       started as it is invoked strictly later.
-        outcome: Optional[CallbackOutcome] = callback_endpoint.wait(
+        outcome: CallbackOutcome | None = callback_endpoint.wait(
             timeout=timeout_seconds
         )
         return outcome
@@ -264,7 +264,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         env: Environment,
         callback_endpoint: CallbackEndpoint,
         heartbeat_endpoint: HeartbeatEndpoint,
-    ) -> Optional[CallbackOutcome]:
+    ) -> CallbackOutcome | None:
         outcome = None
         while (
             env.is_running()
@@ -292,7 +292,7 @@ class StateTaskServiceCallback(StateTaskService, abc.ABC):
         self, env: Environment, ex: CallbackOutcomeFailureError
     ) -> FailureEvent:
         callback_outcome_failure: CallbackOutcomeFailure = ex.callback_outcome_failure
-        error: Optional[str] = callback_outcome_failure.error
+        error: str | None = callback_outcome_failure.error
         return FailureEvent(
             env=env,
             error_name=CustomErrorName(error_name=error),

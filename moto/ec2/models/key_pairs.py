@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -50,9 +50,7 @@ class KeyPair(TaggedEC2Resource):
     def public_key(self) -> str:
         return self.material_public.decode("utf-8")
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> str:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> str:
         if filter_name == "key-name":
             return self.key_name
         elif filter_name == "key-pair-id":
@@ -80,7 +78,7 @@ class KeyPairBackend:
         self.key_pairs[name] = keypair
         return keypair
 
-    def delete_key_pair(self, name: str) -> Optional[KeyPair]:
+    def delete_key_pair(self, name: str) -> KeyPair | None:
         return self.key_pairs.pop(name, None)
 
     def describe_key_pairs(

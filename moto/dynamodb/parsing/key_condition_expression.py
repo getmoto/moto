@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.dynamodb.exceptions import KeyIsEmptyStringException, MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
@@ -42,10 +42,10 @@ def parse_expression(
         - expression_attribute_names_used: List of expression attribute names used
     """
 
-    current_stage: Optional[EXPRESSION_STAGES] = None
+    current_stage: EXPRESSION_STAGES | None = None
     current_phrase = ""
     key_name = comparison = ""
-    key_values: list[Union[dict[str, str], str]] = []
+    key_values: list[dict[str, str] | str] = []
     expression_attribute_names_used: list[str] = []
     results: list[tuple[str, str, Any]] = []
     tokenizer = GenericTokenizer(key_condition_expression)

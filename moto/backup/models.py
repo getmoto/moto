@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,7 +20,7 @@ class ReportPlan(BaseModel):
     def __init__(
         self,
         name: str,
-        report_plan_description: Optional[str],
+        report_plan_description: str | None,
         report_delivery_channel: dict[str, Any],
         report_setting: dict[str, Any],
         backend: "BackupBackend",
@@ -50,7 +50,7 @@ class Plan(BaseModel):
         self.backup_plan = backup_plan
         adv_settings = backup_plan.get("AdvancedBackupSettings")
         self.advanced_backup_settings = adv_settings or []
-        self.deletion_date: Optional[float] = None
+        self.deletion_date: float | None = None
         # Deletion Date is updated when the backup_plan is deleted
         self.last_execution_date = None  # start_restore_job not yet supported
         rules = backup_plan["Rules"]
@@ -114,10 +114,10 @@ class Vault(BaseModel):
         self.creator_request_id = creator_request_id
         self.num_of_recovery_points = 0  # start_backup_job not yet supported
         self.locked = False
-        self.min_retention_days: Optional[int] = None
-        self.max_retention_days: Optional[int] = None
-        self.lock_date: Optional[float] = None
-        self.changeable_for_days: Optional[int] = None
+        self.min_retention_days: int | None = None
+        self.max_retention_days: int | None = None
+        self.lock_date: float | None = None
+        self.changeable_for_days: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         dct = {
@@ -177,7 +177,7 @@ class BackupBackend(BaseBackend):
         self.plans[plan.backup_plan_id] = plan
         return plan
 
-    def get_backup_plan(self, backup_plan_id: str, version_id: Optional[Any]) -> Plan:
+    def get_backup_plan(self, backup_plan_id: str, version_id: Any | None) -> Plan:
         msg = "Failed reading Backup plan with provided version"
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(msg=msg)
@@ -246,9 +246,9 @@ class BackupBackend(BaseBackend):
     def put_backup_vault_lock_configuration(
         self,
         backup_vault_name: str,
-        min_retention_days: Optional[int],
-        max_retention_days: Optional[int],
-        changeable_for_days: Optional[int],
+        min_retention_days: int | None,
+        max_retention_days: int | None,
+        changeable_for_days: int | None,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -338,7 +338,7 @@ class BackupBackend(BaseBackend):
     def create_report_plan(
         self,
         report_plan_name: str,
-        report_plan_description: Optional[str],
+        report_plan_description: str | None,
         report_delivery_channel: dict[str, Any],
         report_setting: dict[str, Any],
     ) -> ReportPlan:

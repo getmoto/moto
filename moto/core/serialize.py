@@ -62,9 +62,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Any,
-    Optional,
     TypedDict,
-    Union,
 )
 
 import xmltodict
@@ -93,7 +91,7 @@ class ResponseDict(TypedDict):
 
 
 class SerializationContext:
-    def __init__(self, request_id: Optional[str] = None) -> None:
+    def __init__(self, request_id: str | None = None) -> None:
         self.request_id = request_id or "request-id"
 
 
@@ -130,7 +128,7 @@ class TimestampSerializer:
         return value.strftime(self.ISO8601_MICRO_ZEROED)
 
     @staticmethod
-    def _timestamp_unixtimestamp(value: datetime) -> Union[int, float]:
+    def _timestamp_unixtimestamp(value: datetime) -> int | float:
         base_timestamp = calendar.timegm(value.timetuple())
         if value.microsecond:
             # Smithy spec: "Values that are more granular than millisecond
@@ -138,13 +136,13 @@ class TimestampSerializer:
             return base_timestamp + (value.microsecond // 1000) / 1000.0
         return base_timestamp
 
-    def _timestamp_rfc822(self, value: Union[datetime, float]) -> str:
+    def _timestamp_rfc822(self, value: datetime | float) -> str:
         if isinstance(value, datetime):
             value = self._timestamp_unixtimestamp(value)
         return formatdate(value, usegmt=True)
 
     def _convert_timestamp_to_str(
-        self, value: Union[int, str, datetime], timestamp_format: str
+        self, value: int | str | datetime, timestamp_format: str
     ) -> str:
         timestamp_format = timestamp_format.lower()
         converter = getattr(self, f"_timestamp_{timestamp_format}")
@@ -212,7 +210,7 @@ class HeaderSerializer:
         self._timestamp_serializer.serialize(wrapper, value, shape, "timestamp")
         self._default_serialize(serialized, wrapper["timestamp"], shape, key)
 
-    def _base64(self, value: Union[str, bytes]) -> str:
+    def _base64(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
@@ -234,8 +232,8 @@ class ResponseSerializer:
     def __init__(
         self,
         operation_model: OperationModel,
-        context: Optional[SerializationContext] = None,
-        pretty_print: Optional[bool] = False,
+        context: SerializationContext | None = None,
+        pretty_print: bool | None = False,
         value_picker: Any = None,
     ) -> None:
         self.operation_model = operation_model
@@ -302,7 +300,7 @@ class ResponseSerializer:
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         raise NotImplementedError("Must be implemented in subclass.")
@@ -323,7 +321,7 @@ class ResponseSerializer:
     def _is_error_result(result: object) -> bool:
         return isinstance(result, Exception)
 
-    def _base64(self, value: Union[str, bytes]) -> str:
+    def _base64(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
@@ -444,7 +442,7 @@ class BaseJSONSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         resp["body"] = self._serialize_body(serialized_result)
@@ -595,7 +593,7 @@ class BaseXMLSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         if shape and "payload" in shape.serialization:
@@ -714,7 +712,7 @@ class BaseRestSerializer(ResponseSerializer):
     REQUIRES_EMPTY_BODY = False
 
     @staticmethod
-    def has_body_members(shape: Optional[StructureShape]) -> bool:
+    def has_body_members(shape: StructureShape | None) -> bool:
         if shape is not None:
             for member in shape.members.values():
                 if "location" not in member.serialization:
@@ -725,7 +723,7 @@ class BaseRestSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         if "payload" in serialized_result:
@@ -850,7 +848,7 @@ class QuerySerializer(BaseXMLSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         response_key = f"{self.operation_model.name}Response"
@@ -1016,7 +1014,7 @@ class S3Serializer(RestXMLSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         # GetBucketLocation response cannot be modeled properly, so we handle it as a one-off here.

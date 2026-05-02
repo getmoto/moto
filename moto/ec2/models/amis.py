@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import json
 import os
 import re
 from datetime import datetime
 from os import environ
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from moto import settings
 from moto.core.parse import default_timestamp_parser as parse_timestamp
@@ -36,29 +38,29 @@ class Ami(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         ami_id: str,
-        instance: Optional[Instance] = None,
-        source_ami: Optional["Ami"] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        owner_id: Optional[str] = None,
-        owner_alias: Optional[str] = None,
+        instance: Instance | None = None,
+        source_ami: Ami | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        owner_id: str | None = None,
+        owner_alias: str | None = None,
         public: bool = False,
-        virtualization_type: Optional[str] = None,
-        architecture: Optional[str] = None,
+        virtualization_type: str | None = None,
+        architecture: str | None = None,
         state: str = "available",
-        creation_date: Optional[datetime] = None,
-        platform: Optional[str] = None,
+        creation_date: datetime | None = None,
+        platform: str | None = None,
         image_type: str = "machine",
-        image_location: Optional[str] = None,
-        hypervisor: Optional[str] = None,
+        image_location: str | None = None,
+        hypervisor: str | None = None,
         root_device_type: str = "standard",
         root_device_name: str = "/dev/sda1",
         sriov: str = "simple",
         region_name: str = "us-east-1a",
-        snapshot_description: Optional[str] = None,
-        product_codes: Optional[set[str]] = None,
+        snapshot_description: str | None = None,
+        product_codes: set[str] | None = None,
         boot_mode: str = "uefi",
-        tags: Optional[dict[str, Any]] = None,
+        tags: dict[str, Any] | None = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -80,7 +82,7 @@ class Ami(TaggedEC2Resource):
         self.creation_date = creation_date or utcnow()
         self.product_codes = product_codes or set()
         self.boot_mode = boot_mode
-        self.instance_id: Optional[str] = None
+        self.instance_id: str | None = None
 
         if tags is not None:
             self.add_tags(tags)
@@ -142,12 +144,10 @@ class Ami(TaggedEC2Resource):
         ]
 
     @property
-    def source_instance_id(self) -> Optional[str]:
+    def source_instance_id(self) -> str | None:
         return self.instance_id
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name == "virtualization-type":
             return self.virtualization_type
         elif filter_name == "kernel-id":
@@ -254,8 +254,8 @@ class AmiBackend:
         self,
         source_image_id: str,
         source_region: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str | None = None,
+        description: str | None = None,
     ) -> Ami:
         from ..models import ec2_backends
 
@@ -275,10 +275,10 @@ class AmiBackend:
 
     def describe_images(
         self,
-        ami_ids: Optional[list[str]] = None,
-        filters: Optional[dict[str, Any]] = None,
-        exec_users: Optional[list[str]] = None,
-        owners: Optional[list[str]] = None,
+        ami_ids: list[str] | None = None,
+        filters: dict[str, Any] | None = None,
+        exec_users: list[str] | None = None,
+        owners: list[str] | None = None,
     ) -> list[Ami]:
         images = list(self.amis.copy().values())
 
@@ -379,7 +379,7 @@ class AmiBackend:
                 pass
 
     def register_image(
-        self, name: Optional[str] = None, description: Optional[str] = None
+        self, name: str | None = None, description: str | None = None
     ) -> Ami:
         ami_id = random_ami_id()
         ami = Ami(

@@ -25,7 +25,7 @@
 Represents an EC2 Instance
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from moto.packages.boto.ec2.ec2object import EC2Object, TaggedEC2Object
 from moto.packages.boto.ec2.image import ProductCodes
@@ -47,10 +47,10 @@ class InstancePlacement:
         self.zone = zone
         self.group_name = group_name or ""
         self.tenancy = tenancy or "default"
-        self.host_id: Optional[str] = None
+        self.host_id: str | None = None
 
     @property
-    def availability_zone(self) -> Optional[str]:
+    def availability_zone(self) -> str | None:
         return self.zone
 
     def __repr__(self) -> Any:
@@ -157,8 +157,8 @@ class Instance(TaggedEC2Object):
         self.platform = None
         self.interfaces: Any = []
         self.hypervisor = "xen"
-        self.virtualization_type: Optional[str] = None
-        self.architecture: Optional[str] = None
+        self.virtualization_type: str | None = None
+        self.architecture: str | None = None
         self.instance_profile = None
         self._previous_state = None
         self._placement = InstancePlacement()

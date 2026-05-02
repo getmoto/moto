@@ -2148,6 +2148,62 @@
   "Location": "euw3-az1"
  },
  {
+  "InstanceType": "x8i.12xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.16xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.24xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.2xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.32xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.48xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.4xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.64xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.8xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.96xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.large",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.metal-48xl",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.metal-96xl",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "x8i.xlarge",
+  "Location": "euw3-az1"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "euw3-az2"
  },
@@ -6253,6 +6309,62 @@
  },
  {
   "InstanceType": "x2iedn.xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.12xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.16xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.24xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.2xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.32xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.48xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.4xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.64xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.8xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.96xlarge",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.large",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.metal-48xl",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.metal-96xl",
+  "Location": "euw3-az3"
+ },
+ {
+  "InstanceType": "x8i.xlarge",
   "Location": "euw3-az3"
  }
 ]

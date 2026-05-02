@@ -1,7 +1,7 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -73,16 +73,16 @@ class Product(BaseModel):
         self,
         name: str,
         owner: str,
-        description: Optional[str],
-        distributor: Optional[str],
-        support_description: Optional[str],
-        support_email: Optional[str],
-        support_url: Optional[str],
+        description: str | None,
+        distributor: str | None,
+        support_description: str | None,
+        support_email: str | None,
+        support_url: str | None,
         product_type: str,
-        tags: Optional[list[dict[str, str]]],
-        provisioning_artifact_parameters: Optional[dict[str, Any]],
-        source_connection: Optional[dict[str, Any]],
-        accept_language: Optional[str],
+        tags: list[dict[str, str]] | None,
+        provisioning_artifact_parameters: dict[str, Any] | None,
+        source_connection: dict[str, Any] | None,
+        accept_language: str | None,
         region_name: str,
         account_id: str,
         backend: "ServiceCatalogBackend",
@@ -144,18 +144,18 @@ class ServiceCatalogBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_portfolio_access(
         self,
-        accept_language: Optional[str],
+        accept_language: str | None,
         portfolio_id: str,
-        organization_parent_id: Optional[str],
-        page_token: Optional[str],
-        page_size: Optional[int] = None,
+        organization_parent_id: str | None,
+        page_token: str | None,
+        page_size: int | None = None,
     ) -> list[dict[str, str]]:
         # TODO: Implement organization_parent_id and accept_language
 
         account_ids = self.portfolio_access.get(portfolio_id, [])
         return [{"account_id": account_id} for account_id in account_ids]
 
-    def delete_portfolio(self, accept_language: Optional[str], id: str) -> None:
+    def delete_portfolio(self, accept_language: str | None, id: str) -> None:
         # TODO: Implement accept_language
 
         if id in self.portfolio_access:
@@ -168,11 +168,11 @@ class ServiceCatalogBackend(BaseBackend):
 
     def delete_portfolio_share(
         self,
-        accept_language: Optional[str],
+        accept_language: str | None,
         portfolio_id: str,
-        account_id: Optional[str],
-        organization_node: Optional[dict[str, str]],
-    ) -> Optional[str]:
+        account_id: str | None,
+        organization_node: dict[str, str] | None,
+    ) -> str | None:
         # TODO: Implement accept_language
 
         if (
@@ -204,12 +204,12 @@ class ServiceCatalogBackend(BaseBackend):
 
     def create_portfolio(
         self,
-        accept_language: Optional[str],
+        accept_language: str | None,
         display_name: str,
-        description: Optional[str],
+        description: str | None,
         provider_name: str,
-        tags: Optional[list[dict[str, str]]],
-        idempotency_token: Optional[str],
+        tags: list[dict[str, str]] | None,
+        idempotency_token: str | None,
     ) -> tuple[dict[str, str], list[dict[str, str]]]:
         # TODO: Implement accept_language
 
@@ -242,13 +242,13 @@ class ServiceCatalogBackend(BaseBackend):
 
     def create_portfolio_share(
         self,
-        accept_language: Optional[str],
+        accept_language: str | None,
         portfolio_id: str,
-        account_id: Optional[str],
-        organization_node: Optional[dict[str, str]],
+        account_id: str | None,
+        organization_node: dict[str, str] | None,
         share_tag_options: bool,
         share_principals: bool,
-    ) -> Optional[str]:
+    ) -> str | None:
         # TODO: Implement accept_language
 
         if portfolio_id not in self.portfolios:
@@ -286,10 +286,10 @@ class ServiceCatalogBackend(BaseBackend):
 
     def list_portfolios(
         self,
-        accept_language: Optional[str] = None,
-        page_token: Optional[str] = None,
-        page_size: Optional[int] = None,
-    ) -> tuple[list[dict[str, str]], Optional[str]]:
+        accept_language: str | None = None,
+        page_token: str | None = None,
+        page_size: int | None = None,
+    ) -> tuple[list[dict[str, str]], str | None]:
         """TODO: Implement pagination and accept_language"""
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
@@ -300,9 +300,9 @@ class ServiceCatalogBackend(BaseBackend):
         self,
         portfolio_id: str,
         type: str,
-        page_token: Optional[str] = None,
-        page_size: Optional[int] = None,
-    ) -> tuple[Optional[str], list[dict[str, Any]]]:
+        page_token: str | None = None,
+        page_size: int | None = None,
+    ) -> tuple[str | None, list[dict[str, Any]]]:
         """TODO: Implement pagination"""
 
         portfolio_share_details = []
@@ -352,7 +352,7 @@ class ServiceCatalogBackend(BaseBackend):
         return None, portfolio_share_details
 
     def describe_portfolio(
-        self, accept_language: Optional[str], id: str
+        self, accept_language: str | None, id: str
     ) -> tuple[
         dict[str, Any], list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]
     ]:
@@ -375,17 +375,17 @@ class ServiceCatalogBackend(BaseBackend):
         self,
         name: str,
         owner: str,
-        description: Optional[str],
-        distributor: Optional[str],
-        support_description: Optional[str],
-        support_email: Optional[str],
-        support_url: Optional[str],
+        description: str | None,
+        distributor: str | None,
+        support_description: str | None,
+        support_email: str | None,
+        support_url: str | None,
         product_type: str,
         tags: list[dict[str, str]],
-        provisioning_artifact_parameters: Optional[dict[str, Any]],
-        idempotency_token: Optional[str] = None,
-        source_connection: Optional[dict[str, Any]] = None,
-        accept_language: Optional[str] = None,
+        provisioning_artifact_parameters: dict[str, Any] | None,
+        idempotency_token: str | None = None,
+        source_connection: dict[str, Any] | None = None,
+        accept_language: str | None = None,
     ) -> Product:
         token = idempotency_token or str(uuid.uuid4())
         existing_id = self.idempotency_tokens.get(token)
@@ -416,7 +416,7 @@ class ServiceCatalogBackend(BaseBackend):
         return product
 
     def describe_product(
-        self, accept_language: Optional[str], id: str, name: str
+        self, accept_language: str | None, id: str, name: str
     ) -> Product:
         if not id and not name:
             raise InvalidParametersException("Either Id or Name must be specified.")
@@ -434,14 +434,14 @@ class ServiceCatalogBackend(BaseBackend):
 
         return product
 
-    def lookup_by_name(self, name: str) -> Optional[Product]:
+    def lookup_by_name(self, name: str) -> Product | None:
         for product in self.products.values():
             if name == product.name:
                 return product
 
         return None
 
-    def delete_product(self, accept_language: Optional[str], id: str) -> None:
+    def delete_product(self, accept_language: str | None, id: str) -> None:
         if id in self.products:
             del self.products[id]
 

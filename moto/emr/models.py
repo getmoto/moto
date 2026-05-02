@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from functools import cache, cached_property
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -23,6 +23,9 @@ from .utils import (
     random_step_id,
 )
 
+if TYPE_CHECKING:
+    from moto.ec2.models import EC2Backend
+
 EXAMPLE_AMI_ID = "ami-12c6146b"
 
 
@@ -42,7 +45,7 @@ class BootstrapAction(BaseModel):
         self.script_bootstrap_action = script_bootstrap_action
 
     @property
-    def script_path(self) -> Optional[str]:
+    def script_path(self) -> str | None:
         return self.script_bootstrap_action.get("path")
 
     @property
@@ -55,8 +58,8 @@ class Instance(BaseModel):
         self,
         ec2_instance: EC2Instance,
         instance_group: InstanceGroup,
-        instance_fleet_id: Optional[str] = None,
-        instance_id: Optional[str] = None,
+        instance_fleet_id: str | None = None,
+        instance_id: str | None = None,
     ):
         self.id = instance_id or random_instance_group_id()
         self.ec2_instance = ec2_instance
@@ -130,11 +133,11 @@ class InstanceGroup(CloudFormationModel):
         instance_role: str,
         instance_type: str,
         market: str = "ON_DEMAND",
-        name: Optional[str] = None,
-        instance_group_id: Optional[str] = None,
-        bid_price: Optional[str] = None,
-        ebs_configuration: Optional[dict[str, Any]] = None,
-        auto_scaling_policy: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        instance_group_id: str | None = None,
+        bid_price: str | None = None,
+        ebs_configuration: dict[str, Any] | None = None,
+        auto_scaling_policy: dict[str, Any] | None = None,
     ) -> None:
         self.id = instance_group_id or random_instance_group_id()
         self.cluster_id = cluster_id
@@ -158,7 +161,7 @@ class InstanceGroup(CloudFormationModel):
         self.creation_date_time: datetime = utcnow()
         self.start_date_time: datetime = utcnow()
         self.ready_date_time: datetime = utcnow()
-        self.end_date_time: Optional[datetime] = None
+        self.end_date_time: datetime | None = None
         self.state: str = "RUNNING"
 
     def set_instance_count(self, instance_count: int) -> None:
@@ -292,7 +295,7 @@ class Step(BaseModel):
         self,
         state: str,
         name: str = "",
-        hadoop_jar_step: Optional[dict[str, Any]] = None,
+        hadoop_jar_step: dict[str, Any] | None = None,
         action_on_failure: str = "TERMINATE_CLUSTER",
     ):
         self.id = random_step_id()
@@ -305,7 +308,7 @@ class Step(BaseModel):
         self.creation_date_time = utcnow()
         self.end_date_time = None
         self.ready_date_time = None
-        self.start_date_time: Optional[datetime] = None
+        self.start_date_time: datetime | None = None
         self.state = state
 
     @property
@@ -377,21 +380,21 @@ class Cluster(CloudFormationModel):
         service_role: str,
         steps: list[dict[str, Any]],
         instance_attrs: dict[str, Any],
-        bootstrap_actions: Optional[list[dict[str, Any]]] = None,
-        configurations: Optional[list[dict[str, Any]]] = None,
-        cluster_id: Optional[str] = None,
+        bootstrap_actions: list[dict[str, Any]] | None = None,
+        configurations: list[dict[str, Any]] | None = None,
+        cluster_id: str | None = None,
         visible_to_all_users: bool = False,
-        release_label: Optional[str] = None,
-        requested_ami_version: Optional[str] = None,
-        running_ami_version: Optional[str] = None,
-        custom_ami_id: Optional[str] = None,
+        release_label: str | None = None,
+        requested_ami_version: str | None = None,
+        running_ami_version: str | None = None,
+        custom_ami_id: str | None = None,
         step_concurrency_level: int = 1,
-        security_configuration: Optional[str] = None,
-        kerberos_attributes: Optional[dict[str, str]] = None,
-        auto_scaling_role: Optional[str] = None,
-        ebs_root_volume_size: Optional[int] = None,
-        ebs_root_volume_iops: Optional[int] = None,
-        ebs_root_volume_throughput: Optional[int] = None,
+        security_configuration: str | None = None,
+        kerberos_attributes: dict[str, str] | None = None,
+        auto_scaling_role: str | None = None,
+        ebs_root_volume_size: int | None = None,
+        ebs_root_volume_iops: int | None = None,
+        ebs_root_volume_throughput: int | None = None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -418,8 +421,8 @@ class Cluster(CloudFormationModel):
 
         self.instance_group_ids: list[str] = []
         self.ec2_instances: list[Instance] = []
-        self.master_instance_group_id: Optional[str] = None
-        self.core_instance_group_id: Optional[str] = None
+        self.master_instance_group_id: str | None = None
+        self.core_instance_group_id: str | None = None
         if (
             "master_instance_type" in instance_attrs
             and instance_attrs["master_instance_type"]
@@ -490,10 +493,10 @@ class Cluster(CloudFormationModel):
         self.step_concurrency_level = step_concurrency_level
 
         self.creation_datetime = utcnow()
-        self.start_datetime: Optional[datetime] = None
-        self.ready_datetime: Optional[datetime] = None
-        self.end_datetime: Optional[datetime] = None
-        self.state: Optional[str] = None
+        self.start_datetime: datetime | None = None
+        self.ready_datetime: datetime | None = None
+        self.end_datetime: datetime | None = None
+        self.state: str | None = None
 
         self.start_cluster()
         self.run_bootstrap_actions()
@@ -857,11 +860,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return load_resource(__name__, "resources/instance_types.json")
 
     @property
-    def ec2_backend(self) -> Any:
-        """
-        :return: EC2 Backend
-        :rtype: moto.ec2.models.EC2Backend
-        """
+    def ec2_backend(self) -> EC2Backend:
         from moto.ec2 import ec2_backends
 
         return ec2_backends[self.account_id][self.region_name]
@@ -893,7 +892,7 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         instances["is_instance_type_default"] = not instances.get("instance_type")
         response = self.ec2_backend.run_instances(
-            EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
+            EXAMPLE_AMI_ID, instances["instance_count"], None, [], **instances
         )
         for instance in response.instances:
             instance = Instance(ec2_instance=instance, instance_group=instance_group)
@@ -911,10 +910,10 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def describe_job_flows(
         self,
-        job_flow_ids: Optional[list[str]] = None,
-        job_flow_states: Optional[list[str]] = None,
-        created_after: Optional[datetime] = None,
-        created_before: Optional[datetime] = None,
+        job_flow_ids: list[str] | None = None,
+        job_flow_states: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
     ) -> list[Cluster]:
         clusters = list(self.clusters.values())
 
@@ -933,7 +932,7 @@ class ElasticMapReduceBackend(BaseBackend):
         # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
-    def describe_step(self, cluster_id: str, step_id: str) -> Optional[Step]:
+    def describe_step(self, cluster_id: str, step_id: str) -> Step | None:
         cluster = self.clusters[cluster_id]
         for step in cluster.steps:
             if step.id == step_id:
@@ -958,9 +957,9 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def list_clusters(
         self,
-        cluster_states: Optional[list[str]] = None,
-        created_after: Optional[datetime] = None,
-        created_before: Optional[datetime] = None,
+        cluster_states: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
     ) -> list[Cluster]:
         clusters = list(self.clusters.values())
         if cluster_states:
@@ -979,8 +978,8 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_instances(
         self,
         cluster_id: str,
-        instance_group_id: Optional[str] = None,
-        instance_group_types: Optional[list[str]] = None,
+        instance_group_id: str | None = None,
+        instance_group_types: list[str] | None = None,
     ) -> list[Instance]:
         groups = sorted(self.clusters[cluster_id].ec2_instances, key=lambda x: x.id)
         if instance_group_id:
@@ -994,8 +993,8 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_steps(
         self,
         cluster_id: str,
-        step_ids: Optional[list[str]] = None,
-        step_states: Optional[list[str]] = None,
+        step_ids: list[str] | None = None,
+        step_states: list[str] | None = None,
     ) -> list[Step]:
         steps = sorted(
             self.clusters[cluster_id].steps,
@@ -1091,8 +1090,8 @@ class ElasticMapReduceBackend(BaseBackend):
         return clusters_terminated
 
     def put_auto_scaling_policy(
-        self, instance_group_id: str, auto_scaling_policy: Optional[dict[str, Any]]
-    ) -> Optional[InstanceGroup]:
+        self, instance_group_id: str, auto_scaling_policy: dict[str, Any] | None
+    ) -> InstanceGroup | None:
         instance_groups = self.get_instance_groups(
             instance_group_ids=[instance_group_id]
         )
@@ -1140,7 +1139,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def put_block_public_access_configuration(
         self,
         block_public_security_group_rules: bool,
-        rule_ranges: Optional[list[dict[str, int]]],
+        rule_ranges: list[dict[str, int]] | None,
     ) -> None:
         from moto.sts import sts_backends
 

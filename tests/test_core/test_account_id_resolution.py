@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 from unittest import SkipTest
 
 import requests
@@ -53,7 +52,7 @@ class TestAccountIdResolution:
         assert self._get_account_id(resp) == ACCOUNT_ID
 
     def _get_caller_identity(
-        self, extra_headers: Optional[dict[str, str]] = None
+        self, extra_headers: dict[str, str] | None = None
     ) -> requests.Response:
         data = "Action=GetCallerIdentity&Version=2011-06-15"
         headers = {

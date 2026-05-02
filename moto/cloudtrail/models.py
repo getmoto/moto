@@ -2,7 +2,7 @@ import re
 import time
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -29,10 +29,10 @@ def datetime2int(date: datetime) -> int:
 class TrailStatus:
     def __init__(self) -> None:
         self.is_logging = False
-        self.latest_delivery_time: Optional[int] = None
-        self.latest_delivery_attempt: Optional[str] = ""
-        self.started: Optional[datetime] = None
-        self.stopped: Optional[datetime] = None
+        self.latest_delivery_time: int | None = None
+        self.latest_delivery_attempt: str | None = ""
+        self.started: datetime | None = None
+        self.stopped: datetime | None = None
 
     def start_logging(self) -> None:
         self.is_logging = True
@@ -117,7 +117,7 @@ class Trail(BaseModel):
         return f"arn:{get_partition(self.region_name)}:cloudtrail:{self.region_name}:{self.account_id}:trail/{self.trail_name}"
 
     @property
-    def topic_arn(self) -> Optional[str]:
+    def topic_arn(self) -> str | None:
         if self.sns_topic_name:
             return f"arn:{get_partition(self.region_name)}:sns:{self.region_name}:{self.account_id}:{self.sns_topic_name}"
         return None
@@ -184,16 +184,16 @@ class Trail(BaseModel):
 
     def update(
         self,
-        s3_bucket_name: Optional[str],
-        s3_key_prefix: Optional[str],
-        sns_topic_name: Optional[str],
-        include_global_service_events: Optional[bool],
-        is_multi_region_trail: Optional[bool],
-        enable_log_file_validation: Optional[bool],
-        is_organization_trail: Optional[bool],
-        cw_log_group_arn: Optional[str],
-        cw_role_arn: Optional[str],
-        kms_key_id: Optional[str],
+        s3_bucket_name: str | None,
+        s3_key_prefix: str | None,
+        sns_topic_name: str | None,
+        include_global_service_events: bool | None,
+        is_multi_region_trail: bool | None,
+        enable_log_file_validation: bool | None,
+        is_organization_trail: bool | None,
+        cw_log_group_arn: str | None,
+        cw_role_arn: str | None,
+        kms_key_id: str | None,
     ) -> None:
         if s3_bucket_name is not None:
             self.bucket_name = s3_bucket_name

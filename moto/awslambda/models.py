@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from gzip import GzipFile
 from sys import platform
-from typing import Any, Optional, TypedDict, Union
+from typing import Any, TypedDict
 
 import requests.exceptions
 
@@ -127,7 +127,7 @@ class _DockerDataVolumeContext:
 
     def __init__(self, lambda_func: LambdaFunction):
         self._lambda_func = lambda_func
-        self._vol_ref: Optional[_VolumeRefCount] = None
+        self._vol_ref: _VolumeRefCount | None = None
 
     @property
     def name(self) -> str:
@@ -193,7 +193,7 @@ class _DockerDataVolumeLayerContext:
     def __init__(self, lambda_func: LambdaFunction):
         self._lambda_func = lambda_func
         self._layers: list[LayerDataType] = self._lambda_func.layers
-        self._vol_ref: Optional[_VolumeRefCount] = None
+        self._vol_ref: _VolumeRefCount | None = None
 
     @property
     def name(self) -> str:
@@ -271,7 +271,7 @@ class _DockerDataVolumeLayerContext:
                     raise  # multiple processes trying to use same volume?
 
 
-def _zipfile_content(zipfile_content: Union[str, bytes]) -> tuple[bytes, int, str, str]:
+def _zipfile_content(zipfile_content: str | bytes) -> tuple[bytes, int, str, str]:
     try:
         to_unzip_code = base64.b64decode(bytes(zipfile_content, "utf-8"))  # type: ignore[arg-type]
     except Exception:
@@ -292,7 +292,7 @@ def _s3_content(key: Any) -> tuple[bytes, int, str, str]:
 
 def _validate_s3_bucket_and_key(
     account_id: str, partition: str, data: dict[str, Any]
-) -> Optional[FakeKey]:
+) -> FakeKey | None:
     key = None
     try:
         # FIXME: does not validate bucket region
@@ -444,7 +444,7 @@ class LayerVersion(CloudFormationModel):
         self.created_date = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
         self.version: int = 1
         self._attached = False
-        self._layer: Optional[Layer] = None
+        self._layer: Layer | None = None
 
         if "ZipFile" in self.content:
             (
@@ -559,9 +559,9 @@ class LambdaAlias(BaseModel):
 
     def update(
         self,
-        description: Optional[str],
-        function_version: Optional[str],
-        routing_config: Optional[str],
+        description: str | None,
+        function_version: str | None,
+        routing_config: str | None,
     ) -> None:
         if description is not None:
             self.description = description
@@ -620,7 +620,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         account_id: str,
         spec: dict[str, Any],
         region: str,
-        version: Union[str, int] = 1,
+        version: str | int = 1,
     ):
         DockerModel.__init__(self)
         # required
@@ -635,7 +635,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = Policy(self)  # type: ignore[no-untyped-call]
-        self.url_config: Optional[FunctionUrlConfig] = None
+        self.url_config: FunctionUrlConfig | None = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
@@ -731,7 +731,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self._ephemeral_storage = ephemeral_storage
 
     @property
-    def vpc_config(self) -> Optional[dict[str, Any]]:  # type: ignore[misc]
+    def vpc_config(self) -> dict[str, Any] | None:  # type: ignore[misc]
         if not self._vpc_config:
             return None
         config = self._vpc_config.copy()
@@ -963,8 +963,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         except Exception:
             return s
 
-    def _invoke_lambda(self, event: Optional[str] = None) -> tuple[str, bool, str]:
-        import docker
+    def _invoke_lambda(self, event: str | None = None) -> tuple[str, bool, str]:
         import docker.errors
 
         # Create the LogGroup if necessary, to write the result to
@@ -1000,6 +999,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
                 env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
+            else:
+                # When the proxy is active, we should keep the original URL
+                # Else: redirect requests to our server
+                env_vars["AWS_ENDPOINT_URL"] = env_vars["MOTO_HTTP_ENDPOINT"]
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
@@ -1017,9 +1020,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     elif network_mode:
                         run_kwargs["network_mode"] = network_mode
                     elif settings.TEST_SERVER_MODE:
-                        # AWSLambda can make HTTP requests to a Docker container called 'motoserver'
                         # Only works if our Docker-container is named 'motoserver'
-                        # TODO: should remove this and rely on 'network_mode' instead, as this is too tightly coupled with our own test setup
+                        # TODO: should remove this in 6.x - it's no longer necessary for internal tests, but users may rely on it
                         run_kwargs["links"] = {"motoserver": "motoserver"}
 
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
@@ -1039,12 +1041,19 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # - lambci/lambda (the repo with older/outdated AWSLambda images
                     #
                     # We'll cycle through all of them - when we find the repo that contains our image, we use it
+
+                    idx = re.search("[0-9]", self.run_time).start()  # type: ignore[union-attr,arg-type]
+                    language, version = self.run_time[:idx], self.run_time[idx:]  # type: ignore[index]
+
                     image_repos = {  # dict maintains insertion order
                         settings.moto_lambda_image(): None,
+                        f"ghcr.io/shogo82148/lambda-{language}:{version}": None,
                         "mlupin/docker-lambda": None,
                         "lambci/lambda": None,
                     }
                     for image_repo in image_repos:
+                        if not image_repo:
+                            continue
                         image_ref = (
                             image_repo
                             if ":" in image_repo
@@ -1118,7 +1127,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def invoke(
         self, body: str, request_headers: Any, response_headers: Any
-    ) -> Union[str, bytes]:
+    ) -> str | bytes:
         if body:
             body = json.loads(body)
         else:
@@ -1328,9 +1337,7 @@ class EventSourceMapping(CloudFormationModel):
         self.function_arn: str = spec["FunctionArn"]
         self.last_modified = time.mktime(utcnow().timetuple())
 
-    def _get_service_source_from_arn(
-        self, event_source_arn: Optional[str] = None
-    ) -> str:
+    def _get_service_source_from_arn(self, event_source_arn: str | None = None) -> str:
         arn = event_source_arn or self.event_source_arn
         service = arn.split(":")[2].lower()
         if service == "sqs" and arn.endswith(".fifo"):
@@ -1355,7 +1362,7 @@ class EventSourceMapping(CloudFormationModel):
         return self._batch_size
 
     @batch_size.setter
-    def batch_size(self, new_batch_size: Optional[int]) -> None:
+    def batch_size(self, new_batch_size: int | None) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
             "dynamodb": (100, 10000),
@@ -1516,7 +1523,7 @@ class LambdaStorage:
     def _get_latest(self, name: str) -> LambdaFunction:
         return self._functions[name]["latest"]
 
-    def _get_version(self, name: str, version: str) -> Optional[LambdaFunction]:
+    def _get_version(self, name: str, version: str) -> LambdaFunction | None:
         for config in self._functions[name]["versions"]:
             if str(config.version) == version:
                 return config
@@ -1601,7 +1608,7 @@ class LambdaStorage:
         return self._get_latest(name)
 
     def get_function_by_name_with_qualifier(
-        self, name: str, qualifier: Optional[str] = None
+        self, name: str, qualifier: str | None = None
     ) -> LambdaFunction:
         """
         Get function by name with an optional qualifier
@@ -1658,11 +1665,11 @@ class LambdaStorage:
         aliases = self._get_function_aliases(function_name)
         return sorted(aliases.values(), key=lambda alias: alias.name)
 
-    def get_arn(self, arn: str) -> Optional[LambdaFunction]:
+    def get_arn(self, arn: str) -> LambdaFunction | None:
         [arn_without_qualifier, _, _] = self.split_function_arn(arn)
         return self._arns.get(arn_without_qualifier, None)
 
-    def split_function_arn(self, arn: str) -> tuple[str, str, Optional[str]]:
+    def split_function_arn(self, arn: str) -> tuple[str, str, str | None]:
         """
         Handy utility to parse an ARN into:
         - ARN without qualifier
@@ -1700,7 +1707,7 @@ class LambdaStorage:
             return self.get_function_by_name_forbid_qualifier(name_or_arn)
 
     def get_function_by_name_or_arn_with_qualifier(
-        self, name_or_arn: str, qualifier: Optional[str] = None
+        self, name_or_arn: str, qualifier: str | None = None
     ) -> LambdaFunction:
         """
         Get function by name or arn with an optional qualifier
@@ -1716,7 +1723,7 @@ class LambdaStorage:
             return self.get_function_by_name_with_qualifier(name_or_arn, qualifier)
 
     def construct_unknown_function_exception(
-        self, name_or_arn: str, qualifier: Optional[str] = None
+        self, name_or_arn: str, qualifier: str | None = None
     ) -> UnknownFunctionException:
         if re.match(ARN_PARTITION_REGEX, name_or_arn):
             arn = name_or_arn
@@ -1751,7 +1758,7 @@ class LambdaStorage:
 
     def publish_version(
         self, name_or_arn: str, description: str = ""
-    ) -> Optional[LambdaFunction]:
+    ) -> LambdaFunction | None:
         function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         name = function.function_name
         if name not in self._functions:
@@ -1778,7 +1785,7 @@ class LambdaStorage:
         self._arns[fn.function_arn] = fn
         return fn
 
-    def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
+    def del_function(self, name_or_arn: str, qualifier: str | None = None) -> None:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
         if re.match(ARN_PARTITION_REGEX, name_or_arn):
             # Extract from ARN
@@ -1809,7 +1816,7 @@ class LambdaStorage:
             else:
                 self._functions[name]["versions"].remove(function)
 
-            # If theres no functions left
+            # If there are no functions left
             if (
                 not self._functions[name]["versions"]
                 and not self._functions[name]["latest"]
@@ -1887,9 +1894,7 @@ class LayerStorage:
             return list(iter(self._layers[layer_name].layer_versions.values()))
         return []
 
-    def get_layer_version_by_arn(
-        self, layer_version_arn: str
-    ) -> Optional[LayerVersion]:
+    def get_layer_version_by_arn(self, layer_version_arn: str) -> LayerVersion | None:
         split_arn = split_layer_arn(layer_version_arn)
         if split_arn.layer_name in self._layers:
             return self._layers[split_arn.layer_name].layer_versions.get(
@@ -1907,9 +1912,11 @@ class LambdaBackend(BaseBackend):
 
     It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer in a Docker container.
 
-    When running the MotoProxy, calls to other AWS services are automatically proxied.
+    Moto injects the `AWS_ENDPOINT_URL` environment variable into every Lambda, which means that calls to other AWS services are automatically intercepted.
 
-    When running MotoServer, the Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to build the url that MotoServer runs on:
+    Note that, if you use a non-standard or older Docker image, the `AWS_ENDPOINT_URL` may not be supported.
+
+    If that is the case, use the environment variables `MOTO_HOST` and `MOTO_PORT` to build the AWS endpoint url and point it to Moto:
 
     .. sourcecode:: python
 
@@ -1949,8 +1956,9 @@ class LambdaBackend(BaseBackend):
 
     The Docker images used by Moto are taken from the following repositories:
 
-    - `mlupin/docker-lambda` (for recent versions)
-    - `lambci/lambda` (for older/outdated versions)
+    - `shogo82148/lambda-python`  (for recent versions)
+    - `mlupin/docker-lambda` (for older/outdated versions)
+    - `lambci/lambda` (for even older/outdated versions)
 
     Use the following environment variable to configure Moto to look for images in an additional repository:
 
@@ -2162,16 +2170,16 @@ class LambdaBackend(BaseBackend):
     def list_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
         return self._layers.get_layer_versions(layer_name)
 
-    def layers_versions_by_arn(self, layer_version_arn: str) -> Optional[LayerVersion]:
+    def layers_versions_by_arn(self, layer_version_arn: str) -> LayerVersion | None:
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
     def publish_version(
         self, function_name: str, description: str = ""
-    ) -> Optional[LambdaFunction]:
+    ) -> LambdaFunction | None:
         return self._lambdas.publish_version(function_name, description)
 
     def get_function(
-        self, function_name_or_arn: str, qualifier: Optional[str] = None
+        self, function_name_or_arn: str, qualifier: str | None = None
     ) -> LambdaFunction:
         return self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name_or_arn, qualifier
@@ -2183,15 +2191,15 @@ class LambdaBackend(BaseBackend):
     def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
         return self._lambdas.list_aliases(function_name)
 
-    def get_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
+    def get_event_source_mapping(self, uuid: str) -> EventSourceMapping | None:
         return self._event_source_mappings.get(uuid)
 
-    def delete_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
+    def delete_event_source_mapping(self, uuid: str) -> EventSourceMapping | None:
         return self._event_source_mappings.pop(uuid, None)
 
     def update_event_source_mapping(
         self, uuid: str, spec: dict[str, Any]
-    ) -> Optional[EventSourceMapping]:
+    ) -> EventSourceMapping | None:
         esm = self.get_event_source_mapping(uuid)
         if not esm:
             return None
@@ -2250,16 +2258,14 @@ class LambdaBackend(BaseBackend):
             esms = list(filter(lambda x: x.function_name == function_name, esms))
         return esms
 
-    def get_function_by_arn(self, function_arn: str) -> Optional[LambdaFunction]:
+    def get_function_by_arn(self, function_arn: str) -> LambdaFunction | None:
         return self._lambdas.get_arn(function_arn)
 
-    def delete_function(
-        self, function_name: str, qualifier: Optional[str] = None
-    ) -> None:
+    def delete_function(self, function_name: str, qualifier: str | None = None) -> None:
         self._lambdas.del_function(function_name, qualifier)
 
     def list_functions(
-        self, func_version: Optional[str] = None
+        self, func_version: str | None = None
     ) -> Iterable[LambdaFunction]:
         if func_version == "ALL":
             return self._lambdas.all()
@@ -2354,8 +2360,8 @@ class LambdaBackend(BaseBackend):
         self,
         function_name: str,
         message: str,
-        subject: Optional[str] = None,
-        qualifier: Optional[str] = None,
+        subject: str | None = None,
+        qualifier: str | None = None,
     ) -> None:
         event = {
             "Records": [
@@ -2389,7 +2395,7 @@ class LambdaBackend(BaseBackend):
 
     def send_dynamodb_items(
         self, function_arn: str, items: list[Any], source: str
-    ) -> Union[str, bytes]:
+    ) -> str | bytes:
         from moto.core.utils import unix_time
 
         records = []
@@ -2488,7 +2494,7 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.get_function_code_signing_config()
 
-    def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
+    def get_policy(self, function_name: str, qualifier: str | None = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name, qualifier
         )
@@ -2496,7 +2502,7 @@ class LambdaBackend(BaseBackend):
 
     def update_function_code(
         self, function_name: str, qualifier: str, body: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         fn: LambdaFunction = self.get_function(function_name, qualifier)
         fn.update_function_code(body)
 
@@ -2507,7 +2513,7 @@ class LambdaBackend(BaseBackend):
 
     def update_function_configuration(
         self, function_name: str, qualifier: str, body: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         fn = self.get_function(function_name, qualifier)
 
         return fn.update_configuration(body)
@@ -2515,11 +2521,11 @@ class LambdaBackend(BaseBackend):
     def invoke(
         self,
         function_name: str,
-        qualifier: Optional[str],
+        qualifier: str | None,
         body: Any,
         headers: Any,
         response_headers: Any,
-    ) -> Optional[Union[str, bytes]]:
+    ) -> str | bytes | None:
         """
         Invoking a Function with PackageType=Image is not yet supported.
 
@@ -2564,7 +2570,7 @@ class LambdaBackend(BaseBackend):
         variable prior to testing.
         """
 
-        quota: Optional[str] = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
+        quota: str | None = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
         if quota is not None:
             # Enforce concurrency limits as described above
             available = int(quota) - int(reserved_concurrency)
@@ -2580,12 +2586,12 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = reserved_concurrency
         return fn.reserved_concurrency
 
-    def delete_function_concurrency(self, function_name: str) -> Optional[str]:
+    def delete_function_concurrency(self, function_name: str) -> str | None:
         fn = self.get_function(function_name)
         fn.reserved_concurrency = None
         return fn.reserved_concurrency
 
-    def get_function_concurrency(self, function_name: str) -> Optional[str]:
+    def get_function_concurrency(self, function_name: str) -> str | None:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 

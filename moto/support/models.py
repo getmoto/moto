@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -131,7 +131,7 @@ class SupportBackend(BaseBackend):
         elif self.cases[case_id].severity_code == "critical":
             self.cases[case_id].severity_code = "low"
 
-    def resolve_case(self, case_id: str) -> dict[str, Optional[str]]:
+    def resolve_case(self, case_id: str) -> dict[str, str | None]:
         self.advance_case_status(case_id)
 
         return {
@@ -178,7 +178,7 @@ class SupportBackend(BaseBackend):
         self,
         case_id_list: list[str],
         include_resolved_cases: bool,
-        next_token: Optional[str],
+        next_token: str | None,
         include_communications: bool,
     ) -> dict[str, Any]:
         """
