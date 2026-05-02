@@ -3,7 +3,7 @@ Moto Changelog
 
 5.2.0
 -----
-Docker Digest for 5.2.0: <autopopulateddigest>
+Docker Digest for 5.2.0: _sha256:d8d063e3e704d256cbe8165072fa273c17698be91311e49fc602b7716f459bea_
 
     General:
         * Drops support for Python 3.9
