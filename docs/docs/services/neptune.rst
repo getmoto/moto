@@ -58,8 +58,8 @@ neptune
 - [X] describe_global_clusters
 - [X] describe_orderable_db_instance_options
   
-        Only the Aurora-Postgresql and Neptune-engine is currently implemented
-        
+Only the Aurora-Postgresql and Neptune-engine is currently implemented
+
 
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_valid_db_instance_modifications

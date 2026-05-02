@@ -29,9 +29,9 @@ service-quotas
 - [ ] get_service_quota_increase_request_from_template
 - [X] list_aws_default_service_quotas
   
-        The ServiceCodes that are currently implemented are: vpc
-        Pagination is not yet implemented.
-        
+The ServiceCodes that are currently implemented are: vpc
+Pagination is not yet implemented.
+
 
 - [ ] list_requested_service_quota_change_history
 - [ ] list_requested_service_quota_change_history_by_quota

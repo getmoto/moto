@@ -22,8 +22,8 @@ application-autoscaling
 - [X] describe_scaling_policies
 - [X] describe_scheduled_actions
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] get_predictive_scaling_forecast
 - [ ] list_tags_for_resource

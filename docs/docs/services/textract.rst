@@ -29,8 +29,8 @@ textract
 - [X] get_document_analysis
 - [X] get_document_text_detection
   
-        Pagination has not yet been implemented
-        
+Pagination has not yet been implemented
+
 
 - [ ] get_expense_analysis
 - [ ] get_lending_analysis
@@ -40,13 +40,13 @@ textract
 - [ ] list_tags_for_resource
 - [X] start_document_analysis
   
-        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
-        
+The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+
 
 - [X] start_document_text_detection
   
-        The following parameters have not yet been implemented: ClientRequestToken, JobTag, OutputConfig, KmsKeyID
-        
+The following parameters have not yet been implemented: ClientRequestToken, JobTag, OutputConfig, KmsKeyID
+
 
 - [ ] start_expense_analysis
 - [ ] start_lending_analysis

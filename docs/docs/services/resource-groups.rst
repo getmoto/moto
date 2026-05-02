@@ -28,8 +28,8 @@ resource-groups
 - [ ] list_grouping_statuses
 - [X] list_groups
   
-        Pagination or the Filters-parameter is not yet implemented
-        
+Pagination or the Filters-parameter is not yet implemented
+
 
 - [X] list_tag_sync_tasks
 - [X] put_group_configuration

@@ -47,15 +47,15 @@ opensearchserverless
 - [ ] list_collection_groups
 - [X] list_collections
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_lifecycle_policies
 - [ ] list_security_configs
 - [X] list_security_policies
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_tags_for_resource
 - [ ] list_vpc_endpoints

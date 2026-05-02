@@ -84,14 +84,14 @@ cognito-idp
 - [ ] forget_device
 - [X] forgot_password
   
-        The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
 
-        Otherwise you get semi-random garbage and HTTP 200 OK, for example:
-        - recovery for username which is not registered in any cognito pool
-        - recovery for username belonging to a different user pool than the client id is registered to
-        - phone-based recovery for a user without phone_number / phone_number_verified attributes
-        - same as above, but email / email_verified
-        
+Otherwise you get semi-random garbage and HTTP 200 OK, for example:
+- recovery for username which is not registered in any cognito pool
+- recovery for username belonging to a different user pool than the client id is registered to
+- phone-based recovery for a user without phone_number / phone_number_verified attributes
+- same as above, but email / email_verified
+
 
 - [ ] get_csv_header
 - [ ] get_device
@@ -144,16 +144,12 @@ cognito-idp
 - [ ] update_terms
 - [X] update_user_attributes
   
-        The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
-        
+The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
+
 
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
 - [X] verify_software_token
-  
-        The parameter UserCode has not yet been implemented
-        
-
 - [ ] verify_user_attribute
 

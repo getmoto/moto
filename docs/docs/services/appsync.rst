@@ -62,13 +62,13 @@ appsync
 - [X] get_type
 - [X] list_api_keys
   
-        Pagination or the maxResults-parameter have not yet been implemented.
-        
+Pagination or the maxResults-parameter have not yet been implemented.
+
 
 - [X] list_apis
   
-        Pagination or the maxResults-parameter have not yet been implemented.
-        
+Pagination or the maxResults-parameter have not yet been implemented.
+
 
 - [X] list_channel_namespaces
 - [ ] list_data_sources
@@ -76,8 +76,8 @@ appsync
 - [ ] list_functions
 - [X] list_graphql_apis
   
-        Pagination or the maxResults-parameter have not yet been implemented.
-        
+Pagination or the maxResults-parameter have not yet been implemented.
+
 
 - [ ] list_resolvers
 - [ ] list_resolvers_by_function

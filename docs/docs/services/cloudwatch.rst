@@ -37,6 +37,7 @@ cloudwatch
 - [X] get_metric_statistics
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
+- [ ] get_otel_enrichment
 - [ ] list_alarm_mute_rules
 - [X] list_dashboards
 - [ ] list_managed_insight_rules
@@ -54,7 +55,9 @@ cloudwatch
 - [ ] put_metric_stream
 - [X] set_alarm_state
 - [ ] start_metric_streams
+- [ ] start_otel_enrichment
 - [ ] stop_metric_streams
+- [ ] stop_otel_enrichment
 - [X] tag_resource
 - [X] untag_resource
 

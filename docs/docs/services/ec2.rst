@@ -19,6 +19,7 @@ ec2
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
 - [ ] accept_reserved_instances_exchange_quote
+- [ ] accept_transit_gateway_client_vpn_attachment
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
 - [ ] accept_transit_gateway_vpc_attachment
@@ -144,18 +145,18 @@ ec2
 - [X] create_snapshot
 - [X] create_snapshots
   
-        The CopyTagsFromSource-parameter is not yet implemented.
-        
+The CopyTagsFromSource-parameter is not yet implemented.
+
 
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
 - [X] create_subnet_cidr_reservation
 - [X] create_tags
-- [ ] create_traffic_mirror_filter
+- [X] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
 - [ ] create_traffic_mirror_session
-- [ ] create_traffic_mirror_target
+- [X] create_traffic_mirror_target
 - [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
 - [ ] create_transit_gateway_connect_peer
@@ -249,6 +250,7 @@ ec2
 - [ ] delete_traffic_mirror_session
 - [ ] delete_traffic_mirror_target
 - [X] delete_transit_gateway
+- [ ] delete_transit_gateway_client_vpn_attachment
 - [ ] delete_transit_gateway_connect
 - [ ] delete_transit_gateway_connect_peer
 - [ ] delete_transit_gateway_metering_policy
@@ -292,9 +294,9 @@ ec2
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
   
-        The following parameters are supported: ZoneIds, ZoneNames, Filters
-        The following filters are supported: zone-id, zone-type, zone-name, region-name, state
-        
+The following parameters are supported: ZoneIds, ZoneNames, Filters
+The following filters are supported: zone-id, zone-type, zone-name, region-name, state
+
 
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
@@ -323,8 +325,8 @@ ec2
 - [X] describe_dhcp_options
 - [X] describe_egress_only_internet_gateways
   
-        The Filters-argument is not yet supported
-        
+The Filters-argument is not yet supported
+
 
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
@@ -341,8 +343,8 @@ ec2
 - [ ] describe_host_reservations
 - [X] describe_hosts
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] describe_iam_instance_profile_associations
 - [ ] describe_id_format
@@ -382,8 +384,8 @@ ec2
 - [X] describe_key_pairs
 - [X] describe_launch_template_versions
   
-        The Filters-parameter is not yet implemented
-        
+The Filters-parameter is not yet implemented
+
 
 - [X] describe_launch_templates
 - [ ] describe_local_gateway_route_table_virtual_interface_group_associations
@@ -445,9 +447,9 @@ ec2
 - [X] describe_subnets
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filter_rules
-- [ ] describe_traffic_mirror_filters
+- [X] describe_traffic_mirror_filters
 - [ ] describe_traffic_mirror_sessions
-- [ ] describe_traffic_mirror_targets
+- [X] describe_traffic_mirror_targets
 - [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
 - [ ] describe_transit_gateway_connects
@@ -480,25 +482,25 @@ ec2
 - [ ] describe_vpc_endpoint_connections
 - [X] describe_vpc_endpoint_service_configurations
   
-        The Filters, MaxResults, NextToken parameters are not yet implemented
-        
+The Filters, MaxResults, NextToken parameters are not yet implemented
+
 
 - [X] describe_vpc_endpoint_service_permissions
   
-        The Filters, MaxResults, NextToken parameters are not yet implemented
-        
+The Filters, MaxResults, NextToken parameters are not yet implemented
+
 
 - [X] describe_vpc_endpoint_services
   Return info on services to which you can create a VPC endpoint.
 
-        Currently only the default endpoint services are returned.  When
-        create_vpc_endpoint_service_configuration() is implemented, a
-        list of those private endpoints would be kept and when this API
-        is invoked, those private endpoints would be added to the list of
-        default endpoint services.
+Currently only the default endpoint services are returned.  When
+create_vpc_endpoint_service_configuration() is implemented, a
+list of those private endpoints would be kept and when this API
+is invoked, those private endpoints would be added to the list of
+default endpoint services.
 
-        The DryRun parameter is ignored.
-        
+The DryRun parameter is ignored.
+
 
 - [X] describe_vpc_endpoints
 - [X] describe_vpc_peering_connections
@@ -587,6 +589,7 @@ ec2
 - [ ] get_capacity_manager_attributes
 - [ ] get_capacity_manager_metric_data
 - [ ] get_capacity_manager_metric_dimensions
+- [ ] get_capacity_manager_monitored_tag_keys
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -620,6 +623,7 @@ ec2
 - [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
+- [ ] get_managed_resource_visibility
 - [ ] get_network_insights_access_scope_analysis_findings
 - [ ] get_network_insights_access_scope_content
 - [X] get_password_data
@@ -693,6 +697,7 @@ ec2
 - [X] modify_launch_template
 - [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
+- [ ] modify_managed_resource_visibility
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
 - [ ] modify_public_ip_dns_name_options
@@ -727,8 +732,8 @@ ec2
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
   
-        The following parameters are not yet implemented: RemovePrivateDnsName
-        
+The following parameters are not yet implemented: RemovePrivateDnsName
+
 
 - [ ] modify_vpc_endpoint_service_payer_responsibility
 - [X] modify_vpc_endpoint_service_permissions
@@ -757,6 +762,7 @@ ec2
 - [ ] register_transit_gateway_multicast_group_members
 - [ ] register_transit_gateway_multicast_group_sources
 - [ ] reject_capacity_reservation_billing_ownership
+- [ ] reject_transit_gateway_client_vpn_attachment
 - [ ] reject_transit_gateway_multicast_domain_associations
 - [X] reject_transit_gateway_peering_attachment
 - [ ] reject_transit_gateway_vpc_attachment
@@ -794,25 +800,25 @@ ec2
 - [X] revoke_security_group_ingress
 - [X] run_instances
   
-        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+The Placement-parameter is validated to verify the availability-zone exists for the current region.
 
-        The InstanceType-parameter can be validated, to see if it is a known instance-type.
-        Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+The InstanceType-parameter can be validated, to see if it is a known instance-type.
+Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
 
-        The ImageId-parameter can be validated, to see if it is a known AMI.
-        Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
+The ImageId-parameter can be validated, to see if it is a known AMI.
+Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
 
-        The KeyPair-parameter can be validated, to see if it is a known key-pair.
-        Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
-        
+The KeyPair-parameter can be validated, to see if it is a known key-pair.
+Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
+
 
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
 - [X] search_transit_gateway_routes
   
-        The following filters are currently supported: type, state, route-search.exact-match
-        
+The following filters are currently supported: type, state, route-search.exact-match
+
 
 - [ ] send_diagnostic_interrupt
 - [ ] start_declarative_policies_report
@@ -828,6 +834,7 @@ ec2
 - [ ] unassign_private_nat_gateway_address
 - [ ] unlock_snapshot
 - [ ] unmonitor_instances
+- [ ] update_capacity_manager_monitored_tag_keys
 - [ ] update_capacity_manager_organizations_access
 - [ ] update_interruptible_capacity_reservation_allocation
 - [X] update_security_group_rule_descriptions_egress

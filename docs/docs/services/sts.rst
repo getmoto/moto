@@ -16,8 +16,8 @@ sts
 
 - [X] assume_role
   
-        Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
-        
+Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
+
 
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
@@ -26,10 +26,10 @@ sts
 - [X] get_access_key_info
   Return the account ID associated with the given access key.
 
-        In real AWS, this looks up the owning account. In moto, we check
-        IAM users/access keys across known accounts; if nothing matches,
-        we return the current account.
-        
+In real AWS, this looks up the owning account. In moto, we check
+IAM users/access keys across known accounts; if nothing matches,
+we return the current account.
+
 
 - [X] get_caller_identity
 - [ ] get_delegated_access_token

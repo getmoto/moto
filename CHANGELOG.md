@@ -1,6 +1,144 @@
 Moto Changelog
 ==============
 
+5.2.0
+-----
+Docker Digest for 5.2.0: <autopopulateddigest>
+
+    General:
+        * Drops support for Python 3.9
+        * Lambda Containers now configure the AWS_ENDPOINT_URL, automatically intercepting requests to other AWS services
+
+    New Services:
+        * Bedrock-AgentCore-Control:
+            * create_agent_runtime()
+            * create_agent_runtime_endpoint()
+            * create_gateway()
+            * create_gateway_target()
+            * create_memory()
+            * delete_agent_runtime()
+            * delete_agent_runtime_endpoint()
+            * delete_gateway()
+            * delete_gateway_target()
+            * delete_memory()
+            * get_agent_runtime()
+            * get_agent_runtime_endpoint()
+            * get_gateway()
+            * get_gateway_target()
+            * get_memory()
+            * list_agent_runtimes()
+            * list_agent_runtime_endpoints()
+            * list_agent_runtime_versions()
+            * list_gateways()
+            * list_gateway_targets()
+            * list_memories()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_agent_runtime()
+            * update_agent_runtime_endpoint()
+            * update_gateway()
+            * update_gateway_target()
+            * untag_resource()
+
+        * Bedrock-Runtime:
+            * invoke_model()
+
+        * FIS:
+            * create_experiment_template()
+            * delete_experiment_template()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * Athena:
+            * get_database()
+            * list_databases()
+
+        * DAX:
+            * tag_resource()
+            * untag_resource()
+
+        * EC2:
+            * create_traffic_mirror_filter()
+            * create_traffic_mirror_target()
+            * describe_traffic_mirror_filter()
+            * describe_traffic_mirror_target()
+
+        * Kafka:
+            * delete_cluster_policy()
+            * get_cluster_policy()
+            * put_cluster_policy()
+
+        * Pipes:
+            * start_pipe()
+            * stop_pipe()
+
+        * StepFunctions:
+            * create_state_machine_alias()
+            * delete_state_machine_alias()
+            * describe_state_machine_alias()
+            * list_state_machine_aliases()
+            * update_state_machine_alias()
+
+        * SWF:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Transfer:
+            * create_connector()
+            * delete_connector()
+            * describe_connector()
+            * list_connectors()
+            * update_connector()
+
+        * VPC Lattice:
+            * create_listener()
+            * create_target_group()
+            * create_service_network_resource_association()
+            * create_service_network_service_association()
+            * get_listener()
+            * get_target_group()
+            * get_service_network_resource_association()
+            * get_service_network_service_association()
+            * list_listeners()
+            * list_target_groups()
+            * list_service_network_resource_associations()
+            * list_service_network_service_associations()
+
+    Miscellaneous:
+        * Autoscaling: delete_auto_scaling_group() now validates that the provided AutoScalingGroup exists
+        * DMS: describe_replication_tasks() now behaves correctly without any Filters supplied
+        * DynamoDB: ConditionExpressions are now validated for redundant parentheses, improving parity with AWS
+        * DynamoDB: describe_export() now returns additional attributes: TableArn, S3Bucket and S3Prefix
+        * DynamoDB: update_continuous_backups() now returns additional attributes: RecoveryPeriodInDays
+        * DynamoDB: update_item() now correctly handles byte-records when throwing a `ConditionalCheckFailedException`
+        * DynamoDB-Streams: get_records() now omits empty OldImage/NewImage records, improving parity with AWS
+        * EC2: run_instances() now uses the following LaunchTemplateSpec-parameters: UserData, InstanceType, KeyName, SecurityGroups, SecurityGroupIds
+        * ECS: describe_services() now returns the following attributes: rolloutState, rolloutStateReason and failedTasks (defaults to 0, configurable with env var `MOTO_ECS_SERVICE_FAILED_TASKS=1`
+        * Events: list_rule_names_by_target() now deduplicates the results
+        * KMS: generate_mac() now supports aliases
+        * KMS: update_alias() now supports a full ARN as the TargetKeyId
+        * Lambda now starts containers using shogo82148's images by default (https://hub.docker.com/r/shogo82148/lambda-python)
+        * Logs: get_query_results() now returns the results in the correct order (either ascending or descending)
+        * Pipes: The Pipe-class now supports 
+        * RAM now accepts service principals and IAM ARNs as resource share principals
+        * ResourceGroupsTaggingAPI: get_resources() now supports SWF domains
+        * Route53Resolver: list_resolver_query_log_configs() now supports the Id-filter
+        * S3 now correctly calculates checksums for individual MultiParts
+        * S3 now supports the `use_dualstack_endpoint` and `use_fips_endpoint` configuration options
+        * S3: create_bucket() now supports the parameter BucketNamespace="account-regional"
+        * S3: complete_multipart_upload() now returns the attributes ChecksumAlgorithm and ChecksumType
+        * S3: list_buckets() now supports the parameters BucketRegion, MaxBuckets and Prefix
+        * SESv2: create_email_identity() now returns additional attributes: NextSigningKeyLength and SigningAttributesOrigin
+        * SES: publish() now supports the `MessageGroupId`-parameter for standard queues, allowing use of SQS fair queues
+        * SNS: Creation of FIFO queues with CloudFormation is now supported
+        * SQS: receive_message() now supports additional `MessageAttributeNames`-patterns: ".*" and "<prefix>.*"
+        * SWF: register_domain() now supports the tags-parameter
+        * WAFv2: get_web_acl() now supports the ARN-parameter
+
+
 5.1.22
 -----
 Docker Digest for 5.1.22: _sha256:1e3802c95726373544967b428201c548f0247c15b00db2d96a5ba0a77d8643b8_

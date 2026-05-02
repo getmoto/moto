@@ -26,8 +26,8 @@ backup
 - [ ] create_logically_air_gapped_backup_vault
 - [X] create_report_plan
   
-        The parameters ReportPlanTags and IdempotencyToken are not yet supported
-        
+The parameters ReportPlanTags and IdempotencyToken are not yet supported
+
 
 - [ ] create_restore_access_backup_vault
 - [ ] create_restore_testing_plan
@@ -82,14 +82,14 @@ backup
 - [ ] list_backup_plan_versions
 - [X] list_backup_plans
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_backup_selections
 - [X] list_backup_vaults
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_copy_job_summaries
 - [ ] list_copy_jobs
@@ -104,8 +104,8 @@ backup
 - [ ] list_report_jobs
 - [X] list_report_plans
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_restore_access_backup_vaults
 - [ ] list_restore_job_summaries
@@ -117,8 +117,8 @@ backup
 - [ ] list_scan_jobs
 - [X] list_tags
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_tiering_configurations
 - [ ] put_backup_vault_access_policy
