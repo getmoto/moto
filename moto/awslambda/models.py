@@ -92,6 +92,11 @@ def zip2tar(zip_bytes: bytes) -> io.BytesIO:
             tarinfo = tarfile.TarInfo(name=zipinfo.filename)
             tarinfo.size = zipinfo.file_size
             tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
+            # Preserve Unix file permissions from the ZIP external attributes.
+            # The upper 16 bits of external_attr store the Unix mode when present.
+            unix_mode = zipinfo.external_attr >> 16
+            if unix_mode:
+                tarinfo.mode = unix_mode
             infile = zipf.open(zipinfo.filename)
             tarf.addfile(tarinfo, infile)
 
