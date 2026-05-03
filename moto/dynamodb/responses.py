@@ -1,6 +1,5 @@
 import copy
 import itertools
-import json
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -13,7 +12,7 @@ from moto.dynamodb.models.table import (
     DEFAULT_WARM_THROUGHPUT_RCU,
     DEFAULT_WARM_THROUGHPUT_WCU,
 )
-from moto.dynamodb.models.utilities import dynamo_to_dict
+from moto.dynamodb.models.utilities import dynamo_json_dump, dynamo_to_dict
 from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeName,
     ExpressionAttributeValue,
@@ -692,8 +691,8 @@ class DynamoHandler(BaseResponse):
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
         if self._contains_duplicates(
-            [json.dumps(k[1]) for k in delete_requests]
-        ) or self._contains_duplicates([json.dumps(k[1]) for k in put_requests]):
+            [dynamo_json_dump(k[1]) for k in delete_requests]
+        ) or self._contains_duplicates([dynamo_json_dump(k[1]) for k in put_requests]):
             raise MockValidationException(
                 "Provided list of item keys contains duplicates"
             )
