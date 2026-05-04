@@ -24542,6 +24542,12 @@
                   "Value": "observabilityadmin.ap-southeast-4.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-southeast-4.amazonaws.com"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -24630,6 +24636,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27787,6 +27802,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.ap-southeast-7.amazonaws.com"
                 },
@@ -31950,6 +31974,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -32572,6 +32605,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34120,6 +34162,15 @@
               "s3control": {
                 "Value": "s3control"
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.cn-north-1.api.amazonwebservices.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -35567,6 +35618,15 @@
               "s3control": {
                 "Value": "s3control"
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.cn-northwest-1.api.amazonwebservices.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -35897,6 +35957,9 @@
             "local-zones": {
               "euc1-ham1-az1": {
                 "Value": "euc1-ham1-az1"
+              },
+              "euc1-ist1-az1": {
+                "Value": "euc1-ist1-az1"
               },
               "euc1-waw1-az1": {
                 "Value": "euc1-waw1-az1"
@@ -43802,6 +43865,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-south-1.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-south-1.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -61093,6 +61162,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.mx-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -61542,6 +61620,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",

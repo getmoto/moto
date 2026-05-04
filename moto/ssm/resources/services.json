@@ -2809,6 +2809,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -22152,6 +22161,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "rds.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "rds.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52165,6 +52183,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "notifications.mx-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sa-east-1": {
                 "Value": "sa-east-1",
                 "endpoint": {
@@ -52865,6 +52892,12 @@
                   "Value": "odb.ap-southeast-2.amazonaws.com"
                 }
               },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "odb.ap-southeast-4.amazonaws.com"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -52881,6 +52914,12 @@
                 "Value": "eu-central-2",
                 "endpoint": {
                   "Value": "odb.eu-central-2.amazonaws.com"
+                }
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1",
+                "endpoint": {
+                  "Value": "odb.eu-south-1.amazonaws.com"
                 }
               },
               "eu-west-1": {
@@ -59294,6 +59333,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-5": {
                 "Value": "ap-southeast-5",
                 "endpoint": {
@@ -59325,6 +59373,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "redshift-serverless.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "redshift-serverless.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64185,6 +64242,24 @@
                 "Value": "ca-west-1",
                 "endpoint": {
                   "Value": "s3vectors.ca-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cn-north-1": {
+                "Value": "cn-north-1",
+                "endpoint": {
+                  "Value": "s3vectors.cn-north-1.api.amazonwebservices.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cn-northwest-1": {
+                "Value": "cn-northwest-1",
+                "endpoint": {
+                  "Value": "s3vectors.cn-northwest-1.api.amazonwebservices.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -78791,6 +78866,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "vpc-lattice.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "vpc-lattice.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
