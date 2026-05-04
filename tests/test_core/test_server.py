@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import boto3
 import pytest
+import requests
 
 from moto import server
 from moto.server import ThreadedMotoServer, main
@@ -75,6 +76,32 @@ def test_date_header_is_not_duplicated(moto_server: str) -> None:
     # If multiple date headers exist, their values will be concatenated with a comma
     # and this assertion will fail.
     assert len(date_header_value.split(",")) == 2
+
+
+def test_s3_create_multipart_upload_with_json_content_type(moto_server: str) -> None:
+    # Regression test for https://github.com/getmoto/moto/issues/10010
+    # aiobotocore sends Content-Type: application/json for CreateMultipartUpload;
+    # moto should fall back to rest-xml (S3's default) instead of raising 500.
+    client = boto3.client(
+        "s3",
+        region_name="us-east-1",
+        endpoint_url=moto_server,
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+    )
+    client.create_bucket(Bucket="testbucket")
+
+    resp = requests.post(
+        f"{moto_server}/testbucket/testkey?uploads",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "AWS4-HMAC-SHA256 Credential=test/20260101/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-date, Signature=test",
+            "x-amz-date": "20260101T000000Z",
+            "Host": "testbucket.s3.amazonaws.com",
+        },
+    )
+    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+    assert "<CreateMultipartUploadResponse" in resp.text
 
 
 def test_bedrock_service_resolution(moto_server: str) -> None:
