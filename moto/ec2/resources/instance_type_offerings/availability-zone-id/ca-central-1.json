@@ -4804,18 +4804,6 @@
   "Location": "cac1-az2"
  },
  {
-  "InstanceType": "p3.16xlarge",
-  "Location": "cac1-az2"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "cac1-az2"
- },
- {
-  "InstanceType": "p3.8xlarge",
-  "Location": "cac1-az2"
- },
- {
   "InstanceType": "p4d.24xlarge",
   "Location": "cac1-az2"
  },

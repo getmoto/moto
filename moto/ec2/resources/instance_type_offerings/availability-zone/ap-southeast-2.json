@@ -4260,18 +4260,6 @@
   "Location": "ap-southeast-2b"
  },
  {
-  "InstanceType": "f1.16xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
-  "InstanceType": "f1.2xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -5689,18 +5677,6 @@
  },
  {
   "InstanceType": "mac2-m2pro.metal",
-  "Location": "ap-southeast-2b"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "ap-southeast-2b"
  },
  {

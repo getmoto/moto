@@ -860,14 +860,6 @@
   "Location": "eu-west-2"
  },
  {
-  "InstanceType": "f1.2xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "eu-west-2"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "eu-west-2"
  },
@@ -2093,18 +2085,6 @@
  },
  {
   "InstanceType": "mac1.metal",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "eu-west-2"
  },
  {

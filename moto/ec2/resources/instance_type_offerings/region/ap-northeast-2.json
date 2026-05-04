@@ -1876,18 +1876,6 @@
   "Location": "ap-northeast-2"
  },
  {
-  "InstanceType": "p3.16xlarge",
-  "Location": "ap-northeast-2"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "ap-northeast-2"
- },
- {
-  "InstanceType": "p3.8xlarge",
-  "Location": "ap-northeast-2"
- },
- {
   "InstanceType": "p4d.24xlarge",
   "Location": "ap-northeast-2"
  },

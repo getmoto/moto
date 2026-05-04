@@ -920,18 +920,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "f1.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "f1.2xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "f1.4xlarge",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "f2.12xlarge",
   "Location": "apse2-az1"
  },
@@ -2349,18 +2337,6 @@
  },
  {
   "InstanceType": "mac2-m2pro.metal",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.2xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p3.8xlarge",
   "Location": "apse2-az1"
  },
  {
