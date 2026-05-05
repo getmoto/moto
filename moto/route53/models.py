@@ -848,31 +848,31 @@ class Route53Backend(BaseBackend):
         if not health_check:
             raise NoSuchHealthCheck(health_check_id)
 
-        if health_check_args.get("ip_address"):
+        if health_check_args.get("ip_address") is not None:
             health_check.ip_address = health_check_args.get("ip_address")
-        if health_check_args.get("port"):
+        if health_check_args.get("port") is not None:
             health_check.port = health_check_args.get("port")
-        if health_check_args.get("resource_path"):
+        if health_check_args.get("resource_path") is not None:
             health_check.resource_path = health_check_args.get("resource_path")
-        if health_check_args.get("fqdn"):
+        if health_check_args.get("fqdn") is not None:
             health_check.fqdn = health_check_args.get("fqdn")
-        if health_check_args.get("search_string"):
+        if health_check_args.get("search_string") is not None:
             health_check.search_string = health_check_args.get("search_string")
-        if health_check_args.get("request_interval"):
+        if health_check_args.get("request_interval") is not None:
             health_check.request_interval = health_check_args.get("request_interval")
-        if health_check_args.get("failure_threshold"):
+        if health_check_args.get("failure_threshold") is not None:
             health_check.failure_threshold = health_check_args.get("failure_threshold")
-        if health_check_args.get("health_threshold"):
+        if health_check_args.get("health_threshold") is not None:
             health_check.health_threshold = health_check_args.get("health_threshold")
-        if health_check_args.get("inverted"):
+        if health_check_args.get("inverted") is not None:
             health_check.inverted = health_check_args.get("inverted")
-        if health_check_args.get("disabled"):
+        if health_check_args.get("disabled") is not None:
             health_check.disabled = health_check_args.get("disabled")
-        if health_check_args.get("enable_sni"):
+        if health_check_args.get("enable_sni") is not None:
             health_check.enable_sni = health_check_args.get("enable_sni")
-        if health_check_args.get("children"):
+        if health_check_args.get("children") is not None:
             health_check.set_children(health_check_args.get("children", []))
-        if health_check_args.get("regions"):
+        if health_check_args.get("regions") is not None:
             health_check.set_regions(health_check_args.get("regions", []))
 
         return health_check
