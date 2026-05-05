@@ -40,6 +40,10 @@ def determine_request_protocol(
     service_model: ServiceModel, content_type: str | None = None
 ) -> str:
     protocol = str(service_model.protocol)
+    # Short circuit protocol detection for S3 because the ContentType header
+    # is often set based on the MIME type of the object data being uploaded.
+    if service_model.service_name == "s3":
+        return protocol
     supported_protocols = service_model.metadata.get("protocols", [protocol])
     content_type = content_type if content_type is not None else ""
     if content_type in JSON_TYPES:
