@@ -469,7 +469,7 @@ class FakeMultipart(BaseModel):
 
     def complete(
         self, body: Iterator[tuple[int, str]]
-    ) -> tuple[bytearray, str, tuple[str, str, int] | None]:
+    ) -> tuple[bytes, str, tuple[str, str, int] | None]:
         checksum_algo: str | None = self.metadata.get("x-amz-checksum-algorithm")
         checksum_type: str | None = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
@@ -501,7 +501,11 @@ class FakeMultipart(BaseModel):
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
-        return total, f"{full_etag.hexdigest()}-{count}", checksum_builder.build()
+        return (
+            bytes(total),
+            f"{full_etag.hexdigest()}-{count}",
+            checksum_builder.build(),
+        )
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
@@ -564,17 +568,17 @@ class MultipartChecksumBuilder:
         if self.checksum_type == "COMPOSITE":
             return (
                 self.checksum_type,
-                compute_checksum(self.checksum, self.checksum_algorithm).decode(
-                    "utf-8"
-                ),
+                compute_checksum(
+                    bytes(self.checksum), self.checksum_algorithm
+                ).decode(),
                 self.part_count,
             )
 
         return (
             self.checksum_type,
-            compute_checksum(self.complete_object, self.checksum_algorithm).decode(
-                "utf-8"
-            ),
+            compute_checksum(
+                bytes(self.complete_object), self.checksum_algorithm
+            ).decode(),
             1,
         )
 
