@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
@@ -15,6 +16,13 @@ from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION, LogsBackend
 from tests import allow_aws_request, aws_verified
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+
+
+def logs_client():
+    client_kwargs = {}
+    if settings.TEST_SERVER_MODE:
+        client_kwargs["config"] = Config(inject_host_prefix=False)
+    return boto3.client("logs", TEST_REGION, **client_kwargs)
 
 
 """Returns a policy document in JSON format.
@@ -1680,7 +1688,7 @@ def test_delete_delivery_source():
 
 @mock_aws
 def test_start_live_tail_returns_session_events():
-    client = boto3.client("logs", TEST_REGION)
+    client = logs_client()
     now = int(unix_time_millis())
     client.create_log_group(logGroupName="live-tail-group")
     client.create_log_stream(
@@ -1726,7 +1734,7 @@ def test_start_live_tail_returns_session_events():
 
 @mock_aws
 def test_start_live_tail_rejects_more_than_ten_log_groups():
-    client = boto3.client("logs", TEST_REGION)
+    client = logs_client()
     log_group_arns = []
     for index in range(11):
         log_group_name = f"live-tail-group-{index}"
@@ -1750,7 +1758,7 @@ def test_start_live_tail_rejects_more_than_ten_log_groups():
 
 @mock_aws
 def test_start_live_tail_rejects_stream_names_and_prefixes_together():
-    client = boto3.client("logs", TEST_REGION)
+    client = logs_client()
     client.create_log_group(logGroupName="live-tail-group")
     client.create_log_stream(
         logGroupName="live-tail-group", logStreamName="application-stream"
@@ -1795,7 +1803,7 @@ def test_start_live_tail_backend_rejects_empty_stream_names_with_prefixes():
 
 @mock_aws
 def test_start_live_tail_rejects_stream_filters_with_multiple_log_groups():
-    client = boto3.client("logs", TEST_REGION)
+    client = logs_client()
     log_group_arns = []
     for log_group_name in ("live-tail-group-a", "live-tail-group-b"):
         client.create_log_group(logGroupName=log_group_name)

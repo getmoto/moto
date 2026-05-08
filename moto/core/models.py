@@ -373,12 +373,6 @@ class ServerModeMockAWS(MockAWS):
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = self._test_server_mode_endpoint
-                if "config" in kwargs:
-                    kwargs["config"] = kwargs["config"].merge(
-                        Config(inject_host_prefix=False)
-                    )
-                else:
-                    kwargs["config"] = Config(inject_host_prefix=False)
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args: Any, **kwargs: Any) -> Any:
