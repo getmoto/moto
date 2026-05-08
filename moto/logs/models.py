@@ -1173,11 +1173,13 @@ class LogsBackend(BaseBackend):
                 msg="1 validation error detected: Value at 'logGroupIdentifiers' failed "
                 "to satisfy constraint: Member must have length less than or equal to 10"
             )
-        if log_stream_names and log_stream_name_prefixes:
+        if log_stream_names is not None and log_stream_name_prefixes is not None:
             raise InvalidParameterException(
                 msg="Only one of logStreamNames or logStreamNamePrefixes can be provided."
             )
-        if (log_stream_names or log_stream_name_prefixes) and len(
+        if (
+            log_stream_names is not None or log_stream_name_prefixes is not None
+        ) and len(
             log_group_identifiers
         ) != 1:
             raise InvalidParameterException(

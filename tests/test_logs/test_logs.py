@@ -8,8 +8,10 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, utcnow
-from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
+from moto.logs.exceptions import InvalidParameterException
+from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION, LogsBackend
 from tests import allow_aws_request, aws_verified
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -1772,6 +1774,25 @@ def test_start_live_tail_rejects_stream_names_and_prefixes_together():
     )
 
 
+def test_start_live_tail_backend_rejects_empty_stream_names_with_prefixes():
+    backend = LogsBackend(TEST_REGION, DEFAULT_ACCOUNT_ID)
+    log_group = backend.create_log_group("live-tail-group", {})
+
+    with pytest.raises(InvalidParameterException) as exc:
+        backend.start_live_tail(
+            log_group_identifiers=[log_group.arn],
+            log_stream_names=[],
+            log_stream_name_prefixes=["application"],
+            log_event_filter_pattern=None,
+        )
+
+    assert "InvalidParameterException" in str(exc.value)
+    assert (
+        "Only one of logStreamNames or logStreamNamePrefixes can be provided."
+        in str(exc.value)
+    )
+
+
 @mock_aws
 def test_start_live_tail_rejects_stream_filters_with_multiple_log_groups():
     client = boto3.client("logs", TEST_REGION)
@@ -1795,4 +1816,26 @@ def test_start_live_tail_rejects_stream_filters_with_multiple_log_groups():
     assert (
         error["Message"]
         == "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+    )
+
+
+def test_start_live_tail_backend_rejects_empty_stream_names_with_multiple_groups():
+    backend = LogsBackend(TEST_REGION, DEFAULT_ACCOUNT_ID)
+    log_group_arns = [
+        backend.create_log_group(log_group_name, {}).arn
+        for log_group_name in ("live-tail-group-a", "live-tail-group-b")
+    ]
+
+    with pytest.raises(InvalidParameterException) as exc:
+        backend.start_live_tail(
+            log_group_identifiers=log_group_arns,
+            log_stream_names=[],
+            log_stream_name_prefixes=None,
+            log_event_filter_pattern=None,
+        )
+
+    assert "InvalidParameterException" in str(exc.value)
+    assert (
+        "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+        in str(exc.value)
     )
