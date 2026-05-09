@@ -1079,7 +1079,8 @@ def test_version_resolves_to_actual_version_number(version_specified, ec2_client
             ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
 
 
-@pytest.mark.aws_verified
+# Verified against AWS, but flaky - that's why we do not run it against AWS
+# @pytest.mark.aws_verified
 @ec2_aws_verified()
 def test_fleet_uses_data_from_specified_template_version(ec2_client=None):
     with launch_template_context(region=ec2_client.meta.region_name) as ctxt:
@@ -1118,7 +1119,8 @@ def test_fleet_uses_data_from_specified_template_version(ec2_client=None):
             ctxt.ec2.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
 
 
-@pytest.mark.aws_verified
+# Verified against AWS, but flaky - that's why we do not run it against AWS
+# @pytest.mark.aws_verified
 @ec2_aws_verified()
 @pytest.mark.parametrize(
     "use_template_name", [False, True], ids=["template-id", "template-name"]
