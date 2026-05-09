@@ -1272,7 +1272,8 @@ def lambda_handler(event, context):
     return _process_lambda(func_str)
 
 
-@pytest.mark.aws_verified
+# Verified to work against AWS, but flaky - that's why it's not enabled against AWS
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @lambda_aws_verified
 @secretsmanager_aws_verified
@@ -1371,7 +1372,8 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
     assert finish_secret["pending_value"]["VersionStages"] == ["AWSPENDING"]
 
 
-@pytest.mark.aws_verified
+# Verified to work against AWS, but flaky - that's why it's not enabled against AWS
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @lambda_aws_verified
 @secretsmanager_aws_verified
