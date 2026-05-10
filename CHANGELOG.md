@@ -1,6 +1,18 @@
 Moto Changelog
 ==============
 
+
+5.2.1
+-----
+Docker Digest for 5.2.1: <autopopulateddigest>
+
+    Miscellaneous:
+        * DynamoDB: batch_write_item() now correctly handles PUT requests with Binary (B) attributes (broken in 5.2.0)
+        * S3: Uploading files no longer fails with 'Unsupported protocol' (broken in 5.2.0)
+        * S3: create_multipart_upload() is now compatible with Java SDK again (broken in 5.2.0)
+        * Route53: update_health_check() now correctly updates falsy values (broken in 5.2.0)
+
+
 5.2.0
 -----
 Docker Digest for 5.2.0: _sha256:d8d063e3e704d256cbe8165072fa273c17698be91311e49fc602b7716f459bea_
