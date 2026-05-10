@@ -4,7 +4,7 @@ Moto Changelog
 
 5.2.1
 -----
-Docker Digest for 5.2.1: <autopopulateddigest>
+Docker Digest for 5.2.1: _sha256:fe6575dcd878842124f05d20e4ffde2d1126e1e38ad03e196353b9e53649bcdf_
 
     Miscellaneous:
         * DynamoDB: batch_write_item() now correctly handles PUT requests with Binary (B) attributes (broken in 5.2.0)
