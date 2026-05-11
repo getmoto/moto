@@ -5,7 +5,7 @@ ruff==0.14.10
 click
 inflection
 lxml
-mypy
+mypy<2.0
 typing-extensions
 packaging
 build

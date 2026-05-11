@@ -5227,6 +5227,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -5745,9 +5748,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",
@@ -19302,6 +19302,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -19847,9 +19850,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",
@@ -27082,6 +27082,51 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx": {
+                "Value": "fsx",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "globalaccelerator": {
                 "Value": "globalaccelerator",
                 "endpoint": {
@@ -27551,6 +27596,15 @@
                 "Value": "service-quotas",
                 "endpoint": {
                   "Value": "servicequotas.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32793,6 +32847,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "servicecatalog-appregistry": {
                 "Value": "servicecatalog-appregistry",
                 "endpoint": {
@@ -34004,6 +34067,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "personalize": {
+                "Value": "personalize",
+                "endpoint": {
+                  "Value": "personalize.cn-north-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36227,6 +36299,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -36772,9 +36847,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",
@@ -46551,6 +46623,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -47024,9 +47099,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",
@@ -64208,6 +64280,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -64858,9 +64933,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",
@@ -71800,6 +71872,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -75935,6 +76010,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -76507,9 +76585,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "devops-agent": {
-                "Value": "devops-agent"
               },
               "devops-guru": {
                 "Value": "devops-guru",

@@ -7609,6 +7609,35 @@
               }
             }
           },
+          "aws-devops-agent": {
+            "Value": "aws-devops-agent",
+            "longName": {
+              "Value": "AWS DevOps Agent"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/devops-agent/"
+            },
+            "regions": {
+              "ap-northeast-1": {
+                "Value": "ap-northeast-1"
+              },
+              "ap-southeast-2": {
+                "Value": "ap-southeast-2"
+              },
+              "eu-central-1": {
+                "Value": "eu-central-1"
+              },
+              "eu-west-1": {
+                "Value": "eu-west-1"
+              },
+              "us-east-1": {
+                "Value": "us-east-1"
+              },
+              "us-west-2": {
+                "Value": "us-west-2"
+              }
+            }
+          },
           "awshealthdashboard": {
             "Value": "awshealthdashboard",
             "longName": {
@@ -9499,6 +9528,9 @@
               },
               "us-east-2": {
                 "Value": "us-east-2"
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1"
               },
               "us-west-2": {
                 "Value": "us-west-2"
@@ -20696,29 +20728,6 @@
               }
             }
           },
-          "devops-agent": {
-            "Value": "devops-agent",
-            "longName": {
-              "Value": "AWS DevOps Agent Service"
-            },
-            "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1"
-              },
-              "ap-southeast-2": {
-                "Value": "ap-southeast-2"
-              },
-              "eu-central-1": {
-                "Value": "eu-central-1"
-              },
-              "eu-west-1": {
-                "Value": "eu-west-1"
-              },
-              "us-east-1": {
-                "Value": "us-east-1"
-              }
-            }
-          },
           "devops-guru": {
             "Value": "devops-guru",
             "longName": {
@@ -31724,6 +31733,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -32072,6 +32090,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "fsx.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32430,6 +32457,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -32783,6 +32819,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -33131,6 +33176,15 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "fsx.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55168,6 +55222,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cn-north-1": {
+                "Value": "cn-north-1",
+                "endpoint": {
+                  "Value": "personalize.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
@@ -68539,10 +68602,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "servicecatalog.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "servicecatalog.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "servicecatalog.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
