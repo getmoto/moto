@@ -92,8 +92,14 @@ def zip2tar(zip_bytes: bytes) -> io.BytesIO:
             tarinfo = tarfile.TarInfo(name=zipinfo.filename)
             tarinfo.size = zipinfo.file_size
             tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
-            if zipinfo.external_attr >> 16:
-                tarinfo.mode = zipinfo.external_attr >> 16
+            tarinfo.mode = zipinfo.external_attr >> 16
+            # Ensure minimum read bits for all users.
+            # Lambda extracts these files to /var/task and needs
+            # at least 0444 (read) for files and 0555 (read+execute) for dirs.
+            if zipinfo.is_dir():
+                tarinfo.mode |= 0o555
+            else:
+                tarinfo.mode |= 0o444
             infile = zipf.open(zipinfo.filename)
             tarf.addfile(tarinfo, infile)
 
