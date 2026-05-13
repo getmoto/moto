@@ -30,7 +30,7 @@ if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], encoding="utf-8") as f:
         AMIS: list[dict[str, Any]] = json.load(f)
 else:
-    AMIS = load_resource(__name__, "../resources/amis.json")
+    AMIS = load_resource(__name__, "resources/amis.json")
 
 
 class Ami(TaggedEC2Resource):

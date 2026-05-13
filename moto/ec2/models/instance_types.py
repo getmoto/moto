@@ -8,7 +8,7 @@ from ..exceptions import InvalidFilter, InvalidInstanceTypeError
 from ..utils import generic_filter
 
 INSTANCE_TYPES: dict[str, Any] = load_resource(
-    __name__, "../resources/instance_types.json"
+    __name__, "resources/instance_types.json"
 )
 INSTANCE_FAMILIES = list({i.split(".")[0] for i in INSTANCE_TYPES.keys()})
 
