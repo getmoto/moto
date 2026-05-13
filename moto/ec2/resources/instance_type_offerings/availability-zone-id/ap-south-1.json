@@ -2876,6 +2876,62 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "x8i.12xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.16xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.24xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.2xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.32xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.48xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.4xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.64xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.8xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.96xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.large",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.metal-48xl",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.metal-96xl",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "x8i.xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "z1d.12xlarge",
   "Location": "aps1-az1"
  },
@@ -8217,6 +8273,62 @@
  },
  {
   "InstanceType": "x2iedn.xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.12xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.16xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.24xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.2xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.32xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.48xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.4xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.64xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.8xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.96xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.large",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.metal-48xl",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.metal-96xl",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "x8i.xlarge",
   "Location": "aps1-az3"
  },
  {
