@@ -34,7 +34,8 @@ def test_describe_partner_event_busses():
     client = boto3.client("events", "us-east-1")
     name = "mypartner/actions/action1"
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": partner_account}):
-        client.create_partner_event_source(Name=name, Account=client_account)
+        resp = client.create_partner_event_source(Name=name, Account=client_account)
+        assert resp["EventSourceArn"] == name
 
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": client_account}):
         resp = client.describe_event_source(Name=name)

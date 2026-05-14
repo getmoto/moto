@@ -2101,6 +2101,7 @@ class EventsBackend(BaseBackend):
         self.partner_event_sources[name].accounts.append(account_id)
         client_backend = events_backends[account_id][self.region_name]
         client_backend.event_sources[name] = self.partner_event_sources[name]
+        return self.partner_event_sources[name]
 
     def describe_event_source(self, name: str) -> PartnerEventSource:
         return self.event_sources[name]
