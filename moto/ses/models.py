@@ -7,7 +7,7 @@ from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
