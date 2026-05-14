@@ -61,6 +61,12 @@ class SESV2Response(BaseResponse):
         self.sesv2_backend.create_contact_list(params)
         return json.dumps({})
 
+    def update_contact_list(self) -> str:
+        contact_list_name = self._get_param("ContactListName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_contact_list(contact_list_name, params)
+        return json.dumps({})
+
     def get_contact_list(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
@@ -79,6 +85,13 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         params = json.loads(self.body)
         self.sesv2_backend.create_contact(contact_list_name, params)
+        return json.dumps({})
+
+    def update_contact(self) -> str:
+        email = self._get_param("EmailAddress")
+        contact_list_name = self._get_param("ContactListName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_contact(email, contact_list_name, params)
         return json.dumps({})
 
     def get_contact(self) -> str:

@@ -3,6 +3,7 @@
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.paginator import paginate
 
 from ..ses.exceptions import NotFoundException
@@ -55,7 +56,7 @@ class SESV2Backend(BaseBackend):
         name = params["ContactListName"]
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
-        new_list = ContactList(name, str(description), topics)
+        new_list = ContactList(name, description, topics)
 
         if params.get("Tags"):
             self.core_backend.tagger.tag_resource(
@@ -64,6 +65,14 @@ class SESV2Backend(BaseBackend):
             )
 
         self.core_backend.contacts_lists[name] = new_list
+
+    def update_contact_list(
+        self, contact_list_name: str, params: dict[str, Any]
+    ) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.description = params.get("Description")
+        contact_list.topics = [] if "Topics" not in params else params["Topics"]
+        contact_list.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
         if contact_list_name in self.core_backend.contacts_lists:
@@ -85,6 +94,13 @@ class SESV2Backend(BaseBackend):
     def create_contact(self, contact_list_name: str, params: dict[str, Any]) -> None:
         contact_list = self.get_contact_list(contact_list_name)
         contact_list.create_contact(contact_list_name, params)
+        return
+
+    def update_contact(
+        self, email: str, contact_list_name: str, params: dict[str, Any]
+    ) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.update_contact(email, params)
         return
 
     def get_contact(self, email: str, contact_list_name: str) -> Contact:
