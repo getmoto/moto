@@ -21,5 +21,7 @@ class ReservedKeywords:
         """
         Get a list of reserved keywords of DynamoDB
         """
-        reserved_keywords = load_resource_as_str(__name__, "reserved_keywords.txt")
+        reserved_keywords = load_resource_as_str(
+            "dynamodb/parsing/reserved_keywords.txt"
+        )
         return reserved_keywords.split()

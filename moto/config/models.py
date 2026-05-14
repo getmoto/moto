@@ -84,7 +84,7 @@ CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
 
 MAX_TAGS_IN_ARG = 50
 
-MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
+MANAGED_RULES = load_resource("config/resources/aws_managed_rules.json")
 MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
 
 DEFAULT_RETENTION_PERIOD = 30

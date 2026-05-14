@@ -2509,9 +2509,7 @@ class RDSBackend(BaseBackend):
     def db_cluster_options(self, engine) -> list[dict[str, Any]]:  # type: ignore
         from moto.rds.utils import decode_orderable_db_instance
 
-        decoded_options = load_resource(
-            __name__, f"resources/cluster_options/{engine}.json"
-        )
+        decoded_options = load_resource(f"rds/resources/cluster_options/{engine}.json")
         self._db_cluster_options = [
             decode_orderable_db_instance(option) for option in decoded_options
         ]
@@ -3209,7 +3207,7 @@ class RDSBackend(BaseBackend):
         filtered_options = []
         try:
             options = load_resource(
-                __name__, f"resources/option_group_options/{engine_name}.json"
+                f"rds/resources/option_group_options/{engine_name}.json"
             )
         except (FileNotFoundError, TypeError):
             raise InvalidParameterValue(f"Invalid DB engine: {engine_name}")

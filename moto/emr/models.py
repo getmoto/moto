@@ -845,19 +845,17 @@ class ElasticMapReduceBackend(BaseBackend):
     @cached_property
     def _release_labels(self) -> list[str]:
         """Returns all available release labels in this region"""
-        return load_resource(
-            __name__, f"resources/release-labels-{self.region_name}.json"
-        )
+        return load_resource(f"emr/resources/release-labels-{self.region_name}.json")
 
     @cache
     def _get_instance_type_names(self, release_label: str) -> list[str]:
         """Returns all instance type names that can be used with this release label"""
-        return load_resource(__name__, f"resources/instance-types-{release_label}.json")
+        return load_resource(f"emr/resources/instance-types-{release_label}.json")
 
     @cached_property
     def _instance_types(self) -> dict[str, Any]:
         """Returns a dictionary of {instance-type-name: instance-type-details}"""
-        return load_resource(__name__, "resources/instance_types.json")
+        return load_resource("emr/resources/instance_types.json")
 
     @property
     def ec2_backend(self) -> EC2Backend:

@@ -6,8 +6,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import load_resource
 
-checks_json = "resources/describe_trusted_advisor_checks.json"
-ADVISOR_CHECKS = load_resource(__name__, checks_json)
+ADVISOR_CHECKS = load_resource("support/resources/describe_trusted_advisor_checks.json")
 
 
 class SupportCase(ManagedState):

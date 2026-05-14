@@ -5,7 +5,7 @@ import os
 import re
 from datetime import datetime
 from os import environ
-from typing import Any, cast
+from typing import Any
 
 from moto import settings
 from moto.core.parse import default_timestamp_parser as parse_timestamp
@@ -30,7 +30,7 @@ if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], encoding="utf-8") as f:
         AMIS: list[dict[str, Any]] = json.load(f)
 else:
-    AMIS = load_resource(__name__, "../resources/amis.json")
+    AMIS = load_resource("ec2/resources/amis.json")
 
 
 class Ami(TaggedEC2Resource):
@@ -198,12 +198,8 @@ class AmiBackend:
         if "MOTO_AMIS_PATH" not in environ:
             for path in ["latest_amis", "ecs/optimized_amis"]:
                 try:
-                    latest_amis = cast(
-                        list[dict[str, Any]],
-                        load_resource(
-                            __name__,
-                            f"../resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
-                        ),
+                    latest_amis: list[dict[str, Any]] = load_resource(
+                        f"ec2/resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
                     )
                     for ami in latest_amis:
                         ami_id = ami["ami_id"]

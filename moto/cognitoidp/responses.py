@@ -638,7 +638,7 @@ class CognitoIdpResponse(BaseResponse):
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
     json_web_key = json.dumps(
-        load_resource(__name__, "resources/jwks-public.json")
+        load_resource("cognitoidp/resources/jwks-public.json")
     ).encode("utf-8")
 
     def __init__(self) -> None:

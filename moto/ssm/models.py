@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import os
 import re
 from collections import defaultdict
 from collections.abc import Iterator
@@ -71,23 +72,23 @@ class ParameterDict(defaultdict[str, list["Parameter"]]):
                 self.latest_amis_loaded = True
         if key.startswith("/aws/service/global-infrastructure/regions"):
             if not self.latest_region_defaults_loaded:
-                self._load_tree_parameters(path="resources/regions.json")
+                self._load_tree_parameters(path="regions.json")
                 self.latest_region_defaults_loaded = True
         if key.startswith("/aws/service/global-infrastructure/services"):
             if not self.latest_service_defaults_loaded:
-                self._load_tree_parameters(path="resources/services.json")
+                self._load_tree_parameters(path="services.json")
                 self.latest_service_defaults_loaded = True
         if key.startswith("/aws/service/ecs/optimized-ami"):
             if not self.latest_ecs_amis_loaded:
                 self._load_tree_parameters(
-                    f"resources/ecs/optimized_amis/{self.region_name}.json"
+                    f"ecs/optimized_amis/{self.region_name}.json"
                 )
                 self.latest_ecs_amis_loaded = True
 
     def _load_latest_amis(self) -> None:
         try:
             latest_amis_linux = load_resource(
-                __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
+                f"ssm/resources/ami-amazon-linux-latest/{self.region_name}.json"
             )
         except FileNotFoundError:
             latest_amis_linux = []
@@ -110,7 +111,9 @@ class ParameterDict(defaultdict[str, list["Parameter"]]):
 
     def _load_tree_parameters(self, path: str) -> None:
         try:
-            params = convert_to_params(load_resource(__name__, path))
+            params = convert_to_params(
+                load_resource(os.path.join("ssm", "resources", path))
+            )
         except FileNotFoundError:
             params = []
 
@@ -1256,7 +1259,7 @@ class FakePatchGroup:
     def _load_latest_baselines(self) -> None:
         try:
             latest_patch_baselines = load_resource(
-                __name__, "resources/default_baselines.json"
+                "ssm/resources/default_baselines.json"
             )
         except FileNotFoundError:
             latest_patch_baselines = {}
