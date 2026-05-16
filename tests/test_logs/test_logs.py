@@ -4,15 +4,25 @@ from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, utcnow
-from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
+from moto.logs.exceptions import InvalidParameterException
+from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION, LogsBackend
 from tests import allow_aws_request, aws_verified
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+
+
+def logs_client():
+    client_kwargs = {}
+    if settings.TEST_SERVER_MODE:
+        client_kwargs["config"] = Config(inject_host_prefix=False)
+    return boto3.client("logs", TEST_REGION, **client_kwargs)
 
 
 """Returns a policy document in JSON format.
@@ -1674,3 +1684,211 @@ def test_delete_delivery_source():
         client.delete_delivery_source(name="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_start_live_tail_returns_session_events():
+    client = logs_client()
+    now = int(unix_time_millis())
+    client.create_log_group(logGroupName="live-tail-group")
+    client.create_log_stream(
+        logGroupName="live-tail-group", logStreamName="application-stream"
+    )
+    client.put_log_events(
+        logGroupName="live-tail-group",
+        logStreamName="application-stream",
+        logEvents=[
+            {"timestamp": now, "message": "info startup complete"},
+            {"timestamp": now + 1, "message": "error unable to connect"},
+        ],
+    )
+
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+    response = client.start_live_tail(
+        logGroupIdentifiers=[log_group["logGroupArn"]],
+        logStreamNames=["application-stream"],
+        logEventFilterPattern="error",
+    )
+
+    event_stream = iter(response["responseStream"])
+    session_start = next(event_stream)
+    session_update = next(event_stream)
+
+    assert session_start["sessionStart"]["logGroupIdentifiers"] == [
+        log_group["logGroupArn"]
+    ]
+    assert session_start["sessionStart"]["logStreamNames"] == ["application-stream"]
+    assert session_update["sessionUpdate"]["sessionMetadata"] == {"sampled": False}
+    assert len(session_update["sessionUpdate"]["sessionResults"]) == 1
+    result = session_update["sessionUpdate"]["sessionResults"][0]
+    assert result["ingestionTime"] > 0
+    assert result["logGroupIdentifier"] == log_group["logGroupArn"]
+    assert result["logStreamName"] == "application-stream"
+    assert result["message"] == "error unable to connect"
+    assert result["timestamp"] == now + 1
+    with pytest.raises(StopIteration):
+        next(event_stream)
+
+
+@mock_aws
+def test_start_live_tail_filters_by_log_stream_name_prefixes():
+    client = logs_client()
+    now = int(unix_time_millis())
+    client.create_log_group(logGroupName="live-tail-group")
+    for stream_name in ("application-stream", "application-debug", "system-stream"):
+        client.create_log_stream(
+            logGroupName="live-tail-group", logStreamName=stream_name
+        )
+        client.put_log_events(
+            logGroupName="live-tail-group",
+            logStreamName=stream_name,
+            logEvents=[{"timestamp": now, "message": f"message from {stream_name}"}],
+        )
+
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+    response = client.start_live_tail(
+        logGroupIdentifiers=[log_group["logGroupArn"]],
+        logStreamNamePrefixes=["application"],
+    )
+
+    event_stream = iter(response["responseStream"])
+    session_start = next(event_stream)
+    session_update = next(event_stream)
+
+    assert session_start["sessionStart"]["logGroupIdentifiers"] == [
+        log_group["logGroupArn"]
+    ]
+    assert session_start["sessionStart"]["logStreamNames"] == []
+    assert session_start["sessionStart"]["logStreamNamePrefixes"] == ["application"]
+
+    results = session_update["sessionUpdate"]["sessionResults"]
+    stream_names = sorted(result["logStreamName"] for result in results)
+    assert stream_names == ["application-debug", "application-stream"]
+    for result in results:
+        assert result["logGroupIdentifier"] == log_group["logGroupArn"]
+        assert result["message"] == f"message from {result['logStreamName']}"
+        assert result["timestamp"] == now
+        assert result["ingestionTime"] > 0
+    with pytest.raises(StopIteration):
+        next(event_stream)
+
+
+@mock_aws
+def test_start_live_tail_rejects_more_than_ten_log_groups():
+    client = logs_client()
+    log_group_arns = []
+    for index in range(11):
+        log_group_name = f"live-tail-group-{index}"
+        client.create_log_group(logGroupName=log_group_name)
+        log_group_arns.append(
+            client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+                0
+            ]["logGroupArn"]
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(logGroupIdentifiers=log_group_arns)
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "1 validation error detected: Value at 'logGroupIdentifiers' failed to satisfy constraint: Member must have length less than or equal to 10"
+    )
+
+
+@mock_aws
+def test_start_live_tail_rejects_stream_names_and_prefixes_together():
+    client = logs_client()
+    client.create_log_group(logGroupName="live-tail-group")
+    client.create_log_stream(
+        logGroupName="live-tail-group", logStreamName="application-stream"
+    )
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(
+            logGroupIdentifiers=[log_group["logGroupArn"]],
+            logStreamNames=["application-stream"],
+            logStreamNamePrefixes=["application"],
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "Only one of logStreamNames or logStreamNamePrefixes can be provided."
+    )
+
+
+def test_start_live_tail_backend_rejects_empty_stream_names_with_prefixes():
+    backend = LogsBackend(TEST_REGION, DEFAULT_ACCOUNT_ID)
+    log_group = backend.create_log_group("live-tail-group", {})
+
+    with pytest.raises(InvalidParameterException) as exc:
+        backend.start_live_tail(
+            log_group_identifiers=[log_group.arn],
+            log_stream_names=[],
+            log_stream_name_prefixes=["application"],
+            log_event_filter_pattern=None,
+        )
+
+    assert "InvalidParameterException" in str(exc.value)
+    assert (
+        "Only one of logStreamNames or logStreamNamePrefixes can be provided."
+        in str(exc.value)
+    )
+
+
+@mock_aws
+def test_start_live_tail_rejects_stream_filters_with_multiple_log_groups():
+    client = logs_client()
+    log_group_arns = []
+    for log_group_name in ("live-tail-group-a", "live-tail-group-b"):
+        client.create_log_group(logGroupName=log_group_name)
+        log_group_arns.append(
+            client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+                0
+            ]["logGroupArn"]
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.start_live_tail(
+            logGroupIdentifiers=log_group_arns,
+            logStreamNamePrefixes=["application"],
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    assert (
+        error["Message"]
+        == "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+    )
+
+
+def test_start_live_tail_backend_rejects_empty_stream_names_with_multiple_groups():
+    backend = LogsBackend(TEST_REGION, DEFAULT_ACCOUNT_ID)
+    log_group_arns = [
+        backend.create_log_group(log_group_name, {}).arn
+        for log_group_name in ("live-tail-group-a", "live-tail-group-b")
+    ]
+
+    with pytest.raises(InvalidParameterException) as exc:
+        backend.start_live_tail(
+            log_group_identifiers=log_group_arns,
+            log_stream_names=[],
+            log_stream_name_prefixes=None,
+            log_event_filter_pattern=None,
+        )
+
+    assert "InvalidParameterException" in str(exc.value)
+    assert (
+        "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
+        in str(exc.value)
+    )

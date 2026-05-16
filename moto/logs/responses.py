@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 
 from .exceptions import InvalidParameterException
 from .models import LogsBackend, logs_backends
@@ -334,6 +334,24 @@ class LogsResponse(BaseResponse):
                 "searchedLogStreams": searched_streams,
             }
         )
+
+    def start_live_tail(self) -> ActionResult:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        log_stream_names = self._get_param("logStreamNames")
+        log_stream_name_prefixes = self._get_param("logStreamNamePrefixes")
+        log_event_filter_pattern = self._get_param("logEventFilterPattern")
+
+        session_start, session_update = self.logs_backend.start_live_tail(
+            log_group_identifiers=log_group_identifiers,
+            log_stream_names=log_stream_names,
+            log_stream_name_prefixes=log_stream_name_prefixes,
+            log_event_filter_pattern=log_event_filter_pattern,
+        )
+        event_stream = [
+            {"sessionStart": session_start},
+            {"sessionUpdate": session_update},
+        ]
+        return ActionResult({"responseStream": event_stream})
 
     def put_retention_policy(self) -> str:
         log_group_name = self._get_param("logGroupName")
