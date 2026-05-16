@@ -543,11 +543,11 @@ class EventsHandler(BaseResponse):
     def create_partner_event_source(self) -> str:
         name = self._get_param("Name")
         account_id = self._get_param("Account")
-        self.events_backend.create_partner_event_source(
+        partner_event_source = self.events_backend.create_partner_event_source(
             name=name,
             account_id=account_id,
         )
-        return "{}"
+        return json.dumps({"EventSourceArn": partner_event_source.arn})
 
     def describe_event_source(self) -> str:
         name = self._get_param("Name")
