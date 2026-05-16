@@ -52,15 +52,15 @@ autoscaling
 - [X] describe_scheduled_actions
 - [X] describe_tags
   
-        Pagination is not yet implemented.
-        
+Pagination is not yet implemented.
+
 
 - [ ] describe_termination_policy_types
 - [ ] describe_traffic_sources
 - [X] describe_warm_pool
   
-        Pagination is not yet implemented. Does not create/return any Instances currently.
-        
+Pagination is not yet implemented. Does not create/return any Instances currently.
+
 
 - [X] detach_instances
 - [X] detach_load_balancer_target_groups
@@ -84,8 +84,8 @@ autoscaling
 - [X] set_desired_capacity
 - [X] set_instance_health
   
-        The ShouldRespectGracePeriod-parameter is not yet implemented
-        
+The ShouldRespectGracePeriod-parameter is not yet implemented
+
 
 - [X] set_instance_protection
 - [ ] start_instance_refresh
@@ -93,7 +93,7 @@ autoscaling
 - [ ] terminate_instance_in_auto_scaling_group
 - [X] update_auto_scaling_group
   
-        The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
-        
+The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
+
 
 

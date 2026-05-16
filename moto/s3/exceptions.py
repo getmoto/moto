@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from werkzeug.exceptions import RequestedRangeNotSatisfiable
 
@@ -62,7 +62,7 @@ class MissingBucket(BucketError):
 class MissingKey(S3ClientError):
     code = "NoSuchKey"
 
-    def __init__(self, key: Optional[str] = None):
+    def __init__(self, key: str | None = None):
         super().__init__("The specified key does not exist.")
         self.key = key
 
@@ -70,9 +70,7 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = "NoSuchVersion"
 
-    def __init__(
-        self, key: Optional[str] = None, version_id: Optional[str] = None
-    ) -> None:
+    def __init__(self, key: str | None = None, version_id: str | None = None) -> None:
         super().__init__("The specified version does not exist.")
         self.key = key
         self.version_id = version_id
@@ -244,7 +242,7 @@ class InvalidNotificationEvent(S3ClientError):
 
 
 class InvalidStorageClass(S3ClientError):
-    def __init__(self, storage: Optional[str]):
+    def __init__(self, storage: str | None):
         super().__init__(
             "InvalidStorageClass", "The storage class you specified is not valid"
         )
@@ -398,7 +396,7 @@ class InvalidBucketState(S3ClientError):
 class InvalidObjectState(S3ClientError):
     code = "InvalidObjectState"
 
-    def __init__(self, storage_class: Optional[str]):
+    def __init__(self, storage_class: str | None):
         super().__init__("The operation is not valid for the object's storage class")
         self.storage_class = storage_class
 
@@ -471,9 +469,7 @@ class HeadOnDeleteMarker(Exception):
 class MethodNotAllowed(S3ClientError):
     code = "MethodNotAllowed"
 
-    def __init__(
-        self, method: Optional[str] = None, resource_type: Optional[str] = None
-    ):
+    def __init__(self, method: str | None = None, resource_type: str | None = None):
         super().__init__("The specified method is not allowed against this resource.")
         self.method = method
         self.resource_type = resource_type

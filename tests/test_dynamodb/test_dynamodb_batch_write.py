@@ -105,3 +105,28 @@ def test_batch_write_using_arn(table_name=None):
         RequestItems={table_arn: {"Keys": [{"pk": {"S": "test"}}]}}
     )["Responses"]
     assert items == {table_arn: [{"pk": {"S": "test"}, "xxx": {"S": "123"}}]}
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_batch_write_with_binary_data(table_name=None):
+    ddb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_arn = ddb_client.describe_table(TableName=table_name)["Table"]["TableArn"]
+    ddb_client.batch_write_item(
+        RequestItems={
+            table_name: [
+                {
+                    "PutRequest": {
+                        "Item": {
+                            "pk": {"S": "test"},
+                            "blob": {"B": b"\x28\xb5\x2f\xfd\x00\x01"},
+                        }
+                    }
+                }
+            ]
+        }
+    )
+    results = ddb_client.scan(TableName=table_arn)["Items"]
+    assert results == [
+        {"pk": {"S": "test"}, "blob": {"B": b"\x28\xb5\x2f\xfd\x00\x01"}}
+    ]

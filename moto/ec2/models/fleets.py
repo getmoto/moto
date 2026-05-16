@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
 
@@ -25,8 +25,8 @@ class Fleet(TaggedEC2Resource):
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
-        valid_from: Optional[datetime],
-        valid_until: Optional[datetime],
+        valid_from: datetime | None,
+        valid_until: datetime | None,
         tag_specifications: list[dict[str, Any]],
     ):
         self.ec2_backend = ec2_backend
@@ -156,7 +156,7 @@ class Fleet(TaggedEC2Resource):
         return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
     @property
-    def valid_until_as_string(self) -> Optional[str]:
+    def valid_until_as_string(self) -> str | None:
         if self.valid_until is None:
             return self.valid_until
         x = self.valid_until
@@ -167,7 +167,7 @@ class Fleet(TaggedEC2Resource):
         return self.id
 
     @property
-    def instances(self) -> Optional[list[dict[str, Any]]]:
+    def instances(self) -> list[dict[str, Any]] | None:
         """
         Return instances for instant fleets, None for other fleet types.
         This is part of the CreateFleet response for instant fleets only.
@@ -199,7 +199,7 @@ class Fleet(TaggedEC2Resource):
 
     @staticmethod
     def _build_instance_data(
-        instance: Any, lifecycle: str, launch_spec: Optional[SpotFleetLaunchSpec]
+        instance: Any, lifecycle: str, launch_spec: SpotFleetLaunchSpec | None
     ) -> dict[str, Any]:
         instance_data = {
             "Lifecycle": lifecycle,
@@ -358,8 +358,8 @@ class FleetsBackend:
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
-        valid_from: Optional[datetime],
-        valid_until: Optional[datetime],
+        valid_from: datetime | None,
+        valid_until: datetime | None,
         tag_specifications: list[dict[str, Any]],
     ) -> Fleet:
         fleet_id = random_fleet_id()
@@ -381,7 +381,7 @@ class FleetsBackend:
         self.fleets[fleet_id] = fleet
         return fleet
 
-    def get_fleet(self, fleet_id: str) -> Optional[Fleet]:
+    def get_fleet(self, fleet_id: str) -> Fleet | None:
         return self.fleets.get(fleet_id)
 
     def describe_fleet_instances(self, fleet_id: str) -> list[Any]:
@@ -391,7 +391,7 @@ class FleetsBackend:
         # TODO: These are incompatible types (list[object] + list[dict]) and should be normalized.
         return fleet.spot_requests + fleet.on_demand_instances
 
-    def describe_fleets(self, fleet_ids: Optional[list[str]]) -> list[Fleet]:
+    def describe_fleets(self, fleet_ids: list[str] | None) -> list[Fleet]:
         fleets = list(self.fleets.values())
 
         if fleet_ids:

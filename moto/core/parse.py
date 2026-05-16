@@ -9,7 +9,7 @@ import re
 from collections import OrderedDict
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import unquote
 from xml.etree import ElementTree as ETree
 from xml.etree.ElementTree import ParseError as XMLParseError
@@ -693,7 +693,7 @@ class XFormedDict(MutableMapping[str, Any]):
     """
 
     def __init__(
-        self, data: Optional[dict[str, Any]] = None, **kwargs: dict[str, Any]
+        self, data: dict[str, Any] | None = None, **kwargs: dict[str, Any]
     ) -> None:
         self._xform_cache: dict[str, Any] = {}
         self._store: MutableMapping[str, Any] = OrderedDict()

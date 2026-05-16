@@ -19,6 +19,7 @@ from tests.test_s3 import s3_aws_verified
 
 from . import lambda_aws_verified
 from .utilities import (
+    PYTHON_VERSION,
     _process_lambda,
     create_invalid_lambda,
     get_role_name,
@@ -26,7 +27,6 @@ from .utilities import (
     get_test_zip_file2,
 )
 
-PYTHON_VERSION = "python3.11"
 LAMBDA_FUNC_NAME = "test"
 _lambda_region = "us-west-2"
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -51,13 +49,13 @@ class InvalidRetentionPeriod(InvalidArgumentError):
 
 
 class InvalidDecreaseRetention(InvalidArgumentError):
-    def __init__(self, name: Optional[str], requested: int, existing: int):
+    def __init__(self, name: str | None, requested: int, existing: int):
         msg = f"Requested retention period ({requested} hours) for stream {name} can not be longer than existing retention period ({existing} hours). Use IncreaseRetentionPeriod API."
         super().__init__(msg)
 
 
 class InvalidIncreaseRetention(InvalidArgumentError):
-    def __init__(self, name: Optional[str], requested: int, existing: int):
+    def __init__(self, name: str | None, requested: int, existing: int):
         msg = f"Requested retention period ({requested} hours) for stream {name} can not be shorter than existing retention period ({existing} hours). Use DecreaseRetentionPeriod API."
         super().__init__(msg)
 

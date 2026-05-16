@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 #
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class BlockDeviceType:
@@ -31,18 +31,18 @@ class BlockDeviceType:
 
     def __init__(
         self,
-        connection: Optional[str] = None,
-        ephemeral_name: Optional[str] = None,
-        no_device: Union[bool, str] = False,
-        volume_id: Optional[str] = None,
-        snapshot_id: Optional[str] = None,
-        status: Optional[str] = None,
-        attach_time: Optional[datetime] = None,
+        connection: str | None = None,
+        ephemeral_name: str | None = None,
+        no_device: bool | str = False,
+        volume_id: str | None = None,
+        snapshot_id: str | None = None,
+        status: str | None = None,
+        attach_time: datetime | None = None,
         delete_on_termination: bool = False,
-        size: Optional[int] = None,
-        volume_type: Optional[str] = None,
-        iops: Optional[str] = None,
-        encrypted: Optional[str] = None,
+        size: int | None = None,
+        volume_type: str | None = None,
+        iops: str | None = None,
+        encrypted: str | None = None,
     ):
         self.connection = connection
         self.ephemeral_name = ephemeral_name

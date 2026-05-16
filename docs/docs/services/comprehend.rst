@@ -29,8 +29,8 @@ comprehend
 - [X] create_endpoint
 - [X] create_entity_recognizer
   
-        The ClientRequestToken-parameter is not yet implemented
-        
+The ClientRequestToken-parameter is not yet implemented
+
 
 - [X] create_flywheel
 - [X] delete_document_classifier
@@ -39,8 +39,8 @@ comprehend
 - [X] delete_flywheel
 - [X] delete_resource_policy
   
-        The PolicyRevisionId-parameter for conditional deletion is not yet implemented.
-        
+The PolicyRevisionId-parameter for conditional deletion is not yet implemented.
+
 
 - [ ] describe_dataset
 - [X] describe_document_classification_job
@@ -72,32 +72,32 @@ comprehend
 - [ ] list_document_classifier_summaries
 - [X] list_document_classifiers
   
-        List document classifiers with optional filtering.
-        Pagination is not yet implemented.
-        
+List document classifiers with optional filtering.
+Pagination is not yet implemented.
+
 
 - [X] list_dominant_language_detection_jobs
 - [X] list_endpoints
   
-        List endpoints with optional filtering.
-        Pagination is not yet implemented.
-        
+List endpoints with optional filtering.
+Pagination is not yet implemented.
+
 
 - [X] list_entities_detection_jobs
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
   
-        Pagination is not yet implemented.
-        The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
-        
+Pagination is not yet implemented.
+The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
+
 
 - [X] list_events_detection_jobs
 - [ ] list_flywheel_iteration_history
 - [X] list_flywheels
   
-        List flywheels with optional filtering.
-        Pagination is not yet implemented.
-        
+List flywheels with optional filtering.
+Pagination is not yet implemented.
+
 
 - [X] list_key_phrases_detection_jobs
 - [X] list_pii_entities_detection_jobs
@@ -107,9 +107,9 @@ comprehend
 - [X] list_topics_detection_jobs
 - [X] put_resource_policy
   
-        The PolicyRevisionId-parameter for conditional updates is not yet implemented.
-        A check for whether the resource itself exists is also not yet implemented.
-        
+The PolicyRevisionId-parameter for conditional updates is not yet implemented.
+A check for whether the resource itself exists is also not yet implemented.
+
 
 - [X] start_document_classification_job
 - [X] start_dominant_language_detection_job

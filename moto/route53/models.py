@@ -6,7 +6,7 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -45,7 +45,7 @@ class HostedZoneIdentifier(ResourceIdentifier):
     service = "route53"
     resource = "hosted_zone"
 
-    def __init__(self, account_id: str, name: str, delegation_set_id: Optional[str]):
+    def __init__(self, account_id: str, name: str, delegation_set_id: str | None):
         # the region is left blank as route53 is a global service
         super().__init__(
             account_id=account_id,
@@ -79,8 +79,8 @@ class DelegationSet(BaseModel):
     def __init__(
         self,
         caller_reference: str,
-        name_servers: Optional[list[str]],
-        delegation_set_id: Optional[str],
+        name_servers: list[str] | None,
+        delegation_set_id: str | None,
     ):
         self.caller_reference = caller_reference
         self.name_servers = name_servers or [
@@ -117,8 +117,8 @@ class HealthCheck(CloudFormationModel):
         self.disabled = health_check_args.get("disabled") or False
         self.enable_sni = health_check_args.get("enable_sni") or False
         self.caller_reference = caller_reference
-        self.children: Optional[list[str]] = None
-        self.regions: Optional[list[str]] = None
+        self.children: list[str] | None = None
+        self.regions: list[str] | None = None
         self.health_check_version = 1
 
     def set_children(self, children: list[str]) -> None:
@@ -208,7 +208,7 @@ class RecordSet(CloudFormationModel):
         self.multi_value_answer = kwargs.get("MultiValueAnswer")
 
     @property
-    def resource_records(self) -> Optional[list[dict[str, Any]]]:
+    def resource_records(self) -> list[dict[str, Any]] | None:
         records = None
         if self.records:
             records = [{"Value": value} for value in self.records]
@@ -348,8 +348,8 @@ class FakeZone(CloudFormationModel):
         id_: str,
         private_zone: bool,
         caller_reference: str,
-        comment: Optional[str] = None,
-        delegation_set: Optional[DelegationSet] = None,
+        comment: str | None = None,
+        delegation_set: DelegationSet | None = None,
     ):
         self.name = name
         self.resource_id = id_
@@ -410,9 +410,7 @@ class FakeZone(CloudFormationModel):
             if record_set.set_identifier != set_identifier
         ]
 
-    def add_vpc(
-        self, vpc_id: Optional[str], vpc_region: Optional[str]
-    ) -> dict[str, Any]:
+    def add_vpc(self, vpc_id: str | None, vpc_region: str | None) -> dict[str, Any]:
         vpc = {}
         if vpc_id is not None:
             vpc["vpc_id"] = vpc_id
@@ -541,7 +539,7 @@ class Route53Backend(BaseBackend):
         self.delegation_sets: dict[str, DelegationSet] = {}
 
     def _has_prev_conflicting_domain(
-        self, name: str, delegation_set_id: Optional[str]
+        self, name: str, delegation_set_id: str | None
     ) -> bool:
         """Check if a conflicting domain exists in the backend"""
         if not delegation_set_id:
@@ -562,11 +560,11 @@ class Route53Backend(BaseBackend):
         self,
         name: str,
         private_zone: bool,
-        caller_reference: Optional[str] = None,
-        vpcid: Optional[str] = None,
-        vpcregion: Optional[str] = None,
-        comment: Optional[str] = None,
-        delegation_set_id: Optional[str] = None,
+        caller_reference: str | None = None,
+        vpcid: str | None = None,
+        vpcregion: str | None = None,
+        comment: str | None = None,
+        delegation_set_id: str | None = None,
     ) -> FakeZone:
         if self._has_prev_conflicting_domain(name, delegation_set_id):
             raise ConflictingDomainExists(name, delegation_set_id)
@@ -676,7 +674,7 @@ class Route53Backend(BaseBackend):
 
     def list_resource_record_sets(
         self, zone_id: str, start_type: str, start_name: str, max_items: int
-    ) -> tuple[list[RecordSet], Optional[str], Optional[str], bool]:
+    ) -> tuple[list[RecordSet], str | None, str | None, bool]:
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
@@ -764,8 +762,8 @@ class Route53Backend(BaseBackend):
         return list(self.zones.values())
 
     def list_hosted_zones_by_name(
-        self, dnsname: Optional[str]
-    ) -> tuple[Optional[str], list[FakeZone]]:
+        self, dnsname: str | None
+    ) -> tuple[str | None, list[FakeZone]]:
         if dnsname:
             if dnsname[-1] != ".":
                 dnsname += "."
@@ -813,13 +811,13 @@ class Route53Backend(BaseBackend):
     def get_hosted_zone_count(self) -> int:
         return len(self.zones.values())
 
-    def get_hosted_zone_by_name(self, name: str) -> Optional[FakeZone]:
+    def get_hosted_zone_by_name(self, name: str) -> FakeZone | None:
         for zone in self.zones.values():
             if zone.name == name:
                 return zone
         return None
 
-    def delete_hosted_zone(self, id_: str) -> Optional[FakeZone]:
+    def delete_hosted_zone(self, id_: str) -> FakeZone | None:
         # Verify it exists
         zone = self.get_hosted_zone(id_)
         if len(zone.rrsets) > 0:
@@ -850,31 +848,31 @@ class Route53Backend(BaseBackend):
         if not health_check:
             raise NoSuchHealthCheck(health_check_id)
 
-        if health_check_args.get("ip_address"):
+        if health_check_args.get("ip_address") is not None:
             health_check.ip_address = health_check_args.get("ip_address")
-        if health_check_args.get("port"):
+        if health_check_args.get("port") is not None:
             health_check.port = health_check_args.get("port")
-        if health_check_args.get("resource_path"):
+        if health_check_args.get("resource_path") is not None:
             health_check.resource_path = health_check_args.get("resource_path")
-        if health_check_args.get("fqdn"):
+        if health_check_args.get("fqdn") is not None:
             health_check.fqdn = health_check_args.get("fqdn")
-        if health_check_args.get("search_string"):
+        if health_check_args.get("search_string") is not None:
             health_check.search_string = health_check_args.get("search_string")
-        if health_check_args.get("request_interval"):
+        if health_check_args.get("request_interval") is not None:
             health_check.request_interval = health_check_args.get("request_interval")
-        if health_check_args.get("failure_threshold"):
+        if health_check_args.get("failure_threshold") is not None:
             health_check.failure_threshold = health_check_args.get("failure_threshold")
-        if health_check_args.get("health_threshold"):
+        if health_check_args.get("health_threshold") is not None:
             health_check.health_threshold = health_check_args.get("health_threshold")
-        if health_check_args.get("inverted"):
+        if health_check_args.get("inverted") is not None:
             health_check.inverted = health_check_args.get("inverted")
-        if health_check_args.get("disabled"):
+        if health_check_args.get("disabled") is not None:
             health_check.disabled = health_check_args.get("disabled")
-        if health_check_args.get("enable_sni"):
+        if health_check_args.get("enable_sni") is not None:
             health_check.enable_sni = health_check_args.get("enable_sni")
-        if health_check_args.get("children"):
+        if health_check_args.get("children") is not None:
             health_check.set_children(health_check_args.get("children", []))
-        if health_check_args.get("regions"):
+        if health_check_args.get("regions") is not None:
             health_check.set_regions(health_check_args.get("regions", []))
 
         return health_check
@@ -960,7 +958,7 @@ class Route53Backend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_query_logging_configs(
-        self, hosted_zone_id: Optional[str] = None
+        self, hosted_zone_id: str | None = None
     ) -> list[QueryLoggingConfig]:
         """Return a list of query logging configs."""
         if hosted_zone_id:
@@ -977,10 +975,10 @@ class Route53Backend(BaseBackend):
     def create_reusable_delegation_set(
         self,
         caller_reference: str,
-        delegation_set_id: Optional[str] = None,
-        hosted_zone_id: Optional[str] = None,
+        delegation_set_id: str | None = None,
+        hosted_zone_id: str | None = None,
     ) -> DelegationSet:
-        name_servers: Optional[list[str]] = None
+        name_servers: list[str] | None = None
         if hosted_zone_id:
             hosted_zone = self.get_hosted_zone(hosted_zone_id)
             name_servers = hosted_zone.delegation_set.name_servers  # type: ignore

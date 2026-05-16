@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 from moto.core.common_models import BaseModel
 
@@ -121,7 +121,7 @@ class QuicksightSearchFilterFactory:
 
     @classmethod
     def validate_and_create_filter(
-        cls, model_type: type[BaseModel], input: Union[list[dict[str, str]], None]
+        cls, model_type: type[BaseModel], input: list[dict[str, str]] | None
     ) -> QuicksightSearchFilterList:
         if issubclass(model_type, QuicksightGroup):
             if input is None:

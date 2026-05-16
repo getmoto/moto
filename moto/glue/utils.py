@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime
 from enum import Enum
 from itertools import repeat
-from typing import Any, Optional, Union
+from typing import Any
 
 from pyparsing import (
     CaselessKeyword,
@@ -65,8 +65,8 @@ class Condition:
         # if there's a job name present, the API creates a job trigger, even if crawler trigger args are provided
         self.job_name = inputs.get("JobName")
         self.crawler_name = inputs.get("CrawlerName")
-        self.state: Optional[ConditionState] = None
-        self.crawl_state: Optional[CrawlState] = None
+        self.state: ConditionState | None = None
+        self.crawl_state: CrawlState | None = None
         if self.job_name:
             self.crawler_name = None
             if inputs.get("State"):
@@ -126,8 +126,8 @@ class Predicate:
             for index, condition in enumerate(inputs.get("Conditions", []))
         ]
 
-    def as_dict(self) -> dict[str, Union[str, list[dict[str, str]]]]:
-        return_dict: dict[str, Union[str, list[dict[str, str]]]] = {}
+    def as_dict(self) -> dict[str, str | list[dict[str, str]]]:
+        return_dict: dict[str, str | list[dict[str, str]]] = {}
         if self.logical:
             return_dict["Logical"] = self.logical.value
         if self.conditions:
@@ -138,7 +138,7 @@ class Predicate:
 
 
 class Action:
-    def __init__(self, inputs: dict[str, Union[str, dict[str, str], int]]) -> None:
+    def __init__(self, inputs: dict[str, str | dict[str, str] | int]) -> None:
         self.arguments = inputs.get("Arguments")
         self.crawler_name = inputs.get("CrawlerName")
         self.job_name = inputs.get("JobName")
@@ -152,8 +152,8 @@ class Action:
                 "Both JobName and CrawlerName cannot be set together in an action",
             )
 
-    def as_dict(self) -> dict[str, Union[str, dict[str, str], int]]:
-        return_dict: dict[str, Union[str, dict[str, str], int]] = {}
+    def as_dict(self) -> dict[str, str | dict[str, str] | int]:
+        return_dict: dict[str, str | dict[str, str] | int] = {}
         if self.arguments:
             return_dict["Arguments"] = self.arguments
         if self.crawler_name:
@@ -233,7 +233,7 @@ def validate_crawl_filters(filters: list[dict[str, str]]) -> list[CrawlFilter]:
     return filter_objects
 
 
-def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
+def _cast(type_: str, value: Any) -> date | datetime | float | int | str:
     # values are always cast from string to target type
     value = str(value)
 
@@ -333,7 +333,7 @@ class _Ident(_Expr):
         raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
     def _eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> Any:
-        for key, value in zip(part_keys, part_input["Values"]):
+        for key, value in zip(part_keys, part_input["Values"], strict=False):
             if self.ident == key["Name"]:
                 return _cast(key["Type"], value)
 
@@ -526,7 +526,7 @@ class _PartitionFilterExpressionCache:
 
         self._cache: dict[str, _Expr] = {}
 
-    def get(self, expression: Optional[str]) -> Optional[_Expr]:
+    def get(self, expression: str | None) -> _Expr | None:
         if expression is None:
             return None
 
@@ -548,7 +548,7 @@ _PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
 
 
 class PartitionFilter:
-    def __init__(self, expression: Optional[str], fake_table: Any):
+    def __init__(self, expression: str | None, fake_table: Any):
         self.expression = expression
         self.fake_table = fake_table
 

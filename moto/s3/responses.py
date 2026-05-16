@@ -2,7 +2,7 @@ import io
 import re
 import urllib.parse
 from collections.abc import Iterator
-from typing import Any, Optional, Union
+from typing import Any
 from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
@@ -86,7 +86,6 @@ from .models import (
     get_canned_acl,
     s3_backends,
 )
-from .select_object_content import serialize_select
 from .utils import (
     ARCHIVE_STORAGE_CLASSES,
     bucket_name_from_url,
@@ -392,9 +391,7 @@ class S3Response(BaseResponse):
         return self._send_response(response)
 
     @classmethod
-    def _send_response(
-        cls, response: Union[TYPE_RESPONSE, str, bytes]
-    ) -> TYPE_RESPONSE:  # type: ignore
+    def _send_response(cls, response: TYPE_RESPONSE | str | bytes) -> TYPE_RESPONSE:  # type: ignore
         if isinstance(response, (str, bytes)):
             status_code = 200
             headers: dict[str, str] = {}
@@ -412,9 +409,7 @@ class S3Response(BaseResponse):
 
         return status_code, headers, body
 
-    def _bucket_response(
-        self, request: Any, full_url: str
-    ) -> Union[str, TYPE_RESPONSE]:
+    def _bucket_response(self, request: Any, full_url: str) -> str | TYPE_RESPONSE:
         querystring = self._get_querystring(request, full_url)
         method = request.method
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
@@ -492,7 +487,7 @@ class S3Response(BaseResponse):
         if they are re-defining the same headers.
         """
 
-        def _to_string(header: Union[list[str], str]) -> str:
+        def _to_string(header: list[str] | str) -> str:
             # We allow list and strs in header values. Transform lists in comma-separated strings
             if isinstance(header, list):
                 return ", ".join(header)
@@ -579,7 +574,7 @@ class S3Response(BaseResponse):
                 return response_headers
             bucket = self.backend.get_bucket(self.bucket_name)
 
-            def _to_string(header: Union[list[str], str]) -> str:
+            def _to_string(header: list[str] | str) -> str:
                 # We allow list and strs in header values. Transform lists in comma-separated strings
                 if isinstance(header, list):
                     return ", ".join(header)
@@ -613,7 +608,7 @@ class S3Response(BaseResponse):
 
     def _bucket_response_get(
         self, bucket_name: str, querystring: dict[str, Any]
-    ) -> Union[str, TYPE_RESPONSE]:
+    ) -> str | TYPE_RESPONSE:
         self._set_action("BUCKET", "GET", querystring)
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
@@ -945,7 +940,7 @@ class S3Response(BaseResponse):
                 result_folders.append(key)
         return result_keys, result_folders
 
-    def _get_location_constraint(self) -> Optional[str]:
+    def _get_location_constraint(self) -> str | None:
         try:
             if self.body:
                 return xmltodict.parse(self.body)["CreateBucketConfiguration"][
@@ -966,7 +961,7 @@ class S3Response(BaseResponse):
         request: Any,
         bucket_name: str,
         querystring: dict[str, Any],
-    ) -> Union[str, TYPE_RESPONSE]:
+    ) -> str | TYPE_RESPONSE:
         if querystring and not request.headers.get("Content-Length"):
             return 411, {}, "Content-Length required"
 
@@ -1168,7 +1163,7 @@ class S3Response(BaseResponse):
         self.data["Action"] = "GetBucketAcl"
         return self.serialized(ActionResult(self._acl_to_dict(acl)))
 
-    def get_bucket_cors(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_cors(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketCors"
         cors = self.backend.get_bucket_cors(self.bucket_name)
         if len(cors) == 0:
@@ -1186,7 +1181,7 @@ class S3Response(BaseResponse):
         ]
         return self.serialized(ActionResult({"CORSRules": cors_rules}))
 
-    def get_bucket_encryption(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_encryption(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketEncryption"
         encryption = self.backend.get_bucket_encryption(self.bucket_name)
         if not encryption:
@@ -1306,7 +1301,7 @@ class S3Response(BaseResponse):
         return self.serialized(ActionResult(result))
 
     def get_bucket_location(self) -> TYPE_RESPONSE:
-        location: Optional[str] = self.backend.get_bucket_location(self.bucket_name)
+        location: str | None = self.backend.get_bucket_location(self.bucket_name)
 
         # us-east-1 is different - returns a None location
         if location == DEFAULT_REGION_NAME:
@@ -1374,7 +1369,7 @@ class S3Response(BaseResponse):
         self.data["Action"] = "GetBucketNotificationConfiguration"
         return self.serialized(ActionResult(result))
 
-    def get_bucket_ownership_controls(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_ownership_controls(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketOwnershipControls"
         ownership_rule = self.backend.get_bucket_ownership_controls(self.bucket_name)
         if not ownership_rule:
@@ -1389,13 +1384,13 @@ class S3Response(BaseResponse):
             )
         )
 
-    def get_bucket_policy(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_policy(self) -> str | TYPE_RESPONSE:
         policy = self.backend.get_bucket_policy(self.bucket_name)
         if not policy:
             raise NoSuchBucketPolicy(bucket_name=self.bucket_name)
         return 200, {}, policy
 
-    def get_bucket_replication(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_replication(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketReplication"
         replication = self.backend.get_bucket_replication(self.bucket_name)
         if not replication:
@@ -1422,7 +1417,7 @@ class S3Response(BaseResponse):
             )
         )
 
-    def get_bucket_tags(self) -> Union[str, TYPE_RESPONSE]:
+    def get_bucket_tags(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketTagging"
         tags = self.backend.get_bucket_tagging(self.bucket_name)["Tags"]
         # "Special Error" if no tags:
@@ -1827,7 +1822,7 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
-    def _handle_encoded_body(self, body: Union[io.BufferedIOBase, bytes]) -> bytes:
+    def _handle_encoded_body(self, body: io.BufferedIOBase | bytes) -> bytes:
         decoded_body = b""
         if not body:
             return decoded_body
@@ -2302,9 +2297,7 @@ class S3Response(BaseResponse):
         response_headers.pop("content-length", None)
         return 200, response_headers, ""
 
-    def _get_checksum(
-        self, response_headers: dict[str, Any]
-    ) -> tuple[str, Optional[str]]:
+    def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
         checksum_algorithm = self.headers.get("x-amz-sdk-checksum-algorithm", "")
         checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
         checksum_value = self.headers.get(checksum_header)
@@ -2451,7 +2444,7 @@ class S3Response(BaseResponse):
 
     def _get_lock_details(
         self, bucket: "FakeBucket", lock_enabled: bool
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None, str | None]:
         lock_mode = self.headers.get("x-amz-object-lock-mode")
         lock_until = self.headers.get("x-amz-object-lock-retain-until-date")
         legal_hold = self.headers.get("x-amz-object-lock-legal-hold")
@@ -2713,7 +2706,7 @@ class S3Response(BaseResponse):
 
         return response_dict
 
-    def _acl_from_body(self) -> Optional[FakeAcl]:
+    def _acl_from_body(self) -> FakeAcl | None:
         parsed_xml = xmltodict.parse(self.body)
         if not parsed_xml.get("AccessControlPolicy"):
             raise MalformedACLError()
@@ -2781,7 +2774,7 @@ class S3Response(BaseResponse):
 
         return grants
 
-    def _acl_from_headers(self, headers: dict[str, str]) -> Optional[FakeAcl]:
+    def _acl_from_headers(self, headers: dict[str, str]) -> FakeAcl | None:
         canned_acl = headers.get("x-amz-acl", "")
 
         grants = []
@@ -2867,7 +2860,7 @@ class S3Response(BaseResponse):
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
 
-    def _mode_until_from_body(self) -> tuple[Optional[str], Optional[str]]:
+    def _mode_until_from_body(self) -> tuple[str | None, str | None]:
         parsed_xml = xmltodict.parse(self.body)
         return (
             parsed_xml.get("Retention", None).get("Mode", None),
@@ -3152,7 +3145,7 @@ class S3Response(BaseResponse):
                 and existing.multipart.id == multipart_id
             ):
                 # Operation is idempotent
-                key: Optional[FakeKey] = existing
+                key: FakeKey | None = existing
             else:
                 if self.headers.get("If-None-Match") == "*" and existing is not None:
                     raise PreconditionFailed("If-None-Match")
@@ -3206,7 +3199,22 @@ class S3Response(BaseResponse):
             results, bytes_scanned = self.backend.select_object_content(
                 bucket_name, key_name, select_query, input_details, output_details
             )
-            return 200, {}, serialize_select(results, bytes_scanned)
+            bytes_returned = sum(len(line) for line in results)
+            event_stream = [
+                {"Records": {"Payload": b"".join(results)}},
+                {
+                    "Stats": {
+                        "Details": {
+                            "BytesScanned": bytes_scanned,
+                            "BytesProcessed": bytes_scanned,
+                            "BytesReturned": bytes_returned,
+                        }
+                    }
+                },
+                {"End": {}},
+            ]
+            self.data["Action"] = "SelectObjectContent"
+            return self.serialized(ActionResult({"Payload": event_stream}))
 
         else:
             raise NotImplementedError(

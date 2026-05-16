@@ -1,7 +1,7 @@
 import random
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -19,11 +19,11 @@ class VPCLatticeService(BaseModel):
         region: str,
         account_id: str,
         auth_type: str,
-        certificate_arn: Optional[str],
+        certificate_arn: str | None,
         client_token: str,
-        custom_domain_name: Optional[str],
+        custom_domain_name: str | None,
         name: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> None:
         self.id: str = f"svc-{str(uuid.uuid4())[:17]}"
         self.auth_type: str = auth_type
@@ -59,8 +59,8 @@ class VPCLatticeServiceNetwork(BaseModel):
         auth_type: str,
         client_token: str,
         name: str,
-        sharing_config: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        sharing_config: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> None:
         self.auth_type: str = auth_type
         self.client_token: str = client_token
@@ -82,15 +82,146 @@ class VPCLatticeServiceNetwork(BaseModel):
         }
 
 
+class VPCLatticeListener(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        account_id: str,
+        service_identifier: str,
+        name: str,
+        protocol: str,
+        port: int | None,
+        default_action: dict[str, Any],
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> None:
+        self.id: str = f"listener-{str(uuid.uuid4())[:17]}"
+        self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}/listener/{self.id}"
+        self.service_identifier: str = service_identifier
+        self.service_arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
+        )
+        self.name: str = name
+        self.protocol: str = protocol
+        self.port: int = port or 443
+        self.default_action: dict[str, Any] = default_action
+        self.client_token: str = client_token
+        self.createdAt = datetime.now(timezone.utc).isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
+        self.tags: dict[str, str] = tags or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "arn": self.arn,
+            "name": self.name,
+            "protocol": self.protocol,
+            "port": self.port,
+            "serviceArn": self.service_arn,
+            "serviceId": self.service_identifier,
+            "defaultAction": self.default_action,
+            "createdAt": self.createdAt,
+            "lastUpdatedAt": self.last_updated_at,
+        }
+
+
+class VPCLatticeServiceNetworkResourceAssociation(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        account_id: str,
+        service_network: VPCLatticeServiceNetwork,
+        # resource_configuration: VPCLatticeResourceConfiguration,
+        private_dns_enabled: bool,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> None:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        self.id: str = f"snra-{str(uuid.uuid4())[:17]}"
+        self.arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:"
+            f"servicenetworkresourceassociation/{self.id}"
+        )
+        self.service_network_id: str = service_network.id
+        self.service_network_name: str = service_network.name
+        self.service_network_arn: str = service_network.arn
+        # self.resource_configuration_id: str = resource_configuration.id
+        # self.resource_configuration_arn: str = resource_configuration.arn
+        # self.resource_configuration_name: str = resource_configuration.name
+        self.created_by: str = account_id
+        self.created_at: str = now_iso
+        self.status: str = "ACTIVE"
+        self.client_token: str = client_token
+        self.last_updated_at: str = now_iso
+        self.private_dns_enabled: bool = private_dns_enabled
+        self.tags: dict[str, str] = tags or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "arn": self.arn,
+            "status": self.status,
+            "createdBy": self.created_by,
+            "createdAt": self.created_at,
+            # "resourceConfigurationId": self.resource_configuration_id,
+            # "resourceConfigurationArn": self.resource_configuration_arn,
+            # "resourceConfigurationName": self.resource_configuration_name,
+            "serviceNetworkId": self.service_network_id,
+            "serviceNetworkName": self.service_network_name,
+            "serviceNetworkArn": self.service_network_arn,
+            "lastUpdatedAt": self.last_updated_at,
+            "privateDnsEnabled": self.private_dns_enabled,
+        }
+
+
+class VPCLatticeServiceNetworkServiceAssociation(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        account_id: str,
+        service_network_identifier: str,
+        service_identifier: str,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> None:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        self.id: str = f"snsa-{str(uuid.uuid4())[:17]}"
+        self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkserviceassociation/{self.id}"
+        self.service_network_id: str = service_network_identifier
+        self.service_id: str = service_identifier
+        self.created_by: str = account_id
+        self.created_at: str = now_iso
+        self.last_updated_at: str = now_iso
+        self.status: str = "ACTIVE"
+        self.client_token: str = client_token
+        self.dns_entry: VPCLatticeDNSEntry = VPCLatticeDNSEntry(region, self.id)
+        self.custom_domain_name: str = self.dns_entry.domain_name
+        self.tags: dict[str, str] = tags or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "arn": self.arn,
+            "serviceNetworkId": self.service_network_id,
+            "serviceId": self.service_id,
+            "createdBy": self.created_by,
+            "createdAt": self.created_at,
+            "lastUpdatedAt": self.last_updated_at,
+            "customDomainName": self.custom_domain_name,
+            "dnsEntry": self.dns_entry.to_dict(),
+            "status": self.status,
+        }
+
+
 class VPCLatticeServiceNetworkVpcAssociation(BaseModel):
     def __init__(
         self,
         region: str,
         account_id: str,
         client_token: str,
-        security_group_ids: Optional[list[str]],
+        security_group_ids: list[str] | None,
         service_network: VPCLatticeServiceNetwork,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
         vpc_identifier: str,
     ) -> None:
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -165,12 +296,51 @@ class VPCLatticeRule(BaseModel):
         }
 
 
+class VPCLatticeTargetGroup(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        account_id: str,
+        name: str,
+        target_type: str,
+        config: dict[str, Any] | None,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> None:
+        self.id: str = f"tg-{str(uuid.uuid4())[:17]}"
+        self.arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:targetgroup/{self.id}"
+        )
+        self.name: str = name
+        self.type: str = target_type
+        self.config: dict[str, Any] = config or {}
+        self.client_token: str = client_token
+        self.tags: dict[str, str] = tags or {}
+        self.status: str = "CREATE_IN_PROGRESS"
+        self.vpcIdentifer: str | None = self.config.get("vpcIdentifier")
+        self.createdAt = datetime.now(timezone.utc).isoformat()
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "arn": self.arn,
+            "name": self.name,
+            "type": self.type,
+            "config": self.config,
+            "createdAt": self.createdAt,
+            "vpcIdentifier": self.vpcIdentifer,
+            "lastUpdatedAt": self.last_updated_at,
+            "status": self.status,
+        }
+
+
 class VPCLatticeDNSEntry:
     def __init__(
         self,
         region_name: str,
         service_id: str,
-        custom_domain_name: Optional[str] = None,
+        custom_domain_name: str | None = None,
     ) -> None:
         self.domain_name: str = (
             custom_domain_name or f"{service_id}.{region_name}.vpclattice.amazonaws.com"
@@ -189,8 +359,8 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         destinationArn: str,
         resourceArn: str,
         resourceId: str,  # resourceIdentifier
-        serviceNetworkLogType: Optional[str],
-        tags: Optional[dict[str, str]],
+        serviceNetworkLogType: str | None,
+        tags: dict[str, str] | None,
     ) -> None:
         self.id: str = f"als-{str(uuid.uuid4())[:17]}"
         self.arn: str = (
@@ -254,17 +424,49 @@ class VPCLatticeBackend(BaseBackend):
             "limit_default": 50,
             "unique_attribute": "id",
         },
+        "list_listeners": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_target_groups": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_service_network_resource_associations": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_service_network_service_associations": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.services: dict[str, VPCLatticeService] = {}
+        self.listeners: dict[str, VPCLatticeListener] = {}
         self.service_networks: dict[str, VPCLatticeServiceNetwork] = {}
+        self.service_network_resource_associations: dict[
+            str, VPCLatticeServiceNetworkResourceAssociation
+        ] = {}
+        self.service_network_service_associations: dict[
+            str, VPCLatticeServiceNetworkServiceAssociation
+        ] = {}
         self.service_network_vpc_associations: dict[
             str, VPCLatticeServiceNetworkVpcAssociation
         ] = {}
         self.rules: dict[str, VPCLatticeRule] = {}
         self.tagger: TaggingService = TaggingService()
+        self.target_groups: dict[str, VPCLatticeTargetGroup] = {}
         self.access_log_subscriptions: dict[str, VPCLatticeAccessLogSubscription] = {}
         self.resource_policies: dict[str, str] = {}
         self.auth_policies: dict[str, AuthPolicy] = {}
@@ -272,11 +474,11 @@ class VPCLatticeBackend(BaseBackend):
     def create_service(
         self,
         auth_type: str,
-        certificate_arn: Optional[str],
+        certificate_arn: str | None,
         client_token: str,
-        custom_domain_name: Optional[str],
+        custom_domain_name: str | None,
         name: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> VPCLatticeService:
         service = VPCLatticeService(
             self.region_name,
@@ -307,8 +509,8 @@ class VPCLatticeBackend(BaseBackend):
         auth_type: str,
         client_token: str,
         name: str,
-        sharing_config: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        sharing_config: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> VPCLatticeServiceNetwork:
         """
         WARNING: This method currently does NOT fail if there is a disassociation in progress.
@@ -341,9 +543,9 @@ class VPCLatticeBackend(BaseBackend):
     def create_service_network_vpc_association(
         self,
         client_token: str,
-        security_group_ids: Optional[list[str]],
+        security_group_ids: list[str] | None,
         service_network_identifier: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
         vpc_identifier: str,
     ) -> VPCLatticeServiceNetworkVpcAssociation:
         sn = self.get_service_network(service_network_identifier)
@@ -403,9 +605,9 @@ class VPCLatticeBackend(BaseBackend):
         self,
         resourceIdentifier: str,
         destinationArn: str,
-        client_token: Optional[str],
-        serviceNetworkLogType: Optional[str],
-        tags: Optional[dict[str, str]],
+        client_token: str | None,
+        serviceNetworkLogType: str | None,
+        tags: dict[str, str] | None,
     ) -> VPCLatticeAccessLogSubscription:
         resource: Any = None
         if resourceIdentifier.startswith("sn-"):
@@ -447,8 +649,8 @@ class VPCLatticeBackend(BaseBackend):
     def list_access_log_subscriptions(
         self,
         resourceIdentifier: str,
-        maxResults: Optional[int] = None,
-        nextToken: Optional[str] = None,
+        maxResults: int | None = None,
+        nextToken: str | None = None,
     ) -> list[VPCLatticeAccessLogSubscription]:
         return [
             sub
@@ -575,8 +777,8 @@ class VPCLatticeBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_service_network_vpc_associations(
         self,
-        serviceNetworkIdentifier: Optional[str] = None,
-        vpcIdentifier: Optional[str] = None,
+        serviceNetworkIdentifier: str | None = None,
+        vpcIdentifier: str | None = None,
     ) -> list[VPCLatticeServiceNetworkVpcAssociation]:
         associations = list(self.service_network_vpc_associations.values())
         if serviceNetworkIdentifier:
@@ -589,6 +791,226 @@ class VPCLatticeBackend(BaseBackend):
         if vpcIdentifier:
             associations = [
                 assoc for assoc in associations if assoc.vpc_id == vpcIdentifier
+            ]
+        return associations
+
+    def create_listener(
+        self,
+        service_identifier: str,
+        name: str,
+        protocol: str,
+        port: int | None,
+        default_action: dict[str, Any],
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> VPCLatticeListener:
+        service = self.get_service(service_identifier)
+
+        listener = VPCLatticeListener(
+            self.region_name,
+            self.account_id,
+            service.id,
+            name,
+            protocol,
+            port,
+            default_action,
+            client_token,
+            tags,
+        )
+        self.listeners[listener.id] = listener
+        self.tag_resource(listener.arn, tags or {})
+        return listener
+
+    def get_listener(
+        self, service_identifier: str, listener_identifier: str
+    ) -> VPCLatticeListener:
+        listener = self.listeners.get(listener_identifier)
+        if not listener:
+            raise ResourceNotFoundException(f"Listener {listener_identifier} not found")
+
+        service = self.get_service(service_identifier)
+        if listener.service_identifier != service.id:
+            raise ResourceNotFoundException(
+                f"Listener {listener_identifier} not found in service {service_identifier}"
+            )
+
+        return listener
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_listeners(
+        self,
+        service_identifier: str,
+    ) -> list[VPCLatticeListener]:
+        service = self.get_service(service_identifier)
+        return [
+            listener
+            for listener in self.listeners.values()
+            if listener.service_identifier == service.id
+        ]
+
+    def create_target_group(
+        self,
+        name: str,
+        target_type: str,
+        config: dict[str, Any] | None,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> VPCLatticeTargetGroup:
+        target_group = VPCLatticeTargetGroup(
+            self.region_name,
+            self.account_id,
+            name,
+            target_type,
+            config,
+            client_token,
+            tags,
+        )
+        self.target_groups[target_group.id] = target_group
+        self.tag_resource(target_group.arn, tags or {})
+        target_group.status = "ACTIVE"
+        return target_group
+
+    def get_target_group(self, target_group_identifier: str) -> VPCLatticeTargetGroup:
+        target_group = self.target_groups.get(target_group_identifier)
+        if not target_group:
+            raise ResourceNotFoundException(
+                f"Target group {target_group_identifier} not found"
+            )
+        return target_group
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_target_groups(
+        self,
+        vpc_identifier: str | None = None,
+        target_group_type: str | None = None,
+    ) -> list[VPCLatticeTargetGroup]:
+        target_groups = list(self.target_groups.values())
+
+        if vpc_identifier:
+            target_groups = [
+                tg
+                for tg in target_groups
+                if tg.config.get("vpcIdentifier") == vpc_identifier
+            ]
+
+        if target_group_type:
+            target_groups = [tg for tg in target_groups if tg.type == target_group_type]
+
+        return target_groups
+
+    def create_service_network_resource_association(
+        self,
+        resource_config_identifier: str,
+        service_network_identifier: str,
+        private_dns_enabled: bool,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> VPCLatticeServiceNetworkResourceAssociation:
+        service_network = self.get_service_network(service_network_identifier)
+        # TODO: Once resource configs are implemented, do something with the resource_config_id
+
+        assoc = VPCLatticeServiceNetworkResourceAssociation(
+            self.region_name,
+            self.account_id,
+            service_network,
+            # resource_config,
+            private_dns_enabled,
+            client_token,
+            tags,
+        )
+        self.service_network_resource_associations[assoc.id] = assoc
+        self.tag_resource(assoc.arn, tags or {})
+        return assoc
+
+    def get_service_network_resource_association(
+        self, service_network_resource_association_identifier: str
+    ) -> VPCLatticeServiceNetworkResourceAssociation:
+        assoc = self.service_network_resource_associations.get(
+            service_network_resource_association_identifier
+        )
+        if not assoc:
+            raise ResourceNotFoundException(
+                f"Service network resource association {service_network_resource_association_identifier} not found"
+            )
+        return assoc
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_network_resource_associations(
+        self,
+        service_network_identifier: str | None = None,
+        resource_configuration_identifier: str | None = None,
+    ) -> list[VPCLatticeServiceNetworkResourceAssociation]:
+        associations = list(self.service_network_resource_associations.values())
+        if service_network_identifier:
+            associations = [
+                assoc
+                for assoc in associations
+                if assoc.service_network_id == service_network_identifier
+            ]
+
+        # TODO: Once resource configs are implemented, add this filter block
+        # if resource_configuration_identifier:
+        #     associations = [
+        #         assoc
+        #         for assoc in associations
+        #         if assoc.resource_id == resource_configuration_identifier
+        #     ]
+
+        return associations
+
+    def create_service_network_service_association(
+        self,
+        service_network_identifier: str,
+        service_identifier: str,
+        client_token: str,
+        tags: dict[str, str] | None,
+    ) -> VPCLatticeServiceNetworkServiceAssociation:
+        service_network = self.get_service_network(service_network_identifier)
+        service = self.get_service(service_identifier)
+
+        assoc = VPCLatticeServiceNetworkServiceAssociation(
+            self.region_name,
+            self.account_id,
+            service_network.id,
+            service.id,
+            client_token,
+            tags,
+        )
+        self.service_network_service_associations[assoc.id] = assoc
+        self.tag_resource(assoc.arn, tags or {})
+        return assoc
+
+    def get_service_network_service_association(
+        self, service_network_service_association_identifier: str
+    ) -> VPCLatticeServiceNetworkServiceAssociation:
+        assoc = self.service_network_service_associations.get(
+            service_network_service_association_identifier
+        )
+        if not assoc:
+            raise ResourceNotFoundException(
+                f"Service network service association {service_network_service_association_identifier} not found"
+            )
+        return assoc
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_network_service_associations(
+        self,
+        service_network_identifier: str | None = None,
+        service_identifier: str | None = None,
+    ) -> list[VPCLatticeServiceNetworkServiceAssociation]:
+        associations = list(self.service_network_service_associations.values())
+        if service_network_identifier:
+            associations = [
+                assoc
+                for assoc in associations
+                if assoc.service_network_id == service_network_identifier
+            ]
+
+        if service_identifier:
+            associations = [
+                assoc
+                for assoc in associations
+                if assoc.service_id == service_identifier
             ]
         return associations
 

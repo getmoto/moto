@@ -18,8 +18,8 @@ acm-pca
 
 - [X] create_certificate_authority
   
-        The following parameters are not yet implemented: IdempotencyToken, KeyStorageSecurityStandard, UsageMode
-        
+The following parameters are not yet implemented: IdempotencyToken, KeyStorageSecurityStandard, UsageMode
+
 
 - [ ] create_certificate_authority_audit_report
 - [ ] create_permission
@@ -27,8 +27,8 @@ acm-pca
 - [ ] delete_permission
 - [X] delete_policy
   
-        Deletes the resource-based policy attached to a private CA.
-        
+Deletes the resource-based policy attached to a private CA.
+
 
 - [X] describe_certificate_authority
 - [ ] describe_certificate_authority_audit_report
@@ -37,31 +37,31 @@ acm-pca
 - [X] get_certificate_authority_csr
 - [X] get_policy
   
-        Retrieves the resource-based policy attached to a private CA.
-        
+Retrieves the resource-based policy attached to a private CA.
+
 
 - [X] import_certificate_authority_certificate
 - [X] issue_certificate
   
-        The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, Validity, ValidityNotBefore, IdempotencyToken
-        Some fields of the resulting certificate will have default values, instead of using the CSR
-        
+The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, Validity, ValidityNotBefore, IdempotencyToken
+Some fields of the resulting certificate will have default values, instead of using the CSR
+
 
 - [X] list_certificate_authorities
   
-        Lists the private certificate authorities that you created by using the CreateCertificateAuthority action.
-        
+Lists the private certificate authorities that you created by using the CreateCertificateAuthority action.
+
 
 - [ ] list_permissions
 - [X] list_tags
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] put_policy
   
-        Attaches a resource-based policy to a private CA.
-        
+Attaches a resource-based policy to a private CA.
+
 
 - [ ] restore_certificate_authority
 - [X] revoke_certificate

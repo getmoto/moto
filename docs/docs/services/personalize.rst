@@ -75,8 +75,8 @@ personalize
 - [ ] list_recommenders
 - [X] list_schemas
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_solution_versions
 - [ ] list_solutions

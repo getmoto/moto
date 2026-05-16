@@ -24,6 +24,7 @@ logs
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
+- [ ] create_lookup_table
 - [ ] create_scheduled_query
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
@@ -37,12 +38,13 @@ logs
 - [ ] delete_log_anomaly_detector
 - [X] delete_log_group
 - [X] delete_log_stream
+- [ ] delete_lookup_table
 - [X] delete_metric_filter
 - [ ] delete_query_definition
 - [X] delete_resource_policy
   
-        Remove resource policy with a policy name matching given name.
-        
+Remove resource policy with a policy name matching given name.
+
 
 - [X] delete_retention_policy
 - [ ] delete_scheduled_query
@@ -56,8 +58,8 @@ logs
 - [X] describe_destinations
 - [X] describe_export_tasks
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] describe_field_indexes
 - [ ] describe_import_task_batches
@@ -65,30 +67,31 @@ logs
 - [ ] describe_index_policies
 - [X] describe_log_groups
 - [X] describe_log_streams
+- [ ] describe_lookup_tables
 - [X] describe_metric_filters
 - [X] describe_queries
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
   
-        Return list of resource policies.
+Return list of resource policies.
 
-        The next_token and limit arguments are ignored.  The maximum
-        number of resource policies per region is a small number (less
-        than 50), so pagination isn't needed.
-        
+The next_token and limit arguments are ignored.  The maximum
+number of resource policies per region is a small number (less
+than 50), so pagination isn't needed.
+
 
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
 - [ ] disassociate_source_from_s3_table_integration
 - [X] filter_log_events
   
-        The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
-        If the pattern is not supported, all events are returned.
-        
+The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
+If the pattern is not supported, all events are returned.
+
 
 - [ ] get_data_protection_policy
 - [X] get_delivery
@@ -102,10 +105,11 @@ logs
 - [ ] get_log_group_fields
 - [ ] get_log_object
 - [ ] get_log_record
+- [ ] get_lookup_table
 - [X] get_query_results
   
-        Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
-        
+Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
+
 
 - [ ] get_scheduled_query
 - [ ] get_scheduled_query_history
@@ -132,16 +136,16 @@ logs
 - [ ] put_integration
 - [X] put_log_events
   
-        The SequenceToken-parameter is not yet implemented
-        
+The SequenceToken-parameter is not yet implemented
+
 
 - [ ] put_log_group_deletion_protection
 - [X] put_metric_filter
 - [ ] put_query_definition
 - [X] put_resource_policy
   
-        Creates/updates resource policy and return policy object
-        
+Creates/updates resource policy and return policy object
+
 
 - [X] put_retention_policy
 - [X] put_subscription_filter
@@ -158,4 +162,5 @@ logs
 - [ ] update_anomaly
 - [ ] update_delivery_configuration
 - [ ] update_log_anomaly_detector
+- [ ] update_lookup_table
 - [ ] update_scheduled_query

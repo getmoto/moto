@@ -443,9 +443,15 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self._get_param("CiphertextBlob")
         encryption_context = self._get_param("EncryptionContext", {})
+        key_id = self._get_param("KeyId")
+
+        if key_id:
+            self._validate_key_id(key_id)
 
         plaintext, arn = self.kms_backend.decrypt(
-            ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=encryption_context,
+            key_id=key_id,
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")

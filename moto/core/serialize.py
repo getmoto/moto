@@ -57,14 +57,12 @@ import base64
 import calendar
 import json
 from collections import namedtuple
-from collections.abc import Callable, Generator, Mapping, MutableMapping
+from collections.abc import Callable, Generator, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Any,
-    Optional,
     TypedDict,
-    Union,
 )
 
 import xmltodict
@@ -73,6 +71,7 @@ from botocore.compat import formatdate
 from botocore.utils import is_json_value_header, parse_to_aware_datetime
 
 from moto.core.errors import ErrorShape, get_error_model
+from moto.core.eventstream import EventStream, EventStreamEncoder
 from moto.core.model import (
     ListShape,
     MapShape,
@@ -87,13 +86,13 @@ Serialized = MutableMapping[str, Any]
 
 
 class ResponseDict(TypedDict):
-    body: str
+    body: str | bytes
     headers: MutableMapping[str, str]
     status_code: int
 
 
 class SerializationContext:
-    def __init__(self, request_id: Optional[str] = None) -> None:
+    def __init__(self, request_id: str | None = None) -> None:
         self.request_id = request_id or "request-id"
 
 
@@ -130,7 +129,7 @@ class TimestampSerializer:
         return value.strftime(self.ISO8601_MICRO_ZEROED)
 
     @staticmethod
-    def _timestamp_unixtimestamp(value: datetime) -> Union[int, float]:
+    def _timestamp_unixtimestamp(value: datetime) -> int | float:
         base_timestamp = calendar.timegm(value.timetuple())
         if value.microsecond:
             # Smithy spec: "Values that are more granular than millisecond
@@ -138,13 +137,13 @@ class TimestampSerializer:
             return base_timestamp + (value.microsecond // 1000) / 1000.0
         return base_timestamp
 
-    def _timestamp_rfc822(self, value: Union[datetime, float]) -> str:
+    def _timestamp_rfc822(self, value: datetime | float) -> str:
         if isinstance(value, datetime):
             value = self._timestamp_unixtimestamp(value)
         return formatdate(value, usegmt=True)
 
     def _convert_timestamp_to_str(
-        self, value: Union[int, str, datetime], timestamp_format: str
+        self, value: int | str | datetime, timestamp_format: str
     ) -> str:
         timestamp_format = timestamp_format.lower()
         converter = getattr(self, f"_timestamp_{timestamp_format}")
@@ -212,7 +211,7 @@ class HeaderSerializer:
         self._timestamp_serializer.serialize(wrapper, value, shape, "timestamp")
         self._default_serialize(serialized, wrapper["timestamp"], shape, key)
 
-    def _base64(self, value: Union[str, bytes]) -> str:
+    def _base64(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
@@ -230,12 +229,13 @@ class ResponseSerializer:
     # NOTE: This is no longer necessary because dicts post 3.6 are ordered:
     # https://stackoverflow.com/questions/39980323/are-dictionaries-ordered-in-python-3-6
     MAP_TYPE = dict
+    EVENT_STREAM_SERIALIZER_CLS: type[BaseEventStreamSerializer] | None = None
 
     def __init__(
         self,
         operation_model: OperationModel,
-        context: Optional[SerializationContext] = None,
-        pretty_print: Optional[bool] = False,
+        context: SerializationContext | None = None,
+        pretty_print: bool | None = False,
         value_picker: Any = None,
     ) -> None:
         self.operation_model = operation_model
@@ -246,6 +246,11 @@ class ResponseSerializer:
             value_picker = DefaultAttributePicker()
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
+        self._event_stream_serializer = None
+        if self.EVENT_STREAM_SERIALIZER_CLS is not None:
+            self._event_stream_serializer = self.EVENT_STREAM_SERIALIZER_CLS(
+                operation_model
+            )
         self.operation_name = str(operation_model.name)
         self.path = [self.operation_name]
 
@@ -263,6 +268,8 @@ class ResponseSerializer:
         resp = self._create_default_response()
         if self._is_error_result(result):
             resp = self._serialize_error(resp, result)
+        elif self.operation_model.has_event_stream_output:
+            resp = self._serialize_event_stream_result(resp, result)
         else:
             resp = self._serialize_result(resp, result)
         return resp
@@ -289,6 +296,24 @@ class ResponseSerializer:
             resp, result, output_shape, serialized_result
         )
 
+    def _serialize_event_stream_result(
+        self, resp: ResponseDict, result: Any
+    ) -> ResponseDict:
+        output_shape = self.operation_model.output_shape
+        assert isinstance(output_shape, StructureShape)
+
+        def serialized_event_stream() -> Iterable[bytes]:
+            serializer = self._event_stream_serializer
+            assert isinstance(serializer, BaseEventStreamSerializer)
+            event_stream = EventStream(result, output_shape, serializer)
+            for event in event_stream:
+                yield EventStreamEncoder().encode_event(event)
+
+        # TODO: Allow for actual streaming bodies by returning iterator as body.
+        resp["body"] = b"".join(serialized_event_stream())
+        resp["headers"]["Content-Type"] = "application/vnd.amazon.eventstream"
+        return resp
+
     def _serialized_error_to_response(
         self,
         resp: ResponseDict,
@@ -302,7 +327,7 @@ class ResponseSerializer:
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         raise NotImplementedError("Must be implemented in subclass.")
@@ -323,7 +348,7 @@ class ResponseSerializer:
     def _is_error_result(result: object) -> bool:
         return isinstance(result, Exception)
 
-    def _base64(self, value: Union[str, bytes]) -> str:
+    def _base64(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
@@ -444,7 +469,7 @@ class BaseJSONSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         resp["body"] = self._serialize_body(serialized_result)
@@ -595,7 +620,7 @@ class BaseXMLSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         if shape and "payload" in shape.serialization:
@@ -714,7 +739,7 @@ class BaseRestSerializer(ResponseSerializer):
     REQUIRES_EMPTY_BODY = False
 
     @staticmethod
-    def has_body_members(shape: Optional[StructureShape]) -> bool:
+    def has_body_members(shape: StructureShape | None) -> bool:
         if shape is not None:
             for member in shape.members.values():
                 if "location" not in member.serialization:
@@ -725,7 +750,7 @@ class BaseRestSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         if "payload" in serialized_result:
@@ -800,9 +825,71 @@ class BaseRestSerializer(ResponseSerializer):
             super()._serialize_structure_member(serialized, value, shape, key)
 
 
+class BaseEventStreamSerializer(ResponseSerializer):
+    @property
+    def initial_response_required(self) -> bool:
+        serviced_model = self.operation_model.service_model
+        protocol = serviced_model.protocol
+        return protocol == "json"
+
+    def serialize_event_payload(
+        self,
+        value: Any,
+        parent_shape: StructureShape,
+        body_members: list[tuple[str, Shape]],
+    ) -> tuple[bytes, str | None]:
+        raise NotImplementedError("Must be implemented in subclass.")
+
+
+class EventStreamJSONSerializer(BaseEventStreamSerializer, BaseJSONSerializer):
+    EVENT_STREAM_PAYLOAD_CONTENT_TYPE = "application/json"
+
+    def serialize_event_payload(
+        self,
+        value: Any,
+        parent_shape: StructureShape,
+        body_members: list[tuple[str, Shape]],
+    ) -> tuple[bytes, str | None]:
+        wrapper: MutableMapping[str, Any] = self.MAP_TYPE()
+        for mn, ms in body_members:
+            ms.parent = parent_shape  # type: ignore[attr-defined]
+            self._serialize_structure_member(wrapper, value, ms, mn)
+        return (
+            json.dumps(wrapper).encode(self.DEFAULT_ENCODING),
+            self.EVENT_STREAM_PAYLOAD_CONTENT_TYPE,
+        )
+
+
+class EventStreamXMLSerializer(BaseEventStreamSerializer, BaseXMLSerializer):
+    EVENT_STREAM_PAYLOAD_CONTENT_TYPE = "text/xml"
+
+    def serialize_event_payload(
+        self,
+        value: Any,
+        parent_shape: StructureShape,
+        body_members: list[tuple[str, Shape]],
+    ) -> tuple[bytes, str | None]:
+        inner: MutableMapping[str, Any] = self.MAP_TYPE()
+        for mn, ms in body_members:
+            ms.parent = parent_shape  # type: ignore[attr-defined]
+            self._serialize_structure_member(inner, value, ms, mn)
+        wrapped = {self.get_serialized_name(parent_shape, parent_shape.name): inner}
+        # Event payloads are not full XML documents — no `<?xml ... ?>` prolog.
+        rendered = xmltodict.unparse(
+            wrapped,
+            full_document=False,
+            short_empty_elements=True,
+            pretty=False,
+        )
+        return rendered.encode(
+            self.DEFAULT_ENCODING
+        ), self.EVENT_STREAM_PAYLOAD_CONTENT_TYPE
+
+
 class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
     CONTENT_TYPE = "application/xml"
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_ISO8601
+    EVENT_STREAM_SERIALIZER_CLS = EventStreamXMLSerializer
 
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
         body_serialized = xmltodict.unparse(
@@ -817,10 +904,11 @@ class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
 class RestJSONSerializer(BaseRestSerializer, BaseJSONSerializer):
     CONTENT_TYPE = "application/json"
     REQUIRES_EMPTY_BODY = True
+    EVENT_STREAM_SERIALIZER_CLS = EventStreamJSONSerializer
 
 
 class JSONSerializer(BaseJSONSerializer):
-    pass
+    EVENT_STREAM_SERIALIZER_CLS = EventStreamJSONSerializer
 
 
 class QuerySerializer(BaseXMLSerializer):
@@ -850,7 +938,7 @@ class QuerySerializer(BaseXMLSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         response_key = f"{self.operation_model.name}Response"
@@ -1016,7 +1104,7 @@ class S3Serializer(RestXMLSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         # GetBucketLocation response cannot be modeled properly, so we handle it as a one-off here.

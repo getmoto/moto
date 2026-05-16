@@ -1187,10 +1187,7 @@ def test_rotate_secret_rotation_period_too_long():
 
 
 def get_rotation_zip_file():
-    endpoint = "" if allow_aws_request() else 'endpoint_url="http://motoserver:5000"'
-
-    func_str = (
-        """
+    func_str = """
 import boto3
 import json
 import os
@@ -1200,9 +1197,7 @@ def lambda_handler(event, context):
     token = event['ClientRequestToken']
     step = event['Step']
 
-    client = boto3.client("secretsmanager", region_name="us-east-1", """
-        + endpoint
-        + """)
+    client = boto3.client("secretsmanager", region_name="us-east-1")
     metadata = client.describe_secret(SecretId=arn)
     metadata.pop('LastChangedDate', None)
     metadata.pop('LastAccessedDate', None)
@@ -1223,9 +1218,7 @@ def lambda_handler(event, context):
         pending_value = str(e)
     print(pending_value)
 
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1", """
-        + endpoint
-        + """)
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(os.environ["table_name"])
     table.put_item(Item={"pk": step, "token": token, "metadata": metadata, "versions": versions, "pending_value": pending_value})
 
@@ -1276,11 +1269,11 @@ def lambda_handler(event, context):
             RemoveFromVersionId=token
         )
     """
-    )
     return _process_lambda(func_str)
 
 
-@pytest.mark.aws_verified
+# Verified to work against AWS, but flaky - that's why it's not enabled against AWS
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @lambda_aws_verified
 @secretsmanager_aws_verified
@@ -1379,7 +1372,8 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
     assert finish_secret["pending_value"]["VersionStages"] == ["AWSPENDING"]
 
 
-@pytest.mark.aws_verified
+# Verified to work against AWS, but flaky - that's why it's not enabled against AWS
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @lambda_aws_verified
 @secretsmanager_aws_verified

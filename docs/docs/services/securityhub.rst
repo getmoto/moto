@@ -81,8 +81,8 @@ securityhub
 - [ ] get_finding_statistics_v2
 - [X] get_findings
   
-        Filters and SortCriteria is not yet implemented
-        
+Filters and SortCriteria is not yet implemented
+
 
 - [ ] get_findings_trends_v2
 - [ ] get_findings_v2

@@ -24,6 +24,9 @@ sagemaker
 - [ ] batch_reboot_cluster_nodes
 - [ ] batch_replace_cluster_nodes
 - [ ] create_action
+- [ ] create_ai_benchmark_job
+- [ ] create_ai_recommendation_job
+- [ ] create_ai_workload_config
 - [ ] create_algorithm
 - [ ] create_app
 - [ ] create_app_image_config
@@ -92,6 +95,9 @@ sagemaker
 - [ ] create_workforce
 - [ ] create_workteam
 - [ ] delete_action
+- [ ] delete_ai_benchmark_job
+- [ ] delete_ai_recommendation_job
+- [ ] delete_ai_workload_config
 - [ ] delete_algorithm
 - [ ] delete_app
 - [ ] delete_app_image_config
@@ -151,6 +157,9 @@ sagemaker
 - [ ] delete_workteam
 - [ ] deregister_devices
 - [ ] describe_action
+- [ ] describe_ai_benchmark_job
+- [ ] describe_ai_recommendation_job
+- [ ] describe_ai_workload_config
 - [ ] describe_algorithm
 - [ ] describe_app
 - [ ] describe_app_image_config
@@ -214,6 +223,7 @@ sagemaker
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_training_plan
+- [ ] describe_training_plan_extension_history
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
@@ -224,6 +234,7 @@ sagemaker
 - [ ] disable_sagemaker_servicecatalog_portfolio
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
+- [ ] extend_training_plan
 - [ ] get_device_fleet_report
 - [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
@@ -232,6 +243,9 @@ sagemaker
 - [ ] get_search_suggestions
 - [ ] import_hub_content
 - [ ] list_actions
+- [ ] list_ai_benchmark_jobs
+- [ ] list_ai_recommendation_jobs
+- [ ] list_ai_workload_configs
 - [ ] list_algorithms
 - [ ] list_aliases
 - [ ] list_app_image_configs
@@ -292,9 +306,9 @@ sagemaker
 - [ ] list_notebook_instance_lifecycle_configs
 - [X] list_notebook_instances
   
-        The following parameters are not yet implemented:
-        CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
-        
+The following parameters are not yet implemented:
+CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
+
 
 - [ ] list_optimization_jobs
 - [ ] list_partner_apps
@@ -328,12 +342,13 @@ sagemaker
 - [ ] retry_pipeline_execution
 - [X] search
   
-        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
-        
+Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+
 
 - [ ] search_training_plan_offerings
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
+- [ ] start_cluster_health_check
 - [ ] start_edge_deployment_stage
 - [ ] start_inference_experiment
 - [ ] start_mlflow_tracking_server
@@ -341,6 +356,8 @@ sagemaker
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
 - [ ] start_session
+- [ ] stop_ai_benchmark_job
+- [ ] stop_ai_recommendation_job
 - [X] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import get_partition
@@ -23,7 +25,7 @@ class Domain(BaseModel):
         retention: int,
         account_id: str,
         region_name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.name = name
         self.retention = retention
@@ -64,7 +66,7 @@ class Domain(BaseModel):
 
     def get_type(  # type: ignore
         self, kind: str, name: str, version: str, ignore_empty: bool = False
-    ) -> "GenericType":
+    ) -> GenericType:
         try:
             return self.types[kind][name][version]
         except KeyError:
@@ -74,10 +76,10 @@ class Domain(BaseModel):
                     f"{kind.capitalize()}Type=[name={name}, version={version}]",
                 )
 
-    def add_type(self, _type: "TGenericType") -> None:
+    def add_type(self, _type: TGenericType) -> None:
         self.types[_type.kind][_type.name][_type.version] = _type
 
-    def find_types(self, kind: str, status: str) -> list["GenericType"]:
+    def find_types(self, kind: str, status: str) -> list[GenericType]:
         _all = []
         for family in self.types[kind].values():
             for _type in family.values():
@@ -85,7 +87,7 @@ class Domain(BaseModel):
                     _all.append(_type)
         return _all
 
-    def add_workflow_execution(self, workflow_execution: "WorkflowExecution") -> None:
+    def add_workflow_execution(self, workflow_execution: WorkflowExecution) -> None:
         _id = workflow_execution.workflow_id
         if self.get_workflow_execution(_id, raise_if_none=False):
             raise SWFWorkflowExecutionAlreadyStartedFault()
@@ -94,10 +96,10 @@ class Domain(BaseModel):
     def get_workflow_execution(
         self,
         workflow_id: str,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
         raise_if_none: bool = True,
         raise_if_closed: bool = False,
-    ) -> Optional["WorkflowExecution"]:
+    ) -> WorkflowExecution | None:
         # query
         if run_id:
             _all = [
@@ -129,26 +131,26 @@ class Domain(BaseModel):
         return wfe
 
     def add_to_activity_task_list(
-        self, task_list: list[str], obj: "ActivityTask"
+        self, task_list: list[str], obj: ActivityTask
     ) -> None:
         if task_list not in self.activity_task_lists:
             self.activity_task_lists[task_list] = []
         self.activity_task_lists[task_list].append(obj)
 
     @property
-    def activity_tasks(self) -> list["ActivityTask"]:
+    def activity_tasks(self) -> list[ActivityTask]:
         _all: list[ActivityTask] = []
         for tasks in self.activity_task_lists.values():
             _all += tasks
         return _all
 
-    def add_to_decision_task_list(self, task_list: str, obj: "DecisionTask") -> None:
+    def add_to_decision_task_list(self, task_list: str, obj: DecisionTask) -> None:
         if task_list not in self.decision_task_lists:
             self.decision_task_lists[task_list] = []
         self.decision_task_lists[task_list].append(obj)
 
     @property
-    def decision_tasks(self) -> list["DecisionTask"]:
+    def decision_tasks(self) -> list[DecisionTask]:
         _all: list[DecisionTask] = []
         for tasks in self.decision_task_lists.values():
             _all += tasks

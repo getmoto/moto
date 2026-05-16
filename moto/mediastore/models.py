@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,12 +20,12 @@ class Container(BaseModel):
         self.endpoint = kwargs.get("endpoint")
         self.status = kwargs.get("status")
         self.creation_time = kwargs.get("creation_time")
-        self.lifecycle_policy: Optional[str] = None
-        self.policy: Optional[str] = None
-        self.metric_policy: Optional[str] = None
+        self.lifecycle_policy: str | None = None
+        self.policy: str | None = None
+        self.metric_policy: str | None = None
         self.tags = kwargs.get("tags")
 
-    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
+    def to_dict(self, exclude: list[str] | None = None) -> dict[str, Any]:
         data = {
             "ARN": self.arn,
             "Name": self.name,
@@ -76,7 +76,7 @@ class MediaStoreBackend(BaseBackend):
         """
         return [c.to_dict() for c in self._containers.values()]
 
-    def list_tags_for_resource(self, name: str) -> Optional[dict[str, str]]:
+    def list_tags_for_resource(self, name: str) -> dict[str, str] | None:
         if name not in self._containers:
             raise ContainerNotFoundException()
         tags = self._containers[name].tags

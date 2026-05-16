@@ -1,5 +1,3 @@
-from typing import Union
-
 import requests
 
 from ..models import Integration
@@ -13,7 +11,7 @@ class TypeHttpParser(IntegrationParser):
 
     def invoke(
         self, request: requests.PreparedRequest, integration: Integration
-    ) -> tuple[int, Union[str, bytes]]:
+    ) -> tuple[int, str | bytes]:
         uri = integration.uri
         requests_func = getattr(requests, integration.http_method.lower())  # type: ignore[union-attr]
         response = requests_func(uri)

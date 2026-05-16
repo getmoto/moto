@@ -157,6 +157,140 @@ def test_vpc_lattice_als_tagging_api(client, resource_groups_client):
 
 
 @mock_aws
+def test_vpc_lattice_listener_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    resp = client.create_listener(
+        serviceIdentifier=service_id,
+        name="my-listener",
+        protocol="HTTP",
+        port=80,
+        defaultAction={
+            "forward": {
+                "targetGroups": [
+                    {"targetGroupIdentifier": "targetgroupidentifier", "weight": 100}
+                ]
+            }
+        },
+        clientToken="token123",
+        tags=tags,
+    )
+
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+    assert metadata["RetryAttempts"] == 0
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
+def test_vpc_lattice_target_group_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp = client.create_target_group(
+        name="my-instance-target-group",
+        type="INSTANCE",
+        config={
+            "port": 8080,
+            "protocol": "HTTP",
+            "vpcIdentifier": "vpc-12345678",
+        },
+        tags=tags,
+    )
+
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+    assert metadata["RetryAttempts"] == 0
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
+def test_vpc_lattice_snra_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    resp = client.create_service_network_resource_association(
+        serviceNetworkIdentifier=sn_id,
+        resourceConfigurationIdentifier="some-resource-config-id",
+        clientToken="token123",
+        tags=tags,
+    )
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+    assert metadata["RetryAttempts"] == 0
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
+def test_vpc_lattice_snsa_tagging_api(client, resource_groups_client):
+    tags = {"tag1": "value1", "tag2": "value2"}
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    service_resp = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+    service_id = service_resp["id"]
+
+    resp = client.create_service_network_service_association(
+        serviceNetworkIdentifier=sn_id,
+        serviceIdentifier=service_id,
+        clientToken="token123",
+        tags=tags,
+    )
+
+    metadata = resp["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+    assert metadata["RetryAttempts"] == 0
+
+    resource_group_tags = resource_groups_client.get_resources(
+        ResourceARNList=[resp["arn"]],
+    )["ResourceTagMappingList"]
+    assert len(resource_group_tags) == 1
+    assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
+
+@mock_aws
 def test_vpc_lattice_tag_filtering(client, resource_groups_client):
     # WITH tags
     tags1 = {"tag1": "value1"}

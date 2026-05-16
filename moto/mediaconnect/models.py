@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,10 +20,10 @@ class Flow(BaseModel):
         self.source_failover_config = kwargs.get("source_failover_config", {})
         self.sources = kwargs.get("sources", [])
         self.vpc_interfaces = kwargs.get("vpc_interfaces", [])
-        self.status: Optional[str] = (
+        self.status: str | None = (
             "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
         )
-        self._previous_status: Optional[str] = None
+        self._previous_status: str | None = None
         self.description = "A Moto test flow"
         self.flow_arn = f"arn:{get_partition(region_name)}:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
         self.egress_ip = "127.0.0.1"
@@ -33,7 +33,7 @@ class Flow(BaseModel):
                 self.source,
             ]
 
-    def to_dict(self, include: Optional[list[str]] = None) -> dict[str, Any]:
+    def to_dict(self, include: list[str] | None = None) -> dict[str, Any]:
         data = {
             "availabilityZone": self.availability_zone,
             "description": self.description,
@@ -77,7 +77,7 @@ class MediaConnectBackend(BaseBackend):
 
     def _add_source_details(
         self,
-        source: Optional[dict[str, Any]],
+        source: dict[str, Any] | None,
         flow_id: str,
         ingest_ip: str = "127.0.0.1",
     ) -> None:
@@ -90,7 +90,7 @@ class MediaConnectBackend(BaseBackend):
                 source["ingestIp"] = ingest_ip
 
     def _add_entitlement_details(
-        self, entitlement: Optional[dict[str, Any]], entitlement_id: str
+        self, entitlement: dict[str, Any] | None, entitlement_id: str
     ) -> None:
         if entitlement:
             entitlement["entitlementArn"] = (
@@ -127,7 +127,7 @@ class MediaConnectBackend(BaseBackend):
         source_failover_config: dict[str, Any],
         sources: list[dict[str, Any]],
         vpc_interfaces: list[dict[str, Any]],
-        maintenance: Optional[list[dict[str, Any]]] = None,
+        maintenance: list[dict[str, Any]] | None = None,
     ) -> Flow:
         flow = Flow(
             account_id=self.account_id,
@@ -146,7 +146,7 @@ class MediaConnectBackend(BaseBackend):
         self._flows[flow.flow_arn] = flow
         return flow
 
-    def list_flows(self, max_results: Optional[int]) -> list[dict[str, Any]]:
+    def list_flows(self, max_results: int | None) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -318,11 +318,11 @@ class MediaConnectBackend(BaseBackend):
         stream_id: str,
         vpc_interface_name: str,
         whitelist_cidr: str,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         if flow_arn not in self._flows:
             raise NotFoundException(message=f"flow with arn={flow_arn} not found")
         flow = self._flows[flow_arn]
-        source: Optional[dict[str, Any]] = next(
+        source: dict[str, Any] | None = next(
             iter(
                 [source for source in flow.sources if source["sourceArn"] == source_arn]
             ),
