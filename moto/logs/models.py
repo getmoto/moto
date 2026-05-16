@@ -1594,8 +1594,6 @@ class LogsBackend(BaseBackend):
         return log_group
 
     def _find_live_tail_log_group(self, log_group_identifier: str) -> LogGroup:
-        if log_group_identifier in self.groups:
-            return self.groups[log_group_identifier]
         return self._find_log_group(log_group_id=log_group_identifier)
 
     @staticmethod
@@ -1606,13 +1604,13 @@ class LogsBackend(BaseBackend):
     ) -> list[LogStream]:
         streams = list(log_group.streams.values())
         if log_stream_names:
-            return [
+            streams = [
                 stream
                 for stream in streams
                 if stream.log_stream_name in log_stream_names
             ]
-        if log_stream_name_prefixes:
-            return [
+        elif log_stream_name_prefixes:
+            streams = [
                 stream
                 for stream in streams
                 if any(

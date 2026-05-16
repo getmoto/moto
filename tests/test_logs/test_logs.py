@@ -1733,6 +1733,51 @@ def test_start_live_tail_returns_session_events():
 
 
 @mock_aws
+def test_start_live_tail_filters_by_log_stream_name_prefixes():
+    client = logs_client()
+    now = int(unix_time_millis())
+    client.create_log_group(logGroupName="live-tail-group")
+    for stream_name in ("application-stream", "application-debug", "system-stream"):
+        client.create_log_stream(
+            logGroupName="live-tail-group", logStreamName=stream_name
+        )
+        client.put_log_events(
+            logGroupName="live-tail-group",
+            logStreamName=stream_name,
+            logEvents=[{"timestamp": now, "message": f"message from {stream_name}"}],
+        )
+
+    log_group = client.describe_log_groups(logGroupNamePrefix="live-tail-group")[
+        "logGroups"
+    ][0]
+    response = client.start_live_tail(
+        logGroupIdentifiers=[log_group["logGroupArn"]],
+        logStreamNamePrefixes=["application"],
+    )
+
+    event_stream = iter(response["responseStream"])
+    session_start = next(event_stream)
+    session_update = next(event_stream)
+
+    assert session_start["sessionStart"]["logGroupIdentifiers"] == [
+        log_group["logGroupArn"]
+    ]
+    assert session_start["sessionStart"]["logStreamNames"] == []
+    assert session_start["sessionStart"]["logStreamNamePrefixes"] == ["application"]
+
+    results = session_update["sessionUpdate"]["sessionResults"]
+    stream_names = sorted(result["logStreamName"] for result in results)
+    assert stream_names == ["application-debug", "application-stream"]
+    for result in results:
+        assert result["logGroupIdentifier"] == log_group["logGroupArn"]
+        assert result["message"] == f"message from {result['logStreamName']}"
+        assert result["timestamp"] == now
+        assert result["ingestionTime"] > 0
+    with pytest.raises(StopIteration):
+        next(event_stream)
+
+
+@mock_aws
 def test_start_live_tail_rejects_more_than_ten_log_groups():
     client = logs_client()
     log_group_arns = []
