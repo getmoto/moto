@@ -150,7 +150,7 @@ Creates/updates resource policy and return policy object
 - [X] put_retention_policy
 - [X] put_subscription_filter
 - [ ] put_transformer
-- [ ] start_live_tail
+- [X] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
@@ -164,4 +164,3 @@ Creates/updates resource policy and return policy object
 - [ ] update_log_anomaly_detector
 - [ ] update_lookup_table
 - [ ] update_scheduled_query
-
