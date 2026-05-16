@@ -2092,7 +2092,9 @@ class EventsBackend(BaseBackend):
                 f"An api-destination '{name}' does not exist."
             )
 
-    def create_partner_event_source(self, name: str, account_id: str) -> None:
+    def create_partner_event_source(
+        self, name: str, account_id: str
+    ) -> PartnerEventSource:
         # https://docs.aws.amazon.com/eventbridge/latest/onboarding/amazon_eventbridge_partner_onboarding_guide.html
         if name not in self.partner_event_sources:
             self.partner_event_sources[name] = PartnerEventSource(

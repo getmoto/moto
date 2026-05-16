@@ -12,15 +12,13 @@ from moto import mock_aws, settings
 def test_create_partner_event_bus():
     client_account = "111122223333"
     client = boto3.client("events", "us-east-1")
-    client.create_partner_event_source(
-        Name="mypartner/actions/action1", Account=client_account
-    )
-    resp = client.describe_partner_event_source(Name="mypartner/actions/action1")
-    assert (
-        resp["Arn"]
-        == "arn:aws:events:us-east-1::event-source/aws.partner/mypartner/actions/action1"
-    )
-    assert resp["Name"] == "mypartner/actions/action1"
+    es_name = "mypartner/actions/action1"
+    expected_arn = f"arn:aws:events:us-east-1::event-source/aws.partner/{es_name}"
+    resp = client.create_partner_event_source(Name=es_name, Account=client_account)
+    assert resp["EventSourceArn"] == expected_arn
+    resp = client.describe_partner_event_source(Name=es_name)
+    assert resp["Arn"] == expected_arn
+    assert resp["Name"] == es_name
 
 
 @mock_aws
@@ -34,8 +32,7 @@ def test_describe_partner_event_busses():
     client = boto3.client("events", "us-east-1")
     name = "mypartner/actions/action1"
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": partner_account}):
-        resp = client.create_partner_event_source(Name=name, Account=client_account)
-        assert resp["EventSourceArn"] == name
+        client.create_partner_event_source(Name=name, Account=client_account)
 
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": client_account}):
         resp = client.describe_event_source(Name=name)
