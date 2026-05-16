@@ -446,7 +446,7 @@ class CognitoIdpUserPool(BaseModel):
         self.access_tokens: dict[str, tuple[str, str]] = {}
         self.id_tokens: dict[str, tuple[str, str]] = {}
 
-        jwks_file = load_resource(__name__, "resources/jwks-private.json")
+        jwks_file = load_resource("cognitoidp/resources/jwks-private.json")
         self.json_web_key = jwk.RSAKey.import_key(jwks_file)
 
     @property

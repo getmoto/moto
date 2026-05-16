@@ -1,8 +1,8 @@
 import gzip
 import hashlib
 import json
-import pkgutil
 from collections.abc import Iterator, MutableMapping
+from importlib import resources
 from typing import Any, TypeVar
 from uuid import UUID
 
@@ -40,29 +40,31 @@ def str2bool(v: Any) -> bool | None:
     return None
 
 
-def load_resource(package: str, resource: str) -> Any:
+def load_resource(resource: str) -> Any:
     """
     Open a file, and return the contents as JSON.
-    Will try to load a compressed version (resources/file.json.gz) first, if it exists.
+    Will try to load a compressed version (file.json.gz) first, if it exists.
     Usage:
-    load_resource(__name__, "resources/file.json")
+    load_resource("ec2/resources/file.json")
     """
     try:
         compressed_resource = resource
         if not resource.endswith(".gz"):
             compressed_resource = f"{resource}.gz"
-        data = gzip.decompress(pkgutil.get_data(package, compressed_resource))  # type: ignore
+        data: str | bytes = gzip.decompress(load_resource_as_bytes(compressed_resource))
     except FileNotFoundError:
-        data = pkgutil.get_data(package, resource)  # type: ignore
+        data = load_resource_as_str(resource)
     return json.loads(data)
 
 
-def load_resource_as_str(package: str, resource: str) -> str:
-    return load_resource_as_bytes(package, resource).decode("utf-8")
+def load_resource_as_str(resource: str) -> str:
+    resource_path = resources.files("moto") / resource
+    return resource_path.read_text(encoding="utf-8").strip()
 
 
-def load_resource_as_bytes(package: str, resource: str) -> bytes:
-    return pkgutil.get_data(package, resource)  # type: ignore
+def load_resource_as_bytes(resource: str) -> bytes:
+    resource_path = resources.files("moto") / resource
+    return resource_path.read_bytes()
 
 
 def merge_multiple_dicts(*args: Any) -> dict[str, Any]:

@@ -161,7 +161,7 @@ class _DockerDataVolumeContext:
                 with zip2tar(self._lambda_func.code_bytes) as stream:
                     container.put_archive(settings.LAMBDA_DATA_DIR, stream)
                 if settings.is_test_proxy_mode():
-                    ca_cert = load_resource_as_bytes(__name__, "../moto_proxy/ca.crt")
+                    ca_cert = load_resource_as_bytes("moto_proxy/ca.crt")
                     with file2tar(ca_cert, "ca.crt") as cert_stream:
                         container.put_archive(settings.LAMBDA_DATA_DIR, cert_stream)
             finally:
