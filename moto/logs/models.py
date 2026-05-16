@@ -1164,9 +1164,9 @@ class LogsBackend(BaseBackend):
     def start_live_tail(
         self,
         log_group_identifiers: list[str],
-        log_stream_names: Optional[list[str]],
-        log_stream_name_prefixes: Optional[list[str]],
-        log_event_filter_pattern: Optional[str],
+        log_stream_names: list[str] | None,
+        log_stream_name_prefixes: list[str] | None,
+        log_event_filter_pattern: str | None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         if len(log_group_identifiers) > 10:
             raise InvalidParameterException(
@@ -1179,9 +1179,7 @@ class LogsBackend(BaseBackend):
             )
         if (
             log_stream_names is not None or log_stream_name_prefixes is not None
-        ) and len(
-            log_group_identifiers
-        ) != 1:
+        ) and len(log_group_identifiers) != 1:
             raise InvalidParameterException(
                 msg="logStreamNames and logStreamNamePrefixes can only be used with a single log group."
             )
