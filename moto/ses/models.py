@@ -7,7 +7,7 @@ from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -196,12 +196,14 @@ class Contact(BaseModel):
         email_address: str,
         topic_preferences: list[dict[str, str]],
         unsubscribe_all: bool,
+        attributes_data: Optional[str],
     ) -> None:
         self.contact_list_name = contact_list_name
         self.email_address = email_address
         self.topic_default_preferences: list[dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
+        self.attributes_data = attributes_data
         self.created_timestamp = iso_8601_datetime_with_milliseconds()
         self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
@@ -213,6 +215,7 @@ class Contact(BaseModel):
             "TopicDefaultPreferences": self.topic_default_preferences,
             "TopicPreferences": self.topic_preferences,
             "UnsubscribeAll": self.unsubscribe_all,
+            "AttributesData": self.attributes_data,
             "CreatedTimestamp": self.created_timestamp,
             "LastUpdatedTimestamp": self.last_updated_timestamp,
         }
@@ -222,7 +225,7 @@ class ContactList(BaseModel):
     def __init__(
         self,
         contact_list_name: str,
-        description: str,
+        description: Optional[str],
         topics: list[dict[str, str]],
     ) -> None:
         self.contact_list_name = contact_list_name
@@ -240,10 +243,25 @@ class ContactList(BaseModel):
         unsubscribe_all = (
             False if "UnsubscribeAll" not in params else params["UnsubscribeAll"]
         )
+        attributes_data = params.get("AttributesData")
         new_contact = Contact(
-            contact_list_name, email_address, topic_preferences, unsubscribe_all
+            contact_list_name,
+            email_address,
+            topic_preferences,
+            unsubscribe_all,
+            attributes_data,
         )
         self.contacts[email_address] = new_contact
+
+    def update_contact(self, email: str, params: dict[str, Any]) -> None:
+        contact = self.get_contact(email)
+        if "TopicPreferences" in params:
+            contact.topic_preferences = params["TopicPreferences"]
+        if "UnsubscribeAll" in params:
+            contact.unsubscribe_all = params["UnsubscribeAll"]
+        if "AttributesData" in params:
+            contact.attributes_data = params["AttributesData"]
+        contact.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     def list_contacts(self) -> list[Contact]:
         return self.contacts.values()  # type: ignore[return-value]

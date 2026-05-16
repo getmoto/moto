@@ -224,6 +224,114 @@ def test_create_contact_list__with_topics():
 
 
 @mock_aws
+def test_update_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test-update"
+    original_topics = [
+        {
+            "TopicName": "original-topic",
+            "DisplayName": "original display name",
+            "DefaultSubscriptionStatus": "OPT_IN",
+        }
+    ]
+    updated_topics = [
+        {
+            "TopicName": "updated-topic",
+            "DisplayName": "updated display name",
+            "DefaultSubscriptionStatus": "OPT_OUT",
+        }
+    ]
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+        Description="original description",
+        Topics=original_topics,
+    )
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress="user@example.com",
+    )
+
+    # Execute
+    conn.update_contact_list(
+        ContactListName=contact_list_name,
+        Description="updated description",
+        Topics=updated_topics,
+    )
+    result = conn.get_contact_list(ContactListName=contact_list_name)
+
+    # Verify
+    assert result["ContactListName"] == contact_list_name
+    assert result["Description"] == "updated description"
+    assert result["Topics"] == updated_topics
+    contact = conn.get_contact(
+        ContactListName=contact_list_name,
+        EmailAddress="user@example.com",
+    )
+    assert contact["EmailAddress"] == "user@example.com"
+
+
+@mock_aws
+def test_update_contact_list__complete_replacement():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test-update-partial"
+    original_topics = [
+        {
+            "TopicName": "original-topic",
+            "DisplayName": "original display name",
+            "DefaultSubscriptionStatus": "OPT_IN",
+        }
+    ]
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+        Description="original description",
+        Topics=original_topics,
+    )
+
+    conn.update_contact_list(
+        ContactListName=contact_list_name,
+        Description="updated description",
+    )
+    result = conn.get_contact_list(ContactListName=contact_list_name)
+
+    # Verify
+    assert result["Description"] == "updated description"
+    assert result["Topics"] == []
+
+    conn.update_contact_list(
+        ContactListName=contact_list_name,
+        Topics=original_topics,
+    )
+    result = conn.get_contact_list(ContactListName=contact_list_name)
+
+    # Verify
+    assert "Description" not in result
+    assert result["Topics"] == original_topics
+
+
+@mock_aws
+def test_update_contact_list__unknown_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "unknown-list"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.update_contact_list(
+            ContactListName=contact_list_name,
+            Description="updated description",
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    assert (
+        e.value.response["Error"]["Message"]
+        == f"List with name: {contact_list_name} doesn't exist."
+    )
+
+
+@mock_aws
 def test_list_contact_lists():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -342,6 +450,205 @@ def test_create_contact():
     # Verify
     assert len(result["Contacts"]) == 1
     assert result["Contacts"][0]["EmailAddress"] == email
+
+
+@mock_aws
+def test_create_contact__with_attributes_data():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    attributes_data = json.dumps({"name": "Test User"})
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+
+    # Execute
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        AttributesData=attributes_data,
+    )
+    result = conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert result["AttributesData"] == attributes_data
+
+
+@mock_aws
+def test_update_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    attributes_data = json.dumps({"name": "Original User"})
+    updated_attributes_data = json.dumps({"name": "Updated User"})
+    original_topic_preferences = [
+        {
+            "TopicName": "original-topic",
+            "SubscriptionStatus": "OPT_IN",
+        }
+    ]
+    updated_topic_preferences = [
+        {
+            "TopicName": "updated-topic",
+            "SubscriptionStatus": "OPT_OUT",
+        }
+    ]
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=original_topic_preferences,
+        UnsubscribeAll=False,
+        AttributesData=attributes_data,
+    )
+
+    # Execute
+    conn.update_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=updated_topic_preferences,
+        UnsubscribeAll=True,
+        AttributesData=updated_attributes_data,
+    )
+    result = conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert result["ContactListName"] == contact_list_name
+    assert result["EmailAddress"] == email
+    assert result["TopicPreferences"] == updated_topic_preferences
+    assert result["UnsubscribeAll"] is True
+    assert result["AttributesData"] == updated_attributes_data
+
+
+@mock_aws
+def test_update_contact__only_updates_provided_fields():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    attributes_data = json.dumps({"name": "Original User"})
+    original_topic_preferences = [
+        {
+            "TopicName": "original-topic",
+            "SubscriptionStatus": "OPT_IN",
+        }
+    ]
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=original_topic_preferences,
+        UnsubscribeAll=False,
+        AttributesData=attributes_data,
+    )
+
+    # Execute
+    conn.update_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        UnsubscribeAll=True,
+    )
+    result = conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert result["TopicPreferences"] == original_topic_preferences
+    assert result["UnsubscribeAll"] is True
+    assert result["AttributesData"] == attributes_data
+
+
+@mock_aws
+def test_update_contact__replaces_topic_preferences():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    original_topic_preferences = [
+        {
+            "TopicName": "first-topic",
+            "SubscriptionStatus": "OPT_IN",
+        },
+        {
+            "TopicName": "second-topic",
+            "SubscriptionStatus": "OPT_IN",
+        },
+    ]
+    updated_topic_preferences = [
+        {
+            "TopicName": "second-topic",
+            "SubscriptionStatus": "OPT_OUT",
+        }
+    ]
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+    conn.create_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=original_topic_preferences,
+    )
+
+    # Execute
+    conn.update_contact(
+        ContactListName=contact_list_name,
+        EmailAddress=email,
+        TopicPreferences=updated_topic_preferences,
+    )
+    result = conn.get_contact(ContactListName=contact_list_name, EmailAddress=email)
+
+    # Verify
+    assert result["TopicPreferences"] == updated_topic_preferences
+
+
+@mock_aws
+def test_update_contact_no_contact_list():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.update_contact(
+            ContactListName=contact_list_name,
+            EmailAddress=email,
+            UnsubscribeAll=True,
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    assert (
+        e.value.response["Error"]["Message"]
+        == f"List with name: {contact_list_name} doesn't exist."
+    )
+
+
+@mock_aws
+def test_update_contact_no_contact():
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    contact_list_name = "test2"
+    email = "test@example.com"
+    conn.create_contact_list(
+        ContactListName=contact_list_name,
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as e:
+        conn.update_contact(
+            ContactListName=contact_list_name,
+            EmailAddress=email,
+            UnsubscribeAll=True,
+        )
+
+    # Verify
+    assert e.value.response["Error"]["Code"] == "NotFoundException"
+    assert e.value.response["Error"]["Message"] == f"{email} doesn't exist in List."
 
 
 @mock_aws

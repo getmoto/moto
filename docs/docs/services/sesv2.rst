@@ -119,11 +119,10 @@ sesv2
 - [ ] test_render_email_template
 - [X] untag_resource
 - [ ] update_configuration_set_event_destination
-- [ ] update_contact
-- [ ] update_contact_list
+- [X] update_contact
+- [X] update_contact_list
 - [ ] update_custom_verification_email_template
 - [X] update_email_identity_policy
 - [ ] update_email_template
 - [ ] update_reputation_entity_customer_managed_status
 - [ ] update_reputation_entity_policy
-
