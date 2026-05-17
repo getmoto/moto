@@ -9,6 +9,7 @@ from werkzeug.serving import run_simple
 # Expose ThreadedMotoServer as a public symbol according to PEP-561
 from moto.moto_server.threaded_moto_server import (
     ThreadedMotoServer as ThreadedMotoServer,
+    _MotoRequestHandler,
 )
 from moto.moto_server.werkzeug_app import (
     DomainDispatcherApplication,
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> None:
         threaded=True,
         use_reloader=args.reload,
         ssl_context=ssl_context,
+        request_handler=_MotoRequestHandler,
     )
 
 
