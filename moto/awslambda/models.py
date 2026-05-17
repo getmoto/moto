@@ -64,6 +64,7 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
+    get_backend,
     make_event_source_mapping_arn,
     make_function_arn,
     make_function_ver_arn,
@@ -236,6 +237,10 @@ class _DockerDataVolumeLayerContext:
             container = self._lambda_func.docker_client.containers.run(
                 "busybox", "sleep 100", volumes=volumes, detach=True
             )
+            # This block only runs when use_docker is True (it pulls a
+            # busybox image), so reading from the Docker-backed
+            # `lambda_backends` directly is intentional and avoids importing
+            # get_backend in a hot path.
             backend: LambdaBackend = lambda_backends[self._lambda_func.account_id][
                 self._lambda_func.region
             ]
@@ -416,7 +421,7 @@ class Permission(CloudFormationModel):
         **kwargs: Any,
     ) -> Permission:
         properties = cloudformation_json["Properties"]
-        backend = lambda_backends[account_id][region_name]
+        backend = get_backend(account_id, region_name)
         fn = backend.get_function(properties["FunctionName"])
         fn.policy.add_statement(raw=json.dumps(properties))
         return Permission(region=region_name)
@@ -534,7 +539,7 @@ class LayerVersion(CloudFormationModel):
             if prop in properties:
                 spec[prop] = properties[prop]
 
-        backend = lambda_backends[account_id][region_name]
+        backend = get_backend(account_id, region_name)
         layer_version = backend.publish_layer_version(spec)
         return layer_version
 
@@ -747,7 +752,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return json.dumps(self.get_configuration())
 
     def _get_layers_data(self, layers_versions_arns: list[str]) -> list[LayerDataType]:
-        backend = lambda_backends[self.account_id][self.region]
+        backend = get_backend(self.account_id, self.region)
         layer_versions = [
             backend.layers_versions_by_arn(layer_version)
             for layer_version in layers_versions_arns
@@ -1198,7 +1203,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 cls._create_zipfile_from_plaintext_code(spec["Code"]["ZipFile"])
             )
 
-        backend = lambda_backends[account_id][region_name]
+        backend = get_backend(account_id, region_name)
         fn = backend.create_function(spec)
         return fn
 
@@ -1242,7 +1247,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return zip_output.read()
 
     def delete(self, account_id: str, region: str) -> None:
-        lambda_backends[account_id][region].delete_function(self.function_name)
+        get_backend(account_id, region).delete_function(self.function_name)
 
     def create_url_config(self, config: dict[str, Any]) -> FunctionUrlConfig:
         self.url_config = FunctionUrlConfig(function=self, config=config)
@@ -1419,7 +1424,7 @@ class EventSourceMapping(CloudFormationModel):
         return {k: v for k, v in response_dict.items() if v is not None}
 
     def delete(self, account_id: str, region_name: str) -> None:
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         lambda_backend.delete_event_source_mapping(self.uuid)
 
     @staticmethod
@@ -1437,7 +1442,7 @@ class EventSourceMapping(CloudFormationModel):
         **kwargs: Any,
     ) -> EventSourceMapping:
         properties = cloudformation_json["Properties"]
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         return lambda_backend.create_event_source_mapping(properties)
 
     @classmethod
@@ -1451,7 +1456,7 @@ class EventSourceMapping(CloudFormationModel):
     ) -> EventSourceMapping:
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         return lambda_backend.update_event_source_mapping(event_source_uuid, properties)  # type: ignore[return-value]
 
     @classmethod
@@ -1463,7 +1468,7 @@ class EventSourceMapping(CloudFormationModel):
         region_name: str,
     ) -> None:
         properties = cloudformation_json["Properties"]
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         esms = lambda_backend.list_event_source_mappings(
             event_source_arn=properties["EventSourceArn"],
             function_name=properties["FunctionName"],
@@ -1501,7 +1506,7 @@ class LambdaVersion(CloudFormationModel):
     ) -> LambdaVersion:
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
-        func = lambda_backends[account_id][region_name].publish_version(function_name)
+        func = get_backend(account_id, region_name).publish_version(function_name)
         spec = {"Version": func.version}  # type: ignore[union-attr]
         return LambdaVersion(spec)
 
