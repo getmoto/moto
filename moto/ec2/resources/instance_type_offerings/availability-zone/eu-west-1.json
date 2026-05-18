@@ -3744,6 +3744,38 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "x8aedz.12xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.24xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.3xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.6xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.large",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.metal-12xl",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.metal-24xl",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "x8aedz.xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "x8g.12xlarge",
   "Location": "eu-west-1a"
  },

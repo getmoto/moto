@@ -3324,6 +3324,10 @@
   "Location": "us-east-1"
  },
  {
+  "InstanceType": "mac-m3ultra.metal",
+  "Location": "us-east-1"
+ },
+ {
   "InstanceType": "mac-m4.metal",
   "Location": "us-east-1"
  },

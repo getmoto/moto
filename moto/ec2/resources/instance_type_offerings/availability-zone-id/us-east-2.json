@@ -8480,6 +8480,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "u7in-24tb.224xlarge",
   "Location": "use2-az2"
  },

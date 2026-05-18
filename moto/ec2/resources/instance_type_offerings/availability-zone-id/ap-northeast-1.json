@@ -7740,6 +7740,38 @@
   "Location": "apne1-az2"
  },
  {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.metal",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
+  "Location": "apne1-az2"
+ },
+ {
   "InstanceType": "x2iezn.12xlarge",
   "Location": "apne1-az2"
  },

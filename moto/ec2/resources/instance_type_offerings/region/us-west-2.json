@@ -3276,6 +3276,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "mac-m3ultra.metal",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "mac-m4.metal",
   "Location": "us-west-2"
  },

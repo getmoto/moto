@@ -4496,6 +4496,10 @@
   "Location": "eu-north-1b"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "eu-north-1b"
  },

@@ -11896,6 +11896,38 @@
   "Location": "ap-northeast-1d"
  },
  {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.metal",
+  "Location": "ap-northeast-1d"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
+  "Location": "ap-northeast-1d"
+ },
+ {
   "InstanceType": "x2iezn.12xlarge",
   "Location": "ap-northeast-1d"
  },
