@@ -33465,7 +33465,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.12xlarge",
@@ -33601,7 +33601,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.16xlarge",
@@ -33880,7 +33880,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.2xlarge",
@@ -34285,7 +34285,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.4xlarge",
@@ -34405,7 +34405,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.8xlarge",
@@ -34711,7 +34711,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.large",
@@ -35060,7 +35060,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8ib.xlarge",
@@ -37040,7 +37040,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.12xlarge",
@@ -37176,7 +37176,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.16xlarge",
@@ -37455,7 +37455,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.2xlarge",
@@ -37860,7 +37860,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.4xlarge",
@@ -37980,7 +37980,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.8xlarge",
@@ -38286,7 +38286,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.large",
@@ -38635,7 +38635,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c8in.xlarge",
@@ -41975,8 +41975,8 @@
      },
      "Name": "Radeon Pro V520",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -42809,8 +42809,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -43806,8 +43806,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -44211,8 +44211,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44480,8 +44480,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -44616,8 +44616,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45197,8 +45197,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45349,8 +45349,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45587,8 +45587,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -45740,8 +45740,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -46349,8 +46349,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47252,8 +47252,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47571,8 +47571,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47870,8 +47870,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48156,8 +48156,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48304,8 +48304,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48445,8 +48445,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -49618,8 +49618,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49766,8 +49766,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49918,8 +49918,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -109595,6 +109595,100 @@
     1,
     2
    ]
+  }
+ },
+ "mac-m3ultra.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "shared",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 55000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 55000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 10,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "mac-m3ultra.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "ConnectionTrackingConfiguration": {
+    "DefaultTcpEstablishedTimeout": 432000,
+    "DefaultUdpStreamTimeout": 180,
+    "DefaultUdpTimeout": 30
+   },
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": false,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv4AddressesPerSecondaryInterface": 0,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 10.0,
+     "DefaultEnaQueueCountPerInterface": 8,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "10 Gigabit",
+     "PeakBandwidthInGbps": 10.0
+    }
+   ],
+   "NetworkPerformance": "10 Gigabit",
+   "SecondaryNetworkSupported": false
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "supported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Apple",
+   "SupportedArchitectures": [
+    "arm64_mac"
+   ],
+   "SustainedClockSpeedInGhz": 4.0
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 28,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 28
   }
  },
  "mac-m4.metal": {
