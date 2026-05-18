@@ -23027,6 +23027,15 @@
               "Value": "https://aws.amazon.com/rds/aurora/dsql/"
             },
             "regions": {
+              "ap-east-1": {
+                "Value": "ap-east-1",
+                "endpoint": {
+                  "Value": "dsql.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -23049,6 +23058,24 @@
                 "Value": "ap-northeast-3",
                 "endpoint": {
                   "Value": "dsql.ap-northeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-south-1": {
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "dsql.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-1": {
+                "Value": "ap-southeast-1",
+                "endpoint": {
+                  "Value": "dsql.ap-southeast-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23099,6 +23126,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-north-1": {
+                "Value": "eu-north-1",
+                "endpoint": {
+                  "Value": "dsql.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
@@ -23121,6 +23157,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "dsql.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sa-east-1": {
+                "Value": "sa-east-1",
+                "endpoint": {
+                  "Value": "dsql.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28144,6 +28189,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -28175,6 +28229,15 @@
                 "Value": "ap-south-1",
                 "endpoint": {
                   "Value": "emr-serverless.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-south-2": {
+                "Value": "ap-south-2",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28220,6 +28283,24 @@
                 "Value": "ap-southeast-5",
                 "endpoint": {
                   "Value": "emr-serverless.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28355,6 +28436,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "emr-serverless.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "emr-serverless.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37291,6 +37381,15 @@
                 "Value": "ap-east-1",
                 "endpoint": {
                   "Value": "inspector2.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "inspector2.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52976,6 +53075,12 @@
                   "Value": "odb.eu-south-1.amazonaws.com"
                 }
               },
+              "eu-south-2": {
+                "Value": "eu-south-2",
+                "endpoint": {
+                  "Value": "odb.eu-south-2.amazonaws.com"
+                }
+              },
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
@@ -56629,6 +56734,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "polly.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eusc-de-east-1": {
+                "Value": "eusc-de-east-1",
+                "endpoint": {
+                  "Value": "polly.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"

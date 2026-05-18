@@ -2411,6 +2411,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -4167,6 +4176,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -4318,6 +4336,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12917,6 +12944,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -15276,6 +15312,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -17134,6 +17179,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-southeast-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27034,6 +27088,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -28269,6 +28332,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41187,6 +41259,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -45699,6 +45780,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-south-2.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-south-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -54985,6 +55072,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pricing": {
                 "Value": "pricing",
                 "endpoint": {
@@ -60895,6 +60991,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -62361,6 +62466,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
