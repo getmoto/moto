@@ -560,8 +560,9 @@ def test_request_certificate_options_without_export_defaults_to_disabled():
     assert cert["Options"]["CertificateTransparencyLoggingPreference"] == "DISABLED"
 
     summary = client.list_certificates()["CertificateSummaryList"]
-    assert len(summary) == 1
-    assert summary[0]["Exported"] is False
+    matching = [c for c in summary if c["CertificateArn"] == arn]
+    assert len(matching) == 1
+    assert matching[0]["Exported"] is False
 
 
 @mock_aws
