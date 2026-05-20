@@ -194,7 +194,7 @@ class RecordSet(CloudFormationModel):
     def __init__(self, kwargs: dict[str, Any]):
         self.name = kwargs.get("Name", "")
         self.type = kwargs.get("Type")
-        self.ttl = kwargs.get("TTL", 0)
+        self.ttl = kwargs.get("TTL")
         self.records = kwargs.get("ResourceRecords", [])
         self.set_identifier = kwargs.get("SetIdentifier")
         self.weight = kwargs.get("Weight")

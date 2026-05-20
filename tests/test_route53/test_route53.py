@@ -1016,6 +1016,55 @@ def test_change_resource_record_sets_crud_valid():
 
 
 @mock_aws
+def test_alias_record_set_omits_ttl():
+    """Alias records have no TTL of their own — Route53 inherits it from the
+    aliased target — so the ListResourceRecordSets response must not include a
+    TTL field for them.
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
+    )
+    hosted_zone_id = conn.list_hosted_zones_by_name(DNSName="db.")["HostedZones"][0][
+        "Id"
+    ]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "alias.db.",
+                        "Type": "A",
+                        "AliasTarget": {
+                            "HostedZoneId": hosted_zone_id,
+                            "DNSName": "target.db.",
+                            "EvaluateTargetHealth": False,
+                        },
+                    },
+                }
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    alias_record = next(
+        r for r in response["ResourceRecordSets"] if r["Name"] == "alias.db."
+    )
+    assert "TTL" not in alias_record
+    assert "ResourceRecords" not in alias_record
+    assert alias_record["AliasTarget"] == {
+        "HostedZoneId": hosted_zone_id,
+        "DNSName": "target.db.",
+        "EvaluateTargetHealth": False,
+    }
+
+
+@mock_aws
 @pytest.mark.parametrize("multi_value_answer", [True, False, None])
 def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     multi_value_answer,
