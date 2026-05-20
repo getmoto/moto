@@ -617,7 +617,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._certificates[cert.arn] = cert
 
         if cert_options:
-            self._certificates[cert.arn].cert_options = cert_options
+            self._certificates[cert.arn].cert_options.update(cert_options)
 
         if tags:
             cert.tags.add(tags)
