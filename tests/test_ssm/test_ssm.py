@@ -662,6 +662,31 @@ def test_get_parameter(param):
     )
 
 
+@pytest.mark.parametrize(
+    "param",
+    ["/test", "arn:aws:ssm:us-east-1:123456789012:parameter/test"],
+)
+@mock_aws
+def test_get_parameters_by_arn(param):
+    # Setup
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    client.put_parameter(
+        Name="/test", Description="A test parameter", Value="value", Type="String"
+    )
+
+    # Execute
+    response = client.get_parameters(Names=[param], WithDecryption=False)
+
+    # Verify
+    assert response["InvalidParameters"] == []
+    assert len(response["Parameters"]) == 1
+    parameter = response["Parameters"][0]
+    assert parameter["Name"] == "/test"
+    assert parameter["Value"] == "value"
+    assert parameter["Type"] == "String"
+    assert parameter["ARN"] == (f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/test")
+
+
 @mock_aws
 def test_get_parameter_with_version_and_labels():
     client = boto3.client("ssm", region_name=SSM_REGION)

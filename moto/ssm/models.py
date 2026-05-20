@@ -1879,7 +1879,10 @@ class SimpleSystemManagerBackend(BaseBackend):
             )
 
         for name in set(names):
-            if name.split(":")[0] in self._parameters:
+            lookup_name = name
+            if lookup_name.startswith(self.ssm_prefix):
+                lookup_name = lookup_name.replace(self.ssm_prefix, "")
+            if lookup_name.split(":")[0] in self._parameters:
                 try:
                     param = self.get_parameter(name)
 
