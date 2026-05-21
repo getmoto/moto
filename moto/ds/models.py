@@ -155,7 +155,7 @@ class Directory(BaseModel):
         self.stage_last_updated_date_time = unix_time()
         self.ldaps_settings_info: list[LdapsSettingInfo] = []
         self.radius_settings: dict[str, Any] | None = None
-        self.radius_status: str = "Disabled"
+        self.radius_status: str | None = None
         self.trusts: list[Trust] = []
         self.settings = (
             copy.deepcopy(SETTINGS_ENTRIES_MODEL)
@@ -256,14 +256,14 @@ class Directory(BaseModel):
                 setting.ldaps_status = "Disabled"
 
     def enable_radius(self, radius_settings: dict[str, Any]) -> None:
-        """Store RADIUS settings"""
+        """Store RADIUS settings and mark as completed."""
         self.radius_settings = radius_settings
-        self.radius_status = "Enabled"
+        self.radius_status = "Completed"
 
     def disable_radius(self) -> None:
-        """Clear RADIUS settings"""
+        """Clear RADIUS settings and status."""
         self.radius_settings = None
-        self.radius_status = "Disabled"
+        self.radius_status = None
 
     def to_dict(self) -> dict[str, Any]:
         """Create a dictionary of attributes for Directory."""
@@ -297,7 +297,8 @@ class Directory(BaseModel):
             attributes["ConnectSettings"]["CustomerDnsIps"] = None
 
         attributes["RadiusSettings"] = self.radius_settings or {}
-        attributes["RadiusStatus"] = self.radius_status
+        if self.radius_status:
+            attributes["RadiusStatus"] = self.radius_status
         return attributes
 
 
