@@ -244,7 +244,7 @@ class Distribution(BaseModel, ManagedState):
         # Configure internal properties
         self.distribution_id = random_id()
         self.id = self.distribution_id
-        self.arn = f"arn:{get_partition(region_name)}:cloudfront:{account_id}:distribution/{self.distribution_id}"
+        self.arn = f"arn:{get_partition(region_name)}:cloudfront::{account_id}:distribution/{self.distribution_id}"
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
         self.active_trusted_key_groups = ActiveTrustedKeyGroups()

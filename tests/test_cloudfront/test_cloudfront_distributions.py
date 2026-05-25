@@ -19,7 +19,7 @@ def test_create_distribution_s3_minimum(region, partition):
     dist = client.create_distribution(DistributionConfig=config)["Distribution"]
     assert (
         dist["ARN"]
-        == f"arn:{partition}:cloudfront:{ACCOUNT_ID}:distribution/{dist['Id']}"
+        == f"arn:{partition}:cloudfront::{ACCOUNT_ID}:distribution/{dist['Id']}"
     )
     assert dist["Status"] == "InProgress"
     assert "LastModifiedTime" in dist
