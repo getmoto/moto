@@ -46,7 +46,6 @@ from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
-from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
@@ -139,10 +138,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def logs_backend(self) -> LogsBackend:
         return logs_backends[self.account_id][self.region_name]
-
-    @property
-    def rds_backend(self) -> RDSBackend:
-        return rds_backends[self.account_id][self.region_name]
 
     @property
     def fsx_backends(self) -> FSxBackend:
@@ -979,36 +974,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                             "Tags": tags,
                         }
 
-        # RDS resources
-        resource_map: dict[str, dict[str, Any]] = {
-            "rds:cluster": dict(self.rds_backend.clusters),
-            "rds:db": dict(self.rds_backend.databases),
-            "rds:snapshot": dict(self.rds_backend.database_snapshots),
-            "rds:cluster-snapshot": dict(self.rds_backend.cluster_snapshots),
-            "rds:db-proxy": self.rds_backend.db_proxies,
-        }
-        for resource_type, resource_source in resource_map.items():
-            if (
-                not resource_type_filters
-                or "rds" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    tags = resource.get_tags()
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": resource.arn,
-                        "Tags": tags,
-                    }
-
-        # RDS Reserved Database Instance
-        # RDS Option Group
-        # RDS Parameter Group
-        # RDS Security Group
-        # RDS Subnet Group
-        # RDS Event Subscription
-
         # RedShift Cluster
         # RedShift Hardware security module (HSM) client certificate
         # RedShift HSM connection
@@ -1646,15 +1611,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(
-                f"arn:{get_partition(self.region_name)}:rds:"
-            ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
-                self.rds_backend.add_tags_to_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            elif arn.startswith(
-                f"arn:{get_partition(self.region_name)}:workspaces-web:"
-            ):
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces-web:"):
                 resource_id = arn.split("/")[-1]
                 self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
@@ -1737,8 +1694,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.quicksight_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):
                 self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:rds:"):
-                self.rds_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
