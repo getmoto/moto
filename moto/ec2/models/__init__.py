@@ -273,8 +273,7 @@ class EC2Backend(
 
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         resource_id = arn.rsplit("/", 1)[-1]
-        tags_to_delete = dict.fromkeys(tag_keys, "")
-        self.delete_tags([resource_id], tags_to_delete)
+        self.delete_tag_keys([resource_id], tag_keys)
 
 
 ec2_backends = BackendDict(EC2Backend, "ec2")
