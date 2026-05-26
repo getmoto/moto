@@ -4,7 +4,6 @@ from typing import Any
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.athena.models import athena_backends
-from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
@@ -165,10 +164,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def lambda_backend(self) -> LambdaBackend:
-        return lambda_backends[self.account_id][self.region_name]
 
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
@@ -1422,21 +1417,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        # Lambda Instance
-        if (
-            not resource_type_filters
-            or "lambda" in resource_type_filters
-            or "lambda:function" in resource_type_filters
-        ):
-            for f in self.lambda_backend.list_functions():
-                tags = format_tags(f.tags)
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f.function_arn,
-                    "Tags": tags,
-                }
-
         if (
             not resource_type_filters
             or "dynamodb" in resource_type_filters
@@ -1837,8 +1817,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
-                self.lambda_backend.tag_resource(arn, tags)
             elif arn.startswith(
                 f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
             ):
@@ -1892,9 +1870,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
-                self.lambda_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(
+            if arn.startswith(
                 f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
             ):
                 resource_id = arn.split("/")[-1]

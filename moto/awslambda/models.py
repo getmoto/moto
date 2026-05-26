@@ -16,7 +16,7 @@ import warnings
 import weakref
 import zipfile
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime
 from gzip import GzipFile
 from sys import platform
@@ -29,6 +29,7 @@ from moto.awslambda.policy import Policy
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError as RESTError
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
@@ -1903,7 +1904,7 @@ class LayerStorage:
         return None
 
 
-class LambdaBackend(BaseBackend):
+class LambdaBackend(BaseBackend, TaggableResourcesMixin):
     """
     Implementation of the AWS Lambda endpoint.
     Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
@@ -1983,6 +1984,8 @@ class LambdaBackend(BaseBackend):
         @mock_aws(config={"lambda": {"use_docker": False}})
 
     """
+
+    SERVICE_NAMESPACE = "lambda"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2468,15 +2471,6 @@ class LambdaBackend(BaseBackend):
         resource = self._get_resource_by_arn(resource_arn)
         return resource.tags
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        resource = self._get_resource_by_arn(resource_arn)
-        resource.tags.update(tags)
-
-    def untag_resource(self, resource_arn: str, tagKeys: list[str]) -> None:
-        resource = self._get_resource_by_arn(resource_arn)
-        for key in tagKeys:
-            resource.tags.pop(key, None)
-
     def add_permission(
         self, function_name: str, qualifier: str, raw: str
     ) -> dict[str, Any]:
@@ -2648,6 +2642,24 @@ class LambdaBackend(BaseBackend):
     ) -> None:
         layer_version = self.get_layer_version(layer_name, str(version_number))
         layer_version.policy.del_statement(sid, revision)
+
+    # Resource Groups Tagging API
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for fn in self.list_functions():
+            yield TaggedResource(
+                arn=fn.function_arn,
+                tags=fn.tags,
+                resource_type="lambda:function",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        for key in tag_keys:
+            resource.tags.pop(key, None)
 
 
 def do_validate_s3() -> bool:
