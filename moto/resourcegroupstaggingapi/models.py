@@ -15,6 +15,12 @@ from moto.connectcampaigns.models import (
     connectcampaigns_backends,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import (
+    TaggableResourcesMixin,
+    iter_taggable_backends,
+    make_tag_matcher,
+    match_resource_type,
+)
 from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -286,6 +292,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def sesv2_backend(self) -> SESV2Backend:
         return sesv2_backends[self.account_id][self.region_name]
 
+    def _get_backend_for_resource(
+        self, resource_arn: str
+    ) -> TaggableResourcesMixin | None:
+        backend = next(
+            (
+                b
+                for b in iter_taggable_backends(self.account_id, self.region_name)
+                if b.owns_arn(resource_arn)
+            ),
+            None,
+        )
+        return backend
+
     def _get_resources_generator(
         self,
         tag_filters: list[dict[str, Any]] | None = None,
@@ -341,6 +360,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
             return result
 
+        # Services opted in via TaggableResourcesMixin
+        tag_matcher = make_tag_matcher(tag_filters)
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                if not resource.tags:
+                    continue
+                if not match_resource_type(
+                    resource.resource_type, resource_type_filters
+                ):
+                    continue
+                if not tag_matcher(resource.tags):
+                    continue
+                yield {
+                    "ResourceARN": resource.arn,
+                    "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
+                }
         # ACM
         if not resource_type_filters or "acm" in resource_type_filters:
             for certificate in self.acm_backend._certificates.values():
@@ -507,9 +542,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             try:
                 from moto.cloudformation import cloudformation_backends
 
-                backend = cloudformation_backends[self.account_id][self.region_name]
+                cf_backend = cloudformation_backends[self.account_id][self.region_name]
 
-                for stack in backend.stacks.values():
+                for stack in cf_backend.stacks.values():
                     tags = format_tags(stack.tags)
                     if not tag_filter(tags):
                         continue
@@ -1465,6 +1500,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
+        # Services opted in via TaggableResourcesMixin
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                yield from resource.tags.keys()
         # S3
         for bucket in self.s3_backend.buckets.values():
             tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
@@ -1522,6 +1561,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
+        # Services opted in via TaggableResourcesMixin
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                for key, value in resource.tags.items():
+                    if key == tag_key:
+                        yield value
         # Do S3, resource type s3
         for bucket in self.s3_backend.buckets.values():
             tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
@@ -1757,6 +1802,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         }
 
         for arn in resource_arns:
+            backend_for_arn = self._get_backend_for_resource(arn)
+            if backend_for_arn is not None:
+                try:
+                    backend_for_arn.tag_resource(arn, tags)
+                except NotImplementedError:
+                    missing_resources.append(arn)
+                continue
             if arn.startswith(
                 f"arn:{get_partition(self.region_name)}:rds:"
             ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
@@ -1833,6 +1885,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         }
 
         for arn in resource_arn_list:
+            backend_for_arn = self._get_backend_for_resource(arn)
+            if backend_for_arn is not None:
+                try:
+                    backend_for_arn.untag_resource(arn, tag_keys)
+                except NotImplementedError:
+                    missing_resources.append(arn)
+                continue
             if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
                 self.lambda_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(

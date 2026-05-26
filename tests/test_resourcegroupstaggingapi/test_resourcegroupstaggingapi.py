@@ -1259,29 +1259,25 @@ def test_get_resources_ssm():
 @mock_aws
 def test_tag_resources_for_unknown_service():
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    unknown_arn = "arn:aws:unknown:us-west-2:123456789012:resource/unknown-resource"
     missing_resources = rtapi.tag_resources(
-        ResourceARNList=["arn:aws:service_x"], Tags={"key1": "k", "key2": "v"}
+        ResourceARNList=[unknown_arn], Tags={"key1": "k", "key2": "v"}
     )["FailedResourcesMap"]
 
-    assert "arn:aws:service_x" in missing_resources
-    assert (
-        missing_resources["arn:aws:service_x"]["ErrorCode"]
-        == "InternalServiceException"
-    )
+    assert unknown_arn in missing_resources
+    assert missing_resources[unknown_arn]["ErrorCode"] == "InternalServiceException"
 
 
 @mock_aws
 def test_untag_resources_for_unknown_service():
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    unknown_arn = "arn:aws:unknown:us-west-2:123456789012:resource/unknown-resource"
     missing_resources = rtapi.untag_resources(
-        ResourceARNList=["arn:aws:service_x"], TagKeys=["key1", "key2"]
+        ResourceARNList=[unknown_arn], TagKeys=["key1", "key2"]
     )["FailedResourcesMap"]
 
-    assert "arn:aws:service_x" in missing_resources
-    assert (
-        missing_resources["arn:aws:service_x"]["ErrorCode"]
-        == "InternalServiceException"
-    )
+    assert unknown_arn in missing_resources
+    assert missing_resources[unknown_arn]["ErrorCode"] == "InternalServiceException"
 
 
 @mock_aws
