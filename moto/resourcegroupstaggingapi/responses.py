@@ -55,8 +55,8 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         return ActionResult(response)
 
     def tag_resources(self) -> ActionResult:
-        resource_arns = self._get_param("ResourceARNList")
-        tags = self._get_param("Tags")
+        resource_arns = self._get_param("ResourceARNList", [])
+        tags = self._get_param("Tags", {})
         failed_resources = self.backend.tag_resources(
             resource_arns=resource_arns, tags=tags
         )
@@ -64,8 +64,8 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         return ActionResult({"FailedResourcesMap": failed_resources})
 
     def untag_resources(self) -> ActionResult:
-        resource_arn_list = self._get_param("ResourceARNList")
-        tag_keys = self._get_param("TagKeys")
+        resource_arn_list = self._get_param("ResourceARNList", [])
+        tag_keys = self._get_param("TagKeys", [])
 
         failed_resources = self.backend.untag_resources(
             resource_arn_list=resource_arn_list,
