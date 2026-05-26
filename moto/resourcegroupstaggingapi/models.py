@@ -50,7 +50,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
@@ -86,10 +85,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def appsync_backend(self) -> AppSyncBackend:
         return appsync_backends[self.account_id][self.region_name]
-
-    @property
-    def s3_backend(self) -> S3Backend:
-        return s3_backends[self.account_id][self.partition]
 
     @property
     def directconnect_backend(self) -> DirectConnectBackend:
@@ -478,20 +473,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         if not tag_filter(tags):
                             continue
                         yield {"ResourceARN": f"{arn}", "Tags": tags}
-
-        # S3
-        if (
-            not resource_type_filters
-            or "s3" in resource_type_filters
-            or "s3:bucket" in resource_type_filters
-        ):
-            for bucket in self.s3_backend.buckets.values():
-                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {"ResourceARN": bucket.arn, "Tags": tags}
 
         # Cloud Directory
         if self.clouddirectory_backend:
@@ -1393,11 +1374,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         for backend in iter_taggable_backends(self.account_id, self.region_name):
             for resource in backend.iter_tagged_resources():
                 yield from resource.tags.keys()
-        # S3
-        for bucket in self.s3_backend.buckets.values():
-            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
-            for key, _ in tags.items():
-                yield key
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
@@ -1413,12 +1389,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 for key, value in resource.tags.items():
                     if key == tag_key:
                         yield value
-        # Do S3, resource type s3
-        for bucket in self.s3_backend.buckets.values():
-            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
-            for key, value in tags.items():
-                if key == tag_key:
-                    yield value
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
