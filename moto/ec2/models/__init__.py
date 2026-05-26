@@ -1,4 +1,8 @@
+from collections.abc import Iterator
+from typing import Any
+
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 
 from ..exceptions import (
     EC2ClientError,
@@ -80,6 +84,7 @@ class SettingsBackend:
 
 class EC2Backend(
     BaseBackend,
+    TaggableResourcesMixin,
     InstanceBackend,
     InstanceTypeBackend,
     InstanceTypeOfferingBackend,
@@ -133,6 +138,8 @@ class EC2Backend(
     .. note:: You must set `MOTO_AMIS_PATH` before importing moto.
 
     """
+
+    SERVICE_NAMESPACE = "ec2"
 
     def __init__(self, region_name: str, account_id: str):
         BaseBackend.__init__(self, region_name, account_id)
@@ -217,6 +224,57 @@ class EC2Backend(
                     association_ids=[resource_id]
                 )
         return True
+
+    # Resource Groups Tagging API
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        resource_collections: dict[str, Any] = {
+            "ec2:customer-gateway": self.customer_gateways.values(),
+            "ec2:flow-logs": self.flow_logs.values(),
+            "ec2:image": self.amis.values(),
+            "ec2:instance": (
+                instance
+                for reservation in self.reservations.values()
+                for instance in reservation.instances
+            ),
+            "ec2:internet-gateway": self.internet_gateways.values(),
+            "ec2:managed-prefix-lists": self.managed_prefix_lists.values(),
+            "ec2:natgateway": self.nat_gateways.values(),
+            "ec2:network-interface": self.enis.values(),
+            "ec2:route-table": self.route_tables.values(),
+            "ec2:security-group": (
+                sg for vpc in self.groups.values() for sg in vpc.values()
+            ),
+            "ec2:snapshot": self.snapshots.values(),
+            "ec2:spot-instance-request": self.spot_instance_requests.values(),
+            "ec2:subnet": (
+                subnet
+                for subnets_by_az in self.subnets.values()
+                for subnet in subnets_by_az.values()
+            ),
+            "ec2:transit-gateway": self.transit_gateways.values(),
+            "ec2:transit-gateway-attachment": self.transit_gateway_attachments.values(),
+            "ec2:volume": self.volumes.values(),
+            "ec2:vpc": self.vpcs.values(),
+            "ec2:vpc-peering-connection": self.vpc_pcxs.values(),
+            "ec2:vpn-connection": self.vpn_connections.values(),
+        }
+        for resource_type, resources in resource_collections.items():
+            type_part = resource_type.split(":", 1)[1]
+            for resource in resources:
+                yield TaggedResource(
+                    arn=f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{type_part}/{resource.id}",
+                    tags=dict(self.tags.get(resource.id, {})),
+                    resource_type=resource_type,
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        self.create_tags([resource_id], tags)
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        tags_to_delete = dict.fromkeys(tag_keys, "")
+        self.delete_tags([resource_id], tags_to_delete)
 
 
 ec2_backends = BackendDict(EC2Backend, "ec2")
