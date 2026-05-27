@@ -2945,3 +2945,24 @@ def get_role_name():
                 AssumeRolePolicyDocument="some policy",
                 Path="/my-path/",
             )["Role"]["Arn"]
+
+
+@mock_aws
+def test_update_missing_stack_instance_raises_exception():
+    cf = boto3.client("cloudformation", region_name="eu-west-1")
+    stack_name = "test-stack-name"
+    cf.create_stack_set(
+        StackSetName=stack_name,
+        TemplateBody='{"Resources": {}}',
+        PermissionModel="SELF_MANAGED",
+    )
+    with pytest.raises(ClientError) as exc:
+        cf.update_stack_instances(
+            StackSetName=stack_name,
+            Accounts=["123456789012"],
+            Regions=["eu-west-1"],
+        )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "StackInstanceNotFoundException"
+    metadata = exc.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404

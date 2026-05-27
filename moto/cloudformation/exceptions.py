@@ -62,3 +62,8 @@ class UnsupportedAttribute(CloudFormationError):
         super().__init__(
             f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt"
         )
+
+
+class StackInstanceNotFound(CloudFormationError):
+    code = "StackInstanceNotFoundException"
+    message = "The specified stack instance doesn't exist."
