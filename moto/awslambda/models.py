@@ -96,10 +96,8 @@ def zip2tar(zip_bytes: bytes) -> io.BytesIO:
             # Ensure minimum read bits for all users.
             # Lambda extracts these files to /var/task and needs
             # at least 0444 (read) for files and 0555 (read+execute) for dirs.
-            if zipinfo.is_dir():
-                tarinfo.mode |= 0o555
-            else:
-                tarinfo.mode |= 0o444
+            minimum_permissions = 0o555 if zipinfo.is_dir() else 0o444
+            tarinfo.mode |= minimum_permissions
             infile = zipf.open(zipinfo.filename)
             tarf.addfile(tarinfo, infile)
 
