@@ -3,11 +3,13 @@ from __future__ import annotations
 import itertools
 import math
 from collections import OrderedDict
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
@@ -1142,7 +1144,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return self.warm_pool
 
 
-class AutoScalingBackend(BaseBackend):
+class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "autoscaling"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.autoscaling_groups: dict[str, FakeAutoScalingGroup] = OrderedDict()
@@ -1975,6 +1979,25 @@ class AutoScalingBackend(BaseBackend):
     def delete_warm_pool(self, group_name: str) -> None:
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.warm_pool = None
+
+    # Resource Groups Tagging API
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        # From the AWS documentation as of 2026-05-24:
+        # The TagResources and UntagResources operations of AWS Resource Groups Tagging API work as
+        # documented with Auto Scaling Groups. However, the GetTagKey, GetTagValues and GetResources
+        # operations aren't supported at this time and return an empty response for this service.
+        # https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/supported-services.html
+        return iter([])
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        group_name = arn.rsplit("autoScalingGroupName/", 1)[-1]
+        self.create_or_update_tags(
+            [{"ResourceId": group_name, "Key": k, "Value": v} for k, v in tags.items()]
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        group_name = arn.rsplit("autoScalingGroupName/", 1)[-1]
+        self.delete_tags([{"ResourceId": group_name, "Key": k} for k in tag_keys])
 
 
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")

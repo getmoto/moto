@@ -30,7 +30,7 @@ def test_update_distribution():
     dist = client.update_distribution(
         DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
     )["Distribution"]
-    assert dist["ARN"] == f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{dist['Id']}"
+    assert dist["ARN"] == f"arn:aws:cloudfront::{ACCOUNT_ID}:distribution/{dist['Id']}"
     assert dist["Status"] == "Deployed"
     assert "LastModifiedTime" in dist
     assert dist["InProgressInvalidationBatches"] == 0

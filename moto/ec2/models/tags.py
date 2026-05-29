@@ -53,6 +53,13 @@ class TagBackend:
                         self.tags[resource_id].pop(tag)
         return True
 
+    def delete_tag_keys(self, resource_ids: list[str], tag_keys: list[str]) -> bool:
+        for resource_id in resource_ids:
+            for tag_key in tag_keys:
+                if tag_key in self.tags[resource_id]:
+                    self.tags[resource_id].pop(tag_key)
+        return True
+
     def describe_tags(
         self, filters: dict[str, list[str]] | None = None
     ) -> list[dict[str, str]]:

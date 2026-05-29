@@ -318,3 +318,60 @@ def test_enable_describe_disable_ldaps():
     ]
     assert len(ldaps) == 1
     assert ldaps[0]["LDAPSStatus"] == "Disabled"
+
+
+@mock_aws
+def test_enable_radius():
+    """Test enable_radius and disable_radius for AD Connector."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_ad_connector(client, ec2_client)
+
+    radius_settings = {
+        "RadiusServers": ["1.2.3.4"],
+        "RadiusPort": 1812,
+        "RadiusTimeout": 30,
+        "RadiusRetries": 3,
+        "SharedSecret": "supersecret",
+        "AuthenticationProtocol": "PAP",
+        "DisplayLabel": "MFA",
+        "UseSameUsername": False,
+    }
+    client.enable_radius(DirectoryId=directory_id, RadiusSettings=radius_settings)
+
+    directory = client.describe_directories(DirectoryIds=[directory_id])[
+        "DirectoryDescriptions"
+    ][0]
+    assert directory["RadiusStatus"] == "Completed"
+    assert directory["RadiusSettings"]["RadiusServers"] == ["1.2.3.4"]
+    assert directory["RadiusSettings"]["RadiusPort"] == 1812
+    assert directory["RadiusSettings"]["AuthenticationProtocol"] == "PAP"
+
+
+@mock_aws
+def test_disable_radius():
+    """Test disabling RADIUS after enabling it for AD Connector."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_ad_connector(client, ec2_client)
+
+    radius_settings = {
+        "RadiusServers": ["1.2.3.4"],
+        "RadiusPort": 1812,
+        "RadiusTimeout": 30,
+        "RadiusRetries": 3,
+        "SharedSecret": "supersecret",
+        "AuthenticationProtocol": "PAP",
+        "DisplayLabel": "MFA",
+        "UseSameUsername": False,
+    }
+    client.enable_radius(DirectoryId=directory_id, RadiusSettings=radius_settings)
+    client.disable_radius(DirectoryId=directory_id)
+
+    directory = client.describe_directories(DirectoryIds=[directory_id])[
+        "DirectoryDescriptions"
+    ][0]
+    assert "RadiusStatus" not in directory
+    assert directory["RadiusSettings"] == {}

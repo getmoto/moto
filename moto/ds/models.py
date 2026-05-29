@@ -154,6 +154,8 @@ class Directory(BaseModel):
         self.launch_time = unix_time()
         self.stage_last_updated_date_time = unix_time()
         self.ldaps_settings_info: list[LdapsSettingInfo] = []
+        self.radius_settings: dict[str, Any] | None = None
+        self.radius_status: str | None = None
         self.trusts: list[Trust] = []
         self.settings = (
             copy.deepcopy(SETTINGS_ENTRIES_MODEL)
@@ -253,6 +255,16 @@ class Directory(BaseModel):
             for setting in self.ldaps_settings_info:
                 setting.ldaps_status = "Disabled"
 
+    def enable_radius(self, radius_settings: dict[str, Any]) -> None:
+        """Store RADIUS settings and mark as completed."""
+        self.radius_settings = radius_settings
+        self.radius_status = "Completed"
+
+    def disable_radius(self) -> None:
+        """Clear RADIUS settings and status."""
+        self.radius_settings = None
+        self.radius_status = None
+
     def to_dict(self) -> dict[str, Any]:
         """Create a dictionary of attributes for Directory."""
         attributes = {
@@ -283,6 +295,10 @@ class Directory(BaseModel):
         else:
             attributes["ConnectSettings"] = self.connect_settings
             attributes["ConnectSettings"]["CustomerDnsIps"] = None
+
+        attributes["RadiusSettings"] = self.radius_settings or {}
+        if self.radius_status:
+            attributes["RadiusStatus"] = self.radius_status
         return attributes
 
 
@@ -718,6 +734,18 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
+
+    def enable_radius(self, directory_id: str, radius_settings: dict[str, Any]) -> None:
+        """Enable RADIUS for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        directory.enable_radius(radius_settings)
+
+    def disable_radius(self, directory_id: str) -> None:
+        """Disable RADIUS for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        directory.disable_radius()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_settings(

@@ -4,7 +4,6 @@ from typing import Any
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.athena.models import athena_backends
-from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
@@ -15,10 +14,15 @@ from moto.connectcampaigns.models import (
     connectcampaigns_backends,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import (
+    TaggableResourcesMixin,
+    iter_taggable_backends,
+    make_tag_matcher,
+    match_resource_type,
+)
 from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
-from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
@@ -42,12 +46,10 @@ from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
-from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
@@ -85,20 +87,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return appsync_backends[self.account_id][self.region_name]
 
     @property
-    def s3_backend(self) -> S3Backend:
-        return s3_backends[self.account_id][self.partition]
-
-    @property
     def directconnect_backend(self) -> DirectConnectBackend:
         return directconnect_backends[self.account_id][self.region_name]
 
     @property
     def dms_backend(self) -> DatabaseMigrationServiceBackend:
         return dms_backends[self.account_id][self.region_name]
-
-    @property
-    def ec2_backend(self) -> Any:  # type: ignore[misc]
-        return ec2_backends[self.account_id][self.region_name]
 
     @property
     def efs_backend(self) -> EFSBackend:
@@ -141,10 +135,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return logs_backends[self.account_id][self.region_name]
 
     @property
-    def rds_backend(self) -> RDSBackend:
-        return rds_backends[self.account_id][self.region_name]
-
-    @property
     def fsx_backends(self) -> FSxBackend:
         return fsx_backends[self.account_id][self.region_name]
 
@@ -159,10 +149,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def lambda_backend(self) -> LambdaBackend:
-        return lambda_backends[self.account_id][self.region_name]
 
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
@@ -286,6 +272,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def sesv2_backend(self) -> SESV2Backend:
         return sesv2_backends[self.account_id][self.region_name]
 
+    def _get_backend_for_resource(
+        self, resource_arn: str
+    ) -> TaggableResourcesMixin | None:
+        backend = next(
+            (
+                b
+                for b in iter_taggable_backends(self.account_id, self.region_name)
+                if b.owns_arn(resource_arn)
+            ),
+            None,
+        )
+        return backend
+
     def _get_resources_generator(
         self,
         tag_filters: list[dict[str, Any]] | None = None,
@@ -341,6 +340,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
             return result
 
+        # Services opted in via TaggableResourcesMixin
+        tag_matcher = make_tag_matcher(tag_filters)
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                if not resource.tags:
+                    continue
+                if not match_resource_type(
+                    resource.resource_type, resource_type_filters
+                ):
+                    continue
+                if not tag_matcher(resource.tags):
+                    continue
+                yield {
+                    "ResourceARN": resource.arn,
+                    "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
+                }
         # ACM
         if not resource_type_filters or "acm" in resource_type_filters:
             for certificate in self.acm_backend._certificates.values():
@@ -459,20 +474,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                             continue
                         yield {"ResourceARN": f"{arn}", "Tags": tags}
 
-        # S3
-        if (
-            not resource_type_filters
-            or "s3" in resource_type_filters
-            or "s3:bucket" in resource_type_filters
-        ):
-            for bucket in self.s3_backend.buckets.values():
-                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {"ResourceARN": bucket.arn, "Tags": tags}
-
         # Cloud Directory
         if self.clouddirectory_backend:
             if not resource_type_filters or "clouddirectory" in resource_type_filters:
@@ -507,9 +508,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             try:
                 from moto.cloudformation import cloudformation_backends
 
-                backend = cloudformation_backends[self.account_id][self.region_name]
+                cf_backend = cloudformation_backends[self.account_id][self.region_name]
 
-                for stack in backend.stacks.values():
+                for stack in cf_backend.stacks.values():
                     tags = format_tags(stack.tags)
                     if not tag_filter(tags):
                         continue
@@ -665,57 +666,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{task_definition.arn}", "Tags": tags}
-
-        # EC2 Resources
-        ec2_resource_types = {
-            "ec2:image": self.ec2_backend.amis.values(),
-            "ec2:instance": (
-                instance
-                for reservation in self.ec2_backend.reservations.values()
-                for instance in reservation.instances
-            ),
-            "ec2:network-interface": self.ec2_backend.enis.values(),
-            "ec2:security-group": (
-                sg for vpc in self.ec2_backend.groups.values() for sg in vpc.values()
-            ),
-            "ec2:snapshot": self.ec2_backend.snapshots.values(),
-            "ec2:volume": self.ec2_backend.volumes.values(),
-            "ec2:vpc": self.ec2_backend.vpcs.values(),
-            "ec2:subnet": (
-                subnet
-                for subnet in self.ec2_backend.subnets.values()
-                for subnet in subnet.values()
-            ),
-            "ec2:vpc-peering-connection": self.ec2_backend.vpc_pcxs.values(),
-            "ec2:transit-gateway": self.ec2_backend.transit_gateways.values(),
-            "ec2:transit-gateway-attachment": self.ec2_backend.transit_gateway_attachments.values(),
-            "ec2:route-table": self.ec2_backend.route_tables.values(),
-            "ec2:customer-gateway": self.ec2_backend.customer_gateways.values(),
-            "ec2:vpn-connection": self.ec2_backend.vpn_connections.values(),
-            "ec2:natgateway": self.ec2_backend.nat_gateways.values(),
-            "ec2:internet-gateway": self.ec2_backend.internet_gateways.values(),
-            "ec2:managed-prefix-lists": self.ec2_backend.managed_prefix_lists.values(),
-            "ec2:flow-logs": self.ec2_backend.flow_logs.values(),
-            "ec2:spot-instance-request": self.ec2_backend.spot_instance_requests.values(),
-            # TODO: "ec2:reserved-instance": ...,
-        }
-
-        for resource_type, resources in ec2_resource_types.items():
-            if (
-                not resource_type_filters
-                or "ec2" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resources:
-                    tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
-                    if not tags or not tag_filter(tags):
-                        continue
-                    resource_type_part = resource_type.split(":", 1)[1]
-                    resource_arn = f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type_part}/{resource.id}"
-                    yield {
-                        "ResourceARN": resource_arn,
-                        "Tags": tags,
-                    }
 
         # EFS, resource type elasticfilesystem:access-point
         if (
@@ -1004,36 +954,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                             "ResourceARN": resource.arn,
                             "Tags": tags,
                         }
-
-        # RDS resources
-        resource_map: dict[str, dict[str, Any]] = {
-            "rds:cluster": dict(self.rds_backend.clusters),
-            "rds:db": dict(self.rds_backend.databases),
-            "rds:snapshot": dict(self.rds_backend.database_snapshots),
-            "rds:cluster-snapshot": dict(self.rds_backend.cluster_snapshots),
-            "rds:db-proxy": self.rds_backend.db_proxies,
-        }
-        for resource_type, resource_source in resource_map.items():
-            if (
-                not resource_type_filters
-                or "rds" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    tags = resource.get_tags()
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": resource.arn,
-                        "Tags": tags,
-                    }
-
-        # RDS Reserved Database Instance
-        # RDS Option Group
-        # RDS Parameter Group
-        # RDS Security Group
-        # RDS Subnet Group
-        # RDS Event Subscription
 
         # RedShift Cluster
         # RedShift Hardware security module (HSM) client certificate
@@ -1387,21 +1307,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        # Lambda Instance
-        if (
-            not resource_type_filters
-            or "lambda" in resource_type_filters
-            or "lambda:function" in resource_type_filters
-        ):
-            for f in self.lambda_backend.list_functions():
-                tags = format_tags(f.tags)
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f.function_arn,
-                    "Tags": tags,
-                }
-
         if (
             not resource_type_filters
             or "dynamodb" in resource_type_filters
@@ -1465,54 +1370,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
-        # S3
-        for bucket in self.s3_backend.buckets.values():
-            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
-            for key, _ in tags.items():
-                yield key
-
-        # EC2 tags
-        def get_ec2_keys(res_id: str) -> list[dict[str, str]]:
-            result = []
-            for key in self.ec2_backend.tags.get(res_id, {}):
-                result.append(key)
-            return result
-
-        # EC2 AMI, resource type ec2:image
-        for ami in self.ec2_backend.amis.values():
-            for key in get_ec2_keys(ami.id):  # type: ignore[assignment]
-                yield key
-
-        # EC2 Instance, resource type ec2:instance
-        for reservation in self.ec2_backend.reservations.values():
-            for instance in reservation.instances:
-                for key in get_ec2_keys(instance.id):  # type: ignore[assignment]
-                    yield key
-
-        # EC2 NetworkInterface, resource type ec2:network-interface
-        for eni in self.ec2_backend.enis.values():
-            for key in get_ec2_keys(eni.id):  # type: ignore[assignment]
-                yield key
-
-        # TODO EC2 ReservedInstance
-
-        # EC2 SecurityGroup, resource type ec2:security-group
-        for vpc in self.ec2_backend.groups.values():
-            for sg in vpc.values():
-                for key in get_ec2_keys(sg.id):  # type: ignore[assignment]
-                    yield key
-
-        # EC2 Snapshot, resource type ec2:snapshot
-        for snapshot in self.ec2_backend.snapshots.values():
-            for key in get_ec2_keys(snapshot.id):  # type: ignore[assignment]
-                yield key
-
-        # TODO EC2 SpotInstanceRequest
-
-        # EC2 Volume, resource type ec2:volume
-        for volume in self.ec2_backend.volumes.values():
-            for key in get_ec2_keys(volume.id):  # type: ignore[assignment]
-                yield key
+        # Services opted in via TaggableResourcesMixin
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                yield from resource.tags.keys()
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
@@ -1522,56 +1383,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
-        # Do S3, resource type s3
-        for bucket in self.s3_backend.buckets.values():
-            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
-            for key, value in tags.items():
-                if key == tag_key:
-                    yield value
-
-        # EC2 tags
-        def get_ec2_values(res_id: str) -> list[dict[str, str]]:
-            result = []
-            for key, value in self.ec2_backend.tags.get(res_id, {}).items():
-                if key == tag_key:
-                    result.append(value)
-            return result
-
-        # EC2 AMI, resource type ec2:image
-        for ami in self.ec2_backend.amis.values():
-            for value in get_ec2_values(ami.id):  # type: ignore[assignment]
-                yield value
-
-        # EC2 Instance, resource type ec2:instance
-        for reservation in self.ec2_backend.reservations.values():
-            for instance in reservation.instances:
-                for value in get_ec2_values(instance.id):  # type: ignore[assignment]
-                    yield value
-
-        # EC2 NetworkInterface, resource type ec2:network-interface
-        for eni in self.ec2_backend.enis.values():
-            for value in get_ec2_values(eni.id):  # type: ignore[assignment]
-                yield value
-
-        # TODO EC2 ReservedInstance
-
-        # EC2 SecurityGroup, resource type ec2:security-group
-        for vpc in self.ec2_backend.groups.values():
-            for sg in vpc.values():
-                for value in get_ec2_values(sg.id):  # type: ignore[assignment]
-                    yield value
-
-        # EC2 Snapshot, resource type ec2:snapshot
-        for snapshot in self.ec2_backend.snapshots.values():
-            for value in get_ec2_values(snapshot.id):  # type: ignore[assignment]
-                yield value
-
-        # TODO EC2 SpotInstanceRequest
-
-        # EC2 Volume, resource type ec2:volume
-        for volume in self.ec2_backend.volumes.values():
-            for value in get_ec2_values(volume.id):  # type: ignore[assignment]
-                yield value
+        # Services opted in via TaggableResourcesMixin
+        for backend in iter_taggable_backends(self.account_id, self.region_name):
+            for resource in backend.iter_tagged_resources():
+                for key, value in resource.tags.items():
+                    if key == tag_key:
+                        yield value
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
@@ -1757,15 +1574,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         }
 
         for arn in resource_arns:
-            if arn.startswith(
-                f"arn:{get_partition(self.region_name)}:rds:"
-            ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
-                self.rds_backend.add_tags_to_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            elif arn.startswith(
-                f"arn:{get_partition(self.region_name)}:workspaces-web:"
-            ):
+            backend_for_arn = self._get_backend_for_resource(arn)
+            if backend_for_arn is not None:
+                try:
+                    backend_for_arn.tag_resource(arn, tags)
+                except NotImplementedError:
+                    missing_resources.append(arn)
+                continue
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces-web:"):
                 resource_id = arn.split("/")[-1]
                 self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
@@ -1785,8 +1601,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
-                self.lambda_backend.tag_resource(arn, tags)
             elif arn.startswith(
                 f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
             ):
@@ -1833,9 +1647,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         }
 
         for arn in resource_arn_list:
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
-                self.lambda_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(
+            backend_for_arn = self._get_backend_for_resource(arn)
+            if backend_for_arn is not None:
+                try:
+                    backend_for_arn.untag_resource(arn, tag_keys)
+                except NotImplementedError:
+                    missing_resources.append(arn)
+                continue
+            if arn.startswith(
                 f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
             ):
                 resource_id = arn.split("/")[-1]
@@ -1845,8 +1664,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.quicksight_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):
                 self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:rds:"):
-                self.rds_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):

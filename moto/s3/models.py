@@ -28,6 +28,7 @@ from moto.core.common_models import (
     CloudFormationModel,
     CloudWatchMetricProvider,
 )
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import (
     ensure_boolean,
     iso_8601_datetime_without_milliseconds_s3,
@@ -1736,7 +1737,7 @@ class FakeBucketInventoryConfiguration(BaseModel):
         self.optional_fields = optional_fields
 
 
-class S3Backend(BaseBackend, CloudWatchMetricProvider):
+class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
     Example usage:
@@ -1797,6 +1798,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         S3_IGNORE_SUBDOMAIN_BUCKETNAME=true
 
     """
+
+    SERVICE_NAMESPACE = "s3"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -3276,6 +3279,24 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> list[FakeBucketInventoryConfiguration]:
         bucket = self.get_bucket(bucket_name)
         return list(bucket.inventory_configs.values())
+
+    # Resource Groups Tagging API
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for bucket in self.buckets.values():
+            yield TaggedResource(
+                arn=bucket.arn,
+                tags=self.tagger.get_tag_dict_for_resource(bucket.arn),
+                resource_type="s3:bucket",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        bucket_name = arn.split(":")[-1]
+        existing = self.tagger.get_tag_dict_for_resource(arn)
+        existing.update(tags)
+        self.put_bucket_tagging(bucket_name, existing)
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 class S3BackendDict(BackendDict[S3Backend]):

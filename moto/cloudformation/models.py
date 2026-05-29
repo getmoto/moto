@@ -21,6 +21,7 @@ from moto.utilities.utils import get_partition
 from .custom_model import CustomModel
 from .exceptions import (
     AlreadyExistsException,
+    StackInstanceNotFound,
     StackSetNotEmpty,
     StackSetNotFoundException,
     ValidationError,
@@ -368,6 +369,8 @@ class StackInstances(BaseModel):
         for account in accounts:
             for region in regions:
                 instance = self.get_instance(account, region)
+                if instance is None:
+                    raise StackInstanceNotFound()
                 instance.parameters = parameters or []
 
     def delete(self, accounts: list[str], regions: list[str]) -> None:
