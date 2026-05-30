@@ -6,6 +6,7 @@ from unittest import SkipTest, mock
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from cryptography.x509 import (
     IPAddress,
@@ -103,12 +104,10 @@ def test_import_certificate_with_tags():
 def test_import_bad_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.import_certificate(Certificate=SERVER_CRT_BAD, PrivateKey=RSA_2048_KEY)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ValidationException"
-    else:
-        raise RuntimeError("Should have raised ValidationException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
 
 @mock_aws
@@ -159,12 +158,10 @@ def test_list_certificates():
 def test_get_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.get_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 # Also tests deleting invalid certificate
@@ -176,12 +173,10 @@ def test_delete_certificate():
     # If it does not raise an error and the next call does, all is fine
     client.delete_certificate(CertificateArn=arn)
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.delete_certificate(CertificateArn=arn)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -349,27 +344,23 @@ def test_add_tags_to_certificate():
 def test_add_tags_to_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.add_tags_to_certificate(
             CertificateArn=BAD_ARN,
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
 def test_list_tags_for_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.list_tags_for_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -410,15 +401,13 @@ def test_remove_tags_from_certificate():
 def test_remove_tags_from_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.remove_tags_from_certificate(
             CertificateArn=BAD_ARN,
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -437,29 +426,23 @@ def test_resend_validation_email_invalid():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.resend_validation_email(
             CertificateArn=arn,
             Domain="no-match.moto.com",
             ValidationDomain="NOTUSEDYET",
         )
-    except ClientError as err:
-        assert (
-            err.response["Error"]["Code"] == "InvalidDomainValidationOptionsException"
-        )
-    else:
-        raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidDomainValidationOptionsException"
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.resend_validation_email(
             CertificateArn=BAD_ARN,
             Domain="no-match.moto.com",
             ValidationDomain="NOTUSEDYET",
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -1005,7 +988,7 @@ def test_account_configuration():
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 45
 
     # Test successful update
-    response = client.put_account_configuration(
+    client.put_account_configuration(
         ExpiryEvents={"DaysBeforeExpiry": 30}, IdempotencyToken="test-token"
     )
 
@@ -1014,13 +997,39 @@ def test_account_configuration():
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
 
     # Test idempotency token - trying to update with same token but different value
-    response = client.put_account_configuration(
+    client.put_account_configuration(
         ExpiryEvents={"DaysBeforeExpiry": 60}, IdempotencyToken="test-token"
     )
 
     # Should still be 30 due to idempotency token
     response = client.get_account_configuration()
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
+
+
+@mock_aws
+@pytest.mark.aws_verified
+def test_put_account_configuration_without_parameters():
+    config = Config(parameter_validation=False)
+    client = boto3.client("acm", region_name="eu-central-1", config=config)
+
+    with pytest.raises(ClientError) as exc:
+        client.put_account_configuration(ExpiryEvents={})
+
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value null at 'idempotencyToken' failed to satisfy constraint: Member must not be null"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_account_configuration(IdempotencyToken="sometoken")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Configuration for events is empty."
 
 
 @mock_aws
