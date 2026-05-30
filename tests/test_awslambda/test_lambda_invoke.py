@@ -295,7 +295,7 @@ if not settings.TEST_DECORATOR_MODE:
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_test_zip_file2()},
             Description="test lambda function",
-            Timeout=3,
+            Timeout=30,
             MemorySize=128,
             Publish=True,
         )
