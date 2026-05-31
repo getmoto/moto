@@ -3,7 +3,7 @@ import contextlib
 import json
 import re
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import timedelta
 from functools import lru_cache
 from typing import Any, cast
@@ -18,6 +18,7 @@ from cryptography.x509.oid import NameOID
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
@@ -491,7 +492,7 @@ class PlatformEndpoint(BaseModel):
         return message_id
 
 
-class SNSBackend(BaseBackend):
+class SNSBackend(BaseBackend, TaggableResourcesMixin):
     """
     Responsible for mocking calls to SNS. Integration with SQS/HTTP/etc is supported.
 
@@ -508,6 +509,8 @@ class SNSBackend(BaseBackend):
 
     Note that, as this is an internal API, the exact format may differ per versions.
     """
+
+    SERVICE_NAMESPACE = "sns"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1157,25 +1160,6 @@ class SNSBackend(BaseBackend):
 
         return self.topics[resource_arn]._tags
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        if resource_arn not in self.topics:
-            raise ResourceNotFoundError
-
-        updated_tags = self.topics[resource_arn]._tags.copy()
-        updated_tags.update(tags)
-
-        if len(updated_tags) > 50:
-            raise TagLimitExceededError
-
-        self.topics[resource_arn]._tags = updated_tags
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        if resource_arn not in self.topics:
-            raise ResourceNotFoundError
-
-        for key in tag_keys:
-            self.topics[resource_arn]._tags.pop(key, None)
-
     def publish_batch(
         self, topic_arn: str, publish_batch_request_entries: list[dict[str, Any]]
     ) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
@@ -1331,6 +1315,34 @@ class SNSBackend(BaseBackend):
 
     def get_topic_attributes(self) -> None:
         pass
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for topic in self.topics.values():
+            yield TaggedResource(
+                arn=topic.arn,
+                tags=dict(topic._tags or {}),
+                resource_type="sns:topic",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        updated_tags = self.topics[resource_arn]._tags.copy()
+        updated_tags.update(tags)
+
+        if len(updated_tags) > 50:
+            raise TagLimitExceededError
+
+        self.topics[resource_arn]._tags = updated_tags
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        for key in tag_keys:
+            self.topics[resource_arn]._tags.pop(key, None)
 
 
 sns_backends = BackendDict(SNSBackend, "sns")
