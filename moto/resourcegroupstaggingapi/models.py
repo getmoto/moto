@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.swf.models import SWFBackend, swf_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 from moto.vpclattice.models import VPCLatticeBackend, vpclattice_backends
@@ -67,10 +66,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
-
-    @property
-    def swf_backend(self) -> SWFBackend:
-        return swf_backends[self.account_id][self.region_name]
 
     @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
@@ -173,21 +168,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # SWF
-        if (
-            not resource_type_filters
-            or "swf" in resource_type_filters
-            or "swf:domain" in resource_type_filters
-        ):
-            for domain in self.swf_backend.domains:
-                domain_arn = domain.to_short_dict()["arn"]
-                tags = self.swf_backend.tagger.list_tags_for_resource(domain_arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": domain_arn, "Tags": tags}
 
         # VPC Lattice
         if not resource_type_filters or "vpc-lattice" in resource_type_filters:
@@ -562,10 +542,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
-                self.swf_backend.tagger.tag_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             else:
                 missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
@@ -591,10 +567,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
-                self.swf_backend.tagger.untag_resource_using_names(arn, tag_keys)
-            else:
-                missing_resources.append(arn)
 
         return dict.fromkeys(missing_resources, missing_error)
 

@@ -1,7 +1,9 @@
+from collections.abc import Iterator
 from time import sleep
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.tagging_service import TaggingService
 
 from ..exceptions import (
@@ -26,7 +28,9 @@ from .workflow_type import WorkflowType  # noqa
 KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 
 
-class SWFBackend(BaseBackend):
+class SWFBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "swf"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.domains: list[Domain] = []
@@ -494,6 +498,22 @@ class SWFBackend(BaseBackend):
             workflow_id, run_id=run_id, raise_if_closed=True
         )
         wfe.signal(signal_name, workflow_input)  # type: ignore[union-attr]
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for domain in self.domains:
+            domain_arn = domain.to_short_dict()["arn"]
+            yield TaggedResource(
+                arn=domain_arn,
+                tags=self.tagger.get_tag_dict_for_resource(domain_arn),
+                resource_type="swf:domain",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"Key": k, "Value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 swf_backends = BackendDict(SWFBackend, "swf")
