@@ -9,7 +9,6 @@ from moto.core.resource_tagging import (
     match_resource_type,
 )
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
-from moto.firehose.models import FirehoseBackend, firehose_backends
 from moto.fsx.models import FSxBackend, fsx_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
@@ -95,10 +94,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def firehose_backend(self) -> FirehoseBackend:
-        return firehose_backends[self.account_id][self.region_name]
 
     @property
     def secretsmanager_backend(self) -> SecretsManagerBackend:
@@ -254,21 +249,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-
-        # Firehose
-        if self.firehose_backend:
-            if not resource_type_filters or "firehose" in resource_type_filters:
-                firehose_backend = firehose_backends[self.account_id][self.region_name]
-                for delivery_stream in firehose_backend.delivery_streams.values():
-                    tags = firehose_backend.tagger.list_tags_for_resource(
-                        delivery_stream.delivery_stream_arn
-                    )["Tags"]
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
-                        "Tags": tags,
-                    }
 
         # EMR Cluster
 
