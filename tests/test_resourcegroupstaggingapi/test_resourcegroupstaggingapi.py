@@ -2065,3 +2065,27 @@ def test_untag_resources_elasticache():
 
     resp = elc.list_tags_for_resource(ResourceName=cluster["ARN"])
     assert len(resp["TagList"]) == 0
+
+
+@mock_aws
+def test_get_resources_param_validation():
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    dummy_arn = "arn:aws:s3:::bucket-name"
+    # Too high
+    with pytest.raises(ClientError) as exc_info:
+        rtapi.get_resources(ResourceARNList=[dummy_arn], TagsPerPage=1000)
+    error = exc_info.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    with pytest.raises(ClientError) as exc_info:
+        rtapi.get_resources(ResourceARNList=[dummy_arn], ResourcesPerPage=1000)
+    error = exc_info.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    # Too low
+    with pytest.raises(ClientError) as exc_info:
+        rtapi.get_resources(ResourceARNList=[dummy_arn], TagsPerPage=10)
+    error = exc_info.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
+    with pytest.raises(ClientError) as exc_info:
+        rtapi.get_resources(ResourceARNList=[dummy_arn], ResourcesPerPage=0)
+    error = exc_info.value.response["Error"]
+    assert error["Code"] == "InvalidParameterException"
