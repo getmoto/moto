@@ -1,9 +1,10 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
@@ -18,7 +19,9 @@ from .exceptions import (
 from .utils import filter_tasks, random_id
 
 
-class DatabaseMigrationServiceBackend(BaseBackend):
+class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "dms"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.replication_tasks: dict[str, FakeReplicationTask] = {}
@@ -506,6 +509,36 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         for connection in connections:
             connection.advance()
         return connections
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for endpoint in self.endpoints.values():
+            yield TaggedResource(
+                arn=endpoint.endpoint_arn,
+                tags=self.tagger.get_tag_dict_for_resource(endpoint.endpoint_arn),
+                resource_type="dms:endpoint",
+                extra={"include_untagged": True},
+            )
+        for replication_instance in self.replication_instances.values():
+            yield TaggedResource(
+                arn=replication_instance.arn,
+                tags=self.tagger.get_tag_dict_for_resource(replication_instance.arn),
+                resource_type="dms:replication-instance",
+                extra={"include_untagged": True},
+            )
+        for replication_task in self.replication_tasks.values():
+            yield TaggedResource(
+                arn=replication_task.arn,
+                tags=self.tagger.get_tag_dict_for_resource(replication_task.arn),
+                resource_type="dms:task",
+                extra={"include_untagged": True},
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"Key": k, "Value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 class Endpoint(BaseModel):

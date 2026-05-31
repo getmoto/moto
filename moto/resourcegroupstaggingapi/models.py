@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
@@ -68,10 +67,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def dms_backend(self) -> DatabaseMigrationServiceBackend:
-        return dms_backends[self.account_id][self.region_name]
 
     @property
     def efs_backend(self) -> EFSBackend:
@@ -287,7 +282,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         tag_matcher = make_tag_matcher(tag_filters)
         for backend in iter_taggable_backends(self.account_id, self.region_name):
             for resource in backend.iter_tagged_resources():
-                if not resource.tags:
+                if not resource.tags and not resource.extra.get("include_untagged"):
                     continue
                 if not match_resource_type(
                     resource.resource_type, resource_type_filters
@@ -314,37 +309,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # DMS
-        if not resource_type_filters or "dms:endpoint" in resource_type_filters:
-            for endpoint in self.dms_backend.endpoints.values():
-                tags = self.dms_backend.tagger.list_tags_for_resource(
-                    endpoint.endpoint_arn
-                )["Tags"]
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{endpoint.endpoint_arn}", "Tags": tags}
-
-        if (
-            not resource_type_filters
-            or "dms:replication-instance" in resource_type_filters
-        ):
-            for replication_instance in self.dms_backend.replication_instances.values():
-                tags = self.dms_backend.tagger.list_tags_for_resource(
-                    replication_instance.arn
-                )["Tags"]
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
-
-        if not resource_type_filters or "dms:task" in resource_type_filters:
-            for replication_task in self.dms_backend.replication_tasks.values():
-                tags = self.dms_backend.tagger.list_tags_for_resource(
-                    replication_task.arn
-                )["Tags"]
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{replication_task.arn}", "Tags": tags}
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
