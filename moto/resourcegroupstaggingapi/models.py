@@ -12,7 +12,6 @@ from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.moto_api._internal import mock_random
-from moto.quicksight.models import QuickSightBackend, quicksight_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
@@ -112,12 +111,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return swf_backends[self.account_id][self.region_name]
 
     @property
-    def quicksight_backend(self) -> QuickSightBackend | None:
-        if self.region_name in quicksight_backends[self.account_id].regions:
-            return quicksight_backends[self.account_id][self.region_name]
-        return None
-
-    @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
 
@@ -215,34 +208,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Glacier Vault
 
         # Kinesis
-
-        # Quicksight
-        if self.quicksight_backend:
-            quicksight_resource_map: dict[str, dict[str, Any]] = {
-                "quicksight:dashboards": dict(self.quicksight_backend.dashboards),
-                "quicksight:data_sources": dict(self.quicksight_backend.data_sources),
-                "quicksight:data_sets": dict(self.quicksight_backend.data_sets),
-                "quicksight:users": dict(self.quicksight_backend.users),
-            }
-
-            for resource_type, resource_source in quicksight_resource_map.items():
-                if (
-                    not resource_type_filters
-                    or "quicksight" in resource_type_filters
-                    or resource_type in resource_type_filters
-                ):
-                    for resource in resource_source.values():
-                        tags = self.quicksight_backend.tagger.list_tags_for_resource(
-                            resource.arn
-                        )["Tags"]
-
-                        if not tags or not tag_filter(tags):
-                            continue
-
-                        yield {
-                            "ResourceARN": resource.arn,
-                            "Tags": tags,
-                        }
 
         # RedShift Cluster
         # RedShift Hardware security module (HSM) client certificate
@@ -843,12 +808,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
-                assert self.quicksight_backend is not None
-                self.quicksight_backend.tag_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
@@ -882,10 +841,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
-                assert self.quicksight_backend is not None
-                self.quicksight_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
                 self.swf_backend.tagger.untag_resource_using_names(arn, tag_keys)
