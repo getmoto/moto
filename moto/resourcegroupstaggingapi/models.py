@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -63,10 +62,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def eb_backend(self) -> EBBackend:
-        return eb_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -287,23 +282,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         continue
                     yield {
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
-                        "Tags": tags,
-                    }
-
-        # ElasticBeanstalk
-        if (
-            not resource_type_filters
-            or "elasticbeanstalk:environment" in resource_type_filters
-        ):
-            for eb_application in self.eb_backend.applications.values():
-                for eb_environment in eb_application.environments.values():
-                    tags = [
-                        {"Key": k, "Value": v} for k, v in eb_environment.tags.items()
-                    ]
-                    if not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": f"{eb_environment.environment_arn}",
                         "Tags": tags,
                     }
 
