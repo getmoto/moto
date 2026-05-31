@@ -1,11 +1,12 @@
 import datetime
 import re
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
@@ -324,7 +325,9 @@ class LoadBalancer(CloudFormationModel):
         elb_backends[account_id][region].delete_load_balancer(self.name)
 
 
-class ELBBackend(BaseBackend):
+class ELBBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "elasticloadbalancing"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.load_balancers: dict[str, LoadBalancer] = OrderedDict()
@@ -710,6 +713,16 @@ class ELBBackend(BaseBackend):
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
         return load_balancer.subnets
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for elb in self.load_balancers.values():
+            arn = f"arn:aws:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}"
+            yield TaggedResource(
+                arn=arn,
+                tags=dict(elb.tags or {}),
+                resource_type="elb:loadbalancer",
+            )
 
 
 def register_certificate(
