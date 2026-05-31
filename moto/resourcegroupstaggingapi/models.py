@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
@@ -101,10 +100,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
-
-    @property
-    def sagemaker_backend(self) -> SageMakerModelBackend:
-        return sagemaker_backends[self.account_id][self.region_name]
 
     @property
     def swf_backend(self) -> SWFBackend:
@@ -545,50 +540,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        # sagemaker cluster, automljob, compilation-job, domain, model-explainability-job-definition, model-quality-job-definition, and hyper-parameter-tuning-job currently supported
-        sagemaker_resource_map: dict[str, dict[str, Any]] = {
-            "sagemaker:cluster": self.sagemaker_backend.clusters,
-            "sagemaker:automl-job": self.sagemaker_backend.auto_ml_jobs,
-            "sagemaker:compilation-job": self.sagemaker_backend.compilation_jobs,
-            "sagemaker:domain": self.sagemaker_backend.domains,
-            "sagemaker:model-explainability-job-definition": self.sagemaker_backend.model_explainability_job_definitions,
-            "sagemaker:model-quality-job-definition": self.sagemaker_backend.model_quality_job_definitions,
-            "sagemaker:hyper-parameter-tuning-job": self.sagemaker_backend.hyper_parameter_tuning_jobs,
-            "sagemaker:model-bias-job-definition": self.sagemaker_backend.model_bias_job_definitions,
-            "sagemaker:data-quality-job-definition": self.sagemaker_backend.data_quality_job_definitions,
-            "sagemaker:model": self.sagemaker_backend._models,
-            "sagemaker:notebook-instance": self.sagemaker_backend.notebook_instances,
-            "sagemaker:endpoint-config": self.sagemaker_backend.endpoint_configs,
-            "sagemaker:endpoint": self.sagemaker_backend.endpoints,
-            "sagemaker:experiment": self.sagemaker_backend.experiments,
-            "sagemaker:pipeline": self.sagemaker_backend.pipelines,
-            "sagemaker:pipeline-execution": self.sagemaker_backend.pipeline_executions,
-            "sagemaker:processing-job": self.sagemaker_backend.processing_jobs,
-            "sagemaker:trial": self.sagemaker_backend.trials,
-            "sagemaker:trial-component": self.sagemaker_backend.trial_components,
-            "sagemaker:training-job": self.sagemaker_backend.training_jobs,
-            "sagemaker:transform-job": self.sagemaker_backend.transform_jobs,
-            "sagemaker:notebook-instance-lifecycle-config": self.sagemaker_backend.notebook_instance_lifecycle_configurations,
-            "sagemaker:model-card": self.sagemaker_backend.model_cards,
-            "sagemaker:model-package-group": self.sagemaker_backend.model_package_groups,
-            "sagemaker:model-package": self.sagemaker_backend.model_packages,
-            "sagemaker:feature-group": self.sagemaker_backend.feature_groups,
-        }
-        for resource_type, resource_source in sagemaker_resource_map.items():
-            if (
-                not resource_type_filters
-                or "sagemaker" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    tags = self.sagemaker_backend.list_tags(resource.arn)[0]
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": resource.arn,
-                        "Tags": tags,
-                    }
-
     def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -803,10 +754,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 resource_id = arn.split("/")[-1]
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:sagemaker:"):
-                self.sagemaker_backend.add_tags(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.tag_resource(

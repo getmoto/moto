@@ -4,12 +4,13 @@ import random
 import re
 import string
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
 from typing import Any, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -2860,7 +2861,9 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         backend.delete_notebook_instance_lifecycle_config(config_name)
 
 
-class SageMakerModelBackend(BaseBackend):
+class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "sagemaker"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._models: dict[str, Model] = {}
@@ -5694,6 +5697,51 @@ class SageMakerModelBackend(BaseBackend):
             del self.data_quality_job_definitions[job_definition_name]
         else:
             raise ResourceNotFound(f"Job definition {job_definition_name} not found")
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        sources: dict[str, dict[str, Any]] = {
+            "sagemaker:automl-job": self.auto_ml_jobs,
+            "sagemaker:cluster": self.clusters,
+            "sagemaker:compilation-job": self.compilation_jobs,
+            "sagemaker:data-quality-job-definition": self.data_quality_job_definitions,
+            "sagemaker:domain": self.domains,
+            "sagemaker:endpoint": self.endpoints,
+            "sagemaker:endpoint-config": self.endpoint_configs,
+            "sagemaker:experiment": self.experiments,
+            "sagemaker:feature-group": self.feature_groups,
+            "sagemaker:hyper-parameter-tuning-job": self.hyper_parameter_tuning_jobs,
+            "sagemaker:model": self._models,
+            "sagemaker:model-bias-job-definition": self.model_bias_job_definitions,
+            "sagemaker:model-card": self.model_cards,
+            "sagemaker:model-explainability-job-definition": self.model_explainability_job_definitions,
+            "sagemaker:model-package": self.model_packages,
+            "sagemaker:model-package-group": self.model_package_groups,
+            "sagemaker:model-quality-job-definition": self.model_quality_job_definitions,
+            "sagemaker:notebook-instance": self.notebook_instances,
+            "sagemaker:notebook-instance-lifecycle-config": self.notebook_instance_lifecycle_configurations,
+            "sagemaker:pipeline": self.pipelines,
+            "sagemaker:pipeline-execution": self.pipeline_executions,
+            "sagemaker:processing-job": self.processing_jobs,
+            "sagemaker:training-job": self.training_jobs,
+            "sagemaker:transform-job": self.transform_jobs,
+            "sagemaker:trial": self.trials,
+            "sagemaker:trial-component": self.trial_components,
+        }
+        for resource_type, items in sources.items():
+            for resource in items.values():
+                tags = getattr(resource, "tags", None) or []
+                yield TaggedResource(
+                    arn=resource.arn,
+                    tags={t["Key"]: t["Value"] for t in tags},
+                    resource_type=resource_type,
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.add_tags(arn, [{"Key": k, "Value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.delete_tags(arn, tag_keys)
 
 
 class FakeDataQualityJobDefinition(BaseObject):
