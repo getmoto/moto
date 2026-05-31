@@ -138,21 +138,16 @@ class FSxResponse(BaseResponse):
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
-        tags = params.get("Tags")
-        self.fsx_backend.tag_resource(
-            resource_arn=resource_arn,
-            tags=tags,
-        )
+        tags = params.get("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
+        self.fsx_backend.tag_resource(resource_arn, tags)
         return 200, {}, json.dumps({})
 
     def untag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
-        tag_keys = params.get("TagKeys")
-        self.fsx_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tag_keys,
-        )
+        tag_keys = params.get("TagKeys") or []
+        self.fsx_backend.untag_resource(resource_arn, tag_keys)
         return 200, {}, json.dumps({})
 
     def list_tags_for_resource(self) -> str:

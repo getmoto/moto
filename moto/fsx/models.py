@@ -1,11 +1,13 @@
 """FSxBackend class with methods for supported APIs."""
 
 import time
+from collections.abc import Iterator
 from typing import Any
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import filter_resources
@@ -66,7 +68,7 @@ class FileSystem(BaseModel):
         self.open_zfs_configuration = open_zfs_configuration
         self.backend = backend
         if tags:
-            self.backend.tag_resource(self.resource_arn, tags)
+            self.backend.tagger.tag_resource(self.resource_arn, tags)
 
     def to_dict(self) -> dict[str, Any]:
         dct = {
@@ -110,7 +112,7 @@ class Backup(BaseModel):
         self.creation_time = time.time()
         self.backend = backend
         if tags:
-            self.backend.tag_resource(self.resource_arn, tags)
+            self.backend.tagger.tag_resource(self.resource_arn, tags)
 
     def to_dict(self) -> dict[str, Any]:
         dct = {
@@ -126,8 +128,10 @@ class Backup(BaseModel):
         return {k: v for k, v in dct.items() if v is not None}
 
 
-class FSxBackend(BaseBackend):
+class FSxBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of FSx APIs."""
+
+    SERVICE_NAMESPACE = "fsx"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -172,7 +176,7 @@ class FSxBackend(BaseBackend):
 
         self.file_systems[file_system_id] = file_system
         if tags:
-            self.tag_resource(resource_arn=file_system.resource_arn, tags=tags)
+            self.tagger.tag_resource(file_system.resource_arn, tags)
         return file_system
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -248,7 +252,7 @@ class FSxBackend(BaseBackend):
             )
         self.backups[backup.backup_id] = backup
         if tags:
-            self.tag_resource(resource_arn=backup.resource_arn, tags=tags)
+            self.tagger.tag_resource(backup.resource_arn, tags)
         return backup
 
     def delete_backup(
@@ -291,12 +295,6 @@ class FSxBackend(BaseBackend):
             backups = filter_resources(backups, filter_dict, attr_pairs)
         return backups
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         """
         Pagination is not yet implemented
@@ -304,6 +302,27 @@ class FSxBackend(BaseBackend):
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return []
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for backup in self.backups.values():
+            yield TaggedResource(
+                arn=backup.resource_arn,
+                tags=self.tagger.get_tag_dict_for_resource(backup.resource_arn),
+                resource_type="fsx:backup",
+            )
+        for fs in self.file_systems.values():
+            yield TaggedResource(
+                arn=fs.resource_arn,
+                tags=self.tagger.get_tag_dict_for_resource(fs.resource_arn),
+                resource_type="fsx:file-system",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 fsx_backends = BackendDict(FSxBackend, "fsx")
