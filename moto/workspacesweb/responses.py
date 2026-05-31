@@ -342,23 +342,16 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps({"userAccessLoggingSettings": user_access_logging_settings})
 
     def tag_resource(self) -> str:
-        client_token = self._get_param("clientToken")
         resource_arn = unquote(self._get_param("resourceArn"))
-        tags = self._get_param("tags")
-        self.workspacesweb_backend.tag_resource(
-            client_token=client_token,
-            resource_arn=resource_arn,
-            tags=tags,
-        )
+        tags = self._get_param("tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
+        self.workspacesweb_backend.tag_resource(resource_arn, tags)
         return json.dumps({})
 
     def untag_resource(self) -> str:
         tagKeys = self.__dict__["data"]["tagKeys"]
         resource_arn = unquote(self._get_param("resourceArn"))
-        self.workspacesweb_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tagKeys,
-        )
+        self.workspacesweb_backend.untag_resource(resource_arn, tagKeys)
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:

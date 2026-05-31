@@ -2,10 +2,12 @@
 
 import datetime
 import uuid
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.utils import get_partition
 
 from ..utilities.tagging_service import TaggingService
@@ -216,8 +218,10 @@ class FakePortal(BaseModel):
         }
 
 
-class WorkSpacesWebBackend(BaseBackend):
+class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of WorkSpacesWeb APIs."""
+
+    SERVICE_NAMESPACE = "workspaces-web"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -232,7 +236,7 @@ class WorkSpacesWebBackend(BaseBackend):
         self,
         security_group_ids: list[str],
         subnet_ids: list[str],
-        tags: dict[str, str],
+        tags: list[dict[str, str]] | None,
         vpc_id: str,
     ) -> str:
         network_settings_object = FakeNetworkSettings(
@@ -244,7 +248,7 @@ class WorkSpacesWebBackend(BaseBackend):
         )
         self.network_settings[network_settings_object.arn] = network_settings_object
         if tags:
-            self.tag_resource("TEMP_CLIENT_TOKEN", network_settings_object.arn, tags)
+            self.tagger.tag_resource(network_settings_object.arn, tags)
         return network_settings_object.arn
 
     def list_network_settings(self) -> list[dict[str, str]]:
@@ -277,7 +281,7 @@ class WorkSpacesWebBackend(BaseBackend):
         )
         self.browser_settings[browser_settings_object.arn] = browser_settings_object
         if tags:
-            self.tag_resource(client_token, browser_settings_object.arn, tags)
+            self.tagger.tag_resource(browser_settings_object.arn, tags)
         return browser_settings_object.arn
 
     def list_browser_settings(self) -> list[dict[str, str]]:
@@ -316,7 +320,7 @@ class WorkSpacesWebBackend(BaseBackend):
         )
         self.portals[portal_object.arn] = portal_object
         if tags:
-            self.tag_resource(client_token, portal_object.arn, tags)
+            self.tagger.tag_resource(portal_object.arn, tags)
         return portal_object.arn, portal_object.portal_endpoint
 
     def list_portals(self) -> list[dict[str, Any]]:
@@ -402,7 +406,7 @@ class WorkSpacesWebBackend(BaseBackend):
         )
         self.user_settings[user_settings_object.arn] = user_settings_object
         if tags:
-            self.tag_resource(client_token, user_settings_object.arn, tags)
+            self.tagger.tag_resource(user_settings_object.arn, tags)
         return user_settings_object.arn
 
     def get_user_settings(self, user_settings_arn: str) -> dict[str, Any]:
@@ -421,9 +425,7 @@ class WorkSpacesWebBackend(BaseBackend):
             user_access_logging_settings_object
         )
         if tags:
-            self.tag_resource(
-                client_token, user_access_logging_settings_object.arn, tags
-            )
+            self.tagger.tag_resource(user_access_logging_settings_object.arn, tags)
         return user_access_logging_settings_object.arn
 
     def get_user_access_logging_settings(
@@ -472,18 +474,27 @@ class WorkSpacesWebBackend(BaseBackend):
             for user_access_logging_settings in self.user_access_logging_settings.values()
         ]
 
-    def tag_resource(self, client_token: str, resource_arn: str, tags: Any) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: Any) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.tagger.get_tag_dict_for_resource(resource_arn)
         Tags = []
         for key, value in tags.items():
             Tags.append({"Key": key, "Value": value})
         return Tags
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for portal in self.portals.values():
+            yield TaggedResource(
+                arn=portal.arn,
+                tags=self.tagger.get_tag_dict_for_resource(portal.arn),
+                resource_type="workspaces-web:portal",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 workspacesweb_backends = BackendDict(WorkSpacesWebBackend, "workspaces-web")

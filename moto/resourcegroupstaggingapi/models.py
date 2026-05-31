@@ -16,9 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import get_partition
-from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway MachineLearning ACM DirectoryService CloudHSM
@@ -50,13 +47,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def workspacesweb_backends(self) -> WorkSpacesWebBackend | None:
-        # WorkspacesWeb service has limited region availability
-        if self.region_name in workspacesweb_backends[self.account_id].regions:
-            return workspacesweb_backends[self.account_id][self.region_name]
-        return None
 
     def _get_backend_for_resource(
         self, resource_arn: str
@@ -155,21 +145,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # Workspaces Web
-        if self.workspacesweb_backends and (
-            not resource_type_filters or "workspaces-web" in resource_type_filters
-        ):
-            for portal in self.workspacesweb_backends.portals.values():
-                tags = self.workspacesweb_backends.tagger.list_tags_for_resource(
-                    portal.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces-web:{self.region_name}:{self.account_id}:portal/{portal.portal_id}",
-                    "Tags": tags,
-                }
 
     def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at
@@ -376,13 +351,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces-web:"):
-                resource_id = arn.split("/")[-1]
-                self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
-                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            else:
-                missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
 
     def untag_resources(
