@@ -1,10 +1,12 @@
 """LexModelsV2Backend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 
 from ..utilities.tagging_service import TaggingService
 
@@ -92,8 +94,10 @@ class FakeResourcePolicy:
         self.revision_id = str(uuid.uuid4())
 
 
-class LexModelsV2Backend(BaseBackend):
+class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
     """Implementation of LexModelsV2 APIs."""
+
+    SERVICE_NAMESPACE = "lex"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -383,15 +387,30 @@ class LexModelsV2Backend(BaseBackend):
         rp = self.resource_policies.pop(resource_arn)
         return rp.resource_arn, rp.revision_id
 
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for bot in self.bots.values():
+            yield TaggedResource(
+                arn=bot.arn,
+                tags=self.tagger.get_tag_dict_for_resource(bot.arn),
+                resource_type="lexv2:bot",
+            )
+        for alias in self.bot_aliases.values():
+            yield TaggedResource(
+                arn=alias.arn,
+                tags=self.tagger.get_tag_dict_for_resource(alias.arn),
+                resource_type="lexv2:bot-alias",
+            )
+
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tags_list)
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
-    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
-        return self.tagger.get_tag_dict_for_resource(resource_arn)
 
 
 lexv2models_backends = BackendDict(LexModelsV2Backend, "lexv2-models")

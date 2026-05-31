@@ -11,7 +11,6 @@ from moto.core.resource_tagging import (
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
-from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
@@ -112,12 +111,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
         return sagemaker_backends[self.account_id][self.region_name]
-
-    @property
-    def lexv2_backend(self) -> LexModelsV2Backend | None:
-        if self.region_name in lexv2models_backends[self.account_id].regions:
-            return lexv2models_backends[self.account_id][self.region_name]
-        return None
 
     @property
     def swf_backend(self) -> SWFBackend:
@@ -227,31 +220,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Glacier Vault
 
         # Kinesis
-
-        # LexV2
-        if self.lexv2_backend:
-            lex_v2_resource_map: dict[str, dict[str, Any]] = {
-                "lexv2:bot": self.lexv2_backend.bots,
-                "lexv2:bot-alias": self.lexv2_backend.bot_aliases,
-            }
-            for resource_type, resource_source in lex_v2_resource_map.items():
-                if (
-                    not resource_type_filters
-                    or "lexv2" in resource_type_filters
-                    or resource_type in resource_type_filters
-                ):
-                    for resource in resource_source.values():
-                        bot_tags = self.lexv2_backend.list_tags_for_resource(
-                            resource.arn
-                        )
-
-                        tags = format_tags(bot_tags)
-                        if not tags or not tag_filter(tags):
-                            continue
-                        yield {
-                            "ResourceARN": resource.arn,
-                            "Tags": tags,
-                        }
 
         # LOGS
         if (
