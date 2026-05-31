@@ -55,6 +55,53 @@ def test_get_resources_workspaces():
 
 
 @mock_aws
+def test_tag_resources_workspaces():
+    workspaces = boto3.client("workspaces", region_name="eu-central-1")
+
+    # Create a tagged Workspace
+    directory_id = create_directory()
+    workspaces.register_workspace_directory(DirectoryId=directory_id)
+    resp = workspaces.create_workspaces(
+        Workspaces=[
+            {
+                "DirectoryId": directory_id,
+                "UserName": "Administrator",
+                "BundleId": "wsb-bh8rsxt14",
+                "Tags": [{"Key": "Test", "Value": "1"}],
+            },
+        ]
+    )
+    workspace_id = resp["PendingRequests"][0]["WorkspaceId"]
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    workspace_arn = resp["ResourceTagMappingList"][0]["ResourceARN"]
+    assert workspace_arn.endswith(f"workspace/{workspace_id}")
+
+    # Add a tag through the Resource Groups Tagging API
+    failed = rtapi.tag_resources(
+        ResourceARNList=[workspace_arn],
+        Tags={"Test2": "2"},
+    )
+    assert failed["FailedResourcesMap"] == {}
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces"])
+    tags = resp["ResourceTagMappingList"][0]["Tags"]
+    assert {"Key": "Test", "Value": "1"} in tags
+    assert {"Key": "Test2", "Value": "2"} in tags
+
+    # Filtering on the newly-added tag returns the Workspace
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["workspaces"],
+        TagFilters=[{"Key": "Test2", "Values": ["2"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == workspace_arn
+
+
+@mock_aws
 def test_get_resources_workspace_directories():
     workspaces = boto3.client("workspaces", region_name="eu-central-1")
 

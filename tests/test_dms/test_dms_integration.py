@@ -71,3 +71,61 @@ def test_create_replication_task_with_tags(client, resource_groups_client):
         {"Key": "Test-tag", "Value": "Test Task"},
         {"Key": "Test-tag2", "Value": "Test Task"},
     ]
+
+
+@mock_aws
+def test_tag_and_untag_replication_task(client, resource_groups_client):
+    task_arn = client.create_replication_task(
+        ReplicationTaskIdentifier="test",
+        SourceEndpointArn="source-endpoint-arn",
+        TargetEndpointArn="target-endpoint-arn",
+        ReplicationInstanceArn="replication-instance-arn",
+        MigrationType="full-load",
+        TableMappings='{"rules":[]}',
+        ReplicationTaskSettings='{"Logging":{} }',
+        Tags=[{"Key": "Test", "Value": "1"}],
+    )["ReplicationTask"]["ReplicationTaskArn"]
+
+    # Basic test
+    resp = resource_groups_client.get_resources(ResourceTypeFilters=["dms:task"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == task_arn
+    assert resp["ResourceTagMappingList"][0]["Tags"] == [{"Key": "Test", "Value": "1"}]
+
+    # Add a tag through the Resource Groups Tagging API
+    failed = resource_groups_client.tag_resources(
+        ResourceARNList=[task_arn],
+        Tags={"Test2": "2"},
+    )
+    assert failed["FailedResourcesMap"] == {}
+
+    resp = resource_groups_client.get_resources(ResourceTypeFilters=["dms:task"])
+    tags = resp["ResourceTagMappingList"][0]["Tags"]
+    assert {"Key": "Test", "Value": "1"} in tags
+    assert {"Key": "Test2", "Value": "2"} in tags
+
+    # Filtering on the newly-added tag returns the task
+    resp = resource_groups_client.get_resources(
+        ResourceTypeFilters=["dms:task"],
+        TagFilters=[{"Key": "Test2", "Values": ["2"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == task_arn
+
+    # Remove the original tag through the Resource Groups Tagging API
+    failed = resource_groups_client.untag_resources(
+        ResourceARNList=[task_arn],
+        TagKeys=["Test"],
+    )
+    assert failed["FailedResourcesMap"] == {}
+
+    resp = resource_groups_client.get_resources(ResourceTypeFilters=["dms:task"])
+    tags = resp["ResourceTagMappingList"][0]["Tags"]
+    assert tags == [{"Key": "Test2", "Value": "2"}]
+
+    # The removed tag no longer matches
+    resp = resource_groups_client.get_resources(
+        ResourceTypeFilters=["dms:task"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 0
