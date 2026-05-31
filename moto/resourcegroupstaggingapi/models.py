@@ -18,7 +18,6 @@ from moto.resourcegroupstaggingapi.exceptions import (
 )
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
-from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
@@ -51,13 +50,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def workspaces_backend(self) -> WorkSpacesBackend | None:
-        # Workspaces service has limited region availability
-        if self.region_name in workspaces_backends[self.account_id].regions:
-            return workspaces_backends[self.account_id][self.region_name]
-        return None
 
     @property
     def workspacesweb_backends(self) -> WorkSpacesWebBackend | None:
@@ -163,54 +155,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # Workspaces
-        if self.workspaces_backend and (
-            not resource_type_filters or "workspaces" in resource_type_filters
-        ):
-            for ws in self.workspaces_backend.workspaces.values():
-                tags = format_tag_keys(ws.tags, ["Key", "Value"])
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {
-                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
-                    "Tags": tags,
-                }
-
-        # Workspace Directories
-        if self.workspaces_backend and (
-            not resource_type_filters or "workspaces-directory" in resource_type_filters
-        ):
-            for wd in self.workspaces_backend.workspace_directories.values():
-                tags = format_tag_keys(wd.tags, ["Key", "Value"])
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {
-                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
-                    "Tags": tags,
-                }
-
-        # Workspace Images
-        if self.workspaces_backend and (
-            not resource_type_filters or "workspaces-image" in resource_type_filters
-        ):
-            for wi in self.workspaces_backend.workspace_images.values():
-                tags = format_tag_keys(wi.tags, ["Key", "Value"])
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {
-                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
-                    "Tags": tags,
-                }
 
         # Workspaces Web
         if self.workspacesweb_backends and (
@@ -435,11 +379,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             if arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces-web:"):
                 resource_id = arn.split("/")[-1]
                 self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
-                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
-                resource_id = arn.split("/")[-1]
-                self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
             else:

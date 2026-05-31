@@ -1,11 +1,12 @@
 """WorkSpacesBackend class with methods for supported APIs."""
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.ds import ds_backends
 from moto.ds.models import Directory
@@ -304,8 +305,10 @@ class WorkspaceImage(BaseModel):
         return dct
 
 
-class WorkSpacesBackend(BaseBackend):
+class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of WorkSpaces APIs."""
+
+    SERVICE_NAMESPACE = "workspaces"
 
     # The assumption here is that the limits are the same for all regions.
     DIRECTORIES_LIMIT = 50
@@ -639,6 +642,32 @@ class WorkSpacesBackend(BaseBackend):
     ) -> None:
         res = self.workspace_directories[resource_id]
         res.self_service_permissions = selfservice_permissions
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        partition = self.partition
+        for ws in self.workspaces.values():
+            yield TaggedResource(
+                arn=f"arn:{partition}:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
+                tags={t["Key"]: t["Value"] for t in (ws.tags or [])},
+                resource_type="workspaces:workspace",
+            )
+        for wd in self.workspace_directories.values():
+            yield TaggedResource(
+                arn=f"arn:{partition}:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
+                tags={t["Key"]: t["Value"] for t in (wd.tags or [])},
+                resource_type="workspaces-directory",
+            )
+        for wi in self.workspace_images.values():
+            yield TaggedResource(
+                arn=f"arn:{partition}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
+                tags={t["Key"]: t["Value"] for t in (wi.tags or [])},
+                resource_type="workspaces-image",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        resource_id = arn.split("/")[-1]
+        self.create_tags(resource_id, [{"Key": k, "Value": v} for k, v in tags.items()])
 
 
 workspaces_backends = BackendDict(WorkSpacesBackend, "workspaces")
