@@ -6,6 +6,7 @@ from typing import Any
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys, utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
@@ -888,7 +889,7 @@ class TaskSet(BaseModel):
         self.task_set_arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:task-set/{cluster_name}/{service_name}/{self.id}"
 
 
-class EC2ContainerServiceBackend(BaseBackend):
+class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
     """
     ECS resources use the new ARN format by default.
     Use the following environment variable to revert back to the old/short ARN format:
@@ -905,6 +906,8 @@ class EC2ContainerServiceBackend(BaseBackend):
     Set the environment variable MOTO_ECS_SERVICE_FAILED_TASKS to configure the number of failed tasks
     returned in deployments. Defaults to 0.
     """
+
+    SERVICE_NAMESPACE = "ecs"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2109,11 +2112,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         if definitions:
             return max(definitions.keys())
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        parsed_arn = self._parse_resource_arn(resource_arn)
-        resource = self._get_resource(resource_arn, parsed_arn)
-        resource.tags = self._merge_tags(resource.tags or [], tags)
-
     def _merge_tags(
         self, existing_tags: list[dict[str, str]], new_tags: list[dict[str, str]]
     ) -> list[dict[str, str]]:
@@ -2127,11 +2125,6 @@ class EC2ContainerServiceBackend(BaseBackend):
     @staticmethod
     def _get_keys(tags: list[dict[str, str]]) -> list[str]:
         return [tag["key"] for tag in tags]
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        parsed_arn = self._parse_resource_arn(resource_arn)
-        resource = self._get_resource(resource_arn, parsed_arn)
-        resource.tags = [tag for tag in resource.tags if tag["key"] not in tag_keys]
 
     def create_task_set(
         self,
@@ -2389,6 +2382,47 @@ class EC2ContainerServiceBackend(BaseBackend):
             deleted_task_definitions.append(resolved_task_def)
 
         return deleted_task_definitions, failures
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for service in self.services.values():
+            yield TaggedResource(
+                arn=service.physical_resource_id,
+                tags={t["key"]: t["value"] for t in (service.tags or [])},
+                resource_type="ecs:service",
+            )
+        for cluster in self.clusters.values():
+            yield TaggedResource(
+                arn=cluster.arn,
+                tags={t["key"]: t["value"] for t in (cluster.tags or [])},
+                resource_type="ecs:cluster",
+            )
+        for task_dict in self.tasks.values():
+            for task in task_dict.values():
+                yield TaggedResource(
+                    arn=task.task_arn,
+                    tags={t["key"]: t["value"] for t in (task.tags or [])},
+                    resource_type="ecs:task",
+                )
+        for task_definition_dict in self.task_definitions.values():
+            for task_definition in task_definition_dict.values():
+                yield TaggedResource(
+                    arn=task_definition.arn,
+                    tags={t["key"]: t["value"] for t in (task_definition.tags or [])},
+                    resource_type="ecs:task-definition",
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        parsed_arn = self._parse_resource_arn(arn)
+        resource = self._get_resource(arn, parsed_arn)
+        new_tags = [{"key": k, "value": v} for k, v in tags.items()]
+        resource.tags = self._merge_tags(resource.tags or [], new_tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        parsed_arn = self._parse_resource_arn(resource_arn)
+        resource = self._get_resource(resource_arn, parsed_arn)
+        if resource.tags:
+            resource.tags = [tag for tag in resource.tags if tag["key"] not in tag_keys]
 
 
 ecs_backends = BackendDict(EC2ContainerServiceBackend, "ecs")

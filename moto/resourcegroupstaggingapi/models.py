@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
 from moto.elasticbeanstalk.models import EBBackend, eb_backends
@@ -122,10 +121,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def ecs_backend(self) -> EC2ContainerServiceBackend:
-        return ecs_backends[self.account_id][self.region_name]
 
     @property
     def firehose_backend(self) -> FirehoseBackend:
@@ -304,37 +299,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # ECS
-        if not resource_type_filters or "ecs:service" in resource_type_filters:
-            for service in self.ecs_backend.services.values():
-                tags = format_tag_keys(service.tags, ["key", "value"])
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{service.physical_resource_id}", "Tags": tags}
-
-        if not resource_type_filters or "ecs:cluster" in resource_type_filters:
-            for cluster in self.ecs_backend.clusters.values():
-                tags = format_tag_keys(cluster.tags, ["key", "value"])  # type: ignore[arg-type]
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
-
-        if not resource_type_filters or "ecs:task" in resource_type_filters:
-            for task_dict in self.ecs_backend.tasks.values():
-                for task in task_dict.values():
-                    tags = format_tag_keys(task.tags, ["key", "value"])
-                    if not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
-
-        if not resource_type_filters or "ecs:task-definition" in resource_type_filters:
-            for task_definition_dict in self.ecs_backend.task_definitions.values():
-                for task_definition in task_definition_dict.values():
-                    tags = format_tag_keys(task_definition.tags, ["key", "value"])
-                    if not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{task_definition.arn}", "Tags": tags}
 
         # EFS, resource type elasticfilesystem:access-point
         if (
