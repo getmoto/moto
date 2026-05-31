@@ -3280,7 +3280,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         bucket = self.get_bucket(bucket_name)
         return list(bucket.inventory_configs.values())
 
-    # Resource Groups Tagging API
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         for bucket in self.buckets.values():
             yield TaggedResource(

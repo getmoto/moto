@@ -4,22 +4,15 @@ from typing import Any
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.resource_tagging import (
     TaggableResourcesMixin,
+    TaggedResource,
     iter_taggable_backends,
     make_tag_matcher,
     match_resource_type,
 )
-from moto.emr.models import ElasticMapReduceBackend, emr_backends
-from moto.glacier.models import GlacierBackend, glacier_backends
-from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.moto_api._internal import mock_random
-from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-
-# Left: EC2 RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
-# StorageGateway MachineLearning ACM DirectoryService CloudHSM
-# Inspector Elasticsearch
 
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
@@ -31,22 +24,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def kinesis_backend(self) -> KinesisBackend:
-        return kinesis_backends[self.account_id][self.region_name]
-
-    @property
-    def glacier_backend(self) -> GlacierBackend:
-        return glacier_backends[self.account_id][self.region_name]
-
-    @property
-    def emr_backend(self) -> ElasticMapReduceBackend:
-        return emr_backends[self.account_id][self.region_name]
-
-    @property
-    def redshift_backend(self) -> RedshiftBackend:
-        return redshift_backends[self.account_id][self.region_name]
 
     def _get_backend_for_resource(
         self, resource_arn: str
@@ -65,61 +42,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self,
         tag_filters: list[dict[str, Any]] | None = None,
         resource_type_filters: list[str] | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        # Look at
-        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
-
-        # TODO move these to their respective backends
-        filters = []
-        for tag_filter_dict in tag_filters:  # type: ignore
-            values = tag_filter_dict.get("Values", [])
-            if len(values) == 0:
-                # Check key matches
-                filters.append(lambda t, v, key=tag_filter_dict["Key"]: t == key)
-            elif len(values) == 1:
-                # Check it's exactly the same as key, value
-                filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
-                    and v == value
-                )
-            else:
-                # Check key matches and value is one of the provided values
-                filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key  # type: ignore
-                    and v in vl
-                )
-
-        def tag_filter(tag_list: list[dict[str, Any]]) -> bool:
-            result = []
-            if tag_filters:
-                for f in filters:
-                    temp_result = []
-                    for tag in tag_list:
-                        f_result = f(tag["Key"], tag["Value"])  # type: ignore
-                        temp_result.append(f_result)
-                    result.append(any(temp_result))
-                return all(result)
-            else:
-                return True
-
-        def format_tags(tags: dict[str, Any]) -> list[dict[str, Any]]:
-            result = []
-            for key, value in tags.items():
-                result.append({"Key": key, "Value": value})
-            return result
-
-        def format_tag_keys(
-            tags: list[dict[str, Any]], keys: list[str]
-        ) -> list[dict[str, Any]]:
-            result = []
-            for tag in tags:
-                result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
-            return result
-
-        # Services opted in via TaggableResourcesMixin
+    ) -> Iterator[TaggedResource]:
         tag_matcher = make_tag_matcher(tag_filters)
         for backend in iter_taggable_backends(self.account_id, self.region_name):
             for resource in backend.iter_tagged_resources():
+                # https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html
+                # According to the docs, GetResources returns all "tagged or previously tagged" resources.
+                # This means that even though generally resources without tags are not returned, a resource
+                # that had been tagged and then had all of its tags deleted would be returned.
+                # Historically, Moto has not supported this behavior and has been inconsistent across
+                # service backends with respect to returning resources without tags (some do, some don't).
+                # The extra "include_untagged" here allows backends to decide whether resources without
+                # tags should be returned.
+                # TODO: apply consistent behavior for untagged resources that matches real AWS.
                 if not resource.tags and not resource.extra.get("include_untagged"):
                     continue
                 if not match_resource_type(
@@ -128,38 +63,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 if not tag_matcher(resource.tags):
                     continue
-                yield {
-                    "ResourceARN": resource.arn,
-                    "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
-                }
-
-        # EMR Cluster
-
-        # Glacier Vault
-
-        # Kinesis
-
-        # RedShift Cluster
-        # RedShift Hardware security module (HSM) client certificate
-        # RedShift HSM connection
-        # RedShift Parameter group
-        # RedShift Snapshot
-        # RedShift Subnet group
+                yield resource
 
     def _get_tag_keys_generator(self) -> Iterator[str]:
-        # Look at
-        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
-
-        # Services opted in via TaggableResourcesMixin
         for backend in iter_taggable_backends(self.account_id, self.region_name):
             for resource in backend.iter_tagged_resources():
                 yield from resource.tags.keys()
 
     def _get_tag_values_generator(self, tag_key: str) -> Iterator[str]:
-        # Look at
-        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
-
-        # Services opted in via TaggableResourcesMixin
         for backend in iter_taggable_backends(self.account_id, self.region_name):
             for resource in backend.iter_tagged_resources():
                 for key, value in resource.tags.items():
@@ -173,17 +84,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         tags_per_page: int = 100,
         tag_filters: list[dict[str, Any]] | None = None,
         resource_type_filters: list[str] | None = None,
-    ) -> tuple[str | None, list[dict[str, Any]]]:
-        # Simple range checking
-        if 100 >= tags_per_page >= 500:
-            raise RESTError(
-                "InvalidParameterException", "TagsPerPage must be between 100 and 500"
-            )
-        if 1 >= resources_per_page >= 50:
-            raise RESTError(
-                "InvalidParameterException", "ResourcesPerPage must be between 1 and 50"
-            )
-
+    ) -> tuple[str | None, list[TaggedResource]]:
         # If we have a token, go and find the respective generator, or error
         if pagination_token:
             if pagination_token not in self._pages:
@@ -205,13 +106,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if left_over:
             result.append(left_over)
             current_resources += 1
-            current_tags += len(left_over["Tags"])
 
         try:
             while True:
-                # Generator format: [{'ResourceARN': str, 'Tags': [{'Key': str, 'Value': str]}, ...]
                 next_item = next(generator)
-                resource_tags = len(next_item["Tags"])
+                resource_tags = len(next_item.tags)
 
                 if current_resources >= resources_per_page:
                     break
@@ -234,6 +133,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Token used up, might as well bin now, if you call it again you're an idiot
         if pagination_token:
             del self._pages[pagination_token]
+
         return new_token, result
 
     def get_tag_keys(
@@ -333,9 +233,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def tag_resources(
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
-        """
-        Only EFS, Elasticache, Lambda, Logs, Quicksight, RDS, SageMaker, SES, and SWF resources are currently supported
-        """
         missing_resources = []
         missing_error: dict[str, Any] = {
             "StatusCode": 404,
@@ -345,20 +242,18 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         for arn in resource_arns:
             backend_for_arn = self._get_backend_for_resource(arn)
-            if backend_for_arn is not None:
-                try:
-                    backend_for_arn.tag_resource(arn, tags)
-                except NotImplementedError:
-                    missing_resources.append(arn)
+            if backend_for_arn is None:
+                missing_resources.append(arn)
                 continue
+            try:
+                backend_for_arn.tag_resource(arn, tags)
+            except NotImplementedError:
+                missing_resources.append(arn)
         return dict.fromkeys(missing_resources, missing_error)
 
     def untag_resources(
         self, resource_arn_list: list[str], tag_keys: list[str]
     ) -> dict[str, dict[str, Any]]:
-        """
-        Only EFS, Elasticache, Lambda, Quicksight, SES, and SWF resources are currently supported
-        """
         missing_resources = []
         missing_error: dict[str, Any] = {
             "StatusCode": 404,
@@ -368,12 +263,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         for arn in resource_arn_list:
             backend_for_arn = self._get_backend_for_resource(arn)
-            if backend_for_arn is not None:
-                try:
-                    backend_for_arn.untag_resource(arn, tag_keys)
-                except NotImplementedError:
-                    missing_resources.append(arn)
+            if backend_for_arn is None:
+                missing_resources.append(arn)
                 continue
+            try:
+                backend_for_arn.untag_resource(arn, tag_keys)
+            except NotImplementedError:
+                missing_resources.append(arn)
 
         return dict.fromkeys(missing_resources, missing_error)
 

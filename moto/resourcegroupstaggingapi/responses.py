@@ -1,5 +1,6 @@
 from moto.core.responses import ActionResult, BaseResponse
 
+from .exceptions import ResourceGroupsTaggingAPIError
 from .models import ResourceGroupsTaggingAPIBackend, resourcegroupstaggingapi_backends
 
 
@@ -18,7 +19,16 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         resources_per_page = self._get_int_param("ResourcesPerPage", 50)
         tags_per_page = self._get_int_param("TagsPerPage", 100)
         resource_type_filters = self._get_param("ResourceTypeFilters", [])
-
+        # Simple range checking
+        if tags_per_page not in range(100, 501):
+            raise ResourceGroupsTaggingAPIError(
+                "InvalidParameterException", "TagsPerPage must be between 100 and 500"
+            )
+        if resources_per_page not in range(1, 101):
+            raise ResourceGroupsTaggingAPIError(
+                "InvalidParameterException",
+                "ResourcesPerPage must be between 1 and 50",
+            )
         pagination_token, resource_tag_mapping_list = self.backend.get_resources(
             pagination_token=pagination_token,
             tag_filters=tag_filters,
@@ -29,7 +39,16 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         # Format tag response
         response = {
-            "ResourceTagMappingList": resource_tag_mapping_list,
+            "ResourceTagMappingList": [
+                {
+                    "ResourceARN": resource.arn,
+                    "Tags": [
+                        {"Key": key, "Value": value}
+                        for key, value in resource.tags.items()
+                    ],
+                }
+                for resource in resource_tag_mapping_list
+            ],
             "PaginationToken": pagination_token,
         }
         return ActionResult(response)

@@ -4360,7 +4360,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"
 
-    # Resource Groups Tagging API
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         resource_map: dict[str, Iterable[Any]] = {
             "rds:cluster": self.clusters.values(),

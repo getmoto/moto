@@ -2654,7 +2654,7 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
         layer_version = self.get_layer_version(layer_name, str(version_number))
         layer_version.policy.del_statement(sid, revision)
 
-    # Resource Groups Tagging API
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         for fn in self.list_functions():
             yield TaggedResource(

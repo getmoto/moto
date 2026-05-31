@@ -1980,7 +1980,7 @@ class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.warm_pool = None
 
-    # Resource Groups Tagging API
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         # From the AWS documentation as of 2026-05-24:
         # The TagResources and UntagResources operations of AWS Resource Groups Tagging API work as

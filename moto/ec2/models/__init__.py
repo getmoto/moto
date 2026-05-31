@@ -225,7 +225,7 @@ class EC2Backend(
                 )
         return True
 
-    # Resource Groups Tagging API
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         resource_collections: dict[str, Any] = {
             "ec2:customer-gateway": self.customer_gateways.values(),
