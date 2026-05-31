@@ -2089,3 +2089,37 @@ def test_get_resources_param_validation():
         rtapi.get_resources(ResourceARNList=[dummy_arn], ResourcesPerPage=0)
     error = exc_info.value.response["Error"]
     assert error["Code"] == "InvalidParameterException"
+
+
+@mock_aws
+def test_get_resources_by_resource_arn_list():
+    client = boto3.client("s3", region_name="us-east-1")
+    for i in range(3):
+        bucket_name = f"arn-list-bucket-{i}"
+        client.create_bucket(Bucket=bucket_name)
+        client.put_bucket_tagging(
+            Bucket=bucket_name,
+            Tagging={"TagSet": [{"Key": "env", "Value": bucket_name}]},
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(
+        ResourceARNList=[
+            "arn:aws:s3:::arn-list-bucket-0",
+            "arn:aws:s3:::arn-list-bucket-2",
+            "arn:aws:s3:::arn-list-bucket-does-not-exist",
+        ]
+    )
+
+    # Only the requested, existing buckets are returned. The non-existent ARN is
+    # silently omitted, and the un-requested arn-list-bucket-1 is excluded.
+    mappings = {
+        r["ResourceARN"]: {t["Key"]: t["Value"] for t in r["Tags"]}
+        for r in resp["ResourceTagMappingList"]
+    }
+    assert mappings == {
+        "arn:aws:s3:::arn-list-bucket-0": {"env": "arn-list-bucket-0"},
+        "arn:aws:s3:::arn-list-bucket-2": {"env": "arn-list-bucket-2"},
+    }
+    # ARN-list requests are not paginated
+    assert resp.get("PaginationToken", "") == ""

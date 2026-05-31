@@ -42,6 +42,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self,
         tag_filters: list[dict[str, Any]] | None = None,
         resource_type_filters: list[str] | None = None,
+        resource_arn_list: list[str] | None = None,
     ) -> Iterator[TaggedResource]:
         tag_matcher = make_tag_matcher(tag_filters)
         for backend in iter_taggable_backends(self.account_id, self.region_name):
@@ -62,6 +63,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):
                     continue
                 if not tag_matcher(resource.tags):
+                    continue
+                if resource_arn_list and resource.arn not in resource_arn_list:
                     continue
                 yield resource
 
@@ -84,6 +87,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         tags_per_page: int = 100,
         tag_filters: list[dict[str, Any]] | None = None,
         resource_type_filters: list[str] | None = None,
+        resource_arn_list: list[str] | None = None,
     ) -> tuple[str | None, list[TaggedResource]]:
         # If we have a token, go and find the respective generator, or error
         if pagination_token:
@@ -96,7 +100,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             left_over = self._pages[pagination_token]["misc"]
         else:
             generator = self._get_resources_generator(
-                tag_filters=tag_filters, resource_type_filters=resource_type_filters
+                tag_filters=tag_filters,
+                resource_type_filters=resource_type_filters,
+                resource_arn_list=resource_arn_list,
             )
             left_over = None
 

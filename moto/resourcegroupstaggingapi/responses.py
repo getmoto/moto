@@ -19,6 +19,8 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         resources_per_page = self._get_int_param("ResourcesPerPage", 50)
         tags_per_page = self._get_int_param("TagsPerPage", 100)
         resource_type_filters = self._get_param("ResourceTypeFilters", [])
+        resource_arn_list = self._get_param("ResourceARNList", [])
+
         # Simple range checking
         if tags_per_page not in range(100, 501):
             raise ResourceGroupsTaggingAPIError(
@@ -27,7 +29,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         if resources_per_page not in range(1, 101):
             raise ResourceGroupsTaggingAPIError(
                 "InvalidParameterException",
-                "ResourcesPerPage must be between 1 and 50",
+                "ResourcesPerPage must be between 1 and 100",
             )
         pagination_token, resource_tag_mapping_list = self.backend.get_resources(
             pagination_token=pagination_token,
@@ -35,6 +37,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
             resources_per_page=resources_per_page,
             tags_per_page=tags_per_page,
             resource_type_filters=resource_type_filters,
+            resource_arn_list=resource_arn_list,
         )
 
         # Format tag response
