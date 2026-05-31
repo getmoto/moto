@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.athena.models import athena_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
@@ -80,10 +79,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def appsync_backend(self) -> AppSyncBackend:
-        return appsync_backends[self.account_id][self.region_name]
 
     @property
     def directconnect_backend(self) -> DirectConnectBackend:
@@ -351,19 +346,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-
-        # AppSync
-        if not resource_type_filters or "appsync" in resource_type_filters:
-            for api in self.appsync_backend.graphql_apis.values():
-                tags = self.appsync_backend.tagger.list_tags_for_resource(api.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{api.arn}", "Tags": tags}
 
         # Athena
         if not resource_type_filters or "athena" in resource_type_filters:

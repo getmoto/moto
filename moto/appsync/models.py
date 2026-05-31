@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import base64
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -490,8 +491,10 @@ class EventsAPI(BaseModel):
 
 
 # region: AppSyncBackend
-class AppSyncBackend(BaseBackend):
+class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of AppSync APIs."""
+
+    SERVICE_NAMESPACE = "appsync"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -627,14 +630,6 @@ class AppSyncBackend(BaseBackend):
 
     def get_schema_creation_status(self, api_id: str) -> Any:
         return self.graphql_apis[api_id].get_schema_status()
-
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        self.tagger.tag_resource(
-            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
-        )
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
@@ -796,6 +791,23 @@ class AppSyncBackend(BaseBackend):
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
         return self.events_apis[api_id]
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for api in self.graphql_apis.values():
+            yield TaggedResource(
+                arn=api.arn,
+                tags=self.tagger.get_tag_dict_for_resource(api.arn),
+                resource_type="appsync:apis",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(
+            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 # endregion
