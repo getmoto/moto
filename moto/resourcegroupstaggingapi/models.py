@@ -16,8 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
-from moto.ssm.utils import parameter_arn
 from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.swf.models import SWFBackend, swf_backends
 from moto.utilities.tagging_service import TaggingService
@@ -56,10 +54,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def ssm_backend(self) -> SimpleSystemManagerBackend:
-        return ssm_backends[self.account_id][self.region_name]
 
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
@@ -184,45 +178,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # SSM Documents
-        if (
-            not resource_type_filters
-            or "ssm" in resource_type_filters
-            or "ssm:document" in resource_type_filters
-        ):
-            for document in self.ssm_backend._documents.values():
-                doc_name = document.describe()["Name"]
-                tags = self.ssm_backend._get_documents_tags(doc_name)
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{get_partition(self.region_name)}:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
-                    "Tags": tags,
-                }
-
-        # SSM Parameters
-        if (
-            not resource_type_filters
-            or "ssm" in resource_type_filters
-            or "ssm:parameter" in resource_type_filters
-        ):
-            for param_name in self.ssm_backend._parameters:
-                tags = format_tags(
-                    self.ssm_backend.list_tags_for_resource("Parameter", param_name)
-                )
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": parameter_arn(
-                        self.account_id, self.region_name, param_name
-                    ),
-                    "Tags": tags,
-                }
 
         # Step Functions
         if not resource_type_filters or "states:stateMachine" in resource_type_filters:

@@ -15,6 +15,7 @@ import yaml
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
@@ -1266,7 +1267,7 @@ class FakePatchGroup:
         self.default_associations = latest_patch_baselines[self.region_name]
 
 
-class SimpleSystemManagerBackend(BaseBackend):
+class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
     """
     Moto supports the following default parameters out of the box:
 
@@ -1277,6 +1278,8 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     Integration with SecretsManager is also supported.
     """
+
+    SERVICE_NAMESPACE = "ssm"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2711,6 +2714,23 @@ class SimpleSystemManagerBackend(BaseBackend):
             baseline_os = self.baselines[baseline_id].operating_system
             self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         return baseline_id, patch_group
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for document in self._documents.values():
+            doc_name = document.describe()["Name"]
+            tags = {t["Key"]: t["Value"] for t in self._get_documents_tags(doc_name)}
+            yield TaggedResource(
+                arn=f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
+                tags=tags,
+                resource_type="ssm:document",
+            )
+        for param_name in self._parameters:
+            yield TaggedResource(
+                arn=parameter_arn(self.account_id, self.region_name, param_name),
+                tags=dict(self.list_tags_for_resource("Parameter", param_name) or {}),
+                resource_type="ssm:parameter",
+            )
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")
