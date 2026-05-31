@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
@@ -56,7 +55,7 @@ from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
-# StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
+# StorageGateway DynamoDB MachineLearning ACM DirectoryService CloudHSM
 # Inspector Elasticsearch
 
 
@@ -69,10 +68,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def directconnect_backend(self) -> DirectConnectBackend:
-        return directconnect_backends[self.account_id][self.region_name]
 
     @property
     def dms_backend(self) -> DatabaseMigrationServiceBackend:
@@ -319,33 +314,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # Direct Connect
-        if self.directconnect_backend:
-            if not resource_type_filters or "directconnect" in resource_type_filters:
-                directconnect_backend = directconnect_backends[self.account_id][
-                    self.region_name
-                ]
-
-                # Connections
-                for connection in directconnect_backend.connections.values():
-                    tags = directconnect_backend.tagger.list_tags_for_resource(
-                        connection.connection_id
-                    )["Tags"]
-                    tags = format_tag_keys(tags, ["key", "value"])
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{connection.connection_id}", "Tags": tags}
-
-                # LAGs
-                for lag in directconnect_backend.lags.values():
-                    tags = directconnect_backend.tagger.list_tags_for_resource(
-                        lag.lag_id
-                    )["Tags"]
-                    tags = format_tag_keys(tags, ["key", "value"])
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{lag.lag_id}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:

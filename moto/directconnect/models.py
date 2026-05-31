@@ -1,11 +1,13 @@
 """DirectConnectBackend class with methods for supported APIs."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.tagging_service import TaggingService
 
 from .enums import (
@@ -152,8 +154,10 @@ class LAG(BaseModel):
         }
 
 
-class DirectConnectBackend(BaseBackend):
+class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of DirectConnect APIs."""
+
+    SERVICE_NAMESPACE = "directconnect"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -216,15 +220,9 @@ class DirectConnectBackend(BaseBackend):
             backend=self,
         )
         if tags:
-            self.tag_resource(connection.connection_id, tags)
+            self.tagger.tag_resource(connection.connection_id, tags)
         self.connections[connection.connection_id] = connection
         return connection
-
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(
-            resource_arn,
-            tags=tags if tags else [],
-        )
 
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.tagger.get_tag_dict_for_resource(resource_arn)
@@ -243,9 +241,6 @@ class DirectConnectBackend(BaseBackend):
             )
 
         return response
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def delete_connection(self, connection_id: str) -> Connection:
         if not connection_id:
@@ -389,7 +384,7 @@ class DirectConnectBackend(BaseBackend):
             lag.connections.append(connection)
 
         if tags:
-            self.tag_resource(lag.lag_id, tags)
+            self.tagger.tag_resource(lag.lag_id, tags)
         self.lags[lag.lag_id] = lag
         return lag
 
@@ -420,6 +415,27 @@ class DirectConnectBackend(BaseBackend):
                 return connection_id, mac_sec_keys.pop(i)
 
         raise MacSecKeyNotFound(secret_arn=secret_arn, connection_id=connection_id)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for connection in self.connections.values():
+            yield TaggedResource(
+                arn=connection.connection_id,
+                tags=self.tagger.get_tag_dict_for_resource(connection.connection_id),
+                resource_type="directconnect:dxcon",
+            )
+        for lag in self.lags.values():
+            yield TaggedResource(
+                arn=lag.lag_id,
+                tags=self.tagger.get_tag_dict_for_resource(lag.lag_id),
+                resource_type="directconnect:dxlag",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"key": k, "value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 directconnect_backends = BackendDict(DirectConnectBackend, "directconnect")
