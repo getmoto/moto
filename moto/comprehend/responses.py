@@ -88,14 +88,15 @@ class ComprehendResponse(BaseResponse):
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
-        tags = params.get("Tags")
+        tags = params.get("Tags") or []
+        tags = {tag["Key"]: tag["Value"] for tag in tags}
         self.comprehend_backend.tag_resource(resource_arn, tags)
         return "{}"
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
-        tag_keys = params.get("TagKeys")
+        tag_keys = params.get("TagKeys") or []
         self.comprehend_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
 

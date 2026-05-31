@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.comprehend.models import ComprehendBackend, comprehend_backends
 from moto.connectcampaigns.models import (
     ConnectCampaignServiceBackend,
     connectcampaigns_backends,
@@ -190,13 +189,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
-    def comprehend_backend(self) -> ComprehendBackend | None:
-        # aws Comprehend has limited region availability
-        if self.region_name in comprehend_backends[self.account_id].regions:
-            return comprehend_backends[self.account_id][self.region_name]
-        return None
-
-    @property
     def kafka_backend(self) -> KafkaBackend:
         return kafka_backends[self.account_id][self.region_name]
 
@@ -323,59 +315,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-
-        # Comprehend
-        if self.comprehend_backend:
-            comprehend_resource_map: dict[str, dict[str, Any]] = {
-                "comprehend:document-classification-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:document-classifier": dict(
-                    self.comprehend_backend.classifiers
-                ),
-                "comprehend:dominant-language-detection-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:entity-recognizer": dict(
-                    self.comprehend_backend.recognizers
-                ),
-                "comprehend:entities-detection-job": dict(self.comprehend_backend.jobs),
-                "comprehend:endpoint": dict(self.comprehend_backend.endpoints),
-                "comprehend:events-detection-job": dict(self.comprehend_backend.jobs),
-                "comprehend:flywheel": dict(self.comprehend_backend.flywheels),
-                "comprehend:key-phrases-detection-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:pii-entities-detection-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:sentiment-detection-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:targeted-sentiment-detection-job": dict(
-                    self.comprehend_backend.jobs
-                ),
-                "comprehend:topic-detection-job": dict(self.comprehend_backend.jobs),
-            }
-            for resource_type, resource_source in comprehend_resource_map.items():
-                if (
-                    not resource_type_filters
-                    or "comprehend" in resource_type_filters
-                    or resource_type in resource_type_filters
-                ):
-                    for resource in resource_source.values():
-                        arn = getattr(resource, "arn", None) or getattr(
-                            resource, "job_arn", None
-                        )
-                        if not arn:
-                            continue
-
-                        tags = self.comprehend_backend.tagger.list_tags_for_resource(
-                            arn
-                        )["Tags"]
-                        if not tag_filter(tags):
-                            continue
-                        yield {"ResourceARN": f"{arn}", "Tags": tags}
 
         # Firehose
         if self.firehose_backend:

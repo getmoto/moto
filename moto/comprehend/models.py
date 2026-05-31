@@ -2,12 +2,13 @@
 
 import random
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -288,8 +289,15 @@ class ComprehendJob(BaseModel):
             self.job_status = "STOP_REQUESTED"
 
 
-class ComprehendBackend(BaseBackend):
+def _comprehend_job_resource_type(job_type: str) -> str:
+    job_type_path = "".join(f"-{c.lower()}" if c.isupper() else c for c in job_type)
+    return f"comprehend:{job_type_path.lstrip('-')}-job"
+
+
+class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of Comprehend APIs."""
+
+    SERVICE_NAMESPACE = "comprehend"
 
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/comprehend/client/detect_key_phrases.html
     detect_key_phrases_languages = [
@@ -384,12 +392,6 @@ class ComprehendBackend(BaseBackend):
 
     def delete_entity_recognizer(self, entity_recognizer_arn: str) -> None:
         self.recognizers.pop(entity_recognizer_arn, None)
-
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def detect_pii_entities(self, text: str, language: str) -> list[dict[str, Any]]:
         if language not in self.detect_pii_entities_languages:
@@ -865,6 +867,49 @@ class ComprehendBackend(BaseBackend):
         self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("TargetedSentimentDetection", filter)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for classifier in self.classifiers.values():
+            yield TaggedResource(
+                arn=classifier.arn,
+                tags=self.tagger.get_tag_dict_for_resource(classifier.arn),
+                resource_type="comprehend:document-classifier",
+            )
+        for endpoint in self.endpoints.values():
+            yield TaggedResource(
+                arn=endpoint.arn,
+                tags=self.tagger.get_tag_dict_for_resource(endpoint.arn),
+                resource_type="comprehend:endpoint",
+            )
+        for recognizer in self.recognizers.values():
+            yield TaggedResource(
+                arn=recognizer.arn,
+                tags=self.tagger.get_tag_dict_for_resource(recognizer.arn),
+                resource_type="comprehend:entity-recognizer",
+            )
+        for flywheel in self.flywheels.values():
+            yield TaggedResource(
+                arn=flywheel.arn,
+                tags=self.tagger.get_tag_dict_for_resource(flywheel.arn),
+                resource_type="comprehend:flywheel",
+            )
+        for job in self.jobs.values():
+            arn = getattr(job, "job_arn", None)
+            job_type = getattr(job, "job_type", None)
+            if not arn or not job_type:
+                continue
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type=_comprehend_job_resource_type(job_type),
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")
