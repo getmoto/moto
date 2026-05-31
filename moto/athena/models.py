@@ -1,5 +1,6 @@
 import re
 import time
+from collections.abc import Iterable, Iterator
 from datetime import datetime
 from typing import Any
 
@@ -10,6 +11,7 @@ from moto.athena.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.models import s3_backends
@@ -220,7 +222,9 @@ class PreparedStatement(BaseModel):
         self.last_modified_time = datetime.now()
 
 
-class AthenaBackend(BaseBackend):
+class AthenaBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "athena"
+
     PAGINATION_MODEL = {
         "list_named_queries": {
             "input_token": "next_token",
@@ -620,15 +624,26 @@ class AthenaBackend(BaseBackend):
             return self.tagger.list_tags_for_resource(resource_arn)
         return None
 
-    def tag_resource(
-        self, resource_arn: str, tags: list[dict[str, str]]
-    ) -> dict[str, Any]:
-        self.tagger.tag_resource(resource_arn, tags)
-        return {}
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        resource_map: dict[str, Iterable[Any]] = {
+            "athena:capacityreservation": self.capacity_reservations.values(),
+            "athena:datacatalog": self.data_catalogs.values(),
+            "athena:workgroup": self.work_groups.values(),
+        }
+        for resource_type, resources in resource_map.items():
+            for resource in resources:
+                yield TaggedResource(
+                    arn=resource.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(resource.arn),
+                    resource_type=resource_type,
+                )
 
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        return {}
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

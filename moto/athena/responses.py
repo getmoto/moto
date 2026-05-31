@@ -201,16 +201,17 @@ class AthenaResponse(BaseResponse):
     def tag_resource(self) -> str:
         """Handler for tag_resource API call."""
         resource_arn = self._get_param("ResourceARN")
-        tags = self._get_param("Tags")
-        response = self.athena_backend.tag_resource(resource_arn, tags)
-        return json.dumps(response)
+        tags = self._get_param("Tags", [])
+        tags = {tag["Key"]: tag["Value"] for tag in tags}
+        self.athena_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         """Handler for untag_resource API call."""
         resource_arn = self._get_param("ResourceARN")
-        tag_keys = self._get_param("TagKeys")
-        response = self.athena_backend.untag_resource(resource_arn, tag_keys)
-        return json.dumps(response)
+        tag_keys = self._get_param("TagKeys", [])
+        self.athena_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps({})
 
     def get_data_catalog(self) -> str:
         name = self._get_param("Name")

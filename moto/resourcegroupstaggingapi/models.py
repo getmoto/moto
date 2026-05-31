@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.athena.models import athena_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
@@ -346,37 +345,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-
-        # Athena
-        if not resource_type_filters or "athena" in resource_type_filters:
-            athena_backend = athena_backends[self.account_id][self.region_name]
-
-            # Capacity Reservations
-            for capacity_reservation in athena_backend.capacity_reservations.values():
-                tags = athena_backend.tagger.list_tags_for_resource(
-                    capacity_reservation.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{capacity_reservation.arn}", "Tags": tags}
-
-            # Workgroups
-            for work_group in athena_backend.work_groups.values():
-                tags = athena_backend.tagger.list_tags_for_resource(work_group.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{work_group.arn}", "Tags": tags}
-
-            # Data Catalogs
-            for data_catalog in athena_backend.data_catalogs.values():
-                tags = athena_backend.tagger.list_tags_for_resource(data_catalog.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{data_catalog.arn}", "Tags": tags}
 
         # Backup
         if not resource_type_filters or "backup" in resource_type_filters:
