@@ -1,8 +1,10 @@
 import string
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -350,7 +352,9 @@ class KeyGroup(BaseModel):
         }
 
 
-class CloudFrontBackend(BaseBackend):
+class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "cloudfront"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.distributions: dict[str, Distribution] = {}
@@ -481,12 +485,6 @@ class CloudFrontBackend(BaseBackend):
     def list_tags_for_resource(self, resource: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
 
-    def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource, tags)
-
-    def untag_resource(self, resource: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource, tag_keys)
-
     def create_origin_access_control(
         self, config_dict: dict[str, str]
     ) -> OriginAccessControl:
@@ -556,6 +554,21 @@ class CloudFrontBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.key_groups.values())
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for dist in self.distributions.values():
+            yield TaggedResource(
+                arn=dist.arn,
+                tags=self.tagger.get_tag_dict_for_resource(dist.arn),
+                resource_type="cloudfront:distribution",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 cloudfront_backends = BackendDict(

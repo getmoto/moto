@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 from moto.comprehend.models import ComprehendBackend, comprehend_backends
 from moto.connectcampaigns.models import (
@@ -213,10 +212,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
-    def cloudfront_backend(self) -> CloudFrontBackend:
-        return cloudfront_backends[self.account_id][self.partition]
-
-    @property
     def swf_backend(self) -> SWFBackend:
         return swf_backends[self.account_id][self.region_name]
 
@@ -401,22 +396,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # Cloudfront
-        if (
-            not resource_type_filters
-            or "cloudfront" in resource_type_filters
-            or "cloudfront:distributions" in resource_type_filters
-        ):
-            for dist in self.cloudfront_backend.distributions.values():
-                tags = self.cloudfront_backend.tagger.list_tags_for_resource(dist.arn)[
-                    "Tags"
-                ]
-                if (
-                    not tag_filter(tags) or len(tags) == 0
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
 
         if self.cloudwatch_backend:
             cloudwatch_resource_map: dict[str, dict[str, Any]] = {
@@ -1447,7 +1426,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only CloudFront, DynamoDB, EFS, Elasticache, Lambda, Logs, Quicksight, RDS, SageMaker, SES, and SWF resources are currently supported
+        Only DynamoDB, EFS, Elasticache, Lambda, Logs, Quicksight, RDS, SageMaker, SES, and SWF resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1504,10 +1483,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sesv2_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
-                self.cloudfront_backend.tag_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
                 self.swf_backend.tagger.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
@@ -1520,7 +1495,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: list[str], tag_keys: list[str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only CloudFront, EFS, Elasticache, Lambda, Quicksight, SES, and SWF resources are currently supported
+        Only EFS, Elasticache, Lambda, Quicksight, SES, and SWF resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1549,8 +1524,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:cloudfront:"):
-                self.cloudfront_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
                 self.swf_backend.tagger.untag_resource_using_names(arn, tag_keys)
             else:

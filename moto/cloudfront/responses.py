@@ -123,14 +123,15 @@ class CloudFrontResponse(BaseResponse):
 
     def tag_resource(self) -> ActionResult:
         resource = self._get_param("Resource")
-        tags = self._get_param("Tags.Items", [])
-        self.backend.tag_resource(resource=resource, tags=tags)
+        tags = self._get_param("Tags.Items", []) or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
+        self.backend.tag_resource(resource, tags)
         return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         resource = self._get_param("Resource")
-        tag_keys_data = self._get_param("TagKeys.Items", [])
-        self.backend.untag_resource(resource=resource, tag_keys=tag_keys_data)
+        tag_keys_data = self._get_param("TagKeys.Items", []) or []
+        self.backend.untag_resource(resource, tag_keys_data)
         return EmptyResult()
 
     def create_origin_access_control(self) -> ActionResult:
