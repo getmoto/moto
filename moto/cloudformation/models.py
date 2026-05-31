@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import timedelta
 from typing import Any
 
@@ -12,6 +12,7 @@ from yaml.scanner import ScannerError
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.moto_api._internal import mock_random
 from moto.organizations.models import OrganizationsBackend, organizations_backends
@@ -796,12 +797,14 @@ def filter_stacks(
     return filtered_stacks
 
 
-class CloudFormationBackend(BaseBackend):
+class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
     """
     CustomResources are supported when running Moto in ServerMode.
     Because creating these resources involves running a Lambda-function that informs the MotoServer about the status of the resources, the MotoServer has to be reachable for outside connections.
     This means it has to run inside a Docker-container, or be started using `moto_server -h 0.0.0.0`.
     """
+
+    SERVICE_NAMESPACE = "cloudformation"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1320,6 +1323,15 @@ class CloudFormationBackend(BaseBackend):
             raise ValidationError(
                 stack.stack_id,
                 message="Export names must be unique across a given region",
+            )
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for stack in self.stacks.values():
+            yield TaggedResource(
+                arn=stack.stack_id,
+                tags=dict(stack.tags or {}),
+                resource_type="cloudformation:stack",
             )
 
 

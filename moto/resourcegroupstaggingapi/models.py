@@ -402,22 +402,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "Tags": tags,
                     }
 
-        # CloudFormation
-        if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
-            try:
-                from moto.cloudformation import cloudformation_backends
-
-                cf_backend = cloudformation_backends[self.account_id][self.region_name]
-
-                for stack in cf_backend.stacks.values():
-                    tags = format_tags(stack.tags)
-                    if not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
-
-            except Exception:
-                pass
-
         # Cloudfront
         if (
             not resource_type_filters
