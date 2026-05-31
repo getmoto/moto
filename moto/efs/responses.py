@@ -188,7 +188,8 @@ class EFSResponse(BaseResponse):
 
     def tag_resource(self) -> TYPE_RESPONSE:
         resource_id = self._get_param("ResourceId")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.efs_backend.tag_resource(resource_id, tags)
         return "{}", {"Content-Type": "application/json"}
 

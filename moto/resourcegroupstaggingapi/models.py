@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
 from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
@@ -65,10 +64,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def efs_backend(self) -> EFSBackend:
-        return efs_backends[self.account_id][self.region_name]
 
     @property
     def eb_backend(self) -> EBBackend:
@@ -299,30 +294,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # EFS, resource type elasticfilesystem:access-point
-        if (
-            not resource_type_filters
-            or "elasticfilesystem" in resource_type_filters
-            or "elasticfilesystem:access-point" in resource_type_filters
-        ):
-            for ap in self.efs_backend.access_points.values():
-                tags = self.efs_backend.list_tags_for_resource(ap.access_point_id)
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{ap.access_point_arn}", "Tags": tags}
-
-        # EFS, resource type elasticfilesystem:file-system
-        if (
-            not resource_type_filters
-            or "elasticfilesystem" in resource_type_filters
-            or "elasticfilesystem:file-system" in resource_type_filters
-        ):
-            for fs in self.efs_backend.file_systems_by_id.values():
-                tags = self.efs_backend.list_tags_for_resource(fs.file_system_id)
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{fs.file_system_arn}", "Tags": tags}
 
         elasticache_resource_map: dict[str, dict[str, Any]] = {
             "elasticache:cache_clusters": dict(self.elasticache_backend.cache_clusters),
@@ -1215,13 +1186,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(
-                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
-            ):
-                resource_id = arn.split("/")[-1]
-                self.efs_backend.tag_resource(
-                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
-                )
+
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
                 assert self.quicksight_backend is not None
                 self.quicksight_backend.tag_resource(
@@ -1264,12 +1229,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(
-                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
-            ):
-                resource_id = arn.split("/")[-1]
-                self.efs_backend.untag_resource(resource_id, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
                 assert self.quicksight_backend is not None
                 self.quicksight_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):

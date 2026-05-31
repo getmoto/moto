@@ -12,6 +12,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -413,13 +414,15 @@ class MountTarget(CloudFormationModel):
         efs_backends[account_id][region_name].delete_mount_target(resource_name)
 
 
-class EFSBackend(BaseBackend):
+class EFSBackend(BaseBackend, TaggableResourcesMixin):
     """The backend manager of EFS resources.
 
     This is the state-machine for each region, tracking the file systems, mount targets,
     and eventually access points that are deployed. Creating, updating, and destroying
     such resources should always go through this class.
     """
+
+    SERVICE_NAMESPACE = "elasticfilesystem"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -489,7 +492,7 @@ class EFSBackend(BaseBackend):
             availability_zone_name=availability_zone_name,
             backup=backup,
         )
-        self.tag_resource(fsid, tags)
+        self.tagging_service.tag_resource(fsid, tags)
         self.creation_tokens.add(creation_token)
         return self.file_systems_by_id[fsid]
 
@@ -749,12 +752,6 @@ class EFSBackend(BaseBackend):
     def list_tags_for_resource(self, resource_id: str) -> list[dict[str, str]]:
         return self.tagging_service.list_tags_for_resource(resource_id)["Tags"]
 
-    def tag_resource(self, resource_id: str, tags: list[dict[str, str]]) -> None:
-        self.tagging_service.tag_resource(resource_id, tags)
-
-    def untag_resource(self, resource_id: str, tag_keys: list[str]) -> None:
-        self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
-
     def describe_file_system_policy(self, file_system_id: str) -> str:
         policy = self.file_systems_by_id[file_system_id].file_system_policy
         if not policy:
@@ -766,6 +763,31 @@ class EFSBackend(BaseBackend):
     ) -> None:
         file_system = self.file_systems_by_id[file_system_id]
         file_system.file_system_policy = policy
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for ap in self.access_points.values():
+            yield TaggedResource(
+                arn=ap.access_point_arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(ap.access_point_id),
+                resource_type="elasticfilesystem:access-point",
+            )
+        for fs in self.file_systems_by_id.values():
+            yield TaggedResource(
+                arn=fs.file_system_arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(fs.file_system_id),
+                resource_type="elasticfilesystem:file-system",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        self.tagging_service.tag_resource(
+            resource_id, self.tagging_service.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
 
 
 efs_backends = BackendDict(EFSBackend, "efs")
