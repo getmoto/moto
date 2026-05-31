@@ -1,11 +1,13 @@
 import hashlib
 import re
 from collections import OrderedDict
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -151,7 +153,9 @@ class FakeDevEndpoint(BaseModel):
         return response
 
 
-class GlueBackend(BaseBackend):
+class GlueBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "glue"
+
     PAGINATION_MODEL = {
         "get_connections": {
             "input_token": "next_token",
@@ -666,13 +670,6 @@ class GlueBackend(BaseBackend):
 
     def get_tags(self, resource_id: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
-
-    def tag_resource(self, resource_arn: str, tags: dict[str, str] | None) -> None:
-        tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
-        self.tagger.tag_resource(resource_arn, tag_list)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_registry(
         self,
@@ -1646,6 +1643,27 @@ class GlueBackend(BaseBackend):
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
         """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for arn, tags in self.tagger.tags.items():
+            # Glue ARNs look like arn:<partition>:glue:<region>:<account>:<type>/<name>
+            try:
+                glue_type = arn.split(":")[-1].split("/")[0]
+            except IndexError:
+                continue
+            yield TaggedResource(
+                arn=arn,
+                tags={k: v or "" for k, v in tags.items()},
+                resource_type=f"glue:{glue_type}",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str] | None) -> None:
+        tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tag_list)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 class FakeSecurityConfiguration(BaseModel):

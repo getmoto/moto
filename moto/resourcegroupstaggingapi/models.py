@@ -10,7 +10,6 @@ from moto.core.resource_tagging import (
 )
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
-from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.kinesisanalyticsv2.models import (
@@ -57,10 +56,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def glue_backend(self) -> GlueBackend:
-        return glue_backends[self.account_id][self.region_name]
 
     @property
     def kinesis_backend(self) -> KinesisBackend:
@@ -248,29 +243,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EMR Cluster
 
         # Glacier Vault
-
-        # Glue
-        if not resource_type_filters or any(
-            ("glue" in _type) for _type in resource_type_filters
-        ):
-            if not resource_type_filters or "glue" in resource_type_filters:
-                arns_starting_with = [
-                    f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:"
-                ]
-            else:
-                arns_starting_with = []
-                for resource_type in resource_type_filters:
-                    if resource_type.startswith("glue:"):
-                        glue_type = resource_type.split(":")[-1]
-                        arns_starting_with.append(
-                            f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:{glue_type}"
-                        )
-            for glue_arn in self.glue_backend.tagger.tags.keys():
-                if any(glue_arn.startswith(arn) for arn in arns_starting_with):
-                    tags = self.glue_backend.tagger.list_tags_for_resource(glue_arn)[
-                        "Tags"
-                    ]
-                    yield {"ResourceARN": glue_arn, "Tags": tags}
 
         # Kinesis
 
@@ -778,10 +750,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for resource in backend.iter_tagged_resources():
                 yield from resource.tags.keys()
 
-        # Glue
-        for tag_dict in self.glue_backend.tagger.tags.values():
-            yield from tag_dict.keys()
-
     def _get_tag_values_generator(self, tag_key: str) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -792,12 +760,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 for key, value in resource.tags.items():
                     if key == tag_key:
                         yield value
-
-        # Glue
-        for tag_dict in self.glue_backend.tagger.tags.values():
-            for key, tag_value in tag_dict.items():
-                if key == tag_key and tag_value is not None:
-                    yield tag_value
 
     def get_resources(
         self,
