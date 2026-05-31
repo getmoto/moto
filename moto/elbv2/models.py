@@ -1,12 +1,13 @@
 import re
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from botocore.exceptions import ParamValidationError
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import EC2Backend, ec2_backends
 from moto.ec2.models.subnets import Subnet
@@ -718,7 +719,9 @@ class FakeLoadBalancer(CloudFormationModel):
             raise UnformattedGetAttTemplateException()
 
 
-class ELBv2Backend(BaseBackend):
+class ELBv2Backend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "elasticloadbalancing"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.target_groups: dict[str, FakeTargetGroup] = OrderedDict()
@@ -2038,6 +2041,22 @@ Member must satisfy regular expression pattern: {expression}"
         else:
             raise LoadBalancerNotFoundError()
         return resource
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for lb in self.load_balancers.values():
+            yield TaggedResource(
+                arn=lb.arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(lb.arn),
+                resource_type="elasticloadbalancing:loadbalancer",
+                extra={"include_untagged": True},
+            )
+        for tg in self.target_groups.values():
+            yield TaggedResource(
+                arn=tg.arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(tg.arn),
+                resource_type="elasticloadbalancing:targetgroup",
+            )
 
 
 elbv2_backends = BackendDict(ELBv2Backend, "elbv2")

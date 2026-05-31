@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.events.models import EventsBackend, events_backends
 from moto.firehose.models import FirehoseBackend, firehose_backends
@@ -61,10 +60,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def elbv2_backend(self) -> ELBv2Backend:
-        return elbv2_backends[self.account_id][self.region_name]
 
     @property
     def events_backend(self) -> EventsBackend:
@@ -279,37 +274,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # TODO add these to the keys and values functions / combine functions
-        # ELB, resource type elasticloadbalancing:loadbalancer
-        if (
-            not resource_type_filters
-            or "elasticloadbalancing" in resource_type_filters
-            or "elasticloadbalancing:loadbalancer" in resource_type_filters
-        ):
-            for elbv2 in self.elbv2_backend.load_balancers.values():
-                tags = self.elbv2_backend.tagging_service.list_tags_for_resource(
-                    elbv2.arn
-                )["Tags"]
-                if not tag_filter(tags):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{elbv2.arn}", "Tags": tags}
-
-        # ELB Target Group, resource type elasticloadbalancing:targetgroup
-        if (
-            not resource_type_filters
-            or "elasticloadbalancing" in resource_type_filters
-            or "elasticloadbalancing:targetgroup" in resource_type_filters
-        ):
-            for target_group in self.elbv2_backend.target_groups.values():
-                tags = self.elbv2_backend.tagging_service.list_tags_for_resource(
-                    target_group.arn
-                )["Tags"]
-                if not tag_filter(tags):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{target_group.arn}", "Tags": tags}
 
         # EMR Cluster
 
