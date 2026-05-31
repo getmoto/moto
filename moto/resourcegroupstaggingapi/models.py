@@ -18,7 +18,6 @@ from moto.resourcegroupstaggingapi.exceptions import (
 )
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
-from moto.vpclattice.models import VPCLatticeBackend, vpclattice_backends
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
@@ -66,10 +65,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
-
-    @property
-    def vpclattice_backend(self) -> VPCLatticeBackend:
-        return vpclattice_backends[self.account_id][self.region_name]
 
     def _get_backend_for_resource(
         self, resource_arn: str
@@ -168,101 +163,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # VPC Lattice
-        if not resource_type_filters or "vpc-lattice" in resource_type_filters:
-            # Service
-            for service in self.vpclattice_backend.services.values():  # type: ignore[assignment]
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    service.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{service.arn}", "Tags": tags}
-
-            # Service Networks
-            for service_network in self.vpclattice_backend.service_networks.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    service_network.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{service_network.arn}", "Tags": tags}
-
-            # Service Network VPC Associations
-            for (
-                assoc
-            ) in self.vpclattice_backend.service_network_vpc_associations.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(assoc.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{assoc.arn}", "Tags": tags}
-
-            # Rules
-            for rule in self.vpclattice_backend.rules.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(rule.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{rule.arn}", "Tags": tags}
-
-            # Access Log Subscriptions
-            for sub in self.vpclattice_backend.access_log_subscriptions.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(sub.arn)[
-                    "Tags"
-                ]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{sub.arn}", "Tags": tags}
-
-            # Listener
-            for listener in self.vpclattice_backend.listeners.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    listener.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{listener.arn}", "Tags": tags}
-
-            # Target Group
-            for vpc_target_group in self.vpclattice_backend.target_groups.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    vpc_target_group.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{vpc_target_group.arn}", "Tags": tags}
-
-            # Service Network Resource Association
-            for (
-                service_network_resource_association
-            ) in self.vpclattice_backend.service_network_resource_associations.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    service_network_resource_association.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f"{service_network_resource_association.arn}",
-                    "Tags": tags,
-                }
-
-            # Service Network Service Association
-            for (
-                service_network_service_association
-            ) in self.vpclattice_backend.service_network_service_associations.values():
-                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
-                    service_network_service_association.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f"{service_network_service_association.arn}",
-                    "Tags": tags,
-                }
 
         # Workspaces
         if self.workspaces_backend and (

@@ -1,10 +1,12 @@
 import random
 import uuid
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.vpclattice.exceptions import (
@@ -404,7 +406,9 @@ class AuthPolicy:
         self.state = state
 
 
-class VPCLatticeBackend(BaseBackend):
+class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "vpc-lattice"
+
     PAGINATION_MODEL = {
         "list_services": {
             "input_token": "next_token",
@@ -589,17 +593,8 @@ class VPCLatticeBackend(BaseBackend):
         self.tag_resource(rule.arn, tags or {})
         return rule
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        tags_input = self.tagger.convert_dict_to_tags_input(tags or {})
-        self.tagger.tag_resource(resource_arn, tags_input)
-
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        if not isinstance(tag_keys, list):
-            tag_keys = [tag_keys]
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_access_log_subscription(
         self,
@@ -1013,6 +1008,34 @@ class VPCLatticeBackend(BaseBackend):
                 if assoc.service_id == service_identifier
             ]
         return associations
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        sources: dict[str, dict[str, Any]] = {
+            "vpc-lattice:accesslogsubscription": self.access_log_subscriptions,
+            "vpc-lattice:listener": self.listeners,
+            "vpc-lattice:rule": self.rules,
+            "vpc-lattice:service": self.services,
+            "vpc-lattice:servicenetwork": self.service_networks,
+            "vpc-lattice:servicenetworkresourceassociation": self.service_network_resource_associations,
+            "vpc-lattice:servicenetworkserviceassociation": self.service_network_service_associations,
+            "vpc-lattice:servicenetworkvpcassociation": self.service_network_vpc_associations,
+            "vpc-lattice:targetgroup": self.target_groups,
+        }
+        for resource_type, items in sources.items():
+            for item in items.values():
+                yield TaggedResource(
+                    arn=item.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(item.arn),
+                    resource_type=resource_type,
+                )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        tags_input = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags_input)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(
