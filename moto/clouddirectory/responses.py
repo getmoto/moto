@@ -81,20 +81,15 @@ class CloudDirectoryResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tags = self._get_param("Tags")
-        self.clouddirectory_backend.tag_resource(
-            resource_arn=resource_arn,
-            tags=tags,
-        )
+        tags = self._get_param("Tags", [])
+        tags = {tag["Key"]: tag["Value"] for tag in tags}
+        self.clouddirectory_backend.tag_resource(resource_arn, tags)
         return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tag_keys = self._get_param("TagKeys")
-        self.clouddirectory_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tag_keys,
-        )
+        tag_keys = self._get_param("TagKeys", [])
+        self.clouddirectory_backend.untag_resource(resource_arn, tag_keys)
         return json.dumps({})
 
     def delete_directory(self) -> str:
