@@ -7,6 +7,7 @@ import re
 import sys
 import warnings
 from collections import OrderedDict
+from collections.abc import Iterator
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
@@ -18,6 +19,7 @@ from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     unix_time,
@@ -1179,7 +1181,7 @@ class PartnerEventSource(BaseModel):
         }
 
 
-class EventsBackend(BaseBackend):
+class EventsBackend(BaseBackend, TaggableResourcesMixin):
     """
     Some Moto services are configured to generate events and send them to EventBridge. See the AWS documentation here:
     https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event.html
@@ -1194,6 +1196,8 @@ class EventsBackend(BaseBackend):
 
     Please let us know if you want support for an event/target that is not yet listed here.
     """
+
+    SERVICE_NAMESPACE = "events"
 
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
@@ -1716,28 +1720,6 @@ class EventsBackend(BaseBackend):
             f"Rule {name} does not exist on EventBus default."
         )
 
-    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
-        name = arn.split("/")[-1]
-        rules = [bus.rules for bus in self.event_buses.values()]
-        for registry in rules + [self.event_buses]:
-            if name in registry:
-                self.tagger.tag_resource(registry[name].arn, tags)
-                return
-        raise ResourceNotFoundException(
-            f"Rule {name} does not exist on EventBus default."
-        )
-
-    def untag_resource(self, arn: str, tag_names: list[str]) -> None:
-        name = arn.split("/")[-1]
-        rules = [bus.rules for bus in self.event_buses.values()]
-        for registry in rules + [self.event_buses]:
-            if name in registry:
-                self.tagger.untag_resource_using_names(registry[name].arn, tag_names)
-                return
-        raise ResourceNotFoundException(
-            f"Rule {name} does not exist on EventBus default."
-        )
-
     def create_archive(
         self,
         name: str,
@@ -2125,6 +2107,39 @@ class EventsBackend(BaseBackend):
             source = entry["Source"]
             for account_id in self.partner_event_sources[source].accounts:
                 events_backends[account_id][self.region_name].put_events([entry])
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for bus in self.event_buses.values():
+            yield TaggedResource(
+                arn=bus.arn,
+                tags=self.tagger.get_tag_dict_for_resource(bus.arn),
+                resource_type="events:event-bus",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        name = arn.split("/")[-1]
+        rules = [bus.rules for bus in self.event_buses.values()]
+        for registry in rules + [self.event_buses]:
+            if name in registry:
+                self.tagger.tag_resource(
+                    registry[name].arn, self.tagger.convert_dict_to_tags_input(tags)
+                )
+                return
+        raise ResourceNotFoundException(
+            f"Rule {name} does not exist on EventBus default."
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        name = arn.split("/")[-1]
+        rules = [bus.rules for bus in self.event_buses.values()]
+        for registry in rules + [self.event_buses]:
+            if name in registry:
+                self.tagger.untag_resource_using_names(registry[name].arn, tag_keys)
+                return
+        raise ResourceNotFoundException(
+            f"Rule {name} does not exist on EventBus default."
+        )
 
 
 events_backends = BackendDict(EventsBackend, "events")

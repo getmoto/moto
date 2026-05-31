@@ -309,7 +309,8 @@ class EventsHandler(BaseResponse):
 
     def tag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
 
         self.events_backend.tag_resource(arn, tags)
 
@@ -317,9 +318,9 @@ class EventsHandler(BaseResponse):
 
     def untag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
-        tags = self._get_param("TagKeys")
+        tag_keys = self._get_param("TagKeys") or []
 
-        self.events_backend.untag_resource(arn, tags)
+        self.events_backend.untag_resource(arn, tag_keys)
 
         return "{}", self.response_headers
 

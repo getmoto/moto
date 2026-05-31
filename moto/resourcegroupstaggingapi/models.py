@@ -9,7 +9,6 @@ from moto.core.resource_tagging import (
     match_resource_type,
 )
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
-from moto.events.models import EventsBackend, events_backends
 from moto.firehose.models import FirehoseBackend, firehose_backends
 from moto.fsx.models import FSxBackend, fsx_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
@@ -60,10 +59,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def events_backend(self) -> EventsBackend:
-        return events_backends[self.account_id][self.region_name]
 
     @property
     def glue_backend(self) -> GlueBackend:
@@ -276,22 +271,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     }
 
         # EMR Cluster
-
-        # Events
-        if (
-            not resource_type_filters
-            or "events" in resource_type_filters
-            or "events:event-bus" in resource_type_filters
-        ):
-            for bus in self.events_backend.event_buses.values():
-                tags = self.events_backend.tagger.list_tags_for_resource(bus.arn)[
-                    "Tags"
-                ]
-                if (
-                    not tag_filter(tags) or len(tags) == 0
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {"ResourceARN": f"{bus.arn}", "Tags": tags}
 
         # FSx
         if not resource_type_filters or "fsx" in resource_type_filters:
