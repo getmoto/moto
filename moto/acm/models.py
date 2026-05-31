@@ -3,7 +3,7 @@ import calendar
 import datetime
 import ipaddress
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -16,6 +16,7 @@ from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.serialize import parse_to_aware_datetime
 from moto.core.utils import utcnow
 
@@ -461,7 +462,9 @@ class AccountConfiguration:
         return {"ExpiryEvents": {"DaysBeforeExpiry": self.days_before_expiry}}
 
 
-class AWSCertificateManagerBackend(BaseBackend):
+class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "acm"
+
     MIN_PASSPHRASE_LEN = 4
 
     def __init__(self, region_name: str, account_id: str):
@@ -674,6 +677,23 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._account_config = AccountConfiguration(days_before_expiry)
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, "account_config")
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for cert in self._certificates.values():
+            yield TaggedResource(
+                arn=cert.arn,
+                tags={k: v or "" for k, v in cert.tags.items()},
+                resource_type="acm:certificate",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.add_tags_to_certificate(
+            arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.remove_tags_from_certificate(arn, [{"Key": k} for k in tag_keys])  # type: ignore[list-item]
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

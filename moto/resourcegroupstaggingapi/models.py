@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.athena.models import athena_backends
 from moto.backup.models import BackupBackend, backup_backends
@@ -157,10 +156,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def firehose_backend(self) -> FirehoseBackend:
         return firehose_backends[self.account_id][self.region_name]
-
-    @property
-    def acm_backend(self) -> AWSCertificateManagerBackend:
-        return acm_backends[self.account_id][self.region_name]
 
     @property
     def secretsmanager_backend(self) -> SecretsManagerBackend:
@@ -356,13 +351,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-        # ACM
-        if not resource_type_filters or "acm" in resource_type_filters:
-            for certificate in self.acm_backend._certificates.values():
-                tags = format_tags(certificate.tags)
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
 
         # AppSync
         if not resource_type_filters or "appsync" in resource_type_filters:
