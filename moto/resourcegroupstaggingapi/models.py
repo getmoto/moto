@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
@@ -176,10 +175,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return stepfunctions_backends[self.account_id][self.region_name]
 
     @property
-    def backup_backend(self) -> BackupBackend:
-        return backup_backends[self.account_id][self.region_name]
-
-    @property
     def dynamodb_backend(self) -> DynamoDBBackend:
         return dynamodb_backends[self.account_id][self.region_name]
 
@@ -345,19 +340,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": resource.arn,
                     "Tags": [{"Key": k, "Value": v} for k, v in resource.tags.items()],
                 }
-
-        # Backup
-        if not resource_type_filters or "backup" in resource_type_filters:
-            for vault in self.backup_backend.vaults.values():
-                tags = self.backup_backend.tagger.list_tags_for_resource(
-                    vault.backup_vault_arn
-                )["Tags"]
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # Comprehend
         if self.comprehend_backend:
