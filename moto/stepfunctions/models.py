@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from re import Pattern
 from typing import Any, cast
@@ -9,6 +10,7 @@ from typing import Any, cast
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -329,7 +331,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
-            sf_backend.tag_resource(state_machine.arn, tags)
+            sf_backend.tagger.tag_resource(state_machine.arn, tags)
             return state_machine
 
 
@@ -475,7 +477,7 @@ class Activity:
         self.update_date = self.creation_date
 
 
-class StepFunctionBackend(BaseBackend):
+class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
     """
     Configure Moto to explicitly parse and execute the StateMachine:
 
@@ -608,6 +610,8 @@ class StepFunctionBackend(BaseBackend):
         + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):activity:.+"
     )
 
+    SERVICE_NAMESPACE = "states"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.tagger = TaggingService(
@@ -650,7 +654,7 @@ class StepFunctionBackend(BaseBackend):
                 state_machine.publish(description=version_description)
 
             if tags:
-                self.tag_resource(arn, tags)
+                self.tagger.tag_resource(arn, tags)
 
             self.state_machines.append(state_machine)
             return state_machine
@@ -866,12 +870,6 @@ class StepFunctionBackend(BaseBackend):
     def list_tags_for_resource(self, arn: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(arn)
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def get_tags_list_for_state_machine(self, arn: str) -> list[dict[str, str]]:
         return self.list_tags_for_resource(arn)[self.tagger.tag_name]
 
@@ -996,7 +994,7 @@ class StepFunctionBackend(BaseBackend):
         self.activities[arn] = activity
 
         if tags:
-            self.tag_resource(arn, tags)
+            self.tagger.tag_resource(arn, tags)
 
         return activity
 
@@ -1015,6 +1013,21 @@ class StepFunctionBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_activities(self) -> list[Activity]:
         return sorted(self.activities.values(), key=lambda x: x.creation_date)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for sm in self.state_machines:
+            yield TaggedResource(
+                arn=sm.arn,
+                tags=self.tagger.get_tag_dict_for_resource(sm.arn),
+                resource_type="states:stateMachine",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"key": k, "value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

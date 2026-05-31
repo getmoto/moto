@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.swf.models import SWFBackend, swf_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -54,10 +53,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def stepfunctions_backend(self) -> StepFunctionBackend:
-        return stepfunctions_backends[self.account_id][self.region_name]
 
     @property
     def workspaces_backend(self) -> WorkSpacesBackend | None:
@@ -178,22 +173,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # Step Functions
-        if not resource_type_filters or "states:stateMachine" in resource_type_filters:
-            for state_machine in self.stepfunctions_backend.state_machines:
-                tags = format_tag_keys(
-                    state_machine.backend.get_tags_list_for_state_machine(
-                        state_machine.arn
-                    ),
-                    [
-                        state_machine.backend.tagger.key_name,
-                        state_machine.backend.tagger.value_name,
-                    ],
-                )
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": state_machine.arn, "Tags": tags}
 
         # SWF
         if (
