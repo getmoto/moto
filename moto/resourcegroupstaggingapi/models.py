@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
 from moto.elasticbeanstalk.models import EBBackend, eb_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
@@ -184,10 +183,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
-    def elasticache_backend(self) -> ElastiCacheBackend:
-        return elasticache_backends[self.account_id][self.region_name]
-
-    @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
 
@@ -294,40 +289,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        elasticache_resource_map: dict[str, dict[str, Any]] = {
-            "elasticache:cache_clusters": dict(self.elasticache_backend.cache_clusters),
-            "elasticache:replication-group": dict(
-                self.elasticache_backend.replication_groups
-            ),
-            "elasticache:snapshots": dict(self.elasticache_backend.snapshots),
-            "elasticache:cache_subnet_groups": dict(
-                self.elasticache_backend.cache_subnet_groups
-            ),
-            "elasticache:users": dict(self.elasticache_backend.users),
-        }
-
-        for resource_type, resource_source in elasticache_resource_map.items():
-            if (
-                not resource_type_filters
-                or "elasticache" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    if (
-                        resource_type == "elasticache:users"
-                        and resource.id == "default"
-                    ):
-                        continue
-
-                    tags = (
-                        self.elasticache_backend.tagging_service.list_tags_for_resource(
-                            resource.arn
-                        )["Tags"]
-                    )
-                    if not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
 
         # ElasticBeanstalk
         if (
@@ -1192,10 +1153,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.quicksight_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):
-                self.elasticache_backend.add_tags_to_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
@@ -1232,8 +1189,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             if arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
                 assert self.quicksight_backend is not None
                 self.quicksight_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):
-                self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
                 self.sesv2_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):

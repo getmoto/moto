@@ -1,11 +1,13 @@
 import copy
 import random
 import string
+from collections.abc import Iterator
 from re import compile as re_compile
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -642,8 +644,10 @@ class Snapshot(BaseModel):
         self.vpc_id = vpc_id
 
 
-class ElastiCacheBackend(BaseBackend):
+class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of ElastiCache APIs."""
+
+    SERVICE_NAMESPACE = "elasticache"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1180,6 +1184,34 @@ class ElastiCacheBackend(BaseBackend):
 
             return snapshot
         raise SnapshotNotFound(snapshot_name)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        sources: dict[str, dict[str, Any]] = {
+            "elasticache:cache_clusters": self.cache_clusters,
+            "elasticache:cache_subnet_groups": self.cache_subnet_groups,
+            "elasticache:replication-group": self.replication_groups,
+            "elasticache:snapshots": self.snapshots,
+            "elasticache:users": self.users,
+        }
+        for resource_type, items in sources.items():
+            for resource in items.values():
+                if resource_type == "elasticache:users" and resource.id == "default":
+                    continue
+                yield TaggedResource(
+                    arn=resource.arn,
+                    tags=self.tagging_service.get_tag_dict_for_resource(resource.arn),
+                    resource_type=resource_type,
+                    extra={"include_untagged": True},
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagging_service.tag_resource(
+            arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
