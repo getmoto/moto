@@ -8,7 +8,6 @@ from moto.core.resource_tagging import (
     make_tag_matcher,
     match_resource_type,
 )
-from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.efs.models import EFSBackend, efs_backends
 from moto.elasticache.models import ElastiCacheBackend, elasticache_backends
@@ -54,7 +53,7 @@ from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
-# StorageGateway DynamoDB MachineLearning ACM DirectoryService CloudHSM
+# StorageGateway MachineLearning ACM DirectoryService CloudHSM
 # Inspector Elasticsearch
 
 
@@ -155,10 +154,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
         return stepfunctions_backends[self.account_id][self.region_name]
-
-    @property
-    def dynamodb_backend(self) -> DynamoDBBackend:
-        return dynamodb_backends[self.account_id][self.region_name]
 
     @property
     def workspaces_backend(self) -> WorkSpacesBackend | None:
@@ -981,21 +976,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        if (
-            not resource_type_filters
-            or "dynamodb" in resource_type_filters
-            or "dynamodb:table" in resource_type_filters
-        ):
-            for table in self.dynamodb_backend.tables.values():
-                tags = table.tags
-
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": table.table_arn,
-                    "Tags": tags,
-                }
-
         # sagemaker cluster, automljob, compilation-job, domain, model-explainability-job-definition, model-quality-job-definition, and hyper-parameter-tuning-job currently supported
         sagemaker_resource_map: dict[str, dict[str, Any]] = {
             "sagemaker:cluster": self.sagemaker_backend.clusters,
@@ -1238,7 +1218,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: list[str], tags: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
         """
-        Only DynamoDB, EFS, Elasticache, Lambda, Logs, Quicksight, RDS, SageMaker, SES, and SWF resources are currently supported
+        Only EFS, Elasticache, Lambda, Logs, Quicksight, RDS, SageMaker, SES, and SWF resources are currently supported
         """
         missing_resources = []
         missing_error: dict[str, Any] = {
@@ -1267,10 +1247,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:dynamodb"):
-                self.dynamodb_backend.tag_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:sagemaker:"):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)

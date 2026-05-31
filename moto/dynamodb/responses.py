@@ -548,14 +548,15 @@ class DynamoHandler(BaseResponse):
 
     def tag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
-        tags = self.body["Tags"]
+        tags = self.body.get("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.dynamodb_backend.tag_resource(table_arn, tags)
         return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
-        tags = self.body["TagKeys"]
-        self.dynamodb_backend.untag_resource(table_arn, tags)
+        tag_keys = self.body.get("TagKeys") or []
+        self.dynamodb_backend.untag_resource(table_arn, tag_keys)
         return EmptyResult()
 
     def list_tags_of_resource(self) -> ActionResult:

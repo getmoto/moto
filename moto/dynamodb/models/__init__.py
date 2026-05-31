@@ -1,10 +1,12 @@
 import copy
 import re
 from collections import OrderedDict
+from collections.abc import Iterator
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.dynamodb.comparisons import (
     create_condition_expression_parser,
@@ -48,7 +50,9 @@ from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ig
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 
 
-class DynamoDBBackend(BaseBackend):
+class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "dynamodb"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.tables: dict[str, Table] = OrderedDict()
@@ -122,18 +126,6 @@ class DynamoDBBackend(BaseBackend):
                 "CachePeriodInMinutes": 1440,
             }
         ]
-
-    def tag_resource(self, table_arn: str, tags: list[dict[str, str]]) -> None:
-        for table in self.tables:
-            if self.tables[table].table_arn == table_arn:
-                self.tables[table].tags.extend(tags)
-
-    def untag_resource(self, table_arn: str, tag_keys: list[str]) -> None:
-        for table in self.tables:
-            if self.tables[table].table_arn == table_arn:
-                self.tables[table].tags = [
-                    tag for tag in self.tables[table].tags if tag["Key"] not in tag_keys
-                ]
 
     def list_tags_of_resource(self, table_arn: str) -> list[dict[str, str]]:
         for table in self.tables:
@@ -1106,6 +1098,28 @@ class DynamoDBBackend(BaseBackend):
                 f"Resource-based policy not found for the provided ResourceArn: Requested update for policy with revision id {expected_revision_id}, but the policy associated to target table {table_name} has revision id {policy.revision_id}."
             )
         self.resource_policies.pop(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for table in self.tables.values():
+            yield TaggedResource(
+                arn=table.table_arn,
+                tags={t["Key"]: t["Value"] for t in (table.tags or [])},
+                resource_type="dynamodb:table",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        new_tags = [{"Key": k, "Value": v} for k, v in tags.items()]
+        for table in self.tables:
+            if self.tables[table].table_arn == arn:
+                self.tables[table].tags.extend(new_tags)
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        for table in self.tables:
+            if self.tables[table].table_arn == arn:
+                self.tables[table].tags = [
+                    tag for tag in self.tables[table].tags if tag["Key"] not in tag_keys
+                ]
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")
