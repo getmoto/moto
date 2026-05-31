@@ -11,7 +11,6 @@ from moto.core.resource_tagging import (
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
-from moto.kms.models import KmsBackend, kms_backends
 from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
@@ -55,10 +54,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.account_id][self.region_name]
-
-    @property
-    def kms_backend(self) -> KmsBackend:
-        return kms_backends[self.account_id][self.region_name]
 
     @property
     def logs_backend(self) -> LogsBackend:
@@ -232,22 +227,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Glacier Vault
 
         # Kinesis
-
-        # KMS
-        if (
-            not resource_type_filters
-            or "kms" in resource_type_filters
-            or "kms:key" in resource_type_filters
-        ):
-            for kms_key in self.kms_backend.list_keys():
-                tags = format_tag_keys(
-                    self.kms_backend.list_resource_tags(kms_key.id).get("Tags", []),
-                    ["TagKey", "TagValue"],
-                )
-                if not tag_filter(tags):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
         # LexV2
         if self.lexv2_backend:

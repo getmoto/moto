@@ -155,7 +155,8 @@ class KmsResponse(BaseResponse):
     def tag_resource(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_TagResource.html"""
         key_id = self._get_param("KeyId")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["TagKey"]: tag.get("TagValue") for tag in tags}
 
         self._validate_cmk_id(key_id)
 
@@ -165,7 +166,7 @@ class KmsResponse(BaseResponse):
     def untag_resource(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UntagResource.html"""
         key_id = self._get_param("KeyId")
-        tag_names = self._get_param("TagKeys")
+        tag_names = self._get_param("TagKeys") or []
 
         self._validate_cmk_id(key_id)
 

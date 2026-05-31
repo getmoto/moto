@@ -1,6 +1,6 @@
 import json
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from copy import copy
 from datetime import datetime, timedelta
 from typing import Any
@@ -8,6 +8,7 @@ from typing import Any
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -342,7 +343,9 @@ class Key(CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
 
-class KmsBackend(BaseBackend):
+class KmsBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "kms"
+
     PAGINATION_MODEL = {
         "list_key_rotations": {
             "input_token": "next_marker",
@@ -403,7 +406,7 @@ class KmsBackend(BaseBackend):
         )
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
-            self.tag_resource(key.id, tags)
+            self.tagger.tag_resource(key.id, tags)
         return key
 
     # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html#mrk-sync-properties
@@ -683,26 +686,6 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def tag_resource(self, key_id_or_arn: str, tags: list[dict[str, str]]) -> None:
-        key_id = self.get_key_id(key_id_or_arn)
-        if key_id in self.keys:
-            self.tagger.tag_resource(key_id, tags)
-            return
-        raise JsonRESTError(
-            "NotFoundException",
-            "The request was rejected because the specified entity or resource could not be found.",
-        )
-
-    def untag_resource(self, key_id_or_arn: str, tag_names: list[str]) -> None:
-        key_id = self.get_key_id(key_id_or_arn)
-        if key_id in self.keys:
-            self.tagger.untag_resource_using_names(key_id, tag_names)
-            return
-        raise JsonRESTError(
-            "NotFoundException",
-            "The request was rejected because the specified entity or resource could not be found.",
-        )
-
     def create_grant(
         self,
         key_id: str,
@@ -880,6 +863,35 @@ class KmsBackend(BaseBackend):
 
         if mac != regenerated_mac:
             raise KMSInvalidMacException()
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for key in self.list_keys():
+            yield TaggedResource(
+                arn=key.arn,
+                tags=self.tagger.get_tag_dict_for_resource(key.id),
+                resource_type="kms:key",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        key_id = self.get_key_id(arn)
+        if key_id not in self.keys:
+            raise JsonRESTError(
+                "NotFoundException",
+                "The request was rejected because the specified entity or resource could not be found.",
+            )
+        self.tagger.tag_resource(
+            key_id, [{"TagKey": k, "TagValue": v} for k, v in tags.items()]
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        key_id = self.get_key_id(arn)
+        if key_id not in self.keys:
+            raise JsonRESTError(
+                "NotFoundException",
+                "The request was rejected because the specified entity or resource could not be found.",
+            )
+        self.tagger.untag_resource_using_names(key_id, tag_keys)
 
 
 kms_backends = BackendDict(KmsBackend, "kms")
