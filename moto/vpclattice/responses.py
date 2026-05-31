@@ -9,6 +9,7 @@ from .models import VPCLatticeBackend, vpclattice_backends
 class VPCLatticeResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="vpc-lattice")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> VPCLatticeBackend:
@@ -109,7 +110,7 @@ class VPCLatticeResponse(BaseResponse):
 
     def untag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
-        tag_keys = self._get_param("tagKeys")
+        tag_keys = self._get_param("tagKeys", [])
         self.backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
         return json.dumps({})
 
