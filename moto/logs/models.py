@@ -1,11 +1,12 @@
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
     ConflictException,
@@ -927,7 +928,9 @@ class Delivery(BaseModel):
         return dct_items
 
 
-class LogsBackend(BaseBackend):
+class LogsBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "logs"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.groups: dict[str, LogGroup] = {}
@@ -1565,12 +1568,6 @@ class LogsBackend(BaseBackend):
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
-        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
-
-    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(arn, tag_keys)
-
     def _find_log_group(
         self, log_group_id: str | None = None, log_group_name: str | None = None
     ) -> LogGroup:
@@ -1867,6 +1864,21 @@ class LogsBackend(BaseBackend):
             )
         self.delivery_sources.pop(name)
         return
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for group in self.groups.values():
+            yield TaggedResource(
+                arn=group.arn,
+                tags=self.tagger.get_tag_dict_for_resource(group.arn),
+                resource_type="logs:loggroup",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

@@ -11,7 +11,6 @@ from moto.core.resource_tagging import (
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
-from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.quicksight.models import QuickSightBackend, quicksight_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
@@ -53,10 +52,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.account_id][self.region_name]
-
-    @property
-    def logs_backend(self) -> LogsBackend:
-        return logs_backends[self.account_id][self.region_name]
 
     @property
     def glacier_backend(self) -> GlacierBackend:
@@ -220,21 +215,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Glacier Vault
 
         # Kinesis
-
-        # LOGS
-        if (
-            not resource_type_filters
-            or "logs" in resource_type_filters
-            or "logs:loggroup" in resource_type_filters
-        ):
-            for group in self.logs_backend.groups.values():
-                log_tags = self.logs_backend.list_tags_for_resource(group.arn)
-                tags = format_tags(log_tags)
-
-                if not log_tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
-                    continue
-                yield {"ResourceARN": group.arn, "Tags": tags}
 
         # Quicksight
         if self.quicksight_backend:
@@ -859,8 +839,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:logs:"):
-                self.logs_backend.tag_resource(arn, tags)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:sagemaker:"):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
