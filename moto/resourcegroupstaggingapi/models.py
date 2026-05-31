@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.sesv2.models import SESV2Backend, sesv2_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -97,10 +96,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
-
-    @property
-    def sesv2_backend(self) -> SESV2Backend:
-        return sesv2_backends[self.account_id][self.region_name]
 
     def _get_backend_for_resource(
         self, resource_arn: str
@@ -215,44 +210,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
 
-        if self.sesv2_backend:
-            sesv2_resource_map: dict[str, dict[str, Any]] = {
-                "ses:configuration-set": self.sesv2_backend.core_backend.config_sets,
-                "ses:contact-list": self.sesv2_backend.core_backend.contacts_lists,
-                "ses:dedicated-ip-pool": self.sesv2_backend.core_backend.dedicated_ip_pools,
-                "ses:email-identity": self.sesv2_backend.core_backend.email_identities,
-            }
-
-            resource_id_attr_map: dict[str, str] = {
-                "ses:configuration-set": "configuration_set_name",
-                "ses:contact-list": "contact_list_name",
-                "ses:dedicated-ip-pool": "pool_name",
-                "ses:email-identity": "email_identity",
-            }
-
-            for resource_type, resource_source in sesv2_resource_map.items():
-                if (
-                    not resource_type_filters
-                    or "ses" in resource_type_filters
-                    or resource_type in resource_type_filters
-                ):
-                    for resource in resource_source.values():
-                        resource_id_attr = resource_id_attr_map[resource_type]
-                        resource_id = getattr(resource, resource_id_attr)
-
-                        arn = f"arn:{get_partition(self.region_name)}:ses:{self.region_name}:{self.account_id}:{resource_type.split(':')[-1]}/{resource_id}"
-
-                        tags = self.sesv2_backend.core_backend.tagger.list_tags_for_resource(
-                            arn
-                        )["Tags"]
-
-                        if not tags or not tag_filter(tags):
-                            continue
-
-                        yield {
-                            "ResourceARN": arn,
-                            "Tags": tags,
-                        }
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
             for topic in self.sns_backend.topics.values():
@@ -706,10 +663,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
-                self.sesv2_backend.tag_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
                 self.swf_backend.tagger.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
@@ -739,9 +692,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 except NotImplementedError:
                     missing_resources.append(arn)
                 continue
-            if arn.startswith(f"arn:{get_partition(self.region_name)}:ses:"):
-                self.sesv2_backend.untag_resource(arn, tag_keys)
-            elif arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:swf:"):
                 self.swf_backend.tagger.untag_resource_using_names(arn, tag_keys)
             else:
                 missing_resources.append(arn)
