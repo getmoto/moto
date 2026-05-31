@@ -16,8 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.secretsmanager import secretsmanager_backends
-from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
 from moto.sesv2.models import SESV2Backend, sesv2_backends
 from moto.sns.models import SNSBackend, sns_backends
@@ -62,10 +60,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.account_id][self.region_name]
-
-    @property
-    def secretsmanager_backend(self) -> SecretsManagerBackend:
-        return secretsmanager_backends[self.account_id][self.region_name]
 
     @property
     def sns_backend(self) -> SNSBackend:
@@ -210,24 +204,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # Secrets Manager
-        if (
-            not resource_type_filters
-            or "secretsmanager" in resource_type_filters
-            or "secretsmanager:secret" in resource_type_filters
-        ):
-            for secret in self.secretsmanager_backend.secrets.values():
-                if isinstance(secret, ReplicaSecret):
-                    secret_tags = secret.source.tags
-                else:
-                    secret_tags = secret.tags
-
-                if secret_tags:
-                    formated_tags = format_tag_keys(secret_tags, ["Key", "Value"])
-                    if not formated_tags or not tag_filter(formated_tags):
-                        continue
-                    yield {"ResourceARN": f"{secret.arn}", "Tags": formated_tags}
 
         # SQS
         if (

@@ -3,10 +3,12 @@ from __future__ import annotations
 import datetime
 import json
 import time
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcfromtimestamp, utcnow
 from moto.moto_api._internal import mock_random
 
@@ -382,7 +384,9 @@ class SecretsStore(dict[str, FakeSecret | ReplicaSecret]):
         return super().pop(name, None)
 
 
-class SecretsManagerBackend(BaseBackend):
+class SecretsManagerBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "secretsmanager"
+
     DEFAULT_KMS_KEY_ALIAS = "alias/aws/secretsmanager"
 
     def __init__(self, region_name: str, account_id: str):
@@ -1124,34 +1128,6 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret.arn, secret.name
 
-    def tag_resource(self, secret_id: str, tags: list[dict[str, str]]) -> None:
-        if secret_id not in self.secrets:
-            raise SecretNotFoundException()
-
-        secret = self.secrets[secret_id]
-        if isinstance(secret, ReplicaSecret):
-            raise OperationNotPermittedOnReplica
-
-        old_tags = {tag["Key"]: tag for tag in secret.tags or []}
-
-        for tag in tags:
-            old_tags[tag["Key"]] = tag
-
-        secret.tags = list(old_tags.values())
-
-    def untag_resource(self, secret_id: str, tag_keys: list[str]) -> None:
-        if secret_id not in self.secrets:
-            raise SecretNotFoundException()
-
-        secret = self.secrets[secret_id]
-        if isinstance(secret, ReplicaSecret):
-            raise OperationNotPermittedOnReplica
-
-        if secret.tags is None:
-            return
-
-        secret.tags = [tag for tag in secret.tags if tag["Key"] not in tag_keys]
-
     def update_secret_version_stage(
         self,
         secret_id: str,
@@ -1295,6 +1271,46 @@ class SecretsManagerBackend(BaseBackend):
         new_next_token = str(ending_point) if ending_point < len(secret_list) else None
 
         return secret_page, new_next_token
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for secret in self.secrets.values():
+            secret_tags = (
+                secret.source.tags if isinstance(secret, ReplicaSecret) else secret.tags
+            )
+            yield TaggedResource(
+                arn=secret.arn,
+                tags={t["Key"]: t["Value"] for t in (secret_tags or [])},
+                resource_type="secretsmanager:secret",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        if arn not in self.secrets:
+            raise SecretNotFoundException()
+
+        secret = self.secrets[arn]
+        if isinstance(secret, ReplicaSecret):
+            raise OperationNotPermittedOnReplica
+
+        old_tags = {tag["Key"]: tag for tag in secret.tags or []}
+
+        for k, v in tags.items():
+            old_tags[k] = {"Key": k, "Value": v}
+
+        secret.tags = list(old_tags.values())
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        if arn not in self.secrets:
+            raise SecretNotFoundException()
+
+        secret = self.secrets[arn]
+        if isinstance(secret, ReplicaSecret):
+            raise OperationNotPermittedOnReplica
+
+        if secret.tags is None:
+            return
+
+        secret.tags = [tag for tag in secret.tags if tag["Key"] not in tag_keys]
 
 
 secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")
