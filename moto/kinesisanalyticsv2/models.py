@@ -340,6 +340,10 @@ class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
         return application_summaries
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def owns_arn(self, arn: str) -> bool:
+        # ARNs use the "kinesisanalytics" namespace, not "kinesisanalyticsv2".
+        return arn.startswith(f"arn:{self.partition}:kinesisanalytics:")
+
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         for app in self.applications.values():
             yield TaggedResource(
