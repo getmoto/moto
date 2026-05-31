@@ -3,6 +3,7 @@ import json
 import re
 import string
 import struct
+from collections.abc import Iterator
 from copy import deepcopy
 from threading import Condition
 from typing import TYPE_CHECKING, Any
@@ -10,6 +11,7 @@ from urllib.parse import ParseResult
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import (
     camelcase_to_underscores,
     tags_from_cloudformation_tags_list,
@@ -684,7 +686,9 @@ def _filter_message_attributes(
     message.message_attributes = filtered_message_attributes
 
 
-class SQSBackend(BaseBackend):
+class SQSBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "sqs"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.queues: dict[str, Queue] = {}
@@ -1262,6 +1266,15 @@ class SQSBackend(BaseBackend):
         if retain_until <= unix_time():
             return False
         return True
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for queue in self.queues.values():
+            yield TaggedResource(
+                arn=queue.queue_arn,
+                tags=dict(queue.tags or {}),
+                resource_type="sqs:queue",
+            )
 
 
 sqs_backends = BackendDict(SQSBackend, "sqs")

@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.ssm.utils import parameter_arn
 from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
@@ -61,10 +60,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ssm_backend(self) -> SimpleSystemManagerBackend:
         return ssm_backends[self.account_id][self.region_name]
-
-    @property
-    def sqs_backend(self) -> SQSBackend:
-        return sqs_backends[self.account_id][self.region_name]
 
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
@@ -189,21 +184,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
-
-        # SQS
-        if (
-            not resource_type_filters
-            or "sqs" in resource_type_filters
-            or "sqs:queue" in resource_type_filters
-        ):
-            for queue in self.sqs_backend.queues.values():
-                tags = format_tags(queue.tags)
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-
-                yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
 
         # SSM Documents
         if (
