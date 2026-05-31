@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 from moto.comprehend.models import ComprehendBackend, comprehend_backends
 from moto.connectcampaigns.models import (
     ConnectCampaignServiceBackend,
@@ -216,10 +215,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return swf_backends[self.account_id][self.region_name]
 
     @property
-    def cloudwatch_backend(self) -> CloudWatchBackend:
-        return cloudwatch_backends[self.account_id][self.region_name]
-
-    @property
     def connectcampaigns_backend(self) -> ConnectCampaignServiceBackend | None:
         # Connect Campaigns service has limited region availability
         if self.region_name in connectcampaigns_backends[self.account_id].regions:
@@ -396,35 +391,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        if self.cloudwatch_backend:
-            cloudwatch_resource_map: dict[str, dict[str, Any]] = {
-                "cloudwatch:alarm": self.cloudwatch_backend.alarms,
-                "cloudwatch:insight-rule": self.cloudwatch_backend.insight_rules,
-            }
-            for resource_type, resource_source in cloudwatch_resource_map.items():
-                if (
-                    not resource_type_filters
-                    or "cloudwatch" in resource_type_filters
-                    or resource_type in resource_type_filters
-                ):
-                    for resource in resource_source.values():
-                        if resource_type == "cloudwatch:alarm":
-                            end_of_arn = f"alarm:{resource.name}"
-                        elif resource_type == "cloudwatch:insight-rule":
-                            end_of_arn = f"insight-rule/{resource.name}"
-
-                        arn = f"arn:{get_partition(self.region_name)}:cloudwatch:{self.region_name}:{self.account_id}:{end_of_arn}"
-
-                        cw_tags = self.cloudwatch_backend.list_tags_for_resource(arn)
-
-                        tags = format_tags(cw_tags)
-                        if not tags or not tag_filter(tags):
-                            continue
-                        yield {
-                            "ResourceARN": arn,
-                            "Tags": tags,
-                        }
 
         # Connect Campaigns v1
         if self.connectcampaigns_backend:

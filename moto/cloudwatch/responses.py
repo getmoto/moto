@@ -301,6 +301,7 @@ class CloudWatchResponse(BaseResponse):
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         tags = self._get_param("Tags", [])
+        tags = {tag["Key"]: tag["Value"] for tag in tags}
         self.cloudwatch_backend.tag_resource(resource_arn, tags)
         return EmptyResult()
 

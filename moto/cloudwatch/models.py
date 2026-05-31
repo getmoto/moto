@@ -1,6 +1,6 @@
 import json
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
 from typing import Any, SupportsFloat
 from uuid import uuid4
@@ -12,6 +12,7 @@ from moto.core.common_models import (
     CloudFormationModel,
     CloudWatchMetricProvider,
 )
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
@@ -504,7 +505,9 @@ class InsightRule(BaseModel):
         self.rule_arn = make_arn_for_rule(region_name, account_id, name)
 
 
-class CloudWatchBackend(BaseBackend):
+class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "cloudwatch"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.alarms: dict[str, Alarm] = {}
@@ -1011,21 +1014,6 @@ class CloudWatchBackend(BaseBackend):
     def list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
-        # From boto3:
-        # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
-        all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
-        if arn not in all_arns:
-            raise ResourceNotFoundException
-
-        self.tagger.tag_resource(arn, tags)
-
-    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
-        if arn not in self.tagger.tags.keys():
-            raise ResourceNotFoundException
-
-        self.tagger.untag_resource_using_names(arn, tag_keys)
-
     def _get_paginated(
         self, metrics: list[MetricDatumBase]
     ) -> tuple[str | None, list[MetricDatumBase]]:
@@ -1175,6 +1163,39 @@ class CloudWatchBackend(BaseBackend):
                     self.insight_rules[rule_name].state = "ENABLED"
 
         return failures
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        partition = self.partition
+        for alarm in self.alarms.values():
+            arn = f"arn:{partition}:cloudwatch:{self.region_name}:{self.account_id}:alarm:{alarm.name}"
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="cloudwatch:alarm",
+            )
+        for rule in self.insight_rules.values():
+            arn = f"arn:{partition}:cloudwatch:{self.region_name}:{self.account_id}:insight-rule/{rule.name}"
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="cloudwatch:insight-rule",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        # From boto3:
+        # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
+        all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
+        if arn not in all_arns:
+            raise ResourceNotFoundException
+
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")
