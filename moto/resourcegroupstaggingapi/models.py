@@ -10,7 +10,6 @@ from moto.core.resource_tagging import (
 )
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
-from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.kinesisanalyticsv2.models import (
     KinesisAnalyticsV2Backend,
@@ -122,10 +121,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspacesweb_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
-
-    @property
-    def kafka_backend(self) -> KafkaBackend:
-        return kafka_backends[self.account_id][self.region_name]
 
     @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
@@ -663,22 +658,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {
                     "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
-                    "Tags": tags,
-                }
-
-        # Kafka (MSK)
-        if self.kafka_backend and (
-            not resource_type_filters or "kafka" in resource_type_filters
-        ):
-            for msk_cluster in self.kafka_backend.clusters.values():
-                tag_dict = self.kafka_backend.list_tags_for_resource(msk_cluster.arn)
-                tags = [{"Key": key, "Value": value} for key, value in tag_dict.items()]
-
-                if not tags or not tag_filter(tags):
-                    continue
-
-                yield {
-                    "ResourceARN": msk_cluster.arn,
                     "Tags": tags,
                 }
 

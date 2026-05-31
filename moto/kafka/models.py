@@ -1,11 +1,13 @@
 """KafkaBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.kafka.exceptions import BadRequestException, NotFoundException
 from moto.utilities.utils import get_partition
 
@@ -75,8 +77,10 @@ class FakeKafkaCluster(BaseModel):
         return f"arn:{partition}:kafka:{self.region_name}:{self.account_id}:{resource_type}/{self.cluster_id}"
 
 
-class KafkaBackend(BaseBackend):
+class KafkaBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of Kafka APIs."""
+
+    SERVICE_NAMESPACE = "kafka"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -358,6 +362,15 @@ class KafkaBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for cluster in self.clusters.values():
+            yield TaggedResource(
+                arn=cluster.arn,
+                tags=self.tagger.get_tag_dict_for_resource(cluster.arn),
+                resource_type="kafka:cluster",
+            )
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
