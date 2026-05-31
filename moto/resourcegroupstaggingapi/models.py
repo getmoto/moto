@@ -16,7 +16,6 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.resourcegroupstaggingapi.exceptions import (
     ResourceGroupsTaggingAPIError as RESTError,
 )
-from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
 from moto.sesv2.models import SESV2Backend, sesv2_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
@@ -72,10 +71,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
-
-    @property
-    def servicecatalog_backend(self) -> ServiceCatalogBackend:
-        return servicecatalog_backends[self.account_id][self.region_name]
 
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
@@ -219,26 +214,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
-
-        # Service Catalog
-        if not resource_type_filters or "servicecatalog" in resource_type_filters:
-            # Portfolio
-            for portfolio in self.servicecatalog_backend.portfolios.values():
-                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
-                    portfolio.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{portfolio.arn}", "Tags": tags}
-
-            # Product
-            for product in self.servicecatalog_backend.products.values():
-                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
-                    product.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{product.arn}", "Tags": tags}
 
         if self.sesv2_backend:
             sesv2_resource_map: dict[str, dict[str, Any]] = {

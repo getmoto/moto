@@ -1,10 +1,12 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -129,8 +131,10 @@ class Product(BaseModel):
         return product_view_summary
 
 
-class ServiceCatalogBackend(BaseBackend):
+class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of ServiceCatalog APIs."""
+
+    SERVICE_NAMESPACE = "catalog"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -454,6 +458,21 @@ class ServiceCatalogBackend(BaseBackend):
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return []
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for portfolio in self.portfolios.values():
+            yield TaggedResource(
+                arn=portfolio.arn,
+                tags=self.tagger.get_tag_dict_for_resource(portfolio.arn),
+                resource_type="servicecatalog:portfolio",
+            )
+        for product in self.products.values():
+            yield TaggedResource(
+                arn=product.arn,
+                tags=self.tagger.get_tag_dict_for_resource(product.arn),
+                resource_type="servicecatalog:product",
+            )
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")
