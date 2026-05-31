@@ -1,10 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
 
-from moto.connectcampaigns.models import (
-    ConnectCampaignServiceBackend,
-    connectcampaigns_backends,
-)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.resource_tagging import (
     TaggableResourcesMixin,
@@ -207,13 +203,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return swf_backends[self.account_id][self.region_name]
 
     @property
-    def connectcampaigns_backend(self) -> ConnectCampaignServiceBackend | None:
-        # Connect Campaigns service has limited region availability
-        if self.region_name in connectcampaigns_backends[self.account_id].regions:
-            return connectcampaigns_backends[self.account_id][self.region_name]
-        return None
-
-    @property
     def quicksight_backend(self) -> QuickSightBackend | None:
         if self.region_name in quicksight_backends[self.account_id].regions:
             return quicksight_backends[self.account_id][self.region_name]
@@ -330,20 +319,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
                         "Tags": tags,
                     }
-
-        # Connect Campaigns v1
-        if self.connectcampaigns_backend:
-            if not resource_type_filters or "connectcampaigns" in resource_type_filters:
-                connectcampaigns_backend: ConnectCampaignServiceBackend = (
-                    connectcampaigns_backends[self.account_id][self.region_name]
-                )
-                for campaign in connectcampaigns_backend.campaigns.values():
-                    tags = connectcampaigns_backend.tagger.list_tags_for_resource(
-                        campaign.arn
-                    )["Tags"]
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
 
         # Direct Connect
         if self.directconnect_backend:
