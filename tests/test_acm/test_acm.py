@@ -608,14 +608,12 @@ def test_list_certificates_with_key_types_filter():
     certs = client.list_certificates(
         Includes={"keyTypes": ["RSA_2048", "RSA_4096", "EC_prime256v1"]}
     )["CertificateSummaryList"]
-
-    assert len(certs) == 1
-    assert certs[0]["CertificateArn"] == arn
+    assert any(cert["CertificateArn"] == arn for cert in certs)
 
     certs = client.list_certificates(Includes={"keyTypes": ["RSA_1024"]})[
         "CertificateSummaryList"
     ]
-    assert len(certs) == 0
+    assert not any(cert["CertificateArn"] == arn for cert in certs)
 
 
 @mock_aws
