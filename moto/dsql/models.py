@@ -1,7 +1,6 @@
 """AuroraDSQLBackend class with methods for supported APIs."""
 
 from collections import OrderedDict
-from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,9 +19,9 @@ class Cluster(BaseModel, ManagedState):
         self,
         region_name: str,
         account_id: str,
-        deletion_protection_enabled: Optional[bool],
-        tags: Optional[dict[str, str]],
-        client_token: Optional[str],
+        deletion_protection_enabled: bool | None,
+        tags: dict[str, str] | None,
+        client_token: str | None,
     ):
         ManagedState.__init__(
             self, "dsql::cluster", transitions=[("CREATING", "ACTIVE")]
@@ -56,8 +55,8 @@ class AuroraDSQLBackend(BaseBackend):
     def create_cluster(
         self,
         deletion_protection_enabled: bool,
-        tags: Optional[dict[str, str]],
-        client_token: Optional[str],
+        tags: dict[str, str] | None,
+        client_token: str | None,
     ) -> Cluster:
         cluster = Cluster(
             self.region_name,

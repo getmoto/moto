@@ -30,8 +30,8 @@ iot
 - [X] cancel_job
 - [X] cancel_job_execution
   
-        The parameters ExpectedVersion and StatusDetails are not yet implemented
-        
+The parameters ExpectedVersion and StatusDetails are not yet implemented
+
 
 - [ ] clear_default_authorizer
 - [ ] confirm_topic_rule_destination
@@ -45,8 +45,8 @@ iot
 - [ ] create_dimension
 - [X] create_domain_configuration
   
-        The ValidationCertificateArn-parameter is not yet implemented
-        
+The ValidationCertificateArn-parameter is not yet implemented
+
 
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
@@ -103,13 +103,13 @@ iot
 - [ ] delete_stream
 - [X] delete_thing
   
-        The ExpectedVersion-parameter is not yet implemented
-        
+The ExpectedVersion-parameter is not yet implemented
+
 
 - [X] delete_thing_group
   
-        The ExpectedVersion-parameter is not yet implemented
-        
+The ExpectedVersion-parameter is not yet implemented
+
 
 - [X] delete_thing_type
 - [X] delete_topic_rule
@@ -183,8 +183,8 @@ iot
 - [ ] list_active_violations
 - [X] list_attached_policies
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_audit_findings
 - [ ] list_audit_mitigation_actions_executions
@@ -197,13 +197,13 @@ iot
 - [ ] list_certificate_providers
 - [X] list_certificates
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_certificates_by_ca
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_command_executions
 - [ ] list_commands
@@ -219,8 +219,8 @@ iot
 - [X] list_job_templates
 - [X] list_jobs
   
-        The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
-        
+The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
+
 
 - [ ] list_managed_job_templates
 - [ ] list_metric_values
@@ -231,19 +231,19 @@ iot
 - [ ] list_packages
 - [X] list_policies
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_policy_principals
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_policy_versions
 - [X] list_principal_policies
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_principal_things
 - [ ] list_principal_things_v2
@@ -259,15 +259,15 @@ iot
 - [ ] list_tags_for_resource
 - [X] list_targets_for_policy
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_thing_principals
 - [X] list_thing_principals_v2
@@ -278,8 +278,8 @@ iot
 - [X] list_things_in_billing_group
 - [X] list_things_in_thing_group
   
-        Pagination and the recursive-parameter is not yet implemented
-        
+Pagination and the recursive-parameter is not yet implemented
+
 
 - [ ] list_topic_rule_destinations
 - [X] list_topic_rules
@@ -288,8 +288,8 @@ iot
 - [ ] put_verification_state_on_violation
 - [X] register_ca_certificate
   
-        The VerificationCertificate-parameter is not yet implemented
-        
+The VerificationCertificate-parameter is not yet implemented
+
 
 - [X] register_certificate
 - [X] register_certificate_without_ca
@@ -300,8 +300,8 @@ iot
 - [X] replace_topic_rule
 - [X] search_index
   
-        Pagination is not yet implemented. Only basic search queries are supported for now.
-        
+Pagination is not yet implemented. Only basic search queries are supported for now.
+
 
 - [ ] set_default_authorizer
 - [X] set_default_policy_version
@@ -324,8 +324,8 @@ iot
 - [X] update_billing_group
 - [X] update_ca_certificate
   
-        The newAutoRegistrationStatus and removeAutoRegistration-parameters are not yet implemented
-        
+The newAutoRegistrationStatus and removeAutoRegistration-parameters are not yet implemented
+
 
 - [X] update_certificate
 - [ ] update_certificate_provider
@@ -350,8 +350,8 @@ iot
 - [ ] update_stream
 - [X] update_thing
   
-        The ExpectedVersion-parameter is not yet implemented
-        
+The ExpectedVersion-parameter is not yet implemented
+
 
 - [X] update_thing_group
 - [X] update_thing_groups_for_thing

@@ -241,6 +241,20 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return ""
 
+    def enable_radius(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        radius_settings = self._get_param("RadiusSettings")
+        self.ds_backend.enable_radius(
+            directory_id=directory_id,
+            radius_settings=radius_settings,
+        )
+        return ""
+
+    def disable_radius(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.disable_radius(directory_id=directory_id)
+        return ""
+
     def describe_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         status = self._get_param("Status")

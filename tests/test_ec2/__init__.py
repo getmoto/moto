@@ -1,7 +1,6 @@
 from contextlib import nullcontext
 from functools import wraps
 from time import sleep
-from typing import Optional
 from uuid import uuid4
 
 import boto3
@@ -31,22 +30,15 @@ def ec2_aws_verified(
     create_transit_gateway: bool = False,
     create_customer_gateway: bool = False,
     create_launch_template: bool = False,
-    launch_template_data: Optional[dict] = None,
+    launch_template_data: dict | None = None,
     return_launch_template_details: bool = False,
 ):
     """
-        Function that is vMINIMAL_LAUNCH_TEMPLATE_DATE = {
-        "TagSpecifications": [
-            {
-                "ResourceType": "instance",
-                "Tags": [{"Key": "test", "Value": "value"}],
-            }
-        ]
-    }erified to work against AWS.
-        Can be run against AWS at any time by setting:
-          MOTO_TEST_ALLOW_AWS_REQUEST=true
+    Function that is verified to work against AWS.
+    Can be run against AWS at any time by setting:
+      MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-        If this environment variable is not set, the function runs in a `mock_aws` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     """
 
@@ -82,7 +74,7 @@ def _invoke_func(
     create_customer_gateway: bool,
     create_launch_template: bool,
     return_launch_template_details: bool,
-    launch_template_data: Optional[dict],
+    launch_template_data: dict | None,
     func,
     kwargs,
 ):

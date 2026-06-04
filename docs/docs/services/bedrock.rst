@@ -49,6 +49,7 @@ bedrock
 - [X] delete_model_invocation_logging_configuration
 - [ ] delete_prompt_router
 - [ ] delete_provisioned_model_throughput
+- [ ] delete_resource_policy
 - [ ] deregister_marketplace_model_endpoint
 - [ ] export_automated_reasoning_policy_version
 - [ ] get_automated_reasoning_policy
@@ -74,6 +75,7 @@ bedrock
 - [X] get_model_invocation_logging_configuration
 - [ ] get_prompt_router
 - [ ] get_provisioned_model_throughput
+- [ ] get_resource_policy
 - [ ] get_use_case_for_model_access
 - [ ] list_automated_reasoning_policies
 - [ ] list_automated_reasoning_policy_build_workflows
@@ -82,8 +84,8 @@ bedrock
 - [ ] list_custom_model_deployments
 - [X] list_custom_models
   
-        The foundation_model_arn_equals-argument is not yet supported
-        
+The foundation_model_arn_equals-argument is not yet supported
+
 
 - [ ] list_enforced_guardrails_configuration
 - [ ] list_evaluation_jobs
@@ -102,6 +104,7 @@ bedrock
 - [X] list_tags_for_resource
 - [ ] put_enforced_guardrail_configuration
 - [X] put_model_invocation_logging_configuration
+- [ ] put_resource_policy
 - [ ] put_use_case_for_model_access
 - [ ] register_marketplace_model_endpoint
 - [ ] start_automated_reasoning_policy_build_workflow

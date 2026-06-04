@@ -20,8 +20,8 @@ connect
 - [X] associate_analytics_data_set
   Associate an analytics data set with a Connect instance.
 
-        Enforces one association per (instance_id, data_set_id) pair.
-        
+Enforces one association per (instance_id, data_set_id) pair.
+
 
 - [ ] associate_approved_origin
 - [ ] associate_bot
@@ -130,6 +130,7 @@ connect
 - [ ] delete_workspace_media
 - [ ] delete_workspace_page
 - [ ] describe_agent_status
+- [ ] describe_attached_files_configuration
 - [ ] describe_authentication_profile
 - [ ] describe_contact
 - [ ] describe_contact_evaluation
@@ -209,6 +210,7 @@ connect
 - [ ] list_analytics_data_lake_data_sets
 - [ ] list_approved_origins
 - [ ] list_associated_contacts
+- [ ] list_attached_files_configurations
 - [ ] list_authentication_profiles
 - [ ] list_bots
 - [ ] list_child_hours_of_operations
@@ -334,6 +336,7 @@ connect
 - [ ] untag_contact
 - [X] untag_resource
 - [ ] update_agent_status
+- [ ] update_attached_files_configuration
 - [ ] update_authentication_profile
 - [ ] update_contact
 - [ ] update_contact_attributes

@@ -31,6 +31,10 @@ backend_url_patterns = [
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
     ("bedrock", re.compile("https?://bedrock\\.(.+)\\.amazonaws\\.com")),
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
+    (
+        "bedrockagentcorecontrol",
+        re.compile("https?://bedrock-agentcore-control\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("bedrockruntime", re.compile("https?://bedrock-runtime\\.(.+)\\.amazonaws\\.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
@@ -97,6 +101,7 @@ backend_url_patterns = [
     ("es", re.compile("https?://es\\.(.+)\\.amazonaws\\.com")),
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
     ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
+    ("fis", re.compile("https?://fis\\.(.+)\\.amazonaws\\.com")),
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
     ("fsx", re.compile("https?://fsx\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier\\.(.+)\\.amazonaws.com")),
@@ -129,6 +134,8 @@ backend_url_patterns = [
     ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
+    ("logs", re.compile("https?://stream-logs\\.(.+)\\.amazonaws\\.com")),
+    ("logs", re.compile("https?://streaming-logs\\.(.+)\\.amazonaws\\.com")),
     ("macie2", re.compile("https?://macie2\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",

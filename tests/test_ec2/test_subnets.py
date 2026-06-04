@@ -1,5 +1,4 @@
 import random
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -183,9 +182,8 @@ def test_availability_zone_in_create_subnet():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_default_subnet():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode will have conflicting CidrBlocks")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     default_vpc = list(ec2.vpcs.all())[0]
@@ -651,11 +649,8 @@ def test_create_subnet_with_tags():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_available_ip_addresses_in_subnet():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "ServerMode is not guaranteed to be empty - other subnets will affect the count"
-        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -680,11 +675,8 @@ def test_available_ip_addresses_in_subnet():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_available_ip_addresses_in_subnet_with_enis():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "ServerMode is not guaranteed to be empty - other ENI's will affect the count"
-        )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -1001,6 +993,43 @@ def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
         assert (
             subnet["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
             == assoc["Ipv6CidrBlock"]
+        )
+    finally:
+        if subnet:
+            ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_private_dns_name_options(ec2_client=None, vpc_id=None):
+    subnet = None
+    try:
+        subnet = ec2_client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.0.0/24",
+        )["Subnet"]
+
+        assert "PrivateDnsNameOptionsOnLaunch" in subnet
+        assert subnet["PrivateDnsNameOptionsOnLaunch"]["HostnameType"] == "ip-name"
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsARecord"]
+            is False
+        )
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsAAAARecord"]
+            is False
+        )
+
+        ec2_client.modify_subnet_attribute(
+            SubnetId=subnet["SubnetId"],
+            EnableResourceNameDnsARecordOnLaunch={"Value": True},
+        )
+        subnet = ec2_client.describe_subnets(SubnetIds=[subnet["SubnetId"]])["Subnets"][
+            0
+        ]
+        assert (
+            subnet["PrivateDnsNameOptionsOnLaunch"]["EnableResourceNameDnsARecord"]
+            is True
         )
     finally:
         if subnet:

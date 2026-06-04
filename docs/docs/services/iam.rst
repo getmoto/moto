@@ -89,8 +89,8 @@ iam
 - [ ] get_delegation_request
 - [X] get_group
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] get_group_policy
 - [ ] get_human_readable_summary
@@ -110,16 +110,16 @@ iam
 - [ ] get_service_last_accessed_details_with_entities
 - [X] get_service_linked_role_deletion_status
   
-        This method always succeeds for now - we do not yet keep track of deletions
-        
+This method always succeeds for now - we do not yet keep track of deletions
+
 
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
 - [X] list_access_keys
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_account_aliases
 - [X] list_attached_group_policies
@@ -129,8 +129,8 @@ iam
 - [ ] list_entities_for_policy
 - [X] list_group_policies
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_groups
 - [ ] list_groups_for_user
@@ -154,8 +154,8 @@ iam
 - [ ] list_server_certificate_tags
 - [X] list_server_certificates
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_service_specific_credentials
 - [X] list_signing_certificates

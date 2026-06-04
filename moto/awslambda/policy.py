@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import json
 from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     TypeVar,
-    Union,
 )
 
 from moto.awslambda.exceptions import (
@@ -22,7 +22,7 @@ TYPE_IDENTITY = TypeVar("TYPE_IDENTITY")
 
 
 class Policy:
-    def __init__(self, parent: Union["LambdaFunction", "LayerVersion"]):
+    def __init__(self, parent: LambdaFunction | LayerVersion):
         self.revision = str(mock_random.uuid4())
         self.statements: list[dict[str, Any]] = []
         self.parent = parent
@@ -45,9 +45,7 @@ class Policy:
         }
 
     # adds the raw JSON statement to the policy
-    def add_statement(
-        self, raw: str, qualifier: Optional[str] = None
-    ) -> tuple[Any, str]:
+    def add_statement(self, raw: str, qualifier: str | None = None) -> tuple[Any, str]:
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(
@@ -83,7 +81,7 @@ class Policy:
 
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-    def decode_policy(self, obj: dict[str, Any]) -> "Policy":
+    def decode_policy(self, obj: dict[str, Any]) -> Policy:
         # Circumvent circular cimport
         from moto.awslambda.models import LayerVersion
 

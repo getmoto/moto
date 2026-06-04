@@ -1,4 +1,4 @@
-from typing import Final, Optional
+from typing import Final
 
 from moto.stepfunctions.parser.asl.jsonata.jsonata import (
     VariableDeclarations,
@@ -77,7 +77,7 @@ def get_intrinsic_functions_declarations(
 ) -> VariableDeclarations:
     declarations: list[str] = []
     for variable_reference in variable_references:
-        declaration: Optional[VariableDeclarations] = (
+        declaration: VariableDeclarations | None = (
             _DECLARATION_BY_VARIABLE_REFERENCE.get(variable_reference)
         )
         if declaration:

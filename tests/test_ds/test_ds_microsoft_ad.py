@@ -298,3 +298,60 @@ def test_update_settings():
         (s for s in new_directory_settings if s["Name"] == "TLS_1_0"), None
     )
     assert new_tls_1_0_setting["AppliedValue"] == "Disable"
+
+
+@mock_aws
+def test_enable_radius():
+    """Test enabling RADIUS for MicrosoftAD and verifying settings are stored."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+
+    radius_settings = {
+        "RadiusServers": ["10.0.0.1"],
+        "RadiusPort": 1812,
+        "RadiusTimeout": 30,
+        "RadiusRetries": 3,
+        "SharedSecret": "supersecret",
+        "AuthenticationProtocol": "MS-CHAPv2",
+        "DisplayLabel": "MFA",
+        "UseSameUsername": True,
+    }
+    client.enable_radius(DirectoryId=directory_id, RadiusSettings=radius_settings)
+
+    directory = client.describe_directories(DirectoryIds=[directory_id])[
+        "DirectoryDescriptions"
+    ][0]
+    assert directory["RadiusStatus"] == "Completed"
+    assert directory["RadiusSettings"]["RadiusServers"] == ["10.0.0.1"]
+    assert directory["RadiusSettings"]["RadiusPort"] == 1812
+    assert directory["RadiusSettings"]["AuthenticationProtocol"] == "MS-CHAPv2"
+
+
+@mock_aws
+def test_disable_radius():
+    """Test disabling RADIUS after enabling it for MicrosoftAD."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+
+    radius_settings = {
+        "RadiusServers": ["10.0.0.1"],
+        "RadiusPort": 1812,
+        "RadiusTimeout": 30,
+        "RadiusRetries": 3,
+        "SharedSecret": "supersecret",
+        "AuthenticationProtocol": "MS-CHAPv2",
+        "DisplayLabel": "MFA",
+        "UseSameUsername": True,
+    }
+    client.enable_radius(DirectoryId=directory_id, RadiusSettings=radius_settings)
+    client.disable_radius(DirectoryId=directory_id)
+
+    directory = client.describe_directories(DirectoryIds=[directory_id])[
+        "DirectoryDescriptions"
+    ][0]
+    assert "RadiusStatus" not in directory
+    assert directory["RadiusSettings"] == {}

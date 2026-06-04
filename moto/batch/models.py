@@ -1,18 +1,17 @@
-import datetime
 import logging
 import re
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from itertools import cycle
 from sys import platform
 from time import sleep
-from typing import Any, Optional, Union
-
-import dateutil.parser
+from typing import Any
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.parse import default_timestamp_parser
 from moto.core.utils import unix_time_millis
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import EC2Backend, ec2_backends
@@ -46,7 +45,7 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 JOB_NAME_REGEX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$")
 
 
-def datetime2int_milliseconds(date: datetime.datetime) -> int:
+def datetime2int_milliseconds(date: datetime) -> int:
     """
     AWS returns timestamps in milliseconds
     We don't use milliseconds timestamps internally,
@@ -55,7 +54,7 @@ def datetime2int_milliseconds(date: datetime.datetime) -> int:
     return int(date.timestamp() * 1000)
 
 
-def datetime2int(date: datetime.datetime) -> int:
+def datetime2int(date: datetime) -> int:
     return int(time.mktime(date.timetuple()))
 
 
@@ -132,9 +131,9 @@ class JobQueue(CloudFormationModel):
         state: str,
         environments: list[ComputeEnvironment],
         env_order_json: list[dict[str, Any]],
-        schedule_policy: Optional[str],
+        schedule_policy: str | None,
         backend: "BatchBackend",
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ):
         """
         :param name: Job queue name
@@ -220,18 +219,18 @@ class JobDefinition(CloudFormationModel):
     def __init__(
         self,
         name: str,
-        parameters: Optional[dict[str, Any]],
+        parameters: dict[str, Any] | None,
         _type: str,
-        container_properties: Optional[dict[str, Any]],
-        node_properties: Optional[dict[str, Any]],
-        eks_properties: Optional[dict[str, Any]],
+        container_properties: dict[str, Any] | None,
+        node_properties: dict[str, Any] | None,
+        eks_properties: dict[str, Any] | None,
         tags: dict[str, str],
         retry_strategy: dict[str, str],
         timeout: dict[str, int],
         backend: "BatchBackend",
         platform_capabilities: list[str],
         propagate_tags: bool,
-        revision: Optional[int] = 0,
+        revision: int | None = 0,
     ):
         self.name = name
         self.retry_strategy = retry_strategy
@@ -402,11 +401,11 @@ class JobDefinition(CloudFormationModel):
 
     def update(
         self,
-        parameters: Optional[dict[str, Any]],
+        parameters: dict[str, Any] | None,
         _type: str,
-        container_properties: Optional[dict[str, Any]],
-        node_properties: Optional[dict[str, Any]],
-        eks_properties: Optional[dict[str, Any]],
+        container_properties: dict[str, Any] | None,
+        node_properties: dict[str, Any] | None,
+        eks_properties: dict[str, Any] | None,
         retry_strategy: dict[str, Any],
         tags: dict[str, str],
         timeout: dict[str, int],
@@ -524,15 +523,15 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         job_queue: JobQueue,
         backend: "BatchBackend",
         log_backend: LogsBackend,
-        container_overrides: Optional[dict[str, Any]],
-        eks_properties_override: Optional[dict[str, Any]],
-        depends_on: Optional[list[dict[str, str]]],
-        parameters: Optional[dict[str, str]],
+        container_overrides: dict[str, Any] | None,
+        eks_properties_override: dict[str, Any] | None,
+        depends_on: list[dict[str, str]] | None,
+        parameters: dict[str, str] | None,
         all_jobs: dict[str, "Job"],
-        timeout: Optional[dict[str, int]],
+        timeout: dict[str, int] | None,
         array_properties: dict[str, Any],
-        provided_job_id: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        provided_job_id: str | None = None,
+        tags: dict[str, str] | None = None,
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -550,11 +549,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_queue = job_queue
         self.backend = backend
         self.job_queue.jobs.append(self)
-        self.job_created_at = datetime.datetime.now()
-        self.job_started_at = datetime.datetime(1970, 1, 1)
-        self.job_stopped_at = datetime.datetime(1970, 1, 1)
+        self.job_created_at = datetime.now()
+        self.job_started_at = datetime(1970, 1, 1)
+        self.job_stopped_at = datetime(1970, 1, 1)
         self.job_stopped = False
-        self.job_stopped_reason: Optional[str] = None
+        self.job_stopped_reason: str | None = None
         self.depends_on = depends_on
         self.parameters = {**self.job_definition.parameters, **(parameters or {})}
         self.timeout = timeout
@@ -566,7 +565,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         )
 
         self.stop = False
-        self.exit_code: Optional[int] = None
+        self.exit_code: int | None = None
 
         self.daemon = True
 
@@ -575,11 +574,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self._log_backend = log_backend
         self._log_group = "/aws/batch/job"
         self._stream_name = f"{self.job_definition.name}/default/{self.job_id}"
-        self.log_stream_name: Optional[str] = None
+        self.log_stream_name: str | None = None
 
         self.attempts: list[dict[str, Any]] = []
-        self.latest_attempt: Optional[dict[str, Any]] = None
-        self._child_jobs: Optional[list[Job]] = None
+        self.latest_attempt: dict[str, Any] | None = None
+        self._child_jobs: list[Job] | None = None
 
         tag_list = self.backend.tagger.convert_dict_to_tags_input(tags or {})
         # Validate the tag list. Maximum entires in the map is 50
@@ -752,14 +751,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
         return [{"name": k, "value": v} for k, v in env_dict.items()]
 
-    def _get_attempt_duration(self) -> Optional[int]:
+    def _get_attempt_duration(self) -> int | None:
         if self.timeout:
             return self.timeout["attemptDurationSeconds"]
         if self.job_definition.timeout:
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
-    def _add_parameters_to_command(self, command: Union[str, list[str]]) -> list[str]:
+    def _add_parameters_to_command(self, command: str | list[str]) -> list[str]:
         if isinstance(command, str):
             command = [command]
 
@@ -909,7 +908,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 sleep(0.5)
             # TODO setup ecs container instance
 
-            self.job_started_at = datetime.datetime.now()
+            self.job_started_at = datetime.now()
 
             self._start_attempt()
 
@@ -977,7 +976,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     max_time = None
                     if self._get_attempt_duration():
                         attempt_duration = self._get_attempt_duration()
-                        max_time = self.job_started_at + datetime.timedelta(
+                        max_time = self.job_started_at + timedelta(
                             seconds=attempt_duration  # type: ignore[arg-type]
                         )
 
@@ -985,7 +984,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         container.reload()
                         time.sleep(0.5)
 
-                        if max_time and datetime.datetime.now() > max_time:
+                        if max_time and datetime.now() > max_time:
                             raise Exception(
                                 "Job time exceeded the configured attemptDurationSeconds"
                             )
@@ -1025,8 +1024,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     for line in logs_stdout + logs_stderr:
                         date, line = line.split(" ", 1)
                         date_obj = (
-                            dateutil.parser.parse(date)
-                            .astimezone(datetime.timezone.utc)
+                            default_timestamp_parser(date)
+                            .astimezone(timezone.utc)
                             .replace(tzinfo=None)
                         )
                         date = unix_time_millis(date_obj)
@@ -1076,7 +1075,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         # Ensure that job_stopped/job_stopped_at-attributes are set first
         # The describe-method needs them immediately when status is set
         self.job_stopped = True
-        self.job_stopped_at = datetime.datetime.now()
+        self.job_stopped_at = datetime.now()
         self.status = JobStatus.SUCCEEDED if success else JobStatus.FAILED
         self._stop_attempt()
 
@@ -1223,18 +1222,16 @@ class BatchBackend(BaseBackend):
 
         super().reset()
 
-    def get_compute_environment_by_arn(self, arn: str) -> Optional[ComputeEnvironment]:
+    def get_compute_environment_by_arn(self, arn: str) -> ComputeEnvironment | None:
         return self._compute_environments.get(arn)
 
-    def get_compute_environment_by_name(
-        self, name: str
-    ) -> Optional[ComputeEnvironment]:
+    def get_compute_environment_by_name(self, name: str) -> ComputeEnvironment | None:
         for comp_env in self._compute_environments.values():
             if comp_env.name == name:
                 return comp_env
         return None
 
-    def get_compute_environment(self, identifier: str) -> Optional[ComputeEnvironment]:
+    def get_compute_environment(self, identifier: str) -> ComputeEnvironment | None:
         """
         Get compute environment by name or ARN
         :param identifier: Name or ARN
@@ -1247,16 +1244,16 @@ class BatchBackend(BaseBackend):
             identifier
         ) or self.get_compute_environment_by_name(identifier)
 
-    def get_job_queue_by_arn(self, arn: str) -> Optional[JobQueue]:
+    def get_job_queue_by_arn(self, arn: str) -> JobQueue | None:
         return self._job_queues.get(arn)
 
-    def get_job_queue_by_name(self, name: str) -> Optional[JobQueue]:
+    def get_job_queue_by_name(self, name: str) -> JobQueue | None:
         for comp_env in self._job_queues.values():
             if comp_env.name == name:
                 return comp_env
         return None
 
-    def get_job_queue(self, identifier: str) -> Optional[JobQueue]:
+    def get_job_queue(self, identifier: str) -> JobQueue | None:
         """
         Get job queue by name or ARN
         :param identifier: Name or ARN
@@ -1269,10 +1266,10 @@ class BatchBackend(BaseBackend):
             identifier
         )
 
-    def get_job_definition_by_arn(self, arn: str) -> Optional[JobDefinition]:
+    def get_job_definition_by_arn(self, arn: str) -> JobDefinition | None:
         return self._job_definitions.get(arn)
 
-    def get_job_definition_by_name(self, name: str) -> Optional[JobDefinition]:
+    def get_job_definition_by_name(self, name: str) -> JobDefinition | None:
         latest_revision = -1
         latest_job = None
         for job_def in self._job_definitions.values():
@@ -1283,13 +1280,13 @@ class BatchBackend(BaseBackend):
 
     def get_job_definition_by_name_revision(
         self, name: str, revision: str
-    ) -> Optional[JobDefinition]:
+    ) -> JobDefinition | None:
         for job_def in self._job_definitions.values():
             if job_def.name == name and job_def.revision == int(revision):
                 return job_def
         return None
 
-    def get_job_definition(self, identifier: str) -> Optional[JobDefinition]:
+    def get_job_definition(self, identifier: str) -> JobDefinition | None:
         """
         Get job definitions by name or ARN
         :param identifier: Name or ARN
@@ -1328,14 +1325,14 @@ class BatchBackend(BaseBackend):
 
         return result
 
-    def get_job_by_id(self, identifier: str) -> Optional[Job]:
+    def get_job_by_id(self, identifier: str) -> Job | None:
         try:
             return self._jobs[identifier]
         except KeyError:
             return None
 
     def describe_compute_environments(
-        self, environments: Optional[list[str]] = None
+        self, environments: list[str] | None = None
     ) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
@@ -1375,7 +1372,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: dict[str, Any],
         service_role: str,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
@@ -1630,9 +1627,9 @@ class BatchBackend(BaseBackend):
     def update_compute_environment(
         self,
         compute_environment_name: str,
-        state: Optional[str],
-        compute_resources: Optional[Any],
-        service_role: Optional[str],
+        state: str | None,
+        compute_resources: Any | None,
+        service_role: str | None,
     ) -> tuple[str, str]:
         # Validate
         compute_env = self.get_compute_environment(compute_environment_name)
@@ -1669,10 +1666,10 @@ class BatchBackend(BaseBackend):
         self,
         queue_name: str,
         priority: str,
-        schedule_policy: Optional[str],
+        schedule_policy: str | None,
         state: str,
         compute_env_order: list[dict[str, str]],
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> JobQueue:
         for variable, var_name in (
             (queue_name, "jobQueueName"),
@@ -1724,7 +1721,7 @@ class BatchBackend(BaseBackend):
         return queue
 
     def describe_job_queues(
-        self, job_queues: Optional[list[str]] = None
+        self, job_queues: list[str] | None = None
     ) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
@@ -1746,10 +1743,10 @@ class BatchBackend(BaseBackend):
     def update_job_queue(
         self,
         queue_name: str,
-        priority: Optional[str],
-        state: Optional[str],
-        compute_env_order: Optional[list[dict[str, Any]]],
-        schedule_policy: Optional[str],
+        priority: str | None,
+        state: str | None,
+        compute_env_order: list[dict[str, Any]] | None,
+        schedule_policy: str | None,
     ) -> tuple[str, str]:
         if queue_name is None:
             raise ClientException("jobQueueName must be provided")
@@ -1810,9 +1807,9 @@ class BatchBackend(BaseBackend):
         _type: str,
         tags: dict[str, str],
         retry_strategy: dict[str, Any],
-        container_properties: Optional[dict[str, Any]],
-        node_properties: Optional[dict[str, Any]],
-        eks_properties: Optional[dict[str, Any]],
+        container_properties: dict[str, Any] | None,
+        node_properties: dict[str, Any] | None,
+        eks_properties: dict[str, Any] | None,
         timeout: dict[str, int],
         platform_capabilities: list[str],
         propagate_tags: bool,
@@ -1870,9 +1867,9 @@ class BatchBackend(BaseBackend):
 
     def describe_job_definitions(
         self,
-        job_def_name: Optional[str] = None,
-        job_def_list: Optional[list[str]] = None,
-        status: Optional[str] = None,
+        job_def_name: str | None = None,
+        job_def_list: list[str] | None = None,
+        status: str | None = None,
     ) -> list[JobDefinition]:
         """
         Pagination is not yet implemented
@@ -1905,12 +1902,12 @@ class BatchBackend(BaseBackend):
         job_def_id: str,
         job_queue: str,
         array_properties: dict[str, int],
-        depends_on: Optional[list[dict[str, str]]] = None,
-        container_overrides: Optional[dict[str, Any]] = None,
-        eks_properties_override: Optional[dict[str, Any]] = None,
-        timeout: Optional[dict[str, int]] = None,
-        parameters: Optional[dict[str, str]] = None,
-        tags: Optional[dict[str, str]] = None,
+        depends_on: list[dict[str, str]] | None = None,
+        container_overrides: dict[str, Any] | None = None,
+        eks_properties_override: dict[str, Any] | None = None,
+        timeout: dict[str, int] | None = None,
+        parameters: dict[str, str] | None = None,
+        tags: dict[str, str] | None = None,
     ) -> tuple[str, str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1976,7 +1973,7 @@ class BatchBackend(BaseBackend):
             job.start()
         return job_name, job.job_id, job.arn
 
-    def describe_jobs(self, jobs: Optional[list[str]]) -> list[dict[str, Any]]:
+    def describe_jobs(self, jobs: list[str] | None) -> list[dict[str, Any]]:
         job_filter = set()
         if jobs is not None:
             job_filter = set(jobs)
@@ -1996,10 +1993,10 @@ class BatchBackend(BaseBackend):
 
     def list_jobs(
         self,
-        job_queue_name: Optional[str],
-        array_job_id: Optional[str],
-        job_status: Optional[str] = None,
-        filters: Optional[list[dict[str, Any]]] = None,
+        job_queue_name: str | None,
+        array_job_id: str | None,
+        job_status: str | None = None,
+        filters: list[dict[str, Any]] | None = None,
     ) -> list[Job]:
         """
         TODO: Pagination is not yet implemented

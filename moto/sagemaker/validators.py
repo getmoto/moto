@@ -1,14 +1,14 @@
-from typing import Any, Optional
+from typing import Any
 
 
 def is_integer_between(
-    x: int, mn: Optional[int] = None, mx: Optional[int] = None, optional: bool = False
+    x: int, mn: int | None = None, mx: int | None = None, optional: bool = False
 ) -> bool:
     if optional and x is None:
         return True
     try:
         if mn is not None and mx is not None:
-            return int(x) >= mn and int(x) < mx
+            return mn <= int(x) < mx
         elif mn is not None:
             return int(x) >= mn
         elif mx is not None:

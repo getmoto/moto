@@ -86,6 +86,49 @@ def test_transact_write_items__put_and_delete_on_same_item(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(add_range=True)
+def test_transact_write_items__put_and_delete_with_different_key_order(table_name=None):
+    """Duplicate key detection should work regardless of key attribute order.
+
+    When a Put constructs the key as {pk, sk} but a Delete uses {sk, pk},
+    TransactWriteItems should still detect the duplicate and raise
+    ValidationException. See https://github.com/getmoto/moto/issues/9904.
+    """
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "TableName": table_name,
+                        "Item": {
+                            "pk": {"S": "pk1"},
+                            "sk": {"S": "sk1"},
+                            "data": {"S": "val"},
+                        },
+                    }
+                },
+                {
+                    "Delete": {
+                        "TableName": table_name,
+                        "Key": {
+                            "sk": {"S": "sk1"},
+                            "pk": {"S": "pk1"},
+                        },
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Transaction request cannot include multiple operations on one item"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
 def test_transact_write_items__update_with_multiple_set_clauses(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 

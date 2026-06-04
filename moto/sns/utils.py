@@ -1,7 +1,7 @@
 import json
 import re
 from collections.abc import Callable, Iterable
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
@@ -26,9 +26,7 @@ class FilterPolicyMatcher:
     class CheckException(Exception):
         pass
 
-    def __init__(
-        self, filter_policy: dict[str, Any], filter_policy_scope: Optional[str]
-    ):
+    def __init__(self, filter_policy: dict[str, Any], filter_policy_scope: str | None):
         self.filter_policy = filter_policy
         self.filter_policy_scope = (
             filter_policy_scope
@@ -41,9 +39,7 @@ class FilterPolicyMatcher:
                 f"Unsupported filter_policy_scope: {filter_policy_scope}"
             )
 
-    def matches(
-        self, message_attributes: Optional[dict[str, Any]], message: str
-    ) -> bool:
+    def matches(self, message_attributes: dict[str, Any] | None, message: str) -> bool:
         if not self.filter_policy:
             return True
 
@@ -97,8 +93,8 @@ class FilterPolicyMatcher:
 
     def _compute_body_checks(
         self,
-        filter_policy: dict[str, Union[dict[str, Any], list[Any]]],
-        message_body: Union[dict[str, Any], list[Any]],
+        filter_policy: dict[str, dict[str, Any] | list[Any]],
+        message_body: dict[str, Any] | list[Any],
     ) -> tuple[Callable[[Iterable[Any]], bool], Any]:
         """
         Generate (possibly nested) list of checks to be performed based on the filter policy
@@ -188,7 +184,7 @@ class FilterPolicyMatcher:
         # Iterate over every rule from the list of rules
         # At least one rule has to match the field for the function to return a match
 
-        def _str_exact_match(value: str, rule: Union[str, list[str]]) -> bool:
+        def _str_exact_match(value: str, rule: str | list[str]) -> bool:
             if value == rule:
                 return True
 
@@ -231,7 +227,7 @@ class FilterPolicyMatcher:
             return value.endswith(prefix)
 
         def _anything_but_match(
-            filter_value: Union[dict[str, Any], list[str], str],
+            filter_value: dict[str, Any] | list[str] | str,
             actual_values: list[str],
         ) -> bool:
             if isinstance(filter_value, dict):
@@ -411,7 +407,9 @@ class FilterPolicyMatcher:
                     if attributes_based_check:
                         if dict_body.get(field, {}).get("Type", "") == "Number":
                             checks = value
-                            numeric_ranges = zip(checks[0::2], checks[1::2])
+                            numeric_ranges = zip(
+                                checks[0::2], checks[1::2], strict=False
+                            )
                             if _numeric_match(
                                 numeric_ranges, float(dict_body[field]["Value"])
                             ):
@@ -421,7 +419,7 @@ class FilterPolicyMatcher:
                             return False
 
                         checks = value
-                        numeric_ranges = zip(checks[0::2], checks[1::2])
+                        numeric_ranges = zip(checks[0::2], checks[1::2], strict=False)
                         if _numeric_match(numeric_ranges, dict_body[field]):
                             return True
 

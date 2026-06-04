@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
@@ -67,7 +67,13 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
         table_name = table_input.get("Name")  # type: ignore
-        self.glue_backend.create_table(database_name, table_name, table_input)  # type: ignore[arg-type]
+        open_table_format_input = self.parameters.get("OpenTableFormatInput")
+        self.glue_backend.create_table(
+            database_name,  # type: ignore[arg-type]
+            table_name,
+            table_input,  # type: ignore[arg-type]
+            open_table_format_input,  # type: ignore[arg-type]
+        )
         return EmptyResult()
 
     def get_table(self) -> ActionResult:
@@ -702,8 +708,8 @@ class GlueResponse(BaseResponse):
         trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
 
-        predicate_input: Optional[dict[str, Union[str, list[dict[str, str]]]]] = (
-            self._get_param("Predicate")
+        predicate_input: dict[str, str | list[dict[str, str]]] | None = self._get_param(
+            "Predicate"
         )
         if predicate_input:
             predicate = Predicate(predicate_input)

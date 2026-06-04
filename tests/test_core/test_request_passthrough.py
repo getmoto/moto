@@ -49,7 +49,7 @@ def test_passthrough_calls_for_entire_service() -> None:
 
             resp = _aws_request(list_buckets_url)
             assert resp.status_code == 200
-            assert b"<Buckets></Buckets>" in resp.content
+            assert b"ListAllMyBucketsResult" in resp.content
 
 
 def test_passthrough_calls_for_specific_url() -> None:

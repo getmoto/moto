@@ -27,8 +27,8 @@ secretsmanager
 - [X] list_secrets
 - [X] put_resource_policy
   
-        The BlockPublicPolicy-parameter is not yet implemented
-        
+The BlockPublicPolicy-parameter is not yet implemented
+
 
 - [X] put_secret_value
 - [X] remove_regions_from_replication

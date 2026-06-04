@@ -58,8 +58,8 @@ glue
 - [X] create_registry
 - [X] create_schema
   
-        The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
-        
+The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
+
 
 - [ ] create_script
 - [X] create_security_configuration
@@ -158,16 +158,16 @@ glue
 - [ ] get_partition_indexes
 - [X] get_partitions
   
-        See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
-        for supported expressions.
+See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
+for supported expressions.
 
-        Expression caveats:
+Expression caveats:
 
-        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
-        - LIKE expressions are converted to Python regexes, escaping special characters.
-          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
-        
+- Column names must consist of UPPERCASE, lowercase, dots and underscores only.
+- Literal dates and timestamps must be valid, i.e. no support for February 31st.
+- LIKE expressions are converted to Python regexes, escaping special characters.
+  Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+
 
 - [ ] get_plan
 - [X] get_registry
@@ -291,8 +291,8 @@ glue
 - [ ] update_registry
 - [X] update_schema
   
-        The SchemaVersionNumber-argument is not yet implemented
-        
+The SchemaVersionNumber-argument is not yet implemented
+
 
 - [ ] update_source_control_from_job
 - [X] update_table

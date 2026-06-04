@@ -6,6 +6,9 @@ from .models import MeteringMarketplaceBackend, meteringmarketplace_backends
 
 
 class MarketplaceMeteringResponse(BaseResponse):
+    def __init__(self) -> None:
+        super().__init__(service_name="meteringmarketplace")
+
     @property
     def backend(self) -> MeteringMarketplaceBackend:
         return meteringmarketplace_backends[self.current_account][self.region]

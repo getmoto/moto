@@ -40,6 +40,7 @@ opensearch
 - [ ] delete_outbound_connection
 - [ ] delete_package
 - [ ] delete_vpc_endpoint
+- [ ] deregister_capability
 - [X] describe_domain
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
@@ -49,6 +50,7 @@ opensearch
 - [X] describe_domains
 - [ ] describe_dry_run_progress
 - [ ] describe_inbound_connections
+- [ ] describe_insight_details
 - [ ] describe_instance_type_limits
 - [ ] describe_outbound_connections
 - [ ] describe_packages
@@ -58,6 +60,7 @@ opensearch
 - [ ] dissociate_package
 - [ ] dissociate_packages
 - [ ] get_application
+- [ ] get_capability
 - [X] get_compatible_versions
 - [ ] get_data_source
 - [ ] get_default_application_setting
@@ -73,6 +76,7 @@ opensearch
 - [ ] list_domain_maintenances
 - [X] list_domain_names
 - [ ] list_domains_for_package
+- [ ] list_insights
 - [ ] list_instance_type_details
 - [ ] list_packages_for_domain
 - [ ] list_scheduled_actions
@@ -83,9 +87,11 @@ opensearch
 - [ ] list_vpc_endpoints_for_domain
 - [ ] purchase_reserved_instance_offering
 - [ ] put_default_application_setting
+- [ ] register_capability
 - [ ] reject_inbound_connection
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
+- [ ] rollback_service_software_update
 - [ ] start_domain_maintenance
 - [ ] start_service_software_update
 - [ ] update_application

@@ -5,11 +5,12 @@ import logging
 import re
 import sys
 from collections.abc import Iterator
-from typing import Any, Optional, Union
+from typing import Any
 from urllib.parse import urlparse
 
 from requests.structures import CaseInsensitiveDict
 
+from moto.core.compat import HAS_CRT
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 log = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ user_settable_fields = {
     "content-disposition",
     "x-robots-tag",
     "x-amz-checksum-algorithm",
+    "x-amz-checksum-type",
     "x-amz-content-sha256",
     "x-amz-content-crc32",
     "x-amz-content-crc32c",
@@ -48,7 +50,7 @@ STORAGE_CLASS = [
 LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
 
-def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
+def bucket_name_from_url(url: str) -> str | None:  # type: ignore
     if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
         return None
     domain = urlparse(url).netloc
@@ -69,7 +71,7 @@ def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
 
 
 # 'owi-common-cf', 'snippets/test.json' = bucket_and_name_from_url('s3://owi-common-cf/snippets/test.json')
-def bucket_and_name_from_url(url: str) -> Union[tuple[str, str], tuple[None, None]]:
+def bucket_and_name_from_url(url: str) -> tuple[str, str] | tuple[None, None]:
     prefix = "s3://"
     if url.startswith(prefix):
         bucket_name = url[len(prefix) : url.index("/", len(prefix))]
@@ -210,6 +212,14 @@ def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) ->
             hashed_body = binascii.crc32(body).to_bytes(4, "big")
     elif algorithm == "CRC32":
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
+    elif algorithm == "CRC64NVME":
+        if HAS_CRT:
+            from awscrt import checksums
+
+            hashed_body = checksums.crc64nvme(body).to_bytes(8, "big")
+        else:
+            # Optional library Can't be found - just revert to CRC32
+            hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
     if encode_base64:

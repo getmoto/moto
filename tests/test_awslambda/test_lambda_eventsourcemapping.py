@@ -14,13 +14,13 @@ from moto.utilities.distutils_version import LooseVersion
 
 from ..markers import requires_docker
 from .utilities import (
+    PYTHON_VERSION,
     get_role_name,
     get_test_zip_file3,
     get_test_zip_file_error,
     wait_for_log_msg,
 )
 
-PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 botocore_version = sys.modules["botocore"].__version__
 
@@ -676,7 +676,7 @@ def test_event_source_mapping_tagging_lifecycle():
     client = boto3.client("lambda", region_name="us-east-1")
     client.create_function(
         FunctionName="any-function-name",
-        Runtime="python3.6",
+        Runtime=PYTHON_VERSION,
         Role=iam_role["Role"]["Arn"],
         Handler="any-handler",
         Code={

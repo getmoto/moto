@@ -1,14 +1,17 @@
 """SecurityHubBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.exceptions import RESTError
-from moto.organizations.exceptions import AWSOrganizationsNotInUseException
+from moto.organizations.exceptions import (
+    AWSOrganizationsNotInUseException,
+    OrganizationsClientError,
+)
 from moto.organizations.models import organizations_backends
 from moto.securityhub.exceptions import InvalidInputException
+from moto.securityhub.exceptions import SecurityHubClientError as RESTError
 from moto.utilities.paginator import paginate
 
 
@@ -48,7 +51,7 @@ class SecurityHubBackend(BaseBackend):
         self.findings: list[Finding] = []
         self.region_name = region_name
         self.org_backend = organizations_backends[self.account_id]["aws"]
-        self.enabled_at: Optional[str] = None
+        self.enabled_at: str | None = None
         self.enabled = False
         self.members: dict[str, dict[str, str]] = {}
 
@@ -57,7 +60,7 @@ class SecurityHubBackend(BaseBackend):
         try:
             org = self.org_backend.describe_organization()
             org_id = org["Organization"]["Id"]
-        except RESTError:
+        except OrganizationsClientError:
             raise AWSOrganizationsNotInUseException()
 
         if org_id not in SecurityHubBackend._org_configs:
@@ -76,7 +79,7 @@ class SecurityHubBackend(BaseBackend):
     def enable_security_hub(
         self,
         enable_default_standards: bool = True,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         if self.enabled:
             return {}
@@ -103,7 +106,7 @@ class SecurityHubBackend(BaseBackend):
 
         return {}
 
-    def describe_hub(self, hub_arn: Optional[str] = None) -> dict[str, Any]:
+    def describe_hub(self, hub_arn: str | None = None) -> dict[str, Any]:
         if not self.enabled:
             raise RESTError(
                 "InvalidAccessException",
@@ -130,9 +133,9 @@ class SecurityHubBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
         self,
-        filters: Optional[dict[str, Any]] = None,
-        sort_criteria: Optional[list[dict[str, str]]] = None,
-        max_results: Optional[int] = None,
+        filters: dict[str, Any] | None = None,
+        sort_criteria: list[dict[str, str]] | None = None,
+        max_results: int | None = None,
     ) -> list[dict[str, str]]:
         """
         Filters and SortCriteria is not yet implemented
@@ -200,7 +203,7 @@ class SecurityHubBackend(BaseBackend):
         try:
             org = self.org_backend.describe_organization()
             org_id = org["Organization"]["Id"]
-        except RESTError:
+        except OrganizationsClientError:
             raise AWSOrganizationsNotInUseException()
 
         if self.account_id != org["Organization"]["MasterAccountId"]:
@@ -213,7 +216,7 @@ class SecurityHubBackend(BaseBackend):
 
         try:
             self.org_backend.get_account_by_id(admin_account_id)
-        except RESTError:
+        except OrganizationsClientError:
             raise RESTError(
                 "InvalidInputException",
                 f"The request was rejected because the account {admin_account_id} is not "
@@ -226,12 +229,12 @@ class SecurityHubBackend(BaseBackend):
     def update_organization_configuration(
         self,
         auto_enable: bool,
-        auto_enable_standards: Optional[str] = None,
-        organization_configuration: Optional[dict[str, Any]] = None,
+        auto_enable_standards: str | None = None,
+        organization_configuration: dict[str, Any] | None = None,
     ) -> None:
         try:
             self.org_backend.describe_organization()
-        except RESTError:
+        except OrganizationsClientError:
             raise RESTError(
                 "ResourceNotFoundException",
                 "The request was rejected because AWS Organizations is not in use or not "
@@ -301,7 +304,7 @@ class SecurityHubBackend(BaseBackend):
         try:
             org = self.org_backend.describe_organization()
             management_account_id = org["Organization"]["MasterAccountId"]
-        except RESTError:
+        except OrganizationsClientError:
             return {}
 
         org_config = self._get_org_config()
@@ -328,7 +331,7 @@ class SecurityHubBackend(BaseBackend):
     def describe_organization_configuration(self) -> dict[str, Any]:
         try:
             self.org_backend.describe_organization()
-        except RESTError:
+        except OrganizationsClientError:
             raise RESTError(
                 "AccessDeniedException",
                 "You do not have sufficient access to perform this action.",
@@ -424,9 +427,7 @@ class SecurityHubBackend(BaseBackend):
         return members, unprocessed_accounts
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_members(
-        self, only_associated: Optional[bool] = None
-    ) -> list[dict[str, str]]:
+    def list_members(self, only_associated: bool | None = None) -> list[dict[str, str]]:
         if only_associated is None:
             only_associated = True
 

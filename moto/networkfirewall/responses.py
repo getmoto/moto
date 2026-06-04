@@ -11,7 +11,7 @@ class NetworkFirewallResponse(BaseResponse):
     """Handler for NetworkFirewall requests and responses."""
 
     def __init__(self) -> None:
-        super().__init__(service_name="networkfirewall")
+        super().__init__(service_name="network-firewall")
 
     @property
     def networkfirewall_backend(self) -> NetworkFirewallBackend:

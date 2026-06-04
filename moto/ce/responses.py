@@ -10,6 +10,9 @@ from .models import CostExplorerBackend, ce_backends
 class CostExplorerResponse(BaseResponse):
     """Handler for CostExplorer requests and responses."""
 
+    def __init__(self) -> None:
+        super().__init__(service_name="ce")
+
     @property
     def ce_backend(self) -> CostExplorerBackend:
         """Return backend instance specific for this region."""

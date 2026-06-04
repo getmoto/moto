@@ -54,8 +54,8 @@ rekognition
 - [ ] get_face_liveness_session_results
 - [X] get_face_search
   
-        This returns hardcoded values and none of the parameters are taken into account.
-        
+This returns hardcoded values and none of the parameters are taken into account.
+
 
 - [ ] get_label_detection
 - [ ] get_media_analysis_job
@@ -63,8 +63,8 @@ rekognition
 - [ ] get_segment_detection
 - [X] get_text_detection
   
-        This returns hardcoded values and none of the parameters are taken into account.
-        
+This returns hardcoded values and none of the parameters are taken into account.
+
 
 - [ ] index_faces
 - [ ] list_collections

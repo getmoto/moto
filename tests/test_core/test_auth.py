@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Any, Optional
+from typing import Any
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -80,7 +80,7 @@ def create_group_with_attached_policy_and_add_user(
     user_name: str,
     policy_document: dict[str, Any],
     group_name: str = "test-group",
-    policy_name: Optional[str] = None,
+    policy_name: str | None = None,
 ) -> None:
     if not policy_name:
         policy_name = str(uuid4())
@@ -115,7 +115,7 @@ def create_group_with_multiple_policies_and_add_user(
     attached_policy_document: dict[str, Any],
     group_name: str = "test-group",
     inline_policy_name: str = "policy1",
-    attached_policy_name: Optional[str] = None,
+    attached_policy_name: str | None = None,
 ) -> None:
     if not attached_policy_name:
         attached_policy_name = str(uuid4())

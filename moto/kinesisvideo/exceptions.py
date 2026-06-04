@@ -1,13 +1,12 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class KinesisvideoClientError(RESTError):
-    code = 400
+class KinesisvideoClientError(ServiceException):
+    pass
 
 
 class ResourceNotFoundException(KinesisvideoClientError):
     def __init__(self) -> None:
-        self.code = 404
         super().__init__(
             "ResourceNotFoundException",
             "The requested stream is not found or not active.",
@@ -16,5 +15,4 @@ class ResourceNotFoundException(KinesisvideoClientError):
 
 class ResourceInUseException(KinesisvideoClientError):
     def __init__(self, message: str):
-        self.code = 400
         super().__init__("ResourceInUseException", message)

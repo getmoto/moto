@@ -61,6 +61,12 @@ class SESV2Response(BaseResponse):
         self.sesv2_backend.create_contact_list(params)
         return json.dumps({})
 
+    def update_contact_list(self) -> str:
+        contact_list_name = self._get_param("ContactListName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_contact_list(contact_list_name, params)
+        return json.dumps({})
+
     def get_contact_list(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         contact_list = self.sesv2_backend.get_contact_list(contact_list_name)
@@ -79,6 +85,13 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         params = json.loads(self.body)
         self.sesv2_backend.create_contact(contact_list_name, params)
+        return json.dumps({})
+
+    def update_contact(self) -> str:
+        email = self._get_param("EmailAddress")
+        contact_list_name = self._get_param("ContactListName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_contact(email, contact_list_name, params)
         return json.dumps({})
 
     def get_contact(self) -> str:
@@ -270,20 +283,15 @@ class SESV2Response(BaseResponse):
 
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tags = self._get_param("Tags")
-        self.sesv2_backend.tag_resource(
-            resource_arn=resource_arn,
-            tags=tags,
-        )
+        tags = self._get_param("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
+        self.sesv2_backend.tag_resource(resource_arn, tags)
         return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
         tag_keys = self.__dict__["data"]["TagKeys"]
-        self.sesv2_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tag_keys,
-        )
+        self.sesv2_backend.untag_resource(resource_arn, tag_keys)
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:

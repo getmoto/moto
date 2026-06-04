@@ -94,6 +94,23 @@ Advancement:
 
     Call `boto3.client("glue").list_crawls(..)`
 
+Service: Pipes
+-----------------------------------
+
+**Model**: `pipes::pipe`   :raw-html:`<br />`
+Available States:
+
+    "CREATING" --> "RUNNING"
+    "STARTING" --> "RUNNING"
+    "STOPPING" --> "STOPPED"
+    "STOPPED" --> "STARTING"
+    "DELETING" --> "DELETED"
+
+Transition type: `manual`
+Advancement:
+
+    Call `boto3.client("pipes").describe_pipe(..)` or `boto3.client("pipes").list_pipes(..)`
+
 Service: S3 (Glacier Restoration)
 -----------------------------------
 

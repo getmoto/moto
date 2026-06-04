@@ -1,8 +1,6 @@
 import datetime
 from collections import OrderedDict
 from gzip import compress as gzip_compress
-from typing import Any
-from unittest import SkipTest, mock
 
 from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
 from freezegun import freeze_time
@@ -69,66 +67,6 @@ def test_get_params() -> None:
             }
         ],
     }
-
-
-def test_response_environment_preserved_by_type() -> None:
-    """Ensure Jinja environment is cached by response type."""
-
-    class ResponseA(BaseResponse):
-        pass
-
-    class ResponseB(BaseResponse):
-        pass
-
-    resp_a = ResponseA()
-    another_resp_a = ResponseA()
-    resp_b = ResponseB()
-
-    assert resp_a.environment is another_resp_a.environment
-    assert resp_b.environment is not resp_a.environment
-
-    source_1 = "template"
-    source_2 = "amother template"
-
-    assert not resp_a.contains_template(BaseResponse._make_template_id(source_1))
-    resp_a.response_template(source_1)
-    assert resp_a.contains_template(BaseResponse._make_template_id(source_1))
-
-    assert not resp_a.contains_template(BaseResponse._make_template_id(source_2))
-    resp_a.response_template(source_2)
-    assert resp_a.contains_template(BaseResponse._make_template_id(source_2))
-
-    assert not resp_b.contains_template(BaseResponse._make_template_id(source_1))
-    assert not resp_b.contains_template(BaseResponse._make_template_id(source_2))
-
-    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_1))
-    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_2))
-
-    resp_a_new_instance = ResponseA()
-    assert resp_a_new_instance.contains_template(
-        BaseResponse._make_template_id(source_1)
-    )
-    assert resp_a_new_instance.contains_template(
-        BaseResponse._make_template_id(source_2)
-    )
-
-
-@mock.patch(
-    "moto.core.responses.settings.PRETTIFY_RESPONSES",
-    new_callable=mock.PropertyMock(return_value=True),
-)
-def test_jinja_render_prettify(m_env_var: Any) -> None:  # type: ignore[misc]
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest(
-            "It is not possible to set the environment variable in server mode"
-        )
-    response = BaseResponse()
-    TEMPLATE = """<TestTemplate><ResponseText>Test text</ResponseText></TestTemplate>"""
-    expected_output = '<?xml version="1.0" ?>\n<TestTemplate>\n\t<ResponseText>Test text</ResponseText>\n</TestTemplate>'
-    template = response.response_template(TEMPLATE)
-    xml_string = template.render()
-    assert xml_string == expected_output
-    assert m_env_var
 
 
 def test_response_metadata() -> None:

@@ -89,8 +89,8 @@ rds
 - [ ] describe_db_parameters
 - [X] describe_db_proxies
   
-        The filters-argument is not yet supported
-        
+The filters-argument is not yet supported
+
 
 - [ ] describe_db_proxy_endpoints
 - [X] describe_db_proxy_target_groups
@@ -114,12 +114,13 @@ rds
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options
   
-        Only the Aurora-Postgresql and Neptune-engine is currently implemented
-        
+Only the Aurora-Postgresql and Neptune-engine is currently implemented
+
 
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_reserved_db_instances
 - [ ] describe_reserved_db_instances_offerings
+- [ ] describe_serverless_v2_platform_versions
 - [ ] describe_source_regions
 - [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications

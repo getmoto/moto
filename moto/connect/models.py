@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -37,8 +37,8 @@ class Instance(BaseModel):
         outbound_calls_enabled: bool,
         account_id: str,
         region: str,
-        instance_alias: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        instance_alias: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         self.id = str(uuid.uuid4())
         self.arn = f"arn:aws:connect:{region}:{account_id}:instance/{self.id}"
@@ -155,8 +155,8 @@ class ConnectBackend(BaseBackend):
         identity_management_type: str,
         inbound_calls_enabled: bool,
         outbound_calls_enabled: bool,
-        instance_alias: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        instance_alias: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """Create a new Connect instance."""
         if not identity_management_type:
@@ -194,8 +194,8 @@ class ConnectBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_instances(
         self,
-        max_results: Optional[int] = None,
-        next_token: Optional[str] = None,
+        max_results: int | None = None,
+        next_token: str | None = None,
     ) -> list[dict[str, str]]:
         sorted_instances = sorted(
             self.instances.values(),
@@ -218,7 +218,7 @@ class ConnectBackend(BaseBackend):
         self,
         instance_id: str,
         data_set_id: str,
-        target_account_id: Optional[str] = None,
+        target_account_id: str | None = None,
     ) -> dict[str, str]:
         """Associate an analytics data set with a Connect instance.
 
@@ -292,9 +292,9 @@ class ConnectBackend(BaseBackend):
     def list_analytics_data_associations(
         self,
         instance_id: str,
-        data_set_id: Optional[str] = None,
-        max_results: Optional[int] = None,
-        next_token: Optional[str] = None,
+        data_set_id: str | None = None,
+        max_results: int | None = None,
+        next_token: str | None = None,
     ) -> list[dict[str, str]]:
         """List analytics data associations for a Connect instance."""
         if not instance_id:

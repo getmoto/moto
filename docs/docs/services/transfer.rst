@@ -18,7 +18,7 @@ transfer
 
 - [ ] create_access
 - [ ] create_agreement
-- [ ] create_connector
+- [X] create_connector
 - [ ] create_profile
 - [X] create_server
 - [X] create_user
@@ -27,7 +27,7 @@ transfer
 - [ ] delete_access
 - [ ] delete_agreement
 - [ ] delete_certificate
-- [ ] delete_connector
+- [X] delete_connector
 - [ ] delete_host_key
 - [ ] delete_profile
 - [X] delete_server
@@ -39,7 +39,7 @@ transfer
 - [ ] describe_access
 - [ ] describe_agreement
 - [ ] describe_certificate
-- [ ] describe_connector
+- [X] describe_connector
 - [ ] describe_execution
 - [ ] describe_host_key
 - [ ] describe_profile
@@ -55,7 +55,7 @@ transfer
 - [ ] list_accesses
 - [ ] list_agreements
 - [ ] list_certificates
-- [ ] list_connectors
+- [X] list_connectors
 - [ ] list_executions
 - [ ] list_file_transfer_results
 - [ ] list_host_keys
@@ -80,7 +80,7 @@ transfer
 - [ ] update_access
 - [ ] update_agreement
 - [ ] update_certificate
-- [ ] update_connector
+- [X] update_connector
 - [ ] update_host_key
 - [ ] update_profile
 - [ ] update_server

@@ -1,6 +1,5 @@
 import base64
 import re
-from typing import Union
 from uuid import uuid4
 
 TMP_THREADS = []
@@ -60,7 +59,7 @@ def to_str(obj, encoding: str = "utf-8", errors="strict") -> str:
     return obj.decode(encoding, errors) if isinstance(obj, bytes) else obj
 
 
-def to_bytes(obj: Union[str, bytes], encoding: str = "utf-8", errors="strict") -> bytes:
+def to_bytes(obj: str | bytes, encoding: str = "utf-8", errors="strict") -> bytes:
     """If ``obj`` is an instance of ``text_type``, return
     ``obj.encode(encoding, errors)``, otherwise return ``obj``"""
     return obj.encode(encoding, errors) if isinstance(obj, str) else obj

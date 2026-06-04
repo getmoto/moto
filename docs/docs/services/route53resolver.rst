@@ -28,11 +28,11 @@ route53resolver
 - [ ] create_outpost_resolver
 - [X] create_resolver_endpoint
   
-        Return description for a newly created resolver endpoint.
+Return description for a newly created resolver endpoint.
 
-        NOTE:  IPv6 IPs are currently not being filtered when
-        calculating the create_resolver_endpoint() IpAddresses.
-        
+NOTE:  IPv6 IPs are currently not being filtered when
+calculating the create_resolver_endpoint() IpAddresses.
+
 
 - [X] create_resolver_query_log_config
 - [X] create_resolver_rule

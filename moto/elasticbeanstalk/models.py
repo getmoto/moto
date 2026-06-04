@@ -1,7 +1,9 @@
 import weakref
+from collections.abc import Iterator
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 
 from ..core.utils import utcnow
 from .exceptions import (
@@ -96,7 +98,9 @@ class Application(BaseModel):
         return env
 
 
-class EBBackend(BaseBackend):
+class EBBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "elasticbeanstalk"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.applications: dict[str, Application] = {}
@@ -170,6 +174,17 @@ class EBBackend(BaseBackend):
     ) -> None:
         if application_name in self.applications:
             self.applications.pop(application_name)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for app in self.applications.values():
+            for env in app.environments.values():
+                yield TaggedResource(
+                    arn=env.environment_arn,
+                    tags=dict(env.tags or {}),
+                    resource_type="elasticbeanstalk:environment",
+                    extra={"include_untagged": True},
+                )
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

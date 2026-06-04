@@ -109,7 +109,7 @@ def test_s3_server_ignore_subdomain_for_bucketnames():
 
         res = test_client.put("/mybucket", "http://foobaz.localhost:5000/")
         assert res.status_code == 200
-        assert b"mybucket" in res.data
+        assert "mybucket" in res.headers.get("Location")
 
 
 def test_s3_server_bucket_versioning():

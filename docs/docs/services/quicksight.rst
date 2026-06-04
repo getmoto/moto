@@ -88,6 +88,7 @@ quicksight
 - [ ] describe_analysis_permissions
 - [ ] describe_asset_bundle_export_job
 - [ ] describe_asset_bundle_import_job
+- [ ] describe_automation_job
 - [ ] describe_brand
 - [ ] describe_brand_assignment
 - [ ] describe_brand_published_version
@@ -181,9 +182,9 @@ quicksight
 - [ ] put_data_set_refresh_properties
 - [X] register_user
   
-        The following parameters are not yet implemented:
-        IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType, CustomFederationProviderUrl, ExternalLoginId
-        
+The following parameters are not yet implemented:
+IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType, CustomFederationProviderUrl, ExternalLoginId
+
 
 - [ ] restore_analysis
 - [ ] search_action_connectors
@@ -197,6 +198,7 @@ quicksight
 - [ ] search_topics
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
+- [ ] start_automation_job
 - [ ] start_dashboard_snapshot_job
 - [ ] start_dashboard_snapshot_job_schedule
 - [X] tag_resource

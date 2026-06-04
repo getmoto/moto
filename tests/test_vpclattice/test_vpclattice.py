@@ -244,6 +244,90 @@ def test_untag_resource():
 
 
 @mock_aws
+def test_snva_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+    resp = client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp_sn["id"],
+        vpcIdentifier="vpc-12345678",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_rule_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_svc = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+
+    resp = client.create_rule(
+        listenerIdentifier="listener-1234567890123456",
+        serviceIdentifier=resp_svc["id"],
+        name="my-rule",
+        priority=1,
+        match={
+            "httpMatch": {
+                "pathMatch": {"caseSensitive": False, "match": {"exact": "/my-path"}}
+            }
+        },
+        action={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
+def test_als_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    tags = {"tag1": "value1", "tag2": "value2"}
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+    )
+
+    resp = client.create_access_log_subscription(
+        resourceIdentifier=resp_sn["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        serviceNetworkLogType="RESOURCE",
+        tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
 def test_create_access_log_subscription():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
@@ -788,3 +872,596 @@ def test_list_access_log_subscriptions_with_arn():
         maxResults=12,
     )
     assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+    results = client.list_service_network_vpc_associations(
+        serviceNetworkIdentifier=resp["arn"],
+        maxResults=12,
+    )
+    assert len(results["items"]) == 1
+
+
+@mock_aws
+def test_list_service_network_vpc_associations_with_vpc_identifier():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(name="my-sn", authType="AWS_IAM")
+
+    # Association 1
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-12345678901234567",
+    )
+
+    # Association 2 with different VPC
+    client.create_service_network_vpc_association(
+        serviceNetworkIdentifier=resp["id"],
+        vpcIdentifier="vpc-99999999999999999",
+    )
+
+    results = client.list_service_network_vpc_associations(
+        vpcIdentifier="vpc-12345678901234567",
+        maxResults=12,
+    )
+
+    assert len(results["items"]) == 1
+    assert results["items"][0]["vpcId"] == "vpc-12345678901234567"
+
+
+# Listeners
+@mock_aws
+def test_create_listener():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    resp = client.create_listener(
+        serviceIdentifier=service_id,
+        name="my-listener",
+        protocol="HTTP",
+        port=80,
+        defaultAction={
+            "forward": {
+                "targetGroups": [
+                    {"targetGroupIdentifier": "targetgroupidentifier", "weight": 100}
+                ]
+            }
+        },
+        clientToken="token123",
+    )
+
+    assert resp["name"] == "my-listener"
+    assert resp["protocol"] == "HTTP"
+    assert resp["port"] == 80
+    assert resp["serviceId"] == service_id
+    assert resp["id"].startswith("listener-")
+    assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert "serviceArn" in resp
+
+
+@mock_aws
+def test_get_listener_by_id():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    create_resp = client.create_listener(
+        serviceIdentifier=service_id,
+        name="my-listener",
+        protocol="HTTP",
+        port=80,
+        defaultAction={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+    )
+    listener_id = create_resp["id"]
+
+    get_resp = client.get_listener(
+        serviceIdentifier=service_id,
+        listenerIdentifier=listener_id,
+    )
+
+    assert get_resp["id"] == listener_id
+    assert get_resp["name"] == "my-listener"
+    assert get_resp["protocol"] == "HTTP"
+
+
+@mock_aws
+def test_get_listener_by_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    create_resp = client.create_listener(
+        serviceIdentifier=service_id,
+        name="my-listener",
+        protocol="HTTP",
+        port=80,
+        defaultAction={
+            "forward": {
+                "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+            }
+        },
+    )
+    listener_arn = create_resp["arn"]
+    get_resp = client.get_listener(
+        serviceIdentifier=service_id,
+        listenerIdentifier=listener_arn,
+    )
+
+    assert get_resp["arn"] == listener_arn
+
+
+@mock_aws
+def test_get_nonexistent_listener():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    with pytest.raises(ClientError) as exc:
+        client.get_listener(
+            serviceIdentifier=service_id, listenerIdentifier="listener-nonexistent"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Listener listener-nonexistent not found"
+
+
+@mock_aws
+def test_list_listeners():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(name="my-service", authType="NONE")
+    service_id = service_resp["id"]
+
+    for i in range(3):
+        client.create_listener(
+            serviceIdentifier=service_id,
+            name=f"listener-{i}",
+            protocol="HTTP",
+            port=80 + i,
+            defaultAction={
+                "forward": {
+                    "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+                }
+            },
+        )
+
+    resp = client.list_listeners(serviceIdentifier=service_id)
+
+    assert len(resp["items"]) == 3
+    assert resp["items"][0]["name"] == "listener-0"
+    assert resp["items"][1]["name"] == "listener-1"
+    assert resp["items"][2]["name"] == "listener-2"
+
+
+# Target Groups
+@mock_aws
+def test_create_target_group():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    resp = client.create_target_group(
+        name="my-instance-target-group",
+        type="INSTANCE",
+        config={
+            "port": 8080,
+            "protocol": "HTTP",
+            "vpcIdentifier": "vpc-12345678",
+        },
+    )
+
+    assert resp["type"] == "INSTANCE"
+    assert resp["config"]["port"] == 8080
+
+
+@mock_aws
+def test_get_target_group_by_id():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    create_resp = client.create_target_group(
+        name="my-target-group",
+        type="IP",
+        config={
+            "port": 80,
+            "protocol": "HTTP",
+            "vpcIdentifier": "vpc-12345678",
+        },
+    )
+    tg_id = create_resp["id"]
+
+    get_resp = client.get_target_group(targetGroupIdentifier=tg_id)
+
+    assert get_resp["id"] == tg_id
+    assert get_resp["name"] == "my-target-group"
+    assert get_resp["type"] == "IP"
+
+
+@mock_aws
+def test_get_target_group_by_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    create_resp = client.create_target_group(
+        name="my-target-group",
+        type="IP",
+        config={
+            "port": 80,
+            "protocol": "HTTP",
+            "vpcIdentifier": "vpc-12345678",
+        },
+    )
+    tg_arn = create_resp["arn"]
+
+    get_resp = client.get_target_group(targetGroupIdentifier=tg_arn)
+
+    assert get_resp["arn"] == tg_arn
+
+
+@mock_aws
+def test_get_nonexistent_target_group():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_target_group(targetGroupIdentifier="nonexistent-target-group-arn")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Target group nonexistent-target-group-arn not found"
+
+
+@mock_aws
+def test_list_target_groups():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    for i in range(3):
+        client.create_target_group(
+            name=f"target-group-{i}",
+            type="IP",
+            config={
+                "port": 80 + i,
+                "protocol": "HTTP",
+                "vpcIdentifier": "vpc-12345678",
+            },
+        )
+
+    resp = client.list_target_groups()
+
+    assert len(resp["items"]) == 3
+    assert resp["items"][0]["name"] == "target-group-0"
+    assert resp["items"][1]["name"] == "target-group-1"
+    assert resp["items"][2]["name"] == "target-group-2"
+
+
+@mock_aws
+def test_list_target_groups_filter_by_vpc_and_type():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    # Create diverse target groups
+    for i in range(3):
+        client.create_target_group(
+            name=f"vpc1-ip-{i}",
+            type="IP",
+            config={
+                "port": 8000 + i,
+                "protocol": "HTTP",
+                "vpcIdentifier": "vpc-11111111",
+            },
+        )
+
+    for i in range(2):
+        client.create_target_group(
+            name=f"vpc1-instance-{i}",
+            type="INSTANCE",
+            config={
+                "port": 8000 + i,
+                "protocol": "HTTP",
+                "vpcIdentifier": "vpc-11111111",
+            },
+        )
+
+    for i in range(2):
+        client.create_target_group(
+            name=f"vpc2-ip-{i}",
+            type="IP",
+            config={
+                "port": 9000 + i,
+                "protocol": "HTTP",
+                "vpcIdentifier": "vpc-22222222",
+            },
+        )
+
+    # Filter by vpc-11111111 and IP type
+    resp = client.list_target_groups(
+        vpcIdentifier="vpc-11111111",
+        targetGroupType="IP",
+    )
+
+    assert len(resp["items"]) == 3
+    assert all(tg["type"] == "IP" for tg in resp["items"])
+    assert all(tg["vpcIdentifier"] == "vpc-11111111" for tg in resp["items"])
+
+    # Filter by vpc-11111111 and INSTANCE type
+    resp = client.list_target_groups(
+        vpcIdentifier="vpc-11111111",
+        targetGroupType="INSTANCE",
+    )
+    assert len(resp["items"]) == 2
+    assert all(tg["type"] == "INSTANCE" for tg in resp["items"])
+    assert all(tg["vpcIdentifier"] == "vpc-11111111" for tg in resp["items"])
+
+
+# Service Network Resource Associations
+@mock_aws
+def test_create_service_network_resource_association():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    resp = client.create_service_network_resource_association(
+        serviceNetworkIdentifier=sn_id,
+        resourceConfigurationIdentifier="some-resource-config-id",
+        clientToken="token123",
+    )
+
+    assert resp["id"].startswith("snra-")
+    assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert resp["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_service_network_resource_association_by_id():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    create_resp = client.create_service_network_resource_association(
+        serviceNetworkIdentifier=sn_id,
+        resourceConfigurationIdentifier="some-resource-config-id",
+    )
+    assoc_id = create_resp["id"]
+
+    get_resp = client.get_service_network_resource_association(
+        serviceNetworkResourceAssociationIdentifier=assoc_id,
+    )
+
+    assert get_resp["id"] == assoc_id
+    assert get_resp["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_service_network_resource_association_by_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    create_resp = client.create_service_network_resource_association(
+        serviceNetworkIdentifier=sn_id,
+        resourceConfigurationIdentifier="some-resource-config-id",
+    )
+    assoc_arn = create_resp["arn"]
+
+    get_resp = client.get_service_network_resource_association(
+        serviceNetworkResourceAssociationIdentifier=assoc_arn,
+    )
+
+    assert get_resp["arn"] == assoc_arn
+
+
+@mock_aws
+def test_get_nonexistent_service_network_resource_association():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_service_network_resource_association(
+            serviceNetworkResourceAssociationIdentifier="nonexistent-association-arn"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Service network resource association nonexistent-association-arn not found"
+    )
+
+
+@mock_aws
+def test_list_service_network_resource_associations():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    for _i in range(3):
+        client.create_service_network_resource_association(
+            serviceNetworkIdentifier=sn_id,
+            resourceConfigurationIdentifier="some-resource-config-id",
+        )
+
+    resp = client.list_service_network_resource_associations(
+        serviceNetworkIdentifier=sn_id,
+        resourceConfigurationIdentifier="some-resource-config-id",
+    )
+
+    assert len(resp["items"]) == 3
+
+
+# Service Network Service Associations
+@mock_aws
+def test_create_service_network_service_association():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    service_resp = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+    service_id = service_resp["id"]
+
+    resp = client.create_service_network_service_association(
+        serviceNetworkIdentifier=sn_id,
+        serviceIdentifier=service_id,
+        clientToken="token123",
+    )
+
+    assert resp["id"].startswith("snsa-")
+    assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert resp["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_service_network_service_association_by_id():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    service_resp = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+    service_id = service_resp["id"]
+
+    create_resp = client.create_service_network_service_association(
+        serviceNetworkIdentifier=sn_id,
+        serviceIdentifier=service_id,
+    )
+    assoc_id = create_resp["id"]
+
+    get_resp = client.get_service_network_service_association(
+        serviceNetworkServiceAssociationIdentifier=assoc_id,
+    )
+
+    assert get_resp["id"] == assoc_id
+    assert get_resp["status"] == "ACTIVE"
+
+
+@mock_aws
+def test_get_service_network_service_association_by_arn():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    service_resp = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+    service_id = service_resp["id"]
+
+    create_resp = client.create_service_network_service_association(
+        serviceNetworkIdentifier=sn_id,
+        serviceIdentifier=service_id,
+    )
+    assoc_arn = create_resp["arn"]
+
+    get_resp = client.get_service_network_service_association(
+        serviceNetworkServiceAssociationIdentifier=assoc_arn,
+    )
+
+    assert get_resp["arn"] == assoc_arn
+
+
+@mock_aws
+def test_get_nonexistent_service_network_service_association():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_service_network_service_association(
+            serviceNetworkServiceAssociationIdentifier="nonexistent-service-network-arn"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Service network service association nonexistent-service-network-arn not found"
+    )
+
+
+@mock_aws
+def test_list_service_network_service_associations():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    sn_resp = client.create_service_network(
+        name="my-service-network",
+        authType="NONE",
+    )
+    sn_id = sn_resp["id"]
+
+    for i in range(3):
+        service_resp = client.create_service(
+            name=f"service-{i}",
+            authType="NONE",
+        )
+        client.create_service_network_service_association(
+            serviceNetworkIdentifier=sn_id,
+            serviceIdentifier=service_resp["id"],
+        )
+
+    resp = client.list_service_network_service_associations(
+        serviceNetworkIdentifier=sn_id,
+    )
+
+    assert len(resp["items"]) == 3
+
+
+@mock_aws
+def test_list_service_network_service_associations_service_id():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    service_resp = client.create_service(
+        name="my-service",
+        authType="NONE",
+    )
+    service_id = service_resp["id"]
+
+    for i in range(3):
+        sn_resp = client.create_service_network(
+            name=f"service-network-{i}",
+            authType="NONE",
+        )
+        client.create_service_network_service_association(
+            serviceNetworkIdentifier=sn_resp["id"],
+            serviceIdentifier=service_id,
+        )
+
+    resp = client.list_service_network_service_associations(
+        serviceIdentifier=service_id,
+    )
+
+    assert len(resp["items"]) == 3

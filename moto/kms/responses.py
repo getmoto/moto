@@ -155,7 +155,8 @@ class KmsResponse(BaseResponse):
     def tag_resource(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_TagResource.html"""
         key_id = self._get_param("KeyId")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["TagKey"]: tag.get("TagValue") for tag in tags}
 
         self._validate_cmk_id(key_id)
 
@@ -165,7 +166,7 @@ class KmsResponse(BaseResponse):
     def untag_resource(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UntagResource.html"""
         key_id = self._get_param("KeyId")
-        tag_names = self._get_param("TagKeys")
+        tag_names = self._get_param("TagKeys") or []
 
         self._validate_cmk_id(key_id)
 
@@ -443,9 +444,15 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self._get_param("CiphertextBlob")
         encryption_context = self._get_param("EncryptionContext", {})
+        key_id = self._get_param("KeyId")
+
+        if key_id:
+            self._validate_key_id(key_id)
 
         plaintext, arn = self.kms_backend.decrypt(
-            ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=encryption_context,
+            key_id=key_id,
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")

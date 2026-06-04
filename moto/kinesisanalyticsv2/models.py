@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
@@ -18,12 +20,12 @@ class Application(BaseModel):
         account_id: str,
         region_name: str,
         application_name: str,
-        application_description: Optional[str],
+        application_description: str | None,
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[dict[str, Any]],
-        cloud_watch_logging_options: Optional[list[dict[str, str]]],
-        application_mode: Optional[str],
+        application_configuration: dict[str, Any] | None,
+        cloud_watch_logging_options: list[dict[str, str]] | None,
+        application_mode: str | None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -53,7 +55,7 @@ class Application(BaseModel):
         return f"arn:aws:kinesisanalytics:{self.region_name}:{self.account_id}:application/{self.application_name}"
 
     def _generate_logging_options(
-        self, cloud_watch_logging_options: Optional[list[dict[str, str]]]
+        self, cloud_watch_logging_options: list[dict[str, str]] | None
     ) -> list[dict[str, str]] | None:
         cloud_watch_logging_option_descriptions = []
         option_id = f"{str(random.randint(1, 100))}.1"
@@ -236,8 +238,10 @@ class Application(BaseModel):
         return updated_dict
 
 
-class KinesisAnalyticsV2Backend(BaseBackend):
+class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
     """Implementation of KinesisAnalyticsV2 APIs."""
+
+    SERVICE_NAMESPACE = "kinesisanalyticsv2"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -249,13 +253,13 @@ class KinesisAnalyticsV2Backend(BaseBackend):
     def create_application(
         self,
         application_name: str,
-        application_description: Optional[str],
+        application_description: str | None,
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[dict[str, Any]],
-        cloud_watch_logging_options: Optional[list[dict[str, str]]],
-        tags: Optional[list[dict[str, str]]],
-        application_mode: Optional[str],
+        application_configuration: dict[str, Any] | None,
+        cloud_watch_logging_options: list[dict[str, str]] | None,
+        tags: list[dict[str, str]] | None,
+        application_mode: str | None,
     ) -> dict[str, Any]:
         app = Application(
             account_id=self.account_id,
@@ -272,7 +276,7 @@ class KinesisAnalyticsV2Backend(BaseBackend):
         self.applications[application_name] = app
 
         if tags:
-            self.tag_resource(resource_arn=app.application_arn, tags=tags)
+            self.tagger.tag_resource(app.application_arn, tags)
         return {
             "ApplicationARN": app.application_arn,
             "ApplicationDescription": app.application_description,
@@ -292,9 +296,6 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             "ConditionalToken": app.conditional_token,
             "ApplicationMode": app.application_mode,
         }
-
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
 
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
@@ -337,6 +338,25 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             for app in self.applications.values()
         ]
         return application_summaries
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def owns_arn(self, arn: str) -> bool:
+        # ARNs use the "kinesisanalytics" namespace, not "kinesisanalyticsv2".
+        return arn.startswith(f"arn:{self.partition}:kinesisanalytics:")
+
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for app in self.applications.values():
+            yield TaggedResource(
+                arn=app.application_arn,
+                tags=self.tagger.get_tag_dict_for_resource(app.application_arn),
+                resource_type="kinesisanalyticsv2:application",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 kinesisanalyticsv2_backends = BackendDict(

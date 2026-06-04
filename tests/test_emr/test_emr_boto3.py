@@ -833,11 +833,11 @@ def test_bootstrap_actions():
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
     cl = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
-    for x, y in zip(cl["BootstrapActions"], bootstrap_actions):
+    for x, y in zip(cl["BootstrapActions"], bootstrap_actions, strict=True):
         assert x["BootstrapActionConfig"] == y
 
     resp = client.list_bootstrap_actions(ClusterId=cluster_id)
-    for x, y in zip(resp["BootstrapActions"], bootstrap_actions):
+    for x, y in zip(resp["BootstrapActions"], bootstrap_actions, strict=True):
         assert x["Name"] == y["Name"]
         if "Args" in y["ScriptBootstrapAction"]:
             assert x["Args"] == y["ScriptBootstrapAction"]["Args"]
@@ -1040,7 +1040,7 @@ def test_steps():
 
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
     assert len(jf["Steps"]) == 2
-    for idx, (x, y) in enumerate(zip(jf["Steps"], input_steps)):
+    for idx, (x, y) in enumerate(zip(jf["Steps"], input_steps, strict=True)):
         assert "CreationDateTime" in x["ExecutionStatusDetail"]
         # assert 'EndDateTime' in x['ExecutionStatusDetail']
         # assert 'LastStateChangeReason' in x['ExecutionStatusDetail']

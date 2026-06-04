@@ -35,18 +35,18 @@ servicediscovery
 - [X] list_instances
 - [X] list_namespaces
   
-        Pagination or the Filters-parameter is not yet implemented
-        
+Pagination or the Filters-parameter is not yet implemented
+
 
 - [X] list_operations
   
-        Pagination or the Filters-argument is not yet implemented
-        
+Pagination or the Filters-argument is not yet implemented
+
 
 - [X] list_services
   
-        Pagination or the Filters-argument is not yet implemented
-        
+Pagination or the Filters-argument is not yet implemented
+
 
 - [X] list_tags_for_resource
 - [X] register_instance

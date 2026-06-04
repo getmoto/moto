@@ -1,12 +1,14 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Optional
+from collections.abc import Iterator
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -31,7 +33,7 @@ class ConnectCampaign(BaseModel):
         dialer_config: dict[str, Any],
         outbound_call_config: dict[str, Any],
         region: str,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         self.id = str(uuid.uuid4())
         self.name = name
@@ -86,7 +88,7 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
         self,
         connect_instance_id: str,
         status: str = "SUCCEEDED",
-        failure_code: Optional[str] = None,
+        failure_code: str | None = None,
     ) -> None:
         self.connect_instance_id = connect_instance_id
         self.status = status
@@ -101,7 +103,9 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
         return result
 
 
-class ConnectCampaignServiceBackend(BaseBackend):
+class ConnectCampaignServiceBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "connect-campaigns"
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.campaigns: dict[str, ConnectCampaign] = {}
@@ -115,7 +119,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         connect_instance_id: str,
         dialer_config: dict[str, Any],
         outbound_call_config: dict[str, Any],
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> tuple[str, str, dict[str, str]]:
         campaign = ConnectCampaign(
             name=name,
@@ -230,9 +234,9 @@ class ConnectCampaignServiceBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_campaigns(
         self,
-        filters: Optional[dict[str, dict[str, str]]],
-        max_results: Optional[int],
-        next_token: Optional[str],
+        filters: dict[str, dict[str, str]] | None,
+        max_results: int | None,
+        next_token: str | None,
     ) -> list[dict[str, str]]:
         filtered_campaigns = list(self.campaigns.values())
 
@@ -267,6 +271,28 @@ class ConnectCampaignServiceBackend(BaseBackend):
             for campaign in filtered_campaigns
         ]
         return campaign_summary_list
+
+    def list_tags_for_resource(self, arn: str) -> dict[str, str]:
+        arn = unquote(arn)
+        campaign = None
+        for c in self.campaigns.values():
+            if c.arn == arn:
+                campaign = c
+                break
+
+        if campaign is None:
+            raise ResourceNotFoundException(f"Resource {arn} not found")
+
+        return self.tagger.get_tag_dict_for_resource(arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for campaign in self.campaigns.values():
+            yield TaggedResource(
+                arn=campaign.arn,
+                tags=self.tagger.get_tag_dict_for_resource(campaign.arn),
+                resource_type="connect-campaigns:campaign",
+            )
 
     def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         arn = unquote(arn)
@@ -304,19 +330,6 @@ class ConnectCampaignServiceBackend(BaseBackend):
             campaign.tags.pop(tag, None)
         self.tagger.untag_resource_using_names(arn, tag_keys)
         return
-
-    def list_tags_for_resource(self, arn: str) -> dict[str, str]:
-        arn = unquote(arn)
-        campaign = None
-        for c in self.campaigns.values():
-            if c.arn == arn:
-                campaign = c
-                break
-
-        if campaign is None:
-            raise ResourceNotFoundException(f"Resource {arn} not found")
-
-        return self.tagger.get_tag_dict_for_resource(arn)
 
 
 connectcampaigns_backends = BackendDict(

@@ -3,7 +3,7 @@ import os
 import os.path
 from collections.abc import Callable
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 
 try:
     from flask import Flask
@@ -44,6 +44,7 @@ UNSIGNED_ACTIONS = {
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
+    "bedrock-agentcore": "bedrock-agentcore-control",
     "eventbridge": "events",
     "execute-api": "iot",
     "iotdata": "data.iot",
@@ -66,7 +67,7 @@ class DomainDispatcherApplication:
         self.app_instances: dict[str, Flask] = {}
         self.backend_url_patterns = backend_index.backend_url_patterns
 
-    def get_backend_for_host(self, host: Optional[str]) -> Any:
+    def get_backend_for_host(self, host: str | None) -> Any:
         if host is None:
             return None
 
@@ -88,7 +89,7 @@ class DomainDispatcherApplication:
 
     def infer_service_region_host(
         self, environ: dict[str, Any], path: str
-    ) -> Optional[str]:
+    ) -> str | None:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
         service = None
@@ -127,6 +128,8 @@ class DomainDispatcherApplication:
                 service, region = UNSIGNED_ACTIONS[action]
             if not service:
                 service, region = self.get_service_from_body(body, environ)
+            if not service:
+                service, region = self.get_service_from_unsigned_path(path)
             if not service:
                 service, region = self.get_service_from_path(path)
             if not service:
@@ -211,7 +214,9 @@ class DomainDispatcherApplication:
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
-        elif path_info.startswith("/latest/meta-data/"):
+        elif path_info.startswith("/latest/meta-data/") or path_info.startswith(
+            "/latest/api/"
+        ):
             host = "instance_metadata"
         else:
             host = None
@@ -232,7 +237,7 @@ class DomainDispatcherApplication:
                 self.app_instances[backend] = app
             return app
 
-    def _get_body(self, environ: dict[str, Any]) -> Optional[str]:
+    def _get_body(self, environ: dict[str, Any]) -> str | None:
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -251,8 +256,8 @@ class DomainDispatcherApplication:
         return body
 
     def get_service_from_body(
-        self, body: Optional[str], environ: dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+        self, body: str | None, environ: dict[str, Any]
+    ) -> tuple[str | None, str | None]:
         # Some services have the SDK Version in the body
         # If the version is unique, we can derive the service from it
         version = self.get_version_from_body(body)
@@ -262,14 +267,14 @@ class DomainDispatcherApplication:
             return SERVICE_BY_VERSION[version], region
         return None, None
 
-    def get_version_from_body(self, body: Optional[str]) -> Optional[str]:
+    def get_version_from_body(self, body: str | None) -> str | None:
         try:
             body_dict = dict(x.split("=") for x in body.split("&"))  # type: ignore
             return body_dict["Version"]
         except (AttributeError, KeyError, ValueError):
             return None
 
-    def get_action_from_body(self, body: Optional[str]) -> Optional[str]:
+    def get_action_from_body(self, body: str | None) -> str | None:
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
             body_dict = dict(x.split("=") for x in body.split("&"))  # type: ignore
@@ -277,9 +282,7 @@ class DomainDispatcherApplication:
         except (AttributeError, KeyError, ValueError):
             return None
 
-    def get_service_from_path(
-        self, path_info: str
-    ) -> tuple[Optional[str], Optional[str]]:
+    def get_service_from_path(self, path_info: str) -> tuple[str | None, str | None]:
         # Moto sometimes needs to send a HTTP request to itself
         # In which case it will send a request to 'http://localhost/service_region/whatever'
         try:
@@ -287,6 +290,26 @@ class DomainDispatcherApplication:
             return service, region
         except (AttributeError, KeyError, ValueError):
             return None, None
+
+    @staticmethod
+    def get_service_from_unsigned_path(
+        path_info: str,
+    ) -> tuple[str | None, str | None]:
+        # Must run before get_service_from_path, which would misparse the user pool ID
+        # prefix (e.g., "us-east-1" from "us-east-1_abc123") as a service name.
+        #
+        # Some unsigned GET requests can be routed based on the URL path alone.
+        # For example, Cognito JWKS endpoint:
+        #   GET /{user_pool_id}/.well-known/jwks.json
+        # The user_pool_id starts with the region (e.g. us-east-1_abc123).
+        if path_info.rstrip("/").endswith("/.well-known/jwks.json"):
+            # Extract region from user pool ID (format: {region}_{id})
+            pool_id = path_info.strip("/").split("/")[0]
+            if "_" not in pool_id:
+                return "cognito-idp", "us-east-1"
+            region = pool_id.rsplit("_", 1)[0]
+            return "cognito-idp", region
+        return None, None
 
     def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:
         backend_app = self.get_application(environ)

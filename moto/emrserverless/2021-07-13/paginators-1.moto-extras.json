@@ -1,0 +1,13 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListApplications": {
+        "unique_attribute": "id"
+      },
+      "ListJobRuns": {
+        "unique_attribute": "id"
+      }
+    }
+  }
+}

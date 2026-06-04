@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..models import FakeSecret, ReplicaSecret
 
 
-def name_filter(secret: "FakeSecret", names: list[str]) -> bool:
+def name_filter(secret: FakeSecret, names: list[str]) -> bool:
     return _matcher(names, [secret.name])
 
 
-def description_filter(secret: "FakeSecret", descriptions: list[str]) -> bool:
+def description_filter(secret: FakeSecret, descriptions: list[str]) -> bool:
     if not secret.description:
         return False
     # The documentation states that this search uses `Prefix match`
@@ -21,7 +23,7 @@ def description_filter(secret: "FakeSecret", descriptions: list[str]) -> bool:
     )
 
 
-def owning_service_filter(secret: "FakeSecret", owning_services: list[str]) -> bool:
+def owning_service_filter(secret: FakeSecret, owning_services: list[str]) -> bool:
     return _matcher(
         owning_services,
         [secret.owning_service] if secret.owning_service else [],
@@ -30,21 +32,19 @@ def owning_service_filter(secret: "FakeSecret", owning_services: list[str]) -> b
     )
 
 
-def tag_key(secret: Union["FakeSecret", "ReplicaSecret"], tag_keys: list[str]) -> bool:
+def tag_key(secret: FakeSecret | ReplicaSecret, tag_keys: list[str]) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_keys, [tag["Key"] for tag in secret.tags])
 
 
-def tag_value(
-    secret: Union["FakeSecret", "ReplicaSecret"], tag_values: list[str]
-) -> bool:
+def tag_value(secret: FakeSecret | ReplicaSecret, tag_values: list[str]) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
 
 
-def filter_all(secret: Union["FakeSecret", "ReplicaSecret"], values: list[str]) -> bool:
+def filter_all(secret: FakeSecret | ReplicaSecret, values: list[str]) -> bool:
     attributes = [secret.name]
     if secret.description:
         attributes.append(secret.description)
@@ -128,7 +128,7 @@ def split_words(s: str) -> list[str]:
     return list(split_by_uppercase(s))
 
 
-def split_by_uppercase(s: Union[str, list[str]]) -> Iterator[str]:
+def split_by_uppercase(s: str | list[str]) -> Iterator[str]:
     """
     Split a string into words. Words are recognized by upper case letters, i.e.:
     test   -> [test]

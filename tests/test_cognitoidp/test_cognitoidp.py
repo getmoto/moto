@@ -19,7 +19,7 @@ from botocore.exceptions import ClientError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import cognitoidp, mock_aws, settings
+from moto import mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
@@ -27,7 +27,7 @@ from moto.utilities.utils import load_resource
 from tests import allow_aws_request
 from tests.test_cognitoidp import cognitoidp_aws_verified
 
-private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+private_key = load_resource("cognitoidp/resources/jwks-private.json")
 PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
@@ -3516,7 +3516,7 @@ def test_user_authentication_flow_mfa_optional(user_pool=None, user_pool_client=
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    public_key = load_resource(cognitoidp.__name__, "resources/jwks-public.json")
+    public_key = load_resource("cognitoidp/resources/jwks-public.json")
     json_web_key = jwk.RSAKey.import_key(public_key["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:

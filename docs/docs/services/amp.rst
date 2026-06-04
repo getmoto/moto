@@ -22,14 +22,14 @@ amp
 - [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] create_scraper
 - [X] create_workspace
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] delete_alert_manager_definition
 - [ ] delete_anomaly_detector
@@ -38,15 +38,15 @@ amp
 - [ ] delete_resource_policy
 - [X] delete_rule_groups_namespace
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] delete_scraper
 - [ ] delete_scraper_logging_configuration
 - [X] delete_workspace
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] describe_alert_manager_definition
 - [ ] describe_anomaly_detector
@@ -69,8 +69,8 @@ amp
 - [ ] put_resource_policy
 - [X] put_rule_groups_namespace
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [X] tag_resource
 - [X] untag_resource
@@ -80,8 +80,8 @@ amp
 - [ ] update_scraper_logging_configuration
 - [X] update_workspace_alias
   
-        The ClientToken-parameter is not yet implemented
-        
+The ClientToken-parameter is not yet implemented
+
 
 - [ ] update_workspace_configuration
 

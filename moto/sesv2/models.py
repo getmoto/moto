@@ -1,8 +1,11 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from typing import Any, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.paginator import paginate
 
 from ..ses.exceptions import NotFoundException
@@ -42,8 +45,10 @@ PAGINATION_MODEL = {
 
 # TODO
 # ListTagsForResource, TagResource, UntagResource to do
-class SESV2Backend(BaseBackend):
+class SESV2Backend(BaseBackend, TaggableResourcesMixin):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
+
+    SERVICE_NAMESPACE = "ses"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -55,7 +60,7 @@ class SESV2Backend(BaseBackend):
         name = params["ContactListName"]
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
-        new_list = ContactList(name, str(description), topics)
+        new_list = ContactList(name, description, topics)
 
         if params.get("Tags"):
             self.core_backend.tagger.tag_resource(
@@ -64,6 +69,14 @@ class SESV2Backend(BaseBackend):
             )
 
         self.core_backend.contacts_lists[name] = new_list
+
+    def update_contact_list(
+        self, contact_list_name: str, params: dict[str, Any]
+    ) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.description = params.get("Description")
+        contact_list.topics = [] if "Topics" not in params else params["Topics"]
+        contact_list.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
         if contact_list_name in self.core_backend.contacts_lists:
@@ -85,6 +98,13 @@ class SESV2Backend(BaseBackend):
     def create_contact(self, contact_list_name: str, params: dict[str, Any]) -> None:
         contact_list = self.get_contact_list(contact_list_name)
         contact_list.create_contact(contact_list_name, params)
+        return
+
+    def update_contact(
+        self, email: str, contact_list_name: str, params: dict[str, Any]
+    ) -> None:
+        contact_list = self.get_contact_list(contact_list_name)
+        contact_list.update_contact(email, params)
         return
 
     def get_contact(self, email: str, contact_list_name: str) -> Contact:
@@ -124,9 +144,9 @@ class SESV2Backend(BaseBackend):
     def create_email_identity(
         self,
         email_identity: str,
-        tags: Optional[list[dict[str, str]]],
-        dkim_signing_attributes: Optional[object],
-        configuration_set_name: Optional[str],
+        tags: list[dict[str, str]] | None,
+        dkim_signing_attributes: object | None,
+        configuration_set_name: str | None,
     ) -> EmailIdentity:
         if tags:
             self.core_backend.tagger.tag_resource(
@@ -256,15 +276,49 @@ class SESV2Backend(BaseBackend):
 
         return email_id.policies
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.core_backend.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.core_backend.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.core_backend.tagger.list_tags_for_resource(resource_arn)
         return tags.get("Tags", [])
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        partition = self.partition
+        sources: list[tuple[str, str, dict[str, Any]]] = [
+            (
+                "ses:configuration-set",
+                "configuration_set_name",
+                self.core_backend.config_sets,
+            ),
+            ("ses:contact-list", "contact_list_name", self.core_backend.contacts_lists),
+            (
+                "ses:dedicated-ip-pool",
+                "pool_name",
+                self.core_backend.dedicated_ip_pools,
+            ),
+            (
+                "ses:email-identity",
+                "email_identity",
+                self.core_backend.email_identities,
+            ),
+        ]
+        for resource_type, id_attr, items in sources:
+            for resource in items.values():
+                resource_id = getattr(resource, id_attr)
+                kind = resource_type.split(":", 1)[1]
+                arn = f"arn:{partition}:ses:{self.region_name}:{self.account_id}:{kind}/{resource_id}"
+                yield TaggedResource(
+                    arn=arn,
+                    tags=self.core_backend.tagger.get_tag_dict_for_resource(arn),
+                    resource_type=resource_type,
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.core_backend.tagger.tag_resource(
+            arn, self.core_backend.tagger.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.core_backend.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

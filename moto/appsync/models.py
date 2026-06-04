@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import base64
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -54,9 +57,9 @@ class APICache(BaseModel):
         ttl: int,
         api_caching_behavior: str,
         type_: str,
-        transit_encryption_enabled: Optional[bool] = None,
-        at_rest_encryption_enabled: Optional[bool] = None,
-        health_metrics_config: Optional[str] = None,
+        transit_encryption_enabled: bool | None = None,
+        at_rest_encryption_enabled: bool | None = None,
+        health_metrics_config: str | None = None,
     ):
         self.ttl = ttl
         self.api_caching_behavior = api_caching_behavior
@@ -71,7 +74,7 @@ class APICache(BaseModel):
         ttl: int,
         api_caching_behavior: str,
         type: str,
-        health_metrics_config: Optional[str] = None,
+        health_metrics_config: str | None = None,
     ) -> None:
         self.ttl = ttl
         self.api_caching_behavior = api_caching_behavior
@@ -103,10 +106,10 @@ class GraphqlSchema(BaseModel):
         self.types: list[Any] = []
 
         self.status = "PROCESSING"
-        self.parse_error: Optional[str] = None
+        self.parse_error: str | None = None
         self._parse_graphql_definition()
 
-    def get_type(self, name: str) -> Optional[dict[str, Any]]:  # type: ignore[return]
+    def get_type(self, name: str) -> dict[str, Any] | None:  # type: ignore[return]
         for graphql_type in self.types:
             if graphql_type.name.value == name:
                 return {
@@ -118,7 +121,7 @@ class GraphqlSchema(BaseModel):
                     "definition": "NotYetImplemented",
                 }
 
-    def get_status(self) -> tuple[str, Optional[str]]:
+    def get_status(self) -> tuple[str, str | None]:
         return self.status, self.parse_error
 
     def _parse_graphql_definition(self) -> None:
@@ -159,7 +162,7 @@ class GraphqlSchema(BaseModel):
 
 
 class GraphqlAPIKey(BaseModel):
-    def __init__(self, description: str, expires: Optional[int]):
+    def __init__(self, description: str, expires: int | None):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
@@ -172,7 +175,7 @@ class GraphqlAPIKey(BaseModel):
         else:
             self.expires = expires
 
-    def update(self, description: Optional[str], expires: Optional[int]) -> None:
+    def update(self, description: str | None, expires: int | None) -> None:
         if description:
             self.description = description
         if expires:
@@ -194,14 +197,14 @@ class GraphqlAPI(BaseModel):
         region: str,
         name: str,
         authentication_type: str,
-        additional_authentication_providers: Optional[list[str]],
+        additional_authentication_providers: list[str] | None,
         log_config: str,
         xray_enabled: str,
         user_pool_config: str,
         open_id_connect_config: str,
         lambda_authorizer_config: str,
         visibility: str,
-        backend: "AppSyncBackend",
+        backend: AppSyncBackend,
     ) -> None:
         self.region = region
         self.name = name
@@ -216,17 +219,17 @@ class GraphqlAPI(BaseModel):
         self.visibility = visibility or "GLOBAL"  # Default to Global if not provided
 
         self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
-        self.graphql_schema: Optional[GraphqlSchema] = None
+        self.graphql_schema: GraphqlSchema | None = None
 
         self.api_keys: dict[str, GraphqlAPIKey] = {}
 
-        self.api_cache: Optional[APICache] = None
+        self.api_cache: APICache | None = None
         self.backend = backend
 
     def update(
         self,
         name: str,
-        additional_authentication_providers: Optional[list[str]],
+        additional_authentication_providers: list[str] | None,
         authentication_type: str,
         lambda_authorizer_config: str,
         log_config: str,
@@ -253,7 +256,7 @@ class GraphqlAPI(BaseModel):
         if xray_enabled is not None:
             self.xray_enabled = xray_enabled
 
-    def create_api_key(self, description: str, expires: Optional[int]) -> GraphqlAPIKey:
+    def create_api_key(self, description: str, expires: int | None) -> GraphqlAPIKey:
         api_key = GraphqlAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
@@ -265,7 +268,7 @@ class GraphqlAPI(BaseModel):
         self.api_keys.pop(api_key_id)
 
     def update_api_key(
-        self, api_key_id: str, description: str, expires: Optional[int]
+        self, api_key_id: str, description: str, expires: int | None
     ) -> GraphqlAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
@@ -289,9 +292,9 @@ class GraphqlAPI(BaseModel):
         ttl: int,
         api_caching_behavior: str,
         type: str,
-        transit_encryption_enabled: Optional[bool] = None,
-        at_rest_encryption_enabled: Optional[bool] = None,
-        health_metrics_config: Optional[str] = None,
+        transit_encryption_enabled: bool | None = None,
+        at_rest_encryption_enabled: bool | None = None,
+        health_metrics_config: str | None = None,
     ) -> APICache:
         self.api_cache = APICache(
             ttl,
@@ -308,7 +311,7 @@ class GraphqlAPI(BaseModel):
         ttl: int,
         api_caching_behavior: str,
         type: str,
-        health_metrics_config: Optional[str] = None,
+        health_metrics_config: str | None = None,
     ) -> APICache:
         self.api_cache.update(ttl, api_caching_behavior, type, health_metrics_config)  # type: ignore[union-attr]
         return self.api_cache  # type: ignore[return-value]
@@ -339,7 +342,7 @@ class GraphqlAPI(BaseModel):
 
 # region: EventsAPI
 class EventsAPIKey(BaseModel):
-    def __init__(self, description: str, expires: Optional[int]):
+    def __init__(self, description: str, expires: int | None):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
@@ -352,7 +355,7 @@ class EventsAPIKey(BaseModel):
         else:
             self.expires = expires
 
-    def update(self, description: Optional[str], expires: Optional[int]) -> None:
+    def update(self, description: str | None, expires: int | None) -> None:
         if description:
             self.description = description
         if expires:
@@ -374,11 +377,11 @@ class ChannelNamespace(BaseModel):
         name: str,
         subscribe_auth_modes: list[dict[str, str]],
         publish_auth_modes: list[dict[str, str]],
-        code_handlers: Optional[list[dict[str, Any]]] = None,
-        handler_configs: Optional[dict[str, Any]] = None,
+        code_handlers: list[dict[str, Any]] | None = None,
+        handler_configs: dict[str, Any] | None = None,
         account_id: str = "",
         region: str = "",
-        backend: Optional["AppSyncBackend"] = None,
+        backend: AppSyncBackend | None = None,
     ) -> None:
         self.api_id = api_id
         self.name = name
@@ -424,9 +427,9 @@ class EventsAPI(BaseModel):
         account_id: str,
         region: str,
         name: str,
-        owner_contact: Optional[str],
-        event_config: Optional[dict[str, Any]],
-        backend: "AppSyncBackend",
+        owner_contact: str | None,
+        event_config: dict[str, Any] | None,
+        backend: AppSyncBackend,
     ) -> None:
         self.region = region
         self.name = name
@@ -465,7 +468,7 @@ class EventsAPI(BaseModel):
 
         return response
 
-    def create_api_key(self, description: str, expires: Optional[int]) -> EventsAPIKey:
+    def create_api_key(self, description: str, expires: int | None) -> EventsAPIKey:
         api_key = EventsAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
@@ -477,7 +480,7 @@ class EventsAPI(BaseModel):
         self.api_keys.pop(api_key_id)
 
     def update_api_key(
-        self, api_key_id: str, description: str, expires: Optional[int]
+        self, api_key_id: str, description: str, expires: int | None
     ) -> EventsAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
@@ -488,8 +491,10 @@ class EventsAPI(BaseModel):
 
 
 # region: AppSyncBackend
-class AppSyncBackend(BaseBackend):
+class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of AppSync APIs."""
+
+    SERVICE_NAMESPACE = "appsync"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -504,7 +509,7 @@ class AppSyncBackend(BaseBackend):
         authentication_type: str,
         user_pool_config: str,
         open_id_connect_config: str,
-        additional_authentication_providers: Optional[list[str]],
+        additional_authentication_providers: list[str] | None,
         xray_enabled: str,
         lambda_authorizer_config: str,
         tags: dict[str, str],
@@ -538,7 +543,7 @@ class AppSyncBackend(BaseBackend):
         authentication_type: str,
         user_pool_config: str,
         open_id_connect_config: str,
-        additional_authentication_providers: Optional[list[str]],
+        additional_authentication_providers: list[str] | None,
         xray_enabled: str,
         lambda_authorizer_config: str,
     ) -> GraphqlAPI:
@@ -579,8 +584,8 @@ class AppSyncBackend(BaseBackend):
         return self.graphql_apis.values()
 
     def create_api_key(
-        self, api_id: str, description: str, expires: Optional[int]
-    ) -> Union[GraphqlAPIKey, EventsAPIKey]:
+        self, api_id: str, description: str, expires: int | None
+    ) -> GraphqlAPIKey | EventsAPIKey:
         if api_id in self.graphql_apis:
             return self.graphql_apis[api_id].create_api_key(description, expires)
         else:
@@ -592,9 +597,7 @@ class AppSyncBackend(BaseBackend):
         else:
             self.events_apis[api_id].delete_api_key(api_key_id)
 
-    def list_api_keys(
-        self, api_id: str
-    ) -> Iterable[Union[GraphqlAPIKey, EventsAPIKey]]:
+    def list_api_keys(self, api_id: str) -> Iterable[GraphqlAPIKey | EventsAPIKey]:
         """
         Pagination or the maxResults-parameter have not yet been implemented.
         """
@@ -610,8 +613,8 @@ class AppSyncBackend(BaseBackend):
         api_id: str,
         api_key_id: str,
         description: str,
-        expires: Optional[int],
-    ) -> Union[GraphqlAPIKey, EventsAPIKey]:
+        expires: int | None,
+    ) -> GraphqlAPIKey | EventsAPIKey:
         if api_id in self.graphql_apis:
             return self.graphql_apis[api_id].update_api_key(
                 api_key_id, description, expires
@@ -627,14 +630,6 @@ class AppSyncBackend(BaseBackend):
 
     def get_schema_creation_status(self, api_id: str) -> Any:
         return self.graphql_apis[api_id].get_schema_status()
-
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        self.tagger.tag_resource(
-            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
-        )
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
@@ -664,9 +659,9 @@ class AppSyncBackend(BaseBackend):
         ttl: int,
         api_caching_behavior: str,
         type: str,
-        transit_encryption_enabled: Optional[bool] = None,
-        at_rest_encryption_enabled: Optional[bool] = None,
-        health_metrics_config: Optional[str] = None,
+        transit_encryption_enabled: bool | None = None,
+        at_rest_encryption_enabled: bool | None = None,
+        health_metrics_config: str | None = None,
     ) -> APICache:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
@@ -689,7 +684,7 @@ class AppSyncBackend(BaseBackend):
         ttl: int,
         api_caching_behavior: str,
         type: str,
-        health_metrics_config: Optional[str] = None,
+        health_metrics_config: str | None = None,
     ) -> APICache:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
@@ -711,9 +706,9 @@ class AppSyncBackend(BaseBackend):
     def create_api(
         self,
         name: str,
-        owner_contact: Optional[str],
-        tags: Optional[dict[str, str]],
-        event_config: Optional[dict[str, Any]],
+        owner_contact: str | None,
+        tags: dict[str, str] | None,
+        event_config: dict[str, Any] | None,
     ) -> EventsAPI:
         events_api = EventsAPI(
             account_id=self.account_id,
@@ -747,9 +742,9 @@ class AppSyncBackend(BaseBackend):
         name: str,
         subscribe_auth_modes: list[dict[str, str]],
         publish_auth_modes: list[dict[str, str]],
-        code_handlers: Optional[list[dict[str, Any]]] = None,
-        tags: Optional[dict[str, str]] = None,
-        handler_configs: Optional[dict[str, Any]] = None,
+        code_handlers: list[dict[str, Any]] | None = None,
+        tags: dict[str, str] | None = None,
+        handler_configs: dict[str, Any] | None = None,
     ) -> ChannelNamespace:
         # Check if API exists
         if api_id not in self.events_apis:
@@ -796,6 +791,23 @@ class AppSyncBackend(BaseBackend):
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
         return self.events_apis[api_id]
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for api in self.graphql_apis.values():
+            yield TaggedResource(
+                arn=api.arn,
+                tags=self.tagger.get_tag_dict_for_resource(api.arn),
+                resource_type="appsync:apis",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(
+            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 # endregion

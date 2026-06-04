@@ -97,7 +97,7 @@ def test_put_bucket_logging():
                 }
             },
         )
-    assert err.value.response["Error"]["Code"] == "CrossLocationLoggingProhibitted"
+    assert err.value.response["Error"]["Code"] == "CrossLocationLoggingProhibited"
 
     # Correct logging:
     s3_client.put_bucket_logging(

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_manager import (
@@ -20,7 +18,7 @@ from moto.stepfunctions.parser.backend.execution_worker import SyncExecutionWork
 
 
 class TestStateExecutionWorker(SyncExecutionWorker):
-    env: Optional[TestStateEnvironment]
+    env: TestStateEnvironment | None
 
     def _get_evaluation_entrypoint(self) -> EvalComponent:
         return TestStateAmazonStateLanguageParser.parse(

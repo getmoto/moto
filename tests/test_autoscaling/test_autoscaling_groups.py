@@ -1,6 +1,8 @@
 from unittest import TestCase
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -86,6 +88,16 @@ class TestAutoScalingGroup(TestCase):
 
         groups = self.as_client.describe_auto_scaling_groups()["AutoScalingGroups"]
         assert len(groups) == 0
+
+        with pytest.raises(ClientError) as exc:
+            self.as_client.delete_auto_scaling_group(AutoScalingGroupName="invalid")
+        err = exc.value.response["Error"]
+        assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert err["Code"] == "ValidationError"
+        assert (
+            err["Message"]
+            == "AutoScalingGroup name not found - AutoScalingGroup 'invalid' not found"
+        )
 
     def test_describe_autoscaling_groups__instances(self):
         self._create_group(name="test_asg")

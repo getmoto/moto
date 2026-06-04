@@ -67,9 +67,9 @@ elasticache
 - [ ] describe_user_groups
 - [X] describe_users
   
-        Only the `user_id` parameter is currently supported.
-        Pagination is not yet implemented.
-        
+Only the `user_id` parameter is currently supported.
+Pagination is not yet implemented.
+
 
 - [ ] disassociate_global_replication_group
 - [ ] export_serverless_cache_snapshot

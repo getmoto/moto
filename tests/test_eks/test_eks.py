@@ -1599,3 +1599,13 @@ def test_update_nodegroup_config_nodegroup_not_found(ClusterBuilder):
             labels={"addOrUpdateLabels": {"key": "value"}},
         )
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_invalid_arn_raises_exception():
+    eks = boto3.client("eks", "us-east-2")
+    with pytest.raises(ClientError, match=r"Invalid.*arn") as exc:
+        eks.create_cluster(
+            name="a", roleArn="arn:invalid:format", resourcesVpcConfig={}
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterException"

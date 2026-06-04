@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.utilities.utils import load_resource_as_str
 
 
@@ -10,7 +8,7 @@ class ReservedKeywords:
         'Invalid UpdateExpression: Syntax error; token: "1", near: "VALUE 1"'
     """
 
-    KEYWORDS: Optional[list[str]] = None
+    KEYWORDS: list[str] | None = None
 
     @classmethod
     def get_reserved_keywords(cls) -> list[str]:
@@ -23,5 +21,7 @@ class ReservedKeywords:
         """
         Get a list of reserved keywords of DynamoDB
         """
-        reserved_keywords = load_resource_as_str(__name__, "reserved_keywords.txt")
+        reserved_keywords = load_resource_as_str(
+            "dynamodb/parsing/reserved_keywords.txt"
+        )
         return reserved_keywords.split()

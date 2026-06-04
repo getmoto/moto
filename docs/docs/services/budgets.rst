@@ -33,13 +33,13 @@ budgets
 - [ ] describe_budget_performance_history
 - [X] describe_budgets
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] describe_notifications_for_budget
   
-        Pagination has not yet been implemented
-        
+Pagination has not yet been implemented
+
 
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action

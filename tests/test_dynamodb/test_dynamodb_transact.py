@@ -682,3 +682,53 @@ def test_transact_using_arns():
         TransactItems=[{"Get": {"Key": {"id": {"S": "foo"}}, "TableName": table_arn}}]
     )["Responses"]
     assert items == [{"Item": {"id": {"S": "foo"}}}]
+
+
+@mock_aws
+def test_transact_canceled_bytes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test_table_transact_bytes",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    dynamodb.put_item(
+        TableName="test_table_transact_bytes",
+        Item={
+            "pk": {"S": "test"},
+            "my_bytes": {"B": b"somebytes"},
+            "my_bytes_set": {"BS": [b"byte1", b"byte2"]},
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "TableName": "test_table_transact_bytes",
+                        "Key": {"pk": {"S": "test"}},
+                        "UpdateExpression": "SET my_str = :s",
+                        "ConditionExpression": "attribute_not_exists(pk)",
+                        "ExpressionAttributeValues": {":s": {"S": "newstr"}},
+                        "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
+                    }
+                }
+            ]
+        )
+
+    assert exc.value.response["Error"]["Code"] == "TransactionCanceledException"
+    assert "CancellationReasons" in exc.value.response
+    assert "Item" in exc.value.response["CancellationReasons"][0]
+    assert (
+        exc.value.response["CancellationReasons"][0]["Item"]["my_bytes"]["B"]
+        == b"somebytes"
+    )
+    assert exc.value.response["CancellationReasons"][0]["Item"]["my_bytes_set"][
+        "BS"
+    ] == [
+        b"byte1",
+        b"byte2",
+    ]

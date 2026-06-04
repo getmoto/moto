@@ -18,33 +18,33 @@ ebs
 
 - [X] complete_snapshot
   
-        The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
-        
+The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
+
 
 - [X] get_snapshot_block
   
-        The BlockToken-parameter is not yet implemented
-        
+The BlockToken-parameter is not yet implemented
+
 
 - [X] list_changed_blocks
   
-        The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
-        
+The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
+
 
 - [X] list_snapshot_blocks
   
-        The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
-        
+The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
+
 
 - [X] put_snapshot_block
   
-        The following parameters are currently not taken into account: DataLength, Progress.
-        The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
-        
+The following parameters are currently not taken into account: DataLength, Progress.
+The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
+
 
 - [X] start_snapshot
   
-        The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
-        
+The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
+
 
 

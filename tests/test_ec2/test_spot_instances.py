@@ -1,12 +1,11 @@
 import datetime
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core.types import Base64EncodedString
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
@@ -291,11 +290,8 @@ def test_get_all_spot_instance_requests_filtering():
 
 @mock_aws
 @pytest.mark.filterwarnings("ignore")
+@pytest.mark.requires_clean_slate
 def test_request_spot_instances_instance_lifecycle():
-    if settings.TEST_SERVER_MODE:
-        # Currently no easy way to check which instance was created by request_spot_instance
-        # And we can't just pick the first instance in ServerMode and expect it to be the right one
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     client.request_spot_instances(SpotPrice="0.5")
 

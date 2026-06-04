@@ -2,7 +2,7 @@
 
 import uuid
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -59,8 +59,8 @@ class CodeDeployDefault(str, Enum):
 class AlarmConfiguration(BaseModel):
     def __init__(
         self,
-        alarms: Optional[list[dict[str, Any]]] = None,
-        enabled: Optional[bool] = False,
+        alarms: list[dict[str, Any]] | None = None,
+        enabled: bool | None = False,
         ignore_poll_alarm_failure: bool = False,
     ):
         self.alarms = alarms or []
@@ -73,23 +73,23 @@ class DeploymentGroup(BaseModel):
         self,
         application: Application,
         deployment_group_name: str,
-        deployment_config_name: Optional[str],
-        ec2_tag_filters: Optional[list[Any]],
-        on_premises_instance_tag_filters: Optional[list[Any]],
-        auto_scaling_groups: Optional[list[str]],
+        deployment_config_name: str | None,
+        ec2_tag_filters: list[Any] | None,
+        on_premises_instance_tag_filters: list[Any] | None,
+        auto_scaling_groups: list[str] | None,
         service_role_arn: str,
-        trigger_configurations: Optional[list[Any]],
-        alarm_configuration: Optional[AlarmConfiguration],
-        auto_rollback_configuration: Optional[dict[str, Any]],
-        outdated_instances_strategy: Optional[str],
-        deployment_style: Optional[Any],
-        blue_green_deployment_configuration: Optional[Any],
-        load_balancer_info: Optional[Any],
-        ec2_tag_set: Optional[Any],
-        ecs_services: Optional[list[Any]],
-        on_premises_tag_set: Optional[Any],
-        tags: Optional[list[dict[str, str]]],
-        termination_hook_enabled: Optional[bool],
+        trigger_configurations: list[Any] | None,
+        alarm_configuration: AlarmConfiguration | None,
+        auto_rollback_configuration: dict[str, Any] | None,
+        outdated_instances_strategy: str | None,
+        deployment_style: Any | None,
+        blue_green_deployment_configuration: Any | None,
+        load_balancer_info: Any | None,
+        ec2_tag_set: Any | None,
+        ecs_services: list[Any] | None,
+        on_premises_tag_set: Any | None,
+        tags: list[dict[str, str]] | None,
+        termination_hook_enabled: bool | None,
     ):
         self.application = application
         self.deployment_group_name = deployment_group_name
@@ -148,15 +148,15 @@ class DeploymentInfo(BaseModel):
         application: Application,
         deployment_group: DeploymentGroup,
         revision: str,
-        deployment_config_name: Optional[str],
-        description: Optional[str],
-        ignore_application_stop_failures: Optional[bool],
-        targetInstances: Optional[dict[str, Any]],
-        auto_rollback_configuration: Optional[dict[str, Any]],
-        update_outdated_instances_only: Optional[bool],
-        file_exists_behavior: Optional[str],
-        override_alarm_configuration: Optional[AlarmConfiguration],
-        creator: Optional[str],
+        deployment_config_name: str | None,
+        description: str | None,
+        ignore_application_stop_failures: bool | None,
+        targetInstances: dict[str, Any] | None,
+        auto_rollback_configuration: dict[str, Any] | None,
+        update_outdated_instances_only: bool | None,
+        file_exists_behavior: str | None,
+        override_alarm_configuration: AlarmConfiguration | None,
+        creator: str | None,
     ):
         self.application = application
         self.deployment_group = deployment_group
@@ -317,14 +317,14 @@ class CodeDeployBackend(BaseBackend):
         application_name: str,
         deployment_group_name: str,
         revision: str,
-        deployment_config_name: Optional[str] = None,
-        description: Optional[str] = None,
-        ignore_application_stop_failures: Optional[bool] = None,
-        target_instances: Optional[Any] = None,
-        auto_rollback_configuration: Optional[Any] = None,
-        update_outdated_instances_only: Optional[bool] = None,
-        file_exists_behavior: Optional[str] = None,
-        override_alarm_configuration: Optional[Any] = None,
+        deployment_config_name: str | None = None,
+        description: str | None = None,
+        ignore_application_stop_failures: bool | None = None,
+        target_instances: Any | None = None,
+        auto_rollback_configuration: Any | None = None,
+        update_outdated_instances_only: bool | None = None,
+        file_exists_behavior: str | None = None,
+        override_alarm_configuration: Any | None = None,
     ) -> str:
         if application_name not in self.applications:
             raise ApplicationDoesNotExistException(
@@ -385,23 +385,23 @@ class CodeDeployBackend(BaseBackend):
         self,
         application_name: str,
         deployment_group_name: str,
-        deployment_config_name: Optional[str],
-        ec2_tag_filters: Optional[list[dict[str, str]]],
-        on_premises_instance_tag_filters: Optional[list[dict[str, str]]],
-        auto_scaling_groups: Optional[list[str]],
+        deployment_config_name: str | None,
+        ec2_tag_filters: list[dict[str, str]] | None,
+        on_premises_instance_tag_filters: list[dict[str, str]] | None,
+        auto_scaling_groups: list[str] | None,
         service_role_arn: str,
-        trigger_configurations: Optional[list[dict[str, Any]]] = None,
-        alarm_configuration: Optional[AlarmConfiguration] = None,
-        auto_rollback_configuration: Optional[dict[str, Any]] = None,
-        outdated_instances_strategy: Optional[str] = None,
-        deployment_style: Optional[dict[str, str]] = None,
-        blue_green_deployment_configuration: Optional[dict[str, Any]] = None,
-        load_balancer_info: Optional[dict[str, Any]] = None,
-        ec2_tag_set: Optional[dict[str, Any]] = None,
-        ecs_services: Optional[list[dict[str, str]]] = None,
-        on_premises_tag_set: Optional[dict[str, Any]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
-        termination_hook_enabled: Optional[bool] = None,
+        trigger_configurations: list[dict[str, Any]] | None = None,
+        alarm_configuration: AlarmConfiguration | None = None,
+        auto_rollback_configuration: dict[str, Any] | None = None,
+        outdated_instances_strategy: str | None = None,
+        deployment_style: dict[str, str] | None = None,
+        blue_green_deployment_configuration: dict[str, Any] | None = None,
+        load_balancer_info: dict[str, Any] | None = None,
+        ec2_tag_set: dict[str, Any] | None = None,
+        ecs_services: list[dict[str, str]] | None = None,
+        on_premises_tag_set: dict[str, Any] | None = None,
+        tags: list[dict[str, str]] | None = None,
+        termination_hook_enabled: bool | None = None,
     ) -> str:
         if application_name not in self.applications:
             raise ApplicationDoesNotExistException(

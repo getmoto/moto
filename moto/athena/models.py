@@ -1,10 +1,17 @@
+import re
 import time
+from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
-from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
+from moto.athena.exceptions import (
+    InvalidArgumentException,
+    MetadataException,
+    QueryStillRunning,
+)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.models import s3_backends
@@ -110,8 +117,8 @@ class Execution(ManagedState):
         query: str,
         context: str,
         config: dict[str, Any],
-        workgroup: Optional[WorkGroup],
-        execution_parameters: Optional[list[str]],
+        workgroup: WorkGroup | None,
+        execution_parameters: list[str] | None,
     ):
         ManagedState.__init__(
             self,
@@ -169,6 +176,20 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
         self.tags = tags
 
 
+class Database(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str = "",
+        parameters: dict[str, str] | None = None,
+    ):
+        self.catalog_name = catalog_name
+        self.name = database_name
+        self.description = description
+        self.parameters = parameters or {}
+
+
 class NamedQuery(BaseModel):
     def __init__(
         self,
@@ -201,14 +222,22 @@ class PreparedStatement(BaseModel):
         self.last_modified_time = datetime.now()
 
 
-class AthenaBackend(BaseBackend):
+class AthenaBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "athena"
+
     PAGINATION_MODEL = {
         "list_named_queries": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 50,
             "unique_attribute": "id",
-        }
+        },
+        "list_databases": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -222,6 +251,14 @@ class AthenaBackend(BaseBackend):
         self.query_results_queue: list[QueryResults] = []
         self.prepared_statements: dict[str, PreparedStatement] = {}
         self.tagger = TaggingService()
+        # databases keyed by (catalog_name, database_name)
+        self.databases: dict[tuple[str, str], Database] = {}
+
+        # AWS pre-creates a "default" database under AwsDataCatalog
+        self.databases[("AwsDataCatalog", "default")] = Database(
+            catalog_name="AwsDataCatalog",
+            database_name="default",
+        )
 
         # Initialise with the primary workgroup
         self.create_work_group(
@@ -240,7 +277,7 @@ class AthenaBackend(BaseBackend):
         configuration: dict[str, Any],
         description: str,
         tags: list[dict[str, str]],
-    ) -> Optional[WorkGroup]:
+    ) -> WorkGroup | None:
         if name in self.work_groups:
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
@@ -259,7 +296,7 @@ class AthenaBackend(BaseBackend):
             for wg in self.work_groups.values()
         ]
 
-    def get_work_group(self, name: str) -> Optional[dict[str, Any]]:
+    def get_work_group(self, name: str) -> dict[str, Any] | None:
         if name not in self.work_groups:
             return None
         wg = self.work_groups[name]
@@ -280,7 +317,7 @@ class AthenaBackend(BaseBackend):
         context: str,
         config: dict[str, Any],
         workgroup: str,
-        execution_parameters: Optional[list[str]],
+        execution_parameters: list[str] | None,
     ) -> str:
         execution = Execution(
             query=query,
@@ -291,9 +328,66 @@ class AthenaBackend(BaseBackend):
         )
         self.executions[execution.id] = execution
 
+        self._process_ddl(query, context)
         self._store_predefined_query_results(execution.id)
 
         return execution.id
+
+    _CREATE_DB_PATTERN = re.compile(
+        r"^\s*CREATE\s+(?:DATABASE|SCHEMA)\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`;`]+)`?\s*",
+        re.IGNORECASE,
+    )
+    _DROP_DB_PATTERN = re.compile(
+        r"^\s*DROP\s+(?:DATABASE|SCHEMA)\s+(?:IF\s+EXISTS\s+)?`?([^\s`;`]+)`?\s*",
+        re.IGNORECASE,
+    )
+
+    def _process_ddl(self, query: str, context: str | None) -> None:
+        catalog_name = "AwsDataCatalog"
+        if context and isinstance(context, dict):
+            catalog_name = context.get("Catalog", "AwsDataCatalog")
+
+        match = self._CREATE_DB_PATTERN.match(query)
+        if match:
+            db_name = match.group(1).lower()
+            key = (catalog_name, db_name)
+            if key not in self.databases:
+                self.databases[key] = Database(
+                    catalog_name=catalog_name,
+                    database_name=db_name,
+                )
+            return
+
+        match = self._DROP_DB_PATTERN.match(query)
+        if match:
+            db_name = match.group(1).lower()
+            key = (catalog_name, db_name)
+            self.databases.pop(key, None)
+            return
+
+    def get_database(self, catalog_name: str, database_name: str) -> dict[str, Any]:
+        key = (catalog_name, database_name.lower())
+        if key not in self.databases:
+            raise MetadataException(
+                f"An error occurred (EntityNotFoundException) when calling the "
+                f"GetDatabase operation: Database {database_name} not found. "
+                f"(Service: AmazonDataCatalog; Status Code: 400; "
+                f"Error Code: EntityNotFoundException)"
+            )
+        db = self.databases[key]
+        return {
+            "Name": db.name,
+            "Description": db.description,
+            "Parameters": db.parameters,
+        }
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_databases(self, catalog_name: str) -> list[Database]:
+        all_dbs = [
+            db for db in self.databases.values() if db.catalog_name == catalog_name
+        ]
+        all_dbs.sort(key=lambda d: d.name)
+        return all_dbs
 
     def _store_predefined_query_results(self, exec_id: str) -> None:
         if exec_id not in self.query_results and self.query_results_queue:
@@ -306,7 +400,7 @@ class AthenaBackend(BaseBackend):
         execution.advance()
         return execution
 
-    def list_query_executions(self, workgroup: Optional[str]) -> dict[str, Execution]:
+    def list_query_executions(self, workgroup: str | None) -> dict[str, Execution]:
         # Note: We do not advance the execution status here, only in `get_query_execution`
         # This method simply returns the QueryExecutionIds to the user
         # They will always have to call `get_query_execution` to get the status
@@ -418,7 +512,7 @@ class AthenaBackend(BaseBackend):
         self.tagger.tag_resource(cr.arn, tags)
         return None
 
-    def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
+    def get_capacity_reservation(self, name: str) -> CapacityReservation | None:
         return self.capacity_reservations.get(name)
 
     def list_capacity_reservations(self) -> list[dict[str, Any]]:
@@ -451,7 +545,7 @@ class AthenaBackend(BaseBackend):
         self.named_queries[nq.id] = nq
         return nq.id
 
-    def get_named_query(self, query_id: str) -> Optional[NamedQuery]:
+    def get_named_query(self, query_id: str) -> NamedQuery | None:
         return self.named_queries[query_id] if query_id in self.named_queries else None
 
     def list_data_catalogs(self) -> list[dict[str, str]]:
@@ -460,7 +554,7 @@ class AthenaBackend(BaseBackend):
             for dc in self.data_catalogs.values()
         ]
 
-    def get_data_catalog(self, name: str) -> Optional[dict[str, str]]:
+    def get_data_catalog(self, name: str) -> dict[str, str] | None:
         if name not in self.data_catalogs:
             return None
         dc = self.data_catalogs[name]
@@ -478,7 +572,7 @@ class AthenaBackend(BaseBackend):
         description: str,
         parameters: str,
         tags: list[dict[str, str]],
-    ) -> Optional[DataCatalog]:
+    ) -> DataCatalog | None:
         if name in self.data_catalogs:
             return None
         data_catalog = DataCatalog(
@@ -513,34 +607,43 @@ class AthenaBackend(BaseBackend):
 
     def get_prepared_statement(
         self, statement_name: str, work_group: WorkGroup
-    ) -> Optional[PreparedStatement]:
+    ) -> PreparedStatement | None:
         if statement_name in self.prepared_statements:
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
         return None
 
-    def get_query_runtime_statistics(
-        self, query_execution_id: str
-    ) -> Optional[Execution]:
+    def get_query_runtime_statistics(self, query_execution_id: str) -> Execution | None:
         if query_execution_id in self.executions:
             return self.executions[query_execution_id]
         return None
 
-    def list_tags_for_resource(self, resource_arn: str) -> Optional[dict[str, Any]]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, Any] | None:
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)
         return None
 
-    def tag_resource(
-        self, resource_arn: str, tags: list[dict[str, str]]
-    ) -> dict[str, Any]:
-        self.tagger.tag_resource(resource_arn, tags)
-        return {}
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        resource_map: dict[str, Iterable[Any]] = {
+            "athena:capacityreservation": self.capacity_reservations.values(),
+            "athena:datacatalog": self.data_catalogs.values(),
+            "athena:workgroup": self.work_groups.values(),
+        }
+        for resource_type, resources in resource_map.items():
+            for resource in resources:
+                yield TaggedResource(
+                    arn=resource.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(resource.arn),
+                    resource_type=resource_type,
+                )
 
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        return {}
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

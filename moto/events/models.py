@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import ipaddress
 import json
@@ -5,10 +7,11 @@ import re
 import sys
 import warnings
 from collections import OrderedDict
+from collections.abc import Iterator
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -16,6 +19,7 @@ from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     unix_time,
@@ -53,9 +57,7 @@ if TYPE_CHECKING:
 UNDEFINED = object()
 
 
-def get_secrets_manager_backend(
-    account_id: str, region: str
-) -> "SecretsManagerBackend":
+def get_secrets_manager_backend(account_id: str, region: str) -> SecretsManagerBackend:
     from moto.secretsmanager import secretsmanager_backends
 
     return secretsmanager_backends[account_id][region]
@@ -67,14 +69,14 @@ class Rule(CloudFormationModel):
         name: str,
         account_id: str,
         region_name: str,
-        description: Optional[str],
-        event_pattern: Optional[str],
-        schedule_exp: Optional[str],
-        role_arn: Optional[str],
+        description: str | None,
+        event_pattern: str | None,
+        schedule_exp: str | None,
+        role_arn: str | None,
         event_bus_name: str,
-        state: Optional[str],
-        managed_by: Optional[str] = None,
-        targets: Optional[list[dict[str, Any]]] = None,
+        state: str | None,
+        managed_by: str | None = None,
+        targets: list[dict[str, Any]] | None = None,
     ):
         self.name = name
         self.account_id = account_id
@@ -103,7 +105,7 @@ class Rule(CloudFormationModel):
 
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
-    def _check_target_exists(self, target_id: str) -> Optional[int]:
+    def _check_target_exists(self, target_id: str) -> int | None:
         for i in range(0, len(self.targets)):
             if target_id == self.targets[i]["Id"]:
                 return i
@@ -224,19 +226,20 @@ class Rule(CloudFormationModel):
         if archive.uuid == archive_uuid:  # type: ignore[union-attr]
             archive.events.append(event)  # type: ignore[union-attr]
 
-    def _find_api_destination(self, resource_id: str) -> "Destination":
+    def _find_api_destination(self, resource_id: str) -> Destination:
         backend: EventsBackend = events_backends[self.account_id][self.region_name]
         destination_name = resource_id.split("/")[0]
         return backend.destinations[destination_name]
 
     def _send_to_sqs_queue(
-        self, resource_id: str, event: dict[str, Any], group_id: Optional[str] = None
+        self, resource_id: str, event: dict[str, Any], group_id: str | None = None
     ) -> None:
         from moto.sqs import sqs_backends
 
-        event["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
+            )
 
         if group_id:
             queue_attr = sqs_backends[self.account_id][
@@ -286,7 +289,7 @@ class Rule(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Rule":
+    ) -> Rule:
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
 
@@ -333,7 +336,7 @@ class Rule(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "Rule":
+    ) -> Rule:
         original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, account_id, region_name
@@ -378,10 +381,10 @@ class EventBus(CloudFormationModel):
         account_id: str,
         region_name: str,
         name: str,
-        description: Optional[str] = None,
-        kms_key_identifier: Optional[str] = None,
-        dead_letter_config: Optional[dict[str, str]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        description: str | None = None,
+        kms_key_identifier: str | None = None,
+        dead_letter_config: dict[str, str] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.account_id = account_id
         self.region = region_name
@@ -400,7 +403,7 @@ class EventBus(CloudFormationModel):
         self.rules: dict[str, Rule] = OrderedDict()
 
     @property
-    def policy(self) -> Optional[str]:
+    def policy(self) -> str | None:
         if self._statements:
             policy = {
                 "Version": "2012-10-17",
@@ -451,7 +454,7 @@ class EventBus(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "EventBus":
+    ) -> EventBus:
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[account_id][region_name]
         event_name = resource_name
@@ -468,7 +471,7 @@ class EventBus(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "EventBus":
+    ) -> EventBus:
         original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, account_id, region_name
@@ -504,7 +507,7 @@ class EventBus(CloudFormationModel):
         statement_id: str,
         action: str,
         principal: dict[str, str],
-        condition: Optional[dict[str, Any]],
+        condition: dict[str, Any] | None,
     ) -> None:
         self._remove_principals_statements(principal)
         statement = EventBusPolicyStatement(
@@ -526,7 +529,7 @@ class EventBus(CloudFormationModel):
             sid = new_statement["Sid"]
             self._statements[sid] = EventBusPolicyStatement.from_dict(new_statement)
 
-    def remove_statement(self, sid: str) -> Optional["EventBusPolicyStatement"]:
+    def remove_statement(self, sid: str) -> EventBusPolicyStatement | None:
         return self._statements.pop(sid, None)
 
     def remove_statements(self) -> None:
@@ -541,7 +544,7 @@ class EventBusPolicyStatement:
         action: str,
         resource: str,
         effect: str = "Allow",
-        condition: Optional[dict[str, Any]] = None,
+        condition: dict[str, Any] | None = None,
     ):
         self.sid = sid
         self.principal = principal
@@ -564,7 +567,7 @@ class EventBusPolicyStatement:
         return statement
 
     @classmethod
-    def from_dict(cls, statement_dict: dict[str, Any]) -> "EventBusPolicyStatement":  # type: ignore[misc]
+    def from_dict(cls, statement_dict: dict[str, Any]) -> EventBusPolicyStatement:  # type: ignore[misc]
         params = {
             "sid": statement_dict["Sid"],
             "effect": statement_dict["Effect"],
@@ -614,7 +617,7 @@ class Archive(CloudFormationModel):
 
         self.events: list[EventMessageType] = []
         self.event_bus_name = source_arn.split("/")[-1]
-        self.rule: Optional[Rule] = None
+        self.rule: Rule | None = None
 
     def describe_short(self) -> dict[str, Any]:
         return {
@@ -639,9 +642,9 @@ class Archive(CloudFormationModel):
 
     def update(
         self,
-        description: Optional[str],
-        event_pattern: Optional[str],
-        retention: Optional[str],
+        description: str | None,
+        event_pattern: str | None,
+        retention: str | None,
     ) -> None:
         if description:
             self.description = description
@@ -689,7 +692,7 @@ class Archive(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Archive":
+    ) -> Archive:
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[account_id][region_name]
 
@@ -710,7 +713,7 @@ class Archive(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "Archive":
+    ) -> Archive:
         if new_resource_name == original_resource.name:
             properties = cloudformation_json["Properties"]
 
@@ -763,7 +766,7 @@ class Replay(BaseModel):
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
         self.start_time = unix_time()
-        self.end_time: Optional[float] = None
+        self.end_time: float | None = None
 
     def describe_short(self) -> dict[str, Any]:
         return {
@@ -945,7 +948,7 @@ class Destination(BaseModel):
 
 
 class EventPattern:
-    def __init__(self, raw_pattern: Optional[str], pattern: dict[str, Any]):
+    def __init__(self, raw_pattern: str | None, pattern: dict[str, Any]):
         self._raw_pattern = raw_pattern
         self._pattern = pattern
 
@@ -961,7 +964,7 @@ class EventPattern:
 
     @staticmethod
     def _flatten_dict(
-        node: Any, prefix: str = "", result: Optional[dict[str, Any]] = None
+        node: Any, prefix: str = "", result: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         if result is None:
             result = {}
@@ -1061,7 +1064,9 @@ class EventPattern:
                 if not isinstance(val, (int, float)):
                     return False
                 as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
-                operators_and_values = zip(filter_value[::2], filter_value[1::2])
+                operators_and_values = zip(
+                    filter_value[::2], filter_value[1::2], strict=False
+                )
                 numeric_matches = [
                     as_function[operator](val, value)
                     for operator, value in operators_and_values
@@ -1121,17 +1126,17 @@ class EventPattern:
         return re.fullmatch(regex, item) is not None
 
     @classmethod
-    def load(cls, raw_pattern: Optional[str]) -> "EventPattern":
+    def load(cls, raw_pattern: str | None) -> EventPattern:
         parser = EventPatternParser(raw_pattern)
         pattern = parser.parse()
         return cls(raw_pattern, pattern)
 
-    def dump(self) -> Optional[str]:
+    def dump(self) -> str | None:
         return self._raw_pattern
 
 
 class EventPatternParser:
-    def __init__(self, pattern: Optional[str]):
+    def __init__(self, pattern: str | None):
         self.pattern = pattern
 
     def _validate_event_pattern(self, pattern: dict[str, Any]) -> None:
@@ -1176,7 +1181,7 @@ class PartnerEventSource(BaseModel):
         }
 
 
-class EventsBackend(BaseBackend):
+class EventsBackend(BaseBackend, TaggableResourcesMixin):
     """
     Some Moto services are configured to generate events and send them to EventBridge. See the AWS documentation here:
     https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event.html
@@ -1191,6 +1196,8 @@ class EventsBackend(BaseBackend):
 
     Please let us know if you want support for an event/target that is not yet listed here.
     """
+
+    SERVICE_NAMESPACE = "events"
 
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
@@ -1238,14 +1245,14 @@ class EventsBackend(BaseBackend):
     def put_rule(
         self,
         name: str,
-        description: Optional[str] = None,
-        event_bus_arn: Optional[str] = None,
-        event_pattern: Optional[str] = None,
-        role_arn: Optional[str] = None,
-        scheduled_expression: Optional[str] = None,
-        state: Optional[str] = None,
-        managed_by: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        description: str | None = None,
+        event_bus_arn: str | None = None,
+        event_pattern: str | None = None,
+        role_arn: str | None = None,
+        scheduled_expression: str | None = None,
+        state: str | None = None,
+        managed_by: str | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> Rule:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
 
@@ -1290,12 +1297,12 @@ class EventsBackend(BaseBackend):
 
         return rule
 
-    def _normalize_event_bus_arn(self, event_bus_arn: Optional[str]) -> str:
+    def _normalize_event_bus_arn(self, event_bus_arn: str | None) -> str:
         if event_bus_arn is None:
             return "default"
         return event_bus_arn.split("/")[-1]
 
-    def delete_rule(self, name: str, event_bus_arn: Optional[str]) -> None:
+    def delete_rule(self, name: str, event_bus_arn: str | None) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         try:
             event_bus = self._get_event_bus(event_bus_name)
@@ -1313,7 +1320,7 @@ class EventsBackend(BaseBackend):
             self.tagger.delete_all_tags_for_resource(arn)
         event_bus.rules.pop(name)
 
-    def describe_rule(self, name: str, event_bus_arn: Optional[str]) -> Rule:
+    def describe_rule(self, name: str, event_bus_arn: str | None) -> Rule:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         rule = event_bus.rules.get(name)
@@ -1321,7 +1328,7 @@ class EventsBackend(BaseBackend):
             raise ResourceNotFoundException(f"Rule {name} does not exist.")
         return rule
 
-    def disable_rule(self, name: str, event_bus_arn: Optional[str]) -> bool:
+    def disable_rule(self, name: str, event_bus_arn: str | None) -> bool:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         if name in event_bus.rules:
@@ -1330,7 +1337,7 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    def enable_rule(self, name: str, event_bus_arn: Optional[str]) -> bool:
+    def enable_rule(self, name: str, event_bus_arn: str | None) -> bool:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         if name in event_bus.rules:
@@ -1341,7 +1348,7 @@ class EventsBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(
-        self, target_arn: str, event_bus_arn: Optional[str]
+        self, target_arn: str, event_bus_arn: str | None
     ) -> list[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1355,7 +1362,7 @@ class EventsBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(
-        self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
+        self, prefix: str | None = None, event_bus_arn: str | None = None
     ) -> list[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1375,7 +1382,7 @@ class EventsBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_targets_by_rule(  # type: ignore[misc]
-        self, rule_id: str, event_bus_arn: Optional[str]
+        self, rule_id: str, event_bus_arn: str | None
     ) -> list[dict[str, Any]]:
         # We'll let a KeyError exception be thrown for response to handle if
         # rule doesn't exist.
@@ -1385,7 +1392,7 @@ class EventsBackend(BaseBackend):
         return rule.targets
 
     def put_targets(
-        self, name: str, event_bus_arn: Optional[str], targets: list[dict[str, Any]]
+        self, name: str, event_bus_arn: str | None, targets: list[dict[str, Any]]
     ) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1509,7 +1516,7 @@ class EventsBackend(BaseBackend):
         return entries
 
     def remove_targets(
-        self, name: str, event_bus_arn: Optional[str], ids: list[str]
+        self, name: str, event_bus_arn: str | None, ids: list[str]
     ) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
@@ -1537,8 +1544,8 @@ class EventsBackend(BaseBackend):
 
     @staticmethod
     def _condition_param_to_stmt_condition(  # type: ignore[misc]
-        condition: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        condition: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         if condition:
             key = condition["Key"]
             value = condition["Value"]
@@ -1549,7 +1556,7 @@ class EventsBackend(BaseBackend):
     def _put_permission_from_params(
         self,
         event_bus: EventBus,
-        action: Optional[str],
+        action: str | None,
         principal: str,
         statement_id: str,
         condition: dict[str, str],
@@ -1612,7 +1619,7 @@ class EventsBackend(BaseBackend):
 
     def remove_permission(
         self,
-        event_bus_name: Optional[str],
+        event_bus_name: str | None,
         statement_id: str,
         remove_all_permissions: bool,
     ) -> None:
@@ -1647,11 +1654,11 @@ class EventsBackend(BaseBackend):
     def create_event_bus(
         self,
         name: str,
-        event_source_name: Optional[str] = None,
-        description: Optional[str] = None,
-        kms_key_identifier: Optional[str] = None,
-        dead_letter_config: Optional[dict[str, str]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        event_source_name: str | None = None,
+        description: str | None = None,
+        kms_key_identifier: str | None = None,
+        dead_letter_config: dict[str, str] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> EventBus:
         if name in self.event_buses:
             raise JsonRESTError(
@@ -1684,7 +1691,7 @@ class EventsBackend(BaseBackend):
 
         return self.event_buses[name]
 
-    def list_event_buses(self, name_prefix: Optional[str]) -> list[EventBus]:
+    def list_event_buses(self, name_prefix: str | None) -> list[EventBus]:
         if name_prefix:
             return [
                 event_bus
@@ -1709,28 +1716,6 @@ class EventsBackend(BaseBackend):
         for registry in rules + [self.event_buses]:
             if name in registry:
                 return self.tagger.list_tags_for_resource(registry[name].arn)
-        raise ResourceNotFoundException(
-            f"Rule {name} does not exist on EventBus default."
-        )
-
-    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
-        name = arn.split("/")[-1]
-        rules = [bus.rules for bus in self.event_buses.values()]
-        for registry in rules + [self.event_buses]:
-            if name in registry:
-                self.tagger.tag_resource(registry[name].arn, tags)
-                return
-        raise ResourceNotFoundException(
-            f"Rule {name} does not exist on EventBus default."
-        )
-
-    def untag_resource(self, arn: str, tag_names: list[str]) -> None:
-        name = arn.split("/")[-1]
-        rules = [bus.rules for bus in self.event_buses.values()]
-        for registry in rules + [self.event_buses]:
-            if name in registry:
-                self.tagger.untag_resource_using_names(registry[name].arn, tag_names)
-                return
         raise ResourceNotFoundException(
             f"Rule {name} does not exist on EventBus default."
         )
@@ -1806,9 +1791,9 @@ class EventsBackend(BaseBackend):
 
     def list_archives(
         self,
-        name_prefix: Optional[str],
-        source_arn: Optional[str],
-        state: Optional[str],
+        name_prefix: str | None,
+        source_arn: str | None,
+        state: str | None,
     ) -> list[dict[str, Any]]:
         if [name_prefix, source_arn, state].count(None) < 2:
             raise ValidationException(
@@ -2089,7 +2074,9 @@ class EventsBackend(BaseBackend):
                 f"An api-destination '{name}' does not exist."
             )
 
-    def create_partner_event_source(self, name: str, account_id: str) -> None:
+    def create_partner_event_source(
+        self, name: str, account_id: str
+    ) -> PartnerEventSource:
         # https://docs.aws.amazon.com/eventbridge/latest/onboarding/amazon_eventbridge_partner_onboarding_guide.html
         if name not in self.partner_event_sources:
             self.partner_event_sources[name] = PartnerEventSource(
@@ -2098,6 +2085,7 @@ class EventsBackend(BaseBackend):
         self.partner_event_sources[name].accounts.append(account_id)
         client_backend = events_backends[account_id][self.region_name]
         client_backend.event_sources[name] = self.partner_event_sources[name]
+        return self.partner_event_sources[name]
 
     def describe_event_source(self, name: str) -> PartnerEventSource:
         return self.event_sources[name]
@@ -2119,6 +2107,39 @@ class EventsBackend(BaseBackend):
             source = entry["Source"]
             for account_id in self.partner_event_sources[source].accounts:
                 events_backends[account_id][self.region_name].put_events([entry])
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for bus in self.event_buses.values():
+            yield TaggedResource(
+                arn=bus.arn,
+                tags=self.tagger.get_tag_dict_for_resource(bus.arn),
+                resource_type="events:event-bus",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        name = arn.split("/")[-1]
+        rules = [bus.rules for bus in self.event_buses.values()]
+        for registry in rules + [self.event_buses]:
+            if name in registry:
+                self.tagger.tag_resource(
+                    registry[name].arn, self.tagger.convert_dict_to_tags_input(tags)
+                )
+                return
+        raise ResourceNotFoundException(
+            f"Rule {name} does not exist on EventBus default."
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        name = arn.split("/")[-1]
+        rules = [bus.rules for bus in self.event_buses.values()]
+        for registry in rules + [self.event_buses]:
+            if name in registry:
+                self.tagger.untag_resource_using_names(registry[name].arn, tag_keys)
+                return
+        raise ResourceNotFoundException(
+            f"Rule {name} does not exist on EventBus default."
+        )
 
 
 events_backends = BackendDict(EventsBackend, "events")

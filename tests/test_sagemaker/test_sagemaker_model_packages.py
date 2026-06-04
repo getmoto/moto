@@ -472,7 +472,7 @@ def test_utils_validate_model_approval_status_should_raise_error_if_model_approv
     model_approval_status = "IncorrectStatus"
     with pytest.raises(ValidationError) as exc:
         validate_model_approval_status(model_approval_status)
-    assert exc.value.code == 400
+    assert exc.value.code == "ValidationException"
     assert (
         exc.value.message
         == "Value 'IncorrectStatus' at 'modelApprovalStatus' failed to satisfy constraint: Member must satisfy enum value set: [PendingManualApproval, Approved, Rejected]"

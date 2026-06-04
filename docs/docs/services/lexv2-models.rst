@@ -35,6 +35,7 @@ lexv2-models
 - [ ] create_upload_url
 - [X] delete_bot
 - [X] delete_bot_alias
+- [ ] delete_bot_analyzer_recommendation
 - [ ] delete_bot_locale
 - [ ] delete_bot_replica
 - [ ] delete_bot_version
@@ -50,6 +51,7 @@ lexv2-models
 - [ ] delete_utterances
 - [X] describe_bot
 - [X] describe_bot_alias
+- [ ] describe_bot_analyzer_recommendation
 - [ ] describe_bot_locale
 - [ ] describe_bot_recommendation
 - [ ] describe_bot_replica
@@ -71,6 +73,7 @@ lexv2-models
 - [ ] list_aggregated_utterances
 - [ ] list_bot_alias_replicas
 - [X] list_bot_aliases
+- [ ] list_bot_analyzer_history
 - [ ] list_bot_locales
 - [ ] list_bot_recommendations
 - [ ] list_bot_replicas
@@ -100,11 +103,13 @@ lexv2-models
 - [ ] list_utterance_analytics_data
 - [ ] list_utterance_metrics
 - [ ] search_associated_transcripts
+- [ ] start_bot_analyzer
 - [ ] start_bot_recommendation
 - [ ] start_bot_resource_generation
 - [ ] start_import
 - [ ] start_test_execution
 - [ ] start_test_set_generation
+- [ ] stop_bot_analyzer
 - [ ] stop_bot_recommendation
 - [X] tag_resource
 - [X] untag_resource

@@ -23,8 +23,8 @@ medialive
 - [ ] claim_device
 - [X] create_channel
   
-        The RequestID and Reserved parameters are not yet implemented
-        
+The RequestID and Reserved parameters are not yet implemented
+
 
 - [ ] create_channel_placement_group
 - [ ] create_cloud_watch_alarm_template
@@ -34,8 +34,8 @@ medialive
 - [ ] create_event_bridge_rule_template_group
 - [X] create_input
   
-        The VPC and RequestId parameters are not yet implemented
-        
+The VPC and RequestId parameters are not yet implemented
+
 
 - [ ] create_input_security_group
 - [ ] create_multiplex

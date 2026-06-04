@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import re
@@ -11,8 +13,6 @@ from re import Pattern
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
 )
 
 from cryptography import x509
@@ -51,11 +51,11 @@ class FakeThing(CloudFormationModel):
     def __init__(
         self,
         thing_name: str,
-        thing_type: Optional["FakeThingType"],
+        thing_type: FakeThingType | None,
         attributes: dict[str, Any],
         account_id: str,
         region_name: str,
-        billing_group_name: Optional[str] = None,
+        billing_group_name: str | None = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -69,7 +69,7 @@ class FakeThing(CloudFormationModel):
         # TODO: we need to handle "version"?
 
         # for iot-data
-        self.thing_shadows: dict[Optional[str], FakeShadow] = {}
+        self.thing_shadows: dict[str | None, FakeShadow] = {}
 
     def _matches_single_query(self, query_string: str) -> bool:
         if query_string == "*":
@@ -282,7 +282,7 @@ class FakeThing(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeThing":
+    ) -> FakeThing:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -302,12 +302,12 @@ class FakeThing(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakeThing",
+        original_resource: FakeThing,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeThing":
+    ) -> FakeThing:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         thing_name = properties.get("ThingName", new_resource_name)
@@ -350,7 +350,7 @@ class FakeThingType(CloudFormationModel):
     def __init__(
         self,
         thing_type_name: str,
-        thing_type_properties: Optional[dict[str, Any]],
+        thing_type_properties: dict[str, Any] | None,
         account_id: str,
         region_name: str,
     ):
@@ -406,7 +406,7 @@ class FakeThingType(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeThingType":
+    ) -> FakeThingType:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -421,12 +421,12 @@ class FakeThingType(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakeThingType",
+        original_resource: FakeThingType,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeThingType":
+    ) -> FakeThingType:
         iot_backend = iot_backends[account_id][region_name]
 
         iot_backend.delete_thing_type(thing_type_name=original_resource.thing_type_name)
@@ -457,7 +457,7 @@ class FakeThingGroup(BaseModel):
         thing_group_properties: dict[str, str],
         account_id: str,
         region_name: str,
-        thing_groups: dict[str, "FakeThingGroup"],
+        thing_groups: dict[str, FakeThingGroup],
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -510,7 +510,7 @@ class FakeBillingGroup(CloudFormationModel):
     def __init__(
         self,
         billing_group_name: str,
-        billing_group_properties: Optional[dict[str, Any]],
+        billing_group_properties: dict[str, Any] | None,
         account_id: str,
         region_name: str,
     ):
@@ -575,7 +575,7 @@ class FakeBillingGroup(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeBillingGroup":
+    ) -> FakeBillingGroup:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json.get("Properties", {})
         billing_group_name = properties.get("BillingGroupName", resource_name)
@@ -589,12 +589,12 @@ class FakeBillingGroup(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakeBillingGroup",
+        original_resource: FakeBillingGroup,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeBillingGroup":
+    ) -> FakeBillingGroup:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json.get("Properties", {})
         billing_group_name = properties.get("BillingGroupName", new_resource_name)
@@ -634,7 +634,7 @@ class FakeCertificate(BaseModel):
         status: str,
         account_id: str,
         region_name: str,
-        ca_certificate_id: Optional[str] = None,
+        ca_certificate_id: str | None = None,
     ):
         self.certificate_id = self.compute_cert_id(certificate_pem)
         self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
@@ -795,7 +795,7 @@ class FakePolicy(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakePolicy":
+    ) -> FakePolicy:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -809,12 +809,12 @@ class FakePolicy(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakePolicy",
+        original_resource: FakePolicy,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakePolicy":
+    ) -> FakePolicy:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         new_policy_name = properties.get("PolicyName", new_resource_name)
@@ -941,8 +941,8 @@ class FakeJob(BaseModel):
         self.scheduling_config = scheduling_config
         self.timeout_config = timeout_config
         self.status = "QUEUED"  # IN_PROGRESS | CANCELED | COMPLETED
-        self.comment: Optional[str] = None
-        self.reason_code: Optional[str] = None
+        self.comment: str | None = None
+        self.reason_code: str | None = None
         self.created_at = utcnow()
         self.last_updated_at = utcnow()
         self.completed_at = None
@@ -995,7 +995,7 @@ class FakeJobExecution(BaseModel):
         thing_arn: str,
         status: str = "QUEUED",
         force_canceled: bool = False,
-        status_details_map: Optional[dict[str, Any]] = None,
+        status_details_map: dict[str, Any] | None = None,
     ):
         self.job_id = job_id
         self.status = status  # IN_PROGRESS | CANCELED | COMPLETED
@@ -1073,7 +1073,7 @@ class FakeJobTemplate(CloudFormationModel):
         self.timeout_config = timeout_config
         self.created_at = utcnow()
 
-    def to_dict(self) -> dict[str, Union[str, datetime]]:
+    def to_dict(self) -> dict[str, str | datetime]:
         return {
             "jobTemplateArn": self.job_template_arn,
             "jobTemplateId": self.job_template_id,
@@ -1116,7 +1116,7 @@ class FakeJobTemplate(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeJobTemplate":
+    ) -> FakeJobTemplate:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -1141,12 +1141,12 @@ class FakeJobTemplate(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakeJobTemplate",
+        original_resource: FakeJobTemplate,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeJobTemplate":
+    ) -> FakeJobTemplate:
         iot_backend = iot_backends[account_id][region_name]
         iot_backend.delete_job_template(
             job_template_id=original_resource.job_template_id
@@ -1215,7 +1215,7 @@ class FakeRule(BaseModel):
         description: str,
         created_at: datetime,
         rule_disabled: bool,
-        topic_pattern: Optional[str],
+        topic_pattern: str | None,
         actions: list[dict[str, Any]],
         error_action: dict[str, Any],
         sql: str,
@@ -1271,7 +1271,7 @@ class FakeDomainConfiguration(BaseModel):
         server_certificate_arns: list[str],
         domain_configuration_status: str,
         service_type: str,
-        authorizer_config: Optional[dict[str, Any]],
+        authorizer_config: dict[str, Any] | None,
         domain_type: str,
     ):
         if service_type and service_type not in ["DATA", "CREDENTIAL_PROVIDER", "JOBS"]:
@@ -1372,7 +1372,7 @@ class FakeRoleAlias(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeRoleAlias":
+    ) -> FakeRoleAlias:
         iot_backend = iot_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -1389,12 +1389,12 @@ class FakeRoleAlias(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "FakeRoleAlias",
+        original_resource: FakeRoleAlias,
         new_resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeRoleAlias":
+    ) -> FakeRoleAlias:
         iot_backend = iot_backends[account_id][region_name]
         iot_backend.delete_role_alias(role_alias_name=original_resource.role_alias)
         return cls.create_from_cloudformation_json(
@@ -1514,7 +1514,7 @@ class IoTBackend(BaseBackend):
         )
         self.rules: dict[str, FakeRule] = OrderedDict()
         self.role_aliases: dict[str, FakeRoleAlias] = OrderedDict()
-        self.endpoint: Optional[FakeEndpoint] = None
+        self.endpoint: FakeEndpoint | None = None
         self.domain_configurations: dict[str, FakeDomainConfiguration] = OrderedDict()
         self.indexing_configuration = FakeIndexingConfiguration(region_name, account_id)
 
@@ -1549,7 +1549,7 @@ class IoTBackend(BaseBackend):
         self,
         domain_name: str,
         subject: x509.Name,
-        key: Optional[rsa.RSAPrivateKey] = None,
+        key: rsa.RSAPrivateKey | None = None,
     ) -> str:
         sans = [x509.DNSName(domain_name)]
 
@@ -1584,8 +1584,8 @@ class IoTBackend(BaseBackend):
         self,
         thing_name: str,
         thing_type_name: str,
-        attribute_payload: Optional[dict[str, Any]],
-        billing_group_name: Optional[str] = None,
+        attribute_payload: dict[str, Any] | None,
+        billing_group_name: str | None = None,
     ) -> FakeThing:
         thing_types = self.list_thing_types()
         thing_type = None
@@ -1635,7 +1635,7 @@ class IoTBackend(BaseBackend):
         return thing_type.thing_type_name, thing_type.arn
 
     def list_thing_types(
-        self, thing_type_name: Optional[str] = None
+        self, thing_type_name: str | None = None
     ) -> Iterable[FakeThingType]:
         if thing_type_name:
             # It's weird but thing_type_name is filtered by forward match, not complete match
@@ -1745,7 +1745,7 @@ class IoTBackend(BaseBackend):
         self,
         thing_name: str,
         thing_type_name: str,
-        attribute_payload: Optional[dict[str, Any]],
+        attribute_payload: dict[str, Any] | None,
         remove_thing_type: bool,
     ) -> None:
         """
@@ -1922,7 +1922,7 @@ class IoTBackend(BaseBackend):
         self.ca_certificates[certificate.certificate_id] = certificate
         return certificate
 
-    def _find_ca_certificate(self, ca_certificate_pem: Optional[str]) -> Optional[str]:
+    def _find_ca_certificate(self, ca_certificate_pem: str | None) -> str | None:
         for ca_cert in self.ca_certificates.values():
             if ca_cert.certificate_pem == ca_certificate_pem:
                 return ca_cert.certificate_id
@@ -1931,7 +1931,7 @@ class IoTBackend(BaseBackend):
     def register_certificate(
         self,
         certificate_pem: str,
-        ca_certificate_pem: Optional[str],
+        ca_certificate_pem: str | None,
         set_as_active: bool,
         status: str,
     ) -> FakeCertificate:
@@ -1966,8 +1966,8 @@ class IoTBackend(BaseBackend):
     def update_ca_certificate(
         self,
         certificate_id: str,
-        new_status: Optional[str],
-        config: Optional[dict[str, str]],
+        new_status: str | None,
+        config: dict[str, str] | None,
     ) -> None:
         """
         The newAutoRegistrationStatus and removeAutoRegistration-parameters are not yet implemented
@@ -2300,9 +2300,9 @@ class IoTBackend(BaseBackend):
 
     def list_thing_groups(
         self,
-        parent_group: Optional[str],
-        name_prefix_filter: Optional[str],
-        recursive: Optional[bool],
+        parent_group: str | None,
+        name_prefix_filter: str | None,
+        recursive: bool | None,
     ) -> list[FakeThingGroup]:
         if recursive is None:
             recursive = True
@@ -2364,7 +2364,7 @@ class IoTBackend(BaseBackend):
         return thing_group.version
 
     def _identify_thing_group(
-        self, thing_group_name: Optional[str], thing_group_arn: Optional[str]
+        self, thing_group_name: str | None, thing_group_arn: str | None
     ) -> FakeThingGroup:
         # identify thing group
         if thing_group_name is None and thing_group_arn is None:
@@ -2384,7 +2384,7 @@ class IoTBackend(BaseBackend):
         return thing_group
 
     def _identify_thing(
-        self, thing_name: Optional[str], thing_arn: Optional[str]
+        self, thing_name: str | None, thing_arn: str | None
     ) -> FakeThing:
         # identify thing
         if thing_name is None and thing_arn is None:
@@ -2406,9 +2406,9 @@ class IoTBackend(BaseBackend):
     def add_thing_to_thing_group(
         self,
         thing_group_name: str,
-        thing_group_arn: Optional[str],
+        thing_group_arn: str | None,
         thing_name: str,
-        thing_arn: Optional[str],
+        thing_arn: str | None,
     ) -> None:
         thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
         thing = self._identify_thing(thing_name, thing_arn)
@@ -2420,9 +2420,9 @@ class IoTBackend(BaseBackend):
     def remove_thing_from_thing_group(
         self,
         thing_group_name: str,
-        thing_group_arn: Optional[str],
+        thing_group_arn: str | None,
         thing_name: str,
-        thing_arn: Optional[str],
+        thing_arn: str | None,
     ) -> None:
         thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
         thing = self._identify_thing(thing_name, thing_arn)
@@ -2625,7 +2625,7 @@ class IoTBackend(BaseBackend):
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(
-        self, thing_name: str, status: Optional[str]
+        self, thing_name: str, status: str | None
     ) -> list[FakeJobExecution]:
         return [
             job_exec
@@ -2734,7 +2734,7 @@ class IoTBackend(BaseBackend):
         domain_configuration_name: str,
         authorizer_config: dict[str, Any],
         domain_configuration_status: str,
-        remove_authorizer_config: Optional[bool],
+        remove_authorizer_config: bool | None,
     ) -> FakeDomainConfiguration:
         if domain_configuration_name not in self.domain_configurations:
             raise ResourceNotFoundException("The specified resource does not exist.")
@@ -2802,8 +2802,8 @@ class IoTBackend(BaseBackend):
     def update_role_alias(
         self,
         role_alias_name: str,
-        role_arn: Optional[str] = None,
-        credential_duration_seconds: Optional[int] = None,
+        role_arn: str | None = None,
+        credential_duration_seconds: int | None = None,
     ) -> FakeRoleAlias:
         role_alias = self.describe_role_alias(role_alias_name=role_alias_name)
         if role_arn:
@@ -2839,7 +2839,7 @@ class IoTBackend(BaseBackend):
         abort_config: dict[str, list[dict[str, Any]]],
         job_execution_retry_config: dict[str, Any],
         timeout_config: dict[str, Any],
-    ) -> "FakeJobTemplate":
+    ) -> FakeJobTemplate:
         if job_template_id in self.jobs_templates:
             raise ConflictException(job_template_id)
 
@@ -2860,7 +2860,7 @@ class IoTBackend(BaseBackend):
         return job_template
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_templates(self) -> list[dict[str, Union[str, datetime]]]:
+    def list_job_templates(self) -> list[dict[str, str | datetime]]:
         return [_.to_dict() for _ in self.jobs_templates.values()]
 
     def delete_job_template(self, job_template_id: str) -> None:
@@ -2876,7 +2876,7 @@ class IoTBackend(BaseBackend):
     def create_billing_group(
         self,
         billing_group_name: str,
-        billing_group_properties: Optional[dict[str, Any]],
+        billing_group_properties: dict[str, Any] | None,
     ) -> FakeBillingGroup:
         if billing_group_name in self.billing_groups:
             raise ResourceAlreadyExistsException(
@@ -2905,7 +2905,7 @@ class IoTBackend(BaseBackend):
 
     @paginate(PAGINATION_MODEL)
     def list_billing_groups(
-        self, name_prefix_filter: Optional[str] = None
+        self, name_prefix_filter: str | None = None
     ) -> list[dict[str, str]]:
         if name_prefix_filter:
             result = [
@@ -2931,10 +2931,10 @@ class IoTBackend(BaseBackend):
 
     def add_thing_to_billing_group(
         self,
-        billing_group_name: Optional[str] = None,
-        billing_group_arn: Optional[str] = None,
-        thing_name: Optional[str] = None,
-        thing_arn: Optional[str] = None,
+        billing_group_name: str | None = None,
+        billing_group_arn: str | None = None,
+        thing_name: str | None = None,
+        thing_arn: str | None = None,
     ) -> None:
         if billing_group_name:
             billing_group = self.describe_billing_group(billing_group_name)
@@ -2960,10 +2960,10 @@ class IoTBackend(BaseBackend):
 
     def remove_thing_from_billing_group(
         self,
-        billing_group_name: Optional[str] = None,
-        billing_group_arn: Optional[str] = None,
-        thing_name: Optional[str] = None,
-        thing_arn: Optional[str] = None,
+        billing_group_name: str | None = None,
+        billing_group_arn: str | None = None,
+        thing_name: str | None = None,
+        thing_arn: str | None = None,
     ) -> None:
         if billing_group_name:
             billing_group = self.describe_billing_group(billing_group_name)

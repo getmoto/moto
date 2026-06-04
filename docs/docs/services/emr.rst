@@ -49,8 +49,8 @@ emr
 - [ ] list_notebook_executions
 - [X] list_release_labels
   
-        Pagination and Filtering is not yet implemented
-        
+Pagination and Filtering is not yet implemented
+
 
 - [ ] list_security_configurations
 - [X] list_steps
@@ -58,8 +58,8 @@ emr
 - [ ] list_studios
 - [X] list_supported_instance_types
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] modify_cluster
 - [ ] modify_instance_fleet

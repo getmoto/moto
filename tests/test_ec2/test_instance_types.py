@@ -37,7 +37,7 @@ def test_describe_instance_types_filter_by_type():
 def test_describe_instance_types_gpu_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
-        InstanceTypes=["p3.2xlarge", "g4ad.8xlarge"]
+        InstanceTypes=["p3dn.24xlarge", "g4ad.8xlarge"]
     )
 
     assert len(instance_types["InstanceTypes"]) == 2
@@ -70,21 +70,21 @@ def test_describe_instance_types_gpu_instance_types():
             ],
             "TotalGpuMemoryInMiB": 16384,
         },
-        "p3.2xlarge": {
+        "p3dn.24xlarge": {
             "Gpus": [
                 {
-                    "Count": 1,
+                    "Count": 8,
                     "GpuPartitionSize": 1.0,
-                    "LogicalGpuCount": 1,
+                    "LogicalGpuCount": 8,
                     "Manufacturer": "NVIDIA",
-                    "MemoryInfo": {"SizeInMiB": 16384},
+                    "MemoryInfo": {"SizeInMiB": 32768},
                     "Name": "V100",
                     "Workloads": [
                         "ml-ai",
                     ],
                 }
             ],
-            "TotalGpuMemoryInMiB": 16384,
+            "TotalGpuMemoryInMiB": 262144,
         },
     }
 

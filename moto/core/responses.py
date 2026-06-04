@@ -10,16 +10,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     Any,
-    Optional,
     TypeVar,
-    Union,
     cast,
 )
 from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
-from xml.dom.minidom import parseString as parseXML
 
 import boto3
-from jinja2 import DictLoader, Environment, Template
+from botocore.model import OperationNotFoundError
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import http_date
 
@@ -51,8 +48,6 @@ from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
-
-JINJA_ENVS: dict[type, Environment] = {}
 
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
@@ -118,67 +113,6 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
         method_urls[_method][uri_regexp] = op_model.name
 
     return method_urls
-
-
-class DynamicDictLoader(DictLoader):
-    def update(self, mapping: dict[str, str]) -> None:
-        self.mapping.update(mapping)  # type: ignore[attr-defined]
-
-    def contains(self, template: str) -> bool:
-        return bool(template in self.mapping)
-
-
-class _TemplateEnvironmentMixin:
-    LEFT_PATTERN = re.compile(r"[\s\n]+<")
-    RIGHT_PATTERN = re.compile(r">[\s\n]+")
-
-    @property
-    def should_autoescape(self) -> bool:
-        # Allow for subclass to overwrite
-        return False
-
-    @property
-    def environment(self) -> Environment:
-        key = type(self)
-        try:
-            environment = JINJA_ENVS[key]
-        except KeyError:
-            loader = DynamicDictLoader({})
-            environment = Environment(
-                loader=loader,
-                autoescape=self.should_autoescape,
-                trim_blocks=True,
-                lstrip_blocks=True,
-            )
-            JINJA_ENVS[key] = environment
-
-        return environment
-
-    def contains_template(self, template_id: str) -> bool:
-        return self.environment.loader.contains(template_id)  # type: ignore[union-attr]
-
-    @classmethod
-    def _make_template_id(cls, source: str) -> str:
-        """
-        Return a numeric string that's unique for the lifetime of the source.
-
-        Jinja2 expects to template IDs to be strings.
-        """
-        return str(id(source))
-
-    def response_template(self, source: str) -> Template:
-        template_id = self._make_template_id(source)
-        if not self.contains_template(template_id):
-            if settings.PRETTIFY_RESPONSES:
-                # pretty xml
-                xml = parseXML(source).toprettyxml()
-            else:
-                # collapsed xml
-                xml = re.sub(
-                    self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
-                )
-            self.environment.loader.update({template_id: xml})  # type: ignore[union-attr]
-        return self.environment.get_template(template_id)
 
 
 @dataclass
@@ -251,7 +185,7 @@ class EmptyResult(ActionResult):
         super().__init__(None)
 
 
-class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
+class BaseResponse(ActionAuthenticatorMixin):
     PROTOCOL_PARSER_MAP_TYPE: Any = dict
     RESPONSE_KEY_PATH_TO_TRANSFORMER: dict[str, Callable[[Any], Any]] = {}
 
@@ -266,7 +200,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
 
-    def __init__(self, service_name: Optional[str] = None):
+    def __init__(self, service_name: str | None = None):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
@@ -381,7 +315,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.partition = get_partition(self.region)
-        self.uri_match: Optional[re.Match[str]] = None
+        self.uri_match: re.Match[str] | None = None
 
         self.headers = request.headers
         if "host" not in self.headers:
@@ -565,7 +499,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.boto3_service_name)
-        operation_model = service_model.operation_model(self._get_action())
+        try:
+            operation_model = service_model.operation_model(self._get_action())
+        except OperationNotFoundError:
+            assert isinstance(action_result.result, Exception)
+            operation_model = OperationModel({}, service_model)
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
         context = ActionContext(service_model, operation_model, serializer_cls, self)
@@ -601,7 +539,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 se_headers["status"] = se_status
                 response = se_body, se_headers  # type: ignore[assignment]
             except HTTPException as http_error:
-                response_headers: dict[str, Union[str, int]] = dict(
+                response_headers: dict[str, str | int] = dict(
                     http_error.get_headers() or []
                 )
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
@@ -681,7 +619,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[int, TYPE_IF_NONE]:
+    ) -> int | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
@@ -691,7 +629,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[float, TYPE_IF_NONE]:
+    ) -> float | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             return float(val)
@@ -701,7 +639,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self,
         param_name: str,
         if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
-    ) -> Union[bool, TYPE_IF_NONE]:
+    ) -> bool | TYPE_IF_NONE:
         val = self._get_param(param_name)
         if val is not None:
             val = str(val)

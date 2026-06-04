@@ -139,6 +139,14 @@ def test_checksum_crc32c():
         assert compute_checksum(b"somedata", "CRC32C") == b"Uwy90A=="
 
 
+def test_checksum_crc64nvme():
+    try:
+        assert compute_checksum(b"somedata", "CRC64NVME") == b"1n4hOQfCfC0="
+    except:  # noqa: E722 Do not use bare except
+        # Optional library Can't be found - just revert to CRC32
+        assert compute_checksum(b"somedata", "CRC64NVME") == b"Uwy90A=="
+
+
 def test_cors_utils():
     "Fancy string matching"
     assert cors_matches_origin("a", ["a"])

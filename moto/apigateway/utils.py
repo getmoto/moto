@@ -1,6 +1,6 @@
 import json
 import string
-from typing import Any, Union
+from typing import Any
 
 import yaml
 
@@ -14,9 +14,7 @@ class ApigwIdentifier(ResourceIdentifier):
     def __init__(self, account_id: str, region: str, name: str):
         super().__init__(account_id, region, name)
 
-    def generate(
-        self, existing_ids: Union[list[str], None] = None, tags: Tags = None
-    ) -> str:
+    def generate(self, existing_ids: list[str] | None = None, tags: Tags = None) -> str:
         return generate_str_id(
             resource_identifier=self,
             existing_ids=existing_ids,

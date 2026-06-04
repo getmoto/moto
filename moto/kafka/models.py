@@ -1,11 +1,13 @@
 """KafkaBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.kafka.exceptions import BadRequestException, NotFoundException
 from moto.utilities.utils import get_partition
 
@@ -19,23 +21,23 @@ class FakeKafkaCluster(BaseModel):
         account_id: str,
         region_name: str,
         cluster_type: str,
-        tags: Optional[dict[str, str]] = None,
-        broker_node_group_info: Optional[dict[str, Any]] = None,
-        kafka_version: Optional[str] = None,
-        number_of_broker_nodes: Optional[int] = None,
-        configuration_info: Optional[dict[str, Any]] = None,
-        serverless_config: Optional[dict[str, Any]] = None,
-        encryption_info: Optional[dict[str, Any]] = None,
+        tags: dict[str, str] | None = None,
+        broker_node_group_info: dict[str, Any] | None = None,
+        kafka_version: str | None = None,
+        number_of_broker_nodes: int | None = None,
+        configuration_info: dict[str, Any] | None = None,
+        serverless_config: dict[str, Any] | None = None,
+        encryption_info: dict[str, Any] | None = None,
         enhanced_monitoring: str = "DEFAULT",
-        open_monitoring: Optional[dict[str, Any]] = None,
-        logging_info: Optional[dict[str, Any]] = None,
+        open_monitoring: dict[str, Any] | None = None,
+        logging_info: dict[str, Any] | None = None,
         storage_mode: str = "LOCAL",
         current_version: str = "1.0",
-        client_authentication: Optional[dict[str, Any]] = None,
+        client_authentication: dict[str, Any] | None = None,
         state: str = "CREATING",
-        active_operation_arn: Optional[str] = None,
-        zookeeper_connect_string: Optional[str] = None,
-        zookeeper_connect_string_tls: Optional[str] = None,
+        active_operation_arn: str | None = None,
+        zookeeper_connect_string: str | None = None,
+        zookeeper_connect_string_tls: str | None = None,
     ):
         # General attributes
         self.cluster_id = str(uuid.uuid4())
@@ -75,8 +77,10 @@ class FakeKafkaCluster(BaseModel):
         return f"arn:{partition}:kafka:{self.region_name}:{self.account_id}:{resource_type}/{self.cluster_id}"
 
 
-class KafkaBackend(BaseBackend):
+class KafkaBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of Kafka APIs."""
+
+    SERVICE_NAMESPACE = "kafka"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -87,9 +91,9 @@ class KafkaBackend(BaseBackend):
     def create_cluster_v2(
         self,
         cluster_name: str,
-        tags: Optional[dict[str, str]],
-        provisioned: Optional[dict[str, Any]],
-        serverless: Optional[dict[str, Any]],
+        tags: dict[str, str] | None,
+        provisioned: dict[str, Any] | None,
+        serverless: dict[str, Any] | None,
     ) -> tuple[str, str, str, str]:
         if provisioned:
             cluster_type = "PROVISIONED"
@@ -201,11 +205,11 @@ class KafkaBackend(BaseBackend):
 
     def list_clusters_v2(
         self,
-        cluster_name_filter: Optional[str],
-        cluster_type_filter: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        cluster_name_filter: str | None,
+        cluster_type_filter: str | None,
+        max_results: int | None,
+        next_token: str | None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         cluster_info_list = []
         for cluster_arn in self.clusters.keys():
             cluster_info = self.describe_cluster_v2(cluster_arn)
@@ -216,16 +220,16 @@ class KafkaBackend(BaseBackend):
     def create_cluster(
         self,
         broker_node_group_info: dict[str, Any],
-        client_authentication: Optional[dict[str, Any]],
+        client_authentication: dict[str, Any] | None,
         cluster_name: str,
-        configuration_info: Optional[dict[str, Any]] = None,
-        encryption_info: Optional[dict[str, Any]] = None,
+        configuration_info: dict[str, Any] | None = None,
+        encryption_info: dict[str, Any] | None = None,
         enhanced_monitoring: str = "DEFAULT",
-        open_monitoring: Optional[dict[str, Any]] = None,
+        open_monitoring: dict[str, Any] | None = None,
         kafka_version: str = "2.8.1",
-        logging_info: Optional[dict[str, Any]] = None,
+        logging_info: dict[str, Any] | None = None,
         number_of_broker_nodes: int = 1,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
         storage_mode: str = "LOCAL",
     ) -> tuple[str, str, str]:
         new_cluster = FakeKafkaCluster(
@@ -293,9 +297,9 @@ class KafkaBackend(BaseBackend):
 
     def list_clusters(
         self,
-        cluster_name_filter: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
+        cluster_name_filter: str | None,
+        max_results: int | None,
+        next_token: str | None,
     ) -> list[dict[str, Any]]:
         cluster_info_list = [
             {
@@ -358,6 +362,15 @@ class KafkaBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for cluster in self.clusters.values():
+            yield TaggedResource(
+                arn=cluster.arn,
+                tags=self.tagger.get_tag_dict_for_resource(cluster.arn),
+                resource_type="kafka:cluster",
+            )
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]

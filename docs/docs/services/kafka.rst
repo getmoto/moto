@@ -25,7 +25,7 @@ kafka
 - [ ] create_topic
 - [ ] create_vpc_connection
 - [X] delete_cluster
-- [ ] delete_cluster_policy
+- [X] delete_cluster_policy
 - [ ] delete_configuration
 - [ ] delete_replicator
 - [ ] delete_topic
@@ -41,7 +41,7 @@ kafka
 - [ ] describe_topic_partitions
 - [ ] describe_vpc_connection
 - [ ] get_bootstrap_brokers
-- [ ] get_cluster_policy
+- [X] get_cluster_policy
 - [ ] get_compatible_kafka_versions
 - [ ] list_client_vpc_connections
 - [ ] list_cluster_operations
@@ -57,7 +57,7 @@ kafka
 - [X] list_tags_for_resource
 - [ ] list_topics
 - [ ] list_vpc_connections
-- [ ] put_cluster_policy
+- [X] put_cluster_policy
 - [ ] reboot_broker
 - [ ] reject_client_vpc_connection
 - [X] tag_resource

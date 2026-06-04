@@ -1,13 +1,17 @@
 import boto3
+import pytest
 
 from moto import mock_aws
 
 
+@pytest.mark.parametrize("wildcard", ["All", ".*"])
 @mock_aws
-def test_message_attributes_should_not_include_system_attributes():
+def test_message_attributes_should_not_include_system_attributes(wildcard):
     """
-    Test that receiving a message with AttributeNames=['All'] should NOT
-    return empty MessageAttributes for system attributes.
+    Test that receiving a message with AttributeNames=['All'] or AttributeNames=['.*']
+    should NOT return empty MessageAttributes for system attributes.
+    Both "All" and ".*" are equivalent per the AWS spec:
+    https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
     """
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -17,11 +21,12 @@ def test_message_attributes_should_not_include_system_attributes():
     # Send a message WITHOUT any message attributes
     client.send_message(QueueUrl=queue_url, MessageBody="Hello from app startup!")
 
-    # Receive the message with All system attributes and All message attributes
+    # Receive the message with All system attributes and All message attributes.
+    # AttributeNames only accepts "All" or specific names — ".*" is not valid there.
     response = client.receive_message(
         QueueUrl=queue_url,
         AttributeNames=["All"],
-        MessageAttributeNames=["All"],
+        MessageAttributeNames=[wildcard],
         MaxNumberOfMessages=1,
     )
 
@@ -114,3 +119,40 @@ def test_no_empty_message_attributes_without_all_parameter():
 
     # MessageAttributes should not be in the response
     assert "MessageAttributes" not in message
+
+
+@mock_aws
+def test_message_attributes_with_wildcards():
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(QueueName="test-queue")["QueueUrl"]
+
+    message_attributes = {
+        "Custom1": {"StringValue": "Value1", "DataType": "String"},
+        "Custom2": {"StringValue": "Value2", "DataType": "String"},
+        "Other": {"StringValue": "OtherValue", "DataType": "String"},
+    }
+
+    client.send_message(
+        QueueUrl=queue_url, MessageBody="test", MessageAttributes=message_attributes
+    )
+
+    # Test ".*" wildcard
+    resp = client.receive_message(
+        QueueUrl=queue_url, MessageAttributeNames=[".*"], MaxNumberOfMessages=1
+    )
+    received_attributes = resp["Messages"][0].get("MessageAttributes", {})
+    assert "Custom1" in received_attributes
+    assert "Custom2" in received_attributes
+    assert "Other" in received_attributes
+
+    # Test prefix wildcard
+    client.send_message(
+        QueueUrl=queue_url, MessageBody="test", MessageAttributes=message_attributes
+    )
+    resp = client.receive_message(
+        QueueUrl=queue_url, MessageAttributeNames=["Custom.*"], MaxNumberOfMessages=1
+    )
+    received_attributes = resp["Messages"][0].get("MessageAttributes", {})
+    assert "Custom1" in received_attributes
+    assert "Custom2" in received_attributes
+    assert "Other" not in received_attributes

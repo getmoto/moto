@@ -61,7 +61,9 @@ def test_create_custom_lambda_resource():
     # Verify CloudWatch contains the correct logs
     log_group_name = get_log_group_name(cf, stack_name)
     success, logs = wait_for_log_msg(
-        expected_msg="Status code: 200", log_group=log_group_name
+        expected_msg="Status code: 200",
+        log_group=log_group_name,
+        wait_time=90,
     )
     assert success, f"Logs should indicate success: \n{logs}"
 

@@ -153,13 +153,46 @@ def test_create_web_acl_with_all_arguments():
 
 
 @mock_aws
-def test_get_web_acl():
+def test_get_web_acl_by_arn():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
+    web_acl_arn = conn.create_web_acl(**body)["Summary"]["ARN"]
+    wacl = conn.get_web_acl(ARN=web_acl_arn)["WebACL"]
+    assert wacl["Name"] == "John"
+    assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
+
+
+@mock_aws
+def test_get_non_existent_web_acl_by_arn():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    with pytest.raises(conn.exceptions.WAFNonexistentItemException) as error:
+        conn.get_web_acl(
+            ARN="arn:aws:wafv2:us-east-1:123456789012:regional/webacl/John/id"
+        )["WebACL"]
+    assert error
+
+
+@mock_aws
+def test_get_web_acl_by_id_and_name():
     conn = boto3.client("wafv2", region_name="us-east-1")
     body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
     web_acl_id = conn.create_web_acl(**body)["Summary"]["Id"]
     wacl = conn.get_web_acl(Name="John", Scope="REGIONAL", Id=web_acl_id)["WebACL"]
     assert wacl["Name"] == "John"
     assert wacl["Id"] == web_acl_id
+    assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
+
+
+@mock_aws
+def test_get_web_acl_by_arn_has_priority():
+    conn = boto3.client("wafv2", region_name="us-east-1")
+    body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
+    web_acl_arn = conn.create_web_acl(**body)["Summary"]["ARN"]
+    wacl = conn.get_web_acl(
+        ARN=web_acl_arn, Name="wrong-name", Scope="REGIONAL", Id="wrong-id"
+    )["WebACL"]
+    assert wacl["Name"] == "John"
+    assert wacl["Id"] != "wrong-id"
     assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
 
 

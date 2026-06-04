@@ -3,7 +3,7 @@ import threading
 from typing import Any
 
 from moto import settings
-from moto.awslambda import lambda_backends
+from moto.awslambda.utils import get_backend as get_lambda_backend
 from moto.core.common_models import CloudFormationModel
 from moto.moto_api._internal import mock_random
 
@@ -49,7 +49,7 @@ class CustomModel(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         service_token = properties["ServiceToken"]
 
-        backend = lambda_backends[account_id][region_name]
+        backend = get_lambda_backend(account_id, region_name)
         fn = backend.get_function(service_token)
 
         request_id = str(mock_random.uuid4())

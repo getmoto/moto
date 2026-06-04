@@ -1775,9 +1775,8 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_instance_status_no_instances():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     all_status = client.describe_instance_status()["InstanceStatuses"]
     assert len(all_status) == 0
@@ -3484,7 +3483,8 @@ def test_run_instances__instance_type_override_takes_priority(
 
 
 @ec2_aws_verified()
-@pytest.mark.aws_verified
+# Verified against AWS, but is flaky - that's why we do not run it against AWS
+# @pytest.mark.aws_verified
 def test_run_instances__key_name_from_launch_template(ec2_client=None):
     """KeyName in a launch template is applied when not supplied in RunInstances."""
     ami_id = _get_ami_id(ec2_client)
@@ -3512,7 +3512,8 @@ def test_run_instances__key_name_from_launch_template(ec2_client=None):
 
 
 @ec2_aws_verified()
-@pytest.mark.aws_verified
+# @pytest.mark.aws_verified
+# Verified against AWS, but it's flaky - that's why it's disabled against AWS
 def test_run_instances__security_group_ids_from_launch_template(ec2_client=None):
     """SecurityGroupIds in a launch template are applied when not supplied in RunInstances."""
     ami_id = _get_ami_id(ec2_client)

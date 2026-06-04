@@ -9,12 +9,12 @@ from typing import Any
 from urllib.parse import urlparse
 
 from botocore.awsrequest import AWSPreparedRequest
+from werkzeug.exceptions import HTTPException
 
 from moto.backend_index import backend_url_patterns
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
-from moto.core.exceptions import RESTError
 from moto.core.utils import get_equivalent_url_in_aws_domain
 from moto.moto_api._internal.models import moto_api_backend
 
@@ -195,7 +195,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             else:
                 res_status, res_headers, res_body = (200, {}, response)
 
-        except RESTError as e:
+        except HTTPException as e:
             if isinstance(e.get_headers(), list):
                 res_headers = dict(e.get_headers())
             else:

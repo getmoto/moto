@@ -1,12 +1,12 @@
 import importlib
 import os
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Union, overload
 
 import moto
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from moto.acm.models import AWSCertificateManagerBackend
     from moto.acmpca.models import ACMPCABackend
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from moto.batch.models import BatchBackend
     from moto.bedrock.models import BedrockBackend
     from moto.bedrockagent.models import AgentsforBedrockBackend
+    from moto.bedrockagentcorecontrol.models import BedrockAgentCoreControlBackend
     from moto.bedrockruntime.models import BedrockRuntimeBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
@@ -191,7 +192,7 @@ def list_of_moto_modules() -> Iterable[str]:
             yield backend
 
 
-def get_service_from_url(url: str) -> Optional[str]:
+def get_service_from_url(url: str) -> str | None:
     from moto.backend_index import backend_url_patterns
 
     for service, pattern in backend_url_patterns:
@@ -218,6 +219,7 @@ SERVICE_NAMES = Union[
     "Literal['batch']",
     "Literal['bedrock']",
     "Literal['bedrock-agent']",
+    "Literal['bedrock-agentcore-control']",
     "Literal['bedrock-runtime']",
     "Literal['budgets']",
     "Literal['ce']",
@@ -412,6 +414,10 @@ def get_backend(name: "Literal['bedrock']") -> "BackendDict[BedrockBackend]": ..
 def get_backend(
     name: "Literal['bedrock-agent']",
 ) -> "BackendDict[AgentsforBedrockBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['bedrock-agentcore-control']",
+) -> "BackendDict[BedrockAgentCoreControlBackend]": ...
 @overload
 def get_backend(
     name: "Literal['bedrock-runtime']",

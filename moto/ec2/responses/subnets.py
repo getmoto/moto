@@ -67,7 +67,11 @@ class Subnets(EC2BaseResponse):
     def modify_subnet_attribute(self) -> ActionResult:
         subnet_id = self._get_param("SubnetId")
 
-        for attribute in ("MapPublicIpOnLaunch", "AssignIpv6AddressOnCreation"):
+        for attribute in (
+            "MapPublicIpOnLaunch",
+            "AssignIpv6AddressOnCreation",
+            "EnableResourceNameDnsARecordOnLaunch",
+        ):
             if self._get_param(f"{attribute}.Value") is not None:
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self._get_param(f"{attribute}.Value")

@@ -1,5 +1,5 @@
 from threading import Thread
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from moto.core.utils import gzip_decompress
@@ -19,11 +19,11 @@ class TableImport(Thread):
         region_name: str,
         table_name: str,
         billing_mode: str,
-        throughput: Optional[dict[str, int]],
+        throughput: dict[str, int] | None,
         key_schema: list[dict[str, str]],
-        global_indexes: Optional[list[dict[str, Any]]],
+        global_indexes: list[dict[str, Any]] | None,
         attrs: list[dict[str, str]],
-        compression_type: Optional[str],
+        compression_type: str | None,
     ):
         super().__init__()
         self.partition = get_partition(region_name)
@@ -41,9 +41,9 @@ class TableImport(Thread):
         self.attrs = attrs
         self.compression_type = compression_type
 
-        self.failure_code: Optional[str] = None
-        self.failure_message: Optional[str] = None
-        self.table: Optional[Table] = None
+        self.failure_code: str | None = None
+        self.failure_message: str | None = None
+        self.table: Table | None = None
         self.table_arn = f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{table_name}"
 
         self.processed_count = 0

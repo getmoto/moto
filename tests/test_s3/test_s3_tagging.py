@@ -139,9 +139,12 @@ def test_get_bucket_tagging(bucket_name=None):
     with pytest.raises(ClientError) as exc:
         s3_client.get_bucket_tagging(Bucket=bucket_name)
 
+    metadata = exc.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchTagSet"
     assert err["Message"] == "The TagSet does not exist"
+    assert err["BucketName"] == bucket_name  # type: ignore
 
 
 @mock_aws
@@ -166,9 +169,12 @@ def test_delete_bucket_tagging():
     with pytest.raises(ClientError) as err:
         s3_client.get_bucket_tagging(Bucket=bucket_name)
 
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "NoSuchTagSet"
-    assert err_value.response["Error"]["Message"] == "The TagSet does not exist"
+    metadata = err.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = err.value.response["Error"]
+    assert error["Code"] == "NoSuchTagSet"
+    assert error["Message"] == "The TagSet does not exist"
+    assert error["BucketName"] == bucket_name  # type: ignore
 
 
 @pytest.mark.aws_verified
@@ -331,7 +337,6 @@ def test_put_object_tagging_on_earliest_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -403,7 +408,6 @@ def test_put_object_tagging_on_both_version():
         "Code": "NoSuchKey",
         "Message": "The specified key does not exist.",
         "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
     }
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")

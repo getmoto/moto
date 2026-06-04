@@ -1,11 +1,11 @@
 import json
-from typing import Any, Union
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
 from .models import EFSBackend, efs_backends
 
-TYPE_RESPONSE = tuple[str, dict[str, Union[str, int]]]
+TYPE_RESPONSE = tuple[str, dict[str, str | int]]
 
 
 class EFSResponse(BaseResponse):
@@ -188,7 +188,8 @@ class EFSResponse(BaseResponse):
 
     def tag_resource(self) -> TYPE_RESPONSE:
         resource_id = self._get_param("ResourceId")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.efs_backend.tag_resource(resource_id, tags)
         return "{}", {"Content-Type": "application/json"}
 

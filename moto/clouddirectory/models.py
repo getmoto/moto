@@ -1,9 +1,11 @@
 """CloudDirectoryBackend class with methods for supported APIs."""
 
 import datetime
+from collections.abc import Iterator
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -59,8 +61,10 @@ class Directory(BaseModel):
         }
 
 
-class CloudDirectoryBackend(BaseBackend):
+class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of CloudDirectory APIs."""
+
+    SERVICE_NAMESPACE = "clouddirectory"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -130,16 +134,6 @@ class CloudDirectoryBackend(BaseBackend):
             ]
         return directories
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-        return
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        if not isinstance(tag_keys, list):
-            tag_keys = [tag_keys]
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        return
-
     def delete_directory(self, directory_arn: str) -> str:
         directory = self.directories.pop(directory_arn)
         return directory.directory_arn
@@ -155,6 +149,21 @@ class CloudDirectoryBackend(BaseBackend):
     ) -> list[dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return tags
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for directory in self.directories.values():
+            yield TaggedResource(
+                arn=directory.directory_arn,
+                tags=self.tagger.get_tag_dict_for_resource(directory.directory_arn),
+                resource_type="clouddirectory:directory",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 clouddirectory_backends = BackendDict(CloudDirectoryBackend, "clouddirectory")

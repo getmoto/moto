@@ -64,8 +64,12 @@ def test_describe_stream_with_name_not_exist():
     stream_name_not_exist = "not-exist-stream"
 
     # cannot describe with not exist stream name
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.describe_stream(StreamName=stream_name_not_exist)
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws

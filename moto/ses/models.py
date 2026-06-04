@@ -157,13 +157,13 @@ class ConfigurationSet(BaseModel):
     def __init__(
         self,
         configuration_set_name: str,
-        tracking_options: Optional[dict[str, str]] = None,
-        delivery_options: Optional[dict[str, Any]] = None,
-        reputation_options: Optional[dict[str, Any]] = None,
-        sending_options: Optional[dict[str, bool]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
-        suppression_options: Optional[dict[str, list[str]]] = None,
-        vdm_options: Optional[dict[str, dict[str, str]]] = None,
+        tracking_options: dict[str, str] | None = None,
+        delivery_options: dict[str, Any] | None = None,
+        reputation_options: dict[str, Any] | None = None,
+        sending_options: dict[str, bool] | None = None,
+        tags: list[dict[str, str]] | None = None,
+        suppression_options: dict[str, list[str]] | None = None,
+        vdm_options: dict[str, dict[str, str]] | None = None,
     ) -> None:
         # Shared between SES and SESv2
         self.configuration_set_name = configuration_set_name
@@ -196,12 +196,14 @@ class Contact(BaseModel):
         email_address: str,
         topic_preferences: list[dict[str, str]],
         unsubscribe_all: bool,
+        attributes_data: Optional[str],
     ) -> None:
         self.contact_list_name = contact_list_name
         self.email_address = email_address
         self.topic_default_preferences: list[dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
+        self.attributes_data = attributes_data
         self.created_timestamp = iso_8601_datetime_with_milliseconds()
         self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
@@ -213,6 +215,7 @@ class Contact(BaseModel):
             "TopicDefaultPreferences": self.topic_default_preferences,
             "TopicPreferences": self.topic_preferences,
             "UnsubscribeAll": self.unsubscribe_all,
+            "AttributesData": self.attributes_data,
             "CreatedTimestamp": self.created_timestamp,
             "LastUpdatedTimestamp": self.last_updated_timestamp,
         }
@@ -222,7 +225,7 @@ class ContactList(BaseModel):
     def __init__(
         self,
         contact_list_name: str,
-        description: str,
+        description: Optional[str],
         topics: list[dict[str, str]],
     ) -> None:
         self.contact_list_name = contact_list_name
@@ -240,10 +243,25 @@ class ContactList(BaseModel):
         unsubscribe_all = (
             False if "UnsubscribeAll" not in params else params["UnsubscribeAll"]
         )
+        attributes_data = params.get("AttributesData")
         new_contact = Contact(
-            contact_list_name, email_address, topic_preferences, unsubscribe_all
+            contact_list_name,
+            email_address,
+            topic_preferences,
+            unsubscribe_all,
+            attributes_data,
         )
         self.contacts[email_address] = new_contact
+
+    def update_contact(self, email: str, params: dict[str, Any]) -> None:
+        contact = self.get_contact(email)
+        if "TopicPreferences" in params:
+            contact.topic_preferences = params["TopicPreferences"]
+        if "UnsubscribeAll" in params:
+            contact.unsubscribe_all = params["UnsubscribeAll"]
+        if "AttributesData" in params:
+            contact.attributes_data = params["AttributesData"]
+        contact.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     def list_contacts(self) -> list[Contact]:
         return self.contacts.values()  # type: ignore[return-value]
@@ -274,9 +292,9 @@ class EmailIdentity(BaseModel):
     def __init__(
         self,
         email_identity: str,
-        tags: Optional[list[dict[str, str]]],
-        dkim_signing_attributes: Optional[object],
-        configuration_set_name: Optional[str],
+        tags: list[dict[str, str]] | None,
+        dkim_signing_attributes: object | None,
+        configuration_set_name: str | None,
     ) -> None:
         self.email_identity = email_identity
         self.tags = tags
@@ -411,9 +429,9 @@ class SESBackend(BaseBackend):
     def create_email_identity_v2(
         self,
         email_identity: str,
-        tags: Optional[list[dict[str, str]]],
-        dkim_signing_attributes: Optional[object],
-        configuration_set_name: Optional[str],
+        tags: list[dict[str, str]] | None,
+        dkim_signing_attributes: object | None,
+        configuration_set_name: str | None,
     ) -> EmailIdentity:
         identity = EmailIdentity(
             email_identity=email_identity,
@@ -431,7 +449,7 @@ class SESBackend(BaseBackend):
         return identity
 
     def list_identities(
-        self, identity_type: Optional[Literal["EmailAddress", "Domain"]]
+        self, identity_type: Literal["EmailAddress", "Domain"] | None
     ) -> list[str]:
         if identity_type is not None:
             return [
@@ -550,7 +568,7 @@ class SESBackend(BaseBackend):
         self.sent_message_count += recipient_count
         return message
 
-    def __type_of_message__(self, destinations: Any) -> Optional[str]:
+    def __type_of_message__(self, destinations: Any) -> str | None:
         """Checks the destination for any special address that could indicate delivery,
         complaint or bounce like in SES simulator"""
         if isinstance(destinations, list):
@@ -661,7 +679,7 @@ class SESBackend(BaseBackend):
         self.sns_topics[identity] = identity_sns_topics
 
     def set_identity_notification_topic(
-        self, identity: str, notification_type: str, sns_topic: Optional[str]
+        self, identity: str, notification_type: str, sns_topic: str | None
     ) -> None:
         identity_sns_topics = self.sns_topics.get(identity, {})
         if sns_topic is None:
@@ -853,7 +871,7 @@ class SESBackend(BaseBackend):
         self.receipt_rule_set[rule_set_name] = ReceiptRuleSet(name=rule_set_name)
 
     def create_receipt_rule(
-        self, rule_set_name: str, rule: dict[str, Any], after: Optional[str]
+        self, rule_set_name: str, rule: dict[str, Any], after: str | None
     ) -> None:
         # Validate ruleSetName
         self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
@@ -906,8 +924,8 @@ class SESBackend(BaseBackend):
         )
 
     def set_active_receipt_rule_set(
-        self, rule_set_name: Optional[str]
-    ) -> Optional[ReceiptRuleSet]:
+        self, rule_set_name: str | None
+    ) -> ReceiptRuleSet | None:
         if not rule_set_name:
             # A null rule_set_name parameter (i.e., not passed in the request at all) means that all receipt rule sets should be marked inactive
             for rs in self.receipt_rule_set.values():
@@ -923,7 +941,7 @@ class SESBackend(BaseBackend):
         self.receipt_rule_set[rule_set_name].is_active = True
         return self.receipt_rule_set[rule_set_name]
 
-    def describe_active_receipt_rule_set(self) -> Optional[ReceiptRuleSet]:
+    def describe_active_receipt_rule_set(self) -> ReceiptRuleSet | None:
         for rs in self.receipt_rule_set.values():
             if rs.is_active:
                 return rs
@@ -1019,7 +1037,7 @@ class SESBackend(BaseBackend):
                 f"Unable to use AWS KMS key: {kms_key_arn}"
             )
 
-    def _validate_sns_topic(self, topic_arn: Optional[str]) -> None:
+    def _validate_sns_topic(self, topic_arn: str | None) -> None:
         # Nothing to validate
         if not topic_arn:
             return
@@ -1078,8 +1096,8 @@ class SESBackend(BaseBackend):
     def set_identity_mail_from_domain(
         self,
         identity: str,
-        mail_from_domain: Optional[str] = None,
-        behavior_on_mx_failure: Optional[str] = None,
+        mail_from_domain: str | None = None,
+        behavior_on_mx_failure: str | None = None,
     ) -> None:
         if not self._is_verified_address(identity):
             raise InvalidParameterValue(f"Identity '{identity}' does not exist.")
@@ -1108,7 +1126,7 @@ class SESBackend(BaseBackend):
         }
 
     def get_identity_mail_from_domain_attributes(
-        self, identities: Optional[list[str]] = None
+        self, identities: list[str] | None = None
     ) -> dict[str, dict[str, str]]:
         if identities is None:
             actual_identities = []
@@ -1132,7 +1150,7 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
     def get_identity_verification_attributes(
-        self, identities: Optional[list[str]] = None
+        self, identities: list[str] | None = None
     ) -> dict[str, dict[str, str]]:
         if identities is None:
             actual_identities = []

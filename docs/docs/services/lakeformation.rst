@@ -54,16 +54,16 @@ lakeformation
 - [X] grant_permissions
 - [X] list_data_cells_filter
   
-        This currently just returns an empty list, as the corresponding Create is not yet implemented
-        
+This currently just returns an empty list, as the corresponding Create is not yet implemented
+
 
 - [ ] list_lake_formation_opt_ins
 - [ ] list_lf_tag_expressions
 - [X] list_lf_tags
 - [X] list_permissions
   
-        No pagination has been implemented yet.
-        
+No pagination has been implemented yet.
+
 
 - [X] list_resources
 - [ ] list_table_storage_optimizers

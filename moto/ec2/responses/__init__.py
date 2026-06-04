@@ -28,6 +28,7 @@ from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
 from .tags import TagResponse
+from .traffic_mirrors import TrafficMirrors
 from .transit_gateway_attachments import TransitGatewayAttachment
 from .transit_gateway_route_tables import TransitGatewayRouteTable
 from .transit_gateways import TransitGateways
@@ -74,6 +75,7 @@ class EC2Response(
     VPNConnections,
     Windows,
     NatGateways,
+    TrafficMirrors,
     TransitGateways,
     TransitGatewayRouteTable,
     TransitGatewayAttachment,

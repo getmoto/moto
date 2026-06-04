@@ -27,8 +27,8 @@ mediastore
 - [X] get_metric_policy
 - [X] list_containers
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_tags_for_resource
 - [X] put_container_policy

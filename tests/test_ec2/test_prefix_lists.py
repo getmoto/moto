@@ -1,7 +1,7 @@
 import boto3
 import pytest
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_ec2 import ec2_aws_verified
 
@@ -60,13 +60,12 @@ def test_describe_managed_prefix_lists(ec2_client=None):
 
 
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_describe_managed_prefix_lists_with_prefix():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
-    if not settings.TEST_SERVER_MODE:
-        # ServerMode is not guaranteed to only have AWS prefix lists
-        assert {pl["OwnerId"] for pl in default_lists} == {"AWS"}
+    assert {pl["OwnerId"] for pl in default_lists} == {"AWS"}
 
     random_list_id = default_lists[0]["PrefixListId"]
 
@@ -74,8 +73,7 @@ def test_describe_managed_prefix_lists_with_prefix():
         "PrefixLists"
     ]
     assert len(lists_by_id) == 1
-    if not settings.TEST_SERVER_MODE:
-        assert lists_by_id[0]["OwnerId"] == "AWS"
+    assert lists_by_id[0]["OwnerId"] == "AWS"
 
 
 @mock_aws

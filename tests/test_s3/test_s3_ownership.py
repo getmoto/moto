@@ -43,8 +43,9 @@ def test_delete_ownership_from_bucket():
 
     with pytest.raises(ClientError) as ex:
         client.get_bucket_ownership_controls(Bucket=bucket)
-
-    assert ex.value.response["Error"]["Code"] == "OwnershipControlsNotFoundError"
-    assert ex.value.response["Error"]["Message"] == (
-        "The bucket ownership controls were not found"
-    )
+    metadata = ex.value.response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 404
+    error = ex.value.response["Error"]
+    assert error["Code"] == "OwnershipControlsNotFoundError"
+    assert error["Message"] == "The bucket ownership controls were not found"
+    assert error["BucketName"] == bucket  # type: ignore

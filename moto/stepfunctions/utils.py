@@ -11,6 +11,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": ["creation_date", "arn"],
     },
+    "list_state_machine_aliases": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": ["creation_date", "arn"],
+    },
     "list_activities": {
         "input_token": "next_token",
         "limit_key": "max_results",

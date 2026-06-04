@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -9,7 +8,7 @@ class IoTClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(IoTClientError):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         self.code = 404
         super().__init__(
             "ResourceNotFoundException", msg or "The specified resource does not exist"
@@ -17,13 +16,13 @@ class ResourceNotFoundException(IoTClientError):
 
 
 class InvalidRequestException(IoTClientError):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         self.code = 400
         super().__init__("InvalidRequestException", msg or "The request is not valid.")
 
 
 class InvalidStateTransitionException(IoTClientError):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         self.code = 409
         super().__init__(
             "InvalidStateTransitionException",

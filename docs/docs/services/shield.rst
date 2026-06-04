@@ -45,8 +45,8 @@ shield
 - [ ] list_protection_groups
 - [X] list_protections
   
-        Pagination has not yet been implemented
-        
+Pagination has not yet been implemented
+
 
 - [ ] list_resources_in_protection_group
 - [X] list_tags_for_resource

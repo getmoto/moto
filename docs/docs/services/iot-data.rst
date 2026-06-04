@@ -23,10 +23,10 @@ iot-data
 - [X] publish
 - [X] update_thing_shadow
   
-        spec of payload:
-          - need node `state`
-          - state node must be an Object
-          - State contains an invalid node: 'foo'
-        
+spec of payload:
+  - need node `state`
+  - state node must be an Object
+  - State contains an invalid node: 'foo'
+
 
 
