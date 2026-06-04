@@ -23,6 +23,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 from tests.test_elbv2.test_elbv2 import create_load_balancer
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
@@ -99,8 +100,8 @@ def test_import_certificate_without_cn():
         )
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+        .not_valid_before(utcnow())
+        .not_valid_after(utcnow() + datetime.timedelta(days=365))
         .add_extension(
             x509.SubjectAlternativeName(
                 [DNSName("app.test.example.com"), DNSName("app2.test.example.com")]
