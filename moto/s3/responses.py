@@ -174,6 +174,15 @@ ACTION_MAP = {
     },
 }
 
+ALLOWED_HEADER_OVERRIDES = {
+    "response-content-type": "content-type",
+    "response-content-language": "Content-Language",
+    "response-expires": "Expires",
+    "response-cache-control": "Cache-Control",
+    "response-content-disposition": "Content-Disposition",
+    "response-content-encoding": "Content-Encoding",
+}
+
 
 def parse_key_name(pth: str) -> str:
     # strip the first '/' left by urlparse
@@ -1999,6 +2008,10 @@ class S3Response(BaseResponse):
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
+
+        for param_name, header_name in ALLOWED_HEADER_OVERRIDES.items():
+            if param_name in self.querystring:
+                response_headers[header_name] = self.querystring[param_name][0]
 
         part_number = self._get_int_param("partNumber")
         if part_number:

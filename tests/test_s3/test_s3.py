@@ -3172,6 +3172,30 @@ def test_object_headers():
     assert "BucketKeyEnabled" in res
 
 
+@s3_aws_verified
+def test_get_object_returns_provided_response_headers(bucket_name=None):
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+
+    res = s3_client.get_object(
+        Bucket=bucket_name,
+        Key="file.txt",
+        ResponseCacheControl="max-age=67",
+        ResponseContentDisposition="attachment=stuff",
+        ResponseContentEncoding="identity",
+        ResponseContentLanguage="fr-FR",
+        ResponseContentType="image/jpegxl",
+        ResponseExpires=datetime.datetime(2015, 1, 1),
+    )
+
+    assert res.get("CacheControl") == "max-age=67"
+    assert res.get("ContentDisposition") == "attachment=stuff"
+    assert res.get("ContentEncoding") == "identity"
+    assert res.get("ContentLanguage") == "fr-FR"
+    assert res.get("ContentType") == "image/jpegxl"
+
+
 if settings.TEST_SERVER_MODE:
 
     @mock_aws
