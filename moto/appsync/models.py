@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -153,7 +154,7 @@ class GraphqlAPIKey(BaseModel):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
-            default_expiry = datetime.now(timezone.utc)
+            default_expiry = utcnow()
             default_expiry = default_expiry.replace(
                 minute=0, second=0, microsecond=0, tzinfo=None
             )
@@ -310,7 +311,7 @@ class EventsAPIKey(BaseModel):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
-            default_expiry = datetime.now(timezone.utc)
+            default_expiry = utcnow()
             default_expiry = default_expiry.replace(
                 minute=0, second=0, microsecond=0, tzinfo=None
             )
@@ -348,7 +349,7 @@ class ChannelNamespace(BaseModel):
 
         self.channel_namespace_arn = f"arn:{get_partition(region)}:appsync:{region}:{account_id}:apis/{api_id}/channelNamespace/{name}"
 
-        now = datetime.now(timezone.utc)
+        now = utcnow()
         self.created = now
         self.last_modified = now
 
@@ -382,7 +383,7 @@ class EventsAPI(BaseModel):
             "HTTP": f"{dns_prefix}.appsync-api.{self.region}.amazonaws.com",
         }
 
-        self.created = datetime.now(timezone.utc)
+        self.created = utcnow()
 
         self.backend = backend
 
