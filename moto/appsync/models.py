@@ -8,7 +8,6 @@ from typing import Any
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
-from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -150,7 +149,7 @@ class GraphqlSchema(BaseModel):
 
 
 class GraphqlAPIKey(BaseModel):
-    def __init__(self, description: str, expires: int | None):
+    def __init__(self, description: str, expires: datetime | None):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
@@ -159,11 +158,11 @@ class GraphqlAPIKey(BaseModel):
                 minute=0, second=0, microsecond=0, tzinfo=None
             )
             default_expiry = default_expiry + timedelta(days=7)
-            self.expires = unix_time(default_expiry)
+            self.expires = default_expiry
         else:
             self.expires = expires
 
-    def update(self, description: str | None, expires: int | None) -> None:
+    def update(self, description: str | None, expires: datetime | None) -> None:
         if description:
             self.description = description
         if expires:
@@ -236,7 +235,9 @@ class GraphqlAPI(BaseModel):
         if xray_enabled is not None:
             self.xray_enabled = xray_enabled
 
-    def create_api_key(self, description: str, expires: int | None) -> GraphqlAPIKey:
+    def create_api_key(
+        self, description: str, expires: datetime | None
+    ) -> GraphqlAPIKey:
         api_key = GraphqlAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
@@ -248,7 +249,7 @@ class GraphqlAPI(BaseModel):
         self.api_keys.pop(api_key_id)
 
     def update_api_key(
-        self, api_key_id: str, description: str, expires: int | None
+        self, api_key_id: str, description: str, expires: datetime | None
     ) -> GraphqlAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
@@ -305,7 +306,7 @@ class GraphqlAPI(BaseModel):
 
 # region: EventsAPI
 class EventsAPIKey(BaseModel):
-    def __init__(self, description: str, expires: int | None):
+    def __init__(self, description: str, expires: datetime | None):
         self.key_id = str(mock_random.uuid4())[0:6]
         self.description = description
         if not expires:
@@ -314,11 +315,11 @@ class EventsAPIKey(BaseModel):
                 minute=0, second=0, microsecond=0, tzinfo=None
             )
             default_expiry = default_expiry + timedelta(days=7)
-            self.expires = unix_time(default_expiry)
+            self.expires = default_expiry
         else:
             self.expires = expires
 
-    def update(self, description: str | None, expires: int | None) -> None:
+    def update(self, description: str | None, expires: datetime | None) -> None:
         if description:
             self.description = description
         if expires:
@@ -347,7 +348,7 @@ class ChannelNamespace(BaseModel):
 
         self.channel_namespace_arn = f"arn:{get_partition(region)}:appsync:{region}:{account_id}:apis/{api_id}/channelNamespace/{name}"
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
         self.created = now
         self.last_modified = now
 
@@ -381,11 +382,13 @@ class EventsAPI(BaseModel):
             "HTTP": f"{dns_prefix}.appsync-api.{self.region}.amazonaws.com",
         }
 
-        self.created = datetime.now(timezone.utc).isoformat()
+        self.created = datetime.now(timezone.utc)
 
         self.backend = backend
 
-    def create_api_key(self, description: str, expires: int | None) -> EventsAPIKey:
+    def create_api_key(
+        self, description: str, expires: datetime | None
+    ) -> EventsAPIKey:
         api_key = EventsAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
@@ -397,7 +400,7 @@ class EventsAPI(BaseModel):
         self.api_keys.pop(api_key_id)
 
     def update_api_key(
-        self, api_key_id: str, description: str, expires: int | None
+        self, api_key_id: str, description: str, expires: datetime | None
     ) -> EventsAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
@@ -501,7 +504,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         return self.graphql_apis.values()
 
     def create_api_key(
-        self, api_id: str, description: str, expires: int | None
+        self, api_id: str, description: str, expires: datetime | None
     ) -> GraphqlAPIKey | EventsAPIKey:
         if api_id in self.graphql_apis:
             return self.graphql_apis[api_id].create_api_key(description, expires)
@@ -530,7 +533,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         api_id: str,
         api_key_id: str,
         description: str,
-        expires: int | None,
+        expires: datetime | None,
     ) -> GraphqlAPIKey | EventsAPIKey:
         if api_id in self.graphql_apis:
             return self.graphql_apis[api_id].update_api_key(

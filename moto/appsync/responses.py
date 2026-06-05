@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcfromtimestamp
 
 from .exceptions import ApiKeyValidityOutOfBoundsException, AWSValidationException
 from .models import AppSyncBackend, appsync_backends
@@ -190,14 +190,16 @@ class AppSyncResponse(BaseResponse):
                 )
 
         api_key = self.appsync_backend.create_api_key(
-            api_id=api_id, description=description, expires=expires
+            api_id=api_id,
+            description=description,
+            expires=utcfromtimestamp(expires) if expires else None,
         )
         result = {
             "apiKey": {
                 "id": api_key.key_id,
                 "description": api_key.description,
-                "expires": api_key.expires,
-                "deletes": api_key.expires,
+                "expires": int(unix_time(api_key.expires)),
+                "deletes": int(unix_time(api_key.expires)),
             }
         }
         return ActionResult(result)
@@ -216,8 +218,8 @@ class AppSyncResponse(BaseResponse):
                 {
                     "id": api_key.key_id,
                     "description": api_key.description,
-                    "expires": api_key.expires,
-                    "deletes": api_key.expires,
+                    "expires": int(unix_time(api_key.expires)),
+                    "deletes": int(unix_time(api_key.expires)),
                 }
                 for api_key in api_keys
             ]
@@ -243,14 +245,14 @@ class AppSyncResponse(BaseResponse):
             api_id=api_id,
             api_key_id=api_key_id,
             description=description,
-            expires=expires,
+            expires=utcfromtimestamp(expires) if expires else None,
         )
         result = {
             "apiKey": {
                 "id": api_key.key_id,
                 "description": api_key.description,
-                "expires": api_key.expires,
-                "deletes": api_key.expires,
+                "expires": int(unix_time(api_key.expires)),
+                "deletes": int(unix_time(api_key.expires)),
             }
         }
         return ActionResult(result)
