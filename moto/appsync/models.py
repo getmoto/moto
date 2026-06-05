@@ -81,17 +81,6 @@ class APICache(BaseModel):
         if health_metrics_config is not None:
             self.health_metrics_config = health_metrics_config
 
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "ttl": self.ttl,
-            "transitEncryptionEnabled": self.transit_encryption_enabled,
-            "atRestEncryptionEnabled": self.at_rest_encryption_enabled,
-            "apiCachingBehavior": self.api_caching_behavior,
-            "type": self.type,
-            "healthMetricsConfig": self.health_metrics_config,
-            "status": self.status,
-        }
-
 
 # endregion
 
@@ -179,14 +168,6 @@ class GraphqlAPIKey(BaseModel):
             self.description = description
         if expires:
             self.expires = expires
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "id": self.key_id,
-            "description": self.description,
-            "expires": self.expires,
-            "deletes": self.expires,
-        }
 
 
 class GraphqlAPI(BaseModel):
@@ -318,23 +299,6 @@ class GraphqlAPI(BaseModel):
     def delete_api_cache(self) -> None:
         self.api_cache = None
 
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "apiId": self.api_id,
-            "authenticationType": self.authentication_type,
-            "arn": self.arn,
-            "uris": {"GRAPHQL": "http://graphql.uri"},
-            "additionalAuthenticationProviders": self.additional_authentication_providers,
-            "lambdaAuthorizerConfig": self.lambda_authorizer_config,
-            "logConfig": self.log_config,
-            "openIDConnectConfig": self.open_id_connect_config,
-            "userPoolConfig": self.user_pool_config,
-            "xrayEnabled": self.xray_enabled,
-            "visibility": self.visibility,
-            "tags": self.backend.list_tags_for_resource(self.arn),
-        }
-
 
 # endregion
 
@@ -359,14 +323,6 @@ class EventsAPIKey(BaseModel):
             self.description = description
         if expires:
             self.expires = expires
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "id": self.key_id,
-            "description": self.description,
-            "expires": self.expires,
-            "deletes": self.expires,
-        }
 
 
 class ChannelNamespace(BaseModel):
@@ -396,28 +352,6 @@ class ChannelNamespace(BaseModel):
         self.last_modified = now
 
         self.backend = backend
-
-    def to_json(self) -> dict[str, Any]:
-        response = {
-            "apiId": self.api_id,
-            "name": self.name,
-            "subscribeAuthModes": self.subscribe_auth_modes,
-            "publishAuthModes": self.publish_auth_modes,
-            "channelNamespaceArn": self.channel_namespace_arn,
-            "created": self.created,
-            "lastModified": self.last_modified,
-            "handlerConfigs": self.handler_configs,
-        }
-
-        if self.code_handlers:
-            response["codeHandlers"] = self.code_handlers
-
-        if self.backend:
-            response["tags"] = self.backend.list_tags_for_resource(
-                self.channel_namespace_arn
-            )
-
-        return response
 
 
 class EventsAPI(BaseModel):
@@ -450,22 +384,6 @@ class EventsAPI(BaseModel):
         self.created = datetime.now(timezone.utc).isoformat()
 
         self.backend = backend
-
-    def to_json(self) -> dict[str, Any]:
-        response = {
-            "apiId": self.api_id,
-            "name": self.name,
-            "tags": self.backend.list_tags_for_resource(self.api_arn),
-            "dns": self.dns,
-            "apiArn": self.api_arn,
-            "created": self.created,
-            "eventConfig": self.event_config or {},  # Default to empty dict if None
-        }
-
-        if self.owner_contact:
-            response["ownerContact"] = self.owner_contact
-
-        return response
 
     def create_api_key(self, description: str, expires: int | None) -> EventsAPIKey:
         api_key = EventsAPIKey(description, expires)

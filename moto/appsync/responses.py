@@ -6,7 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import unix_time
 
 from .exceptions import ApiKeyValidityOutOfBoundsException, AWSValidationException
@@ -35,7 +35,7 @@ class AppSyncResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return appsync_backends[self.current_account][self.region]
 
-    def create_graphql_api(self) -> str:
+    def create_graphql_api(self) -> ActionResult:
         name = self._get_param("name")
         log_config = self._get_param("logConfig")
         authentication_type = self._get_param("authenticationType")
@@ -60,24 +60,53 @@ class AppSyncResponse(BaseResponse):
             tags=tags,
             visibility=visibility,
         )
-        response = graphql_api.to_json()
-        response["tags"] = self.appsync_backend.list_tags_for_resource(graphql_api.arn)
-        return json.dumps({"graphqlApi": response})
+        result = {
+            "graphqlApi": {
+                "name": graphql_api.name,
+                "apiId": graphql_api.api_id,
+                "authenticationType": graphql_api.authentication_type,
+                "arn": graphql_api.arn,
+                "uris": {"GRAPHQL": "http://graphql.uri"},
+                "additionalAuthenticationProviders": graphql_api.additional_authentication_providers,
+                "lambdaAuthorizerConfig": graphql_api.lambda_authorizer_config,
+                "logConfig": graphql_api.log_config,
+                "openIDConnectConfig": graphql_api.open_id_connect_config,
+                "userPoolConfig": graphql_api.user_pool_config,
+                "xrayEnabled": graphql_api.xray_enabled,
+                "visibility": graphql_api.visibility,
+                "tags": self.appsync_backend.list_tags_for_resource(graphql_api.arn),
+            }
+        }
+        return ActionResult(result)
 
-    def get_graphql_api(self) -> str:
+    def get_graphql_api(self) -> ActionResult:
         api_id = self._get_param("apiId")
-
         graphql_api = self.appsync_backend.get_graphql_api(api_id=api_id)
-        response = graphql_api.to_json()
-        response["tags"] = self.appsync_backend.list_tags_for_resource(graphql_api.arn)
-        return json.dumps({"graphqlApi": response})
+        result = {
+            "graphqlApi": {
+                "name": graphql_api.name,
+                "apiId": graphql_api.api_id,
+                "authenticationType": graphql_api.authentication_type,
+                "arn": graphql_api.arn,
+                "uris": {"GRAPHQL": "http://graphql.uri"},
+                "additionalAuthenticationProviders": graphql_api.additional_authentication_providers,
+                "lambdaAuthorizerConfig": graphql_api.lambda_authorizer_config,
+                "logConfig": graphql_api.log_config,
+                "openIDConnectConfig": graphql_api.open_id_connect_config,
+                "userPoolConfig": graphql_api.user_pool_config,
+                "xrayEnabled": graphql_api.xray_enabled,
+                "visibility": graphql_api.visibility,
+                "tags": self.appsync_backend.list_tags_for_resource(graphql_api.arn),
+            }
+        }
+        return ActionResult(result)
 
-    def delete_graphql_api(self) -> str:
+    def delete_graphql_api(self) -> ActionResult:
         api_id = self._get_param("apiId")
         self.appsync_backend.delete_graphql_api(api_id=api_id)
-        return "{}"
+        return EmptyResult()
 
-    def update_graphql_api(self) -> str:
+    def update_graphql_api(self) -> ActionResult:
         api_id = self._get_param("apiId")
 
         name = self._get_param("name")
@@ -91,7 +120,7 @@ class AppSyncResponse(BaseResponse):
         xray_enabled = self._get_param("xrayEnabled", False)
         lambda_authorizer_config = self._get_param("lambdaAuthorizerConfig")
 
-        api = self.appsync_backend.update_graphql_api(
+        graphql_api = self.appsync_backend.update_graphql_api(
             api_id=api_id,
             name=name,
             log_config=log_config,
@@ -102,13 +131,52 @@ class AppSyncResponse(BaseResponse):
             xray_enabled=xray_enabled,
             lambda_authorizer_config=lambda_authorizer_config,
         )
-        return json.dumps({"graphqlApi": api.to_json()})
+        result = {
+            "graphqlApi": {
+                "name": graphql_api.name,
+                "apiId": graphql_api.api_id,
+                "authenticationType": graphql_api.authentication_type,
+                "arn": graphql_api.arn,
+                "uris": {"GRAPHQL": "http://graphql.uri"},
+                "additionalAuthenticationProviders": graphql_api.additional_authentication_providers,
+                "lambdaAuthorizerConfig": graphql_api.lambda_authorizer_config,
+                "logConfig": graphql_api.log_config,
+                "openIDConnectConfig": graphql_api.open_id_connect_config,
+                "userPoolConfig": graphql_api.user_pool_config,
+                "xrayEnabled": graphql_api.xray_enabled,
+                "visibility": graphql_api.visibility,
+                "tags": self.appsync_backend.list_tags_for_resource(graphql_api.arn),
+            }
+        }
+        return ActionResult(result)
 
-    def list_graphql_apis(self) -> str:
+    def list_graphql_apis(self) -> ActionResult:
         graphql_apis = self.appsync_backend.list_graphql_apis()
-        return json.dumps({"graphqlApis": [api.to_json() for api in graphql_apis]})
+        result = {
+            "graphqlApis": [
+                {
+                    "name": graphql_api.name,
+                    "apiId": graphql_api.api_id,
+                    "authenticationType": graphql_api.authentication_type,
+                    "arn": graphql_api.arn,
+                    "uris": {"GRAPHQL": "http://graphql.uri"},
+                    "additionalAuthenticationProviders": graphql_api.additional_authentication_providers,
+                    "lambdaAuthorizerConfig": graphql_api.lambda_authorizer_config,
+                    "logConfig": graphql_api.log_config,
+                    "openIDConnectConfig": graphql_api.open_id_connect_config,
+                    "userPoolConfig": graphql_api.user_pool_config,
+                    "xrayEnabled": graphql_api.xray_enabled,
+                    "visibility": graphql_api.visibility,
+                    "tags": self.appsync_backend.list_tags_for_resource(
+                        graphql_api.arn
+                    ),
+                }
+                for graphql_api in graphql_apis
+            ]
+        }
+        return ActionResult(result)
 
-    def create_api_key(self) -> str:
+    def create_api_key(self) -> ActionResult:
         api_id = self._get_param("apiId")
         description = self._get_param("description")
         expires = self._get_param("expires")
@@ -124,20 +192,39 @@ class AppSyncResponse(BaseResponse):
         api_key = self.appsync_backend.create_api_key(
             api_id=api_id, description=description, expires=expires
         )
-        return json.dumps({"apiKey": api_key.to_json()})
+        result = {
+            "apiKey": {
+                "id": api_key.key_id,
+                "description": api_key.description,
+                "expires": api_key.expires,
+                "deletes": api_key.expires,
+            }
+        }
+        return ActionResult(result)
 
-    def delete_api_key(self) -> str:
+    def delete_api_key(self) -> ActionResult:
         api_id = self._get_param("apiId")
         api_key_id = self._get_param("id")
         self.appsync_backend.delete_api_key(api_id=api_id, api_key_id=api_key_id)
-        return "{}"
+        return EmptyResult()
 
-    def list_api_keys(self) -> str:
+    def list_api_keys(self) -> ActionResult:
         api_id = self._get_param("apiId")
         api_keys = self.appsync_backend.list_api_keys(api_id=api_id)
-        return json.dumps({"apiKeys": [key.to_json() for key in api_keys]})
+        result = {
+            "apiKeys": [
+                {
+                    "id": api_key.key_id,
+                    "description": api_key.description,
+                    "expires": api_key.expires,
+                    "deletes": api_key.expires,
+                }
+                for api_key in api_keys
+            ]
+        }
+        return ActionResult(result)
 
-    def update_api_key(self) -> str:
+    def update_api_key(self) -> ActionResult:
         api_id = self._get_param("apiId")
         api_key_id = self._get_param("id")
         description = self._get_param("description")
@@ -158,75 +245,101 @@ class AppSyncResponse(BaseResponse):
             description=description,
             expires=expires,
         )
-        return json.dumps({"apiKey": api_key.to_json()})
+        result = {
+            "apiKey": {
+                "id": api_key.key_id,
+                "description": api_key.description,
+                "expires": api_key.expires,
+                "deletes": api_key.expires,
+            }
+        }
+        return ActionResult(result)
 
-    def start_schema_creation(self) -> str:
+    def start_schema_creation(self) -> ActionResult:
         api_id = self._get_param("apiId")
         definition = self._get_param("definition")
         status = self.appsync_backend.start_schema_creation(
             api_id=api_id, definition=definition
         )
-        return json.dumps({"status": status})
+        result = {"status": status}
+        return ActionResult(result)
 
-    def get_schema_creation_status(self) -> str:
+    def get_schema_creation_status(self) -> ActionResult:
         api_id = self._get_param("apiId")
         status, details = self.appsync_backend.get_schema_creation_status(api_id=api_id)
-        return json.dumps({"status": status, "details": details})
+        result = {"status": status, "details": details}
+        return ActionResult(result)
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags")
         self.appsync_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return "{}"
+        return EmptyResult()
 
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
         self.appsync_backend.untag_resource(
             resource_arn=resource_arn, tag_keys=tag_keys
         )
-        return "{}"
+        return EmptyResult()
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tags = self.appsync_backend.list_tags_for_resource(resource_arn=resource_arn)
-        return json.dumps({"tags": tags})
+        result = {"tags": tags}
+        return ActionResult(result)
 
-    def get_type(self) -> str:
+    def get_type(self) -> ActionResult:
         api_id = self._get_param("apiId")
         type_name = self._get_param("typeName")
         type_format = self._get_param("format")
         graphql_type = self.appsync_backend.get_type(
             api_id=api_id, type_name=type_name, type_format=type_format
         )
-        return json.dumps({"type": graphql_type})
+        result = {"type": graphql_type}
+        return ActionResult(result)
 
-    def get_introspection_schema(self) -> str:
+    def get_introspection_schema(self) -> ActionResult:
         api_id = self._get_param("apiId")
         format_ = self._get_param("format")
-        include_directives = self._get_bool_param("includeDirectives", True)
+        include_directives = self._get_param("includeDirectives")
+        if include_directives is None:
+            include_directives = True
         graphql_schema = self.appsync_backend.get_graphql_schema(api_id=api_id)
 
         schema = graphql_schema.get_introspection_schema(
             format_=format_, include_directives=include_directives
         )
-        return schema
+        result = {"schema": schema}
+        return ActionResult(result)
 
-    def get_api_cache(self) -> str:
+    def get_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         api_cache = self.appsync_backend.get_api_cache(
             api_id=api_id,
         )
-        return json.dumps({"apiCache": api_cache.to_json()})
+        result = {
+            "apiCache": {
+                "ttl": api_cache.ttl,
+                "transitEncryptionEnabled": api_cache.transit_encryption_enabled,
+                "atRestEncryptionEnabled": api_cache.at_rest_encryption_enabled,
+                "apiCachingBehavior": api_cache.api_caching_behavior,
+                "type": api_cache.type,
+                "healthMetricsConfig": api_cache.health_metrics_config,
+                "status": api_cache.status,
+            }
+        }
+        return ActionResult(result)
 
-    def delete_api_cache(self) -> str:
+    def delete_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         self.appsync_backend.delete_api_cache(
             api_id=api_id,
         )
-        return "{}"
+        return EmptyResult()
 
-    def create_api_cache(self) -> str:
+    def create_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         ttl = self._get_param("ttl")
         transit_encryption_enabled = self._get_param("transitEncryptionEnabled")
@@ -243,9 +356,20 @@ class AppSyncResponse(BaseResponse):
             type=type,
             health_metrics_config=health_metrics_config,
         )
-        return json.dumps({"apiCache": api_cache.to_json()})
+        result = {
+            "apiCache": {
+                "ttl": api_cache.ttl,
+                "transitEncryptionEnabled": api_cache.transit_encryption_enabled,
+                "atRestEncryptionEnabled": api_cache.at_rest_encryption_enabled,
+                "apiCachingBehavior": api_cache.api_caching_behavior,
+                "type": api_cache.type,
+                "healthMetricsConfig": api_cache.health_metrics_config,
+                "status": api_cache.status,
+            }
+        }
+        return ActionResult(result)
 
-    def update_api_cache(self) -> str:
+    def update_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         ttl = self._get_param("ttl")
         api_caching_behavior = self._get_param("apiCachingBehavior")
@@ -258,16 +382,27 @@ class AppSyncResponse(BaseResponse):
             type=type,
             health_metrics_config=health_metrics_config,
         )
-        return json.dumps({"apiCache": api_cache.to_json()})
+        result = {
+            "apiCache": {
+                "ttl": api_cache.ttl,
+                "transitEncryptionEnabled": api_cache.transit_encryption_enabled,
+                "atRestEncryptionEnabled": api_cache.at_rest_encryption_enabled,
+                "apiCachingBehavior": api_cache.api_caching_behavior,
+                "type": api_cache.type,
+                "healthMetricsConfig": api_cache.health_metrics_config,
+                "status": api_cache.status,
+            }
+        }
+        return ActionResult(result)
 
-    def flush_api_cache(self) -> str:
+    def flush_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         self.appsync_backend.flush_api_cache(
             api_id=api_id,
         )
-        return "{}"
+        return EmptyResult()
 
-    def create_api(self) -> str:
+    def create_api(self) -> ActionResult:
         name = self._get_param("name")
 
         if name:
@@ -290,20 +425,45 @@ class AppSyncResponse(BaseResponse):
             tags=tags,
             event_config=event_config,
         )
+        api_dict: dict[str, Any] = {
+            "apiId": api.api_id,
+            "name": api.name,
+            "tags": self.appsync_backend.list_tags_for_resource(api.api_arn),
+            "dns": api.dns,
+            "apiArn": api.api_arn,
+            "created": api.created,
+            "eventConfig": api.event_config or {},  # Default to empty dict if None
+        }
+        if api.owner_contact:
+            api_dict["ownerContact"] = api.owner_contact
+        result = {"api": api_dict}
+        return ActionResult(result)
 
-        response = api.to_json()
-        return json.dumps({"api": response})
-
-    def list_apis(self) -> str:
+    def list_apis(self) -> ActionResult:
         apis = self.appsync_backend.list_apis()
-        return json.dumps({"apis": [api.to_json() for api in apis]})
+        api_list = []
+        for api in apis:
+            api_dict: dict[str, Any] = {
+                "apiId": api.api_id,
+                "name": api.name,
+                "tags": self.appsync_backend.list_tags_for_resource(api.api_arn),
+                "dns": api.dns,
+                "apiArn": api.api_arn,
+                "created": api.created,
+                "eventConfig": api.event_config or {},  # Default to empty dict if None
+            }
+            if api.owner_contact:
+                api_dict["ownerContact"] = api.owner_contact
+            api_list.append(api_dict)
+        result = {"apis": api_list}
+        return ActionResult(result)
 
-    def delete_api(self) -> str:
+    def delete_api(self) -> ActionResult:
         api_id = self._get_param("apiId")
         self.appsync_backend.delete_api(api_id=api_id)
-        return "{}"
+        return EmptyResult()
 
-    def create_channel_namespace(self) -> str:
+    def create_channel_namespace(self) -> ActionResult:
         api_id = self._get_param("apiId")
         name = self._get_param("name")
 
@@ -332,22 +492,51 @@ class AppSyncResponse(BaseResponse):
             tags=tags,
             handler_configs=handler_configs,
         )
+        channel_namespace_dict: dict[str, Any] = {
+            "apiId": channel_namespace.api_id,
+            "name": channel_namespace.name,
+            "subscribeAuthModes": channel_namespace.subscribe_auth_modes,
+            "publishAuthModes": channel_namespace.publish_auth_modes,
+            "channelNamespaceArn": channel_namespace.channel_namespace_arn,
+            "created": channel_namespace.created,
+            "lastModified": channel_namespace.last_modified,
+            "handlerConfigs": channel_namespace.handler_configs,
+        }
+        if channel_namespace.code_handlers:
+            channel_namespace_dict["codeHandlers"] = channel_namespace.code_handlers
+        channel_namespace_dict["tags"] = self.appsync_backend.list_tags_for_resource(
+            channel_namespace.channel_namespace_arn
+        )
+        result = {"channelNamespace": channel_namespace_dict}
+        return ActionResult(result)
 
-        return json.dumps({"channelNamespace": channel_namespace.to_json()})
-
-    def list_channel_namespaces(self) -> str:
+    def list_channel_namespaces(self) -> ActionResult:
         api_id = self._get_param("apiId")
         channel_namespaces = self.appsync_backend.list_channel_namespaces(api_id=api_id)
-        return json.dumps(
-            {
-                "channelNamespaces": [
-                    channel_namespace.to_json()
-                    for channel_namespace in channel_namespaces
-                ]
+        channel_namespace_list = []
+        for channel_namespace in channel_namespaces:
+            channel_namespace_dict: dict[str, Any] = {
+                "apiId": channel_namespace.api_id,
+                "name": channel_namespace.name,
+                "subscribeAuthModes": channel_namespace.subscribe_auth_modes,
+                "publishAuthModes": channel_namespace.publish_auth_modes,
+                "channelNamespaceArn": channel_namespace.channel_namespace_arn,
+                "created": channel_namespace.created,
+                "lastModified": channel_namespace.last_modified,
+                "handlerConfigs": channel_namespace.handler_configs,
             }
-        )
+            if channel_namespace.code_handlers:
+                channel_namespace_dict["codeHandlers"] = channel_namespace.code_handlers
+            channel_namespace_dict["tags"] = (
+                self.appsync_backend.list_tags_for_resource(
+                    channel_namespace.channel_namespace_arn
+                )
+            )
+            channel_namespace_list.append(channel_namespace_dict)
+        result = {"channelNamespaces": channel_namespace_list}
+        return ActionResult(result)
 
-    def delete_channel_namespace(self) -> str:
+    def delete_channel_namespace(self) -> ActionResult:
         api_id = self._get_param("apiId")
         name = self._get_param("name")
 
@@ -355,12 +544,21 @@ class AppSyncResponse(BaseResponse):
             api_id=api_id,
             name=name,
         )
-        return "{}"
+        return EmptyResult()
 
-    def get_api(self) -> str:
+    def get_api(self) -> ActionResult:
         api_id = self._get_param("apiId")
-
         api = self.appsync_backend.get_api(api_id=api_id)
-        response = api.to_json()
-        response["tags"] = self.appsync_backend.list_tags_for_resource(api.api_arn)
-        return json.dumps({"api": response})
+        api_dict: dict[str, Any] = {
+            "apiId": api.api_id,
+            "name": api.name,
+            "tags": self.appsync_backend.list_tags_for_resource(api.api_arn),
+            "dns": api.dns,
+            "apiArn": api.api_arn,
+            "created": api.created,
+            "eventConfig": api.event_config or {},  # Default to empty dict if None
+        }
+        if api.owner_contact:
+            api_dict["ownerContact"] = api.owner_contact
+        result = {"api": api_dict}
+        return ActionResult(result)
