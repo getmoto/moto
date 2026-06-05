@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import json
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta, timezone
@@ -274,8 +273,8 @@ class GraphqlAPI(BaseModel):
         api_key.update(description, expires)
         return api_key
 
-    def start_schema_creation(self, definition: str) -> None:
-        graphql_definition = base64.b64decode(definition).decode("utf-8")
+    def start_schema_creation(self, definition: bytes) -> None:
+        graphql_definition = definition.decode("utf-8")
 
         self.graphql_schema = GraphqlSchema(graphql_definition, region_name=self.region)
 
@@ -624,7 +623,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
                 api_key_id, description, expires
             )
 
-    def start_schema_creation(self, api_id: str, definition: str) -> str:
+    def start_schema_creation(self, api_id: str, definition: bytes) -> str:
         self.graphql_apis[api_id].start_schema_creation(definition)
         return "PROCESSING"
 
