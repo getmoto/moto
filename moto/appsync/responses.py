@@ -45,7 +45,7 @@ class AppSyncResponse(BaseResponse):
         additional_authentication_providers = self._get_param(
             "additionalAuthenticationProviders"
         )
-        xray_enabled = self._get_param("xrayEnabled", False)
+        xray_enabled = self._get_bool_param("xrayEnabled", False)
         lambda_authorizer_config = self._get_param("lambdaAuthorizerConfig")
         visibility = self._get_param("visibility")
         graphql_api = self.appsync_backend.create_graphql_api(
@@ -117,7 +117,7 @@ class AppSyncResponse(BaseResponse):
         additional_authentication_providers = self._get_param(
             "additionalAuthenticationProviders"
         )
-        xray_enabled = self._get_param("xrayEnabled", False)
+        xray_enabled = self._get_bool_param("xrayEnabled", False)
         lambda_authorizer_config = self._get_param("lambdaAuthorizerConfig")
 
         graphql_api = self.appsync_backend.update_graphql_api(
@@ -303,9 +303,7 @@ class AppSyncResponse(BaseResponse):
     def get_introspection_schema(self) -> ActionResult:
         api_id = self._get_param("apiId")
         format_ = self._get_param("format")
-        include_directives = self._get_param("includeDirectives")
-        if include_directives is None:
-            include_directives = True
+        include_directives = self._get_bool_param("includeDirectives", True)
         graphql_schema = self.appsync_backend.get_graphql_schema(api_id=api_id)
 
         schema = graphql_schema.get_introspection_schema(
@@ -342,8 +340,8 @@ class AppSyncResponse(BaseResponse):
     def create_api_cache(self) -> ActionResult:
         api_id = self._get_param("apiId")
         ttl = self._get_param("ttl")
-        transit_encryption_enabled = self._get_param("transitEncryptionEnabled")
-        at_rest_encryption_enabled = self._get_param("atRestEncryptionEnabled")
+        transit_encryption_enabled = self._get_bool_param("transitEncryptionEnabled")
+        at_rest_encryption_enabled = self._get_bool_param("atRestEncryptionEnabled")
         api_caching_behavior = self._get_param("apiCachingBehavior")
         type = self._get_param("type")
         health_metrics_config = self._get_param("healthMetricsConfig")

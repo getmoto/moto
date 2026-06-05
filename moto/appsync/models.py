@@ -179,7 +179,7 @@ class GraphqlAPI(BaseModel):
         authentication_type: str,
         additional_authentication_providers: list[str] | None,
         log_config: str,
-        xray_enabled: str,
+        xray_enabled: bool,
         user_pool_config: str,
         open_id_connect_config: str,
         lambda_authorizer_config: str,
@@ -215,7 +215,7 @@ class GraphqlAPI(BaseModel):
         log_config: str,
         open_id_connect_config: str,
         user_pool_config: str,
-        xray_enabled: str,
+        xray_enabled: bool,
     ) -> None:
         if name:
             self.name = name
@@ -427,7 +427,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         user_pool_config: str,
         open_id_connect_config: str,
         additional_authentication_providers: list[str] | None,
-        xray_enabled: str,
+        xray_enabled: bool,
         lambda_authorizer_config: str,
         tags: dict[str, str],
         visibility: str,
@@ -461,7 +461,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         user_pool_config: str,
         open_id_connect_config: str,
         additional_authentication_providers: list[str] | None,
-        xray_enabled: str,
+        xray_enabled: bool,
         lambda_authorizer_config: str,
     ) -> GraphqlAPI:
         graphql_api = self.graphql_apis[api_id]
