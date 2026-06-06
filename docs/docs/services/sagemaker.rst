@@ -60,6 +60,7 @@ sagemaker
 - [ ] create_inference_component
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
+- [ ] create_job
 - [ ] create_labeling_job
 - [ ] create_mlflow_app
 - [ ] create_mlflow_tracking_server
@@ -128,6 +129,7 @@ sagemaker
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_job
 - [ ] delete_mlflow_app
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
@@ -195,6 +197,8 @@ sagemaker
 - [ ] describe_inference_component
 - [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
+- [ ] describe_job
+- [ ] describe_job_schema_version
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_app
@@ -284,6 +288,8 @@ sagemaker
 - [ ] list_inference_experiments
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
+- [ ] list_job_schema_versions
+- [ ] list_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
@@ -365,6 +371,7 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [ ] stop_hyper_parameter_tuning_job
 - [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
+- [ ] stop_job
 - [ ] stop_labeling_job
 - [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule

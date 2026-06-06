@@ -16,6 +16,7 @@ ecs
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] continue_service_deployment
 - [X] create_capacity_provider
 - [X] create_cluster
 - [ ] create_daemon

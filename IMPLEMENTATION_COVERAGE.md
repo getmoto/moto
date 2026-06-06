@@ -765,6 +765,7 @@
 - [ ] get_backup_vault_access_policy
 - [ ] get_backup_vault_notifications
 - [ ] get_legal_hold
+- [ ] get_pitr_malware_scan_results
 - [ ] get_recovery_point_index_details
 - [ ] get_recovery_point_restore_metadata
 - [ ] get_restore_job_metadata
@@ -882,8 +883,10 @@
 <details>
 <summary>12% implemented</summary>
 
+- [ ] batch_delete_advanced_prompt_optimization_job
 - [ ] batch_delete_evaluation_job
 - [ ] cancel_automated_reasoning_policy_build_workflow
+- [ ] create_advanced_prompt_optimization_job
 - [ ] create_automated_reasoning_policy
 - [ ] create_automated_reasoning_policy_test_case
 - [ ] create_automated_reasoning_policy_version
@@ -918,6 +921,7 @@
 - [ ] delete_resource_policy
 - [ ] deregister_marketplace_model_endpoint
 - [ ] export_automated_reasoning_policy_version
+- [ ] get_advanced_prompt_optimization_job
 - [ ] get_automated_reasoning_policy
 - [ ] get_automated_reasoning_policy_annotations
 - [ ] get_automated_reasoning_policy_build_workflow
@@ -943,6 +947,7 @@
 - [ ] get_provisioned_model_throughput
 - [ ] get_resource_policy
 - [ ] get_use_case_for_model_access
+- [ ] list_advanced_prompt_optimization_jobs
 - [ ] list_automated_reasoning_policies
 - [ ] list_automated_reasoning_policy_build_workflows
 - [ ] list_automated_reasoning_policy_test_cases
@@ -971,6 +976,7 @@
 - [ ] register_marketplace_model_endpoint
 - [ ] start_automated_reasoning_policy_build_workflow
 - [ ] start_automated_reasoning_policy_test_workflow
+- [ ] stop_advanced_prompt_optimization_job
 - [ ] stop_evaluation_job
 - [X] stop_model_customization_job
 - [ ] stop_model_invocation_job
@@ -1065,8 +1071,9 @@
 
 ## bedrock-agentcore-control
 <details>
-<summary>25% implemented</summary>
+<summary>19% implemented</summary>
 
+- [ ] add_dataset_examples
 - [X] create_agent_runtime
 - [X] create_agent_runtime_endpoint
 - [ ] create_api_key_credential_provider
@@ -1074,6 +1081,8 @@
 - [ ] create_browser_profile
 - [ ] create_code_interpreter
 - [ ] create_configuration_bundle
+- [ ] create_dataset
+- [ ] create_dataset_version
 - [ ] create_evaluator
 - [X] create_gateway
 - [ ] create_gateway_rule
@@ -1082,6 +1091,9 @@
 - [X] create_memory
 - [ ] create_oauth2_credential_provider
 - [ ] create_online_evaluation_config
+- [ ] create_payment_connector
+- [ ] create_payment_credential_provider
+- [ ] create_payment_manager
 - [ ] create_policy
 - [ ] create_policy_engine
 - [ ] create_registry
@@ -1094,6 +1106,8 @@
 - [ ] delete_browser_profile
 - [ ] delete_code_interpreter
 - [ ] delete_configuration_bundle
+- [ ] delete_dataset
+- [ ] delete_dataset_examples
 - [ ] delete_evaluator
 - [X] delete_gateway
 - [ ] delete_gateway_rule
@@ -1102,6 +1116,9 @@
 - [X] delete_memory
 - [ ] delete_oauth2_credential_provider
 - [ ] delete_online_evaluation_config
+- [ ] delete_payment_connector
+- [ ] delete_payment_credential_provider
+- [ ] delete_payment_manager
 - [ ] delete_policy
 - [ ] delete_policy_engine
 - [ ] delete_registry
@@ -1116,6 +1133,7 @@
 - [ ] get_code_interpreter
 - [ ] get_configuration_bundle
 - [ ] get_configuration_bundle_version
+- [ ] get_dataset
 - [ ] get_evaluator
 - [X] get_gateway
 - [ ] get_gateway_rule
@@ -1124,9 +1142,15 @@
 - [X] get_memory
 - [ ] get_oauth2_credential_provider
 - [ ] get_online_evaluation_config
+- [ ] get_payment_connector
+- [ ] get_payment_credential_provider
+- [ ] get_payment_manager
 - [ ] get_policy
 - [ ] get_policy_engine
+- [ ] get_policy_engine_summary
 - [ ] get_policy_generation
+- [ ] get_policy_generation_summary
+- [ ] get_policy_summary
 - [ ] get_registry
 - [ ] get_registry_record
 - [ ] get_resource_policy
@@ -1141,6 +1165,9 @@
 - [ ] list_code_interpreters
 - [ ] list_configuration_bundle_versions
 - [ ] list_configuration_bundles
+- [ ] list_dataset_examples
+- [ ] list_dataset_versions
+- [ ] list_datasets
 - [ ] list_evaluators
 - [ ] list_gateway_rules
 - [X] list_gateway_targets
@@ -1149,10 +1176,16 @@
 - [X] list_memories
 - [ ] list_oauth2_credential_providers
 - [ ] list_online_evaluation_configs
+- [ ] list_payment_connectors
+- [ ] list_payment_credential_providers
+- [ ] list_payment_managers
 - [ ] list_policies
+- [ ] list_policy_engine_summaries
 - [ ] list_policy_engines
 - [ ] list_policy_generation_assets
+- [ ] list_policy_generation_summaries
 - [ ] list_policy_generations
+- [ ] list_policy_summaries
 - [ ] list_registries
 - [ ] list_registry_records
 - [X] list_tags_for_resource
@@ -1168,6 +1201,8 @@
 - [X] update_agent_runtime_endpoint
 - [ ] update_api_key_credential_provider
 - [ ] update_configuration_bundle
+- [ ] update_dataset
+- [ ] update_dataset_examples
 - [ ] update_evaluator
 - [X] update_gateway
 - [ ] update_gateway_rule
@@ -1176,6 +1211,9 @@
 - [X] update_memory
 - [ ] update_oauth2_credential_provider
 - [ ] update_online_evaluation_config
+- [ ] update_payment_connector
+- [ ] update_payment_credential_provider
+- [ ] update_payment_manager
 - [ ] update_policy
 - [ ] update_policy_engine
 - [ ] update_registry
@@ -2052,7 +2090,7 @@
 
 ## cognito-idp
 <details>
-<summary>50% implemented</summary>
+<summary>49% implemented</summary>
 
 - [X] add_custom_attributes
 - [ ] add_user_pool_client_secret
@@ -2097,6 +2135,7 @@
 - [X] create_user_pool
 - [X] create_user_pool_client
 - [X] create_user_pool_domain
+- [ ] create_user_pool_replica
 - [X] delete_group
 - [X] delete_identity_provider
 - [ ] delete_managed_login_branding
@@ -2108,6 +2147,7 @@
 - [X] delete_user_pool_client
 - [ ] delete_user_pool_client_secret
 - [X] delete_user_pool_domain
+- [ ] delete_user_pool_replica
 - [ ] delete_web_authn_credential
 - [X] describe_identity_provider
 - [ ] describe_managed_login_branding
@@ -2144,6 +2184,7 @@
 - [ ] list_user_import_jobs
 - [ ] list_user_pool_client_secrets
 - [X] list_user_pool_clients
+- [ ] list_user_pool_replicas
 - [X] list_user_pools
 - [X] list_users
 - [X] list_users_in_group
@@ -2174,6 +2215,7 @@
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
+- [ ] update_user_pool_replica
 - [X] verify_software_token
 - [ ] verify_user_attribute
 </details>
@@ -3133,7 +3175,7 @@
 
 ## ds
 <details>
-<summary>28% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -3179,13 +3221,13 @@
 - [ ] disable_client_authentication
 - [ ] disable_directory_data_access
 - [X] disable_ldaps
-- [ ] disable_radius
+- [X] disable_radius
 - [X] disable_sso
 - [ ] enable_ca_enrollment_policy
 - [ ] enable_client_authentication
 - [ ] enable_directory_data_access
 - [X] enable_ldaps
-- [ ] enable_radius
+- [X] enable_radius
 - [X] enable_sso
 - [X] get_directory_limits
 - [ ] get_snapshot_limits
@@ -3219,15 +3261,19 @@
 
 ## dsql
 <details>
-<summary>41% implemented</summary>
+<summary>31% implemented</summary>
 
 - [X] create_cluster
+- [ ] create_stream
 - [X] delete_cluster
 - [ ] delete_cluster_policy
+- [ ] delete_stream
 - [X] get_cluster
 - [ ] get_cluster_policy
+- [ ] get_stream
 - [X] get_vpc_endpoint_service_name
 - [ ] list_clusters
+- [ ] list_streams
 - [X] list_tags_for_resource
 - [ ] put_cluster_policy
 - [ ] tag_resource
@@ -3389,6 +3435,7 @@
 - [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
+- [ ] create_capacity_reservation_cancellation_quote
 - [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
@@ -3607,6 +3654,7 @@
 - [ ] describe_capacity_blocks
 - [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
+- [ ] describe_capacity_reservation_cancellation_quotes
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservation_topology
 - [ ] describe_capacity_reservations
@@ -3664,6 +3712,7 @@
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_policies
+- [ ] describe_ipam_pool_allocations
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_prefix_list_resolver_targets
 - [ ] describe_ipam_prefix_list_resolvers
@@ -3957,6 +4006,7 @@
 - [ ] modify_ipam
 - [ ] modify_ipam_policy_allocation_rules
 - [ ] modify_ipam_pool
+- [ ] modify_ipam_pool_allocation
 - [ ] modify_ipam_prefix_list_resolver
 - [ ] modify_ipam_prefix_list_resolver_target
 - [ ] modify_ipam_resource_cidr
@@ -4163,8 +4213,9 @@
 
 ## ecs
 <details>
-<summary>59% implemented</summary>
+<summary>58% implemented</summary>
 
+- [ ] continue_service_deployment
 - [X] create_capacity_provider
 - [X] create_cluster
 - [ ] create_daemon
@@ -4578,7 +4629,7 @@
 
 ## emr
 <details>
-<summary>43% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -4606,6 +4657,8 @@
 - [ ] get_managed_scaling_policy
 - [ ] get_on_cluster_app_ui_presigned_url
 - [ ] get_persistent_app_ui_presigned_url
+- [ ] get_session
+- [ ] get_session_endpoint
 - [ ] get_studio_session_mapping
 - [X] list_bootstrap_actions
 - [X] list_clusters
@@ -4615,6 +4668,7 @@
 - [ ] list_notebook_executions
 - [X] list_release_labels
 - [ ] list_security_configurations
+- [ ] list_sessions
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
@@ -4636,8 +4690,10 @@
 - [ ] set_unhealthy_node_replacement
 - [X] set_visible_to_all_users
 - [ ] start_notebook_execution
+- [ ] start_session
 - [ ] stop_notebook_execution
 - [X] terminate_job_flows
+- [ ] terminate_session
 - [ ] update_studio
 - [ ] update_studio_session_mapping
 </details>
@@ -5033,7 +5089,7 @@
 
 ## glue
 <details>
-<summary>36% implemented</summary>
+<summary>35% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -5144,6 +5200,7 @@
 - [ ] get_crawler_metrics
 - [X] get_crawlers
 - [ ] get_custom_entity_type
+- [ ] get_dashboard_url
 - [X] get_data_catalog_encryption_settings
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
@@ -5185,6 +5242,7 @@
 - [X] get_security_configuration
 - [X] get_security_configurations
 - [X] get_session
+- [ ] get_session_endpoint
 - [ ] get_statement
 - [X] get_table
 - [ ] get_table_optimizer
@@ -6061,21 +6119,24 @@
 
 ## iot-data
 <details>
-<summary>62% implemented</summary>
+<summary>45% implemented</summary>
 
 - [ ] delete_connection
 - [X] delete_thing_shadow
+- [ ] get_connection
 - [ ] get_retained_message
 - [X] get_thing_shadow
 - [X] list_named_shadows_for_thing
 - [ ] list_retained_messages
+- [ ] list_subscriptions
 - [X] publish
+- [ ] send_direct_message
 - [X] update_thing_shadow
 </details>
 
 ## ivs
 <details>
-<summary>15% implemented</summary>
+<summary>14% implemented</summary>
 
 - [X] batch_get_channel
 - [ ] batch_get_stream_key
@@ -6115,6 +6176,7 @@
 - [ ] stop_stream
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_ad_configuration
 - [X] update_channel
 - [ ] update_playback_restriction_policy
 </details>
@@ -6243,7 +6305,7 @@
 
 ## kinesisanalyticsv2
 <details>
-<summary>15% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] add_application_cloud_watch_logging_option
 - [ ] add_application_input
@@ -6275,7 +6337,7 @@
 - [ ] start_application
 - [ ] stop_application
 - [X] tag_resource
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_application
 - [ ] update_application_maintenance_configuration
 </details>
@@ -6651,7 +6713,7 @@
 
 ## logs
 <details>
-<summary>45% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] associate_source_to_s3_table_integration
@@ -6752,7 +6814,7 @@
 - [X] put_retention_policy
 - [X] put_subscription_filter
 - [ ] put_transformer
-- [ ] start_live_tail
+- [X] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
@@ -8079,20 +8141,23 @@
 
 ## quicksight
 <details>
-<summary>13% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
+- [ ] batch_delete_knowledge_base
 - [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
 - [ ] create_action_connector
+- [ ] create_agent
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
 - [X] create_dashboard
 - [X] create_data_set
 - [X] create_data_source
+- [ ] create_flow
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
@@ -8100,8 +8165,10 @@
 - [ ] create_iam_policy_assignment
 - [X] create_ingestion
 - [ ] create_namespace
+- [ ] create_o_auth_client_application
 - [ ] create_refresh_schedule
 - [ ] create_role_membership
+- [ ] create_space
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
@@ -8113,6 +8180,7 @@
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_action_connector
+- [ ] delete_agent
 - [ ] delete_analysis
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -8122,16 +8190,20 @@
 - [ ] delete_data_set_refresh_properties
 - [X] delete_data_source
 - [ ] delete_default_q_business_application
+- [ ] delete_flow
 - [ ] delete_folder
 - [ ] delete_folder_membership
 - [X] delete_group
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
 - [ ] delete_identity_propagation_config
+- [ ] delete_knowledge_base
 - [ ] delete_namespace
+- [ ] delete_o_auth_client_application
 - [ ] delete_refresh_schedule
 - [ ] delete_role_custom_permission
 - [ ] delete_role_membership
+- [ ] delete_space
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -8148,6 +8220,8 @@
 - [ ] describe_account_subscription
 - [ ] describe_action_connector
 - [ ] describe_action_connector_permissions
+- [ ] describe_agent
+- [ ] describe_agent_permissions
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
@@ -8170,6 +8244,7 @@
 - [X] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_default_q_business_application
+- [ ] describe_flow
 - [ ] describe_folder
 - [ ] describe_folder_permissions
 - [ ] describe_folder_resolved_permissions
@@ -8179,12 +8254,17 @@
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
 - [ ] describe_key_registration
+- [ ] describe_knowledge_base
+- [ ] describe_knowledge_base_permissions
 - [ ] describe_namespace
+- [ ] describe_o_auth_client_application
 - [ ] describe_q_personalization_configuration
 - [ ] describe_quick_sight_q_search_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
 - [ ] describe_self_upgrade_configuration
+- [ ] describe_space
+- [ ] describe_space_permissions
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -8207,6 +8287,7 @@
 - [ ] get_identity_context
 - [ ] get_session_embed_url
 - [ ] list_action_connectors
+- [ ] list_agents
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
@@ -8226,10 +8307,14 @@
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_identity_propagation_configs
 - [ ] list_ingestions
+- [ ] list_knowledge_bases
 - [ ] list_namespaces
+- [ ] list_o_auth_client_applications
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
 - [ ] list_self_upgrades
+- [ ] list_space_resources
+- [ ] list_spaces
 - [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -8242,12 +8327,14 @@
 - [ ] list_topics
 - [X] list_user_groups
 - [X] list_users
+- [ ] list_users_index_capacity
 - [ ] list_vpc_connections
 - [ ] predict_qa_results
 - [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
 - [ ] search_action_connectors
+- [ ] search_agents
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_data_sets
@@ -8255,6 +8342,8 @@
 - [ ] search_flows
 - [ ] search_folders
 - [X] search_groups
+- [ ] search_knowledge_bases
+- [ ] search_spaces
 - [ ] search_topics
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
@@ -8268,6 +8357,8 @@
 - [X] update_account_settings
 - [ ] update_action_connector
 - [ ] update_action_connector_permissions
+- [ ] update_agent
+- [ ] update_agent_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -8285,6 +8376,7 @@
 - [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
+- [ ] update_flow
 - [ ] update_flow_permissions
 - [ ] update_folder
 - [ ] update_folder_permissions
@@ -8293,6 +8385,8 @@
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_key_registration
+- [ ] update_knowledge_base_permissions
+- [ ] update_o_auth_client_application
 - [X] update_public_sharing_settings
 - [ ] update_q_personalization_configuration
 - [ ] update_quick_sight_q_search_configuration
@@ -8300,6 +8394,9 @@
 - [ ] update_role_custom_permission
 - [ ] update_self_upgrade
 - [ ] update_self_upgrade_configuration
+- [ ] update_space
+- [ ] update_space_permissions
+- [ ] update_space_resources
 - [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias
@@ -9015,12 +9112,15 @@
 
 ## route53resolver
 <details>
-<summary>41% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
 - [X] associate_resolver_query_log_config
 - [X] associate_resolver_rule
+- [ ] batch_create_firewall_rule
+- [ ] batch_delete_firewall_rule
+- [ ] batch_update_firewall_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
@@ -9060,6 +9160,7 @@
 - [ ] list_firewall_domains
 - [ ] list_firewall_rule_group_associations
 - [ ] list_firewall_rule_groups
+- [ ] list_firewall_rule_types
 - [ ] list_firewall_rules
 - [ ] list_outpost_resolvers
 - [ ] list_resolver_configs
@@ -9391,7 +9492,7 @@
 
 ## sagemaker
 <details>
-<summary>28% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -9439,6 +9540,7 @@
 - [ ] create_inference_component
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
+- [ ] create_job
 - [ ] create_labeling_job
 - [ ] create_mlflow_app
 - [ ] create_mlflow_tracking_server
@@ -9507,6 +9609,7 @@
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_job
 - [ ] delete_mlflow_app
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
@@ -9574,6 +9677,8 @@
 - [ ] describe_inference_component
 - [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
+- [ ] describe_job
+- [ ] describe_job_schema_version
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_app
@@ -9663,6 +9768,8 @@
 - [ ] list_inference_experiments
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
+- [ ] list_job_schema_versions
+- [ ] list_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
@@ -9735,6 +9842,7 @@
 - [ ] stop_hyper_parameter_tuning_job
 - [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
+- [ ] stop_job
 - [ ] stop_labeling_job
 - [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule
@@ -9873,7 +9981,7 @@
 
 ## securityhub
 <details>
-<summary>12% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -9928,6 +10036,7 @@
 - [X] enable_organization_admin_account
 - [X] enable_security_hub
 - [ ] enable_security_hub_v2
+- [ ] generate_recommended_policy_v2
 - [X] get_administrator_account
 - [ ] get_aggregator_v2
 - [ ] get_automation_rule_v2
@@ -9946,6 +10055,7 @@
 - [ ] get_invitations_count
 - [X] get_master_account
 - [X] get_members
+- [ ] get_recommended_policy_v2
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2
@@ -10257,7 +10367,7 @@
 
 ## sesv2
 <details>
-<summary>25% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -10355,6 +10465,7 @@
 - [ ] put_email_identity_feedback_attributes
 - [ ] put_email_identity_mail_from_attributes
 - [ ] put_suppressed_destination
+- [ ] put_tenant_suppression_attributes
 - [ ] send_bulk_email
 - [ ] send_custom_verification_email
 - [X] send_email
@@ -10836,7 +10947,7 @@
 
 ## swf
 <details>
-<summary>48% implemented</summary>
+<summary>53% implemented</summary>
 
 - [ ] count_closed_workflow_executions
 - [ ] count_open_workflow_executions
@@ -10871,12 +10982,12 @@
 - [X] respond_decision_task_completed
 - [X] signal_workflow_execution
 - [X] start_workflow_execution
-- [ ] tag_resource
+- [X] tag_resource
 - [X] terminate_workflow_execution
 - [ ] undeprecate_activity_type
 - [X] undeprecate_domain
 - [ ] undeprecate_workflow_type
-- [ ] untag_resource
+- [X] untag_resource
 </details>
 
 ## synthetics
@@ -11661,6 +11772,7 @@
 - rbin
 - redshift-serverless
 - repostspace
+- resiliencehubv2
 - resource-explorer-2
 - rolesanywhere
 - route53-recovery-cluster
@@ -11676,6 +11788,7 @@
 - sagemaker-edge
 - sagemaker-featurestore-runtime
 - sagemaker-geospatial
+- sagemakerjobruntime
 - savingsplans
 - schemas
 - security-ir

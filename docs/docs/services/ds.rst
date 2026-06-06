@@ -80,7 +80,9 @@ ds
 - [X] disable_ldaps
   Disable LDAPS for a Directory
 
-- [ ] disable_radius
+- [X] disable_radius
+  Disable RADIUS for a directory.
+
 - [X] disable_sso
   Disable single-sign on for a directory.
 
@@ -90,7 +92,9 @@ ds
 - [X] enable_ldaps
   Enable LDAPS for a Directory
 
-- [ ] enable_radius
+- [X] enable_radius
+  Enable RADIUS for a directory.
+
 - [X] enable_sso
   Enable single-sign on for a directory.
 

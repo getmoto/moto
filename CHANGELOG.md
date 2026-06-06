@@ -1,6 +1,39 @@
 Moto Changelog
 ==============
 
+5.2.2
+-----
+Docker Digest for 5.2.2: <autopopulateddigest>
+
+    New Methods:
+        * DS:
+            * disable_radius()
+            * enable_radius()
+
+        * KinesisAnalyticsV2:
+            * untag_resource()
+
+        * Logs:
+            * start_live_tail()
+
+        * SESv2:
+            * update_contact()
+            * update_contact_list()
+
+        * SWF:
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ACM: import_certificate() now accepts certificates without a CN
+        * ACM: request_certificate() now preserves the default options when not all are provided
+        * CloudFormation: Created Lambda resources now take the `use_docker`-configuration into account
+        * CloudFormation: update_stack_instances() now validates that a StackInstance exists
+        * Events: create_partner_event_source() now returns the EventSourceArn-attribute
+        * Route53: list_resource_record_sets() no longer returns a TTL for aliases
+        * S3: completed_multipart_upload() is now compatible with external tools like PyArrow
+        * S3: get_object() now supports all Response* headers
+
 
 5.2.1
 -----

@@ -68,6 +68,7 @@ The parameters ReportPlanTags and IdempotencyToken are not yet supported
 - [ ] get_backup_vault_access_policy
 - [ ] get_backup_vault_notifications
 - [ ] get_legal_hold
+- [ ] get_pitr_malware_scan_results
 - [ ] get_recovery_point_index_details
 - [ ] get_recovery_point_restore_metadata
 - [ ] get_restore_job_metadata

@@ -22,6 +22,9 @@ route53resolver
   Associate a VPC with a resolver query log config.
 
 - [X] associate_resolver_rule
+- [ ] batch_create_firewall_rule
+- [ ] batch_delete_firewall_rule
+- [ ] batch_update_firewall_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
@@ -78,6 +81,7 @@ calculating the create_resolver_endpoint() IpAddresses.
 - [ ] list_firewall_domains
 - [ ] list_firewall_rule_group_associations
 - [ ] list_firewall_rule_groups
+- [ ] list_firewall_rule_types
 - [ ] list_firewall_rules
 - [ ] list_outpost_resolvers
 - [ ] list_resolver_configs

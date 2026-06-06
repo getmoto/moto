@@ -81,6 +81,7 @@ ec2
 - [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
+- [ ] create_capacity_reservation_cancellation_quote
 - [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
@@ -308,6 +309,7 @@ The following filters are supported: zone-id, zone-type, zone-name, region-name,
 - [ ] describe_capacity_blocks
 - [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
+- [ ] describe_capacity_reservation_cancellation_quotes
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservation_topology
 - [ ] describe_capacity_reservations
@@ -373,6 +375,7 @@ Pagination is not yet implemented
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_policies
+- [ ] describe_ipam_pool_allocations
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_prefix_list_resolver_targets
 - [ ] describe_ipam_prefix_list_resolvers
@@ -689,6 +692,7 @@ The DryRun parameter is ignored.
 - [ ] modify_ipam
 - [ ] modify_ipam_policy_allocation_rules
 - [ ] modify_ipam_pool
+- [ ] modify_ipam_pool_allocation
 - [ ] modify_ipam_prefix_list_resolver
 - [ ] modify_ipam_prefix_list_resolver_target
 - [ ] modify_ipam_resource_cidr

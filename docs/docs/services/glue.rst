@@ -127,6 +127,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_crawler_metrics
 - [X] get_crawlers
 - [ ] get_custom_entity_type
+- [ ] get_dashboard_url
 - [X] get_data_catalog_encryption_settings
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
@@ -182,6 +183,7 @@ Expression caveats:
   Pagination is not yet implemented
 
 - [X] get_session
+- [ ] get_session_endpoint
 - [ ] get_statement
 - [X] get_table
 - [ ] get_table_optimizer

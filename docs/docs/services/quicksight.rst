@@ -17,17 +17,20 @@ quicksight
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_create_topic_reviewed_answer
+- [ ] batch_delete_knowledge_base
 - [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
 - [ ] create_action_connector
+- [ ] create_agent
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
 - [X] create_dashboard
 - [X] create_data_set
 - [X] create_data_source
+- [ ] create_flow
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
@@ -35,8 +38,10 @@ quicksight
 - [ ] create_iam_policy_assignment
 - [X] create_ingestion
 - [ ] create_namespace
+- [ ] create_o_auth_client_application
 - [ ] create_refresh_schedule
 - [ ] create_role_membership
+- [ ] create_space
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
@@ -48,6 +53,7 @@ quicksight
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_action_connector
+- [ ] delete_agent
 - [ ] delete_analysis
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -57,16 +63,20 @@ quicksight
 - [ ] delete_data_set_refresh_properties
 - [X] delete_data_source
 - [ ] delete_default_q_business_application
+- [ ] delete_flow
 - [ ] delete_folder
 - [ ] delete_folder_membership
 - [X] delete_group
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
 - [ ] delete_identity_propagation_config
+- [ ] delete_knowledge_base
 - [ ] delete_namespace
+- [ ] delete_o_auth_client_application
 - [ ] delete_refresh_schedule
 - [ ] delete_role_custom_permission
 - [ ] delete_role_membership
+- [ ] delete_space
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -83,6 +93,8 @@ quicksight
 - [ ] describe_account_subscription
 - [ ] describe_action_connector
 - [ ] describe_action_connector_permissions
+- [ ] describe_agent
+- [ ] describe_agent_permissions
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
@@ -105,6 +117,7 @@ quicksight
 - [X] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_default_q_business_application
+- [ ] describe_flow
 - [ ] describe_folder
 - [ ] describe_folder_permissions
 - [ ] describe_folder_resolved_permissions
@@ -114,12 +127,17 @@ quicksight
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
 - [ ] describe_key_registration
+- [ ] describe_knowledge_base
+- [ ] describe_knowledge_base_permissions
 - [ ] describe_namespace
+- [ ] describe_o_auth_client_application
 - [ ] describe_q_personalization_configuration
 - [ ] describe_quick_sight_q_search_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
 - [ ] describe_self_upgrade_configuration
+- [ ] describe_space
+- [ ] describe_space_permissions
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -142,6 +160,7 @@ quicksight
 - [ ] get_identity_context
 - [ ] get_session_embed_url
 - [ ] list_action_connectors
+- [ ] list_agents
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
@@ -161,10 +180,14 @@ quicksight
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_identity_propagation_configs
 - [ ] list_ingestions
+- [ ] list_knowledge_bases
 - [ ] list_namespaces
+- [ ] list_o_auth_client_applications
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
 - [ ] list_self_upgrades
+- [ ] list_space_resources
+- [ ] list_spaces
 - [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -177,6 +200,7 @@ quicksight
 - [ ] list_topics
 - [X] list_user_groups
 - [X] list_users
+- [ ] list_users_index_capacity
 - [ ] list_vpc_connections
 - [ ] predict_qa_results
 - [ ] put_data_set_refresh_properties
@@ -188,6 +212,7 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 
 - [ ] restore_analysis
 - [ ] search_action_connectors
+- [ ] search_agents
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_data_sets
@@ -195,6 +220,8 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] search_flows
 - [ ] search_folders
 - [X] search_groups
+- [ ] search_knowledge_bases
+- [ ] search_spaces
 - [ ] search_topics
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
@@ -208,6 +235,8 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [X] update_account_settings
 - [ ] update_action_connector
 - [ ] update_action_connector_permissions
+- [ ] update_agent
+- [ ] update_agent_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -225,6 +254,7 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
+- [ ] update_flow
 - [ ] update_flow_permissions
 - [ ] update_folder
 - [ ] update_folder_permissions
@@ -233,6 +263,8 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_key_registration
+- [ ] update_knowledge_base_permissions
+- [ ] update_o_auth_client_application
 - [X] update_public_sharing_settings
 - [ ] update_q_personalization_configuration
 - [ ] update_quick_sight_q_search_configuration
@@ -240,6 +272,9 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] update_role_custom_permission
 - [ ] update_self_upgrade
 - [ ] update_self_upgrade_configuration
+- [ ] update_space
+- [ ] update_space_permissions
+- [ ] update_space_resources
 - [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias

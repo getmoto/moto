@@ -59,6 +59,7 @@ cognito-idp
 - [X] create_user_pool
 - [X] create_user_pool_client
 - [X] create_user_pool_domain
+- [ ] create_user_pool_replica
 - [X] delete_group
 - [X] delete_identity_provider
 - [ ] delete_managed_login_branding
@@ -70,6 +71,7 @@ cognito-idp
 - [X] delete_user_pool_client
 - [ ] delete_user_pool_client_secret
 - [X] delete_user_pool_domain
+- [ ] delete_user_pool_replica
 - [ ] delete_web_authn_credential
 - [X] describe_identity_provider
 - [ ] describe_managed_login_branding
@@ -116,6 +118,7 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [ ] list_user_import_jobs
 - [ ] list_user_pool_client_secrets
 - [X] list_user_pool_clients
+- [ ] list_user_pool_replicas
 - [X] list_user_pools
 - [X] list_users
 - [X] list_users_in_group
@@ -150,6 +153,7 @@ The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetail
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
+- [ ] update_user_pool_replica
 - [X] verify_software_token
 - [ ] verify_user_attribute
 

@@ -69,6 +69,7 @@ securityhub
 - [X] enable_organization_admin_account
 - [X] enable_security_hub
 - [ ] enable_security_hub_v2
+- [ ] generate_recommended_policy_v2
 - [X] get_administrator_account
 - [ ] get_aggregator_v2
 - [ ] get_automation_rule_v2
@@ -91,6 +92,7 @@ Filters and SortCriteria is not yet implemented
 - [ ] get_invitations_count
 - [X] get_master_account
 - [X] get_members
+- [ ] get_recommended_policy_v2
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2

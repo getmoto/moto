@@ -54,6 +54,7 @@ ivs
 - [ ] stop_stream
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_ad_configuration
 - [X] update_channel
 - [ ] update_playback_restriction_policy
 

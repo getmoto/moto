@@ -16,8 +16,10 @@ bedrock
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] batch_delete_advanced_prompt_optimization_job
 - [ ] batch_delete_evaluation_job
 - [ ] cancel_automated_reasoning_policy_build_workflow
+- [ ] create_advanced_prompt_optimization_job
 - [ ] create_automated_reasoning_policy
 - [ ] create_automated_reasoning_policy_test_case
 - [ ] create_automated_reasoning_policy_version
@@ -52,6 +54,7 @@ bedrock
 - [ ] delete_resource_policy
 - [ ] deregister_marketplace_model_endpoint
 - [ ] export_automated_reasoning_policy_version
+- [ ] get_advanced_prompt_optimization_job
 - [ ] get_automated_reasoning_policy
 - [ ] get_automated_reasoning_policy_annotations
 - [ ] get_automated_reasoning_policy_build_workflow
@@ -77,6 +80,7 @@ bedrock
 - [ ] get_provisioned_model_throughput
 - [ ] get_resource_policy
 - [ ] get_use_case_for_model_access
+- [ ] list_advanced_prompt_optimization_jobs
 - [ ] list_automated_reasoning_policies
 - [ ] list_automated_reasoning_policy_build_workflows
 - [ ] list_automated_reasoning_policy_test_cases
@@ -109,6 +113,7 @@ The foundation_model_arn_equals-argument is not yet supported
 - [ ] register_marketplace_model_endpoint
 - [ ] start_automated_reasoning_policy_build_workflow
 - [ ] start_automated_reasoning_policy_test_workflow
+- [ ] stop_advanced_prompt_optimization_job
 - [ ] stop_evaluation_job
 - [X] stop_model_customization_job
 - [ ] stop_model_invocation_job

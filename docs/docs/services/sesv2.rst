@@ -112,6 +112,7 @@ sesv2
 - [ ] put_email_identity_feedback_attributes
 - [ ] put_email_identity_mail_from_attributes
 - [ ] put_suppressed_destination
+- [ ] put_tenant_suppression_attributes
 - [ ] send_bulk_email
 - [ ] send_custom_verification_email
 - [X] send_email
@@ -126,3 +127,4 @@ sesv2
 - [ ] update_email_template
 - [ ] update_reputation_entity_customer_managed_status
 - [ ] update_reputation_entity_policy
+

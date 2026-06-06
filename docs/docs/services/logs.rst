@@ -164,3 +164,4 @@ Creates/updates resource policy and return policy object
 - [ ] update_log_anomaly_detector
 - [ ] update_lookup_table
 - [ ] update_scheduled_query
+

@@ -46,7 +46,7 @@ kinesisanalyticsv2
 - [ ] start_application
 - [ ] stop_application
 - [X] tag_resource
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_application
 - [ ] update_application_maintenance_configuration
 
