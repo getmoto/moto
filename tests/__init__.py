@@ -1,6 +1,8 @@
 import logging
 import os
+from collections.abc import Callable
 from functools import wraps
+from typing import ParamSpec, TypeVar
 
 from moto import mock_aws
 from moto.core.config import default_user_config
@@ -30,7 +32,11 @@ def allow_aws_request() -> bool:
     return os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
 
 
-def aws_verified(func):
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def aws_verified(func: Callable[P, T]) -> Callable[P, T]:
     """
     Function that is verified to work against AWS.
     Can be run against AWS at any time by setting:
@@ -40,11 +46,11 @@ def aws_verified(func):
     """
 
     @wraps(func)
-    def pagination_wrapper(**kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         if allow_aws_request():
-            return func(**kwargs)
+            return func(*args, **kwargs)
         else:
             with mock_aws():
-                return func(**kwargs)
+                return func(*args, **kwargs)
 
-    return pagination_wrapper
+    return wrapper

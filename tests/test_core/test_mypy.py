@@ -2,6 +2,7 @@ import boto3
 
 from moto import mock_aws
 from moto.core.decorator import MockAWS
+from tests import aws_verified
 
 
 @mock_aws
@@ -41,3 +42,14 @@ def test_mock_aws_decorator_return_types() -> None:
 
     y: int = method_without_parentheses()
     assert y == 123
+
+
+@aws_verified
+def aws_verified_method() -> int:
+    assert boto3.client("s3").list_buckets()["Buckets"] == []
+    return 789
+
+
+def test_aws_verified_decorator_return_types() -> None:
+    x: int = aws_verified_method()
+    assert x == 789
