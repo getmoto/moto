@@ -148,6 +148,63 @@ class ElasticBlockStore(EC2BaseResponse):
         )
         return ActionResult({"Snapshots": snapshots})
 
+    def modify_snapshot_tier(self) -> ActionResult:
+        snapshot_id = self._get_param("SnapshotId")
+        storage_tier = self._get_param("StorageTier")
+
+        self.error_on_dryrun()
+
+        snapshot = self.ec2_backend.modify_snapshot_tier(snapshot_id, storage_tier)
+        return ActionResult(
+            {
+                "SnapshotId": snapshot.id,
+                "TieringStartTime": snapshot.last_tiering_start_time,
+            }
+        )
+
+    def describe_snapshot_tier_status(self) -> ActionResult:
+        filters = self._filters_from_querystring()
+        snapshots = self.ec2_backend.describe_snapshot_tier_status(filters=filters)
+        statuses = [
+            {
+                "SnapshotId": snapshot.id,
+                "VolumeId": snapshot.volume_id,
+                "Status": snapshot.status,
+                "OwnerId": snapshot.owner_id,
+                "Tags": snapshot.tag_set,
+                "StorageTier": snapshot.storage_tier,
+                "LastTieringStartTime": snapshot.last_tiering_start_time,
+                "LastTieringProgress": snapshot.last_tiering_progress,
+                "LastTieringOperationStatus": snapshot.last_tiering_operation_status,
+                "LastTieringOperationStatusDetail": snapshot.last_tiering_operation_status_detail,
+                "ArchivalCompleteTime": snapshot.archival_complete_time,
+                "RestoreExpiryTime": snapshot.restore_expiry_time,
+            }
+            for snapshot in snapshots
+        ]
+        return ActionResult({"SnapshotTierStatuses": statuses})
+
+    def restore_snapshot_tier(self) -> ActionResult:
+        snapshot_id = self._get_param("SnapshotId")
+        temporary_restore_days = self._get_param("TemporaryRestoreDays")
+        permanent_restore = self._get_param("PermanentRestore", False)
+
+        self.error_on_dryrun()
+
+        snapshot = self.ec2_backend.restore_snapshot_tier(
+            snapshot_id,
+            temporary_restore_days=temporary_restore_days,
+            permanent_restore=permanent_restore,
+        )
+        result = {
+            "SnapshotId": snapshot.id,
+            "RestoreStartTime": snapshot.restore_start_time,
+            "IsPermanentRestore": bool(permanent_restore),
+        }
+        if not permanent_restore and temporary_restore_days is not None:
+            result["RestoreDuration"] = temporary_restore_days
+        return ActionResult(result)
+
     def describe_volumes(self) -> ActionResult:
         filters = self._filters_from_querystring()
         volume_ids = self._get_param("VolumeIds", [])

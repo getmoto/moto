@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from datetime import datetime, timedelta
 from typing import Any
 
 from moto.core.common_models import CloudFormationModel
@@ -330,6 +331,15 @@ class Snapshot(TaggedEC2Resource):
         self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
         self.kms_key_id = kms_key_id
+        # Storage tiering (standard | archive)
+        self.storage_tier = "standard"
+        self.last_tiering_start_time: datetime | None = None
+        self.last_tiering_progress: int | None = None
+        self.last_tiering_operation_status: str | None = None
+        self.last_tiering_operation_status_detail: str | None = None
+        self.archival_complete_time: datetime | None = None
+        self.restore_expiry_time: datetime | None = None
+        self.restore_start_time: datetime | None = None
 
     @property
     def snapshot_id(self) -> str:
@@ -366,6 +376,8 @@ class Snapshot(TaggedEC2Resource):
             return self.status
         elif filter_name == "owner-id":
             return self.owner_id
+        elif filter_name == "storage-tier":
+            return self.storage_tier
         else:
             return super().get_filter_value(filter_name, "DescribeSnapshots")
 
@@ -628,6 +640,49 @@ class EBSBackend:
         if not snapshot:
             raise InvalidSnapshotIdError()
         return snapshot
+
+    def modify_snapshot_tier(self, snapshot_id: str, storage_tier: str) -> Snapshot:
+        snapshot = self.get_snapshot(snapshot_id)
+        # ModifySnapshotTier only supports moving a snapshot to the archive tier.
+        if storage_tier != "archive":
+            raise InvalidParameterValueError(str(storage_tier))
+        now = utcnow()
+        snapshot.storage_tier = "archive"
+        snapshot.last_tiering_start_time = now
+        snapshot.last_tiering_progress = 100
+        snapshot.last_tiering_operation_status = "archival-completed"
+        snapshot.last_tiering_operation_status_detail = (
+            "Archival completed successfully"
+        )
+        snapshot.archival_complete_time = now
+        snapshot.restore_expiry_time = None
+        return snapshot
+
+    def restore_snapshot_tier(
+        self,
+        snapshot_id: str,
+        temporary_restore_days: int | None = None,
+        permanent_restore: bool = False,
+    ) -> Snapshot:
+        snapshot = self.get_snapshot(snapshot_id)
+        now = utcnow()
+        snapshot.restore_start_time = now
+        if permanent_restore:
+            snapshot.storage_tier = "standard"
+            snapshot.last_tiering_operation_status = "permanent-restore-completed"
+            snapshot.restore_expiry_time = None
+        else:
+            snapshot.last_tiering_operation_status = "temporary-restore-completed"
+            snapshot.restore_expiry_time = now + timedelta(
+                days=temporary_restore_days or 1
+            )
+        return snapshot
+
+    def describe_snapshot_tier_status(self, filters: Any = None) -> list[Snapshot]:
+        snapshots = list(self.snapshots.values())
+        if filters:
+            snapshots = generic_filter(filters, snapshots)
+        return snapshots
 
     def delete_snapshot(self, snapshot_id: str) -> Snapshot:
         if snapshot_id in self.snapshots:

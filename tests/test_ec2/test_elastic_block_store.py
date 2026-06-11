@@ -1257,3 +1257,96 @@ def test_create_volume_without_size():
         ex.value.response["Error"]["Message"]
         == "The request must contain the parameter size/snapshot"
     )
+
+
+def _create_snapshot(client):
+    volume = client.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    return client.create_snapshot(VolumeId=volume["VolumeId"])["SnapshotId"]
+
+
+@mock_aws
+def test_modify_snapshot_tier():
+    client = boto3.client("ec2", region_name="us-east-1")
+    snapshot_id = _create_snapshot(client)
+
+    resp = client.modify_snapshot_tier(SnapshotId=snapshot_id, StorageTier="archive")
+    assert resp["SnapshotId"] == snapshot_id
+    assert "TieringStartTime" in resp
+
+    status = next(
+        s
+        for s in client.describe_snapshot_tier_status()["SnapshotTierStatuses"]
+        if s["SnapshotId"] == snapshot_id
+    )
+    assert status["StorageTier"] == "archive"
+    assert status["LastTieringOperationStatus"] == "archival-completed"
+    assert status["LastTieringProgress"] == 100
+
+    archived = client.describe_snapshots(
+        Filters=[{"Name": "storage-tier", "Values": ["archive"]}]
+    )["Snapshots"]
+    assert snapshot_id in [s["SnapshotId"] for s in archived]
+
+
+@mock_aws
+def test_modify_snapshot_tier_invalid_storage_tier():
+    client = boto3.client("ec2", region_name="us-east-1")
+    snapshot_id = _create_snapshot(client)
+
+    with pytest.raises(ClientError) as exc:
+        client.modify_snapshot_tier(SnapshotId=snapshot_id, StorageTier="standard")
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_describe_snapshot_tier_status_defaults_to_standard():
+    client = boto3.client("ec2", region_name="us-east-1")
+    snapshot_id = _create_snapshot(client)
+
+    status = next(
+        s
+        for s in client.describe_snapshot_tier_status()["SnapshotTierStatuses"]
+        if s["SnapshotId"] == snapshot_id
+    )
+    assert status["StorageTier"] == "standard"
+
+
+@mock_aws
+def test_restore_snapshot_tier_temporary():
+    client = boto3.client("ec2", region_name="us-east-1")
+    snapshot_id = _create_snapshot(client)
+    client.modify_snapshot_tier(SnapshotId=snapshot_id, StorageTier="archive")
+
+    resp = client.restore_snapshot_tier(SnapshotId=snapshot_id, TemporaryRestoreDays=10)
+    assert resp["SnapshotId"] == snapshot_id
+    assert resp["IsPermanentRestore"] is False
+    assert resp["RestoreDuration"] == 10
+    assert "RestoreStartTime" in resp
+
+    status = next(
+        s
+        for s in client.describe_snapshot_tier_status()["SnapshotTierStatuses"]
+        if s["SnapshotId"] == snapshot_id
+    )
+    # A temporary restore keeps the snapshot in the archive tier.
+    assert status["StorageTier"] == "archive"
+    assert "RestoreExpiryTime" in status
+
+
+@mock_aws
+def test_restore_snapshot_tier_permanent():
+    client = boto3.client("ec2", region_name="us-east-1")
+    snapshot_id = _create_snapshot(client)
+    client.modify_snapshot_tier(SnapshotId=snapshot_id, StorageTier="archive")
+
+    resp = client.restore_snapshot_tier(SnapshotId=snapshot_id, PermanentRestore=True)
+    assert resp["IsPermanentRestore"] is True
+    assert "RestoreDuration" not in resp
+
+    status = next(
+        s
+        for s in client.describe_snapshot_tier_status()["SnapshotTierStatuses"]
+        if s["SnapshotId"] == snapshot_id
+    )
+    assert status["StorageTier"] == "standard"
+    assert status["LastTieringOperationStatus"] == "permanent-restore-completed"

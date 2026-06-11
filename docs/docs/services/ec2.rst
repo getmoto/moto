@@ -437,7 +437,7 @@ The Filters-parameter is not yet implemented
 - [X] describe_security_groups
 - [ ] describe_service_link_virtual_interfaces
 - [ ] describe_snapshot_attribute
-- [ ] describe_snapshot_tier_status
+- [X] describe_snapshot_tier_status
 - [X] describe_snapshots
 - [ ] describe_spot_datafeed_subscription
 - [X] describe_spot_fleet_instances
@@ -709,7 +709,7 @@ The DryRun parameter is ignored.
 - [ ] modify_route_server
 - [X] modify_security_group_rules
 - [ ] modify_snapshot_attribute
-- [ ] modify_snapshot_tier
+- [X] modify_snapshot_tier
 - [X] modify_spot_fleet_request
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
@@ -797,7 +797,7 @@ The following parameters are not yet implemented: RemovePrivateDnsName
 - [ ] restore_image_from_recycle_bin
 - [ ] restore_managed_prefix_list_version
 - [ ] restore_snapshot_from_recycle_bin
-- [ ] restore_snapshot_tier
+- [X] restore_snapshot_tier
 - [ ] restore_volume_from_recycle_bin
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
