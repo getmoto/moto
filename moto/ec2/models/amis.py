@@ -192,8 +192,11 @@ class AmiBackend:
             # we are assuming the default loaded amis are owned by amazon
             # owner_alias is required for terraform owner filters
             ami["owner_alias"] = "amazon"
-            if ami.get("creation_date"):
-                ami["creation_date"] = parse_timestamp(ami["creation_date"])
+            # Parse the create_date into a datetime, in case this hasn't happened before
+            if (create_date := ami.get("creation_date")) and isinstance(
+                create_date, str
+            ):
+                ami["creation_date"] = parse_timestamp(create_date)
             self.amis[ami_id] = Ami(self, **ami)
         if "MOTO_AMIS_PATH" not in environ:
             for path in ["latest_amis", "ecs/optimized_amis"]:
