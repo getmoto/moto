@@ -1,5 +1,22 @@
 from typing import Any
 
+from moto.appmesh.dataclasses.gateway_route import (
+    GatewayRouteHostnameMatch,
+    GatewayRouteHostnameRewrite,
+    GatewayRouteSpec,
+    GatewayRouteTarget,
+    GatewayRouteVirtualService,
+    GrpcGatewayRoute,
+    GrpcGatewayRouteAction,
+    GrpcGatewayRouteMatch,
+    GrpcGatewayRouteRewrite,
+    HttpGatewayRoute,
+    HttpGatewayRouteAction,
+    HttpGatewayRouteMatch,
+    HttpGatewayRoutePathRewrite,
+    HttpGatewayRoutePrefixRewrite,
+    HttpGatewayRouteRewrite,
+)
 from moto.appmesh.dataclasses.route import (
     GrcpRouteRetryPolicy,
     GrpcMetadatum,
@@ -20,6 +37,10 @@ from moto.appmesh.dataclasses.route import (
     TCPRouteMatch,
 )
 from moto.appmesh.dataclasses.shared import Duration, Timeout
+from moto.appmesh.dataclasses.virtual_gateway import (
+    VirtualGatewayListener,
+    VirtualGatewaySpec,
+)
 from moto.appmesh.dataclasses.virtual_node import (
     ACM,
     DNS,
@@ -672,4 +693,278 @@ def build_virtual_node_spec(spec: dict[str, Any]) -> VirtualNodeSpec:  # type: i
         listeners=listeners,
         logging=logging,
         service_discovery=service_discovery,
+    )
+
+
+def get_listener_tls(spec: Any) -> ListenerTLS:  # type: ignore[misc]
+    _certificate = spec.get("certificate")
+    _validation = spec.get("validation")
+    validation = None
+    if _certificate is None:
+        raise MissingRequiredFieldError("certificate")
+    _file = _certificate.get("file")
+    _sds = _certificate.get("sds")
+    _acm = _certificate.get("acm")
+    file, sds, acm = None, None, None
+    if _file is not None:
+        file = CertificateFileWithPrivateKey(
+            certificate_chain=_file.get("certificateChain"),
+            private_key=_file.get("privateKey"),
+        )
+    if _sds is not None:
+        sds = SDS(secret_name=_sds.get("secretName"))
+    if _acm is not None:
+        acm = ListenerCertificateACM(certificate_arn=_acm.get("certificateArn"))
+    certificate = TLSListenerCertificate(file=file, sds=sds, acm=acm)
+
+    if _validation is not None:
+        _subject_alternative_names = _validation.get("subjectAlternativeNames")
+        _trust = _validation.get("trust")
+        subject_alternative_names = None
+        if _subject_alternative_names is not None:
+            match = VirtualNodeMatch(
+                exact=_subject_alternative_names.get("match").get("exact")
+            )
+            subject_alternative_names = SubjectAlternativeNames(match=match)
+        if _trust is None:
+            raise MissingRequiredFieldError("trust")
+        _trust_file = _trust.get("file")
+        _trust_sds = _trust.get("sds")
+        trust_file, trust_sds = None, None
+        if _trust_file is not None:
+            trust_file = CertificateFile(
+                certificate_chain=_trust_file.get("certificateChain")
+            )
+        if _trust_sds is not None:
+            trust_sds = SDS(secret_name=_trust_sds.get("secretName"))
+        validation = TLSListenerValidation(
+            subject_alternative_names=subject_alternative_names,
+            trust=Trust(file=trust_file, sds=trust_sds),
+        )
+    return ListenerTLS(
+        certificate=certificate, mode=spec.get("mode"), validation=validation
+    )
+
+
+def build_virtual_gateway_spec(spec: dict[str, Any]) -> VirtualGatewaySpec:  # type: ignore[misc]
+    _backend_defaults = spec.get("backendDefaults")
+    _listeners = spec.get("listeners")
+    _logging = spec.get("logging")
+    backend_defaults, listeners, logging = None, None, None
+
+    if _backend_defaults is not None:
+        _client_policy = _backend_defaults.get("clientPolicy")
+        client_policy = None
+        if _client_policy is not None:
+            _tls = _client_policy.get("tls")
+            tls = get_tls_for_client_policy(_tls) if _tls is not None else None
+            client_policy = ClientPolicy(tls=tls)
+        backend_defaults = BackendDefaults(client_policy=client_policy)
+
+    if _listeners is not None:
+        listeners = []
+        for _listener in _listeners:
+            _connection_pool = _listener.get("connectionPool")
+            _health_check = _listener.get("healthCheck")
+            _port_mapping = _listener.get("portMapping")
+            _tls = _listener.get("tls")
+            connection_pool, health_check, listener_tls = None, None, None
+
+            if _connection_pool is not None:
+                _grpc = _connection_pool.get("grpc")
+                _http = _connection_pool.get("http")
+                _http2 = _connection_pool.get("http2")
+                grpc, http, http2 = None, None, None
+                if _grpc is not None:
+                    grpc = GRPCOrHTTP2Connection(max_requests=_grpc.get("maxRequests"))
+                if _http is not None:
+                    http = HTTPConnection(
+                        max_connections=_http.get("maxConnections"),
+                        max_pending_requests=_http.get("maxPendingRequests"),
+                    )
+                if _http2 is not None:
+                    http2 = GRPCOrHTTP2Connection(
+                        max_requests=_http2.get("maxRequests")
+                    )
+                connection_pool = ConnectionPool(
+                    grpc=grpc, http=http, http2=http2, tcp=None
+                )
+
+            if _health_check is not None:
+                health_check = HealthCheck(
+                    healthy_threshold=_health_check.get("healthyThreshold"),
+                    interval_millis=_health_check.get("intervalMillis"),
+                    path=_health_check.get("path"),
+                    port=_health_check.get("port"),
+                    protocol=_health_check.get("protocol"),
+                    timeout_millis=_health_check.get("timeoutMillis"),
+                    unhealthy_threshold=_health_check.get("unhealthyThreshold"),
+                )
+
+            if _port_mapping is None:
+                raise MissingRequiredFieldError("portMapping")
+            port_mapping = PortMapping(
+                port=_port_mapping.get("port"), protocol=_port_mapping.get("protocol")
+            )
+
+            if _tls is not None:
+                listener_tls = get_listener_tls(_tls)
+
+            listeners.append(
+                VirtualGatewayListener(
+                    connection_pool=connection_pool,
+                    health_check=health_check,
+                    port_mapping=port_mapping,
+                    tls=listener_tls,
+                )
+            )
+
+    if _logging is not None:
+        _access_log = _logging.get("accessLog")
+        access_log = None
+        if _access_log is not None:
+            _file = _access_log.get("file")
+            file = None
+            if _file is not None:
+                _format = _file.get("format")
+                format = None
+                if _format is not None:
+                    _json = _format.get("json")
+                    json = None
+                    if _json is not None:
+                        json = [
+                            KeyValue(key=item.get("key"), value=item.get("value"))
+                            for item in _json
+                        ]
+                    format = LoggingFormat(json=json, text=_format.get("text"))
+                file = AccessLogFile(format=format, path=_file.get("path"))
+            access_log = AccessLog(file=file)
+        logging = Logging(access_log=access_log)
+
+    return VirtualGatewaySpec(
+        backend_defaults=backend_defaults, listeners=listeners, logging=logging
+    )
+
+
+def _get_gateway_route_target(action: Any) -> GatewayRouteTarget:  # type: ignore[misc]
+    _target = action.get("target") or {}
+    _virtual_service: Any = _target.get("virtualService") or {}
+    return GatewayRouteTarget(
+        port=_target.get("port"),
+        virtual_service=GatewayRouteVirtualService(
+            virtual_service_name=_virtual_service.get("virtualServiceName")
+        ),
+    )
+
+
+def _get_hostname_rewrite(rewrite: Any) -> GatewayRouteHostnameRewrite | None:  # type: ignore[misc]
+    _hostname = rewrite.get("hostname")
+    if _hostname is None:
+        return None
+    return GatewayRouteHostnameRewrite(
+        default_target_hostname=_hostname.get("defaultTargetHostname")
+    )
+
+
+def _get_hostname_match(match: Any) -> GatewayRouteHostnameMatch | None:  # type: ignore[misc]
+    _hostname = match.get("hostname")
+    if _hostname is None:
+        return None
+    return GatewayRouteHostnameMatch(
+        exact=_hostname.get("exact"), suffix=_hostname.get("suffix")
+    )
+
+
+def build_gateway_route_spec(spec: dict[str, Any]) -> GatewayRouteSpec:  # type: ignore[misc]
+    _grpc_route = spec.get("grpcRoute")
+    _http_route = spec.get("httpRoute")
+    _http2_route = spec.get("http2Route")
+    grpc_route, http_route, http2_route = None, None, None
+
+    if _grpc_route is not None:
+        _action = _grpc_route.get("action") or {}
+        _rewrite = _action.get("rewrite")
+        rewrite = None
+        if _rewrite is not None:
+            rewrite = GrpcGatewayRouteRewrite(hostname=_get_hostname_rewrite(_rewrite))
+        _match = _grpc_route.get("match") or {}
+        grpc_route = GrpcGatewayRoute(
+            action=GrpcGatewayRouteAction(
+                rewrite=rewrite, target=_get_gateway_route_target(_action)
+            ),
+            match=GrpcGatewayRouteMatch(
+                hostname=_get_hostname_match(_match),
+                metadata=get_route_match_metadata(_match.get("metadata") or []),
+                port=_match.get("port"),
+                service_name=_match.get("serviceName"),
+            ),
+        )
+
+    if _http_route is not None:
+        http_route = _build_http_gateway_route(_http_route)
+    if _http2_route is not None:
+        http2_route = _build_http_gateway_route(_http2_route)
+
+    return GatewayRouteSpec(
+        grpc_route=grpc_route,
+        http_route=http_route,
+        http2_route=http2_route,
+        priority=spec.get("priority"),
+    )
+
+
+def _build_http_gateway_route(route: Any) -> HttpGatewayRoute:  # type: ignore[misc]
+    _action = route.get("action") or {}
+    _rewrite = _action.get("rewrite")
+    rewrite = None
+    if _rewrite is not None:
+        _path = _rewrite.get("path")
+        _prefix = _rewrite.get("prefix")
+        path = HttpGatewayRoutePathRewrite(exact=_path.get("exact")) if _path else None
+        prefix = (
+            HttpGatewayRoutePrefixRewrite(
+                default_prefix=_prefix.get("defaultPrefix"), value=_prefix.get("value")
+            )
+            if _prefix
+            else None
+        )
+        rewrite = HttpGatewayRouteRewrite(
+            hostname=_get_hostname_rewrite(_rewrite), path=path, prefix=prefix
+        )
+
+    _match = route.get("match") or {}
+    _path = _match.get("path")
+    path_match = (
+        RouteMatchPath(exact=_path.get("exact"), regex=_path.get("regex"))
+        if _path is not None
+        else None
+    )
+    query_parameters = None
+    _query_parameters = _match.get("queryParameters")
+    if _query_parameters is not None:
+        query_parameters = []
+        for _param in _query_parameters:
+            _qmatch = _param.get("match")
+            qmatch = (
+                QueryParameterMatch(exact=_qmatch.get("exact"))
+                if _qmatch is not None
+                else None
+            )
+            query_parameters.append(
+                RouteMatchQueryParameter(name=_param.get("name"), match=qmatch)
+            )
+
+    return HttpGatewayRoute(
+        action=HttpGatewayRouteAction(
+            rewrite=rewrite, target=_get_gateway_route_target(_action)
+        ),
+        match=HttpGatewayRouteMatch(
+            headers=get_route_match_metadata(_match.get("headers") or []),
+            hostname=_get_hostname_match(_match),
+            method=_match.get("method"),
+            path=path_match,
+            port=_match.get("port"),
+            prefix=_match.get("prefix"),
+            query_parameters=query_parameters,
+        ),
     )
