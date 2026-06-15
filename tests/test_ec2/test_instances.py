@@ -518,6 +518,51 @@ def test_get_instances_filtering_by_instance_type():
 
 
 @mock_aws
+def test_get_instances_filtering_by_availability_zone():
+    client = boto3.client("ec2", "us-west-1")
+    ec2 = boto3.resource("ec2", "us-west-1")
+    instance1 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-west-1a"},
+    )[0]
+    instance2 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-west-1b"},
+    )[0]
+
+    instances = retrieve_all_instances(
+        client, [{"Name": "availability-zone", "Values": ["us-west-1a"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance1.id in instance_ids
+    assert instance2.id not in instance_ids
+
+    instances = retrieve_all_instances(
+        client, [{"Name": "availability-zone", "Values": ["us-west-1b"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance2.id in instance_ids
+    assert instance1.id not in instance_ids
+
+    instances = retrieve_all_instances(
+        client,
+        [{"Name": "availability-zone", "Values": ["us-west-1a", "us-west-1b"]}],
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance1.id in instance_ids
+    assert instance2.id in instance_ids
+
+    res = client.describe_instances(
+        Filters=[{"Name": "availability-zone", "Values": ["us-west-2a"]}]
+    )
+    assert len(res["Reservations"]) == 0
+
+
+@mock_aws
 def test_get_instances_filtering_by_reason_code():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")

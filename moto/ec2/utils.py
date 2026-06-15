@@ -423,7 +423,7 @@ filter_dict_attribute_mapping = {
     "instance-type": "instance_type",
     "private-ip-address": "private_ip",
     "ip-address": "public_ip",
-    "availability-zone": "placement",
+    "availability-zone": "placement.zone",
     "architecture": "architecture",
     "image-id": "image_id",
     "network-interface.private-dns-name": "private_dns_name",
