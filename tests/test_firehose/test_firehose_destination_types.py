@@ -122,6 +122,25 @@ def create_snowflake_delivery_stream(client, stream_name):
     )
 
 
+def create_iceberg_delivery_stream(client, stream_name):
+    """Return delivery stream ARN of an Iceberg destination."""
+    return client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="DirectPut",
+        IcebergDestinationConfiguration={
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+            "CatalogConfiguration": {
+                "CatalogARN": f"arn:aws:glue:{TEST_REGION}:{ACCOUNT_ID}:catalog"
+            },
+            "S3BackupMode": "FailedDataOnly",
+            "S3Configuration": {
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                "BucketARN": "arn:aws:s3:::firehose-test",
+            },
+        },
+    )
+
+
 @mock_aws
 def test_create_snowflake_delivery_stream():
     """Verify fields of a Snowflake delivery stream."""
@@ -163,6 +182,71 @@ def test_create_snowflake_delivery_stream():
         "HasMoreDestinations": False,
         "VersionId": "1",
     }
+
+
+@mock_aws
+def test_create_iceberg_delivery_stream():
+    """Verify fields of an Iceberg delivery stream."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
+    response = create_iceberg_delivery_stream(client, stream_name)
+    stream_arn = response["DeliveryStreamARN"]
+
+    response = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    stream_description = response["DeliveryStreamDescription"]
+
+    # Sure and Freezegun don't play nicely together
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
+
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "IcebergDestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "CatalogConfiguration": {
+                        "CatalogARN": f"arn:aws:glue:{TEST_REGION}:{ACCOUNT_ID}:catalog"
+                    },
+                    "S3BackupMode": "FailedDataOnly",
+                    "S3DestinationDescription": {
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                        "BucketARN": "arn:aws:s3:::firehose-test",
+                    },
+                },
+            },
+        ],
+        "HasMoreDestinations": False,
+        "VersionId": "1",
+    }
+
+
+@mock_aws
+def test_update_iceberg_delivery_stream():
+    """Verify an Iceberg destination can be updated via UpdateDestination."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
+    create_iceberg_delivery_stream(client, stream_name)
+
+    client.update_destination(
+        DeliveryStreamName=stream_name,
+        CurrentDeliveryStreamVersionId="1",
+        DestinationId="destinationId-000000000001",
+        IcebergDestinationUpdate={"S3BackupMode": "AllData"},
+    )
+
+    response = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    stream_description = response["DeliveryStreamDescription"]
+
+    assert stream_description["VersionId"] == "2"
+    destination = stream_description["Destinations"][0]
+    assert destination["IcebergDestinationDescription"]["S3BackupMode"] == "AllData"
 
 
 @mock_aws

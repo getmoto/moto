@@ -49,6 +49,7 @@ DESTINATION_TYPES_TO_NAMES = {
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
     "snowflake": "Snowflake",
+    "iceberg": "Iceberg",
     "splunk": "Splunk",  # Unimplemented
 }
 
@@ -205,6 +206,7 @@ class FirehoseBackend(BaseBackend, TaggableResourcesMixin):
         splunk_destination_configuration: dict[str, Any],
         http_endpoint_destination_configuration: dict[str, Any],
         snowflake_destination_configuration: dict[str, Any],
+        iceberg_destination_configuration: dict[str, Any],
         tags: list[dict[str, str]],
     ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
@@ -612,6 +614,7 @@ class FirehoseBackend(BaseBackend, TaggableResourcesMixin):
         splunk_destination_update: dict[str, Any],
         http_endpoint_destination_update: dict[str, Any],
         snowflake_destination_configuration: dict[str, Any],
+        iceberg_destination_update: dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 
