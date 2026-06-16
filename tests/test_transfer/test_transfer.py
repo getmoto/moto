@@ -454,3 +454,48 @@ def test_update_connector_not_found(client):
             Url="sftp://example.com",
         )
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def test_describe_server_omits_unset_optional_fields(client):
+    server_id = client.create_server()["ServerId"]
+
+    described_server = client.describe_server(ServerId=server_id)["Server"]
+
+    # Optional fields that were never set must be omitted, not returned as null.
+    for omitted in [
+        "Certificate",
+        "LoggingRole",
+        "SecurityPolicyName",
+        "HostKeyFingerprint",
+        "PreAuthenticationLoginBanner",
+        "PostAuthenticationLoginBanner",
+        "EndpointDetails",
+        "IdentityProviderDetails",
+        "ProtocolDetails",
+        "S3StorageOptions",
+        "WorkflowDetails",
+    ]:
+        assert omitted not in described_server
+
+    # Fields that are always populated remain present.
+    assert described_server["ServerId"] == server_id
+    assert "Arn" in described_server
+    assert "State" in described_server
+
+
+def test_describe_connector_omits_unset_optional_fields(client):
+    connector_id = client.create_connector(
+        Url="sftp://example.com",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+    )["ConnectorId"]
+
+    connector = client.describe_connector(ConnectorId=connector_id)["Connector"]
+
+    for omitted in ["LoggingRole", "SecurityPolicyName", "As2Config", "SftpConfig"]:
+        assert omitted not in connector
+
+    assert connector["ConnectorId"] == connector_id
+    assert connector["Url"] == "sftp://example.com"
+    assert (
+        connector["AccessRole"] == "arn:aws:iam::123456789012:role/TransferAccessRole"
+    )

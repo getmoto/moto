@@ -6,6 +6,25 @@ from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 
 
+def prune_unset(value: Any) -> Any:
+    """Recursively drop unset fields (None / empty dict / empty list).
+
+    AWS Transfer omits optional fields that were never set from its Describe*
+    responses rather than returning them as null, so the serialized model must
+    do the same.
+    """
+    if isinstance(value, dict):
+        pruned = {}
+        for key, val in value.items():
+            cleaned = prune_unset(val)
+            if cleaned is not None and cleaned != {} and cleaned != []:
+                pruned[key] = cleaned
+        return pruned
+    if isinstance(value, list):
+        return [prune_unset(item) for item in value]
+    return value
+
+
 class UserHomeDirectoryType(str, Enum):
     PATH = "PATH"
     LOGICAL = "LOGICAL"
@@ -228,7 +247,7 @@ class Server(BaseModel):
                 "OnPartialUpload": on_partial_upload,
             },
         }
-        return server
+        return prune_unset(server)
 
     def to_short_dict(self) -> dict[str, Any]:
         return {
@@ -307,7 +326,7 @@ class Connector(BaseModel):  # type: ignore[misc]
                     "max_concurrent_connections"
                 ),
             }
-        return connector
+        return prune_unset(connector)
 
     def to_short_dict(self) -> dict[str, str]:
         return {
