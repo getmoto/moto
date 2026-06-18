@@ -211,6 +211,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         network_configuration = self._get_param("networkConfiguration")
         group = self._get_param("group")
         platform_version = self._get_param("platformVersion")
+        capacity_provider_strategy = self._get_param("capacityProviderStrategy")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -222,6 +223,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             network_configuration,
             group,
             platform_version,
+            capacity_provider_strategy,
         )
         return ActionResult({"tasks": tasks, "failures": []})
 

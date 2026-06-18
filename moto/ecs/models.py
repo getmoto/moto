@@ -314,6 +314,7 @@ class Task(ManagedState, BaseModel):
         tags: list[dict[str, str]] | None = None,
         networking_configuration: dict[str, Any] | None = None,
         platform_version: str | None = None,
+        capacity_provider_name: str | None = None,
     ):
         # Configure ManagedState
         # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html
@@ -344,6 +345,7 @@ class Task(ManagedState, BaseModel):
         self.started_by = started_by
         self.tags = tags or []
         self.launch_type = launch_type
+        self.capacity_provider_name = capacity_provider_name
         self.platform_version = platform_version
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
@@ -1247,13 +1249,34 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
         networking_configuration: dict[str, Any] | None = None,
         group: str | None = None,
         platform_version: str | None = None,
+        capacity_provider_strategy: list[dict[str, Any]] | None = None,
     ) -> list[Task]:
         if launch_type and launch_type not in ["EC2", "FARGATE", "EXTERNAL"]:
             raise InvalidParameterException(
                 "launch type should be one of [EC2,FARGATE,EXTERNAL]"
             )
+        if launch_type and capacity_provider_strategy:
+            raise InvalidParameterException(
+                "Specify either Launch Type or Capacity Provider Strategy, but not both."
+            )
 
         cluster = self._get_cluster(cluster_str)
+
+        # When neither a launch type nor an explicit strategy is given, fall back
+        # to the cluster's default capacity provider strategy (matches AWS).
+        if not launch_type and not capacity_provider_strategy:
+            capacity_provider_strategy = cluster.default_capacity_provider_strategy
+
+        capacity_provider_name = None
+        if capacity_provider_strategy:
+            capacity_provider_name = capacity_provider_strategy[0]["capacityProvider"]
+
+        # FARGATE/FARGATE_SPOT are managed providers that need no container instance;
+        # any user-defined capacity provider is backed by an EC2 Auto Scaling group.
+        fargate_capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+        use_fargate = launch_type == "FARGATE" or (
+            capacity_provider_name in fargate_capacity_providers
+        )
 
         task_definition = self.describe_task_definition(task_definition_str)
         # The "group" associated with this task is either the one passed explicitly or derived from "family" of the task definition
@@ -1266,7 +1289,7 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
         if cluster.name not in self.tasks:
             self.tasks[cluster.name] = {}
         tasks = []
-        if launch_type == "FARGATE":
+        if use_fargate:
             for _ in range(count):
                 task = Task(
                     cluster=cluster,
@@ -1281,6 +1304,7 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
                     launch_type=launch_type or "",
                     networking_configuration=networking_configuration,
                     platform_version=platform_version,
+                    capacity_provider_name=capacity_provider_name,
                 )
                 tasks.append(task)
                 self.tasks[cluster.name][task.task_arn] = task
@@ -1319,6 +1343,7 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
                         tags=tags or [],
                         launch_type=launch_type or "",
                         networking_configuration=networking_configuration,
+                        capacity_provider_name=capacity_provider_name,
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
