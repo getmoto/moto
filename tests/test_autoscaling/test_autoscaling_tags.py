@@ -234,6 +234,79 @@ def test_describe_tags_filter_by_propgateatlaunch():
 
 
 @mock_autoscaling
+def test_describe_tags_filter_by_key():
+    subnet = setup_networking()["subnet1"]
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    create_asgs(client, subnet)
+
+    # Filter by a single key
+    response = client.describe_tags(
+        Filters=[{"Name": "key", "Values": ["test_key"]}]
+    )
+    assert len(response["Tags"]) == 1
+    assert response["Tags"][0]["Key"] == "test_key"
+
+    # Filter by multiple keys
+    response = client.describe_tags(
+        Filters=[{"Name": "key", "Values": ["test_key", "asg2tag1"]}]
+    )
+    assert len(response["Tags"]) == 2
+    keys = [tag["Key"] for tag in response["Tags"]]
+    assert "test_key" in keys
+    assert "asg2tag1" in keys
+
+
+@mock_autoscaling
+def test_describe_tags_filter_by_value():
+    subnet = setup_networking()["subnet1"]
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    create_asgs(client, subnet)
+
+    # Filter by a single value
+    response = client.describe_tags(
+        Filters=[{"Name": "value", "Values": ["updated_test_value"]}]
+    )
+    assert len(response["Tags"]) == 1
+    assert response["Tags"][0]["Value"] == "updated_test_value"
+
+    # Filter by multiple values
+    response = client.describe_tags(
+        Filters=[{"Name": "value", "Values": ["val", "diff"]}]
+    )
+    assert len(response["Tags"]) == 2
+    values = [tag["Value"] for tag in response["Tags"]]
+    assert "val" in values
+    assert "diff" in values
+
+
+@mock_autoscaling
+def test_describe_tags_filter_by_key_and_value():
+    subnet = setup_networking()["subnet1"]
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    create_asgs(client, subnet)
+
+    # Filter by both key and value
+    response = client.describe_tags(
+        Filters=[
+            {"Name": "key", "Values": ["test_key"]},
+            {"Name": "value", "Values": ["updated_test_value"]},
+        ]
+    )
+    assert len(response["Tags"]) == 1
+    assert response["Tags"][0]["Key"] == "test_key"
+    assert response["Tags"][0]["Value"] == "updated_test_value"
+
+    # Filter by key and non-matching value should return empty
+    response = client.describe_tags(
+        Filters=[
+            {"Name": "key", "Values": ["test_key"]},
+            {"Name": "value", "Values": ["nonexistent"]},
+        ]
+    )
+    assert len(response["Tags"]) == 0
+
+
+@mock_autoscaling
 def test_create_20_tags_auto_scaling_group():
     """test to verify that the tag-members are sorted correctly, and there is no regression for
     https://github.com/getmoto/moto/issues/6033
