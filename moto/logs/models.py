@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from datetime import datetime, timedelta
@@ -234,15 +235,17 @@ class LogStream(BaseModel):
         )
 
     def filter_log_events(self, start_time, end_time, filter_pattern):
-        if filter_pattern:
-            raise NotImplementedError("filter_pattern is not yet implemented")
-
         def filter_func(event):
             if start_time and event.timestamp < start_time:
                 return False
 
             if end_time and event.timestamp > end_time:
                 return False
+
+            # Apply filter pattern if provided
+            if filter_pattern:
+                if not self._matches_filter_pattern(event.message, filter_pattern):
+                    return False
 
             return True
 
@@ -254,6 +257,38 @@ class LogStream(BaseModel):
             event_obj["logStreamName"] = self.log_stream_name
             events.append(event_obj)
         return events
+
+    def _matches_filter_pattern(self, message, filter_pattern):
+        """
+        Match a message against a filter pattern.
+        Supports simple string matching and wildcards (*).
+        """
+        # If pattern is empty, match everything
+        if not filter_pattern or filter_pattern.strip() == "*":
+            return True
+
+        # Convert filter pattern to regex
+        # Escape special regex characters except *
+        regex_pattern = ""
+        i = 0
+        while i < len(filter_pattern):
+            char = filter_pattern[i]
+            if char == "*":
+                # * matches any sequence of characters
+                regex_pattern += ".*"
+            elif char in r"\[](){}^$+?|.":
+                # Escape other special regex characters
+                regex_pattern += "\\" + char
+            else:
+                regex_pattern += char
+            i += 1
+
+        # Try to match the pattern anywhere in the message
+        try:
+            return bool(re.search(regex_pattern, message))
+        except re.error:
+            # If regex is invalid, fall back to simple substring match
+            return filter_pattern in message
 
 
 class LogGroup(CloudFormationModel):

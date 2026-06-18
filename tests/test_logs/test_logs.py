@@ -449,7 +449,7 @@ def test_filter_logs_interleaved():
 
 
 @mock_logs
-def test_filter_logs_raises_if_filter_pattern():
+def test_filter_logs_with_filter_pattern():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Does not work in server mode due to error in Workzeug")
     conn = boto3.client("logs", TEST_REGION)
@@ -457,19 +457,117 @@ def test_filter_logs_raises_if_filter_pattern():
     log_stream_name = "stream"
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+    timestamp = int(unix_time_millis(datetime.utcnow()))
     messages = [
-        {"timestamp": 0, "message": "hello"},
-        {"timestamp": 0, "message": "world"},
+        {"timestamp": timestamp, "message": "hello"},
+        {"timestamp": timestamp + 1000, "message": "world"},
+        {"timestamp": timestamp + 2000, "message": "hello world"},
     ]
     conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
-    with pytest.raises(NotImplementedError):
-        conn.filter_log_events(
-            logGroupName=log_group_name,
-            logStreamNames=[log_stream_name],
-            filterPattern='{$.message = "hello"}',
-        )
+    # Test that filter pattern works with simple string matching
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="hello",
+    )["events"]
+    # Should match "hello" and "hello world"
+    assert len(events) == 2
+    # Test that filter pattern with wildcard works
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="*world*",
+    )["events"]
+    assert len(events) == 2
+
+
+@mock_logs
+def test_filter_logs_with_filter_pattern_comprehensive():
+    """Test comprehensive filter pattern matching scenarios"""
+    conn = boto3.client("logs", TEST_REGION)
+    log_group_name = "dummy"
+    log_stream_name = "stream"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+    timestamp = int(unix_time_millis(datetime.utcnow()))
+    
+    # Add various log messages
+    messages = [
+        {"timestamp": timestamp, "message": "INFO: Application started"},
+        {"timestamp": timestamp + 1000, "message": "ERROR: Database connection failed"},
+        {"timestamp": timestamp + 2000, "message": "WARNING: High memory usage"},
+        {"timestamp": timestamp + 3000, "message": "ERROR: Timeout occurred"},
+        {"timestamp": timestamp + 4000, "message": "DEBUG: Processing request"},
+    ]
+    conn.put_log_events(
+        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
+    )
+    
+    # Test 1: Filter for ERROR messages
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="ERROR",
+    )["events"]
+    assert len(events) == 2
+    assert all("ERROR" in e["message"] for e in events)
+    
+    # Test 2: Filter for non-existent pattern
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="NOTFOUND",
+    )["events"]
+    assert len(events) == 0
+    
+    # Test 3: Filter with wildcard at start
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="*ERROR*",
+    )["events"]
+    assert len(events) == 2
+    
+    # Test 4: Filter with wildcard at end
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="INFO*",
+    )["events"]
+    assert len(events) == 1
+    
+    # Test 5: Filter with wildcard at start and end
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="*started",
+    )["events"]
+    assert len(events) == 1
+    
+    # Test 6: No filter pattern (should return all events)
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+    )["events"]
+    assert len(events) == 5
+    
+    # Test 7: Filter for specific message content
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="Database",
+    )["events"]
+    assert len(events) == 1
+    
+    # Test 8: Filter with special characters (should be escaped)
+    events = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        filterPattern="INFO: Application started",
+    )["events"]
+    assert len(events) == 1
 
 
 @mock_logs
