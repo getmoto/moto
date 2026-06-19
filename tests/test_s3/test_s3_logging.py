@@ -587,3 +587,40 @@ def test_bucket_policy_resource():
     assert FakeBucket._log_permissions_enabled_policy(
         target_bucket=log_bucket_obj, target_prefix="prefix"
     )
+
+
+@mock_aws
+def test_put_logging_w_bucket_policy_w_prefix():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    my_bucket_name = "my_bucket"
+    s3_client.create_bucket(Bucket=my_bucket_name)
+    log_bucket_name = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket_name)
+    prefix = "some-prefix"
+    bucket_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket_name}/{prefix}*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket_name, Policy=json.dumps(bucket_policy)
+    )
+    s3_client.put_bucket_logging(
+        Bucket=my_bucket_name,
+        BucketLoggingStatus={
+            "LoggingEnabled": {
+                "TargetBucket": log_bucket_name,
+                "TargetPrefix": "some-prefix"
+            }
+        }
+    )
+    result = s3_client.get_bucket_logging(Bucket=my_bucket_name)
+    assert result["LoggingEnabled"]["TargetBucket"] == log_bucket_name
+    assert result["LoggingEnabled"]["TargetPrefix"] == "some-prefix"

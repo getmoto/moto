@@ -1298,7 +1298,7 @@ class FakeBucket(CloudFormationModel):
                 "The target bucket for logging does not exist."
             )
 
-        target_prefix = self.logging.get("TargetPrefix", None)
+        target_prefix = logging_config.get("TargetPrefix", None)
         has_policy_permissions = self._log_permissions_enabled_policy(
             target_bucket=target_bucket, target_prefix=target_prefix
         )
