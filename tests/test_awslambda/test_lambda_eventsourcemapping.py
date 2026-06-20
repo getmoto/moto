@@ -522,7 +522,7 @@ def test_get_event_source_mapping():
     assert mapping["FunctionArn"] == func["FunctionArn"]
 
     with pytest.raises(ClientError) as exc:
-        conn.get_event_source_mapping(UUID="1")
+        conn.get_event_source_mapping(UUID=str(uuid.uuid4()))
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "The resource you requested does not exist."
