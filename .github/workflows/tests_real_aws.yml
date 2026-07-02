@@ -26,7 +26,7 @@ jobs:
     - name: Set git ref for `workflow_dispatch` event
       if: github.event_name == 'workflow_dispatch'
       run: echo "GITHUB_REF=${{ inputs.ref }}" >> $GITHUB_ENV
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         ref: ${{ env.GITHUB_REF }}
