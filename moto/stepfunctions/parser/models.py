@@ -172,12 +172,19 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             return existing_execution
 
         # Update event change parameters about the state machine and should not affect those about this execution.
-        # Do not copy the executions: they can hold live worker threads and
-        # locks that cannot be deepcopied, and the clone only acts as a
-        # snapshot of the state machine definition for this execution.
+        # The clone only acts as a snapshot of the state machine definition
+        # for this execution, so:
+        # * do not copy the executions: they can hold live worker threads and
+        #   locks that cannot be deepcopied;
+        # * share (rather than copy) the backend reference: the backend holds
+        #   every other state machine, whose executions have the same problem.
         # https://github.com/getmoto/moto/issues/10077
         state_machine_clone = copy.deepcopy(
-            state_machine, {id(state_machine.executions): []}
+            state_machine,
+            {
+                id(state_machine.executions): [],
+                id(state_machine.backend): state_machine.backend,
+            },
         )
 
         if execution_input is None:
