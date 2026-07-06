@@ -166,7 +166,6 @@ backend_url_patterns = [
     ("opensearchserverless", re.compile("https?://aoss\\.(.+)\\.amazonaws\\.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
     ("osis", re.compile("https?://osis\\.(.+)\\.amazonaws\\.com")),
-    ("panorama", re.compile("https?://panorama\\.(.+)\\.amazonaws.com")),
     ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
     ("pipes", re.compile("https?://pipes\\.(.+)\\.amazonaws\\.com")),

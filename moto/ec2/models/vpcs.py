@@ -239,7 +239,6 @@ AWS_ENDPOINT_SERVICES = [
     "nimble",
     "organizations",
     "organizations-fips",
-    "panorama",
     "payment-cryptography.controlplane",
     "payment-cryptography.dataplane",
     "pca-connector-ad",

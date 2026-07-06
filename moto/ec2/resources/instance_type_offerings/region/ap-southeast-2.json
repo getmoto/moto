@@ -864,6 +864,50 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "c8in.12xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.16xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.24xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.2xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.32xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.4xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.8xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.96xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.large",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8in.xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "ap-southeast-2"
  },
