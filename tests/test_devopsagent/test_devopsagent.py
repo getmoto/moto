@@ -15,7 +15,6 @@ def _client():
 def test_crud_round_trip():
     client = _client()
 
-    # Create
     resp = client.create_agent_space(name="my-space", description="A test space")
     space = resp["agentSpace"]
     assert "agentSpaceId" in space
@@ -25,30 +24,24 @@ def test_crud_round_trip():
     assert "updatedAt" in space
     space_id = space["agentSpaceId"]
 
-    # Get
     resp = client.get_agent_space(agentSpaceId=space_id)
     space = resp["agentSpace"]
     assert space["agentSpaceId"] == space_id
     assert space["name"] == "my-space"
 
-    # List
     resp = client.list_agent_spaces()
     assert len(resp["agentSpaces"]) == 1
     assert resp["agentSpaces"][0]["agentSpaceId"] == space_id
 
-    # Update
     resp = client.update_agent_space(agentSpaceId=space_id, name="renamed-space")
     space = resp["agentSpace"]
     assert space["name"] == "renamed-space"
 
-    # Verify update persisted
     resp = client.get_agent_space(agentSpaceId=space_id)
     assert resp["agentSpace"]["name"] == "renamed-space"
 
-    # Delete
     client.delete_agent_space(agentSpaceId=space_id)
 
-    # Verify deleted
     resp = client.list_agent_spaces()
     assert len(resp["agentSpaces"]) == 0
 
@@ -57,7 +50,6 @@ def test_crud_round_trip():
 def test_tagging():
     client = _client()
 
-    # Create with tags
     resp = client.create_agent_space(
         name="tagged-space",
         tags={"env": "test", "team": "platform"},
@@ -65,7 +57,6 @@ def test_tagging():
     space_id = resp["agentSpace"]["agentSpaceId"]
     assert resp.get("tags") == {"env": "test", "team": "platform"}
 
-    # Get should return tags
     resp = client.get_agent_space(agentSpaceId=space_id)
     assert resp["tags"] == {"env": "test", "team": "platform"}
 
@@ -74,16 +65,13 @@ def test_tagging():
     account_id = sts.get_caller_identity()["Account"]
     arn = f"arn:aws:aidevops:{REGION}:{account_id}:agentspace/{space_id}"
 
-    # list_tags_for_resource
     resp = client.list_tags_for_resource(resourceArn=arn)
     assert resp["tags"] == {"env": "test", "team": "platform"}
 
-    # tag_resource — add a new tag
     client.tag_resource(resourceArn=arn, tags={"version": "1"})
     resp = client.list_tags_for_resource(resourceArn=arn)
     assert resp["tags"] == {"env": "test", "team": "platform", "version": "1"}
 
-    # untag_resource
     client.untag_resource(resourceArn=arn, tagKeys=["team"])
     resp = client.list_tags_for_resource(resourceArn=arn)
     assert resp["tags"] == {"env": "test", "version": "1"}

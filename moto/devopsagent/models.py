@@ -130,5 +130,21 @@ class DevOpsAgentBackend(BaseBackend):
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-
-devopsagent_backends = BackendDict(DevOpsAgentBackend, "devops-agent")
+devopsagent_backends = BackendDict(
+    DevOpsAgentBackend,
+    "devops-agent",
+    use_boto3_regions=False,
+    additional_regions=[
+        "us-east-1",
+        "us-west-2",
+        "ca-central-1",
+        "sa-east-1",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-northeast-1",
+        "eu-central-1",
+        "eu-west-1",
+        "eu-west-2",
+    ],
+)
