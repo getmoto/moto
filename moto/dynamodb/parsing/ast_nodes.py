@@ -235,7 +235,7 @@ class ExpressionPathDescender(Node):
 
 
 class ExpressionSelector(LeafNode):
-    """Node identifying selector [selection_index] in expresion"""
+    """Node identifying selector [selection_index] in expression"""
 
     def __init__(self, selection_index):
         try:

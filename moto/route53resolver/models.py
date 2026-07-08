@@ -565,7 +565,7 @@ class Route53ResolverBackend(BaseBackend):
 
         NOTE: This does not include IPv6 addresses.
         """
-        # only initial endpoint creation requires atleast two ip addresses
+        # only initial endpoint creation requires at least two ip addresses
         if initial:
             if len(ip_addresses) < 2:
                 raise InvalidRequestException(
@@ -740,7 +740,7 @@ class Route53ResolverBackend(BaseBackend):
                 ) from exc
 
         # The boto3 documentation indicates that ResolverEndpoint is
-        # optional, as does the AWS documention.  But if resolver_endpoint_id
+        # optional, as does the AWS documentation.  But if resolver_endpoint_id
         # is set to None or an empty string, it results in boto3 raising
         # a ParamValidationError either regarding the type or len of string.
         if resolver_endpoint_id:

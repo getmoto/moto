@@ -450,7 +450,7 @@ class SNSResponse(BaseResponse):
 
         # Once Tokens are stored by the `subscribe` endpoint and distributed
         # to the client somehow, then we can check validity of tokens
-        # presented to this method. The following code works, all thats
+        # presented to this method. The following code works, all that's
         # needed is to perform a token check and assign that value to the
         # `already_subscribed` variable.
         #

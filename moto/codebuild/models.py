@@ -238,7 +238,7 @@ class CodeBuildBackend(BaseBackend):
 
         self.build_history[project_name].append(build_id)
 
-        # update build histroy with metadata for build id
+        # update build history with metadata for build id
         self.build_metadata_history[project_name].append(
             self.build_metadata[project_name].build_metadata
         )
