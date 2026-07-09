@@ -130,6 +130,7 @@ class DevOpsAgentBackend(BaseBackend):
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
+
 devopsagent_backends = BackendDict(
     DevOpsAgentBackend,
     "devops-agent",

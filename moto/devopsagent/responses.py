@@ -38,9 +38,7 @@ class DevOpsAgentResponse(BaseResponse):
 
     def list_agent_spaces(self) -> ActionResult:
         spaces = self.backend.list_agent_spaces()
-        return ActionResult(
-            {"agentSpaces": [s.to_dict() for s in spaces]}
-        )
+        return ActionResult({"agentSpaces": [s.to_dict() for s in spaces]})
 
     def update_agent_space(self) -> ActionResult:
         agent_space_id = self._get_param("agentSpaceId")
