@@ -1,0 +1,9 @@
+"""paymentcryptography base URL and path."""
+from .responses import PaymentCryptographyControlPlaneResponse
+
+url_bases = [
+    r"https?://controlplane.payment-cryptography\.(.+)\.amazonaws\.com",
+]
+
+url_paths = {
+}
