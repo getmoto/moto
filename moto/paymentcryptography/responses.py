@@ -20,14 +20,13 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
 
     def create_key(self) -> str:
-        params = self._get_params()
-        key_attributes = params.get("KeyAttributes")
-        key_check_value_algorithm = params.get("KeyCheckValueAlgorithm")
-        exportable = params.get("Exportable")
-        enabled = params.get("Enabled")
-        tags = params.get("Tags")
-        derive_key_usage = params.get("DeriveKeyUsage")
-        replication_regions = params.get("ReplicationRegions")
+        key_attributes = self._get_param("KeyAttributes")
+        key_check_value_algorithm = self._get_param("KeyCheckValueAlgorithm")
+        exportable = self._get_param("Exportable")
+        enabled = self._get_param("Enabled")
+        tags = self._get_param("Tags")
+        derive_key_usage = self._get_param("DeriveKeyUsage")
+        replication_regions = self._get_param("ReplicationRegions")
         key = self.paymentcryptography_backend.create_key(
             key_attributes=key_attributes,
             key_check_value_algorithm=key_check_value_algorithm,
@@ -43,9 +42,9 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
     def list_keys(self):
         params = self._get_params()
-        key_state = params.get("KeyState")
-        next_token = params.get("NextToken")
-        max_results = params.get("MaxResults")
+        key_state = self._get_param("KeyState")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
         keys, next_token = self.paymentcryptography_backend.list_keys(
             key_state=key_state,
             next_token=next_token,
@@ -58,9 +57,9 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
     def list_tags_for_resource(self):
         params = self._get_params()
-        resource_arn = params.get("ResourceArn")
-        next_token = params.get("NextToken")
-        max_results = params.get("MaxResults")
+        resource_arn = self._get_param("ResourceArn")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
         tags, next_token = self.paymentcryptography_backend.list_tags_for_resource(
             resource_arn=resource_arn,
             next_token=next_token,
@@ -71,8 +70,8 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
     def tag_resource(self):
         params = self._get_params()
-        resource_arn = params.get("ResourceArn")
-        tags = params.get("Tags")
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
         self.paymentcryptography_backend.tag_resource(
             resource_arn=resource_arn,
             tags=tags,

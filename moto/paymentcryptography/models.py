@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.tagging_service import TaggingService
 
 
 def _random_key_id() -> str:
@@ -18,6 +19,17 @@ def _key_check_value() -> str:
     # return a fake but plausible key check value based on the algorithm
     kcv = "".join(random.choices("0123456789ABCDEF", k=6))
     return kcv
+
+def _key_check_value_algorithm(key_algorithm: str) -> str:
+    # TDES keys use ANSI X9.24, AES keys use CMAC, HMAC keys use the HMAC hash,
+    # and asymmetric (RSA/ECC) keys use SHA-1.
+    if key_algorithm.startswith("TDES"):
+        return "ANSI_X9_24"
+    if key_algorithm.startswith("AES"):
+        return "CMAC"
+    if key_algorithm.startswith("HMAC"):
+        return "HMAC"
+    return "SHA_1"
 
 
 class Key(BaseModel):
@@ -39,9 +51,13 @@ class Key(BaseModel):
         )
         now = unix_time()
         self.key_attributes = key_attributes
+        key_attributes_key_algorithm = key_attributes.get("KeyAlgorithm")
 
         self.key_check_value = _key_check_value()
-        self.key_check_value_algorithm = key_check_value_algorithm
+        if key_check_value_algorithm:
+            self.key_check_value_algorithm = key_check_value_algorithm
+        else:
+            self.key_check_value_algorithm = _key_check_value_algorithm(key_attributes_key_algorithm)
 
         self.exportable = exportable
         self.enabled = enabled
@@ -77,6 +93,9 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.keys: dict[str, Key] = {}
+        self.tagger = TaggingService(
+            tag_name="Tags", key_name="Key", value_name="Value"
+        )
 
     def create_key(
         self,
@@ -118,7 +137,6 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             "CreateTimestamp": key.create_timestamp,
             "DeriveKeyUsage": key.derive_key_usage
         }
-        return key_arn
 
     def list_keys(self, key_state, next_token, max_results):
         # implement here
