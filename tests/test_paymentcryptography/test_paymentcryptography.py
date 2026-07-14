@@ -5,6 +5,7 @@ from datetime import datetime
 import boto3
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 KEY_ATTRIBUTES_1 = {
     "KeyUsage": "TR31_P0_PIN_ENCRYPTION_KEY",
@@ -26,7 +27,7 @@ KEY_ATTRIBUTES_1 = {
 
 @mock_aws
 def test_create_key():
-    client = boto3.client("paymentcryptography", region_name="us-east-1")
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
     key = client.create_key(
         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -36,11 +37,10 @@ def test_create_key():
             {"Key": "Environment", "Value": "Test"},
         ],
         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-        MultiRegionKeyType="PRIMARY",
     )["Key"]
 
     assert key["KeyArn"].startswith(
-        "arn:aws:payment-cryptography:us-east-1:1234567890:key/"
+        f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/"
     )
     assert key["KeyAttributes"] == KEY_ATTRIBUTES_1
     assert key["Exportable"] is True
@@ -55,7 +55,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_create_key_with_replica_regions():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -83,7 +83,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_get_key():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -114,7 +114,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_delete_key():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -141,9 +141,9 @@ def test_create_key():
 
 # @mock_aws
 # def test_get_key_replica():
-#     primary_client = boto3.client("paymentcryptography", region_name="us-east-1")
-#     replica_client = boto3.client("paymentcryptography", region_name="us-west-2")
-#     secondary_client = boto3.client("paymentcryptography", region_name="eu-west-1")
+#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
+#     replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
+#     secondary_client = boto3.client("payment-cryptography", region_name="eu-west-1")
 
 #     primary_arn = primary_client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -191,8 +191,8 @@ def test_create_key():
 
 # @mock_aws
 # def test_list_keys():
-#     primary_client = boto3.client("paymentcryptography", region_name="us-east-1")
-#     secondary_client = boto3.client("paymentcryptography", region_name="us-west-2")
+#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
+#     secondary_client = boto3.client("payment-cryptography", region_name="us-west-2")
 
 #     # Create multiple keys
 #     for _ in range(5):
@@ -239,7 +239,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_add_key_replication_regions():
-#     primary_client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = primary_client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -273,12 +273,12 @@ def test_create_key():
 #         "eu-west-1": {"Status": "SYNCHRONIZED"},
 #     }
 
-#     replica_client = boto3.client("paymentcryptography", region_name="us-west-2")
+#     replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
 #     replica_key = replica_client.get_key(KeyArn=f"arn:aws:payment-cryptography:us-west-2:1234567890:key/{key_id}")["Key"]
 #     assert replica_key["MultiRegionKeyType"] == "REPLICA"
 #     assert replica_key["PrimaryRegion"] == "us-east-1"
 
-#     replica_client_eu = boto3.client("paymentcryptography", region_name="eu-west-1")
+#     replica_client_eu = boto3.client("payment-cryptography", region_name="eu-west-1")
 #     replica_key_eu = replica_client_eu.get_key(KeyArn=f"arn:aws:payment-cryptography:eu-west-1:1234567890:key/{key_id}")["Key"]
 #     assert replica_key_eu["MultiRegionKeyType"] == "REPLICA"
 #     assert replica_key_eu["PrimaryRegion"] == "us-east-1"
@@ -286,7 +286,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_enable_default_key_replication_regions():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     # Enable default replication regions
 #     key_replication_regions = client.enable_default_key_replication_regions(
@@ -305,7 +305,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_get_default_key_replication_regions():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     default_regions = client.get_default_key_replication_regions()["EnabledReplicationRegions"]
 #     assert "us-west-2" in default_regions
@@ -314,7 +314,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_disable_default_key_replication_regions():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     # Disable default replication regions
 #     key_replication_regions = client.disable_default_key_replication_regions(
@@ -329,7 +329,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_tag_and_untag_key():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -374,7 +374,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_create_alias():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -404,7 +404,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_get_alias():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -433,7 +433,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_update_alias():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -472,7 +472,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_delete_alias():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -504,7 +504,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_list_aliases():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key1 = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -548,7 +548,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_put_resource_policy():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -587,7 +587,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_delete_resource_policy():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     key = client.create_key(
 #         KeyAttributes=KEY_ATTRIBUTES_1,
@@ -631,7 +631,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_start_key_usage():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     # Initially disabled
 #     key = client.create_key(
@@ -656,7 +656,7 @@ def test_create_key():
 
 # @mock_aws
 # def test_stop_key_usage():
-#     client = boto3.client("paymentcryptography", region_name="us-east-1")
+#     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
 #     # Initially enabled
 #     key = client.create_key(
@@ -681,14 +681,6 @@ def test_create_key():
 
 
 # @mock_aws
-# def test_create_key():
-#     client = boto3.client("payment-cryptography", region_name="ap-southeast-1")
-#     resp = client.create_key()
-
-#     raise Exception("NotYetImplemented")
-
-
-# @mock_aws
 # def test_list_keys():
 #     client = boto3.client("payment-cryptography", region_name="eu-west-1")
 #     resp = client.list_keys()
@@ -700,5 +692,13 @@ def test_create_key():
 # def test_list_tags_for_resource():
 #     client = boto3.client("payment-cryptography", region_name="us-east-2")
 #     resp = client.list_tags_for_resource()
+
+#     raise Exception("NotYetImplemented")
+
+
+# @mock_aws
+# def test_tag_resource():
+#     client = boto3.client("payment-cryptography", region_name="ap-southeast-1")
+#     resp = client.tag_resource()
 
 #     raise Exception("NotYetImplemented")

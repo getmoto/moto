@@ -4,7 +4,7 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import paymentcryptography_backends
+from .models import PaymentCryptographyControlPlaneBackend, paymentcryptography_backends
 
 
 class PaymentCryptographyControlPlaneResponse(BaseResponse):
@@ -14,16 +14,12 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         super().__init__(service_name="paymentcryptography")
 
     @property
-    def paymentcryptography_backend(self):
+    def paymentcryptography_backend(self) -> PaymentCryptographyControlPlaneBackend:
         """Return backend instance specific for this region."""
-        # TODO
-        # paymentcryptography_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return paymentcryptography_backends[self.current_account][self.region]
 
-    # add methods from here
 
-    def create_key(self):
+    def create_key(self) -> str:
         params = self._get_params()
         key_attributes = params.get("KeyAttributes")
         key_check_value_algorithm = params.get("KeyCheckValueAlgorithm")
@@ -41,8 +37,9 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             derive_key_usage=derive_key_usage,
             replication_regions=replication_regions,
         )
-        # TODO: adjust response
-        return json.dumps(dict(key=key))
+
+
+        return json.dumps(dict(Key=key))
 
     def list_keys(self):
         params = self._get_params()
@@ -71,3 +68,14 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(tags=tags, nextToken=next_token))
+
+    def tag_resource(self):
+        params = self._get_params()
+        resource_arn = params.get("ResourceArn")
+        tags = params.get("Tags")
+        self.paymentcryptography_backend.tag_resource(
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())

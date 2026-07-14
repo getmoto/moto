@@ -2,7 +2,7 @@
 
 import random
 import string
-from datetime import datetime, timezone
+from moto.core.utils import unix_time
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -27,8 +27,8 @@ class Key(BaseModel):
         region_name: str,
         key_attributes: Optional[dict[str, Any]],
         key_check_value_algorithm: str,
-        exportable: bool,
         enabled: bool,
+        exportable: bool,
         tags: list[dict[str, str]],
         derive_key_usage: str,
         replication_regions: list[str],
@@ -37,6 +37,7 @@ class Key(BaseModel):
         self.key_arn = (
             f"arn:aws:payment-cryptography:{region_name}:{account_id}:key/{self.key_id}"
         )
+        now = unix_time()
         self.key_attributes = key_attributes
 
         self.key_check_value = _key_check_value()
@@ -49,8 +50,8 @@ class Key(BaseModel):
         # when a key is created, the origin is AWS_PAYMENT_CRYPTOGRAPHY.
         # If a key is imported, the origin is EXTERNAL.
         self.key_origin = "AWS_PAYMENT_CRYPTOGRAPHY"
-        self.create_time = datetime.now(timezone.utc)
-        self.usage_start_timestamp = self.create_time if enabled else None
+        self.create_timestamp = now
+        self.usage_start_timestamp = now if enabled else None
         self.usage_stop_timestamp = None
         self.delete_pending_timestamp = None
         self.delete_timestamp = None
@@ -75,32 +76,48 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
+        self.keys: dict[str, Key] = {}
 
     def create_key(
         self,
         key_attributes: Optional[dict[str, Any]],
         key_check_value_algorithm: str,
-        exportable: bool,
         enabled: bool,
+        exportable: bool,
         tags: list[dict[str, str]],
         derive_key_usage: str,
         replication_regions: list[str],
     ) -> dict[str, Any]:
 
         key = Key(
-            key_attributes = self.key_attributes,
-
+            account_id=self.account_id,
+            region_name=self.region_name,
+            key_attributes=key_attributes,
+            key_check_value_algorithm=key_check_value_algorithm, # TODO: match kcv to key_check_value_algorithm
+            exportable=exportable,
+            enabled=enabled,
+            tags=tags,
+            derive_key_usage=derive_key_usage,
+            replication_regions=replication_regions,
         )
 
+        self.keys[key.key_arn] = key
+
+        if tags:
+            self.tag_resource(resource_arn=key.key_arn, tags=tags)
+
         return {
-
+            "KeyArn": key.key_arn,
+            "KeyAttributes": key.key_attributes,
+            "KeyCheckValue": key.key_check_value,
+            "KeyCheckValueAlgorithm": key.key_check_value_algorithm,
+            "Enabled": key.enabled,
+            "Exportable": key.exportable,
+            "KeyState": key.key_state,
+            "KeyOrigin": key.key_origin,
+            "CreateTimestamp": key.create_timestamp,
+            "DeriveKeyUsage": key.derive_key_usage
         }
-
-
-
-
-
-
         return key_arn
 
     def list_keys(self, key_state, next_token, max_results):
@@ -110,6 +127,9 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def list_tags_for_resource(self, resource_arn, next_token, max_results):
         # implement here
         return tags, next_token
+
+    def tag_resource(self, resource_arn, tags: list[dict[str, str]]):
+        self.tagger.tag_resource(resource_arn, tags)
 
 
 paymentcryptography_backends = BackendDict(
