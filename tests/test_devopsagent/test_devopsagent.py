@@ -25,11 +25,18 @@ def _arn_for(space_id):
 def test_create_agent_space():
     client = _client()
 
-    resp = client.create_agent_space(name="my-space", description="A test space")
+    resp = client.create_agent_space(
+        name="my-space",
+        description="A test space",
+        locale="en_US",
+        kmsKeyArn=f"arn:aws:kms:{REGION}:123456789012:key/test-key",
+    )
     space = resp["agentSpace"]
     assert "agentSpaceId" in space
     assert space["name"] == "my-space"
     assert space["description"] == "A test space"
+    assert space["locale"] == "en_US"
+    assert space["kmsKeyArn"] == f"arn:aws:kms:{REGION}:123456789012:key/test-key"
     assert "createdAt" in space
     assert "updatedAt" in space
 
@@ -69,11 +76,20 @@ def test_update_agent_space():
     client = _client()
     space_id = _create_agent_space(client)["agentSpaceId"]
 
-    resp = client.update_agent_space(agentSpaceId=space_id, name="renamed-space")
+    resp = client.update_agent_space(
+        agentSpaceId=space_id,
+        name="renamed-space",
+        description="Updated description",
+        locale="fr_FR",
+    )
     assert resp["agentSpace"]["name"] == "renamed-space"
+    assert resp["agentSpace"]["description"] == "Updated description"
+    assert resp["agentSpace"]["locale"] == "fr_FR"
 
     resp = client.get_agent_space(agentSpaceId=space_id)
     assert resp["agentSpace"]["name"] == "renamed-space"
+    assert resp["agentSpace"]["description"] == "Updated description"
+    assert resp["agentSpace"]["locale"] == "fr_FR"
 
 
 @mock_aws
