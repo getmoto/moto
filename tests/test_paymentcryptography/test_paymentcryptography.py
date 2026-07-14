@@ -1,13 +1,10 @@
 """Unit tests for paymentcryptography-supported APIs."""
+
 from datetime import datetime
 
 import boto3
-import json
-import pytest
-from botocore.exceptions import ClientError
 
 from moto import mock_aws
-
 
 KEY_ATTRIBUTES_1 = {
     "KeyUsage": "TR31_P0_PIN_ENCRYPTION_KEY",
@@ -34,15 +31,17 @@ def test_create_key():
     key = client.create_key(
         KeyAttributes=KEY_ATTRIBUTES_1,
         Exportable=True,
-        Enabled = True,
-        Tags = [
+        Enabled=True,
+        Tags=[
             {"Key": "Environment", "Value": "Test"},
         ],
         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
         MultiRegionKeyType="PRIMARY",
     )["Key"]
 
-    assert key["KeyArn"].startswith("arn:aws:payment-cryptography:us-east-1:1234567890:key/")
+    assert key["KeyArn"].startswith(
+        "arn:aws:payment-cryptography:us-east-1:1234567890:key/"
+    )
     assert key["KeyAttributes"] == KEY_ATTRIBUTES_1
     assert key["Exportable"] is True
     assert key["Enabled"] is True
@@ -471,7 +470,6 @@ def test_create_key():
 #     assert updated_alias["AliasName"] == new_alias_name
 
 
-
 # @mock_aws
 # def test_delete_alias():
 #     client = boto3.client("paymentcryptography", region_name="us-east-1")
@@ -680,3 +678,27 @@ def test_create_key():
 #     # Retrieve the key and check its state
 #     updated_key = client.get_key(KeyArn=key_arn)["Key"]
 #     assert updated_key["KeyState"] == "DISABLED"
+
+
+# @mock_aws
+# def test_create_key():
+#     client = boto3.client("payment-cryptography", region_name="ap-southeast-1")
+#     resp = client.create_key()
+
+#     raise Exception("NotYetImplemented")
+
+
+# @mock_aws
+# def test_list_keys():
+#     client = boto3.client("payment-cryptography", region_name="eu-west-1")
+#     resp = client.list_keys()
+
+#     raise Exception("NotYetImplemented")
+
+
+# @mock_aws
+# def test_list_tags_for_resource():
+#     client = boto3.client("payment-cryptography", region_name="us-east-2")
+#     resp = client.list_tags_for_resource()
+
+#     raise Exception("NotYetImplemented")

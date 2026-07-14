@@ -1,4 +1,5 @@
 """paymentcryptography base URL and path."""
+
 from .responses import PaymentCryptographyControlPlaneResponse
 
 url_bases = [
@@ -6,4 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
+    "{0}/$": PaymentCryptographyControlPlaneResponse.dispatch,
 }

@@ -1,12 +1,11 @@
 """PaymentCryptographyControlPlaneBackend class with methods for supported APIs."""
 
-import string
 import random
+import string
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-
-from moto.core.base_backend import BaseBackend, BackendDict
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 
 
@@ -20,21 +19,24 @@ def _key_check_value() -> str:
     kcv = "".join(random.choices("0123456789ABCDEF", k=6))
     return kcv
 
+
 class Key(BaseModel):
     def __init__(
         self,
         account_id: str,
         region_name: str,
-        key_attributes: Optional[Dict[str, Any]],
+        key_attributes: Optional[dict[str, Any]],
         key_check_value_algorithm: str,
         exportable: bool,
         enabled: bool,
         tags: list[dict[str, str]],
         derive_key_usage: str,
-        replication_regions: list[str]
+        replication_regions: list[str],
     ):
         self.key_id = _random_key_id()
-        self.key_arn = f"arn:aws:payment-cryptography:{region_name}:{account_id}:key/{self.key_id}"
+        self.key_arn = (
+            f"arn:aws:payment-cryptography:{region_name}:{account_id}:key/{self.key_id}"
+        )
         self.key_attributes = key_attributes
 
         self.key_check_value = _key_check_value()
@@ -65,10 +67,7 @@ class Key(BaseModel):
                 }
             self.using_default_replication_regions = False
 
-
-        self.tags = tags
-        self.derive_key_usage = derive_key_usage
-        self.replication_regions = replication_regions
+        self.tags = tags or []
 
 
 class PaymentCryptographyControlPlaneBackend(BaseBackend):
@@ -77,5 +76,61 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
 
+    def create_key(
+        self,
+        key_attributes: Optional[dict[str, Any]],
+        key_check_value_algorithm: str,
+        exportable: bool,
+        enabled: bool,
+        tags: list[dict[str, str]],
+        derive_key_usage: str,
+        replication_regions: list[str],
+    ) -> dict[str, Any]:
 
-paymentcryptography_backends = BackendDict(PaymentCryptographyControlPlaneBackend, "payment-cryptography")
+        key = Key(
+            key_attributes = self.key_attributes,
+
+        )
+
+        return {
+
+        }
+
+
+
+
+
+
+        return key_arn
+
+    def list_keys(self, key_state, next_token, max_results):
+        # implement here
+        return keys, next_token
+
+    def list_tags_for_resource(self, resource_arn, next_token, max_results):
+        # implement here
+        return tags, next_token
+
+
+paymentcryptography_backends = BackendDict(
+    PaymentCryptographyControlPlaneBackend,
+    "payment-cryptography",
+    additional_regions=[
+        "us-east-1",
+        "us-east-2",
+        "us-west-2",
+        "ca-central-1",
+        "sa-east-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "eu-central-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-northeast-1",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-south-2",
+        "af-south-1"
+    ],
+)
