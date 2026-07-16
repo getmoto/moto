@@ -348,10 +348,12 @@ def get_object_value(obj: Any, attr: str) -> Any:
         elif isinstance(val, dict):
             val = val[key]
         elif isinstance(val, list):
-            for item in val:
-                item_val = get_object_value(item, key)
-                if item_val:
-                    return item_val
+            # Collect the value from every element (e.g. all of an instance's
+            # security groups), not just the first, so a filter matches when the
+            # requested value belongs to any element. The caller
+            # (instance_value_in_filter_values) already intersects lists.
+            values = [get_object_value(item, key) for item in val]
+            return [value for value in values if value is not None]
         elif key == "owner_id" and hasattr(val, "account_id"):
             val = val.account_id
         else:
