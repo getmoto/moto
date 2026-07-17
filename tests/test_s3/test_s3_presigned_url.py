@@ -4,6 +4,7 @@ import requests
 
 from moto import settings
 from moto.s3.responses import DEFAULT_REGION_NAME
+from moto.server import ThreadedMotoServer
 from tests import allow_aws_request
 
 from . import s3_aws_verified
@@ -45,3 +46,40 @@ def test_presigned_url_generates_content_response_headers(bucket_name=None):
     assert response.headers.get("Content-Type") == "image/jpeg"
     assert response.headers.get("Content-Length") == "4"
     assert response.headers.get("Expires") == "Wed, 21 Oct 2015 07:28:00 GMT"
+
+
+def test_presigned_url_replaces_stored_content_disposition_in_server_mode():
+    server = ThreadedMotoServer(ip_address="127.0.0.1", port=0, verbose=False)
+    server.start()
+    host, port = server.get_host_and_port()
+    try:
+        client = boto3.client(
+            "s3",
+            endpoint_url=f"http://{host}:{port}",
+            region_name=DEFAULT_REGION_NAME,
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
+        )
+        client.create_bucket(Bucket="header-override-test")
+        client.put_object(
+            Bucket="header-override-test",
+            Key="file.txt",
+            Body=b"ABCD",
+            ContentDisposition='inline; filename="stored.txt"',
+        )
+
+        presigned_url = client.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": "header-override-test",
+                "Key": "file.txt",
+                "ResponseContentDisposition": 'attachment; filename="download.txt"',
+            },
+        )
+        response = requests.get(presigned_url)
+
+        assert response.raw.headers.getlist("Content-Disposition") == [
+            'attachment; filename="download.txt"'
+        ]
+    finally:
+        server.stop()
