@@ -11,7 +11,7 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
     """Handler for PaymentCryptographyControlPlane requests and responses."""
 
     def __init__(self):
-        super().__init__(service_name="paymentcryptography")
+        super().__init__(service_name="payment-cryptography")
 
     @property
     def paymentcryptography_backend(self) -> PaymentCryptographyControlPlaneBackend:
@@ -41,7 +41,6 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         return json.dumps(dict(Key=key))
 
     def list_keys(self):
-        params = self._get_params()
         key_state = self._get_param("KeyState")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
@@ -50,7 +49,7 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(keys=keys, nextToken=next_token))
 
     # add templates from here
@@ -78,3 +77,10 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict())
+
+    def get_key(self):
+        key_identifier = self._get_param("KeyIdentifier")
+        key = self.paymentcryptography_backend.get_key(
+            key_identifier=key_identifier,
+        )
+        return json.dumps(dict(key=key))

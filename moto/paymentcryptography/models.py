@@ -9,6 +9,8 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
 
+from .exceptions import ResourceNotFoundException
+
 
 def _random_key_id() -> str:
     chars = string.ascii_lowercase + string.digits
@@ -38,12 +40,12 @@ class Key(BaseModel):
         account_id: str,
         region_name: str,
         key_attributes: Optional[dict[str, Any]],
-        key_check_value_algorithm: str,
+        key_check_value_algorithm: Optional[str],
         enabled: bool,
         exportable: bool,
         tags: list[dict[str, str]],
         derive_key_usage: str,
-        replication_regions: list[str],
+        replication_regions: Optional[list[str]],
     ):
         self.key_id = _random_key_id()
         self.key_arn = (
@@ -73,18 +75,40 @@ class Key(BaseModel):
         self.delete_timestamp = None
         self.derive_key_usage = derive_key_usage
 
+        self.multi_region_key_type: Optional[str] = None
+        self.primary_region: Optional[str] = None
+        self.replication_status: Optional[dict] = None
+        self.using_default_replication_regions: Optional[bool] = None
+
         if replication_regions is not None:
-            self.multi_region_key_type = "PRIMARY"
             self.primary_region = region_name
-            self.replication_status = dict()
-            for region in replication_regions:
-                self.replication_status[region] = {
-                    "replication_status": "SYNCHRONIZED",
-                    "status_message": "Key is synchronized across regions.",
-                }
+            self.multi_region_key_type = "PRIMARY"
+            self.replication_status = {
+                region: {"Status": "SYNCHRONIZED"} for region in replication_regions
+            }
             self.using_default_replication_regions = False
 
+        # TODO: add missing mpa details
+
         self.tags = tags or []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "KeyArn": self.key_arn,
+            "KeyAttributes": self.key_attributes,
+            "KeyCheckValue": self.key_check_value,
+            "KeyCheckValueAlgorithm": self.key_check_value_algorithm,
+            "Enabled": self.enabled,
+            "Exportable": self.exportable,
+            "KeyState": self.key_state,
+            "KeyOrigin": self.key_origin,
+            "CreateTimestamp": self.create_timestamp,
+            "DeriveKeyUsage": self.derive_key_usage,
+            "MultiRegionKeyType": self.multi_region_key_type,
+            "PrimaryRegion": self.primary_region,
+            "ReplicationStatus": self.replication_status,
+            "UsingDefaultReplicationRegions": self.using_default_replication_regions
+        }
 
 
 class PaymentCryptographyControlPlaneBackend(BaseBackend):
@@ -125,22 +149,10 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         if tags:
             self.tag_resource(resource_arn=key.key_arn, tags=tags)
 
-        return {
-            "KeyArn": key.key_arn,
-            "KeyAttributes": key.key_attributes,
-            "KeyCheckValue": key.key_check_value,
-            "KeyCheckValueAlgorithm": key.key_check_value_algorithm,
-            "Enabled": key.enabled,
-            "Exportable": key.exportable,
-            "KeyState": key.key_state,
-            "KeyOrigin": key.key_origin,
-            "CreateTimestamp": key.create_timestamp,
-            "DeriveKeyUsage": key.derive_key_usage
-        }
+        return key.to_dict()
 
-    def list_keys(self, key_state, next_token, max_results):
-        # implement here
-        return keys, next_token
+    def list_keys(self, next_token, max_results):
+        return self.keys, next_token
 
     def list_tags_for_resource(self, resource_arn, next_token, max_results):
         # implement here
@@ -148,6 +160,13 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def tag_resource(self, resource_arn, tags: list[dict[str, str]]):
         self.tagger.tag_resource(resource_arn, tags)
+
+    def get_key(self, key_identifier):
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+
+        key = self.keys.get(key_identifier)
+        return key.to_dict()
 
 
 paymentcryptography_backends = BackendDict(
