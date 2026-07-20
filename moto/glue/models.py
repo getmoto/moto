@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -395,7 +395,11 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         return table.get_partition(values)
 
     def get_partitions(
-        self, database_name: str, table_name: str, expression: str
+        self,
+        database_name: str,
+        table_name: str,
+        expression: str,
+        segment: Optional[dict[str, int]] = None,
     ) -> list["FakePartition"]:
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
@@ -409,7 +413,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
         """
         table = self.get_table(database_name, table_name)
-        return table.get_partitions(expression)
+        return table.get_partitions(expression, segment)
 
     def update_partition(
         self,
@@ -1769,11 +1773,30 @@ class FakeTable(BaseModel):
             raise PartitionAlreadyExistsException()
         self.partitions[str(partition.values)] = partition
 
-    def get_partitions(self, expression: str) -> list["FakePartition"]:
+    def get_partitions(
+        self, expression: str, segment: Optional[dict[str, int]] = None
+    ) -> list["FakePartition"]:
         # Only load pyparsing when necessary
         from .utils import PartitionFilter
 
-        return list(filter(PartitionFilter(expression, self), self.partitions.values()))
+        partitions = list(
+            filter(PartitionFilter(expression, self), self.partitions.values())
+        )
+        if segment is not None:
+            # A segmented GetPartitions (used by the Hive Glue client for parallel
+            # scans) must return a disjoint slice per segment; the union across all
+            # segments equals the full set with no duplicates. Assign each partition
+            # to exactly one segment via a stable hash of its values.
+            total = int(segment["TotalSegments"])
+            number = int(segment["SegmentNumber"])
+            partitions = [
+                p
+                for p in partitions
+                if int(hashlib.md5(str(p.values).encode("utf-8")).hexdigest(), 16)
+                % total
+                == number
+            ]
+        return partitions
 
     def get_partition(self, values: str) -> "FakePartition":
         try:
