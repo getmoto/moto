@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
 )
 from unittest.mock import patch
 
@@ -65,7 +66,7 @@ class MockAWS(AbstractContextManager["MockAWS"]):
         self, func: "Callable[P, T]", reset: bool = True, remove_data: bool = True
     ) -> "Callable[P, T]":
         if inspect.isclass(func):
-            return self._decorate_class(func)
+            return cast("Callable[P, T]", self._decorate_class(func))
         return self._decorate_callable(func, reset, remove_data)
 
     def __enter__(self) -> "MockAWS":
@@ -125,8 +126,7 @@ class MockAWS(AbstractContextManager["MockAWS"]):
         wrapper.__wrapped__ = func  # type: ignore[attr-defined]
         return wrapper
 
-    def _decorate_class(self, klass: "Callable[P, T]") -> "Callable[P, T]":
-        assert inspect.isclass(klass)  # Keep mypy happy
+    def _decorate_class(self, klass: type[T]) -> type[T]:
         direct_methods = get_direct_methods_of(klass)
         defined_classes = {x for x, y in klass.__dict__.items() if inspect.isclass(y)}
 
