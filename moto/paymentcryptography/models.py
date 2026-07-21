@@ -171,6 +171,9 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         key = self.keys.get(key_identifier)
         return key.to_dict()
 
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,

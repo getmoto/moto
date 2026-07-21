@@ -73,7 +73,6 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def get_key(self):
@@ -82,3 +81,13 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             key_identifier=key_identifier,
         )
         return json.dumps(dict(Key=key))
+
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys =  self._get_param("TagKeys")
+        self.paymentcryptography_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+
+        return json.dumps(dict())

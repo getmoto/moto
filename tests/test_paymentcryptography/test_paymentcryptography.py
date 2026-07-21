@@ -325,51 +325,6 @@ def test_get_key():
 
 
 # @mock_aws
-# def test_tag_and_untag_key():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-
-#     # Tag the key with additional tags
-#     client.tag_resource(
-#         ResourceArn=key_arn,
-#         Tags=[
-#             {"Key": "foo", "Value": "1"},
-#             {"Key": "bar", "Value": "2"},
-#         ]
-#     )
-
-#     # Retrieve the key and check the tags with list_tags_for_resource
-#     retrieved_key = client.list_tags_for_resource(ResourceArn=key_arn)["Tags"]
-#     assert len(retrieved_key) == 3  # Original tag + 2 new tags
-#     assert {"Key": "Environment", "Value": "Test"} in retrieved_key
-#     assert {"Key": "foo", "Value": "1"} in retrieved_key
-#     assert {"Key": "bar", "Value": "2"} in retrieved_key
-
-#     # Untag the key
-#     client.untag_resource(
-#         ResourceArn=key_arn,
-#         TagKeys=["foo", "bar"]
-#     )
-
-#     # Retrieve the key and check the tags again
-#     retrieved_key_after_untag = client.list_tags_for_resource(ResourceArn=key_arn)["Tags"]
-#     assert len(retrieved_key_after_untag) == 1  # Only the original tag should remain
-#     assert {"Key": "Environment", "Value": "Test"} in retrieved_key_after_untag
-
-
-# @mock_aws
 # def test_create_alias():
 #     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
@@ -723,10 +678,66 @@ def test_list_tags_for_resource():
             {"Key": "Environment", "Value": "Test"},
         ]
 
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-# @mock_aws
-# def test_tag_resource():
-#     client = boto3.client("payment-cryptography", region_name="ap-southeast-1")
-#     resp = client.tag_resource()
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
 
-#     raise Exception("NotYetImplemented")
+    key_arn = key["KeyArn"]
+
+    # Tag the key with additional tags
+    client.tag_resource(
+        ResourceArn=key_arn,
+        Tags=[
+            {"Key": "foo", "Value": "1"},
+            {"Key": "bar", "Value": "2"},
+        ]
+    )
+
+    # Retrieve the key and check the tags with list_tags_for_resource
+    retrieved_key = client.list_tags_for_resource(ResourceArn=key_arn)["Tags"]
+    assert len(retrieved_key) == 3  # Original tag + 2 new tags
+    assert {"Key": "Environment", "Value": "Test"} in retrieved_key
+    assert {"Key": "foo", "Value": "1"} in retrieved_key
+    assert {"Key": "bar", "Value": "2"} in retrieved_key
+
+
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("payment-cryptography", region_name="ap-southeast-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+            {"Key": "foo", "Value": "1"},
+            {"Key": "bar", "Value": "2"}
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # Untag the key
+    client.untag_resource(
+        ResourceArn=key_arn,
+        TagKeys=["foo", "bar"]
+    )
+
+    # Retrieve the key and check the tags
+    retrieved_key_after_untag = client.list_tags_for_resource(ResourceArn=key_arn)["Tags"]
+    assert len(retrieved_key_after_untag) == 1
+    assert {"Key": "Environment", "Value": "Test"} in retrieved_key_after_untag
