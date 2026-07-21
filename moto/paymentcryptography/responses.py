@@ -83,4 +83,4 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         key = self.paymentcryptography_backend.get_key(
             key_identifier=key_identifier,
         )
-        return json.dumps(dict(key=key))
+        return json.dumps(dict(Key=key))

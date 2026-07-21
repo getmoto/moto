@@ -92,13 +92,12 @@ def test_get_key():
             {"Key": "Environment", "Value": "Test"},
         ],
         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
-    )
+    )["Key"]
 
     key_arn = key["KeyArn"]
-    retrieved_key = client.get_key(KeyIdentifier=key_arn)
+    retrieved_key = client.get_key(KeyIdentifier=key_arn)["Key"]
     # retrieved_key = retrieved_json.get("Key")
 
-    assert retrieved_key
     assert retrieved_key["KeyArn"] == key_arn
     assert retrieved_key["KeyAttributes"] == KEY_ATTRIBUTES_1
     assert retrieved_key["Exportable"] is True
@@ -122,8 +121,7 @@ def test_get_key():
 #         Tags = [
 #             {"Key": "Environment", "Value": "Test"},
 #         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
+#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
 #     )["Key"]
 
 #     key_arn = key["KeyArn"]
@@ -701,6 +699,3 @@ def test_get_key():
 #     resp = client.tag_resource()
 
 #     raise Exception("NotYetImplemented")
-
-
-
