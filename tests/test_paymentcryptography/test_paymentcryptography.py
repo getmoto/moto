@@ -53,63 +53,62 @@ def test_create_key():
     assert isinstance(key["CreateTimestamp"], datetime)
 
 
-# @mock_aws
-# def test_create_key_with_replica_regions():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
+@mock_aws
+def test_create_key_with_replica_regions():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#         ReplicationRegions=[
-#             "us-west-2",
-#             "eu-west-1",
-#         ]
-#     )["Key"]
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+        ReplicationRegions=[
+            "us-west-2",
+            "eu-west-1",
+        ]
+    )["Key"]
 
-#     assert key["MultiRegionKeyType"] == "PRIMARY"
-#     assert key["PrimaryRegion"] == "us-east-1"
-#     assert key["UsingDefaultReplicationRegions"] is False
-#     assert key["ReplicationStatus"] == {
-#         "us-west-2": {"Status": "SYNCHRONIZED"},
-#         "eu-west-1": {"Status": "SYNCHRONIZED"},
-#     }
+    assert key["MultiRegionKeyType"] == "PRIMARY"
+    assert key["PrimaryRegion"] == "us-east-1"
+    assert key["UsingDefaultReplicationRegions"] is False
+    assert key["ReplicationStatus"] == {
+        "us-west-2": {"Status": "SYNCHRONIZED"},
+        "eu-west-1": {"Status": "SYNCHRONIZED"},
+    }
 
 
-# @mock_aws
-# def test_get_key():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
+@mock_aws
+def test_get_key():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )
 
-#     key_arn = key["KeyArn"]
+    key_arn = key["KeyArn"]
+    retrieved_key = client.get_key(KeyIdentifier=key_arn)
+    # retrieved_key = retrieved_json.get("Key")
 
-#     retrieved_key = client.get_key(KeyArn=key_arn)["Key"]
-
-#     assert retrieved_key["KeyArn"] == key_arn
-#     assert key["KeyAttributes"] == KEY_ATTRIBUTES_1
-#     assert key["Exportable"] is True
-#     assert key["Enabled"] is True
-#     assert key["KeyCheckValue"] is not None
-#     assert key["KeyCheckValueAlgorithm"] is not None
-#     assert key["KeyState"] == "CREATE_COMPLETE"
-#     assert key["KeyOrigin"] == "AWS_PAYMENT_CRYPTOGRAPHY"
-#     assert key["DeriveKeyUsage"] == "TR31_P0_PIN_ENCRYPTION_KEY"
-#     assert isinstance(key["CreateTimestamp"], datetime)
+    assert retrieved_key
+    assert retrieved_key["KeyArn"] == key_arn
+    assert retrieved_key["KeyAttributes"] == KEY_ATTRIBUTES_1
+    assert retrieved_key["Exportable"] is True
+    assert retrieved_key["Enabled"] is True
+    assert retrieved_key["KeyCheckValue"] is not None
+    assert retrieved_key["KeyCheckValueAlgorithm"] is not None
+    assert retrieved_key["KeyState"] == "CREATE_COMPLETE"
+    assert retrieved_key["KeyOrigin"] == "AWS_PAYMENT_CRYPTOGRAPHY"
+    assert retrieved_key["DeriveKeyUsage"] == "TR31_P0_PIN_ENCRYPTION_KEY"
+    assert isinstance(key["CreateTimestamp"], datetime)
 
 
 # @mock_aws
@@ -702,3 +701,6 @@ def test_create_key():
 #     resp = client.tag_resource()
 
 #     raise Exception("NotYetImplemented")
+
+
+
