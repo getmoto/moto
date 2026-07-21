@@ -151,8 +151,11 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
         return key.to_dict()
 
-    def list_keys(self, next_token, max_results):
-        return self.keys, next_token
+    def list_keys(self, key_state, next_token, max_results):
+        keys = list(self.keys.values())
+        if key_state:
+            keys = [key for key in keys if key.key_state == key_state]
+        return [key.to_dict() for key in keys], next_token
 
     def list_tags_for_resource(self, resource_arn, next_token, max_results):
         # implement here

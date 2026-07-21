@@ -50,7 +50,7 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             max_results=max_results,
         )
 
-        return json.dumps(dict(keys=keys, nextToken=next_token))
+        return json.dumps(dict(Keys=keys, NextToken=next_token))
 
     # add templates from here
 

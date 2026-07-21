@@ -677,13 +677,32 @@ def test_get_key():
 #     assert updated_key["KeyState"] == "DISABLED"
 
 
-# @mock_aws
-# def test_list_keys():
-#     client = boto3.client("payment-cryptography", region_name="eu-west-1")
-#     resp = client.list_keys()
+@mock_aws
+def test_list_keys_single_region():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-#     raise Exception("NotYetImplemented")
+    client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )
 
+    list_key_resp = client.list_keys()["Keys"]
+    key = list_key_resp[0]
+
+    assert len(list_key_resp) == 1
+    assert key["KeyArn"].startswith(
+        f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/"
+    )
+    assert key["KeyAttributes"] == KEY_ATTRIBUTES_1
+    assert key["Exportable"] is True
+    assert key["Enabled"] is True
+    assert key["KeyCheckValue"] is not None
+    assert key["KeyState"] == "CREATE_COMPLETE"
 
 # @mock_aws
 # def test_list_tags_for_resource():
