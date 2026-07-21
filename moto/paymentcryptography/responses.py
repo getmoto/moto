@@ -55,7 +55,6 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
     # add templates from here
 
     def list_tags_for_resource(self):
-        params = self._get_params()
         resource_arn = self._get_param("ResourceArn")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
@@ -64,8 +63,7 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-        # TODO: adjust response
-        return json.dumps(dict(tags=tags, nextToken=next_token))
+        return json.dumps(dict(Tags=tags, NextToken=next_token))
 
     def tag_resource(self):
         params = self._get_params()

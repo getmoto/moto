@@ -704,12 +704,24 @@ def test_list_keys_single_region():
     assert key["KeyCheckValue"] is not None
     assert key["KeyState"] == "CREATE_COMPLETE"
 
-# @mock_aws
-# def test_list_tags_for_resource():
-#     client = boto3.client("payment-cryptography", region_name="us-east-2")
-#     resp = client.list_tags_for_resource()
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-#     raise Exception("NotYetImplemented")
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    list_tags_resp = client.list_tags_for_resource(ResourceArn=key["KeyArn"])
+    assert list_tags_resp['Tags'] == [
+            {"Key": "Environment", "Value": "Test"},
+        ]
 
 
 # @mock_aws

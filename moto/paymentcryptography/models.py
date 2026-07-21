@@ -158,7 +158,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         return [key.to_dict() for key in keys], next_token
 
     def list_tags_for_resource(self, resource_arn, next_token, max_results):
-        # implement here
+        tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return tags, next_token
 
     def tag_resource(self, resource_arn, tags: list[dict[str, str]]):
