@@ -3,6 +3,8 @@
 from datetime import datetime
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -108,32 +110,6 @@ def test_get_key():
     assert retrieved_key["KeyOrigin"] == "AWS_PAYMENT_CRYPTOGRAPHY"
     assert retrieved_key["DeriveKeyUsage"] == "TR31_P0_PIN_ENCRYPTION_KEY"
     assert isinstance(key["CreateTimestamp"], datetime)
-
-
-# @mock_aws
-# def test_delete_key():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-
-#     # Delete the key
-#     client.delete_key(KeyArn=key_arn)
-
-#     # Check that the key no longer exists
-#     with pytest.raises(ClientError) as exc:
-#         client.get_key(KeyArn=key_arn)
-#     err = exc.value.response["Error"]
-#     assert err["Code"] == "ResourceNotFoundException"
 
 
 # @mock_aws
@@ -741,3 +717,41 @@ def test_untag_resource():
     retrieved_key_after_untag = client.list_tags_for_resource(ResourceArn=key_arn)["Tags"]
     assert len(retrieved_key_after_untag) == 1
     assert {"Key": "Environment", "Value": "Test"} in retrieved_key_after_untag
+
+
+@mock_aws
+def test_delete_key():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # Delete the key
+    deleted = client.delete_key(KeyIdentifier=key_arn)["Key"]
+    assert deleted["KeyState"] == "DELETE_PENDING"
+    assert deleted["Enabled"] is False
+    assert isinstance(deleted["DeletePendingTimestamp"], datetime)
+
+    retrieved = client.get_key(KeyIdentifier=key_arn)["Key"]
+    assert retrieved["KeyState"] == "DELETE_PENDING"
+    assert retrieved["Enabled"] is False
+
+
+@mock_aws
+def test_delete_key_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist"
+    with pytest.raises(ClientError) as exc:
+        client.delete_key(KeyIdentifier=missing_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+

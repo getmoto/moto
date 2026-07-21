@@ -93,7 +93,7 @@ class Key(BaseModel):
         self.tags = tags or []
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "KeyArn": self.key_arn,
             "KeyAttributes": self.key_attributes,
             "KeyCheckValue": self.key_check_value,
@@ -109,6 +109,11 @@ class Key(BaseModel):
             "ReplicationStatus": self.replication_status,
             "UsingDefaultReplicationRegions": self.using_default_replication_regions
         }
+        if self.delete_pending_timestamp is not None:
+            result["DeletePendingTimestamp"] = self.delete_pending_timestamp
+        if self.delete_timestamp is not None:
+            result["DeletePendingTimestamp"] = self.delete_timestamp
+        return result
 
 
 class PaymentCryptographyControlPlaneBackend(BaseBackend):
@@ -173,6 +178,18 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def delete_key(self, key_identifier, delete_key_in_days):
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+
+        key = self.keys[key_identifier]
+        days = delete_key_in_days if delete_key_in_days is not None else 7
+        key.key_state = "DELETE_PENDING"
+        key.enabled = False
+        key.usage_stop_timestamp = unix_time()
+        key.delete_pending_timestamp = unix_time() + days *86400
+        return key.to_dict()
 
 
 paymentcryptography_backends = BackendDict(

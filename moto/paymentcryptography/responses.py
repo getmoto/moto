@@ -91,3 +91,12 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         )
 
         return json.dumps(dict())
+
+    def delete_key(self):
+        key_identifier = self._get_param("KeyIdentifier")
+        delete_key_in_days = self._get_param("DeleteKeyInDays")
+        key = self.paymentcryptography_backend.delete_key(
+            key_identifier=key_identifier,
+            delete_key_in_days=delete_key_in_days,
+        )
+        return json.dumps(dict(Key=key))
