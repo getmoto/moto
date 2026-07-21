@@ -100,3 +100,26 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             delete_key_in_days=delete_key_in_days,
         )
         return json.dumps(dict(Key=key))
+
+    def put_resource_policy(self):
+        resource_arn =  self._get_param("ResourceArn")
+        policy =  self._get_param("Policy")
+        result = self.paymentcryptography_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy=policy,
+        )
+        return json.dumps(result)
+
+    def get_resource_policy(self):
+        resource_arn =  self._get_param("ResourceArn")
+        policy = self.paymentcryptography_backend.get_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(policy)
+
+    def delete_resource_policy(self):
+        resource_arn =  self._get_param("ResourceArn")
+        self.paymentcryptography_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict())

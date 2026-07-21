@@ -122,6 +122,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.keys: dict[str, Key] = {}
+        self.resource_policies: dict[str, str] = {}
         self.tagger = TaggingService(
             tag_name="Tags", key_name="Key", value_name="Value"
         )
@@ -190,6 +191,28 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         key.usage_stop_timestamp = unix_time()
         key.delete_pending_timestamp = unix_time() + days *86400
         return key.to_dict()
+
+    def put_resource_policy(self, resource_arn, policy):
+        if resource_arn not in self.keys:
+            raise ResourceNotFoundException(resource_arn)
+        self.resource_policies[resource_arn] = policy
+        return {
+            "Policy": policy,
+            "ResourceArn": resource_arn,
+        }
+
+    def get_resource_policy(self, resource_arn):
+        if resource_arn not in self.keys:
+            raise ResourceNotFoundException(resource_arn)
+        return {
+            "Policy": self.resource_policies.get(resource_arn, "{}"),
+            "ResourceArn": resource_arn,
+        }
+
+    def delete_resource_policy(self, resource_arn):
+        if resource_arn not in self.keys:
+            raise ResourceNotFoundException(resource_arn)
+        self.resource_policies.pop(resource_arn, None)
 
 
 paymentcryptography_backends = BackendDict(

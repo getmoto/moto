@@ -3,8 +3,9 @@
 from datetime import datetime
 
 import boto3
-import pytest
 from botocore.exceptions import ClientError
+import json
+import pytest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -26,6 +27,26 @@ KEY_ATTRIBUTES_1 = {
     },
 }
 
+def _sample_policy(key_arn):
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowCrossAccountKeyUsage",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam:123456789012:role/PaymentProcessingRole"
+                },
+                "Action": [
+                    "payment-cryptography:GetKey",
+                    "payment-cryptography:EncryptData",
+                    "payment-cryptography:DecryptData",
+                ],
+                "Resource": key_arn,
+            }
+        ]
+    }
+    return json.dumps(policy)
 
 @mock_aws
 def test_create_key():
@@ -110,104 +131,6 @@ def test_get_key():
     assert retrieved_key["KeyOrigin"] == "AWS_PAYMENT_CRYPTOGRAPHY"
     assert retrieved_key["DeriveKeyUsage"] == "TR31_P0_PIN_ENCRYPTION_KEY"
     assert isinstance(key["CreateTimestamp"], datetime)
-
-
-# @mock_aws
-# def test_get_key_replica():
-#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
-#     replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
-#     secondary_client = boto3.client("payment-cryptography", region_name="eu-west-1")
-
-#     primary_arn = primary_client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#         ReplicationRegions=[
-#             "us-west-2",
-#             "eu-west-1",
-#         ]
-#     )["Key"]["KeyArn"]
-
-#     primary_key = primary_client.get_key(KeyArn=primary_arn)["Key"]
-
-#     # The replica shares the primary's key id, only the region differs.
-#     key_id = primary_arn.split(":key/")[1]
-#     replica_arn = f"arn:aws:payment-cryptography:us-west-2:1234567890:key/{key_id}"
-#     replica_key = replica_client.get_key(KeyArn=replica_arn)["Key"]
-#     secondary_arn = f"arn:aws:payment-cryptography:eu-west-1:1234567890:key/{key_id}"
-#     secondary_key = secondary_client.get_key(KeyArn=secondary_arn)["Key"]
-
-
-#     assert primary_key["MultiRegionKeyType"] == "PRIMARY"
-#     assert primary_key["PrimaryRegion"] == "us-east-1"
-#     assert primary_key["UsingDefaultReplicationRegions"] is True
-#     assert primary_key["ReplicationStatus"] == {
-#         "us-west-2": {"Status": "SYNCHRONIZED"},
-#         "eu-west-1": {"Status": "SYNCHRONIZED"},
-#     }
-#     assert replica_key["MultiRegionKeyType"] == "REPLICA"
-#     assert replica_key["PrimaryRegion"] == "us-east-1"
-#     # Check that replica does not have the keys for UsingDefaultReplicationRegions and ReplicationStatus
-#     assert "UsingDefaultReplicationRegions" not in replica_key
-#     assert "ReplicationStatus" not in replica_key
-#     assert secondary_key["MultiRegionKeyType"] == "REPLICA"
-#     assert secondary_key["PrimaryRegion"] == "us-east-1"
-#     # Check that secondary replica does not have the keys for UsingDefaultReplicationRegions and ReplicationStatus
-#     assert "UsingDefaultReplicationRegions" not in secondary_key
-#     assert "ReplicationStatus" not in secondary_key
-
-
-# @mock_aws
-# def test_list_keys():
-#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
-#     secondary_client = boto3.client("payment-cryptography", region_name="us-west-2")
-
-#     # Create multiple keys
-#     for _ in range(5):
-#         primary_client.create_key(
-#             KeyAttributes=KEY_ATTRIBUTES_1,
-#             Exportable=True,
-#             Enabled = True,
-#             Tags = [
-#                 {"Key": "Environment", "Value": "Test"},
-#             ],
-#             DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#             MultiRegionKeyType="PRIMARY",
-#         )
-
-#     keys_list = primary_client.list_keys()["Keys"]
-#     assert len(keys_list) == 5
-#     assert keys_list[0]["KeyArn"].startswith("arn:aws:payment-cryptography:us-east-1:1234567890:key/")
-#     assert keys_list[0]["KeyState"] == "CREATE_COMPLETE"
-
-#     # Create keys with replicas
-#     for _ in range(2):
-#         primary_client.create_key(
-#             KeyAttributes=KEY_ATTRIBUTES_1,
-#             Exportable=True,
-#             Enabled = True,
-#             Tags = [
-#                 {"Key": "Environment", "Value": "Test"},
-#             ],
-#             DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#             MultiRegionKeyType="PRIMARY",
-#             ReplicationRegions=[
-#                 "us-west-2",
-#                 "eu-west-1",
-#             ]
-#         )
-
-#     keys_list_primary = primary_client.list_keys()["Keys"]
-#     keys_list_secondary = secondary_client.list_keys()["Keys"]
-#     assert len(keys_list_primary) == 7  # 5 + 2
-#     assert len(keys_list_secondary) == 2  # Only the replicas created in us-west-2
-#     assert keys_list_primary[5]["MultiRegionKeyType"] == "PRIMARY"
-#     assert keys_list_secondary[0]["MultiRegionKeyType"] == "REPLICA"
 
 
 # @mock_aws
@@ -750,8 +673,98 @@ def test_delete_key():
 def test_delete_key_not_found():
     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
-    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist"
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist123"
     with pytest.raises(ClientError) as exc:
         client.delete_key(KeyIdentifier=missing_arn)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    put_resp = client.put_resource_policy(ResourceArn=key_arn, Policy=_sample_policy(key_arn))
+
+    assert put_resp["ResourceArn"] == key_arn
+    assert json.loads(put_resp["Policy"]) == json.loads(_sample_policy(key_arn))
+
+    get_resp = client.get_resource_policy(ResourceArn=key_arn)
+    assert get_resp["ResourceArn"] == key_arn
+    assert json.loads(get_resp["Policy"]) == json.loads(_sample_policy(key_arn))
+
+
+@mock_aws
+def test_put_resource_policy_key_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist123"
+
+    with pytest.raises(ClientError) as exc:
+        client.put_resource_policy(ResourceArn=missing_arn, Policy="{}")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_resource_policy_when_none_set():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # The key exists but has no attached policy. Return an empty response
+    get_resp = client.get_resource_policy(ResourceArn=key_arn)
+    assert get_resp["ResourceArn"] == key_arn
+    assert json.loads(get_resp["Policy"]) == {}
+
+@mock_aws
+def test_get_resource_policy_key_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist123"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_resource_policy(ResourceArn=missing_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    client.put_resource_policy(ResourceArn=key_arn, Policy=_sample_policy(key_arn))
+
+    client.delete_resource_policy(ResourceArn=key_arn)
+    get_resp = client.get_resource_policy(ResourceArn=key_arn)
+    assert get_resp["ResourceArn"] == key_arn
+    assert json.loads(get_resp["Policy"]) == {}
