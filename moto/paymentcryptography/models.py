@@ -214,6 +214,45 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             raise ResourceNotFoundException(resource_arn)
         self.resource_policies.pop(resource_arn, None)
 
+    def add_key_replication_regions(self, key_identifier, replication_regions):
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+
+        key = self.keys[key_identifier]
+
+        if key.multi_region_key_type is None:
+            key.multi_region_key_type = "PRIMARY"
+            key.primary_region = self.region_name
+            key.replication_status = {}
+            key.using_default_replication_regions = False
+
+        for region in replication_regions:
+            if region not in key.replication_status:
+                key.replication_status[region] = {"Status": "SYNCHRONIZED"}
+
+            replica_backend = paymentcryptography_backends[self.account_id][region]
+            replica_key = Key(
+                account_id=self.account_id,
+                region_name=region,
+                key_attributes=key.key_attributes,
+                key_check_value_algorithm=key.key_check_value_algorithm,
+                exportable=key.exportable,
+                enabled=key.enabled,
+                tags=key.tags,
+                derive_key_usage=key.derive_key_usage,
+                replication_regions=None,
+            )
+            replica_key.key_id = key.key_id
+            replica_key.key_arn = f"arn:aws:payment-cryptography:{region}:{self.account_id}:key/{key.key_id}"
+            replica_key.key_check_value = key.key_check_value
+            replica_key.multi_region_key_type = "REPLICA"
+            replica_key.primary_region = self.region_name
+            replica_key.replication_status = None
+            replica_key.using_default_replication_regions = None
+            replica_backend.keys[replica_key.key_arn] = replica_key
+
+        return key.to_dict()
+
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,

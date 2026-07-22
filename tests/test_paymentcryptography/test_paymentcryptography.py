@@ -134,53 +134,6 @@ def test_get_key():
 
 
 # @mock_aws
-# def test_add_key_replication_regions():
-#     primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = primary_client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-#     key_id = key_arn.split(":key/")[1]
-
-#     # Add replication regions to the key
-#     primary_client.add_key_replication_regions(
-#         KeyArn=key_arn,
-#         ReplicationRegions=[
-#             "us-west-2",
-#             "eu-west-1",
-#         ]
-#     )
-
-#     # Retrieve the key and check the replication status
-#     primary_key = primary_client.get_key(KeyArn=key_arn)["Key"]
-#     assert primary_key["MultiRegionKeyType"] == "PRIMARY"
-#     assert primary_key["PrimaryRegion"] == "us-east-1"
-#     assert primary_key["UsingDefaultReplicationRegions"] is False
-#     assert primary_key["ReplicationStatus"] == {
-#         "us-west-2": {"Status": "SYNCHRONIZED"},
-#         "eu-west-1": {"Status": "SYNCHRONIZED"},
-#     }
-
-#     replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
-#     replica_key = replica_client.get_key(KeyArn=f"arn:aws:payment-cryptography:us-west-2:1234567890:key/{key_id}")["Key"]
-#     assert replica_key["MultiRegionKeyType"] == "REPLICA"
-#     assert replica_key["PrimaryRegion"] == "us-east-1"
-
-#     replica_client_eu = boto3.client("payment-cryptography", region_name="eu-west-1")
-#     replica_key_eu = replica_client_eu.get_key(KeyArn=f"arn:aws:payment-cryptography:eu-west-1:1234567890:key/{key_id}")["Key"]
-#     assert replica_key_eu["MultiRegionKeyType"] == "REPLICA"
-#     assert replica_key_eu["PrimaryRegion"] == "us-east-1"
-
-
-# @mock_aws
 # def test_enable_default_key_replication_regions():
 #     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
@@ -768,3 +721,50 @@ def test_delete_resource_policy():
     get_resp = client.get_resource_policy(ResourceArn=key_arn)
     assert get_resp["ResourceArn"] == key_arn
     assert json.loads(get_resp["Policy"]) == {}
+
+
+@mock_aws
+def test_add_key_replication_regions():
+    primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = primary_client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+    key_id = key_arn.split(":key/")[1]
+
+    # Add replication regions to the key
+    primary_key = primary_client.add_key_replication_regions(
+        KeyIdentifier=key_arn,
+        ReplicationRegions=[
+            "us-west-2",
+            "eu-west-1",
+        ]
+    )["Key"]
+
+    assert primary_key["MultiRegionKeyType"] == "PRIMARY"
+    assert primary_key["PrimaryRegion"] == "us-east-1"
+    assert primary_key["UsingDefaultReplicationRegions"] is False
+    assert primary_key["ReplicationStatus"] == {
+        "us-west-2": {"Status": "SYNCHRONIZED"},
+        "eu-west-1": {"Status": "SYNCHRONIZED"},
+    }
+
+    replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
+    replica_arn = f"arn:aws:payment-cryptography:us-west-2:{ACCOUNT_ID}:key/{key_id}"
+    replica_key = replica_client.get_key(KeyIdentifier=replica_arn)["Key"]
+    assert replica_key["MultiRegionKeyType"] == "REPLICA"
+    assert replica_key["PrimaryRegion"] == "us-east-1"
+
+    replica_client_eu = boto3.client("payment-cryptography", region_name="eu-west-1")
+    replica_arn_eu = f"arn:aws:payment-cryptography:eu-west-1:{ACCOUNT_ID}:key/{key_id}"
+    replica_key_eu = replica_client_eu.get_key(KeyIdentifier=replica_arn_eu)["Key"]
+    assert replica_key_eu["MultiRegionKeyType"] == "REPLICA"
+    assert replica_key_eu["PrimaryRegion"] == "us-east-1"

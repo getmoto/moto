@@ -66,7 +66,6 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         return json.dumps(dict(Tags=tags, NextToken=next_token))
 
     def tag_resource(self):
-        params = self._get_params()
         resource_arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")
         self.paymentcryptography_backend.tag_resource(
@@ -123,3 +122,13 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps(dict())
+
+    def add_key_replication_regions(self):
+        key_identifier =self._get_param("KeyIdentifier")
+        replication_regions =self._get_param("ReplicationRegions")
+        key = self.paymentcryptography_backend.add_key_replication_regions(
+            key_identifier=key_identifier,
+            replication_regions=replication_regions,
+        )
+
+        return json.dumps(dict(Key=key))
