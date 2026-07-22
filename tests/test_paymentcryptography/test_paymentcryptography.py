@@ -102,6 +102,14 @@ def test_create_key_with_replica_regions():
         "eu-west-1": {"Status": "SYNCHRONIZED"},
     }
 
+    key_id = key["KeyArn"].split(":key/")[1]
+
+    for region in ("us-west-2", "eu-west-1"):
+        replica_client = boto3.client("payment-cryptography", region_name=region)
+        replica_arn = f"arn:aws:payment-cryptography:{region}:{ACCOUNT_ID}:key/{key_id}"
+        replica_key = replica_client.get_key(KeyIdentifier=replica_arn)["Key"]
+        assert replica_key["MultiRegionKeyType"] == "REPLICA"
+        assert replica_key["PrimaryRegion"] == "us-east-1"
 
 @mock_aws
 def test_get_key():
@@ -757,14 +765,9 @@ def test_add_key_replication_regions():
         "eu-west-1": {"Status": "SYNCHRONIZED"},
     }
 
-    replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
-    replica_arn = f"arn:aws:payment-cryptography:us-west-2:{ACCOUNT_ID}:key/{key_id}"
-    replica_key = replica_client.get_key(KeyIdentifier=replica_arn)["Key"]
-    assert replica_key["MultiRegionKeyType"] == "REPLICA"
-    assert replica_key["PrimaryRegion"] == "us-east-1"
-
-    replica_client_eu = boto3.client("payment-cryptography", region_name="eu-west-1")
-    replica_arn_eu = f"arn:aws:payment-cryptography:eu-west-1:{ACCOUNT_ID}:key/{key_id}"
-    replica_key_eu = replica_client_eu.get_key(KeyIdentifier=replica_arn_eu)["Key"]
-    assert replica_key_eu["MultiRegionKeyType"] == "REPLICA"
-    assert replica_key_eu["PrimaryRegion"] == "us-east-1"
+    for region in ("us-west-2", "eu-west-1"):
+        replica_client = boto3.client("payment-cryptography", region_name=region)
+        replica_arn = f"arn:aws:payment-cryptography:{region}:{ACCOUNT_ID}:key/{key_id}"
+        replica_key = replica_client.get_key(KeyIdentifier=replica_arn)["Key"]
+        assert replica_key["MultiRegionKeyType"] == "REPLICA"
+        assert replica_key["PrimaryRegion"] == "us-east-1"
