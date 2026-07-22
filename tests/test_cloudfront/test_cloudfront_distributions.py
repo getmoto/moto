@@ -784,7 +784,9 @@ def test_list_distributions_config_fields():
 
     item = client.list_distributions()["DistributionList"]["Items"][0]
     assert item["Origins"]["Quantity"] == 1
-    assert item["Origins"]["Items"][0]["DomainName"] == "asdf.s3.us-east-1.amazonaws.com"
+    assert (
+        item["Origins"]["Items"][0]["DomainName"] == "asdf.s3.us-east-1.amazonaws.com"
+    )
     assert item["DefaultCacheBehavior"]["ViewerProtocolPolicy"] == "allow-all"
     assert item["ViewerCertificate"]["CloudFrontDefaultCertificate"] is True
     assert item["Enabled"] is False
