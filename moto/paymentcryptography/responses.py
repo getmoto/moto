@@ -139,3 +139,7 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             replication_regions=replication_regions,
         )
         return json.dumps(dict(EnabledReplicationRegions=enabled_replication_regions))
+
+    def get_default_key_replication_regions(self):
+        get_replication_regions = self.paymentcryptography_backend.get_default_key_replication_regions()
+        return json.dumps(dict(EnabledReplicationRegions=get_replication_regions))
