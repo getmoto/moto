@@ -141,179 +141,6 @@ def test_get_key():
     assert isinstance(key["CreateTimestamp"], datetime)
 
 
-# @mock_aws
-# def test_create_alias():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-
-#     # Create an alias for the key
-#     alias_name = "alias/my-key-alias"
-#     client.create_alias(
-#         AliasName=alias_name,
-#         KeyArn=key_arn
-#     )
-
-#     # Retrieve the alias and check its properties
-#     alias = client.list_aliases()["Aliases"]
-#     assert alias["AliasName"] == alias_name
-#     assert alias["KeyArn"] == key_arn
-
-
-# @mock_aws
-# def test_get_alias():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-
-#     # Create an alias for the key
-#     alias_name = "alias/my-key-alias"
-#     client.create_alias(
-#         AliasName=alias_name,
-#         KeyArn=key_arn
-#     )
-
-#     retrieved_alias = client.get_alias(AliasName=alias_name)
-#     assert retrieved_alias["AliasName"] == alias_name
-#     assert retrieved_alias["KeyArn"] == key_arn
-
-
-# @mock_aws
-# def test_update_alias():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     # Create an alias for the key
-#     alias_name = "alias/my-key-alias"
-#     client.create_alias(
-#         AliasName=alias_name,
-#         KeyArn=key["KeyArn"]
-#     )
-
-#     # Check alias for the key
-#     retrieved_alias = client.get_alias(AliasName=alias_name)
-#     assert retrieved_alias["AliasName"] == alias_name
-
-#     # Update the alias
-#     new_alias_name = "alias/my-updated-key-alias"
-
-#     client.update_alias(
-#         AliasName=new_alias_name,
-#         KeyArn=key["KeyArn"],
-#     )
-
-#     # Check key for the updated alias
-#     updated_alias = client.get_alias(AliasName=new_alias_name)
-#     assert updated_alias["AliasName"] == new_alias_name
-
-
-# @mock_aws
-# def test_delete_alias():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     key_arn = key["KeyArn"]
-
-#     # Create an alias for the key
-#     alias_name = "alias/my-key-alias"
-#     client.create_alias(
-#         AliasName=alias_name,
-#         KeyArn=key_arn
-#     )
-
-#     # Delete the alias
-#     client.delete_alias(AliasName=alias_name)
-
-#     # Check that the alias no longer exists
-#     aliases_list = client.list_aliases()["Aliases"]
-#     assert all(alias["AliasName"] != alias_name for alias in aliases_list)
-
-
-# @mock_aws
-# def test_list_aliases():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     key1 = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     key2 = client.create_key(
-#         KeyAttributes=KEY_ATTRIBUTES_1,
-#         Exportable=True,
-#         Enabled = True,
-#         Tags = [
-#             {"Key": "Environment", "Value": "Test"},
-#         ],
-#         DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
-#         MultiRegionKeyType="PRIMARY",
-#     )["Key"]
-
-#     # Create aliases for the keys
-#     alias_name1 = "alias/my-key-alias-1"
-#     alias_name2 = "alias/my-key-alias-2"
-#     client.create_alias(
-#         AliasName=alias_name1,
-#         KeyArn=key1["KeyArn"]
-#     )
-#     client.create_alias(
-#         AliasName=alias_name2,
-#         KeyArn=key2["KeyArn"]
-#     )
-
-#     aliases_list = client.list_aliases()["Aliases"]
-#     assert len(aliases_list) == 2
-#     assert any(alias["AliasName"] == alias_name1 for alias in aliases_list)
-#     assert any(alias["AliasName"] == alias_name2 for alias in aliases_list)
-
 
 # @mock_aws
 # def test_put_resource_policy():
@@ -786,3 +613,211 @@ def test_disable_default_key_replication_regions():
 
     # Check that the specified region is removed from the enabled replication regions
     assert "us-west-2" not in key_replication_regions["EnabledReplicationRegions"]
+
+
+@mock_aws
+def test_create_alias():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # Create an alias for the key
+    alias_name = "alias/my-key-alias"
+    alias = client.create_alias(
+        AliasName=alias_name,
+        KeyArn=key_arn
+    )["Alias"]
+
+    assert alias["AliasName"] == alias_name
+    assert alias["KeyArn"] == key["KeyArn"]
+
+
+@mock_aws
+def test_create_alias_no_key():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    alias_name = "alias/unbound"
+    alias = client.create_alias(AliasName=alias_name)["Alias"]
+    assert alias["AliasName"] == alias_name
+    assert "KeyArn" not in alias
+
+
+@mock_aws
+def test_create_alias_duplicate_raises():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    client.create_alias(AliasName="alias/dup")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_alias(AliasName="alias/dup")
+    assert exc.value.response["Error"]["Code"] == "ConflictException"
+
+
+@mock_aws
+def test_get_alias():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # Create an alias for the key
+    alias_name = "alias/my-key-alias"
+    client.create_alias(
+        AliasName=alias_name,
+        KeyArn=key_arn
+    )
+
+    retrieved_alias = client.get_alias(AliasName=alias_name)["Alias"]
+    assert retrieved_alias["AliasName"] == alias_name
+    assert retrieved_alias["KeyArn"] == key_arn
+
+
+@mock_aws
+def test_get_alias_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.get_alias(AliasName="alias/doesnotexist")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+@mock_aws
+def test_update_alias():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    # Create an alias for the key
+    alias_name = "alias/my-key-alias"
+    client.create_alias(
+        AliasName=alias_name,
+        KeyArn=key["KeyArn"]
+    )
+
+    # Check alias for the key
+    retrieved_alias = client.get_alias(AliasName=alias_name)["Alias"]
+    assert retrieved_alias["AliasName"] == alias_name
+
+    key2 = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    updated = client.update_alias(
+        AliasName=alias_name,
+        KeyArn=key2["KeyArn"],
+    )["Alias"]
+
+    assert updated["AliasName"] == alias_name
+    assert updated["KeyArn"] == key2["KeyArn"]
+    retrieved = client.get_alias(AliasName=alias_name)["Alias"]
+    assert retrieved["KeyArn"] == key2["KeyArn"]
+
+
+@mock_aws
+def test_delete_alias():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+
+    # Create an alias for the key
+    alias_name = "alias/my-key-alias"
+    client.create_alias(
+        AliasName=alias_name,
+        KeyArn=key_arn
+    )
+
+    # Delete the alias
+    client.delete_alias(AliasName=alias_name)
+
+    # Check that the alias no longer exists
+    aliases_list = client.list_aliases()["Aliases"]
+    assert all(alias["AliasName"] != alias_name for alias in aliases_list)
+
+
+@mock_aws
+def test_delete_alias_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.delete_alias(AliasName="alias/doesnotexist")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_aliases():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key1 = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    key2 = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled = True,
+        Tags = [
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY"
+    )["Key"]
+
+    # Create aliases for the keys
+    alias_name1 = "alias/my-key-alias-1"
+    alias_name2 = "alias/my-key-alias-2"
+    client.create_alias(
+        AliasName=alias_name1,
+        KeyArn=key1["KeyArn"]
+    )
+    client.create_alias(
+        AliasName=alias_name2,
+        KeyArn=key2["KeyArn"]
+    )
+
+    aliases_list = client.list_aliases()["Aliases"]
+    assert len(aliases_list) == 2
+    assert any(alias["AliasName"] == alias_name1 for alias in aliases_list)
+    assert any(alias["AliasName"] == alias_name2 for alias in aliases_list)

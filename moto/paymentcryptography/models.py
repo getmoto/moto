@@ -9,7 +9,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import ConflictException, ResourceNotFoundException
 
 
 def _random_key_id() -> str:
@@ -115,12 +115,24 @@ class Key(BaseModel):
             result["DeletePendingTimestamp"] = self.delete_timestamp
         return result
 
+class Alias(BaseModel):
+    def __init__(self, alias_name: str, key_arn: Optional[str]):
+        self.alias_name = alias_name
+        self.key_arn = key_arn
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {"AliasName": self.alias_name}
+        if self.key_arn is not None:
+            result["KeyArn"] = self.key_arn
+        return result
+
 
 class PaymentCryptographyControlPlaneBackend(BaseBackend):
     """Implementation of PaymentCryptographyControlPlane APIs."""
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
+        self.aliases: dict[str, Alias] = {}
         self.default_key_replication_regions = []
         self.keys: dict[str, Key] = {}
         self.resource_policies: dict[str, str] = {}
@@ -275,6 +287,39 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             if region in self.default_key_replication_regions:
                 self.default_key_replication_regions.remove(region)
         return self.default_key_replication_regions
+
+    def create_alias(self, alias_name, key_arn: Optional[str]) -> dict[str, Any]:
+        if alias_name in self.aliases:
+            raise ConflictException(f"Alias {alias_name} already exists")
+        if key_arn is not None and key_arn not in self.keys:
+                raise ResourceNotFoundException(key_arn)
+        alias = Alias(alias_name=alias_name, key_arn=key_arn)
+        self.aliases[alias_name] = alias
+        return alias.to_dict()
+
+    def get_alias(self, alias_name: str) -> dict[str, Any]:
+        if alias_name not in self.aliases:
+            raise ResourceNotFoundException(alias_name)
+        return self.aliases[alias_name].to_dict()
+
+    def list_aliases(self, key_arn: Optional[str], next_token, max_results) -> tuple[list[dict[str, Any]], Any]:
+        aliases = list(self.aliases.values())
+        if key_arn is not None:
+            aliases = [alias for alias in aliases if alias.key_arn == key_arn]
+        return [alias.to_dict() for alias in aliases], next_token
+
+    def update_alias(self, alias_name: str, key_arn: Optional[str]) -> dict[str, Any]:
+        if alias_name not in self.aliases:
+            raise ResourceNotFoundException(alias_name)
+        if key_arn is not None and key_arn not in self.keys:
+            raise ResourceNotFoundException(key_arn)
+        self.aliases[alias_name].key_arn = key_arn
+        return self.aliases[alias_name].to_dict()
+
+    def delete_alias(self, alias_name: str) -> None:
+        if alias_name not in self.aliases:
+            raise ResourceNotFoundException(alias_name)
+        del self.aliases[alias_name]
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,

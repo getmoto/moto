@@ -150,3 +150,56 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
             replication_regions=replication_regions,
         )
         return json.dumps(dict(EnabledReplicationRegions=enabled_replication_regions))
+
+    def create_alias(self):
+
+        alias_name = self._get_param("AliasName")
+        key_arn = self._get_param("KeyArn")
+        alias = self.paymentcryptography_backend.create_alias(
+            alias_name=alias_name,
+            key_arn=key_arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(Alias=alias))
+
+    def get_alias(self):
+
+        alias_name = self._get_param("AliasName")
+        alias = self.paymentcryptography_backend.get_alias(
+            alias_name=alias_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(Alias=alias))
+
+    def list_aliases(self):
+
+        key_arn = self._get_param("KeyArn")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        aliases, next_token = self.paymentcryptography_backend.list_aliases(
+            key_arn=key_arn,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(Aliases=aliases, NextToken=next_token))
+
+    def update_alias(self):
+
+        alias_name = self._get_param("AliasName")
+        key_arn = self._get_param("KeyArn")
+        alias = self.paymentcryptography_backend.update_alias(
+            alias_name=alias_name,
+            key_arn=key_arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(Alias=alias))
+
+    def delete_alias(self):
+
+        alias_name = self._get_param("AliasName")
+        self.paymentcryptography_backend.delete_alias(
+            alias_name=alias_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
