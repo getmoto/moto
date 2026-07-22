@@ -142,25 +142,6 @@ def test_get_key():
 
 
 # @mock_aws
-# def test_enable_default_key_replication_regions():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     # Enable default replication regions
-#     key_replication_regions = client.enable_default_key_replication_regions(
-#         ReplicationRegions=[
-#             "ap-southeast-1",
-#         ]
-#     )
-
-#     # Include default and newly added replication region
-#     assert key_replication_regions["EnabledReplicationRegions"] == [
-#         "us-west-2",
-#         "eu-west-1",
-#         "ap-southeast-1",
-#     ]
-
-
-# @mock_aws
 # def test_get_default_key_replication_regions():
 #     client = boto3.client("payment-cryptography", region_name="us-east-1")
 
@@ -771,3 +752,22 @@ def test_add_key_replication_regions():
         replica_key = replica_client.get_key(KeyIdentifier=replica_arn)["Key"]
         assert replica_key["MultiRegionKeyType"] == "REPLICA"
         assert replica_key["PrimaryRegion"] == "us-east-1"
+
+
+@mock_aws
+def test_enable_default_key_replication_regions():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    # Enable default replication regions
+    key_replication_regions = client.enable_default_key_replication_regions(
+        ReplicationRegions=[
+            "us-west-2",
+            "eu-west-1"
+        ]
+    )["EnabledReplicationRegions"]
+
+    # Include default and newly added replication region
+    assert key_replication_regions == [
+        "us-west-2",
+        "eu-west-1"
+    ]

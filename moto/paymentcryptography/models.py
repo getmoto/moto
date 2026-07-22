@@ -121,6 +121,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
+        self.default_key_replication_regions = []
         self.keys: dict[str, Key] = {}
         self.resource_policies: dict[str, str] = {}
         self.tagger = TaggingService(
@@ -259,6 +260,12 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         self._create_replicas(key, replication_regions)
         return key.to_dict()
 
+    def enable_default_key_replication_regions(self, replication_regions):
+        for region in replication_regions:
+            if region not in self.default_key_replication_regions:
+                self.default_key_replication_regions.append(region)
+
+        return self.default_key_replication_regions
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,
