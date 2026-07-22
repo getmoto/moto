@@ -270,6 +270,12 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def get_default_key_replication_regions(self):
         return self.default_key_replication_regions
 
+    def disable_default_key_replication_regions(self, replication_regions):
+        for region in replication_regions:
+            if region in self.default_key_replication_regions:
+                self.default_key_replication_regions.remove(region)
+        return self.default_key_replication_regions
+
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,
     "payment-cryptography",

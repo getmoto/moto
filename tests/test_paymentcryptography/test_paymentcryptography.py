@@ -140,20 +140,6 @@ def test_get_key():
     assert retrieved_key["DeriveKeyUsage"] == "TR31_P0_PIN_ENCRYPTION_KEY"
     assert isinstance(key["CreateTimestamp"], datetime)
 
-# @mock_aws
-# def test_disable_default_key_replication_regions():
-#     client = boto3.client("payment-cryptography", region_name="us-east-1")
-
-#     # Disable default replication regions
-#     key_replication_regions = client.disable_default_key_replication_regions(
-#         ReplicationRegions=[
-#             "us-west-2",
-#         ]
-#     )
-
-#     # Check that the specified region is removed from the enabled replication regions
-#     assert "us-west-2" not in key_replication_regions["EnabledReplicationRegions"]
-
 
 # @mock_aws
 # def test_create_alias():
@@ -777,3 +763,26 @@ def test_get_default_key_replication_regions():
 
     assert "us-west-2" in default_regions
     assert "eu-west-1" in default_regions
+
+
+@mock_aws
+def test_disable_default_key_replication_regions():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    # Enable default replication regions
+    default_regions = client.enable_default_key_replication_regions(
+        ReplicationRegions=[
+            "us-west-2",
+            "eu-west-1"
+        ]
+    )["EnabledReplicationRegions"]
+
+    # Disable default replication regions
+    key_replication_regions = client.disable_default_key_replication_regions(
+        ReplicationRegions=[
+            "us-west-2",
+        ]
+    )
+
+    # Check that the specified region is removed from the enabled replication regions
+    assert "us-west-2" not in key_replication_regions["EnabledReplicationRegions"]
