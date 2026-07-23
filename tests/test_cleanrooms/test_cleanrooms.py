@@ -86,6 +86,9 @@ def test_get_collaboration_unknown():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == f"Could not find collaboration with id {UNKNOWN_ID}"
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert exc.value.response["resourceId"] == UNKNOWN_ID
+    assert exc.value.response["resourceType"] == "COLLABORATION"
 
 
 @mock_aws
