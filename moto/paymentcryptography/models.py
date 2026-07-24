@@ -2,11 +2,11 @@
 
 import random
 import string
-from moto.core.utils import unix_time
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import ConflictException, ResourceNotFoundException
@@ -21,6 +21,7 @@ def _key_check_value() -> str:
     # return a fake but plausible key check value based on the algorithm
     kcv = "".join(random.choices("0123456789ABCDEF", k=6))
     return kcv
+
 
 def _key_check_value_algorithm(key_algorithm: str) -> str:
     # TDES keys use ANSI X9.24, AES keys use CMAC, HMAC keys use the HMAC hash,
@@ -43,23 +44,27 @@ class Key(BaseModel):
         key_check_value_algorithm: Optional[str],
         enabled: bool,
         exportable: bool,
-        tags: list[dict[str, str]],
-        derive_key_usage: str,
+        tags: Optional[list[dict[str, str]]],
+        derive_key_usage: Optional[str],
         replication_regions: Optional[list[str]],
-    ):
+    ) -> None:
         self.key_id = _random_key_id()
         self.key_arn = (
             f"arn:aws:payment-cryptography:{region_name}:{account_id}:key/{self.key_id}"
         )
         now = unix_time()
-        self.key_attributes = key_attributes
-        key_attributes_key_algorithm = key_attributes.get("KeyAlgorithm")
+        self.key_attributes: Optional[dict[str, Any]] = key_attributes
+        key_attributes_key_algorithm = (
+            key_attributes.get("KeyAlgorithm") if key_attributes else None
+        )
 
-        self.key_check_value = _key_check_value()
+        self.key_check_value: str = _key_check_value()
         if key_check_value_algorithm:
             self.key_check_value_algorithm = key_check_value_algorithm
         else:
-            self.key_check_value_algorithm = _key_check_value_algorithm(key_attributes_key_algorithm)
+            self.key_check_value_algorithm = _key_check_value_algorithm(
+                key_attributes_key_algorithm or ""
+            )
 
         self.exportable = exportable
         self.enabled = enabled
@@ -69,15 +74,15 @@ class Key(BaseModel):
         # If a key is imported, the origin is EXTERNAL.
         self.key_origin = "AWS_PAYMENT_CRYPTOGRAPHY"
         self.create_timestamp = now
-        self.usage_start_timestamp = now if enabled else None
-        self.usage_stop_timestamp = now if not enabled else None
-        self.delete_pending_timestamp = None
-        self.delete_timestamp = None
-        self.derive_key_usage = derive_key_usage
+        self.usage_start_timestamp: Optional[float] = now if enabled else None
+        self.usage_stop_timestamp: Optional[float] = now if not enabled else None
+        self.delete_pending_timestamp: Optional[float] = None
+        self.delete_timestamp: Optional[float] = None
+        self.derive_key_usage: Optional[str] = derive_key_usage
 
         self.multi_region_key_type: Optional[str] = None
         self.primary_region: Optional[str] = None
-        self.replication_status: Optional[dict] = None
+        self.replication_status: Optional[dict[str, dict[str, str]]] = None
         self.using_default_replication_regions: Optional[bool] = None
 
         if replication_regions is not None:
@@ -88,7 +93,7 @@ class Key(BaseModel):
             }
             self.using_default_replication_regions = False
 
-        self.tags = tags or []
+        self.tags: list[dict[str, str]] = tags or []
 
     def to_dict(self) -> dict[str, Any]:
         result = {
@@ -105,7 +110,7 @@ class Key(BaseModel):
             "MultiRegionKeyType": self.multi_region_key_type,
             "PrimaryRegion": self.primary_region,
             "ReplicationStatus": self.replication_status,
-            "UsingDefaultReplicationRegions": self.using_default_replication_regions
+            "UsingDefaultReplicationRegions": self.using_default_replication_regions,
         }
         if self.usage_start_timestamp is not None:
             result["UsageStartTimestamp"] = self.usage_start_timestamp
@@ -116,6 +121,7 @@ class Key(BaseModel):
         if self.delete_timestamp is not None:
             result["DeleteTimestamp"] = self.delete_timestamp
         return result
+
 
 class Alias(BaseModel):
     def __init__(self, alias_name: str, key_arn: Optional[str]):
@@ -132,10 +138,10 @@ class Alias(BaseModel):
 class PaymentCryptographyControlPlaneBackend(BaseBackend):
     """Implementation of PaymentCryptographyControlPlane APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.aliases: dict[str, Alias] = {}
-        self.default_key_replication_regions = []
+        self.default_key_replication_regions: list[str] = []
         self.keys: dict[str, Key] = {}
         self.resource_policies: dict[str, str] = {}
         self.tagger = TaggingService(
@@ -145,19 +151,20 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def create_key(
         self,
         key_attributes: Optional[dict[str, Any]],
-        key_check_value_algorithm: str,
+        key_check_value_algorithm: Optional[str],
         enabled: bool,
         exportable: bool,
-        tags: list[dict[str, str]],
-        derive_key_usage: str,
-        replication_regions: list[str],
+        tags: Optional[list[dict[str, str]]],
+        derive_key_usage: Optional[str],
+        replication_regions: Optional[list[str]],
     ) -> dict[str, Any]:
-
+        tags = tags or []
+        derive_key_usage = derive_key_usage or ""
         key = Key(
             account_id=self.account_id,
             region_name=self.region_name,
             key_attributes=key_attributes,
-            key_check_value_algorithm=key_check_value_algorithm, # TODO: match kcv to key_check_value_algorithm
+            key_check_value_algorithm=key_check_value_algorithm,  # TODO: match kcv to key_check_value_algorithm
             exportable=exportable,
             enabled=enabled,
             tags=tags,
@@ -175,30 +182,41 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
         return key.to_dict()
 
-    def list_keys(self, key_state, next_token, max_results):
+    def list_keys(
+        self,
+        key_state: Optional[str],
+        next_token: Optional[str],
+        max_results: Optional[int],
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         keys = list(self.keys.values())
         if key_state:
             keys = [key for key in keys if key.key_state == key_state]
         return [key.to_dict() for key in keys], next_token
 
-    def list_tags_for_resource(self, resource_arn, next_token, max_results):
+    def list_tags_for_resource(
+        self, resource_arn: str, next_token: Optional[str], max_results: Optional[int]
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return tags, next_token
 
-    def tag_resource(self, resource_arn, tags: list[dict[str, str]]):
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def get_key(self, key_identifier):
+    def get_key(self, key_identifier: str) -> dict[str, Any]:
         if key_identifier not in self.keys:
             raise ResourceNotFoundException(key_identifier)
 
         key = self.keys.get(key_identifier)
+        if key is None:
+            raise ResourceNotFoundException(key_identifier)
         return key.to_dict()
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def delete_key(self, key_identifier, delete_key_in_days):
+    def delete_key(
+        self, key_identifier: str, delete_key_in_days: Optional[int]
+    ) -> dict[str, Any]:
         if key_identifier not in self.keys:
             raise ResourceNotFoundException(key_identifier)
 
@@ -207,10 +225,10 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         key.key_state = "DELETE_PENDING"
         key.enabled = False
         key.usage_stop_timestamp = unix_time()
-        key.delete_pending_timestamp = unix_time() + days *86400
+        key.delete_pending_timestamp = unix_time() + days * 86400
         return key.to_dict()
 
-    def put_resource_policy(self, resource_arn, policy):
+    def put_resource_policy(self, resource_arn: str, policy: str) -> dict[str, Any]:
         if resource_arn not in self.keys:
             raise ResourceNotFoundException(resource_arn)
         self.resource_policies[resource_arn] = policy
@@ -219,7 +237,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             "ResourceArn": resource_arn,
         }
 
-    def get_resource_policy(self, resource_arn):
+    def get_resource_policy(self, resource_arn: str) -> dict[str, Any]:
         if resource_arn not in self.keys:
             raise ResourceNotFoundException(resource_arn)
         return {
@@ -227,14 +245,18 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             "ResourceArn": resource_arn,
         }
 
-    def delete_resource_policy(self, resource_arn):
+    def delete_resource_policy(self, resource_arn: str) -> None:
         if resource_arn not in self.keys:
             raise ResourceNotFoundException(resource_arn)
         self.resource_policies.pop(resource_arn, None)
 
-
     def _create_replicas(self, key: "Key", replication_regions: list[str]) -> None:
+        if key.replication_status is None:
+            key.replication_status = {}
+
         for region in replication_regions:
+            if key.replication_status is None:
+                key.replication_status = {}
             if region not in key.replication_status:
                 key.replication_status[region] = {"Status": "SYNCHRONIZED"}
 
@@ -259,7 +281,9 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             replica_key.using_default_replication_regions = None
             replica_backend.keys[replica_key.key_arn] = replica_key
 
-    def add_key_replication_regions(self, key_identifier, replication_regions):
+    def add_key_replication_regions(
+        self, key_identifier: str, replication_regions: list[str]
+    ) -> dict[str, Any]:
         if key_identifier not in self.keys:
             raise ResourceNotFoundException(key_identifier)
 
@@ -274,27 +298,31 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         self._create_replicas(key, replication_regions)
         return key.to_dict()
 
-    def enable_default_key_replication_regions(self, replication_regions):
+    def enable_default_key_replication_regions(
+        self, replication_regions: list[str]
+    ) -> list[str]:
         for region in replication_regions:
             if region not in self.default_key_replication_regions:
                 self.default_key_replication_regions.append(region)
 
         return self.default_key_replication_regions
 
-    def get_default_key_replication_regions(self):
+    def get_default_key_replication_regions(self) -> list[str]:
         return self.default_key_replication_regions
 
-    def disable_default_key_replication_regions(self, replication_regions):
+    def disable_default_key_replication_regions(
+        self, replication_regions: list[str]
+    ) -> list[str]:
         for region in replication_regions:
             if region in self.default_key_replication_regions:
                 self.default_key_replication_regions.remove(region)
         return self.default_key_replication_regions
 
-    def create_alias(self, alias_name, key_arn: Optional[str]) -> dict[str, Any]:
+    def create_alias(self, alias_name: str, key_arn: Optional[str]) -> dict[str, Any]:
         if alias_name in self.aliases:
             raise ConflictException(f"Alias {alias_name} already exists")
         if key_arn is not None and key_arn not in self.keys:
-                raise ResourceNotFoundException(key_arn)
+            raise ResourceNotFoundException(key_arn)
         alias = Alias(alias_name=alias_name, key_arn=key_arn)
         self.aliases[alias_name] = alias
         return alias.to_dict()
@@ -304,7 +332,12 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             raise ResourceNotFoundException(alias_name)
         return self.aliases[alias_name].to_dict()
 
-    def list_aliases(self, key_arn: Optional[str], next_token, max_results) -> tuple[list[dict[str, Any]], Any]:
+    def list_aliases(
+        self,
+        key_arn: Optional[str],
+        next_token: Optional[str],
+        max_results: Optional[int],
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         aliases = list(self.aliases.values())
         if key_arn is not None:
             aliases = [alias for alias in aliases if alias.key_arn == key_arn]
@@ -323,7 +356,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             raise ResourceNotFoundException(alias_name)
         del self.aliases[alias_name]
 
-    def start_key_usage(self, key_identifier):
+    def start_key_usage(self, key_identifier: str) -> dict[str, Any]:
         if key_identifier not in self.keys:
             raise ResourceNotFoundException(key_identifier)
         key = self.keys[key_identifier]
@@ -332,7 +365,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             key.usage_start_timestamp = unix_time()
         return key.to_dict()
 
-    def stop_key_usage(self, key_identifier):
+    def stop_key_usage(self, key_identifier: str) -> dict[str, Any]:
         if key_identifier not in self.keys:
             raise ResourceNotFoundException(key_identifier)
         key = self.keys[key_identifier]
@@ -340,6 +373,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             key.enabled = False
             key.usage_stop_timestamp = unix_time()
         return key.to_dict()
+
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,
@@ -360,6 +394,6 @@ paymentcryptography_backends = BackendDict(
         "ap-northeast-3",
         "ap-south-1",
         "ap-south-2",
-        "af-south-1"
+        "af-south-1",
     ],
 )
