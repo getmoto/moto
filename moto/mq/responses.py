@@ -210,3 +210,6 @@ class MQResponse(BaseResponse):
         broker_id = self.path.split("/")[-2]
         self.mq_backend.reboot_broker(broker_id=broker_id)
         return EmptyResult()
+
+    def describe_shared_resources(self) -> ActionResult:
+        return ActionResult(result={"SharedResources": []})
