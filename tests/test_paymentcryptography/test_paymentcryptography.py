@@ -568,6 +568,59 @@ def test_add_key_replication_regions():
 
 
 @mock_aws
+def test_remove_key_replication_regions():
+    primary_client = boto3.client("payment-cryptography", region_name="us-east-1")
+
+    key = primary_client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]
+
+    key_arn = key["KeyArn"]
+    key_id = key_arn.split(":key/")[1]
+
+    # Add replication regions to the key
+    primary_client.add_key_replication_regions(
+        KeyIdentifier=key_arn,
+        ReplicationRegions=[
+            "us-west-2",
+            "eu-west-1",
+        ],
+    )
+
+    # Remove one replication region
+    updated_key = primary_client.remove_key_replication_regions(
+        KeyIdentifier=key_arn,
+        ReplicationRegions=["us-west-2"],
+    )["Key"]
+
+    assert updated_key["ReplicationStatus"] == {
+        "eu-west-1": {"Status": "SYNCHRONIZED"},
+    }
+
+    # Replica in removed region should be gone
+    replica_client = boto3.client("payment-cryptography", region_name="us-west-2")
+    replica_arn = f"arn:aws:payment-cryptography:us-west-2:{ACCOUNT_ID}:key/{key_id}"
+    with pytest.raises(replica_client.exceptions.ResourceNotFoundException):
+        replica_client.get_key(KeyIdentifier=replica_arn)
+
+    # Remove the last region - key should revert to non-multi-region
+    primary_client.remove_key_replication_regions(
+        KeyIdentifier=key_arn,
+        ReplicationRegions=["eu-west-1"],
+    )
+    final_key = primary_client.get_key(KeyIdentifier=key_arn)["Key"]
+    assert "MultiRegionKeyType" not in final_key
+    assert "PrimaryRegion" not in final_key
+    assert "ReplicationStatus" not in final_key
+
+
+@mock_aws
 def test_enable_default_key_replication_regions():
     client = boto3.client("payment-cryptography", region_name="us-east-1")
 

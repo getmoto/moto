@@ -131,6 +131,16 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
         return json.dumps({"Key": key})
 
+    def remove_key_replication_regions(self) -> str:
+        key_identifier = self._get_param("KeyIdentifier")
+        replication_regions = self._get_param("ReplicationRegions")
+        key = self.paymentcryptography_backend.remove_key_replication_regions(
+            key_identifier=key_identifier,
+            replication_regions=replication_regions,
+        )
+
+        return json.dumps({"Key": key})
+
     def enable_default_key_replication_regions(self) -> str:
         replication_regions = self._get_param("ReplicationRegions")
         enabled_replication_regions = (

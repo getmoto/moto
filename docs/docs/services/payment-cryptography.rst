@@ -41,7 +41,7 @@ payment-cryptography
 - [X] list_keys
 - [X] list_tags_for_resource
 - [X] put_resource_policy
-- [ ] remove_key_replication_regions
+- [X] remove_key_replication_regions
 - [ ] restore_key
 - [X] start_key_usage
 - [X] stop_key_usage

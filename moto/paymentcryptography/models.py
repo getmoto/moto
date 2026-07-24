@@ -96,7 +96,7 @@ class Key(BaseModel):
         self.tags: list[dict[str, str]] = tags or []
 
     def to_dict(self) -> dict[str, Any]:
-        result = {
+        result: dict[str, Any] = {
             "KeyArn": self.key_arn,
             "KeyAttributes": self.key_attributes,
             "KeyCheckValue": self.key_check_value,
@@ -106,12 +106,16 @@ class Key(BaseModel):
             "KeyState": self.key_state,
             "KeyOrigin": self.key_origin,
             "CreateTimestamp": self.create_timestamp,
-            "DeriveKeyUsage": self.derive_key_usage,
-            "MultiRegionKeyType": self.multi_region_key_type,
-            "PrimaryRegion": self.primary_region,
-            "ReplicationStatus": self.replication_status,
             "UsingDefaultReplicationRegions": self.using_default_replication_regions,
         }
+        if self.derive_key_usage:
+            result["DeriveKeyUsage"] = self.derive_key_usage
+        if self.multi_region_key_type:
+            result["MultiRegionKeyType"] = self.multi_region_key_type
+        if self.primary_region:
+            result["PrimaryRegion"] = self.primary_region
+        if self.replication_status:
+            result["ReplicationStatus"] = self.replication_status
         if self.usage_start_timestamp is not None:
             result["UsageStartTimestamp"] = self.usage_start_timestamp
         if self.usage_stop_timestamp is not None:
@@ -296,6 +300,29 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             key.using_default_replication_regions = False
 
         self._create_replicas(key, replication_regions)
+        return key.to_dict()
+
+    def remove_key_replication_regions(
+        self, key_identifier: str, replication_regions: list[str]
+    ) -> dict[str, Any]:
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+
+        key = self.keys[key_identifier]
+
+        for region in replication_regions:
+            if key.replication_status:
+                key.replication_status.pop(region, None)
+            replica_backend = paymentcryptography_backends[self.account_id][region]
+            replica_arn = f"arn:aws:payment-cryptography:{region}:{self.account_id}:key/{key.key_id}"
+            replica_backend.keys.pop(replica_arn, None)
+
+        if not key.replication_status:
+            key.multi_region_key_type = None
+            key.primary_region = None
+            key.replication_status = None
+            key.using_default_replication_regions = None
+
         return key.to_dict()
 
     def enable_default_key_replication_regions(
