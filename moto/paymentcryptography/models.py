@@ -70,7 +70,7 @@ class Key(BaseModel):
         self.key_origin = "AWS_PAYMENT_CRYPTOGRAPHY"
         self.create_timestamp = now
         self.usage_start_timestamp = now if enabled else None
-        self.usage_stop_timestamp = None
+        self.usage_stop_timestamp = now if not enabled else None
         self.delete_pending_timestamp = None
         self.delete_timestamp = None
         self.derive_key_usage = derive_key_usage
@@ -87,8 +87,6 @@ class Key(BaseModel):
                 region: {"Status": "SYNCHRONIZED"} for region in replication_regions
             }
             self.using_default_replication_regions = False
-
-        # TODO: add missing mpa details
 
         self.tags = tags or []
 
@@ -109,10 +107,14 @@ class Key(BaseModel):
             "ReplicationStatus": self.replication_status,
             "UsingDefaultReplicationRegions": self.using_default_replication_regions
         }
+        if self.usage_start_timestamp is not None:
+            result["UsageStartTimestamp"] = self.usage_start_timestamp
+        if self.usage_stop_timestamp is not None:
+            result["UsageStopTimestamp"] = self.usage_stop_timestamp
         if self.delete_pending_timestamp is not None:
             result["DeletePendingTimestamp"] = self.delete_pending_timestamp
         if self.delete_timestamp is not None:
-            result["DeletePendingTimestamp"] = self.delete_timestamp
+            result["DeleteTimestamp"] = self.delete_timestamp
         return result
 
 class Alias(BaseModel):
@@ -320,6 +322,24 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         if alias_name not in self.aliases:
             raise ResourceNotFoundException(alias_name)
         del self.aliases[alias_name]
+
+    def start_key_usage(self, key_identifier):
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+        key = self.keys[key_identifier]
+        if not key.enabled:
+            key.enabled = True
+            key.usage_start_timestamp = unix_time()
+        return key.to_dict()
+
+    def stop_key_usage(self, key_identifier):
+        if key_identifier not in self.keys:
+            raise ResourceNotFoundException(key_identifier)
+        key = self.keys[key_identifier]
+        if key.enabled:
+            key.enabled = False
+            key.usage_stop_timestamp = unix_time()
+        return key.to_dict()
 
 paymentcryptography_backends = BackendDict(
     PaymentCryptographyControlPlaneBackend,

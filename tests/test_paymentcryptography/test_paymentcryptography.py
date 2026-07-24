@@ -821,3 +821,88 @@ def test_list_aliases():
     assert len(aliases_list) == 2
     assert any(alias["AliasName"] == alias_name1 for alias in aliases_list)
     assert any(alias["AliasName"] == alias_name2 for alias in aliases_list)
+
+
+@mock_aws
+def test_start_key_usage():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    # key is created with Enabled=False
+    key_arn = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=False,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]["KeyArn"]
+
+    before = client.get_key(KeyIdentifier=key_arn)["Key"]
+    assert before["Enabled"] is False
+    assert "UsageStartTimestamp" not in before
+
+    result = client.start_key_usage(KeyIdentifier=key_arn)["Key"]
+    assert result["Enabled"] is True
+    assert isinstance(result["UsageStartTimestamp"], datetime)
+
+
+@mock_aws
+def test_start_key_usage_already_enabled_does_not_update_timestamp():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    # key is created with Enabled=True
+    key_arn = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]["KeyArn"]
+
+    before = client.get_key(KeyIdentifier=key_arn)["Key"]["UsageStartTimestamp"]
+    # starting a key that is already enabled shouldn't change anything
+    after = client.start_key_usage(KeyIdentifier=key_arn)["Key"]["UsageStartTimestamp"]
+    assert before == after
+
+
+@mock_aws
+def test_start_key_usage_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist123"
+
+    with pytest.raises(ClientError) as exc:
+        client.start_key_usage(KeyIdentifier=missing_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_stop_key_usage():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    key_arn = client.create_key(
+        KeyAttributes=KEY_ATTRIBUTES_1,
+        Exportable=True,
+        Enabled=True,
+        Tags=[
+            {"Key": "Environment", "Value": "Test"},
+        ],
+        DeriveKeyUsage="TR31_P0_PIN_ENCRYPTION_KEY",
+    )["Key"]["KeyArn"]
+
+    before = client.get_key(KeyIdentifier=key_arn)["Key"]
+    assert before["Enabled"] is True
+    assert "UsageStopTimestamp" not in before
+
+    result = client.stop_key_usage(KeyIdentifier=key_arn)["Key"]
+    assert result["Enabled"] is False
+    assert isinstance(result["UsageStopTimestamp"], datetime)
+
+
+@mock_aws
+def test_stop_key_usage_not_found():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    missing_arn = f"arn:aws:payment-cryptography:us-east-1:{ACCOUNT_ID}:key/doesnotexist123"
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_key_usage(KeyIdentifier=missing_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"

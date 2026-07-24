@@ -201,5 +201,18 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
         self.paymentcryptography_backend.delete_alias(
             alias_name=alias_name,
         )
-        # TODO: adjust response
         return json.dumps(dict())
+
+    def start_key_usage(self):
+        key_identifier = self._get_param("KeyIdentifier")
+        key = self.paymentcryptography_backend.start_key_usage(
+            key_identifier=key_identifier,
+        )
+        return json.dumps(dict(Key=key))
+
+    def stop_key_usage(self):
+        key_identifier = self._get_param("KeyIdentifier")
+        key = self.paymentcryptography_backend.stop_key_usage(
+            key_identifier=key_identifier,
+        )
+        return json.dumps(dict(Key=key))
