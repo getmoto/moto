@@ -106,16 +106,19 @@ class Key(BaseModel):
             "KeyState": self.key_state,
             "KeyOrigin": self.key_origin,
             "CreateTimestamp": self.create_timestamp,
-            "UsingDefaultReplicationRegions": self.using_default_replication_regions,
         }
         if self.derive_key_usage:
             result["DeriveKeyUsage"] = self.derive_key_usage
-        if self.multi_region_key_type:
+        if self.multi_region_key_type is not None:
             result["MultiRegionKeyType"] = self.multi_region_key_type
-        if self.primary_region:
+        if self.primary_region is not None:
             result["PrimaryRegion"] = self.primary_region
-        if self.replication_status:
+        if self.replication_status is not None:
             result["ReplicationStatus"] = self.replication_status
+        if self.using_default_replication_regions is not None:
+            result["UsingDefaultReplicationRegions"] = (
+                self.using_default_replication_regions
+            )
         if self.usage_start_timestamp is not None:
             result["UsageStartTimestamp"] = self.usage_start_timestamp
         if self.usage_stop_timestamp is not None:
@@ -321,7 +324,6 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             key.multi_region_key_type = None
             key.primary_region = None
             key.replication_status = None
-            key.using_default_replication_regions = None
 
         return key.to_dict()
 
