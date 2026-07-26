@@ -335,11 +335,11 @@ class CloudTrailBackend(BaseBackend):
         return self.describe_trails(include_shadow_trails=True)
 
     def start_logging(self, name: str) -> None:
-        trail = self.trails[name]
+        trail = self.get_trail(name_or_arn=name)
         trail.start_logging()
 
     def stop_logging(self, name: str) -> None:
-        trail = self.trails[name]
+        trail = self.get_trail(name_or_arn=name)
         trail.stop_logging()
 
     def delete_trail(self, name: str) -> None:

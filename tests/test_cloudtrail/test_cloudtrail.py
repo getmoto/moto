@@ -309,6 +309,31 @@ def test_get_trail_status_after_starting_and_stopping():
 
 
 @mock_aws
+def test_start_and_stop_logging_by_arn():
+    client = boto3.client("cloudtrail", region_name="eu-west-3")
+    _, resp, trail_name = create_trail_simple(region_name="eu-west-3")
+    trail_arn = resp["TrailARN"]
+
+    client.start_logging(Name=trail_arn)
+    status = client.get_trail_status(Name=trail_name)
+    assert status["IsLogging"] is True
+
+    client.stop_logging(Name=trail_arn)
+    status = client.get_trail_status(Name=trail_name)
+    assert status["IsLogging"] is False
+
+
+@pytest.mark.parametrize("method", ["start_logging", "stop_logging"])
+@mock_aws
+def test_start_and_stop_logging_unknown_trail(method):
+    client = boto3.client("cloudtrail", region_name="eu-west-3")
+    with pytest.raises(ClientError) as exc:
+        getattr(client, method)(Name="does-not-exist")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "TrailNotFoundException"
+
+
+@mock_aws
 def test_get_trail_status_multi_region_not_from_the_home_region():
     # CloudTrail client
     client_us_east_1 = boto3.client("cloudtrail", region_name="us-east-1")
