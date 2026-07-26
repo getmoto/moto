@@ -2011,6 +2011,12 @@ class S3Response(BaseResponse):
 
         for param_name, header_name in ALLOWED_HEADER_OVERRIDES.items():
             if param_name in self.querystring:
+                # Remove any existing header with the same name but different casing
+                # (e.g. object metadata stores "content-disposition" lowercase, while
+                # this override uses "Content-Disposition") to avoid duplicate headers.
+                for existing in list(response_headers.keys()):
+                    if existing.lower() == header_name.lower():
+                        del response_headers[existing]
                 response_headers[header_name] = self.querystring[param_name][0]
 
         part_number = self._get_int_param("partNumber")
