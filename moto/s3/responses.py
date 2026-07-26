@@ -1725,11 +1725,17 @@ class S3Response(BaseResponse):
                         obj["Key"],
                         obj.get("ETag", None),
                         version_id=obj.get("VersionId", None),
-                        error_name="ETag",
+                        failed_condition="ETag",
                     )
                     objects_to_delete.append(obj)
-                except PreconditionFailed as e:
-                    errors.append((obj["Key"], "PreconditionFailed", e.condition))
+                except PreconditionFailed:
+                    errors.append(
+                        (
+                            obj["Key"],
+                            "PreconditionFailed",
+                            "At least one of the pre-conditions you specified did not hold",
+                        )
+                    )
                 except MissingKey:
                     # Deletion is idempotent, and we need the format from `delete_objects`
                     objects_to_delete.append(obj)
@@ -3067,7 +3073,7 @@ class S3Response(BaseResponse):
         key_name: str,
         etag: str | None,
         version_id: str | None = None,
-        error_name: str = "If-Match",
+        failed_condition: str = "If-Match",
     ) -> None:
         if etag is None or etag == "*":
             return
@@ -3079,7 +3085,7 @@ class S3Response(BaseResponse):
             raise MissingKey
         # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
         if etag.replace('"', "") != obj.etag.replace('"', ""):
-            raise PreconditionFailed(error_name)
+            raise PreconditionFailed(failed_condition)
 
     def delete_object(self) -> TYPE_RESPONSE:
         bypass = self.headers.get("X-Amz-Bypass-Governance-Retention")
@@ -3088,7 +3094,10 @@ class S3Response(BaseResponse):
         if_match = self.headers.get("If-Match")
 
         self._verify_etag_match(
-            key_name, if_match, version_id=version_id, error_name="If-Match"
+            key_name,
+            if_match,
+            version_id=version_id,
+            failed_condition="If-Match",
         )
 
         _, response_meta = self.backend.delete_object(
