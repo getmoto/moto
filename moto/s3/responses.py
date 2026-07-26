@@ -1720,25 +1720,26 @@ class S3Response(BaseResponse):
                 )
                 if perm == PermissionResult.DENIED:
                     errors.append((obj["Key"], "AccessDenied", "Access Denied"))
-                try:
-                    self._verify_etag_match(
-                        obj["Key"],
-                        obj.get("ETag", None),
-                        version_id=obj.get("VersionId", None),
-                        failed_condition="ETag",
-                    )
-                    objects_to_delete.append(obj)
-                except PreconditionFailed:
-                    errors.append(
-                        (
+                else:
+                    try:
+                        self._verify_etag_match(
                             obj["Key"],
-                            "PreconditionFailed",
-                            "At least one of the pre-conditions you specified did not hold",
+                            obj.get("ETag", None),
+                            version_id=obj.get("VersionId", None),
+                            failed_condition="ETag",
                         )
-                    )
-                except MissingKey:
-                    # Deletion is idempotent, and we need the format from `delete_objects`
-                    objects_to_delete.append(obj)
+                        objects_to_delete.append(obj)
+                    except PreconditionFailed:
+                        errors.append(
+                            (
+                                obj["Key"],
+                                "PreconditionFailed",
+                                "At least one of the pre-conditions you specified did not hold",
+                            )
+                        )
+                    except MissingKey:
+                        # Deletion is idempotent, and we need the format from `delete_objects`
+                        objects_to_delete.append(obj)
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
