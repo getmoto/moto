@@ -144,6 +144,22 @@ def test_create_table():
 
 
 @mock_aws
+def test_create_table_with_an_existing_name():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+
+    with pytest.raises(client.exceptions.ConflictException) as exc:
+        client.create_table(
+            tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+        )
+    assert exc.match("A table with an identical name already exists in the namespace.")
+
+
+@mock_aws
 def test_get_table():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]
