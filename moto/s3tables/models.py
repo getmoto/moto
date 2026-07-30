@@ -285,7 +285,7 @@ class S3TablesBackend(BaseBackend):
 
         ns = bucket.namespaces[namespace]
         if name in ns.tables:
-            TableAlreadyExists()
+            raise TableAlreadyExists()
         table = Table(
             name=name,
             account_id=self.account_id,
