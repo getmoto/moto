@@ -381,13 +381,15 @@ DEFAULT_USER_POOL_CONFIG: dict[str, Any] = {
         "EmailSubject": "Your verification code",
         "DefaultEmailOption": "CONFIRM_WITH_CODE",
     },
-    "AccountRecoverySetting": {
-        "RecoveryMechanisms": [
-            {"Priority": 1, "Name": "verified_email"},
-            {"Priority": 2, "Name": "verified_phone_number"},
-        ]
-    },
 }
+
+# AWS does not apply an AccountRecoverySetting when the user pool was created
+# without one. It instead falls back to "the legacy behavior to determine the
+# recovery method where SMS is preferred through email".
+LEGACY_ACCOUNT_RECOVERY_MECHANISMS = [
+    {"Priority": 1, "Name": "verified_phone_number"},
+    {"Priority": 2, "Name": "verified_email"},
+]
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -1784,7 +1786,9 @@ class CognitoIdpBackend(BaseBackend):
         """
         for user_pool in self.user_pools.values():
             if client_id in user_pool.clients:
-                recovery_settings = user_pool.extended_config["AccountRecoverySetting"]
+                recovery_settings = user_pool.extended_config.get(
+                    "AccountRecoverySetting"
+                )
                 user = user_pool._get_user(username)
                 break
         else:
@@ -1809,8 +1813,11 @@ class CognitoIdpBackend(BaseBackend):
     def _get_code_delivery_details(
         self, recovery_settings: Any, user: CognitoIdpUser | None, username: str
     ) -> dict[str, str]:
+        recovery_mechanisms = (recovery_settings or {}).get(
+            "RecoveryMechanisms"
+        ) or LEGACY_ACCOUNT_RECOVERY_MECHANISMS
         selected_recovery = min(
-            recovery_settings["RecoveryMechanisms"],
+            recovery_mechanisms,
             key=lambda recovery_mechanism: recovery_mechanism["Priority"],
         )
         if selected_recovery["Name"] == "admin_only":
@@ -2010,7 +2017,7 @@ class CognitoIdpBackend(BaseBackend):
             or "phone_number" in verified_attributes
         )
         if (has_email and email_verified) or (has_phone and phone_verified):
-            recovery_settings = user_pool.extended_config["AccountRecoverySetting"]
+            recovery_settings = user_pool.extended_config.get("AccountRecoverySetting")
             details = self._get_code_delivery_details(
                 recovery_settings=recovery_settings, user=user, username=user.username
             )
