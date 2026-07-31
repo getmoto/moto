@@ -798,6 +798,45 @@ def test_get_instances_filtering_by_instance_group_id():
 
 
 @mock_aws
+def test_get_instances_filtering_by_secondary_instance_group():
+    client = boto3.client("ec2", region_name="us-east-1")
+    first_group_name = str(uuid4())[0:6]
+    second_group_name = str(uuid4())[0:6]
+    first_group_id = client.create_security_group(
+        Description="test", GroupName=first_group_name
+    )["GroupId"]
+    second_group_id = client.create_security_group(
+        Description="test", GroupName=second_group_name
+    )["GroupId"]
+    instance_id = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[first_group_name, second_group_name],
+    )["Instances"][0]["InstanceId"]
+
+    for filter_name, filter_value in [
+        ("instance.group-id", second_group_id),
+        ("group-id", second_group_id),
+        ("instance.group-name", second_group_name),
+    ]:
+        reservations = client.describe_instances(
+            Filters=[{"Name": filter_name, "Values": [filter_value]}]
+        )["Reservations"]
+        assert [i["InstanceId"] for r in reservations for i in r["Instances"]] == [
+            instance_id
+        ]
+
+    # the first group must keep matching too
+    reservations = client.describe_instances(
+        Filters=[{"Name": "instance.group-id", "Values": [first_group_id]}]
+    )["Reservations"]
+    assert [i["InstanceId"] for r in reservations for i in r["Instances"]] == [
+        instance_id
+    ]
+
+
+@mock_aws
 def test_get_instances_filtering_by_subnet_id():
     client = boto3.client("ec2", region_name="us-east-1")
 

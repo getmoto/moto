@@ -348,10 +348,12 @@ def get_object_value(obj: Any, attr: str) -> Any:
         elif isinstance(val, dict):
             val = val[key]
         elif isinstance(val, list):
+            item_values = []
             for item in val:
                 item_val = get_object_value(item, key)
                 if item_val:
-                    return item_val
+                    item_values.append(item_val)
+            return item_values or None
         elif key == "owner_id" and hasattr(val, "account_id"):
             val = val.account_id
         else:
