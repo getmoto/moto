@@ -197,6 +197,9 @@ def test_create_describe_and_delete_user(client, server):
     assert user["PosixProfile"]["Gid"] == 1
     assert user["Role"] == "TransferFamilyAdministrator"
     assert user["SshPublicKeys"][0]["SshPublicKeyBody"] == "ED25519"
+    assert user["SshPublicKeys"][0]["SshPublicKeyId"].startswith(
+        f"{server_id}:{user_name}:public_key:"
+    )
     assert user["Tags"][0]["Key"] == "Owner"
     assert user["Tags"][0]["Value"] == "MotoUser1337"
     assert user["UserName"] == "test_user"
