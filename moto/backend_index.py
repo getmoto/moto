@@ -63,6 +63,7 @@ backend_url_patterns = [
     ("datapipeline", re.compile("https?://datapipeline\\.(.+)\\.amazonaws\\.com")),
     ("datasync", re.compile("https?://(.*\\.)?(datasync)\\.(.+)\\.amazonaws.com")),
     ("dax", re.compile("https?://dax\\.(.+)\\.amazonaws\\.com")),
+    ("devopsagent", re.compile("https?://(.*\\.)?aidevops\\.(.+)\\.api\\.aws")),
     ("directconnect", re.compile("https?://directconnect\\.(.+)\\.amazonaws\\.com")),
     ("dms", re.compile("https?://dms\\.(.+)\\.amazonaws\\.com")),
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
