@@ -244,6 +244,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
             error_name = f"ApiGateway.{ex_name}"
             cause = str(ex)
         return FailureEvent(
+            env=env,
             error_name=CustomErrorName(error_name),
             event_type=HistoryEventType.TaskFailed,
             event_details=EventDetails(
