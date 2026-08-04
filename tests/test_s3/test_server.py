@@ -112,6 +112,45 @@ def test_s3_server_ignore_subdomain_for_bucketnames():
         assert "mybucket" in res.headers.get("Location")
 
 
+def test_s3_server_get_object_does_not_duplicate_overridden_headers():
+    # github.com/getmoto/moto/issues/10116
+    # Object metadata set at PutObject-time (e.g. Content-Disposition, Cache-Control)
+    # must be *replaced* by the response-* query overrides on GetObject, not duplicated
+    # alongside them - a plain dict lookup on res.headers hides this, since it only
+    # surfaces one of the two differently-cased entries.
+    thread = ThreadedMotoServer(port=0, verbose=False)
+    thread.start()
+    _, port = thread.get_host_and_port()
+    auth = {"Authorization": "Any authorization header"}
+    base_url = f"http://localhost:{port}/duplicate-header-bucket"
+    try:
+        requests.put(base_url, headers=auth)
+        requests.put(
+            f"{base_url}/file.txt",
+            data=b"ABCD",
+            headers={
+                **auth,
+                "Content-Disposition": 'inline; filename="orig.png"',
+                "Cache-Control": "max-age=1",
+            },
+        )
+        res = requests.get(
+            f"{base_url}/file.txt",
+            params={
+                "response-content-disposition": 'attachment; filename="foo.jpg"',
+                "response-cache-control": "max-age=74",
+            },
+            headers=auth,
+        )
+        assert res.status_code == 200
+        assert res.raw.headers.getlist("Content-Disposition") == [
+            'attachment; filename="foo.jpg"'
+        ]
+        assert res.raw.headers.getlist("Cache-Control") == ["max-age=74"]
+    finally:
+        thread.stop()
+
+
 def test_s3_server_bucket_versioning():
     test_client = authenticated_client()
 
