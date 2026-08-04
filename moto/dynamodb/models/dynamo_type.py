@@ -137,8 +137,12 @@ class DynamoType:
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
         if self.type == DDBType.NUMBER:
-            self_value = float(self.value) if "." in self.value else int(self.value)
-            other_value = float(other.value) if "." in other.value else int(other.value)
+            self_value: Decimal | int = (
+                Decimal(self.value) if "." in self.value else int(self.value)
+            )
+            other_value: Decimal | int = (
+                Decimal(other.value) if "." in other.value else int(other.value)
+            )
             return DynamoType({DDBType.NUMBER: f"{self_value - other_value}"})
         else:
             raise TypeError("Sum only supported for Numbers.")
