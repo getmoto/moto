@@ -1,0 +1,19 @@
+{
+  "StartAt": "Call",
+  "States": {
+    "Call": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::apigateway:invoke",
+      "Parameters": {
+        "ApiEndpoint.$": "$.ApiEndpoint",
+        "Method": "POST",
+        "Stage": "prod",
+        "Path": "/things",
+        "QueryParameters": {"mode": ["fast", "slow"], "limit": "10", "flag": 0},
+        "RequestBody.$": "$.RequestBody",
+        "Headers": {"Content-Type": ["application/json"], "X-Custom": ["a", "b"]}
+      },
+      "End": true
+    }
+  }
+}
