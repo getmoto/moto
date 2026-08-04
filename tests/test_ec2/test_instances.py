@@ -798,6 +798,46 @@ def test_get_instances_filtering_by_instance_group_id():
 
 
 @mock_aws
+def test_get_instances_filtering_by_group_id_multiple_security_groups():
+    # An instance can belong to several security groups; a group-id/group-name
+    # filter must match it via ANY of them, not only the first one attached.
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    sg1 = client.create_security_group(
+        Description="test", GroupName=str(uuid4())[0:6], VpcId=vpc_id
+    )["GroupId"]
+    sg2 = client.create_security_group(
+        Description="test", GroupName="second-group", VpcId=vpc_id
+    )["GroupId"]
+    subnet_id = client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    instance_id = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SubnetId=subnet_id,
+        SecurityGroupIds=[sg1, sg2],
+    )["Instances"][0]["InstanceId"]
+
+    def instances_for(filter_name, value):
+        reservations = client.describe_instances(
+            Filters=[{"Name": filter_name, "Values": [value]}]
+        )["Reservations"]
+        return [i["InstanceId"] for r in reservations for i in r["Instances"]]
+
+    # Matches via the first and the (previously ignored) second security group.
+    assert instances_for("group-id", sg1) == [instance_id]
+    assert instances_for("group-id", sg2) == [instance_id]
+    assert instances_for("instance.group-name", "second-group") == [instance_id]
+    # A group the instance is not in must not match.
+    other = client.create_security_group(
+        Description="test", GroupName="other", VpcId=vpc_id
+    )["GroupId"]
+    assert instances_for("group-id", other) == []
+
+
+@mock_aws
 def test_get_instances_filtering_by_subnet_id():
     client = boto3.client("ec2", region_name="us-east-1")
 
