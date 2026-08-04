@@ -569,6 +569,15 @@ class IoTResponse(BaseResponse):
         next_token = None
         return ActionResult({"things": things, "nextToken": next_token})
 
+    def list_principal_things_v2(self) -> ActionResult:
+        principal = self.headers.get("x-amzn-principal")
+        thing_names = self.iot_backend.list_principal_things_v2(principal_arn=principal)
+
+        # V2 requires a "list of objects" format, not the original "list of strings".
+        principal_thing_objects = [{"thingName": name} for name in thing_names]
+
+        return ActionResult({"principalThingObjects": principal_thing_objects})
+
     def list_thing_principals(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         principals = self.iot_backend.list_thing_principals(thing_name=thing_name)
