@@ -103,7 +103,17 @@ class SfnGatewayException(Exception):
 
 class StateTaskServiceApiGateway(StateTaskServiceCallback):
     _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
-        SupportedApiCalls.invoke: {"ApiEndpoint", "Method"}
+        SupportedApiCalls.invoke: {
+            "ApiEndpoint",
+            "Method",
+            "Headers",
+            "Stage",
+            "Path",
+            "QueryParameters",
+            "RequestBody",
+            "AllowNullValues",
+            "AuthType",
+        }
     }
 
     _FORBIDDEN_HTTP_HEADERS_PREFIX: Final[set[str]] = {"X-Forwarded", "X-Amz", "X-Amzn"}
@@ -154,19 +164,19 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         query_parameters = parameters.get("QueryParameters")
         # TODO: add support for AllowNullValues.
         if query_parameters is not None:
-            for key, value in list(query_parameters.items()):
-                if value:
-                    query_parameters[key] = value[-1]
-                else:
-                    query_parameters[key] = ""
-            query_str = f"?{urlencode(query_parameters)}"
+            normalised = {
+                key: "" if value in (None, []) else value
+                for key, value in query_parameters.items()
+            }
+            query_str = f"?{urlencode(normalised, doseq=True)}"
         return query_str
 
     @staticmethod
     def _headers_of(parameters: TaskParameters) -> dict | None:
-        headers = parameters.get("Headers", {})
-        if headers:
-            for key in headers.keys():
+        given_headers = parameters.get("Headers") or {}
+        headers = {}
+        if given_headers:
+            for key, value in given_headers.items():
                 # TODO: the following check takes place at parse time.
                 if key in StateTaskServiceApiGateway._FORBIDDEN_HTTP_HEADERS:
                     raise ValueError(
@@ -179,7 +189,11 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
                         raise ValueError(
                             f"The 'Headers' field contains unsupported values: {key}"
                         )
-            if "RequestBody" in parameters:
+                if isinstance(value, list):
+                    headers[key] = f"[{','.join(value)}]"
+                else:
+                    headers[key] = value
+            if parameters.get("RequestBody") is not None:
                 headers[HEADER_CONTENT_TYPE] = APPLICATION_JSON
         headers["Accept"] = APPLICATION_JSON
         return headers
@@ -193,9 +207,9 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         # http://localhost:4566/restapis/<api-id>/<stage>/_user_request_/<path>(?<query-parameters>)?
         url_tail = "/".join(
             [
-                parameters.get("Stage", ""),
+                parameters.get("Stage") or "",
                 PATH_USER_REQUEST,
-                parameters.get("Path", ""),
+                parameters.get("Path") or "",
                 StateTaskServiceApiGateway._query_parameters_of(parameters) or "",
             ]
         )
@@ -220,7 +234,8 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         if "date" in headers:
             headers["Date"] = [headers.pop("date")]
         headers[HEADER_CONTENT_TYPE] = [APPLICATION_JSON]
-        headers["Content-Length"] = [headers["Content-Length"]]
+        if "Content-Length" in headers:
+            headers["Content-Length"] = [headers["Content-Length"]]
         # TODO: add support for the following generated fields.
         headers["Connection"] = ["keep-alive"]
         headers["x-amz-apigw-id"] = [str(mock_random.uuid4())]
@@ -268,6 +283,15 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         state_credentials: StateCredentials,
     ):
         task_parameters: TaskParameters = normalised_parameters
+
+        auth_type = task_parameters.get("AuthType")
+        if auth_type is not None and auth_type != AuthType.NO_AUTH:
+            LOG.warning(
+                "AuthType '%s' is not supported for apigateway:invoke; the request will be sent without authentication",
+                auth_type,
+            )
+        if task_parameters.get("AllowNullValues"):
+            LOG.warning("AllowNullValues is not supported for apigateway:invoke")
 
         method = task_parameters["Method"]
         invoke_url = self._invoke_url_of(task_parameters)
