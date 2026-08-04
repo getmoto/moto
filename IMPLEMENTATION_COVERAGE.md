@@ -7268,7 +7268,7 @@
 
 ## memorydb
 <details>
-<summary>28% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] batch_update_cluster
 - [ ] copy_snapshot
@@ -7278,14 +7278,14 @@
 - [ ] create_parameter_group
 - [X] create_snapshot
 - [X] create_subnet_group
-- [ ] create_user
+- [X] create_user
 - [ ] delete_acl
 - [X] delete_cluster
 - [ ] delete_multi_region_cluster
 - [ ] delete_parameter_group
 - [X] delete_snapshot
 - [X] delete_subnet_group
-- [ ] delete_user
+- [X] delete_user
 - [ ] describe_acls
 - [X] describe_clusters
 - [ ] describe_engine_versions
@@ -7300,7 +7300,7 @@
 - [ ] describe_service_updates
 - [X] describe_snapshots
 - [X] describe_subnet_groups
-- [ ] describe_users
+- [X] describe_users
 - [ ] failover_shard
 - [ ] list_allowed_multi_region_cluster_updates
 - [ ] list_allowed_node_type_updates
@@ -7314,7 +7314,7 @@
 - [ ] update_multi_region_cluster
 - [ ] update_parameter_group
 - [ ] update_subnet_group
-- [ ] update_user
+- [X] update_user
 </details>
 
 ## meteringmarketplace
