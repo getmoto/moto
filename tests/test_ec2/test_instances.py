@@ -781,6 +781,27 @@ def test_get_instances_filtering_by_instance_group_name():
 
 
 @mock_aws
+def test_get_instances_filtering_by_instance_group_name_multiple_groups():
+    # https://github.com/getmoto/moto/issues/10114
+    # An instance in multiple security groups should be matched by a
+    # group-name filter naming any of its groups, not just the first one.
+    client = boto3.client("ec2", region_name="us-east-1")
+    name1 = str(uuid4())[0:6]
+    name2 = str(uuid4())[0:6]
+    client.create_security_group(Description="test", GroupName=name1)
+    client.create_security_group(Description="test", GroupName=name2)
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[name1, name2]
+    )
+
+    for name in (name1, name2):
+        reservations = client.describe_instances(
+            Filters=[{"Name": "instance.group-name", "Values": [name]}]
+        )["Reservations"]
+        assert len(reservations[0]["Instances"]) == 1
+
+
+@mock_aws
 def test_get_instances_filtering_by_instance_group_id():
     client = boto3.client("ec2", region_name="us-east-1")
     sec_group_name = str(uuid4())[0:6]
@@ -795,6 +816,32 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     assert len(reservations[0]["Instances"]) == 1
+
+
+@mock_aws
+def test_get_instances_filtering_by_instance_group_id_multiple_groups():
+    # https://github.com/getmoto/moto/issues/10114
+    # An instance in multiple security groups should be matched by a
+    # group-id filter naming any of its groups, not just the first one.
+    client = boto3.client("ec2", region_name="us-east-1")
+    sg1 = client.create_security_group(Description="test", GroupName=str(uuid4())[0:6])[
+        "GroupId"
+    ]
+    sg2 = client.create_security_group(Description="test", GroupName=str(uuid4())[0:6])[
+        "GroupId"
+    ]
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroupIds=[sg1, sg2],
+    )
+
+    for group_id in (sg1, sg2):
+        reservations = client.describe_instances(
+            Filters=[{"Name": "group-id", "Values": [group_id]}]
+        )["Reservations"]
+        assert len(reservations[0]["Instances"]) == 1
 
 
 @mock_aws
