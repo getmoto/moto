@@ -18,6 +18,9 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
     ResourceRuntimePart,
@@ -262,7 +265,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: Any,
+        state_credentials: StateCredentials,
     ):
         task_parameters: TaskParameters = normalised_parameters
 
