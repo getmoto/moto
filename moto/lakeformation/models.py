@@ -109,7 +109,7 @@ class PermissionCatalog:
     def add_permission(self, permission: Permission) -> None:
         for existing_permission in self.permissions:
             if permission.equal_principal_and_resouce(existing_permission):
-                # Permission with same principal and resouce, only once of these can exist
+                # Permission with same principal and resource, only once of these can exist
                 existing_permission.merge(permission)
                 return
         # found no match
@@ -118,8 +118,8 @@ class PermissionCatalog:
     def remove_permission(self, permission: Permission) -> None:
         for existing_permission in self.permissions:
             if permission.equal_principal_and_resouce(existing_permission):
-                # Permission with same principal and resouce, only once of these can exist
-                # remove and readd to recalculate the hash value after the diff
+                # Permission with same principal and resource, only once of these can exist
+                # remove and re-add to recalculate the hash value after the diff
                 self.permissions.remove(existing_permission)
                 existing_permission.diff(permission)
                 self.permissions.add(existing_permission)
@@ -231,7 +231,7 @@ class ListPermissionsResource:
             and table is None
             and data_location is None
         ):
-            # Error message is the exact string returned by the AWS-CLI eventhough it is valid
+            # Error message is the exact string returned by the AWS-CLI even though it is valid
             # to not populate the respective fields as long as data_location is given.
             raise InvalidInput(
                 "Resource must have either the catalog, table or database field populated."

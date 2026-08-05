@@ -924,7 +924,7 @@ class Table(CloudFormationModel):
                 else:
                     processing_previous_page = False
 
-            # Check wether we've reached the limit of our result set
+            # Check whether we've reached the limit of our result set
             # That can be either in number, or in size
             reached_length_limit = len(results) == limit
             reached_size_limit = (result_size + result.size()) > RESULT_SIZE_LIMIT

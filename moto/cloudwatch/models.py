@@ -381,7 +381,7 @@ class Dashboard(CloudFormationModel):
 
 class Statistics:
     """
-    Helper class to calculate statics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
+    Helper class to calculate statistics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
     """
 
     def __init__(self, stats: list[str], dt: datetime, unit: str | None = None):
@@ -393,7 +393,7 @@ class Statistics:
     def get_statistics_for_type(self, stat: str) -> SupportsFloat | None:
         """Calculates the statistic for the metric_data provided
 
-        :param stat: the statistic that should be returned, case-sensitive (Sum, Average, Minium, Maximum, SampleCount)
+        :param stat: the statistic that should be returned, case-sensitive (Sum, Average, Minimum, Maximum, SampleCount)
         :return: the statistic of the current 'metric_data' in this class, or 0
         """
         if stat == "Sum":
