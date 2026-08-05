@@ -4,7 +4,7 @@
 
 [![Build Status](https://github.com/getmoto/moto/workflows/TestNDeploy/badge.svg)](https://github.com/getmoto/moto/actions)
 [![Coverage Status](https://codecov.io/gh/getmoto/moto/branch/master/graph/badge.svg)](https://codecov.io/gh/getmoto/moto)
-[![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
+[![Docs](https://readthedocs.org/projects/moto/badge/?version=stable)](https://docs.getmoto.org/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/moto.svg)](https://pypi.org/project/moto/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)](#)
 [![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)](https://pypistats.org/packages/moto)
@@ -68,7 +68,7 @@ For a full list of which services and features are covered, please see our [impl
 ### Documentation
 The full documentation can be found here:
 
-[http://docs.getmoto.org/en/latest/](http://docs.getmoto.org/en/latest/)
+[https://docs.getmoto.org/en/latest/](https://docs.getmoto.org/en/latest/)
 
 
 ### Financial Contributions
