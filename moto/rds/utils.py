@@ -265,7 +265,7 @@ def valid_preferred_maintenance_window(
 ) -> str | None:
     """Determines validity of preferred_maintenance_window
 
-    :param maintenance_windown:
+    :param maintenance_window:
         type DDD:HH24:MM-DDD:HH24:MM
     :param backup_window:
         type HH24:MM-HH24:MM
