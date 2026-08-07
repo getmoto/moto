@@ -221,10 +221,10 @@ class AuroraDSQLBackend(BaseBackend, TaggableResourcesMixin):
             arn = f"arn:{get_partition(self.region_name)}:dsql:{self.region_name}:{self.account_id}:cluster/{identifier}"
             raise ResourceNotFoundException(arn, identifier, "cluster")
         cluster = self.clusters[identifier]
-        if cluster._status == "DELETED":
+        cluster.advance()
+        if cluster.status == "DELETED":
             self.clusters.pop(identifier)
             raise ResourceNotFoundException(cluster.arn, identifier, "cluster")
-        cluster.advance()
         return cluster
 
     def get_vpc_endpoint_service_name(self, identifier: str) -> dict[str, str]:
@@ -327,10 +327,10 @@ class AuroraDSQLBackend(BaseBackend, TaggableResourcesMixin):
                 f"{cluster.arn}/stream/{stream_identifier}", stream_identifier, "stream"
             )
         stream = cluster.streams[stream_identifier]
-        if stream._status == "DELETED":
+        stream.advance()
+        if stream.status == "DELETED":
             cluster.streams.pop(stream_identifier)
             raise ResourceNotFoundException(stream.arn, stream_identifier, "stream")
-        stream.advance()
         return stream
 
     def list_streams(

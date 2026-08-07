@@ -67,8 +67,6 @@ def test_delete_cluster():
     assert resp["identifier"] == identifier
     assert resp["status"] == "DELETING"
 
-    resp = client.get_cluster(identifier=identifier)
-    assert resp["status"] == "DELETED"
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         client.get_cluster(identifier=identifier)
 
@@ -328,11 +326,6 @@ def test_stream_lifecycle():
     )
     assert deleted["status"] == "DELETING"
 
-    stream = client.get_stream(
-        clusterIdentifier=cluster_identifier,
-        streamIdentifier=stream_identifier,
-    )
-    assert stream["status"] == "DELETED"
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         client.get_stream(
             clusterIdentifier=cluster_identifier,
