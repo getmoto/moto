@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Iterator
+from copy import deepcopy
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
 
-from .exceptions import ConflictException, ResourceNotFoundException
+from .exceptions import (
+    ConflictException,
+    ResourceNotFoundException,
+    ValidationException,
+)
 
 
 class Cluster(BaseModel, ManagedState):
@@ -30,7 +37,9 @@ class Cluster(BaseModel, ManagedState):
         policy: str | None = None,
     ):
         ManagedState.__init__(
-            self, "dsql::cluster", transitions=[("CREATING", "ACTIVE")]
+            self,
+            "dsql::cluster",
+            transitions=[("CREATING", "ACTIVE"), ("DELETING", "DELETED")],
         )
         self.region_name = region_name
         self.account_id = account_id
@@ -56,6 +65,15 @@ class Cluster(BaseModel, ManagedState):
         if kms_encryption_key:
             self.encryption_details["kmsKeyArn"] = kms_encryption_key
         self.streams: dict[str, Stream] = OrderedDict()
+        self.idempotency_parameters = deepcopy(
+            {
+                "deletion_protection_enabled": deletion_protection_enabled,
+                "tags": tags,
+                "kms_encryption_key": kms_encryption_key,
+                "multi_region_properties": multi_region_properties,
+                "policy": policy,
+            }
+        )
 
     def to_summary(self) -> dict[str, str]:
         return {"identifier": self.identifier, "arn": self.arn}
@@ -74,7 +92,9 @@ class Stream(BaseModel, ManagedState):
         client_token: str | None,
     ):
         ManagedState.__init__(
-            self, "dsql::stream", transitions=[("CREATING", "ACTIVE")]
+            self,
+            "dsql::stream",
+            transitions=[("CREATING", "ACTIVE"), ("DELETING", "DELETED")],
         )
         self.cluster_identifier = cluster.identifier
         self.stream_identifier = mock_random.get_random_hex(26)
@@ -85,6 +105,14 @@ class Stream(BaseModel, ManagedState):
         self.target_definition = target_definition
         self.tags = tags or {}
         self.client_token = client_token
+        self.idempotency_parameters = deepcopy(
+            {
+                "target_definition": target_definition,
+                "ordering": ordering,
+                "format": format_,
+                "tags": tags,
+            }
+        )
 
     def to_summary(self) -> dict[str, Any]:
         return {
@@ -96,8 +124,10 @@ class Stream(BaseModel, ManagedState):
         }
 
 
-class AuroraDSQLBackend(BaseBackend):
+class AuroraDSQLBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of AuroraDSQL APIs."""
+
+    SERVICE_NAMESPACE = "dsql"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -115,9 +145,22 @@ class AuroraDSQLBackend(BaseBackend):
         multi_region_properties: dict[str, Any] | None = None,
         policy: str | None = None,
     ) -> Cluster:
+        parameters = {
+            "deletion_protection_enabled": deletion_protection_enabled,
+            "tags": tags,
+            "kms_encryption_key": kms_encryption_key,
+            "multi_region_properties": multi_region_properties,
+            "policy": policy,
+        }
         if client_token:
             for cluster in self.clusters.values():
                 if cluster.client_token == client_token:
+                    if cluster.idempotency_parameters != parameters:
+                        raise ConflictException(
+                            "A cluster was already created with this client token and different parameters.",
+                            cluster.identifier,
+                            "cluster",
+                        )
                     return cluster
         cluster = Cluster(
             self.region_name,
@@ -143,16 +186,15 @@ class AuroraDSQLBackend(BaseBackend):
                 identifier,
                 "cluster",
             )
-        self.clusters.pop(identifier)
+        cluster.status = "DELETING"
+        cluster._tick = 0
         return cluster
 
     def list_clusters(
         self, max_results: int | None, next_token: str | None
     ) -> tuple[list[Cluster], str | None]:
         clusters = list(self.clusters.values())
-        start = int(next_token or 0)
-        end = start + (max_results or 100)
-        return clusters[start:end], str(end) if end < len(clusters) else None
+        return self._paginate(clusters, max_results, next_token)
 
     def update_cluster(
         self,
@@ -179,6 +221,9 @@ class AuroraDSQLBackend(BaseBackend):
             arn = f"arn:{get_partition(self.region_name)}:dsql:{self.region_name}:{self.account_id}:cluster/{identifier}"
             raise ResourceNotFoundException(arn, identifier, "cluster")
         cluster = self.clusters[identifier]
+        if cluster._status == "DELETED":
+            self.clusters.pop(identifier)
+            raise ResourceNotFoundException(cluster.arn, identifier, "cluster")
         cluster.advance()
         return cluster
 
@@ -190,15 +235,15 @@ class AuroraDSQLBackend(BaseBackend):
         }
 
     def list_tags_for_resource(self, identifier: str) -> dict[str, str]:
-        resource = self._get_resource(identifier)
+        resource = self._get_resource(self._identifier_from_arn(identifier))
         return resource.tags or {}
 
     def tag_resource(self, identifier: str, tags: dict[str, str]) -> None:
-        resource = self._get_resource(identifier)
+        resource = self._get_resource(self._identifier_from_arn(identifier))
         resource.tags = {**(resource.tags or {}), **tags}
 
     def untag_resource(self, identifier: str, tag_keys: list[str]) -> None:
-        resource = self._get_resource(identifier)
+        resource = self._get_resource(self._identifier_from_arn(identifier))
         tags = resource.tags or {}
         for key in tag_keys:
             tags.pop(key, None)
@@ -253,9 +298,21 @@ class AuroraDSQLBackend(BaseBackend):
         client_token: str | None,
     ) -> Stream:
         cluster = self.get_cluster(cluster_identifier)
+        parameters = {
+            "target_definition": target_definition,
+            "ordering": ordering,
+            "format": format_,
+            "tags": tags,
+        }
         if client_token:
             for stream in cluster.streams.values():
                 if stream.client_token == client_token:
+                    if stream.idempotency_parameters != parameters:
+                        raise ConflictException(
+                            "A stream was already created with this client token and different parameters.",
+                            stream.stream_identifier,
+                            "stream",
+                        )
                     return stream
         stream = Stream(
             cluster, target_definition, ordering, format_, tags, client_token
@@ -270,6 +327,9 @@ class AuroraDSQLBackend(BaseBackend):
                 f"{cluster.arn}/stream/{stream_identifier}", stream_identifier, "stream"
             )
         stream = cluster.streams[stream_identifier]
+        if stream._status == "DELETED":
+            cluster.streams.pop(stream_identifier)
+            raise ResourceNotFoundException(stream.arn, stream_identifier, "stream")
         stream.advance()
         return stream
 
@@ -281,15 +341,49 @@ class AuroraDSQLBackend(BaseBackend):
     ) -> tuple[list[Stream], str | None]:
         cluster = self.get_cluster(cluster_identifier)
         streams = list(cluster.streams.values())
-        start = int(next_token or 0)
-        end = start + (max_results or 100)
-        return streams[start:end], str(end) if end < len(streams) else None
+        return self._paginate(streams, max_results, next_token)
 
     def delete_stream(self, cluster_identifier: str, stream_identifier: str) -> Stream:
         stream = self.get_stream(cluster_identifier, stream_identifier)
-        cluster = self.get_cluster(cluster_identifier)
-        cluster.streams.pop(stream_identifier)
+        stream.status = "DELETING"
+        stream._tick = 0
         return stream
+
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for cluster in self.clusters.values():
+            yield TaggedResource(
+                arn=cluster.arn,
+                tags=cluster.tags or {},
+                resource_type="dsql:cluster",
+                extra={"include_untagged": True},
+            )
+            for stream in cluster.streams.values():
+                yield TaggedResource(
+                    arn=stream.arn,
+                    tags=stream.tags,
+                    resource_type="dsql:stream",
+                    extra={"include_untagged": True},
+                )
+
+    @staticmethod
+    def _identifier_from_arn(identifier: str) -> str:
+        if identifier.startswith("arn:"):
+            return identifier.split("cluster/", 1)[-1]
+        return identifier
+
+    @staticmethod
+    def _paginate(
+        resources: list[Any], max_results: int | None, next_token: str | None
+    ) -> tuple[list[Any], str | None]:
+        try:
+            start = int(next_token or 0)
+        except (TypeError, ValueError):
+            raise ValidationException("The pagination token is invalid.")
+        if start < 0 or start > len(resources):
+            raise ValidationException("The pagination token is invalid.")
+        limit = max_results or 100
+        end = start + limit
+        return resources[start:end], str(end) if end < len(resources) else None
 
     def _get_resource(self, identifier: str) -> Cluster | Stream:
         if "/stream/" not in identifier:

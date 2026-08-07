@@ -22,3 +22,11 @@ class ConflictException(ServiceException):
         self.resource_id = resource_id
         self.resource_type = resource_type
         super().__init__(message)
+
+
+class ValidationException(ServiceException):
+    code = "ValidationException"
+
+    def __init__(self, message: str):
+        self.reason = "other"
+        super().__init__(message)

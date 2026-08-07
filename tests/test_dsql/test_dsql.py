@@ -53,6 +53,11 @@ def test_delete_cluster():
     assert resp["identifier"] == identifier
     assert resp["status"] == "DELETING"
 
+    resp = client.get_cluster(identifier=identifier)
+    assert resp["status"] == "DELETED"
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_cluster(identifier=identifier)
+
 
 @mock_aws
 def test_delete_cluster_with_deletion_protection():
@@ -232,6 +237,31 @@ def test_create_cluster_is_idempotent():
     assert second["identifier"] == first["identifier"]
 
 
+@mock_aws
+def test_create_cluster_idempotency_conflict():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    token = "a" * 32
+    client.create_cluster(clientToken=token, deletionProtectionEnabled=True)
+
+    with pytest.raises(client.exceptions.ConflictException):
+        client.create_cluster(
+            clientToken=token,
+            deletionProtectionEnabled=False,
+        )
+
+
+@mock_aws
+def test_list_clusters_rejects_invalid_pagination_token():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    client.create_cluster()
+
+    with pytest.raises(client.exceptions.ValidationException) as exc:
+        client.list_clusters(nextToken="invalid")
+
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert exc.value.response["reason"] == "other"
+
+
 def _create_stream(client, cluster_identifier, **kwargs):
     return client.create_stream(
         clusterIdentifier=cluster_identifier,
@@ -271,10 +301,32 @@ def test_stream_lifecycle():
         streamIdentifier=stream_identifier,
     )
     assert deleted["status"] == "DELETING"
+
+    stream = client.get_stream(
+        clusterIdentifier=cluster_identifier,
+        streamIdentifier=stream_identifier,
+    )
+    assert stream["status"] == "DELETED"
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         client.get_stream(
             clusterIdentifier=cluster_identifier,
             streamIdentifier=stream_identifier,
+        )
+
+
+@mock_aws
+def test_create_stream_idempotency_conflict():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    cluster_identifier = client.create_cluster()["identifier"]
+    token = "b" * 32
+    _create_stream(client, cluster_identifier, clientToken=token)
+
+    with pytest.raises(client.exceptions.ConflictException):
+        _create_stream(
+            client,
+            cluster_identifier,
+            clientToken=token,
+            tags={"different": "parameters"},
         )
 
 
@@ -317,3 +369,60 @@ def test_stream_operations_validate_resources():
     client = boto3.client("dsql", region_name=TEST_REGION)
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         _create_stream(client, "0" * 26)
+
+
+@mock_aws
+def test_resource_groups_tagging_api_returns_clusters_and_streams():
+    dsql = boto3.client("dsql", region_name=TEST_REGION)
+    tagging = boto3.client("resourcegroupstaggingapi", region_name=TEST_REGION)
+    cluster = dsql.create_cluster(tags={"Name": "custodian-cluster"})
+    stream = _create_stream(
+        dsql,
+        cluster["identifier"],
+        tags={"Name": "custodian-stream"},
+    )
+
+    response = tagging.get_resources(ResourceARNList=[cluster["arn"], stream["arn"]])
+    resources = {
+        resource["ResourceARN"]: {tag["Key"]: tag["Value"] for tag in resource["Tags"]}
+        for resource in response["ResourceTagMappingList"]
+    }
+
+    assert resources == {
+        cluster["arn"]: {"Name": "custodian-cluster"},
+        stream["arn"]: {"Name": "custodian-stream"},
+    }
+
+
+@mock_aws
+def test_custodian_style_enumerate_augment_filter_and_tag_flow():
+    dsql = boto3.client("dsql", region_name=TEST_REGION)
+    tagging = boto3.client("resourcegroupstaggingapi", region_name=TEST_REGION)
+    cluster = dsql.create_cluster(tags={"Owner": "custodian"})
+
+    summaries = dsql.list_clusters()["clusters"]
+    resources = [
+        dsql.get_cluster(identifier=summary["identifier"]) for summary in summaries
+    ]
+    tag_mappings = tagging.get_resources(
+        ResourceARNList=[resource["arn"] for resource in resources]
+    )["ResourceTagMappingList"]
+    tags_by_arn = {
+        mapping["ResourceARN"]: {tag["Key"]: tag["Value"] for tag in mapping["Tags"]}
+        for mapping in tag_mappings
+    }
+    matched = [
+        resource
+        for resource in resources
+        if tags_by_arn.get(resource["arn"], {}).get("Owner") == "custodian"
+    ]
+    assert [resource["identifier"] for resource in matched] == [cluster["identifier"]]
+
+    dsql.tag_resource(resourceArn=matched[0]["arn"], tags={"Env": "test"})
+    refreshed = tagging.get_resources(ResourceARNList=[matched[0]["arn"]])[
+        "ResourceTagMappingList"
+    ][0]
+    assert {tag["Key"]: tag["Value"] for tag in refreshed["Tags"]} == {
+        "Owner": "custodian",
+        "Env": "test",
+    }
