@@ -13,3 +13,12 @@ class ResourceNotFoundException(ServiceException):
             f"The resource with ARN {arn} doesn't exist. Verify the ARN and try again."
         )
         super().__init__(message)
+
+
+class ConflictException(ServiceException):
+    code = "ConflictException"
+
+    def __init__(self, message: str, resource_id: str, resource_type: str):
+        self.resource_id = resource_id
+        self.resource_type = resource_type
+        super().__init__(message)
