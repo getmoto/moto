@@ -44,6 +44,20 @@ def test_create_cluster_with_tags():
 
 
 @mock_aws
+def test_create_cluster_with_customer_managed_kms_key():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    key_arn = "arn:aws:kms:us-east-1:123456789012:key/example"
+
+    cluster = client.create_cluster(kmsEncryptionKey=key_arn)
+
+    assert cluster["encryptionDetails"] == {
+        "encryptionStatus": "ENABLED",
+        "encryptionType": "CUSTOMER_MANAGED_KMS_KEY",
+        "kmsKeyArn": key_arn,
+    }
+
+
+@mock_aws
 def test_delete_cluster():
     client = boto3.client("dsql", region_name=TEST_REGION)
     resp = client.create_cluster()
@@ -229,6 +243,15 @@ def test_cluster_policy_expected_version():
 
 
 @mock_aws
+def test_delete_missing_cluster_policy():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    identifier = client.create_cluster()["identifier"]
+
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.delete_cluster_policy(identifier=identifier)
+
+
+@mock_aws
 def test_create_cluster_is_idempotent():
     client = boto3.client("dsql", region_name=TEST_REGION)
     token = "a" * 32
@@ -260,6 +283,9 @@ def test_list_clusters_rejects_invalid_pagination_token():
 
     assert exc.value.response["Error"]["Code"] == "ValidationException"
     assert exc.value.response["reason"] == "other"
+
+    with pytest.raises(client.exceptions.ValidationException):
+        client.list_clusters(nextToken="2")
 
 
 def _create_stream(client, cluster_identifier, **kwargs):
@@ -331,6 +357,18 @@ def test_create_stream_idempotency_conflict():
 
 
 @mock_aws
+def test_create_stream_is_idempotent():
+    client = boto3.client("dsql", region_name=TEST_REGION)
+    cluster_identifier = client.create_cluster()["identifier"]
+    token = "b" * 32
+
+    first = _create_stream(client, cluster_identifier, clientToken=token)
+    second = _create_stream(client, cluster_identifier, clientToken=token)
+
+    assert second["streamIdentifier"] == first["streamIdentifier"]
+
+
+@mock_aws
 def test_list_streams_with_pagination():
     client = boto3.client("dsql", region_name=TEST_REGION)
     cluster_identifier = client.create_cluster()["identifier"]
@@ -370,6 +408,13 @@ def test_stream_operations_validate_resources():
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         _create_stream(client, "0" * 26)
 
+    cluster_identifier = client.create_cluster()["identifier"]
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_stream(
+            clusterIdentifier=cluster_identifier,
+            streamIdentifier="0" * 26,
+        )
+
 
 @mock_aws
 def test_resource_groups_tagging_api_returns_clusters_and_streams():
@@ -391,6 +436,15 @@ def test_resource_groups_tagging_api_returns_clusters_and_streams():
     assert resources == {
         cluster["arn"]: {"Name": "custodian-cluster"},
         stream["arn"]: {"Name": "custodian-stream"},
+    }
+
+    tagging.tag_resources(
+        ResourceARNList=[cluster["arn"]],
+        Tags={"Environment": "test"},
+    )
+    assert dsql.list_tags_for_resource(resourceArn=cluster["arn"])["tags"] == {
+        "Name": "custodian-cluster",
+        "Environment": "test",
     }
 
 
