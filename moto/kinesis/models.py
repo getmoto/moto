@@ -929,10 +929,8 @@ class KinesisBackend(BaseBackend):
             if stream.arn == stream_arn:
                 return stream
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_stream_consumers(self, stream_arn: str) -> list[Consumer]:
-        """
-        Pagination is not yet implemented
-        """
         stream = self._find_stream_by_arn(stream_arn)
         return stream.consumers
 
