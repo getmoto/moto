@@ -1577,7 +1577,7 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
         elif log_group_id:
             if not re.fullmatch(r"[\w#+=/:,.@-]*", log_group_id):
                 raise InvalidParameterException(
-                    msg=f"1 validation error detected: Value '{log_group_id}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+                    msg="1 validation error detected: Value at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
                 )
             for log_group in self.groups.values():
                 if log_group.arn == log_group_id:

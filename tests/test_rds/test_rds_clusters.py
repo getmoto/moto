@@ -2143,7 +2143,7 @@ def test_add_role_to_db_cluster_adding_feature_a_second_time_throws_DBClusterRol
     with pytest.raises(ClientError) as ex:
         client.add_role_to_db_cluster(
             DBClusterIdentifier=db_cluster_identifier,
-            RoleArn="a-different-role",
+            RoleArn="arn:aws:iam::123456789012:role/a-different-role",
             FeatureName="S3_INTERGRATION",
         )
 

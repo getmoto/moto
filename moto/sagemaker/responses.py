@@ -194,6 +194,11 @@ class SageMakerResponse(BaseResponse):
         response = self.sagemaker_backend.describe_processing_job(processing_job_name)
         return ActionResult(response)
 
+    def stop_processing_job(self) -> ActionResult:
+        processing_job_name = self._get_param("ProcessingJobName")
+        self.sagemaker_backend.stop_processing_job(processing_job_name)
+        return EmptyResult()
+
     def create_transform_job(self) -> ActionResult:
         transform_job = self.sagemaker_backend.create_transform_job(
             transform_job_name=self._get_param("TransformJobName"),
