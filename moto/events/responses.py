@@ -280,10 +280,15 @@ class EventsHandler(BaseResponse):
 
     def list_event_buses(self) -> tuple[str, dict[str, Any]]:
         name_prefix = self._get_param("NamePrefix")
-        # ToDo: add 'NextToken' & 'Limit' parameters
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+
+        event_buses, token = self.events_backend.list_event_buses(
+            name_prefix, next_token=next_token, limit=limit
+        )
 
         response = []
-        for event_bus in self.events_backend.list_event_buses(name_prefix):
+        for event_bus in event_buses:
             event_bus_response = {"Name": event_bus.name, "Arn": event_bus.arn}
 
             if event_bus.policy:
@@ -291,7 +296,10 @@ class EventsHandler(BaseResponse):
 
             response.append(event_bus_response)
 
-        return json.dumps({"EventBuses": response}), self.response_headers
+        return (
+            json.dumps({"EventBuses": response, "NextToken": token}),
+            self.response_headers,
+        )
 
     def delete_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
