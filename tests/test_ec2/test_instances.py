@@ -3,6 +3,7 @@ import ipaddress
 import json
 import os
 import warnings
+from typing import NamedTuple
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -795,6 +796,102 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     assert len(reservations[0]["Instances"]) == 1
+
+
+@mock_aws
+def test_get_instances_filtering_by_security_groups():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    class SG(NamedTuple):
+        id: str
+        name: str
+
+    sgs = []
+    for i in range(2):
+        group_name = f"group-{str(uuid4())[0:6]}"
+        resp = client.create_security_group(
+            Description=f"test-sg-{i}", GroupName=group_name
+        )
+        group_id = resp["GroupId"]
+        sgs.append(SG(group_id, group_name))
+    instance_id_with_first_sg = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[0].name],
+    )["Instances"][0]["InstanceId"]
+    instance_id_with_second_sg = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[1].name],
+    )["Instances"][0]["InstanceId"]
+    instance_id_with_both_sgs = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[0].name, sgs[1].name],
+    )["Instances"][0]["InstanceId"]
+
+    for instance_filters, expected_instance_ids in [
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[0].id]}],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[0].name]}],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[1].id]}],
+            [instance_id_with_second_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[1].name]}],
+            [instance_id_with_second_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[0].id, sgs[1].id]}],
+            [
+                instance_id_with_first_sg,
+                instance_id_with_second_sg,
+                instance_id_with_both_sgs,
+            ],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[0].name, sgs[1].name]}],
+            [
+                instance_id_with_first_sg,
+                instance_id_with_second_sg,
+                instance_id_with_both_sgs,
+            ],
+        ),
+        (
+            [
+                {"Name": "instance.group-id", "Values": [sgs[0].id]},
+                {"Name": "instance.group-name", "Values": [sgs[1].name]},
+            ],
+            [instance_id_with_both_sgs],
+        ),
+        (
+            [
+                {"Name": "instance.group-id", "Values": [sgs[0].id]},
+                {"Name": "instance.group-name", "Values": [sgs[0].name]},
+            ],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": ["non-existent-sg-name"]}],
+            [],
+        ),
+    ]:
+        resp = client.describe_instances(Filters=instance_filters)
+        instance_ids = []
+        if resp["Reservations"]:
+            instance_ids = [
+                i["InstanceId"] for r in resp["Reservations"] for i in r["Instances"]
+            ]
+        assert instance_ids == expected_instance_ids, instance_filters
 
 
 @mock_aws
