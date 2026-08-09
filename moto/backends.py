@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from moto.datapipeline.models import DataPipelineBackend
     from moto.datasync.models import DataSyncBackend
     from moto.dax.models import DAXBackend
+    from moto.devopsagent.models import DevOpsAgentBackend
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
@@ -242,6 +243,7 @@ SERVICE_NAMES = Union[
     "Literal['datapipeline']",
     "Literal['datasync']",
     "Literal['dax']",
+    "Literal['devopsagent']",
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
@@ -477,6 +479,10 @@ def get_backend(
 def get_backend(name: "Literal['datasync']") -> "BackendDict[DataSyncBackend]": ...
 @overload
 def get_backend(name: "Literal['dax']") -> "BackendDict[DAXBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['devopsagent']",
+) -> "BackendDict[DevOpsAgentBackend]": ...
 @overload
 def get_backend(
     name: "Literal['dms']",
