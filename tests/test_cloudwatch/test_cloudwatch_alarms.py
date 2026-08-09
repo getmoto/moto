@@ -99,6 +99,42 @@ def test_delete_alarms_without_error():
 
 
 @mock_aws
+def test_enable_disable_alarm_actions():
+    cloudwatch = boto3.client("cloudwatch", region_name="eu-central-1")
+
+    name = "tester"
+    cloudwatch.put_metric_alarm(
+        AlarmActions=["arn:alarm"],
+        AlarmDescription="A test",
+        AlarmName=name,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        EvaluationPeriods=5,
+        Namespace=f"{name}_namespace",
+        MetricName=f"{name}_metric",
+        Period=60,
+        Statistic="Average",
+        Threshold=2,
+        ActionsEnabled=True,
+    )
+
+    cloudwatch.disable_alarm_actions(AlarmNames=[name])
+    alarm = cloudwatch.describe_alarms()["MetricAlarms"][0]
+    assert alarm["ActionsEnabled"] is False
+
+    cloudwatch.enable_alarm_actions(AlarmNames=[name])
+    alarm = cloudwatch.describe_alarms()["MetricAlarms"][0]
+    assert alarm["ActionsEnabled"] is True
+
+
+@mock_aws
+def test_enable_disable_alarm_actions_without_error():
+    cloudwatch = boto3.client("cloudwatch", region_name="eu-west-1")
+
+    cloudwatch.disable_alarm_actions(AlarmNames=["not-exists"])
+    cloudwatch.enable_alarm_actions(AlarmNames=["not-exists"])
+
+
+@mock_aws
 def test_describe_alarms_for_metric():
     conn = boto3.client("cloudwatch", region_name="eu-central-1")
     conn.put_metric_alarm(

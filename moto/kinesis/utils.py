@@ -16,6 +16,13 @@ PAGINATION_MODEL = {
         "unique_attribute": "shard_id",
         "fail_on_invalid_token": False,
     },
+    "list_stream_consumers": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10000,
+        "unique_attribute": "consumer_arn",
+        "fail_on_invalid_token": False,
+    },
 }
 
 

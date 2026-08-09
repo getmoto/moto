@@ -26,9 +26,9 @@ cloudwatch
 - [ ] describe_alarms_for_metric
 - [ ] describe_anomaly_detectors
 - [X] describe_insight_rules
-- [ ] disable_alarm_actions
+- [X] disable_alarm_actions
 - [X] disable_insight_rules
-- [ ] enable_alarm_actions
+- [X] enable_alarm_actions
 - [X] enable_insight_rules
 - [ ] get_alarm_mute_rule
 - [X] get_dashboard

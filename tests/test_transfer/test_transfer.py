@@ -156,6 +156,27 @@ def test_create_describe_and_delete_server(client, server):
     assert server_id not in connection
 
 
+def test_server_not_found(client):
+    """An unknown server id must surface as ServerNotFound, not a KeyError."""
+    unknown_server_id = "s-1234567890abcdef0"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_server(ServerId=unknown_server_id)
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_server(ServerId=unknown_server_id)
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            ServerId=unknown_server_id,
+            UserName="test_user",
+            Role="TransferFamilyAdministrator",
+        )
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+
 def test_create_describe_and_delete_user(client, server):
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",

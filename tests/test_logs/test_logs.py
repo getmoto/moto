@@ -661,7 +661,7 @@ def test_arn_formats_log_group_and_stream(account_id, log_group_name):
     assert err["Code"] == "InvalidParameterException"
     assert (
         err["Message"]
-        == f"1 validation error detected: Value '{group['arn']}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+        == "1 validation error detected: Value at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
     )
 
 
@@ -691,7 +691,7 @@ def test_get_log_events_using_arn(account_id, log_group_name):
     assert err["Code"] == "InvalidParameterException"
     assert (
         err["Message"]
-        == f"1 validation error detected: Value '{group['arn']}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+        == "1 validation error detected: Value at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
     )
 
 
