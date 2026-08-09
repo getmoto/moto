@@ -237,6 +237,24 @@ class DistributionConfig:
         self.caller_reference = config["CallerReference"]
 
 
+DISTRIBUTION_CONFIG_FIELDS = [
+    "Aliases",
+    "Origins",
+    "OriginGroups",
+    "DefaultCacheBehavior",
+    "CacheBehaviors",
+    "CustomErrorResponses",
+    "Comment",
+    "PriceClass",
+    "Enabled",
+    "ViewerCertificate",
+    "Restrictions",
+    "WebACLId",
+    "HttpVersion",
+    "IsIPV6Enabled",
+]
+
+
 class Distribution(BaseModel, ManagedState):
     def __init__(self, account_id: str, region_name: str, config: dict[str, Any]):
         # Configured ManagedState
@@ -261,6 +279,11 @@ class Distribution(BaseModel, ManagedState):
     @property
     def location(self) -> str:
         return f"https://cloudfront.amazonaws.com/2020-05-31/distribution/{self.distribution_id}"
+
+    def __getattr__(self, name: str) -> Any:
+        if name in DISTRIBUTION_CONFIG_FIELDS:
+            return getattr(self.distribution_config, name)
+        raise AttributeError(name)
 
 
 class OriginAccessControl(BaseModel):

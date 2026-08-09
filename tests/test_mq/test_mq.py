@@ -426,5 +426,11 @@ def test_reboot_broker():
     )["BrokerId"]
     client.reboot_broker(BrokerId=broker_id)
 
-    # Noop - nothing to assert or verify
-    pass
+
+@mock_aws
+def test_describe_shared_resources():
+    client = boto3.client("mq", region_name="ap-southeast-1")
+
+    # No-OP at the moment - no validation, always returns an empty list
+    resp = client.describe_shared_resources(BrokerId="sth")
+    assert resp["SharedResources"] == []

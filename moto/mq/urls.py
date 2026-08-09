@@ -9,6 +9,7 @@ url_bases = [
 
 url_paths = {
     "{0}/v1/brokers/(?P<broker_id>[^/]+)$": MQResponse.dispatch,
+    "{0}/v1/brokers/(?P<broker_id>[^/]+)/shared-resources$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/reboot$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/users$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/users/(?P<user_name>[^/]+)$": MQResponse.dispatch,
