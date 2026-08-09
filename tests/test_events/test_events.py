@@ -983,6 +983,54 @@ def test_list_event_buses():
 
 
 @mock_aws
+def test_list_event_buses_with_token():
+    client = boto3.client("events", "us-east-1")
+    for name in ["test-bus-1", "test-bus-2", "other-bus-1", "other-bus-2"]:
+        client.create_event_bus(Name=name)
+
+    response = client.list_event_buses()
+    assert "NextToken" not in response
+    assert len(response["EventBuses"]) == 5
+    #
+    response = client.list_event_buses(Limit=2)
+    assert "NextToken" in response
+    names = [b["Name"] for b in response["EventBuses"]]
+    assert len(names) == 2
+    #
+    response = client.list_event_buses(NextToken=response["NextToken"])
+    assert "NextToken" not in response
+    names += [b["Name"] for b in response["EventBuses"]]
+    assert len(response["EventBuses"]) == 3
+    # every bus is returned exactly once across the pages
+    assert sorted(names) == [
+        "default",
+        "other-bus-1",
+        "other-bus-2",
+        "test-bus-1",
+        "test-bus-2",
+    ]
+
+
+@mock_aws
+def test_list_event_buses_with_prefix_and_token():
+    client = boto3.client("events", "us-east-1")
+    for name in ["test-bus-1", "other-bus-1", "other-bus-2"]:
+        client.create_event_bus(Name=name)
+
+    response = client.list_event_buses(NamePrefix="other-bus", Limit=1)
+    assert "NextToken" in response
+    names = [b["Name"] for b in response["EventBuses"]]
+    assert len(names) == 1
+    #
+    response = client.list_event_buses(
+        NamePrefix="other-bus", NextToken=response["NextToken"]
+    )
+    assert "NextToken" not in response
+    names += [b["Name"] for b in response["EventBuses"]]
+    assert names == ["other-bus-1", "other-bus-2"]
+
+
+@mock_aws
 def test_delete_event_bus():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus")

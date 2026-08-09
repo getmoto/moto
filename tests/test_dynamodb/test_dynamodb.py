@@ -3423,6 +3423,44 @@ def test_update_item_with_attribute_in_right_hand_side_and_operation():
 
 
 @mock_aws
+def test_update_item_arithmetic_preserves_decimal_precision():
+    # DynamoDB numbers are arbitrary-precision decimals. Both `+` and `-` in an
+    # update expression must preserve full precision - `-` used to coerce values
+    # to float(), which lost precision (0.3 - 0.1 -> 0.19999999999999998) and
+    # emitted scientific notation for large numbers.
+    dynamodb, table_name = create_simple_table_and_return_client()
+
+    dynamodb.put_item(
+        TableName=table_name,
+        Item={
+            "id": {"S": "1"},
+            "bal": {"N": "0.3"},
+            "big": {"N": "100000000000000000000.00000001"},
+        },
+    )
+
+    # 0.3 - 0.1 must be exactly 0.2, matching `+`
+    dynamodb.update_item(
+        TableName=table_name,
+        Key={"id": {"S": "1"}},
+        UpdateExpression="SET bal = bal - :val",
+        ExpressionAttributeValues={":val": {"N": "0.1"}},
+    )
+    result = dynamodb.get_item(TableName=table_name, Key={"id": {"S": "1"}})
+    assert result["Item"]["bal"]["N"] == "0.2"
+
+    # Large-magnitude subtraction must not lose precision or emit "1e+20"
+    dynamodb.update_item(
+        TableName=table_name,
+        Key={"id": {"S": "1"}},
+        UpdateExpression="SET big = big - :val",
+        ExpressionAttributeValues={":val": {"N": "1"}},
+    )
+    result = dynamodb.get_item(TableName=table_name, Key={"id": {"S": "1"}})
+    assert result["Item"]["big"]["N"] == "99999999999999999999.00000001"
+
+
+@mock_aws
 def test_non_existing_attribute_should_raise_exception():
     """
     Does error message get correctly raised if attribute is referenced but it does not exist for the item.
