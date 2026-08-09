@@ -263,8 +263,16 @@ class KinesisResponse(BaseResponse):
 
     def list_stream_consumers(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
-        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
-        return ActionResult({"Consumers": [c.to_json() for c in consumers]})
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 10000)
+        consumers, token = self.kinesis_backend.list_stream_consumers(
+            stream_arn=stream_arn,
+            limit=max_results,
+            next_token=next_token,
+        )
+        return ActionResult(
+            {"Consumers": [c.to_json() for c in consumers], "NextToken": token}
+        )
 
     def register_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")

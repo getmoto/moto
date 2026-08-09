@@ -405,3 +405,16 @@ def test_add_and_delete_tags_in_training_job(sagemaker_client):
 
     response = sagemaker_client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
+
+
+def test_stop_processing_job(sagemaker_client):
+    job = MyProcessingJobModel(
+        processing_job_name=FAKE_PROCESSING_JOB_NAME, role_arn=FAKE_ROLE_ARN
+    )
+    job.save(sagemaker_client)
+
+    sagemaker_client.stop_processing_job(ProcessingJobName=FAKE_PROCESSING_JOB_NAME)
+    resp = sagemaker_client.describe_processing_job(
+        ProcessingJobName=FAKE_PROCESSING_JOB_NAME
+    )
+    assert resp["ProcessingJobStatus"] == "Stopped"

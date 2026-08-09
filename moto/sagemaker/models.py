@@ -3690,6 +3690,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
             )
             raise ValidationError(message=f"Could not find processing job '{arn}'.")
 
+    def stop_processing_job(self, processing_job_name: str) -> None:
+        try:
+            self.processing_jobs[processing_job_name].processing_job_status = "Stopped"
+        except KeyError:
+            arn = FakeProcessingJob.arn_formatter(
+                processing_job_name, self.account_id, self.region_name
+            )
+            raise ValidationError(message=f"Could not find processing job '{arn}'.")
+
     def create_pipeline(
         self,
         pipeline_name: str,

@@ -1272,6 +1272,7 @@ class SNSBackend(BaseBackend, TaggableResourcesMixin):
             "arn": topic.arn,
             "awsRegion": self.region_name,
             "availabilityZone": "Not Applicable",
+            "tags": dict(topic._tags),
             "configuration": {
                 "topicArn": topic.arn,
                 "displayName": topic.display_name,
@@ -1284,7 +1285,7 @@ class SNSBackend(BaseBackend, TaggableResourcesMixin):
             },
             "supplementaryConfiguration": {
                 "Tags": json.dumps(
-                    [{"Key": k, "Value": v} for k, v in topic._tags.items()]
+                    [{"key": k, "value": v} for k, v in topic._tags.items()]
                 )
             },
             "configurationItemMD5Hash": "",
