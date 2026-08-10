@@ -425,6 +425,13 @@ class APIGatewayResponse(BaseResponse):
         )
         return json.dumps(stage_response.to_json())
 
+    def get_tags(self) -> str:
+        url_path_parts = unquote(self.path.split("/tags/")[1]).split("/")
+        function_id = url_path_parts[-3]
+        stage_name = url_path_parts[-1]
+        stage = self.backend.get_stage(function_id, stage_name)
+        return json.dumps({"tags": stage.tags or {}})
+
     def tag_resource(self) -> str:
         url_path_parts = unquote(self.path.split("/tags/")[1]).split("/")
         function_id = url_path_parts[-3]
