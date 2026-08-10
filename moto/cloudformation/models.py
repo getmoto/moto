@@ -347,6 +347,14 @@ class StackInstances(BaseModel):
 
         new_instances = []
         for region, account in targets:
+            # Real AWS is idempotent here: creating an instance for an
+            # account/region that the StackSet already targets is a no-op,
+            # not an error - see the CreateStackInstances docs. Without this
+            # guard, a second create_stack_instances() call for an existing
+            # target collides on the underlying stack name and raises
+            # AlreadyExistsException instead of silently skipping it.
+            if self.get_instance(account, region) is not None:
+                continue
             instance = StackInstance(
                 account_id=account,
                 region_name=region,
