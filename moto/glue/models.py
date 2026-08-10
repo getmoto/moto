@@ -465,7 +465,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             backend=self,
         )
         self.crawlers[name] = crawler
-
+    # ADD TAGS TO CRAWLER
     def get_crawler(self, name: str) -> "FakeCrawler":
         try:
             return self.crawlers[name]
