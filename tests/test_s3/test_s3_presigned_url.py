@@ -1,3 +1,5 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 import requests
@@ -49,6 +51,8 @@ def test_presigned_url_generates_content_response_headers(bucket_name=None):
 
 
 def test_presigned_url_replaces_stored_content_disposition_in_server_mode():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("No point testing the ThreadedMotoServer in Server/Proxy-mode")
     server = ThreadedMotoServer(ip_address="127.0.0.1", port=0, verbose=False)
     server.start()
     host, port = server.get_host_and_port()
