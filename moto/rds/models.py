@@ -1138,6 +1138,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         manage_master_user_password: bool | None = False,
         master_user_secret_kms_key_id: str | None = None,
         storage_throughput: int | None = None,
+        monitoring_interval: int = 0,
+        monitoring_role_arn: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -1194,6 +1196,16 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.tags = tags or []
         self.deletion_protection = deletion_protection
         self.enabled_cloudwatch_logs_exports = enable_cloudwatch_logs_exports or []
+        self.monitoring_role_arn = monitoring_role_arn
+        self.monitoring_interval = monitoring_interval
+        if self.monitoring_role_arn is not None and self.monitoring_interval == 0:
+            raise InvalidParameterCombination(
+                "You must specify a MonitoringInterval value other than 0 when you specify a MonitoringRoleARN value."
+            )
+        if self.monitoring_role_arn is None and self.monitoring_interval != 0:
+            raise InvalidParameterCombination(
+                "A MonitoringRoleARN value is required if you specify a MonitoringInterval value other than 0."
+            )
         self.db_cluster_identifier = db_cluster_identifier
         if self.db_cluster_identifier is None:
             self.vpc_security_group_ids = vpc_security_group_ids or []

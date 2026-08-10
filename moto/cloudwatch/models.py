@@ -642,6 +642,14 @@ class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
+    def enable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm in self.get_alarms_by_alarm_names(alarm_names):
+            alarm.actions_enabled = True
+
+    def disable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm in self.get_alarms_by_alarm_names(alarm_names):
+            alarm.actions_enabled = False
+
     def put_metric_data(
         self, namespace: str, metric_data: list[dict[str, Any]]
     ) -> None:

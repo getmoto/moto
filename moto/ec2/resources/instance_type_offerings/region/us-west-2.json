@@ -1352,10 +1352,6 @@
   "Location": "us-west-2"
  },
  {
-  "InstanceType": "dl1.24xlarge",
-  "Location": "us-west-2"
- },
- {
   "InstanceType": "dl2q.24xlarge",
   "Location": "us-west-2"
  },

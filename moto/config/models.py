@@ -1452,9 +1452,8 @@ class ConfigBackend(BaseBackend):
         The listing function must exist for the resource backend.
 
         :param resource_type:
-        :param backend_region:
-        :param ids:
-        :param name:
+        :param resource_ids:
+        :param resource_name:
         :param limit:
         :param next_token:
         :return:
