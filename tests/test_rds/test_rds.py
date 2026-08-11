@@ -3817,3 +3817,29 @@ def test_add_role_to_db_instance_in_invalid_state_throws_InvalidDBInstanceStateF
         ex.value.response["Error"]["Message"]
         == "Instance db-master-1 should be in a valid state to add role."
     )
+
+
+@mock_aws
+def test_create_database_with_monitoring_role_and_no_interval_throws_InvalidParameterCombination():
+    with pytest.raises(ClientError) as ex:
+        create_db_instance(MonitoringRoleArn="monitoring-role", MonitoringInterval=0)
+
+    assert ex.value.operation_name == "CreateDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "You must specify a MonitoringInterval value other than 0 when you specify a MonitoringRoleARN value."
+    )
+
+
+@mock_aws
+def test_create_database_without_monitoring_role_and_with_interval_throws_InvalidParameterCombination():
+    with pytest.raises(ClientError) as ex:
+        create_db_instance(MonitoringInterval=60)
+
+    assert ex.value.operation_name == "CreateDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "A MonitoringRoleARN value is required if you specify a MonitoringInterval value other than 0."
+    )

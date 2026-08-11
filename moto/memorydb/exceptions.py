@@ -55,3 +55,13 @@ class InvalidParameterValueException(MemoryDBClientError):
 class SubnetGroupInUseFault(MemoryDBClientError):
     def __init__(self, msg: str):
         super().__init__("SubnetGroupInUseFault", msg)
+
+
+class UserAlreadyExistsFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("UserAlreadyExistsFault", msg)
+
+
+class UserNotFoundFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("UserNotFoundFault", msg)

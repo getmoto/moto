@@ -1323,6 +1323,112 @@
 - [X] update_cost_category_definition
 </details>
 
+## cleanrooms
+<details>
+<summary>19% implemented</summary>
+
+- [ ] batch_get_collaboration_analysis_template
+- [ ] batch_get_schema
+- [ ] batch_get_schema_analysis_rule
+- [ ] create_analysis_template
+- [X] create_collaboration
+- [ ] create_collaboration_change_request
+- [ ] create_configured_audience_model_association
+- [X] create_configured_table
+- [ ] create_configured_table_analysis_rule
+- [ ] create_configured_table_association
+- [ ] create_configured_table_association_analysis_rule
+- [ ] create_id_mapping_table
+- [ ] create_id_namespace_association
+- [ ] create_intermediate_table
+- [ ] create_intermediate_table_analysis_rule
+- [X] create_membership
+- [ ] create_privacy_budget_template
+- [ ] delete_analysis_template
+- [X] delete_collaboration
+- [ ] delete_configured_audience_model_association
+- [X] delete_configured_table
+- [ ] delete_configured_table_analysis_rule
+- [ ] delete_configured_table_association
+- [ ] delete_configured_table_association_analysis_rule
+- [ ] delete_id_mapping_table
+- [ ] delete_id_namespace_association
+- [ ] delete_intermediate_table
+- [ ] delete_intermediate_table_analysis_rule
+- [ ] delete_member
+- [X] delete_membership
+- [ ] delete_privacy_budget_template
+- [ ] disallow_intermediate_table
+- [ ] get_analysis_template
+- [X] get_collaboration
+- [ ] get_collaboration_analysis_template
+- [ ] get_collaboration_change_request
+- [ ] get_collaboration_configured_audience_model_association
+- [ ] get_collaboration_id_namespace_association
+- [ ] get_collaboration_privacy_budget_template
+- [ ] get_configured_audience_model_association
+- [X] get_configured_table
+- [ ] get_configured_table_analysis_rule
+- [ ] get_configured_table_association
+- [ ] get_configured_table_association_analysis_rule
+- [ ] get_id_mapping_table
+- [ ] get_id_namespace_association
+- [ ] get_intermediate_table
+- [ ] get_intermediate_table_analysis_rule
+- [X] get_membership
+- [ ] get_privacy_budget_template
+- [ ] get_protected_job
+- [ ] get_protected_query
+- [ ] get_schema
+- [ ] get_schema_analysis_rule
+- [ ] list_analysis_templates
+- [ ] list_collaboration_analysis_templates
+- [ ] list_collaboration_change_requests
+- [ ] list_collaboration_configured_audience_model_associations
+- [ ] list_collaboration_id_namespace_associations
+- [ ] list_collaboration_privacy_budget_templates
+- [ ] list_collaboration_privacy_budgets
+- [X] list_collaborations
+- [ ] list_configured_audience_model_associations
+- [ ] list_configured_table_associations
+- [X] list_configured_tables
+- [ ] list_id_mapping_tables
+- [ ] list_id_namespace_associations
+- [ ] list_intermediate_table_versions
+- [ ] list_intermediate_tables
+- [X] list_members
+- [X] list_memberships
+- [ ] list_privacy_budget_templates
+- [ ] list_privacy_budgets
+- [ ] list_protected_jobs
+- [ ] list_protected_queries
+- [ ] list_schemas
+- [X] list_tags_for_resource
+- [ ] populate_id_mapping_table
+- [ ] populate_intermediate_table
+- [ ] preview_privacy_impact
+- [ ] start_protected_job
+- [ ] start_protected_query
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_analysis_template
+- [X] update_collaboration
+- [ ] update_collaboration_change_request
+- [ ] update_configured_audience_model_association
+- [X] update_configured_table
+- [ ] update_configured_table_analysis_rule
+- [ ] update_configured_table_association
+- [ ] update_configured_table_association_analysis_rule
+- [ ] update_id_mapping_table
+- [ ] update_id_namespace_association
+- [ ] update_intermediate_table
+- [ ] update_intermediate_table_analysis_rule
+- [X] update_membership
+- [ ] update_privacy_budget_template
+- [ ] update_protected_job
+- [ ] update_protected_query
+</details>
+
 ## clouddirectory
 <details>
 <summary>19% implemented</summary>
@@ -3175,7 +3281,7 @@
 
 ## ds
 <details>
-<summary>31% implemented</summary>
+<summary>100% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -3264,21 +3370,21 @@
 <summary>31% implemented</summary>
 
 - [X] create_cluster
-- [ ] create_stream
+- [X] create_stream
 - [X] delete_cluster
-- [ ] delete_cluster_policy
-- [ ] delete_stream
+- [X] delete_cluster_policy
+- [X] delete_stream
 - [X] get_cluster
-- [ ] get_cluster_policy
-- [ ] get_stream
+- [X] get_cluster_policy
+- [X] get_stream
 - [X] get_vpc_endpoint_service_name
-- [ ] list_clusters
-- [ ] list_streams
+- [X] list_clusters
+- [X] list_streams
 - [X] list_tags_for_resource
-- [ ] put_cluster_policy
-- [ ] tag_resource
-- [ ] untag_resource
-- [ ] update_cluster
+- [X] put_cluster_policy
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_cluster
 </details>
 
 ## dynamodb
@@ -7268,7 +7374,7 @@
 
 ## memorydb
 <details>
-<summary>28% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] batch_update_cluster
 - [ ] copy_snapshot
@@ -7278,14 +7384,14 @@
 - [ ] create_parameter_group
 - [X] create_snapshot
 - [X] create_subnet_group
-- [ ] create_user
+- [X] create_user
 - [ ] delete_acl
 - [X] delete_cluster
 - [ ] delete_multi_region_cluster
 - [ ] delete_parameter_group
 - [X] delete_snapshot
 - [X] delete_subnet_group
-- [ ] delete_user
+- [X] delete_user
 - [ ] describe_acls
 - [X] describe_clusters
 - [ ] describe_engine_versions
@@ -7300,7 +7406,7 @@
 - [ ] describe_service_updates
 - [X] describe_snapshots
 - [X] describe_subnet_groups
-- [ ] describe_users
+- [X] describe_users
 - [ ] failover_shard
 - [ ] list_allowed_multi_region_cluster_updates
 - [ ] list_allowed_node_type_updates
@@ -7314,7 +7420,7 @@
 - [ ] update_multi_region_cluster
 - [ ] update_parameter_group
 - [ ] update_subnet_group
-- [ ] update_user
+- [X] update_user
 </details>
 
 ## meteringmarketplace

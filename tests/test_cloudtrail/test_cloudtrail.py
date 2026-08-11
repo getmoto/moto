@@ -263,6 +263,28 @@ def test_get_trail_status_arn_inactive():
 
 
 @mock_aws
+def test_start_and_stop_logging_by_arn():
+    """StartLogging/StopLogging accept trail ARN as well as name (like AWS)."""
+    client = boto3.client("cloudtrail", region_name="us-east-1")
+    _, resp, trail_name = create_trail_simple()
+    arn = resp["TrailARN"]
+
+    client.start_logging(Name=arn)
+    assert client.get_trail_status(Name=trail_name)["IsLogging"] is True
+
+    client.stop_logging(Name=arn)
+    assert client.get_trail_status(Name=trail_name)["IsLogging"] is False
+
+
+@mock_aws
+def test_start_logging_unknown_trail_raises_not_found():
+    client = boto3.client("cloudtrail", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.start_logging(Name="unknowntrail")
+    assert exc.value.response["Error"]["Code"] == "TrailNotFoundException"
+
+
+@mock_aws
 def test_get_trail_status_after_starting():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
     _, _, trail_name = create_trail_simple(region_name="eu-west-3")

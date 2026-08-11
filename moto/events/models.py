@@ -1691,6 +1691,7 @@ class EventsBackend(BaseBackend, TaggableResourcesMixin):
 
         return self.event_buses[name]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_event_buses(self, name_prefix: str | None) -> list[EventBus]:
         if name_prefix:
             return [

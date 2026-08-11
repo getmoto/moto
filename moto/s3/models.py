@@ -856,7 +856,6 @@ class LifecycleRule(BaseModel):
     def to_config_dict(self) -> dict[str, Any]:
         """Converts the object to the AWS Config data dict.
 
-        :param kwargs:
         :return:
         """
 
