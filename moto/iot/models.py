@@ -2220,6 +2220,9 @@ class IoTBackend(BaseBackend):
         ]
         return thing_names
 
+    def list_principal_things_v2(self, principal_arn: str) -> list[str]:
+        return self.list_principal_things(principal_arn)
+
     def list_thing_principals(self, thing_name: str) -> list[str]:
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]
         if len(things) == 0:

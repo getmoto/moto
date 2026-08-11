@@ -348,10 +348,7 @@ def get_object_value(obj: Any, attr: str) -> Any:
         elif isinstance(val, dict):
             val = val[key]
         elif isinstance(val, list):
-            for item in val:
-                item_val = get_object_value(item, key)
-                if item_val:
-                    return item_val
+            val = [get_object_value(item, key) for item in val]
         elif key == "owner_id" and hasattr(val, "account_id"):
             val = val.account_id
         else:

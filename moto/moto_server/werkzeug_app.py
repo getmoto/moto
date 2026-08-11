@@ -142,6 +142,8 @@ class DomainDispatcherApplication:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = f"data.{service}.{region}.amazonaws.com"
+        elif service == "aidevops":
+            host = f"{service}.{region}.api.aws"
         elif service == "dsql":
             host = f"{service}.{region}.api.aws"
         elif service == "dynamodb":

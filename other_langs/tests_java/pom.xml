@@ -20,7 +20,7 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bom</artifactId>
-      <version>2.46.20</version>
+      <version>2.49.6</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>6.1.1</version>
+      <version>6.1.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -75,7 +75,7 @@
     <dependency>
       <groupId>software.amazon.awssdk.crt</groupId>
       <artifactId>aws-crt</artifactId>
-      <version>0.47.2</version>
+      <version>0.48.2</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -110,7 +110,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.5.1</version>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>

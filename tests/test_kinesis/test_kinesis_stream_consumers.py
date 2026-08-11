@@ -24,6 +24,41 @@ def test_list_stream_consumers():
 
 
 @mock_aws
+def test_list_stream_consumers_paginated():
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    stream_arn = create_stream(client)
+
+    for idx in range(5):
+        client.register_stream_consumer(
+            StreamARN=stream_arn, ConsumerName=f"consumer{idx}"
+        )
+
+    page1 = client.list_stream_consumers(StreamARN=stream_arn, MaxResults=2)
+    assert len(page1["Consumers"]) == 2
+    assert "NextToken" in page1
+
+    page2 = client.list_stream_consumers(
+        StreamARN=stream_arn, MaxResults=2, NextToken=page1["NextToken"]
+    )
+    assert len(page2["Consumers"]) == 2
+    assert "NextToken" in page2
+
+    page3 = client.list_stream_consumers(
+        StreamARN=stream_arn, MaxResults=2, NextToken=page2["NextToken"]
+    )
+    assert len(page3["Consumers"]) == 1
+    assert "NextToken" not in page3
+
+    names = [
+        c["ConsumerName"] for page in (page1, page2, page3) for c in page["Consumers"]
+    ]
+    assert names == [f"consumer{idx}" for idx in range(5)]
+
+    # Without MaxResults every consumer is returned, as before
+    assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 5
+
+
+@mock_aws
 def test_register_stream_consumer():
     client = boto3.client("kinesis", region_name="eu-west-1")
     stream_arn = create_stream(client)

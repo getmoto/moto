@@ -126,13 +126,13 @@ class TransferBackend(BaseBackend):
 
     def describe_server(self, server_id: str) -> Server:
         if server_id not in self.servers:
-            ServerNotFound(server_id=server_id)
+            raise ServerNotFound(server_id=server_id)
         server = self.servers[server_id]
         return server
 
     def delete_server(self, server_id: str) -> None:
         if server_id not in self.servers:
-            ServerNotFound(server_id=server_id)
+            raise ServerNotFound(server_id=server_id)
         del self.servers[server_id]
         return
 
@@ -150,7 +150,7 @@ class TransferBackend(BaseBackend):
         user_name: str,
     ) -> tuple[str, str]:
         if server_id not in self.servers:
-            ServerNotFound(server_id=server_id)
+            raise ServerNotFound(server_id=server_id)
         user = User(
             region_name=self.region_name,
             account_id=self.account_id,
