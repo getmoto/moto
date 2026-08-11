@@ -88,6 +88,7 @@ from .utils import (
     FilterDef,
     apply_filter,
     merge_filters,
+    split_arn,
     valid_preferred_maintenance_window,
     validate_filters,
 )
@@ -2478,8 +2479,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     ) -> DBSnapshot | DBClusterSnapshot:
         region = self.region_name
         if identifier.startswith("arn"):
-            region = identifier.split(":")[3]
-            identifier = identifier.split(":")[-1]
+            region, _, _, identifier = split_arn(identifier)
         backend = self.get_backend("rds", region=region)
         snapshots = backend.resource_map[resource_type]
         if identifier not in snapshots:
@@ -2758,8 +2758,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         return self.describe_db_instances(db_instance_identifier)[0]
 
     def extract_snapshot_name_from_arn(self, snapshot_arn: str) -> str:
-        arn_breakdown = snapshot_arn.split(":")
-        region_name, account_id, resource_type, snapshot_name = arn_breakdown[3:7]
+        _, _, resource_type, snapshot_name = split_arn(snapshot_arn)
         if resource_type != "snapshot":
             raise InvalidParameterValue(
                 "The parameter SourceDBSnapshotIdentifier is not a valid identifier. "
@@ -3710,8 +3709,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def start_export_task(self, kwargs: dict[str, Any]) -> ExportTask:
         export_task_id = kwargs["export_task_identifier"]
         source_arn = kwargs["source_arn"]
-        snapshot_id = source_arn.split(":")[-1]
-        snapshot_type = source_arn.split(":")[-2]
+        _, _, snapshot_type, snapshot_id = split_arn(source_arn)
 
         if export_task_id in self.export_tasks:
             raise ExportTaskAlreadyExistsError(export_task_id)
@@ -3797,15 +3795,8 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
 
     def _get_resource_for_tagging(self, arn: str) -> Any:
         if self.arn_regex.match(arn):
-            arn_breakdown = arn.split(":")
-            resource_type = arn_breakdown[len(arn_breakdown) - 2]
-            resource_name = arn_breakdown[len(arn_breakdown) - 1]
-            # FIXME: HACK for automated snapshots
-            if resource_type == "rds":
-                resource_type = arn_breakdown[-3]
-                resource_name = arn_breakdown[-2] + ":" + arn_breakdown[-1]
-            resource = self._find_resource(resource_type, resource_name)
-            return resource
+            _, _, resource_type, resource_name = split_arn(arn)
+            return self._find_resource(resource_type, resource_name)
         raise RDSClientError("InvalidParameterValue", f"Invalid resource name: {arn}")
 
     def list_tags_for_resource(self, arn: str) -> list[dict[str, str]]:

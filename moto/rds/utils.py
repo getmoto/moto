@@ -13,6 +13,20 @@ from botocore.utils import merge_dicts
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
 
 
+def split_arn(arn: str) -> tuple[str, str, str, str]:
+    """Split an RDS ARN into (region, account_id, resource_type, resource_id).
+
+    Example:
+        arn:aws:rds:<region>:<account_id>:<resource_type>:<resource_id>
+
+    The resource identifier can itself contain colons - automated snapshots are
+    named `rds:<db-instance-identifier>-<timestamp>` - so everything after the
+    resource type is kept as-is.
+    """
+    _, _, _, region, account_id, resource_type, resource_id = arn.split(":", 6)
+    return region, account_id, resource_type, resource_id
+
+
 @dataclass
 class FilterDef:
     # A list of object attributes to check against the filter values.
