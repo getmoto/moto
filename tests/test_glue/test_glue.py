@@ -1834,3 +1834,127 @@ def test_get_security_configurations():
         "test-security-configuration-2",
     }
     assert "NextToken" not in response
+
+
+@mock_aws
+def test_create_ml_transform():
+    client = create_glue_client()
+
+    response = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={
+            "TransformType": "FIND_MATCHES",
+            "FindMatchesParameters": {"PrimaryKeyColumnName": "id"},
+        },
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+    )
+    assert response["TransformId"].startswith("tfm-")
+
+
+@mock_aws
+def test_get_ml_transform():
+    client = create_glue_client()
+
+    transform_id = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={
+            "TransformType": "FIND_MATCHES",
+            "FindMatchesParameters": {"PrimaryKeyColumnName": "id"},
+        },
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        Description="my transform",
+    )["TransformId"]
+
+    response = client.get_ml_transform(TransformId=transform_id)
+    assert response["TransformId"] == transform_id
+    assert response["Name"] == "test-transform"
+    assert response["Description"] == "my transform"
+    assert response["Status"] == "READY"
+    assert response["Role"] == "arn:aws:iam::123456789012:role/GlueMLTransform"
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_ml_transform(TransformId="tfm-nonexistent")
+
+
+@mock_aws
+def test_get_ml_transforms():
+    client = create_glue_client()
+
+    assert client.get_ml_transforms()["Transforms"] == []
+
+    for i in range(2):
+        client.create_ml_transform(
+            Name=f"transform-{i}",
+            InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+            Parameters={"TransformType": "FIND_MATCHES"},
+            Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        )
+
+    response = client.get_ml_transforms()
+    assert len(response["Transforms"]) == 2
+
+    response = client.get_ml_transforms(MaxResults=1)
+    assert len(response["Transforms"]) == 1
+    assert "NextToken" in response
+
+    response = client.get_ml_transforms(NextToken=response["NextToken"])
+    assert len(response["Transforms"]) == 1
+
+
+@mock_aws
+def test_delete_ml_transform():
+    client = create_glue_client()
+
+    transform_id = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={"TransformType": "FIND_MATCHES"},
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+    )["TransformId"]
+
+    resp = client.delete_ml_transform(TransformId=transform_id)
+    assert resp["TransformId"] == transform_id
+    assert client.get_ml_transforms()["Transforms"] == []
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.delete_ml_transform(TransformId="tfm-nonexistent")
+
+
+@mock_aws
+def test_glue_resources_tagging_via_rgta():
+    """Dev endpoints, ML transforms, and workflows must surface their tags
+    through the Resource Groups Tagging API (used by c7n universal_augment)."""
+    glue = create_glue_client()
+    rgta = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    glue.create_dev_endpoint(
+        EndpointName="dev-endpoint-1",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        Tags={"OwnerContact": "team@example.com"},
+    )
+    glue.create_ml_transform(
+        Name="ml-transform-1",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={"TransformType": "FIND_MATCHES"},
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        Tags={"BA": "BAFOO"},
+    )
+    glue.create_workflow(Name="workflow-1", Tags={"ASV": "ASVBAR"})
+
+    resources = rgta.get_resources(ResourceTypeFilters=["glue"])[
+        "ResourceTagMappingList"
+    ]
+    tags_by_arn = {
+        r["ResourceARN"]: {t["Key"]: t["Value"] for t in r["Tags"]} for r in resources
+    }
+
+    dev_arn = next(a for a in tags_by_arn if a.endswith("devEndpoint/dev-endpoint-1"))
+    assert tags_by_arn[dev_arn] == {"OwnerContact": "team@example.com"}
+
+    ml_arn = next(a for a in tags_by_arn if ":mlTransform/" in a)
+    assert tags_by_arn[ml_arn] == {"BA": "BAFOO"}
+
+    wf_arn = next(a for a in tags_by_arn if a.endswith("workflow/workflow-1"))
+    assert tags_by_arn[wf_arn] == {"ASV": "ASVBAR"}
