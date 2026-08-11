@@ -490,6 +490,18 @@ def test_update_destination():
         "supported at this time"
     ) in err["Message"]
 
+    # An unknown destination id is reported back with the id that was given.
+    with pytest.raises(ClientError) as exc:
+        client.update_destination(
+            DeliveryStreamName=stream_name,
+            CurrentDeliveryStreamVersionId="1",
+            DestinationId="destinationId-000000000009",
+            ExtendedS3DestinationUpdate=s3_dest_config,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert "Destination Id destinationId-000000000009 not found" in err["Message"]
+
 
 @mock_aws
 def test_lookup_name_from_arn():

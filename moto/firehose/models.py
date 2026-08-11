@@ -645,7 +645,7 @@ class FirehoseBackend(BaseBackend, TaggableResourcesMixin):
                 break
             destination_idx += 1
         else:
-            raise InvalidArgumentException("Destination Id {destination_id} not found")
+            raise InvalidArgumentException(f"Destination Id {destination_id} not found")
 
         # Switching between Amazon ES and other services is not supported.
         # For an Amazon ES destination, you can only update to another Amazon

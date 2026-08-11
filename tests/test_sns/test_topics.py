@@ -711,7 +711,12 @@ def test_get_config_resource():
     assert configuration["fifoTopic"] is True
     assert configuration["contentBasedDeduplication"] is True
     tags = json.loads(config_item["supplementaryConfiguration"]["Tags"])
-    assert tags == [{"Key": "Environment", "Value": "Test"}]
+    assert tags == [{"key": "Environment", "value": "Test"}]
+
+    history = config_client.get_resource_config_history(
+        resourceType="AWS::SNS::Topic", resourceId=topic_arn
+    )
+    assert history["configurationItems"][0]["tags"] == {"Environment": "Test"}
 
     response = config_client.batch_get_resource_config(
         resourceKeys=[

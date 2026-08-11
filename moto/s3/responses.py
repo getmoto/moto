@@ -2011,6 +2011,9 @@ class S3Response(BaseResponse):
 
         for param_name, header_name in ALLOWED_HEADER_OVERRIDES.items():
             if param_name in self.querystring:
+                for existing_header in list(response_headers):
+                    if existing_header.lower() == header_name.lower():
+                        response_headers.pop(existing_header)
                 response_headers[header_name] = self.querystring[param_name][0]
 
         part_number = self._get_int_param("partNumber")

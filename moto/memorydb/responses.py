@@ -227,3 +227,47 @@ class MemoryDBResponse(BaseResponse):
             subnet_group_name=subnet_group_name,
         )
         return ActionResult({"SubnetGroup": subnet_group.to_dict()})
+
+    def create_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user_name = params.get("UserName")
+        authentication_mode = params.get("AuthenticationMode")
+        access_string = params.get("AccessString")
+        tags = params.get("Tags")
+        user = self.memorydb_backend.create_user(
+            user_name=user_name,
+            authentication_mode=authentication_mode,
+            access_string=access_string,
+            tags=tags,
+        )
+        return ActionResult({"User": user.to_dict()})
+
+    def describe_users(self) -> ActionResult:
+        params = json.loads(self.body)
+        user_name = params.get("UserName")
+        filters = params.get("Filters")
+        users = self.memorydb_backend.describe_users(
+            user_name=user_name,
+            filters=filters,
+        )
+        return ActionResult({"Users": [user.to_dict() for user in users]})
+
+    def update_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user_name = params.get("UserName")
+        authentication_mode = params.get("AuthenticationMode")
+        access_string = params.get("AccessString")
+        user = self.memorydb_backend.update_user(
+            user_name=user_name,
+            authentication_mode=authentication_mode,
+            access_string=access_string,
+        )
+        return ActionResult({"User": user.to_dict()})
+
+    def delete_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user_name = params.get("UserName")
+        user = self.memorydb_backend.delete_user(
+            user_name=user_name,
+        )
+        return ActionResult({"User": user.to_dict()})
