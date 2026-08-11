@@ -1,8 +1,10 @@
+from collections.abc import Iterator
 from unittest import SkipTest
 
 import pytest
 
 from moto import mock_aws, settings
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.resource_tagging import (
     TaggableResourcesMixin,
     TaggedResource,
@@ -85,6 +87,34 @@ def test_iter_taggable_backends_skips_untouched_accounts() -> None:
     # Account that's never been touched by any service should yield nothing.
     other_account = list(iter_taggable_backends("999999999999", "us-east-1"))
     assert other_account == []
+
+
+@mock_aws
+def test_iter_taggable_backends_does_not_duplicates_after_second_account() -> None:
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No direct access to backends in Server Mode")
+
+    class FakeBackend(BaseBackend, TaggableResourcesMixin):
+        SERVICE_NAMESPACE = "fake"
+
+        def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+            yield TaggedResource(
+                arn=f"arn:aws:fake:{self.region_name}:{self.account_id}:thing/1",
+                tags={},
+                resource_type="fake:thing",
+            )
+
+    fake_backends = BackendDict(
+        FakeBackend, "fake", use_boto3_regions=False, additional_regions=["us-east-1"]
+    )
+
+    fake_backends["111111111111"]["us-east-1"]
+    assert len(list(iter_taggable_backends("111111111111", "us-east-1"))) == 1
+
+    # A second, unrelated account touching the same service shouln't corrupt
+    # first account's results.
+    fake_backends["222222222222"]["us-east-1"]
+    assert len(list(iter_taggable_backends("111111111111", "us-east-1"))) == 2
 
 
 def test_default_owns_arn() -> None:
