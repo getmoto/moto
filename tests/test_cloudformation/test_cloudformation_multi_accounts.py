@@ -224,6 +224,31 @@ class TestSelfManagedStacks(TestStackSetMultipleAccounts):
         self._verify_queues(self.acct22, [], region="us-east-2")
         self._verify_queues(DEFAULT_ACCOUNT_ID, [], region="us-east-2")
 
+    def test_create_instances__is_idempotent_for_existing_targets(self):
+        # Real AWS does not error when create_stack_instances() is called
+        # again for an account/region the StackSet already targets - it's a
+        # common pattern to call update_stack_instances() for existing
+        # targets and create_stack_instances() for the full target list,
+        # relying on AWS to skip the ones that already exist.
+        self.client.create_stack_instances(
+            StackSetName=self.name, Accounts=[self.acct01], Regions=["us-east-2"]
+        )
+
+        # Calling this again for the same account/region must not raise
+        # AlreadyExistsException, and must not create a second stack.
+        self.client.create_stack_instances(
+            StackSetName=self.name, Accounts=[self.acct01], Regions=["us-east-2"]
+        )
+
+        self._verify_stack_instance(self.acct01, region="us-east-2")
+        assert len(cf_backends[self.acct01]["us-east-2"].stacks) == 1
+        self._verify_queues(self.acct01, ["testqueue"], region="us-east-2")
+
+        instances = self.client.list_stack_instances(StackSetName=self.name)[
+            "Summaries"
+        ]
+        assert len(instances) == 1
+
     def test_create_instances__multiple_accounts(self):
         self.client.create_stack_instances(
             StackSetName=self.name,
