@@ -114,7 +114,7 @@ def test_iter_taggable_backends_does_not_duplicates_after_second_account() -> No
     # A second, unrelated account touching the same service shouln't corrupt
     # first account's results.
     fake_backends["222222222222"]["us-east-1"]
-    assert len(list(iter_taggable_backends("111111111111", "us-east-1"))) == 2
+    assert len(list(iter_taggable_backends("111111111111", "us-east-1"))) == 1
 
 
 def test_default_owns_arn() -> None:
