@@ -14,6 +14,7 @@ def dynamodb_aws_verified(
     add_gsi: bool = False,
     add_gsi_range: bool = False,
     gsi_projection_type: str = "ALL",
+    gsi_non_key_attributes: list[str] | None = None,
     add_lsi: bool = False,
     lsi_projection_type: str = "ALL",
     numeric_gsi_range: bool = False,
@@ -46,6 +47,14 @@ def dynamodb_aws_verified(
                 range_type = "N" if numeric_range else "S"
                 gsi_range_type = "N" if numeric_gsi_range else "S"
                 lsi_range_type = "N" if numeric_lsi_range else "S"
+                gsi_projection = {
+                    "ProjectionType": gsi_projection_type,
+                    **(
+                        {"NonKeyAttributes": gsi_non_key_attributes}
+                        if gsi_non_key_attributes
+                        else {}
+                    ),
+                }
 
                 db_kwargs = {
                     "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
@@ -67,7 +76,7 @@ def dynamodb_aws_verified(
                             "KeySchema": [
                                 {"AttributeName": "gsi_pk", "KeyType": "HASH"},
                             ],
-                            "Projection": {"ProjectionType": gsi_projection_type},
+                            "Projection": gsi_projection,
                             "ProvisionedThroughput": {
                                 "ReadCapacityUnits": 1,
                                 "WriteCapacityUnits": 1,
@@ -85,7 +94,7 @@ def dynamodb_aws_verified(
                                 {"AttributeName": "gsi_pk", "KeyType": "HASH"},
                                 {"AttributeName": "gsi_sk", "KeyType": "RANGE"},
                             ],
-                            "Projection": {"ProjectionType": gsi_projection_type},
+                            "Projection": gsi_projection,
                             "ProvisionedThroughput": {
                                 "ReadCapacityUnits": 1,
                                 "WriteCapacityUnits": 1,
@@ -107,7 +116,7 @@ def dynamodb_aws_verified(
                                 {"AttributeName": "gsi_sk", "KeyType": "RANGE"},
                                 {"AttributeName": "gsi_sk2", "KeyType": "RANGE"},
                             ],
-                            "Projection": {"ProjectionType": gsi_projection_type},
+                            "Projection": gsi_projection,
                             "ProvisionedThroughput": {
                                 "ReadCapacityUnits": 1,
                                 "WriteCapacityUnits": 1,
