@@ -776,6 +776,10 @@ class TestGetJobRun:
                 assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
                 assert resp["jobRun"]["applicationId"] == app_id
                 assert resp["jobRun"]["jobRunId"] == run_id
+                assert re.match(
+                    r"arn:(.*?):role/emr-serverless-role",
+                    resp["jobRun"]["executionRole"],
+                )
 
     def test_invalid_application_id(self):
         for _, run_ids in self.job_run_lookup.items():
