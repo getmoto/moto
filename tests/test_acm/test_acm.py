@@ -6,9 +6,16 @@ from unittest import SkipTest, mock
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509 import (
+    DNSName,
     IPAddress,
+    NameOID,
     SubjectAlternativeName,
     load_pem_x509_certificate,
 )
@@ -16,6 +23,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 from tests.test_elbv2.test_elbv2 import create_load_balancer
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
@@ -76,6 +84,51 @@ def test_import_certificate():
 
 
 @mock_aws
+def test_import_certificate_without_cn():
+    """CN is optional per CAB Forum baseline requirements since 2017.
+    import_certificate should succeed and DomainName should fall back to the first SAN."""
+    # Generate a cert with SANs but no CN in the subject
+    key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+    subject = x509.Name([])  # empty subject — no CN
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(
+            x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test Issuer")])
+        )
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(utcnow())
+        .not_valid_after(utcnow() + datetime.timedelta(days=365))
+        .add_extension(
+            x509.SubjectAlternativeName(
+                [DNSName("app.test.example.com"), DNSName("app2.test.example.com")]
+            ),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256(), default_backend())
+    )
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+    key_pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    client = boto3.client("acm", region_name="us-east-1")
+    resp = client.import_certificate(Certificate=cert_pem, PrivateKey=key_pem)
+    arn = resp["CertificateArn"]
+
+    desc = client.describe_certificate(CertificateArn=arn)["Certificate"]
+    # DomainName should fall back to the first SAN when CN is absent
+    assert desc["DomainName"] == "app.test.example.com"
+    assert "app.test.example.com" in desc["SubjectAlternativeNames"]
+    assert "app2.test.example.com" in desc["SubjectAlternativeNames"]
+
+
+@mock_aws
 def test_import_certificate_with_tags():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -103,12 +156,10 @@ def test_import_certificate_with_tags():
 def test_import_bad_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.import_certificate(Certificate=SERVER_CRT_BAD, PrivateKey=RSA_2048_KEY)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ValidationException"
-    else:
-        raise RuntimeError("Should have raised ValidationException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
 
 @mock_aws
@@ -159,12 +210,10 @@ def test_list_certificates():
 def test_get_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.get_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 # Also tests deleting invalid certificate
@@ -176,12 +225,10 @@ def test_delete_certificate():
     # If it does not raise an error and the next call does, all is fine
     client.delete_certificate(CertificateArn=arn)
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.delete_certificate(CertificateArn=arn)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -349,27 +396,23 @@ def test_add_tags_to_certificate():
 def test_add_tags_to_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.add_tags_to_certificate(
             CertificateArn=BAD_ARN,
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
 def test_list_tags_for_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.list_tags_for_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -410,15 +453,13 @@ def test_remove_tags_from_certificate():
 def test_remove_tags_from_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.remove_tags_from_certificate(
             CertificateArn=BAD_ARN,
             Tags=[{"Key": "key1", "Value": "value1"}, {"Key": "key2"}],
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -437,29 +478,23 @@ def test_resend_validation_email_invalid():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.resend_validation_email(
             CertificateArn=arn,
             Domain="no-match.moto.com",
             ValidationDomain="NOTUSEDYET",
         )
-    except ClientError as err:
-        assert (
-            err.response["Error"]["Code"] == "InvalidDomainValidationOptionsException"
-        )
-    else:
-        raise RuntimeError("Should have raised InvalidDomainValidationOptionsException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidDomainValidationOptionsException"
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.resend_validation_email(
             CertificateArn=BAD_ARN,
             Domain="no-match.moto.com",
             ValidationDomain="NOTUSEDYET",
         )
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "ResourceNotFoundException"
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
@@ -546,6 +581,26 @@ def test_request_exportable_certificate():
 
 
 @mock_aws
+def test_request_certificate_options_without_export_defaults_to_disabled():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.request_certificate(
+        DomainName="example.com",
+        Options={"CertificateTransparencyLoggingPreference": "DISABLED"},
+    )
+    arn = resp["CertificateArn"]
+
+    cert = client.describe_certificate(CertificateArn=arn)["Certificate"]
+    assert cert["Options"]["Export"] == "DISABLED"
+    assert cert["Options"]["CertificateTransparencyLoggingPreference"] == "DISABLED"
+
+    summary = client.list_certificates()["CertificateSummaryList"]
+    matching = [c for c in summary if c["CertificateArn"] == arn]
+    assert len(matching) == 1
+    assert matching[0]["Exported"] is False
+
+
+@mock_aws
 def test_list_certificates_with_key_types_filter():
     client = boto3.client("acm", region_name="us-east-1")
     arn = _import_cert(client)
@@ -553,14 +608,12 @@ def test_list_certificates_with_key_types_filter():
     certs = client.list_certificates(
         Includes={"keyTypes": ["RSA_2048", "RSA_4096", "EC_prime256v1"]}
     )["CertificateSummaryList"]
-
-    assert len(certs) == 1
-    assert certs[0]["CertificateArn"] == arn
+    assert any(cert["CertificateArn"] == arn for cert in certs)
 
     certs = client.list_certificates(Includes={"keyTypes": ["RSA_1024"]})[
         "CertificateSummaryList"
     ]
-    assert len(certs) == 0
+    assert not any(cert["CertificateArn"] == arn for cert in certs)
 
 
 @mock_aws
@@ -985,7 +1038,7 @@ def test_account_configuration():
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 45
 
     # Test successful update
-    response = client.put_account_configuration(
+    client.put_account_configuration(
         ExpiryEvents={"DaysBeforeExpiry": 30}, IdempotencyToken="test-token"
     )
 
@@ -994,13 +1047,39 @@ def test_account_configuration():
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
 
     # Test idempotency token - trying to update with same token but different value
-    response = client.put_account_configuration(
+    client.put_account_configuration(
         ExpiryEvents={"DaysBeforeExpiry": 60}, IdempotencyToken="test-token"
     )
 
     # Should still be 30 due to idempotency token
     response = client.get_account_configuration()
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
+
+
+@mock_aws
+@pytest.mark.aws_verified
+def test_put_account_configuration_without_parameters():
+    config = Config(parameter_validation=False)
+    client = boto3.client("acm", region_name="eu-central-1", config=config)
+
+    with pytest.raises(ClientError) as exc:
+        client.put_account_configuration(ExpiryEvents={})
+
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value null at 'idempotencyToken' failed to satisfy constraint: Member must not be null"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_account_configuration(IdempotencyToken="sometoken")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Configuration for events is empty."
 
 
 @mock_aws

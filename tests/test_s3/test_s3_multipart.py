@@ -1468,3 +1468,20 @@ def test_multipart_response_contains_checksum_attributes():
     (upload,) = bucket.multipart_uploads.all()
     assert upload.checksum_algorithm == "SHA256"
     assert upload.checksum_type == "COMPOSITE"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified()
+def test_create_multipart_upload_with_content_type(bucket_name=None):
+    # Regression test for https://github.com/getmoto/moto/issues/10010
+    s3_client = boto3.client("s3", "us-east-1")
+    s3_client.create_bucket(Bucket=bucket_name)
+    key = "my-key"
+    resp = s3_client.create_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        ContentType="application/json",
+    )
+    assert resp["Bucket"] == bucket_name
+    assert resp["Key"] == key
+    assert resp["UploadId"]

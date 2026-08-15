@@ -156,6 +156,27 @@ def test_create_describe_and_delete_server(client, server):
     assert server_id not in connection
 
 
+def test_server_not_found(client):
+    """An unknown server id must surface as ServerNotFound, not a KeyError."""
+    unknown_server_id = "s-1234567890abcdef0"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_server(ServerId=unknown_server_id)
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_server(ServerId=unknown_server_id)
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            ServerId=unknown_server_id,
+            UserName="test_user",
+            Role="TransferFamilyAdministrator",
+        )
+    assert exc.value.response["Error"]["Code"] == "ServerNotFound"
+
+
 def test_create_describe_and_delete_user(client, server):
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",
@@ -454,3 +475,48 @@ def test_update_connector_not_found(client):
             Url="sftp://example.com",
         )
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def test_describe_server_omits_unset_optional_fields(client):
+    server_id = client.create_server()["ServerId"]
+
+    described_server = client.describe_server(ServerId=server_id)["Server"]
+
+    # Optional fields that were never set must be omitted, not returned as null.
+    for omitted in [
+        "Certificate",
+        "LoggingRole",
+        "SecurityPolicyName",
+        "HostKeyFingerprint",
+        "PreAuthenticationLoginBanner",
+        "PostAuthenticationLoginBanner",
+        "EndpointDetails",
+        "IdentityProviderDetails",
+        "ProtocolDetails",
+        "S3StorageOptions",
+        "WorkflowDetails",
+    ]:
+        assert omitted not in described_server
+
+    # Fields that are always populated remain present.
+    assert described_server["ServerId"] == server_id
+    assert "Arn" in described_server
+    assert "State" in described_server
+
+
+def test_describe_connector_omits_unset_optional_fields(client):
+    connector_id = client.create_connector(
+        Url="sftp://example.com",
+        AccessRole="arn:aws:iam::123456789012:role/TransferAccessRole",
+    )["ConnectorId"]
+
+    connector = client.describe_connector(ConnectorId=connector_id)["Connector"]
+
+    for omitted in ["LoggingRole", "SecurityPolicyName", "As2Config", "SftpConfig"]:
+        assert omitted not in connector
+
+    assert connector["ConnectorId"] == connector_id
+    assert connector["Url"] == "sftp://example.com"
+    assert (
+        connector["AccessRole"] == "arn:aws:iam::123456789012:role/TransferAccessRole"
+    )

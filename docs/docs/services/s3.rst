@@ -72,8 +72,8 @@ s3
 - [X] get_object_acl
 - [X] get_object_attributes
   
-        The following attributes are not yet returned: DeleteMarker, RequestCharged, ObjectParts
-        
+The following attributes are not yet returned: DeleteMarker, RequestCharged, ObjectParts
+
 
 - [X] get_object_legal_hold
 - [X] get_object_lock_configuration
@@ -91,29 +91,29 @@ s3
 - [ ] list_directory_buckets
 - [X] list_multipart_uploads
   
-        The delimiter and max-uploads parameters have not yet been implemented.
-        
+The delimiter and max-uploads parameters have not yet been implemented.
+
 
 - [X] list_object_versions
   
-        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
 
-        MOTO_S3_DEFAULT_MAX_KEYS=5
-        
+MOTO_S3_DEFAULT_MAX_KEYS=5
+
 
 - [X] list_objects
   
-        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
 
-        MOTO_S3_DEFAULT_MAX_KEYS=5
-        
+MOTO_S3_DEFAULT_MAX_KEYS=5
+
 
 - [X] list_objects_v2
   
-        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
 
-        MOTO_S3_DEFAULT_MAX_KEYS=5
-        
+MOTO_S3_DEFAULT_MAX_KEYS=5
+
 
 - [X] list_parts
 - [ ] put_bucket_abac
@@ -122,10 +122,10 @@ s3
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
   
-        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
 
-        MOTO_DISABLE_GLOBAL_CORS=true
-        
+MOTO_DISABLE_GLOBAL_CORS=true
+
 
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
@@ -137,31 +137,31 @@ s3
 - [ ] put_bucket_notification
 - [X] put_bucket_notification_configuration
   
-        The configuration can be persisted, but at the moment we only send notifications to the following targets:
+The configuration can be persisted, but at the moment we only send notifications to the following targets:
 
-         - AWSLambda
-         - SNS
-         - SQS
-         - EventBridge
+ - AWSLambda
+ - SNS
+ - SQS
+ - EventBridge
 
-        For the following events:
-         - 's3:ObjectCreated:CompleteMultipartUpload'
-         - 's3:ObjectCreated:Copy'
-         - 's3:ObjectCreated:Post'
-         - 's3:ObjectCreated:Put'
-         - 's3:ObjectDeleted'
-         - 's3:ObjectRestore:Post'
-        
+For the following events:
+ - 's3:ObjectCreated:CompleteMultipartUpload'
+ - 's3:ObjectCreated:Copy'
+ - 's3:ObjectCreated:Post'
+ - 's3:ObjectCreated:Put'
+ - 's3:ObjectDeleted'
+ - 's3:ObjectRestore:Post'
+
 
 - [X] put_bucket_ownership_controls
 - [X] put_bucket_policy
   
-        Basic policy enforcement is in place.
+Basic policy enforcement is in place.
 
-        Restrictions:
-         - Only statements with principal=* are taken into account
-         - Conditions are not taken into account
-        
+Restrictions:
+ - Only statements with principal=* are taken into account
+ - Conditions are not taken into account
+
 
 - [X] put_bucket_replication
 - [ ] put_bucket_request_payment
@@ -179,14 +179,14 @@ s3
 - [X] restore_object
 - [X] select_object_content
   
-        Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
+Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
 
-        Known missing features:
-         - Function aliases (count(*) as cnt)
-         - Most functions (only count() is supported)
-         - Result is always in JSON
-         - FieldDelimiters are ignored
-        
+Known missing features:
+ - Function aliases (count(*) as cnt)
+ - Most functions (only count() is supported)
+ - Result is always in JSON
+ - FieldDelimiters are ignored
+
 
 - [ ] update_bucket_metadata_inventory_table_configuration
 - [ ] update_bucket_metadata_journal_table_configuration

@@ -32,6 +32,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("SplunkDestinationConfiguration"),
             self._get_param("HttpEndpointDestinationConfiguration"),
             self._get_param("SnowflakeDestinationConfiguration"),
+            self._get_param("IcebergDestinationConfiguration"),
             self._get_param("Tags"),
         )
         return ActionResult({"DeliveryStreamARN": delivery_stream_arn})
@@ -110,6 +111,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("SplunkDestinationUpdate"),
             self._get_param("HttpEndpointDestinationUpdate"),
             self._get_param("SnowflakeDestinationConfiguration"),
+            self._get_param("IcebergDestinationUpdate"),
         )
         return EmptyResult()
 

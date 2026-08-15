@@ -280,10 +280,15 @@ class EventsHandler(BaseResponse):
 
     def list_event_buses(self) -> tuple[str, dict[str, Any]]:
         name_prefix = self._get_param("NamePrefix")
-        # ToDo: add 'NextToken' & 'Limit' parameters
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+
+        event_buses, token = self.events_backend.list_event_buses(
+            name_prefix, next_token=next_token, limit=limit
+        )
 
         response = []
-        for event_bus in self.events_backend.list_event_buses(name_prefix):
+        for event_bus in event_buses:
             event_bus_response = {"Name": event_bus.name, "Arn": event_bus.arn}
 
             if event_bus.policy:
@@ -291,7 +296,10 @@ class EventsHandler(BaseResponse):
 
             response.append(event_bus_response)
 
-        return json.dumps({"EventBuses": response}), self.response_headers
+        return (
+            json.dumps({"EventBuses": response, "NextToken": token}),
+            self.response_headers,
+        )
 
     def delete_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
@@ -309,7 +317,8 @@ class EventsHandler(BaseResponse):
 
     def tag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
 
         self.events_backend.tag_resource(arn, tags)
 
@@ -317,9 +326,9 @@ class EventsHandler(BaseResponse):
 
     def untag_resource(self) -> tuple[str, dict[str, Any]]:
         arn = self._get_param("ResourceARN")
-        tags = self._get_param("TagKeys")
+        tag_keys = self._get_param("TagKeys") or []
 
-        self.events_backend.untag_resource(arn, tags)
+        self.events_backend.untag_resource(arn, tag_keys)
 
         return "{}", self.response_headers
 
@@ -543,11 +552,11 @@ class EventsHandler(BaseResponse):
     def create_partner_event_source(self) -> str:
         name = self._get_param("Name")
         account_id = self._get_param("Account")
-        self.events_backend.create_partner_event_source(
+        partner_event_source = self.events_backend.create_partner_event_source(
             name=name,
             account_id=account_id,
         )
-        return "{}"
+        return json.dumps({"EventSourceArn": partner_event_source.arn})
 
     def describe_event_source(self) -> str:
         name = self._get_param("Name")

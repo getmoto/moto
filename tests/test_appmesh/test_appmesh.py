@@ -10,16 +10,21 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 
 from .data import (
+    grpc_gateway_route_spec,
     grpc_route_spec,
     grpc_virtual_node_spec,
+    http2_gateway_route_spec,
     http2_route_spec,
     http2_virtual_node_spec,
+    http_gateway_route_spec,
     http_route_spec,
     http_virtual_node_spec,
     modified_http2_virtual_node_spec,
     modified_http_route_spec,
+    modified_virtual_gateway_spec,
     tcp_route_spec,
     tcp_virtual_node_spec,
+    virtual_gateway_spec,
 )
 
 MESH_NAME = "mock_mesh"
@@ -1443,3 +1448,330 @@ def test_tag_and_list_tags_for_resource(client):
         resourceArn=virtual_node_arn, nextToken=page1["nextToken"]
     )
     assert page2["tags"] == [{"key": "k2", "value": "v2"}, {"key": "k3", "value": "v3"}]
+
+
+@mock_aws
+def test_create_describe_list_update_delete_virtual_gateway(client):
+    mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    GATEWAY_1 = "gateway1"
+    GATEWAY_2 = "gateway2"
+
+    connection = client.create_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_1,
+        spec=virtual_gateway_spec,
+        tags=[{"key": "gateway_traffic", "value": "http"}],
+    )
+    gateway1 = connection["virtualGateway"]
+    assert gateway1["virtualGatewayName"] == GATEWAY_1
+    assert gateway1["meshName"] == MESH_NAME
+    assert gateway1["metadata"]["meshOwner"] == mesh_owner
+    assert gateway1["metadata"]["version"] == 1
+    assert gateway1["status"]["status"] == "ACTIVE"
+    spec = gateway1["spec"]
+    listener = spec["listeners"][0]
+    assert listener["portMapping"] == {"port": 8080, "protocol": "http"}
+    assert listener["healthCheck"]["path"] == "/ping"
+    assert listener["connectionPool"]["http"]["maxConnections"] == 100
+    assert listener["tls"]["mode"] == "STRICT"
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-east-1:123456789012:certificate/abc"
+    )
+    assert spec["logging"]["accessLog"]["file"]["path"] == "/dev/stdout"
+    assert spec["backendDefaults"]["clientPolicy"]["tls"]["enforce"] is True
+
+    client.create_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_2,
+        spec={"listeners": [{"portMapping": {"port": 443, "protocol": "http2"}}]},
+    )
+
+    connection = client.list_virtual_gateways(meshName=MESH_NAME, meshOwner=mesh_owner)
+    virtual_gateways = connection["virtualGateways"]
+    assert isinstance(virtual_gateways, list)
+    assert len(virtual_gateways) == 2
+    names_counted = defaultdict(int)
+    for virtual_gateway in virtual_gateways:
+        gateway_name = virtual_gateway.get("virtualGatewayName")
+        if gateway_name:
+            names_counted[gateway_name] += 1
+    assert names_counted[GATEWAY_1] == 1
+    assert names_counted[GATEWAY_2] == 1
+
+    connection = client.update_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_1,
+        spec=modified_virtual_gateway_spec,
+    )
+    updated_gateway1 = connection["virtualGateway"]
+    assert updated_gateway1["metadata"]["version"] == 2
+    listener = updated_gateway1["spec"]["listeners"][0]
+    assert listener["portMapping"] == {"port": 9090, "protocol": "grpc"}
+    assert listener["connectionPool"]["grpc"]["maxRequests"] == 50
+
+    connection = client.describe_virtual_gateway(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualGatewayName=GATEWAY_1
+    )
+    described = connection["virtualGateway"]
+    assert described["virtualGatewayName"] == GATEWAY_1
+    assert described["metadata"]["version"] == 2
+
+    connection = client.delete_virtual_gateway(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualGatewayName=GATEWAY_2
+    )
+    deleted = connection["virtualGateway"]
+    assert deleted["virtualGatewayName"] == GATEWAY_2
+    assert deleted["status"]["status"] == "DELETED"
+
+    with pytest.raises(ClientError) as e:
+        client.describe_virtual_gateway(
+            meshName=MESH_NAME, meshOwner=mesh_owner, virtualGatewayName=GATEWAY_2
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "VirtualGatewayNotFound"
+    assert GATEWAY_2 in err["Message"]
+
+    with pytest.raises(ClientError) as e:
+        client.create_virtual_gateway(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualGatewayName=GATEWAY_1,
+            spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "VirtualGatewayNameAlreadyTaken"
+
+
+@mock_aws
+def test_list_virtual_gateways_paginated(client):
+    mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    for i in range(5):
+        client.create_virtual_gateway(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualGatewayName=f"gateway{i}",
+            spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
+        )
+
+    all_gateways = client.list_virtual_gateways(
+        meshName=MESH_NAME, meshOwner=mesh_owner
+    )["virtualGateways"]
+    assert len(all_gateways) == 5
+
+    page1 = client.list_virtual_gateways(
+        meshName=MESH_NAME, meshOwner=mesh_owner, limit=2
+    )
+    assert len(page1["virtualGateways"]) == 2
+
+    page2 = client.list_virtual_gateways(
+        meshName=MESH_NAME, meshOwner=mesh_owner, nextToken=page1["nextToken"]
+    )
+    assert len(page2["virtualGateways"]) == 3
+
+
+@mock_aws
+def test_create_describe_list_update_delete_gateway_route(client):
+    GATEWAY_NAME = "mock_virtual_gateway"
+    mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+    client.create_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        spec={"listeners": [{"portMapping": {"port": 8080, "protocol": "http"}}]},
+    )
+
+    connection = client.create_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="http_route",
+        spec=http_gateway_route_spec,
+        tags=[{"key": "license", "value": "mit"}],
+    )
+    route = connection["gatewayRoute"]
+    assert route["gatewayRouteName"] == "http_route"
+    assert route["meshName"] == MESH_NAME
+    assert route["virtualGatewayName"] == GATEWAY_NAME
+    assert route["metadata"]["version"] == 1
+    assert route["status"]["status"] == "ACTIVE"
+    http = route["spec"]["httpRoute"]
+    assert route["spec"]["priority"] == 1
+    assert (
+        http["action"]["target"]["virtualService"]["virtualServiceName"] == "web.local"
+    )
+    assert http["action"]["target"]["port"] == 8080
+    assert http["action"]["rewrite"]["prefix"]["defaultPrefix"] == "DISABLED"
+    assert http["match"]["prefix"] == "/"
+    assert http["match"]["method"] == "GET"
+    assert http["match"]["hostname"]["suffix"] == ".local"
+    assert http["match"]["headers"][0]["name"] == "x-version"
+    assert http["match"]["queryParameters"][0]["name"] == "q"
+
+    client.create_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="grpc_route",
+        spec=grpc_gateway_route_spec,
+    )
+    described = client.describe_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="grpc_route",
+    )["gatewayRoute"]
+    grpc = described["spec"]["grpcRoute"]
+    assert grpc["match"]["serviceName"] == "myService"
+    assert grpc["match"]["metadata"][0]["invert"] is True
+    assert grpc["action"]["rewrite"]["hostname"]["defaultTargetHostname"] == "ENABLED"
+
+    connection = client.list_gateway_routes(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualGatewayName=GATEWAY_NAME
+    )
+    routes = connection["gatewayRoutes"]
+    assert len(routes) == 2
+    names_counted = defaultdict(int)
+    for r in routes:
+        names_counted[r["gatewayRouteName"]] += 1
+    assert names_counted["http_route"] == 1
+    assert names_counted["grpc_route"] == 1
+
+    connection = client.update_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="http_route",
+        spec=http2_gateway_route_spec,
+    )
+    updated = connection["gatewayRoute"]
+    assert updated["metadata"]["version"] == 2
+    assert updated["spec"]["priority"] == 2
+    h2 = updated["spec"]["http2Route"]
+    assert h2["action"]["rewrite"]["path"]["exact"] == "/rewritten"
+    assert h2["match"]["hostname"]["exact"] == "h2.example.com"
+    assert "httpRoute" not in updated["spec"]
+
+    connection = client.delete_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="grpc_route",
+    )
+    deleted = connection["gatewayRoute"]
+    assert deleted["gatewayRouteName"] == "grpc_route"
+    assert deleted["status"]["status"] == "DELETED"
+
+    with pytest.raises(ClientError) as e:
+        client.describe_gateway_route(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualGatewayName=GATEWAY_NAME,
+            gatewayRouteName="grpc_route",
+        )
+    assert e.value.response["Error"]["Code"] == "GatewayRouteNotFound"
+
+    with pytest.raises(ClientError) as e:
+        client.create_gateway_route(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualGatewayName=GATEWAY_NAME,
+            gatewayRouteName="http_route",
+            spec=http_gateway_route_spec,
+        )
+    assert e.value.response["Error"]["Code"] == "GatewayRouteNameAlreadyTaken"
+
+
+@mock_aws
+def test_list_gateway_routes_paginated(client):
+    GATEWAY_NAME = "mock_virtual_gateway"
+    mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+    client.create_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        spec={"listeners": [{"portMapping": {"port": 8080, "protocol": "http"}}]},
+    )
+
+    for i in range(5):
+        client.create_gateway_route(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualGatewayName=GATEWAY_NAME,
+            gatewayRouteName=f"route{i}",
+            spec=http_gateway_route_spec,
+        )
+
+    all_routes = client.list_gateway_routes(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualGatewayName=GATEWAY_NAME
+    )["gatewayRoutes"]
+    assert len(all_routes) == 5
+
+    page1 = client.list_gateway_routes(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        limit=2,
+    )
+    assert len(page1["gatewayRoutes"]) == 2
+
+    page2 = client.list_gateway_routes(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        nextToken=page1["nextToken"],
+    )
+    assert len(page2["gatewayRoutes"]) == 3
+
+
+@mock_aws
+def test_tag_virtual_gateway_and_gateway_route(client):
+    GATEWAY_NAME = "mock_virtual_gateway"
+    mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    gateway = client.create_virtual_gateway(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        spec={"listeners": [{"portMapping": {"port": 8080, "protocol": "http"}}]},
+        tags=[{"key": "type", "value": "gateway"}],
+    )["virtualGateway"]
+    gateway_arn = gateway["metadata"]["arn"]
+
+    route = client.create_gateway_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualGatewayName=GATEWAY_NAME,
+        gatewayRouteName="http_route",
+        spec=http_gateway_route_spec,
+        tags=[{"key": "license", "value": "mit"}],
+    )["gatewayRoute"]
+    route_arn = route["metadata"]["arn"]
+
+    client.tag_resource(
+        resourceArn=gateway_arn, tags=[{"key": "organization", "value": "moto"}]
+    )
+    tags = client.list_tags_for_resource(resourceArn=gateway_arn)["tags"]
+    assert tags == [
+        {"key": "type", "value": "gateway"},
+        {"key": "organization", "value": "moto"},
+    ]
+
+    client.tag_resource(
+        resourceArn=route_arn, tags=[{"key": "organization", "value": "moto"}]
+    )
+    tags = client.list_tags_for_resource(resourceArn=route_arn)["tags"]
+    assert tags == [
+        {"key": "license", "value": "mit"},
+        {"key": "organization", "value": "moto"},
+    ]

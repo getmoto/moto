@@ -7,23 +7,20 @@ import importlib
 import json
 import os
 from pathlib import Path
-from unittest import SkipTest, TestCase, mock
+from unittest import SkipTest, TestCase
 
 import boto3
 
-import moto
-from moto import mock_aws, settings
-from moto.core import DEFAULT_ACCOUNT_ID
-from moto.ec2.models import ec2_backends
+from moto import ec2, mock_aws, settings
+
+TEST_AMI_PATH = Path(__file__).parent / "test_ami.json"
 
 
-# The default AMIs are not loaded for our test case, to speed things up
-# But we do need it for this specific test (and others in this file..)
-@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
 class TestEC2CustomAMIs(TestCase):
-    def setup_amis(self):
-        test_ami_path = Path(__file__).parent / "test_ami.json"
+    def setUpClass(*args):
+        # Specify the Custom AMIs to be loaded
+
         test_ami = [
             {
                 "ami_id": "ami-760aaa0f760aaa0fe",
@@ -47,28 +44,24 @@ class TestEC2CustomAMIs(TestCase):
                 },
             }
         ]
-        with test_ami_path.open("w") as fp:
+        with TEST_AMI_PATH.open("w") as fp:
             json.dump(test_ami, fp)
 
-        return test_ami_path
+        os.environ["MOTO_AMIS_PATH"] = str(TEST_AMI_PATH)
+
+        # Reload the existing file - if this file has been loaded before this test runs, it will not refresh the loaded AMIs
+        importlib.reload(ec2.models.amis)
+
+    def tearDownClass(*args):
+        os.remove(TEST_AMI_PATH)
+        del os.environ["MOTO_AMIS_PATH"]
+
+        # Reload the file again - whichever test is executed next should not start with our AMIs preloaded
+        importlib.reload(ec2.models.amis)
 
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
             raise SkipTest("Only test status code in non-ServerMode")
-        self.test_ami_path = self.setup_amis()
-        os.environ["MOTO_AMIS_PATH"] = str(self.test_ami_path)
-
-        # Reload the backend, and remove any existing AMIs
-        importlib.reload(moto.ec2.models.amis)
-        ec2_backends[DEFAULT_ACCOUNT_ID].reset()
-
-    def tearDown(self) -> None:
-        os.remove(self.test_ami_path)
-        del os.environ["MOTO_AMIS_PATH"]
-
-        # Reload the backend, and remove our custom AMI
-        importlib.reload(moto.ec2.models.amis)
-        ec2_backends[DEFAULT_ACCOUNT_ID].reset()
 
     def test_custom_amis_with_MOTO_AMIS_PATH(self):
         ec2_client = boto3.client("ec2", region_name="us-east-1")
@@ -82,3 +75,11 @@ class TestEC2CustomAMIs(TestCase):
             {"Key": "tag2", "Value": "value2"},
         ]
         assert image["Tags"] == expected_tags
+
+    def test_custom_amis_on_second_reset(self):
+        ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+        # Because this is our second test case, the `mock_aws` decorator has reset all data
+        # Verify that the AMI are still loaded and reachable
+        images = ec2_client.describe_images()["Images"]
+        assert len(images) == 1

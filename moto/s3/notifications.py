@@ -1,16 +1,13 @@
 import copy
 import json
-from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote_plus
 
-from moto.core.utils import unix_time
+from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time
 
 if TYPE_CHECKING:
     from moto.s3.models import FakeBucket
-
-_EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 class S3NotificationEvent(str, Enum):
@@ -73,7 +70,7 @@ def _get_s3_event(
     etag = key.etag.replace('"', "")
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
-    event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
+    event_time = iso_8601_datetime_with_milliseconds()
     # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-content-structure.html
     key_name = quote_plus(key.name)
     return {
@@ -279,7 +276,7 @@ def _invoke_awslambda(
 
 
 def _get_test_event(bucket_name: str) -> dict[str, Any]:
-    event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
+    event_time = iso_8601_datetime_with_milliseconds()
     return {
         "Service": "Amazon S3",
         "Event": "s3:TestEvent",

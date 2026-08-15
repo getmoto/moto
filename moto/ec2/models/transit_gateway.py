@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -28,8 +28,8 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         backend: Any,
-        description: Optional[str],
-        options: Optional[dict[str, str]] = None,
+        description: str | None,
+        options: dict[str, str] | None = None,
     ):
         self.ec2_backend = backend
         self.id = random_transit_gateway_id()
@@ -111,9 +111,9 @@ class TransitGatewayBackend:
 
     def create_transit_gateway(
         self,
-        description: Optional[str],
-        options: Optional[dict[str, str]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        description: str | None,
+        options: dict[str, str] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> TransitGateway:
         transit_gateway = TransitGateway(self, description, options)
         for tag in tags or []:
@@ -123,7 +123,7 @@ class TransitGatewayBackend:
         return transit_gateway
 
     def describe_transit_gateways(
-        self, filters: Any, transit_gateway_ids: Optional[list[str]]
+        self, filters: Any, transit_gateway_ids: list[str] | None
     ) -> list[TransitGateway]:
         transit_gateways = list(self.transit_gateways.values())
 
@@ -151,8 +151,8 @@ class TransitGatewayBackend:
     def modify_transit_gateway(
         self,
         transit_gateway_id: str,
-        description: Optional[str] = None,
-        options: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        options: dict[str, str] | None = None,
     ) -> TransitGateway:
         transit_gateway = self.transit_gateways[transit_gateway_id]
         if description:

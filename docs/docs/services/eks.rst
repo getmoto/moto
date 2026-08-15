@@ -65,21 +65,21 @@ eks
 - [ ] list_pod_identity_associations
 - [X] list_tags_for_resource
   
-        This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
-        
+This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
+
 
 - [ ] list_updates
 - [ ] register_cluster
 - [ ] start_insights_refresh
 - [X] tag_resource
   
-        This function currently will tag an EKS cluster only.  It does not tag a managed node group
-        
+This function currently will tag an EKS cluster only.  It does not tag a managed node group
+
 
 - [X] untag_resource
   
-        This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
-        
+This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
+
 
 - [ ] update_access_entry
 - [ ] update_addon

@@ -2,8 +2,6 @@ import json
 from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
-    from typing import Union
-
     from typing_extensions import Any, Required
 
 
@@ -13,11 +11,11 @@ EventMessageType = TypedDict(
     {
         "version": str,
         "id": str,
-        "detail-type": "Required[Union[str, list[str]]]",
-        "source": "Required[Union[str, list[str]]]",
+        "detail-type": "Required[str | list[str]]",
+        "source": "Required[str | list[str]]",
         "account": str,
         # support float type for internal use of moto.
-        "time": "Union[str, float]",
+        "time": "str | float",
         "replay-name": str,
         "region": str,
         "resources": list[str],
@@ -47,6 +45,13 @@ PAGINATION_MODEL = {
         "limit_key": "limit",
         "limit_default": 50,
         "unique_attribute": "Arn",
+        "fail_on_invalid_token": False,
+    },
+    "list_event_buses": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 50,
+        "unique_attribute": "arn",
         "fail_on_invalid_token": False,
     },
 }

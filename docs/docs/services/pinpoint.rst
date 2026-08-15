@@ -61,8 +61,8 @@ pinpoint
 - [X] get_application_settings
 - [X] get_apps
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] get_baidu_channel
 - [ ] get_campaign

@@ -1,12 +1,12 @@
 import importlib
 import os
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Union, overload
 
 import moto
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from moto.acm.models import AWSCertificateManagerBackend
     from moto.acmpca.models import ACMPCABackend
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from moto.bedrockruntime.models import BedrockRuntimeBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
+    from moto.cleanrooms.models import CleanRoomsBackend
     from moto.clouddirectory.models import CloudDirectoryBackend
     from moto.cloudformation.models import CloudFormationBackend
     from moto.cloudfront.models import CloudFrontBackend
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
     from moto.datapipeline.models import DataPipelineBackend
     from moto.datasync.models import DataSyncBackend
     from moto.dax.models import DAXBackend
+    from moto.devopsagent.models import DevOpsAgentBackend
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
@@ -192,7 +194,7 @@ def list_of_moto_modules() -> Iterable[str]:
             yield backend
 
 
-def get_service_from_url(url: str) -> Optional[str]:
+def get_service_from_url(url: str) -> str | None:
     from moto.backend_index import backend_url_patterns
 
     for service, pattern in backend_url_patterns:
@@ -223,6 +225,7 @@ SERVICE_NAMES = Union[
     "Literal['bedrock-runtime']",
     "Literal['budgets']",
     "Literal['ce']",
+    "Literal['cleanrooms']",
     "Literal['clouddirectory']",
     "Literal['cloudformation']",
     "Literal['cloudfront']",
@@ -242,6 +245,7 @@ SERVICE_NAMES = Union[
     "Literal['datapipeline']",
     "Literal['datasync']",
     "Literal['dax']",
+    "Literal['devopsagent']",
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
@@ -428,6 +432,8 @@ def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ..
 @overload
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
 @overload
+def get_backend(name: "Literal['cleanrooms']") -> "BackendDict[CleanRoomsBackend]": ...
+@overload
 def get_backend(
     name: "Literal['clouddirectory']",
 ) -> "BackendDict[CloudDirectoryBackend]": ...
@@ -477,6 +483,10 @@ def get_backend(
 def get_backend(name: "Literal['datasync']") -> "BackendDict[DataSyncBackend]": ...
 @overload
 def get_backend(name: "Literal['dax']") -> "BackendDict[DAXBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['devopsagent']",
+) -> "BackendDict[DevOpsAgentBackend]": ...
 @overload
 def get_backend(
     name: "Literal['dms']",

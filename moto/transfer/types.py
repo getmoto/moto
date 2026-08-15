@@ -1,9 +1,28 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+
+
+def prune_unset(value: Any) -> Any:
+    """Recursively drop unset fields (None / empty dict / empty list).
+
+    AWS Transfer omits optional fields that were never set from its Describe*
+    responses rather than returning them as null, so the serialized model must
+    do the same.
+    """
+    if isinstance(value, dict):
+        pruned = {}
+        for key, val in value.items():
+            cleaned = prune_unset(val)
+            if cleaned is not None and cleaned != {} and cleaned != []:
+                pruned[key] = cleaned
+        return pruned
+    if isinstance(value, list):
+        return [prune_unset(item) for item in value]
+    return value
 
 
 class UserHomeDirectoryType(str, Enum):
@@ -21,18 +40,14 @@ class User(BaseModel):
     region_name: str
     account_id: str
     server_id: str
-    home_directory: Optional[str]
-    home_directory_type: Optional[UserHomeDirectoryType]
-    policy: Optional[str]
+    home_directory: str | None
+    home_directory_type: UserHomeDirectoryType | None
+    policy: str | None
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: list[dict[str, Optional[str]]] = field(
-        default_factory=list
-    )
-    posix_profile: dict[str, Optional[Union[str, list[str]]]] = field(
-        default_factory=dict
-    )
+    home_directory_mappings: list[dict[str, str | None]] = field(default_factory=list)
+    posix_profile: dict[str, str | list[str] | None] = field(default_factory=dict)
     ssh_public_keys: list[dict[str, str]] = field(default_factory=list)
     tags: list[dict[str, str]] = field(default_factory=list)
 
@@ -123,25 +138,25 @@ AS2_TRANSPORTS_TYPE = list[Literal["HTTP"]]
 class Server(BaseModel):
     region_name: str
     account_id: str
-    certificate: Optional[str]
-    domain: Optional[ServerDomain]
-    endpoint_type: Optional[ServerEndpointType]
-    host_key_fingerprint: Optional[str]
-    identity_provider_type: Optional[ServerIdentityProviderType]
-    logging_role: Optional[str]
-    post_authentication_login_banner: Optional[str]
-    pre_authentication_login_banner: Optional[str]
-    protocols: Optional[list[ServerProtocols]]
-    security_policy_name: Optional[str]
-    structured_log_destinations: Optional[list[str]]
+    certificate: str | None
+    domain: ServerDomain | None
+    endpoint_type: ServerEndpointType | None
+    host_key_fingerprint: str | None
+    identity_provider_type: ServerIdentityProviderType | None
+    logging_role: str | None
+    post_authentication_login_banner: str | None
+    pre_authentication_login_banner: str | None
+    protocols: list[ServerProtocols] | None
+    security_policy_name: str | None
+    structured_log_destinations: list[str] | None
     arn: str = field(default="", init=False)
     as2_service_managed_egress_ip_addresses: list[str] = field(default_factory=list)
     endpoint_details: dict[str, str] = field(default_factory=dict)
     identity_provider_details: dict[str, str] = field(default_factory=dict)
     protocol_details: dict[str, str] = field(default_factory=dict)
-    s3_storage_options: dict[str, Optional[str]] = field(default_factory=dict)
+    s3_storage_options: dict[str, str | None] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
-    state: Optional[ServerState] = ServerState.ONLINE
+    state: ServerState | None = ServerState.ONLINE
     tags: list[dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
     workflow_details: dict[str, list[dict[str, str]]] = field(default_factory=dict)
@@ -232,7 +247,7 @@ class Server(BaseModel):
                 "OnPartialUpload": on_partial_upload,
             },
         }
-        return server
+        return prune_unset(server)
 
     def to_short_dict(self) -> dict[str, Any]:
         return {
@@ -254,10 +269,10 @@ class Connector(BaseModel):  # type: ignore[misc]
     account_id: str
     url: str
     access_role: str
-    logging_role: Optional[str]
-    as2_config: Optional[dict[str, Any]]
-    sftp_config: Optional[dict[str, Any]]
-    security_policy_name: Optional[str]
+    logging_role: str | None
+    as2_config: dict[str, Any] | None
+    sftp_config: dict[str, Any] | None
+    security_policy_name: str | None
     arn: str = field(default="", init=False)
     connector_id: str = field(default="", init=False)
     tags: list[dict[str, str]] = field(default_factory=list)
@@ -311,7 +326,7 @@ class Connector(BaseModel):  # type: ignore[misc]
                     "max_concurrent_connections"
                 ),
             }
-        return connector
+        return prune_unset(connector)
 
     def to_short_dict(self) -> dict[str, str]:
         return {

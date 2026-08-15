@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import json
 import re
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from re import Pattern
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -37,9 +41,9 @@ class StateMachineInstance:
         name: str,
         definition: str,
         roleArn: str,
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
     ):
         self.creation_date = utcnow()
         self.update_date = self.creation_date
@@ -55,7 +59,7 @@ class StateMachineInstance:
         self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
         self.tracingConfiguration = tracingConfiguration or {"enabled": False}
         self.sm_type = "STANDARD"  # or express
-        self.description: Optional[str] = None
+        self.description: str | None = None
 
 
 class StateMachineAlias(CloudFormationModel):
@@ -64,7 +68,7 @@ class StateMachineAlias(CloudFormationModel):
         name: str,
         statemachine_arn: str,
         routing_configuration: list[dict[str, Any]],
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.name = name
         self.statemachine_arn = statemachine_arn
@@ -83,7 +87,7 @@ class StateMachineAlias(CloudFormationModel):
 
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
     def __init__(
-        self, source: StateMachineInstance, version: int, description: Optional[str]
+        self, source: StateMachineInstance, version: int, description: str | None
     ):
         version_arn = f"{source.arn}:{version}"
         StateMachineInstance.__init__(
@@ -108,10 +112,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         name: str,
         definition: str,
         roleArn: str,
-        backend: "StepFunctionBackend",
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
+        backend: StepFunctionBackend,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -126,10 +130,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
         self.aliases: dict[str, StateMachineAlias] = {}
-        self.latest_version: Optional[StateMachineVersion] = None
+        self.latest_version: StateMachineVersion | None = None
         self.backend = backend
 
-    def publish(self, description: Optional[str]) -> None:
+    def publish(self, description: str | None) -> None:
         new_version_number = self.latest_version_number + 1
         new_version = StateMachineVersion(
             source=self, version=new_version_number, description=description
@@ -144,7 +148,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         account_id: str,
         execution_name: str,
         execution_input: str,
-    ) -> "Execution":
+    ) -> Execution:
         self._validate_execution_input(execution_input)
         existing_execution = self._handle_name_input_idempotency(
             execution_name, execution_input
@@ -164,7 +168,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         self.executions.append(execution)
         return execution
 
-    def stop_execution(self, execution_arn: str) -> "Execution":
+    def stop_execution(self, execution_arn: str) -> Execution:
         execution = next(
             (x for x in self.executions if x.execution_arn == execution_arn), None
         )
@@ -177,7 +181,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
 
     def _handle_name_input_idempotency(
         self, name: str, execution_input: str
-    ) -> Optional["Execution"]:
+    ) -> Execution | None:
         for execution in self.executions:
             if execution.name == name:
                 # Executions with the same name and input are considered idempotent
@@ -274,7 +278,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "StateMachine":
+    ) -> StateMachine:
         properties = cloudformation_json["Properties"]
         name = properties.get("StateMachineName", resource_name)
         definition = properties.get("DefinitionString", "")
@@ -302,7 +306,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "StateMachine":
+    ) -> StateMachine:
         properties = cloudformation_json.get("Properties", {})
         name = properties.get("StateMachineName", original_resource.name)
 
@@ -327,7 +331,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
-            sf_backend.tag_resource(state_machine.arn, tags)
+            sf_backend.tagger.tag_resource(state_machine.arn, tags)
             return state_machine
 
 
@@ -359,13 +363,13 @@ class Execution:
             if settings.get_sf_execution_history_type() == "SUCCESS"
             else "FAILED"
         )
-        self.stop_date: Optional[datetime] = None
+        self.stop_date: datetime | None = None
         self.account_id = account_id
         self.region_name = region_name
-        self.output: Optional[str] = None
-        self.output_details: Optional[str] = None
-        self.cause: Optional[str] = None
-        self.error: Optional[str] = None
+        self.output: str | None = None
+        self.output_details: str | None = None
+        self.cause: str | None = None
+        self.error: str | None = None
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
@@ -463,7 +467,7 @@ class Activity:
         self,
         arn: str,
         name: str,
-        encryption_configuration: Optional[dict[str, Any]] = None,
+        encryption_configuration: dict[str, Any] | None = None,
     ):
         self.arn = arn
         self.name = name
@@ -473,7 +477,7 @@ class Activity:
         self.update_date = self.creation_date
 
 
-class StepFunctionBackend(BaseBackend):
+class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
     """
     Configure Moto to explicitly parse and execute the StateMachine:
 
@@ -606,6 +610,8 @@ class StepFunctionBackend(BaseBackend):
         + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):activity:.+"
     )
 
+    SERVICE_NAMESPACE = "states"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.tagger = TaggingService(
@@ -621,12 +627,12 @@ class StepFunctionBackend(BaseBackend):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        publish: Optional[bool] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        version_description: Optional[str] = None,
+        tags: list[dict[str, str]] | None = None,
+        publish: bool | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        version_description: str | None = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -648,7 +654,7 @@ class StepFunctionBackend(BaseBackend):
                 state_machine.publish(description=version_description)
 
             if tags:
-                self.tag_resource(arn, tags)
+                self.tagger.tag_resource(arn, tags)
 
             self.state_machines.append(state_machine)
             return state_machine
@@ -657,7 +663,7 @@ class StepFunctionBackend(BaseBackend):
         self,
         name: str,
         routing_configuration: list[dict[str, Any]],
-        description: Optional[str],
+        description: str | None,
     ) -> StateMachineAlias:
         state_version_arn = routing_configuration[0]["stateMachineVersionArn"]
         # Get the corresponding sm version
@@ -759,13 +765,13 @@ class StepFunctionBackend(BaseBackend):
     def update_state_machine(
         self,
         arn: str,
-        definition: Optional[str] = None,
-        role_arn: Optional[str] = None,
-        logging_configuration: Optional[dict[str, bool]] = None,
-        tracing_configuration: Optional[dict[str, bool]] = None,
-        encryption_configuration: Optional[dict[str, Any]] = None,
-        publish: Optional[bool] = None,
-        version_description: Optional[str] = None,
+        definition: str | None = None,
+        role_arn: str | None = None,
+        logging_configuration: dict[str, bool] | None = None,
+        tracing_configuration: dict[str, bool] | None = None,
+        encryption_configuration: dict[str, Any] | None = None,
+        publish: bool | None = None,
+        version_description: str | None = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
         updates: dict[str, Any] = {
@@ -786,8 +792,8 @@ class StepFunctionBackend(BaseBackend):
     def update_state_machine_alias(
         self,
         arn: str,
-        description: Optional[str],
-        routing_configuration: Optional[list[dict[str, Any]]],
+        description: str | None,
+        routing_configuration: list[dict[str, Any]] | None,
     ) -> StateMachineAlias:
         alias = self.describe_state_machine_alias(arn=arn)
 
@@ -819,7 +825,7 @@ class StepFunctionBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(
-        self, state_machine_arn: str, status_filter: Optional[str] = None
+        self, state_machine_arn: str, status_filter: str | None = None
     ) -> list[Execution]:
         executions = self.describe_state_machine(state_machine_arn).executions
 
@@ -864,16 +870,10 @@ class StepFunctionBackend(BaseBackend):
     def list_tags_for_resource(self, arn: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(arn)
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def get_tags_list_for_state_machine(self, arn: str) -> list[dict[str, str]]:
         return self.list_tags_for_resource(arn)[self.tagger.tag_name]
 
-    def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
+    def send_task_failure(self, task_token: str, error: str | None = None) -> None:
         pass
 
     def send_task_heartbeat(self, task_token: str) -> None:
@@ -973,8 +973,8 @@ class StepFunctionBackend(BaseBackend):
     def create_activity(
         self,
         name: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        encryption_configuration: Optional[dict[str, Any]] = None,
+        tags: list[dict[str, str]] | None = None,
+        encryption_configuration: dict[str, Any] | None = None,
     ) -> Activity:
         self._validate_name(name)
 
@@ -994,7 +994,7 @@ class StepFunctionBackend(BaseBackend):
         self.activities[arn] = activity
 
         if tags:
-            self.tag_resource(arn, tags)
+            self.tagger.tag_resource(arn, tags)
 
         return activity
 
@@ -1013,6 +1013,21 @@ class StepFunctionBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_activities(self) -> list[Activity]:
         return sorted(self.activities.values(), key=lambda x: x.creation_date)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for sm in self.state_machines:
+            yield TaggedResource(
+                arn=sm.arn,
+                tags=self.tagger.get_tag_dict_for_resource(sm.arn),
+                resource_type="states:stateMachine",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"key": k, "value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

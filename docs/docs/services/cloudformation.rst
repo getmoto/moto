@@ -25,19 +25,19 @@ cloudformation
 - [ ] create_generated_template
 - [X] create_stack
   
-        The functionality behind EnableTerminationProtection is not yet implemented.
-        
+The functionality behind EnableTerminationProtection is not yet implemented.
+
 
 - [X] create_stack_instances
   
-        The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
-        
+The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
+
 
 - [ ] create_stack_refactor
 - [X] create_stack_set
   
-        The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
-        
+The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
+
 
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
@@ -46,8 +46,8 @@ cloudformation
 - [X] delete_stack
 - [X] delete_stack_instances
   
-        The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
-        
+The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
+
 
 - [X] delete_stack_set
 - [ ] deregister_type
@@ -94,9 +94,9 @@ cloudformation
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
   
-        Pagination is not yet implemented.
-        The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
-        
+Pagination is not yet implemented.
+The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
+
 
 - [ ] list_stack_refactor_actions
 - [ ] list_stack_refactors
@@ -116,8 +116,8 @@ cloudformation
 - [ ] rollback_stack
 - [X] set_stack_policy
   
-        Note that Moto does no validation/parsing/enforcement of this policy - we simply persist it.
-        
+Note that Moto does no validation/parsing/enforcement of this policy - we simply persist it.
+
 
 - [ ] set_type_configuration
 - [ ] set_type_default_version
@@ -129,8 +129,8 @@ cloudformation
 - [X] update_stack
 - [X] update_stack_instances
   
-        Calling this will update the parameters, but the actual resources are not updated
-        
+Calling this will update the parameters, but the actual resources are not updated
+
 
 - [X] update_stack_set
 - [ ] update_termination_protection

@@ -55,8 +55,8 @@ cloudtrail
 - [ ] list_queries
 - [X] list_tags
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] list_trails
 - [ ] lookup_events

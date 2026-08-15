@@ -22,16 +22,16 @@ firehose
 - [X] delete_delivery_stream
   Delete a delivery stream and its data.
 
-        AllowForceDelete option is ignored as we only superficially
-        apply state.
-        
+AllowForceDelete option is ignored as we only superficially
+apply state.
+
 
 - [X] describe_delivery_stream
   Return description of specified delivery stream and its status.
 
-        Note:  the 'limit' and 'exclusive_start_destination_id' parameters
-        are not currently processed/implemented.
-        
+Note:  the 'limit' and 'exclusive_start_destination_id' parameters
+are not currently processed/implemented.
+
 
 - [X] list_delivery_streams
   Return list of delivery streams in alphabetic order of names.

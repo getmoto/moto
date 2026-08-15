@@ -26,15 +26,15 @@ signer
 - [ ] list_signing_jobs
 - [X] list_signing_platforms
   
-        Pagination is not yet implemented. The parameters category, partner, target are not yet implemented
-        
+Pagination is not yet implemented. The parameters category, partner, target are not yet implemented
+
 
 - [ ] list_signing_profiles
 - [X] list_tags_for_resource
 - [X] put_signing_profile
   
-        The following parameters are not yet implemented: Overrides, SigningParameters
-        
+The following parameters are not yet implemented: Overrides, SigningParameters
+
 
 - [ ] remove_profile_permission
 - [ ] revoke_signature

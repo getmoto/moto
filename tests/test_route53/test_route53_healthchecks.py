@@ -248,15 +248,16 @@ def test_delete_health_checks():
 
 
 @mock_aws
-def test_update_health_check():
+@pytest.mark.parametrize("original_value", [True, False])
+def test_update_health_check(original_value):
     client = boto3.client("route53", region_name="us-east-1")
 
     hc_id = client.create_health_check(
         CallerReference="callref",
         HealthCheckConfig={
             "Type": "CALCULATED",
-            "Inverted": False,
-            "Disabled": False,
+            "Inverted": original_value,
+            "Disabled": original_value,
             "HealthThreshold": 1,
         },
     )["HealthCheck"]["Id"]
@@ -269,8 +270,9 @@ def test_update_health_check():
         FullyQualifiedDomainName="example.com",
         SearchString="search",
         FailureThreshold=123,
-        Inverted=False,
-        Disabled=False,
+        Inverted=not original_value,
+        Disabled=not original_value,
+        EnableSNI=not original_value,
         HealthThreshold=13,
         ChildHealthChecks=["child"],
         Regions=["us-east-1", "us-east-2", "us-west-1"],
@@ -283,8 +285,9 @@ def test_update_health_check():
     assert config["ResourcePath"] == "rp"
     assert config["FullyQualifiedDomainName"] == "example.com"
     assert config["SearchString"] == "search"
-    assert config["Inverted"] is False
-    assert config["Disabled"] is False
+    assert config["Inverted"] is not original_value
+    assert config["Disabled"] is not original_value
+    assert config["EnableSNI"] is not original_value
     assert config["ChildHealthChecks"] == ["child"]
     assert config["Regions"] == ["us-east-1", "us-east-2", "us-west-1"]
 

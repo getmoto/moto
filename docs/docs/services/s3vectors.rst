@@ -33,9 +33,9 @@ s3vectors
 - [X] list_vector_buckets
 - [X] list_vectors
   
-        Pagination is not yet implemented
-        Segmentation is not yet implemented
-        
+Pagination is not yet implemented
+Segmentation is not yet implemented
+
 
 - [X] put_vector_bucket_policy
 - [X] put_vectors

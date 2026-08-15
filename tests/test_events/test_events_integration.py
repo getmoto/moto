@@ -417,16 +417,11 @@ def test_moto_matches_none_value_with_exists_filter():
         ]
     )
 
-    events = sorted(
-        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
-        key=lambda x: x["eventId"],
-    )
+    events = logs_client.filter_log_events(logGroupName=log_group_name)["events"]
     event_details = [json.loads(x["message"])["detail"] for x in events]
-
-    assert event_details == [
-        {"foo": "123", "bar": "123"},
-        {"foo": None, "bar": "123"},
-    ]
+    assert len(event_details) == 2
+    assert {"foo": "123", "bar": "123"} in event_details
+    assert {"foo": None, "bar": "123"} in event_details
 
 
 @mock_aws

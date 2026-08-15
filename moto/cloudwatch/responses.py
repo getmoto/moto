@@ -252,11 +252,15 @@ class CloudWatchResponse(BaseResponse):
         result = {"MetricAlarms": filtered_alarms}
         return ActionResult(result)
 
-    def disable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def disable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.disable_alarm_actions(alarm_names)
+        return EmptyResult()
 
-    def enable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def enable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.enable_alarm_actions(alarm_names)
+        return EmptyResult()
 
     def get_dashboard(self) -> ActionResult:
         dashboard_name = self._get_param("DashboardName")
@@ -301,6 +305,7 @@ class CloudWatchResponse(BaseResponse):
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         tags = self._get_param("Tags", [])
+        tags = {tag["Key"]: tag["Value"] for tag in tags}
         self.cloudwatch_backend.tag_resource(resource_arn, tags)
         return EmptyResult()
 

@@ -758,3 +758,173 @@ def test_delete_subnet_group_in_use_fails():
         client.delete_subnet_group(SubnetGroupName=subnet_group["SubnetGroup"]["Name"])
     err = ex.value.response["Error"]
     assert err["Code"] == "SubnetGroupInUseFault"
+
+
+@mock_aws
+def test_create_user():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    resp = client.create_user(
+        UserName="my-user",
+        AuthenticationMode={"Type": "password", "Passwords": ["mysecretpassword"]},
+        AccessString="on ~* +@all",
+        Tags=[{"Key": "foo", "Value": "bar"}],
+    )
+    user = resp["User"]
+    assert user["Name"] == "my-user"
+    assert user["Status"] == "active"
+    assert user["AccessString"] == "on ~* +@all"
+    assert user["Authentication"] == {"Type": "password", "PasswordCount": 1}
+    assert user["ARN"] == f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:user/my-user"
+    assert client.list_tags(ResourceArn=user["ARN"])["TagList"] == [
+        {"Key": "foo", "Value": "bar"}
+    ]
+
+
+@mock_aws
+def test_create_user_iam():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    user = client.create_user(
+        UserName="iam-user",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )["User"]
+    assert user["Authentication"] == {"Type": "iam"}
+
+
+@mock_aws
+def test_create_duplicate_user_fails():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    client.create_user(
+        UserName="my-user",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )
+    with pytest.raises(ClientError) as ex:
+        client.create_user(
+            UserName="my-user",
+            AuthenticationMode={"Type": "iam"},
+            AccessString="on ~* +@all",
+        )
+    assert ex.value.response["Error"]["Code"] == "UserAlreadyExistsFault"
+
+
+@mock_aws
+def test_describe_default_user():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    users = client.describe_users()["Users"]
+    assert len(users) == 1
+    default = users[0]
+    assert default["Name"] == "default"
+    assert default["Status"] == "active"
+    assert default["AccessString"] == "on ~* &* +@all"
+    assert default["ACLNames"] == ["open-access"]
+    assert default["Authentication"] == {"Type": "no-password"}
+
+
+@mock_aws
+def test_describe_users():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    client.create_user(
+        UserName="user-1",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )
+    client.create_user(
+        UserName="user-2",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@read",
+    )
+    users = client.describe_users()["Users"]
+    assert sorted(u["Name"] for u in users) == ["default", "user-1", "user-2"]
+
+    users = client.describe_users(UserName="user-1")["Users"]
+    assert len(users) == 1
+    assert users[0]["Name"] == "user-1"
+
+
+@mock_aws
+def test_describe_users_with_filters():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    client.create_user(
+        UserName="user-1",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )
+    client.create_user(
+        UserName="user-2",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@read",
+    )
+    users = client.describe_users(
+        Filters=[{"Name": "user-name", "Values": ["user-1"]}]
+    )["Users"]
+    assert [u["Name"] for u in users] == ["user-1"]
+
+    users = client.describe_users(
+        Filters=[{"Name": "access-string", "Values": ["on ~* +@read"]}]
+    )["Users"]
+    assert [u["Name"] for u in users] == ["user-2"]
+
+
+@mock_aws
+def test_describe_users_not_found():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_users(UserName="unknown")
+    assert ex.value.response["Error"]["Code"] == "UserNotFoundFault"
+
+
+@mock_aws
+def test_update_user():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    client.create_user(
+        UserName="my-user",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )
+    user = client.update_user(
+        UserName="my-user",
+        AccessString="off ~* +@read",
+    )["User"]
+    assert user["AccessString"] == "off ~* +@read"
+
+    user = client.describe_users(UserName="my-user")["Users"][0]
+    assert user["AccessString"] == "off ~* +@read"
+
+
+@mock_aws
+def test_update_user_not_found():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.update_user(UserName="unknown", AccessString="on ~* +@all")
+    assert ex.value.response["Error"]["Code"] == "UserNotFoundFault"
+
+
+@mock_aws
+def test_delete_user():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    client.create_user(
+        UserName="my-user",
+        AuthenticationMode={"Type": "iam"},
+        AccessString="on ~* +@all",
+    )
+    resp = client.delete_user(UserName="my-user")
+    assert resp["User"]["Name"] == "my-user"
+    # Only the pre-created "default" user remains.
+    assert [u["Name"] for u in client.describe_users()["Users"]] == ["default"]
+
+
+@mock_aws
+def test_delete_user_not_found():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_user(UserName="unknown")
+    assert ex.value.response["Error"]["Code"] == "UserNotFoundFault"
+
+
+@mock_aws
+def test_delete_default_user_fails():
+    client = boto3.client("memorydb", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_user(UserName="default")
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValueException"

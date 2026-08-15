@@ -125,17 +125,16 @@ class DirectConnectResponse(BaseResponse):
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("resourceArn")
-        tags = params.get("tags")
-        self.directconnect_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        tags = params.get("tags") or []
+        tags = {tag["key"]: tag.get("value") for tag in tags}
+        self.directconnect_backend.tag_resource(resource_arn, tags)
         return json.dumps({})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("resourceArn")
         tag_keys = params.get("tagKeys", [])
-        self.directconnect_backend.untag_resource(
-            resource_arn=resource_arn, tag_keys=tag_keys
-        )
+        self.directconnect_backend.untag_resource(resource_arn, tag_keys)
         return json.dumps({})
 
     def describe_tags(self) -> str:

@@ -64,8 +64,8 @@ sso-admin
 - [X] list_account_assignments_for_principal
 - [X] list_accounts_for_provisioned_permission_set
   
-        The following parameters are not yet implemented: MaxResults, NextToken, ProvisioningStatus
-        
+The following parameters are not yet implemented: MaxResults, NextToken, ProvisioningStatus
+
 
 - [ ] list_application_access_scopes
 - [ ] list_application_assignments
@@ -81,16 +81,16 @@ sso-admin
 - [X] list_permission_sets
 - [X] list_permission_sets_provisioned_to_account
   
-        The following parameters are not yet implemented: AccountId, ProvisioningStatus, MaxResults, NextToken
-        
+The following parameters are not yet implemented: AccountId, ProvisioningStatus, MaxResults, NextToken
+
 
 - [ ] list_regions
 - [ ] list_tags_for_resource
 - [ ] list_trusted_token_issuers
 - [X] provision_permission_set
   
-        The TargetType/TargetId parameters are currently ignored - PermissionSets are simply provisioned to the caller's account
-        
+The TargetType/TargetId parameters are currently ignored - PermissionSets are simply provisioned to the caller's account
+
 
 - [ ] put_application_access_scope
 - [ ] put_application_assignment_configuration

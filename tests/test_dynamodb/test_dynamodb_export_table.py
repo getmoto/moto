@@ -20,11 +20,8 @@ from . import dynamodb_aws_verified
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
 @s3_aws_verified
-def test_export_from_missing_table(table_name=None, bucket_name=None):
+def test_export_from_missing_table(account_id, table_name=None, bucket_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
-    sts = boto3.client("sts", "us-east-1")
-
-    account_id = sts.get_caller_identity()["Account"]
 
     s3_prefix = "prefix"
     table_arn = f"arn:aws:dynamodb:us-east-1:{account_id}:table/{str(uuid4())}"
@@ -121,7 +118,8 @@ def test_export_backup_to_s3_error(table_name=None, bucket_name=None):
     assert export_details["FailureCode"] == "UNKNOWN"
 
 
-@pytest.mark.aws_verified
+# Verified against AWS, and works consistently - just very slow (10+ minutes), that's why we're disabling it
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @s3_aws_verified
 def test_export_empty_table(table_name=None, bucket_name=None):
@@ -168,7 +166,8 @@ def test_export_empty_table(table_name=None, bucket_name=None):
             assert file_contents == b""
 
 
-@pytest.mark.aws_verified
+# Verified against AWS, and works consistently - just very slow (10+ minutes), that's why we're disabling it
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @s3_aws_verified
 def test_export_table(account_id, table_name=None, bucket_name=None):
@@ -235,7 +234,8 @@ def test_export_table(account_id, table_name=None, bucket_name=None):
             assert {"Item": {"pk": {"S": "user3"}, "foo": {"S": "bar"}}} in rows
 
 
-@pytest.mark.aws_verified
+# Verified against AWS, and works consistently - just very slow (10+ minutes), that's why we're disabling it
+# @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 @s3_aws_verified
 def test_list_exports(table_name=None, bucket_name=None):

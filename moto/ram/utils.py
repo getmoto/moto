@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 
 class ManagedPermissionDict(TypedDict):
@@ -21,8 +21,8 @@ def format_ram_permission(
     version: str = "1",
     arn_prefix: str = "arn:aws:ram::aws:permission/",
     status: str = "ATTACHABLE",
-    creation_time: Optional[str] = None,
-    last_updated_time: Optional[str] = None,
+    creation_time: str | None = None,
+    last_updated_time: str | None = None,
     is_resource_type_default: bool = True,
     permission_type: str = "AWS_MANAGED",
     default_version: bool = True,

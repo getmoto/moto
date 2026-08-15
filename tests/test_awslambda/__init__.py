@@ -9,6 +9,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
+from .utilities import PYTHON_VERSION
+
 
 def lambda_aws_verified(func):
     """
@@ -98,7 +100,7 @@ def lambda_aws_verified(func):
                 fn_name = f"fn_for_{role_name}"
                 _lambda.create_function(
                     FunctionName=fn_name,
-                    Runtime="python3.11",
+                    Runtime=PYTHON_VERSION,
                     Role=role_arn,
                     Handler="lambda_function.lambda_handler",
                     Code={"ZipFile": get_test_zip_file1()},

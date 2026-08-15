@@ -10,6 +10,16 @@
           "resultWrapper": "CopyObjectResult"
         }
       },
+      "CompleteMultipartUpload": {
+        "output": {
+          "resultWrapper": "CompleteMultipartUploadResult"
+        }
+      },
+      "CreateMultipartUpload": {
+        "output": {
+          "resultWrapper": "InitiateMultipartUploadResult"
+        }
+      },
       "DeleteObjects": {
         "output": {
           "resultWrapper": "DeleteResult"

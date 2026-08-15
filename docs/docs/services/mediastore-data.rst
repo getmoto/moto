@@ -18,17 +18,17 @@ mediastore-data
 - [ ] describe_object
 - [X] get_object
   
-        The Range-parameter is not yet supported.
-        
+The Range-parameter is not yet supported.
+
 
 - [X] list_items
   
-        The Path- and MaxResults-parameters are not yet supported.
-        
+The Path- and MaxResults-parameters are not yet supported.
+
 
 - [X] put_object
   
-        The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
-        
+The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
+
 
 

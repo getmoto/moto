@@ -1,7 +1,5 @@
 """Exceptions raised by the Route53 service."""
 
-from typing import Optional
-
 from moto.core.exceptions import ServiceException
 
 
@@ -14,7 +12,7 @@ class Route53ClientError(ServiceException):
 class ConflictingDomainExists(Route53ClientError):
     """Domain already exists."""
 
-    def __init__(self, domain_name: str, delegation_set_id: Optional[str]) -> None:
+    def __init__(self, domain_name: str, delegation_set_id: str | None) -> None:
         message = (
             f"Cannot create hosted zone with DelegationSetId DelegationSetId:{delegation_set_id} as the DNSName"
             f"{domain_name} conflicts with existing ones sharing the delegation set"

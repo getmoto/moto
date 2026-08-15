@@ -28,9 +28,9 @@ def test_athena_capacity_reservation_group_tagging_api(client, resource_groups_c
     metadata = capacity_reservation["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 200
     assert metadata["RetryAttempts"] == 0
-
+    resource_arn = f"arn:aws:athena:us-east-1:123456789012:capacity-reservation/{capacity_reservation_name}"
     resource_group_tags = resource_groups_client.get_resources(
-        ResourceARNList=[capacity_reservation_name],
+        ResourceARNList=[resource_arn],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
     assert capacity_reservation_name in resource_group_tags[0]["ResourceARN"]
@@ -59,9 +59,9 @@ def test_create_work_group_group_tagging_api(client, resource_groups_client):
     metadata = work_group["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 200
     assert metadata["RetryAttempts"] == 0
-
+    resource_arn = f"arn:aws:athena:us-east-1:123456789012:workgroup/{work_group_name}"
     resource_group_tags = resource_groups_client.get_resources(
-        ResourceARNList=[work_group_name],
+        ResourceARNList=[resource_arn],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
     assert work_group_name in resource_group_tags[0]["ResourceARN"]
@@ -83,9 +83,11 @@ def test_create_data_catalog_group_tagging_api(client, resource_groups_client):
     metadata = data_catalog["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 200
     assert metadata["RetryAttempts"] == 0
-
+    resource_arn = (
+        f"arn:aws:athena:us-east-1:123456789012:datacatalog/{data_catalog_name}"
+    )
     resource_group_tags = resource_groups_client.get_resources(
-        ResourceARNList=[data_catalog_name],
+        ResourceARNList=[resource_arn],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
     assert data_catalog_name in resource_group_tags[0]["ResourceARN"]

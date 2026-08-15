@@ -1,12 +1,11 @@
 import io
-from typing import Optional
 
 import multipart
 
 
 def get_body_from_form_data(
     body: bytes, boundary: str
-) -> tuple[Optional[bytes], dict[str, str]]:
+) -> tuple[bytes | None, dict[str, str]]:
     body_stream = io.BytesIO(body)
     parser = multipart.MultipartParser(body_stream, boundary=boundary)
 

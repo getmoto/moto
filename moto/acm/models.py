@@ -3,8 +3,8 @@ import calendar
 import datetime
 import ipaddress
 import re
-from collections.abc import Iterable
-from typing import Any, Optional
+from collections.abc import Iterable, Iterator
+from typing import Any
 
 import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
@@ -16,6 +16,7 @@ from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.serialize import parse_to_aware_datetime
 from moto.core.utils import utcnow
 
@@ -64,12 +65,12 @@ def datetime_to_epoch(date: datetime.datetime) -> float:
     return float(calendar.timegm(aware_dt.timetuple()))
 
 
-class TagHolder(dict[str, Optional[str]]):
+class TagHolder(dict[str, str | None]):
     MAX_TAG_COUNT = 50
     MAX_KEY_LENGTH = 128
     MAX_VALUE_LENGTH = 256
 
-    def _validate_kv(self, key: str, value: Optional[str], index: int) -> None:
+    def _validate_kv(self, key: str, value: str | None, index: int) -> None:
         if len(key) > self.MAX_KEY_LENGTH:
             raise AWSValidationException(
                 f"Value '{key}' at 'tags.{index}.member.key' failed to satisfy constraint: Member must have length less than or equal to {self.MAX_KEY_LENGTH}"
@@ -127,13 +128,13 @@ class CertBundle(BaseModel):
         account_id: str,
         certificate: bytes,
         private_key: bytes,
-        chain: Optional[bytes] = None,
+        chain: bytes | None = None,
         region: str = "us-east-1",
-        arn: Optional[str] = None,
+        arn: str | None = None,
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
-        cert_authority_arn: Optional[str] = None,
-        cert_options: Optional[dict[str, Any]] = None,
+        cert_authority_arn: str | None = None,
+        cert_options: dict[str, Any] | None = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -157,9 +158,29 @@ class CertBundle(BaseModel):
         self._cert = self.validate_certificate()
         # Extracting some common fields for ease of use
         # Have to search through cert.subject for OIDs
-        self.common_name: Any = self._cert.subject.get_attributes_for_oid(
-            OID_COMMON_NAME
-        )[0].value
+
+        # Parse SANs once here so they can be reused in describe() without re-parsing
+        try:
+            san_obj: Any = self._cert.extensions.get_extension_for_oid(
+                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
+            )
+            self.sans: list[str] = [str(item.value) for item in san_obj.value]
+        except cryptography.x509.ExtensionNotFound:
+            self.sans = []
+
+        # CN is optional per CAB Forum baseline requirements; fall back to first SAN
+        # (matching real AWS ACM DomainName behaviour) or empty string if no SANs either
+        cn_attrs = self._cert.subject.get_attributes_for_oid(OID_COMMON_NAME)
+        self.common_name: Any = (
+            cn_attrs[0].value if cn_attrs else (self.sans[0] if self.sans else "")
+        )
+
+        # Parse issuer CN, also optional
+        issuer_cn_attrs = self._cert.issuer.get_attributes_for_oid(OID_COMMON_NAME)
+        self.issuer_common_name: str = str(
+            issuer_cn_attrs[0].value if issuer_cn_attrs else ""
+        )
+
         if chain is not None:
             self.validate_chain()
 
@@ -175,8 +196,8 @@ class CertBundle(BaseModel):
         domain_name: str,
         account_id: str,
         region: str,
-        sans: Optional[list[str]] = None,
-        cert_authority_arn: Optional[str] = None,
+        sans: list[str] | None = None,
+        cert_authority_arn: str | None = None,
     ) -> "CertBundle":
         unique_sans: set[str] = set(sans) if sans else set()
 
@@ -363,25 +384,12 @@ class CertBundle(BaseModel):
             # Handle RSA keys
             key_algo = f"RSA_{self._key.key_size}"
 
-        # Look for SANs
-        try:
-            san_obj: Any = self._cert.extensions.get_extension_for_oid(
-                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
-            )
-        except cryptography.x509.ExtensionNotFound:
-            san_obj = None
-        sans = []
-        if san_obj is not None:
-            sans = [str(item.value) for item in san_obj.value]
-
         result: dict[str, Any] = {
             "Certificate": {
                 "CertificateArn": self.arn,
                 "DomainName": self.common_name,
                 "InUseBy": self.in_use_by,
-                "Issuer": self._cert.issuer.get_attributes_for_oid(OID_COMMON_NAME)[
-                    0
-                ].value,
+                "Issuer": self.issuer_common_name,
                 "KeyAlgorithm": key_algo,
                 "NotAfter": datetime_to_epoch(self._not_valid_after(self._cert)),
                 "NotBefore": datetime_to_epoch(self._not_valid_before(self._cert)),
@@ -391,7 +399,7 @@ class CertBundle(BaseModel):
                 ),
                 "Status": self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
                 "Subject": f"CN={self.common_name}",
-                "SubjectAlternativeNames": sans,
+                "SubjectAlternativeNames": self.sans,
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],
                 "RenewalEligibility": "INELIGIBLE",
@@ -402,7 +410,7 @@ class CertBundle(BaseModel):
         if self.cert_authority_arn is not None:
             result["Certificate"]["CertificateAuthorityArn"] = self.cert_authority_arn
 
-        domain_names = set(sans + [self.common_name])
+        domain_names = set(self.sans + ([self.common_name] if self.common_name else []))
         validation_options = []
 
         domain_name_status = "SUCCESS" if self.status == "ISSUED" else self.status
@@ -461,7 +469,9 @@ class AccountConfiguration:
         return {"ExpiryEvents": {"DaysBeforeExpiry": self.days_before_expiry}}
 
 
-class AWSCertificateManagerBackend(BaseBackend):
+class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "acm"
+
     MIN_PASSPHRASE_LEN = 4
 
     def __init__(self, region_name: str, account_id: str):
@@ -477,7 +487,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         cert_bundle = self._certificates[arn]
         cert_bundle.in_use_by.append(load_balancer_name)
 
-    def _get_arn_from_idempotency_token(self, token: str) -> Optional[str]:
+    def _get_arn_from_idempotency_token(self, token: str) -> str | None:
         """
         If token doesnt exist, return None, later it will be
         set with an expiry and arn.
@@ -510,8 +520,8 @@ class AWSCertificateManagerBackend(BaseBackend):
         self,
         certificate: bytes,
         private_key: bytes,
-        chain: Optional[bytes],
-        arn: Optional[str],
+        chain: bytes | None,
+        arn: str | None,
         tags: list[dict[str, str]],
     ) -> str:
         if arn is not None:
@@ -594,8 +604,8 @@ class AWSCertificateManagerBackend(BaseBackend):
         idempotency_token: str,
         subject_alt_names: list[str],
         tags: list[dict[str, str]],
-        cert_authority_arn: Optional[str] = None,
-        cert_options: Optional[dict[str, Any]] = None,
+        cert_authority_arn: str | None = None,
+        cert_options: dict[str, Any] | None = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -617,7 +627,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._certificates[cert.arn] = cert
 
         if cert_options:
-            self._certificates[cert.arn].cert_options = cert_options
+            self._certificates[cert.arn].cert_options.update(cert_options)
 
         if tags:
             cert.tags.add(tags)
@@ -674,6 +684,23 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._account_config = AccountConfiguration(days_before_expiry)
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, "account_config")
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for cert in self._certificates.values():
+            yield TaggedResource(
+                arn=cert.arn,
+                tags={k: v or "" for k, v in cert.tags.items()},
+                resource_type="acm:certificate",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.add_tags_to_certificate(
+            arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.remove_tags_from_certificate(arn, [{"Key": k} for k in tag_keys])  # type: ignore[list-item]
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

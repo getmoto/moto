@@ -22,11 +22,11 @@ jobs:
         test-server-mode: [ "true", "false" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up Python ${{ env.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.python-version }}
       - name: Start MotoServer

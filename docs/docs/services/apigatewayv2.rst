@@ -18,9 +18,9 @@ apigatewayv2
 
 - [X] create_api
   
-        The following parameters are not yet implemented:
-        CredentialsArn, RouteKey, Tags, Target
-        
+The following parameters are not yet implemented:
+CredentialsArn, RouteKey, Tags, Target
+
 
 - [X] create_api_mapping
 - [X] create_authorizer
@@ -36,8 +36,8 @@ apigatewayv2
 - [X] create_route
 - [X] create_route_response
   
-        The following parameters are not yet implemented: ResponseModels, ResponseParameters
-        
+The following parameters are not yet implemented: ResponseModels, ResponseParameters
+
 
 - [ ] create_routing_rule
 - [X] create_stage
@@ -71,8 +71,8 @@ apigatewayv2
 - [X] get_api_mappings
 - [X] get_apis
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] get_authorizer
 - [ ] get_authorizers
@@ -81,16 +81,16 @@ apigatewayv2
 - [X] get_domain_name
 - [X] get_domain_names
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] get_integration
 - [X] get_integration_response
 - [X] get_integration_responses
 - [X] get_integrations
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] get_model
 - [ ] get_model_template
@@ -105,8 +105,8 @@ apigatewayv2
 - [ ] get_route_responses
 - [X] get_routes
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] get_routing_rule
 - [X] get_stage
@@ -126,16 +126,16 @@ apigatewayv2
 - [ ] put_routing_rule
 - [X] reimport_api
   
-        Only YAML is supported at the moment. Full OpenAPI-support is not guaranteed. Only limited validation is implemented
-        
+Only YAML is supported at the moment. Full OpenAPI-support is not guaranteed. Only limited validation is implemented
+
 
 - [ ] reset_authorizers_cache
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_api
   
-        The following parameters have not yet been implemented: CredentialsArn, RouteKey, Target
-        
+The following parameters have not yet been implemented: CredentialsArn, RouteKey, Target
+
 
 - [ ] update_api_mapping
 - [X] update_authorizer

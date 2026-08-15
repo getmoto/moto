@@ -23,16 +23,16 @@ synthetics
 - [ ] delete_group
 - [X] describe_canaries
   
-        Pagination is not yet supported
-        
+Pagination is not yet supported
+
 
 - [ ] describe_canaries_last_run
 - [ ] describe_runtime_versions
 - [ ] disassociate_resource
 - [X] get_canary
   
-        The dry-run_id-parameter is not yet supported
-        
+The dry-run_id-parameter is not yet supported
+
 
 - [ ] get_canary_runs
 - [ ] get_group

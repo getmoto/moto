@@ -40,6 +40,8 @@ emr
 - [ ] get_managed_scaling_policy
 - [ ] get_on_cluster_app_ui_presigned_url
 - [ ] get_persistent_app_ui_presigned_url
+- [ ] get_session
+- [ ] get_session_endpoint
 - [ ] get_studio_session_mapping
 - [X] list_bootstrap_actions
 - [X] list_clusters
@@ -49,17 +51,18 @@ emr
 - [ ] list_notebook_executions
 - [X] list_release_labels
   
-        Pagination and Filtering is not yet implemented
-        
+Pagination and Filtering is not yet implemented
+
 
 - [ ] list_security_configurations
+- [ ] list_sessions
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
 - [X] list_supported_instance_types
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] modify_cluster
 - [ ] modify_instance_fleet
@@ -78,8 +81,10 @@ emr
 - [ ] set_unhealthy_node_replacement
 - [X] set_visible_to_all_users
 - [ ] start_notebook_execution
+- [ ] start_session
 - [ ] stop_notebook_execution
 - [X] terminate_job_flows
+- [ ] terminate_session
 - [ ] update_studio
 - [ ] update_studio_session_mapping
 

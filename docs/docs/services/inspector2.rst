@@ -67,42 +67,42 @@ inspector2
 - [X] list_delegated_admin_accounts
 - [X] list_filters
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] list_finding_aggregations
 - [X] list_findings
   
-        This call will always return 0 findings by default.
+This call will always return 0 findings by default.
 
-        You can use a dedicated API to override this, by configuring a queue of expected results.
+You can use a dedicated API to override this, by configuring a queue of expected results.
 
-        A request to `list_findings` will take the first result from that queue, and assign it to the provided arguments. Subsequent calls using the same arguments will return the same result. Other requests using a different SQL-query will take the next result from the queue, or return an empty result if the queue is empty.
+A request to `list_findings` will take the first result from that queue, and assign it to the provided arguments. Subsequent calls using the same arguments will return the same result. Other requests using a different SQL-query will take the next result from the queue, or return an empty result if the queue is empty.
 
-        Configure this queue by making an HTTP request to `/moto-api/static/inspector2/findings-results`. An example invocation looks like this:
+Configure this queue by making an HTTP request to `/moto-api/static/inspector2/findings-results`. An example invocation looks like this:
 
-        .. sourcecode:: python
+.. sourcecode:: python
 
-            findings = {
-                "results": [
-                    [{
-                        "awsAccountId": "111122223333",
-                        "codeVulnerabilityDetails": {"cwes": ["a"], "detectorId": ".."},
-                    }],
-                    # .. other findings as required
-                ],
-                "account_id": "123456789012",  # This is the default - can be omitted
-                "region": "us-east-1",  # This is the default - can be omitted
-            }
-            resp = requests.post(
-                "http://motoapi.amazonaws.com/moto-api/static/inspector2/findings-results",
-                json=findings,
-            )
+    findings = {
+        "results": [
+            [{
+                "awsAccountId": "111122223333",
+                "codeVulnerabilityDetails": {"cwes": ["a"], "detectorId": ".."},
+            }],
+            # .. other findings as required
+        ],
+        "account_id": "123456789012",  # This is the default - can be omitted
+        "region": "us-east-1",  # This is the default - can be omitted
+    }
+    resp = requests.post(
+        "http://motoapi.amazonaws.com/moto-api/static/inspector2/findings-results",
+        json=findings,
+    )
 
-            inspector2 = boto3.client("inspector2", region_name="us-east-1")
-            findings = inspector2.list_findings()["findings"]
+    inspector2 = boto3.client("inspector2", region_name="us-east-1")
+    findings = inspector2.list_findings()["findings"]
 
-        
+
 
 - [X] list_members
 - [X] list_tags_for_resource

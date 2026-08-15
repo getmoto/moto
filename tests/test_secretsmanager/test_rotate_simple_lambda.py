@@ -76,7 +76,7 @@ def create_mock_rotator_lambda():
     client = boto3.client("lambda", region_name="us-east-1")
     return client.create_function(
         FunctionName="mock-rotator",
-        Runtime="python3.9",
+        Runtime="python3.14",
         Role=get_mock_role_arn(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": mock_lambda_zip()},

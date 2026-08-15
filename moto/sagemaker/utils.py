@@ -1,15 +1,14 @@
 import json
-import typing
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.s3.models import s3_backends
 from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationError
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .models import FakeModelCard, FakePipeline, FakePipelineExecution
 
 
@@ -56,7 +55,7 @@ def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> st
     return f"arn:{get_partition(region_name)}:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
-def validate_model_approval_status(model_approval_status: typing.Optional[str]) -> None:
+def validate_model_approval_status(model_approval_status: str | None) -> None:
     if model_approval_status is not None and model_approval_status not in [
         "Approved",
         "Rejected",
@@ -70,12 +69,12 @@ def validate_model_approval_status(model_approval_status: typing.Optional[str]) 
 
 def filter_model_cards(
     model_cards: defaultdict[str, list["FakeModelCard"]],
-    creation_time_after: Optional[datetime],
-    creation_time_before: Optional[datetime],
-    name_contains: Optional[str],
-    model_card_status: Optional[str],
-    sort_by: Optional[str],
-    sort_order: Optional[str],
+    creation_time_after: datetime | None,
+    creation_time_before: datetime | None,
+    name_contains: str | None,
+    model_card_status: str | None,
+    sort_by: str | None,
+    sort_order: str | None,
 ) -> list["FakeModelCard"]:
     reverse = sort_order == "Descending"
 

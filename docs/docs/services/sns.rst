@@ -19,8 +19,8 @@ sns
 - [X] add_permission
 - [X] check_if_phone_number_is_opted_out
   
-        Current implementation returns True for all numbers ending in '99'
-        
+Current implementation returns True for all numbers ending in '99'
+
 
 - [X] confirm_subscription
 - [X] create_platform_application
@@ -51,8 +51,8 @@ sns
 - [X] publish
 - [X] publish_batch
   
-        The MessageDeduplicationId-parameter has not yet been implemented.
-        
+The MessageDeduplicationId-parameter has not yet been implemented.
+
 
 - [ ] put_data_protection_policy
 - [X] remove_permission

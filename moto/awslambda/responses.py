@@ -1,7 +1,7 @@
 import json
 import re
 import sys
-from typing import Any, Union
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse
@@ -48,7 +48,7 @@ class LambdaResponse(BaseResponse):
             return 404, {"status": 404}, "{}"
 
     @amz_crc32
-    def invoke(self) -> tuple[int, dict[str, str], Union[str, bytes]]:
+    def invoke(self) -> tuple[int, dict[str, str], str | bytes]:
         response_headers: dict[str, str] = {}
 
         # URL Decode in case it's a ARN:
@@ -88,7 +88,7 @@ class LambdaResponse(BaseResponse):
             return 404, response_headers, "{}"
 
     @amz_crc32
-    def invoke_async(self) -> tuple[int, dict[str, str], Union[str, bytes]]:
+    def invoke_async(self) -> tuple[int, dict[str, str], str | bytes]:
         response_headers: dict[str, Any] = {}
 
         function_index = -3 if self.path.endswith("/") else -2

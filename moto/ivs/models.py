@@ -1,6 +1,6 @@
 """IVSBackend class with methods for supported APIs."""
 
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.ivs.exceptions import ResourceNotFoundException
@@ -65,8 +65,8 @@ class IVSBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_channels(  # type: ignore[misc]
         self,
-        filter_by_name: Optional[str],
-        filter_by_recording_configuration_arn: Optional[str],
+        filter_by_name: str | None,
+        filter_by_recording_configuration_arn: str | None,
     ) -> list[dict[str, Any]]:
         if filter_by_name is not None:
             channels = [
@@ -102,13 +102,13 @@ class IVSBackend(BaseBackend):
     def update_channel(
         self,
         arn: str,
-        authorized: Optional[bool],
-        insecure_ingest: Optional[bool],
-        latency_mode: Optional[str],
-        name: Optional[str],
-        preset: Optional[str],
-        recording_configuration_arn: Optional[str],
-        channel_type: Optional[str],
+        authorized: bool | None,
+        insecure_ingest: bool | None,
+        latency_mode: str | None,
+        name: str | None,
+        preset: str | None,
+        recording_configuration_arn: str | None,
+        channel_type: str | None,
     ) -> dict[str, Any]:
         channel = self._find_channel(arn)
         if authorized is not None:

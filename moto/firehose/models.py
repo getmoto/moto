@@ -15,14 +15,16 @@ Incomplete list of unfinished items:
 import io
 import json
 import warnings
+from collections.abc import Iterator
 from gzip import GzipFile
 from time import time
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.types import Base64EncodedString
 from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
@@ -47,6 +49,7 @@ DESTINATION_TYPES_TO_NAMES = {
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
     "snowflake": "Snowflake",
+    "iceberg": "Iceberg",
     "splunk": "Splunk",  # Unimplemented
 }
 
@@ -170,8 +173,10 @@ class DeliveryStream(BaseModel):
         self.last_update_timestamp = utcnow()
 
 
-class FirehoseBackend(BaseBackend):
+class FirehoseBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of Firehose APIs."""
+
+    SERVICE_NAMESPACE = "firehose"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -201,6 +206,7 @@ class FirehoseBackend(BaseBackend):
         splunk_destination_configuration: dict[str, Any],
         http_endpoint_destination_configuration: dict[str, Any],
         snowflake_destination_configuration: dict[str, Any],
+        iceberg_destination_configuration: dict[str, Any],
         tags: list[dict[str, str]],
     ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
@@ -337,7 +343,7 @@ class FirehoseBackend(BaseBackend):
 
     def list_delivery_streams(
         self,
-        limit: Optional[int],
+        limit: int | None,
         delivery_stream_type: str,
         exclusive_start_delivery_stream_name: str,
     ) -> dict[str, Any]:
@@ -379,7 +385,7 @@ class FirehoseBackend(BaseBackend):
         self,
         delivery_stream_name: str,
         exclusive_start_tag_key: str,
-        limit: Optional[int],
+        limit: int | None,
     ) -> dict[str, Any]:
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}
@@ -608,6 +614,7 @@ class FirehoseBackend(BaseBackend):
         splunk_destination_update: dict[str, Any],
         http_endpoint_destination_update: dict[str, Any],
         snowflake_destination_configuration: dict[str, Any],
+        iceberg_destination_update: dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 
@@ -638,7 +645,7 @@ class FirehoseBackend(BaseBackend):
                 break
             destination_idx += 1
         else:
-            raise InvalidArgumentException("Destination Id {destination_id} not found")
+            raise InvalidArgumentException(f"Destination Id {destination_id} not found")
 
         # Switching between Amazon ES and other services is not supported.
         # For an Amazon ES destination, you can only update to another Amazon
@@ -694,7 +701,7 @@ class FirehoseBackend(BaseBackend):
         # S3 backup if it is disabled.  If backup is enabled, you can't update
         # the delivery stream to disable it."
 
-    def lookup_name_from_arn(self, arn: str) -> Optional[DeliveryStream]:
+    def lookup_name_from_arn(self, arn: str) -> DeliveryStream | None:
         """Given an ARN, return the associated delivery stream name."""
         return self.delivery_streams.get(arn.split("/")[-1])
 
@@ -728,6 +735,22 @@ class FirehoseBackend(BaseBackend):
             delivery_stream.destinations[0]["S3"],
             [{"Data": gzipped_payload}],
         )
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for stream in self.delivery_streams.values():
+            arn = stream.delivery_stream_arn
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="firehose:deliverystream",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, [{"Key": k, "Value": v} for k, v in tags.items()])
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 firehose_backends = BackendDict(FirehoseBackend, "firehose")

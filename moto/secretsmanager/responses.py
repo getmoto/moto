@@ -219,14 +219,15 @@ class SecretsManagerResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         secret_id = self._get_param("SecretId")
-        tags = self._get_param("Tags", if_none=[])
+        tags = self._get_param("Tags", if_none=[]) or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.backend.tag_resource(secret_id, tags)
         return "{}"
 
     def untag_resource(self) -> str:
         secret_id = self._get_param("SecretId")
-        tag_keys = self._get_param("TagKeys", if_none=[])
-        self.backend.untag_resource(secret_id=secret_id, tag_keys=tag_keys)
+        tag_keys = self._get_param("TagKeys", if_none=[]) or []
+        self.backend.untag_resource(secret_id, tag_keys)
         return "{}"
 
     def update_secret_version_stage(self) -> str:

@@ -1288,6 +1288,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.af-south-1.amazonaws.com"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -1876,6 +1882,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "wisdom": {
+                "Value": "wisdom",
+                "endpoint": {
+                  "Value": "wisdom.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "workspaces": {
                 "Value": "workspaces",
                 "endpoint": {
@@ -2411,6 +2426,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -2919,6 +2943,15 @@
                 "Value": "license-manager-user-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-user-subscriptions.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -3617,6 +3650,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -3819,6 +3861,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -3969,6 +4020,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-identity": {
                 "Value": "cognito-identity",
                 "endpoint": {
@@ -4045,6 +4105,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4162,6 +4231,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4323,6 +4401,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -4434,10 +4530,28 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4824,6 +4938,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -5208,6 +5331,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -6307,15 +6433,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -6832,6 +6949,9 @@
                   "Value": "odb.ap-northeast-1.amazonaws.com"
                 }
               },
+              "omics": {
+                "Value": "omics"
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -7285,6 +7405,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -7520,6 +7649,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -8018,7 +8156,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "backup": {
                 "Value": "backup",
@@ -8710,6 +8854,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -9005,15 +9158,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9545,6 +9689,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.ap-northeast-2.amazonaws.com"
                 }
               },
               "personalize": {
@@ -10133,6 +10283,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -11516,6 +11675,12 @@
                   "Value": "observabilityadmin.ap-northeast-3.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-northeast-3.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -11562,6 +11727,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.ap-northeast-3.amazonaws.com"
                 }
               },
               "pi": {
@@ -12026,6 +12197,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-northeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -12428,6 +12608,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -12438,7 +12621,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "backup": {
                 "Value": "backup",
@@ -12881,6 +13070,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -12987,6 +13185,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "elementalinference": {
+                "Value": "elementalinference",
+                "endpoint": {
+                  "Value": "elemental-inference.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "emr": {
@@ -13329,15 +13536,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14474,6 +14672,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -15240,6 +15447,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -15627,6 +15843,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -15676,6 +15910,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.ap-south-2.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-south-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -16125,6 +16365,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -16249,6 +16498,9 @@
               "Value": "SG-01"
             },
             "local-zones": {
+              "apse1-han1-az1": {
+                "Value": "apse1-han1-az1"
+              },
               "apse1-mnl1-az1": {
                 "Value": "apse1-mnl1-az1"
               }
@@ -16514,6 +16766,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -17079,6 +17334,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -17577,15 +17841,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -18021,6 +18276,12 @@
                   "Value": "observabilityadmin.ap-southeast-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-southeast-1.amazonaws.com"
+                }
+              },
               "omics": {
                 "Value": "omics"
               },
@@ -18073,15 +18334,6 @@
                 "Value": "outposts",
                 "endpoint": {
                   "Value": "outposts.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18591,15 +18843,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "snow-device-management": {
                 "Value": "snow-device-management",
                 "endpoint": {
@@ -18736,6 +18979,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -19244,6 +19496,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -20379,15 +20634,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -20940,15 +21186,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "payment-cryptography": {
                 "Value": "payment-cryptography"
               },
@@ -21372,6 +21609,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -21466,15 +21712,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "ap-southeast-2.signin.aws.amazon.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21625,6 +21862,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -22804,6 +23050,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -22898,6 +23153,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.ap-southeast-3.amazonaws.com"
                 }
               },
               "pi": {
@@ -23351,6 +23612,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -24083,6 +24353,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -24395,6 +24674,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-4.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -24453,6 +24741,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.ap-southeast-4.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.ap-southeast-4.amazonaws.com"
                 }
               },
               "organizations": {
@@ -24543,6 +24837,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24863,6 +25166,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-4.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -25170,6 +25482,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -25209,6 +25524,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -25225,6 +25549,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "codebuild": {
+                "Value": "codebuild",
+                "endpoint": {
+                  "Value": "codebuild.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "codepipeline": {
@@ -25330,6 +25672,15 @@
                 "Value": "docdb",
                 "endpoint": {
                   "Value": "rds.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25827,6 +26178,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -25841,6 +26201,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mcs": {
+                "Value": "mcs",
+                "endpoint": {
+                  "Value": "cassandra.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
               },
               "mediaconnect": {
                 "Value": "mediaconnect",
@@ -26089,6 +26458,15 @@
                 "Value": "redshift-serverless",
                 "endpoint": {
                   "Value": "redshift-serverless.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rekognition": {
+                "Value": "rekognition",
+                "endpoint": {
+                  "Value": "rekognition.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26385,6 +26763,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -26436,6 +26823,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -26458,6 +26854,15 @@
                 "Value": "wickr",
                 "endpoint": {
                   "Value": "api.messaging.wickr.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces": {
+                "Value": "workspaces",
+                "endpoint": {
+                  "Value": "workspaces.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26548,6 +26953,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -26561,6 +26975,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "aps": {
+                "Value": "aps",
+                "endpoint": {
+                  "Value": "aps.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26671,6 +27094,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -26687,6 +27119,33 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "codebuild": {
+                "Value": "codebuild",
+                "endpoint": {
+                  "Value": "codebuild.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codepipeline": {
+                "Value": "codepipeline",
+                "endpoint": {
+                  "Value": "codepipeline.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "cognito-identity": {
@@ -26765,6 +27224,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26896,6 +27364,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -26939,6 +27416,51 @@
                 "Value": "fms",
                 "endpoint": {
                   "Value": "fms.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx": {
+                "Value": "fsx",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27100,10 +27622,28 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ap-southeast-6.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27280,6 +27820,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "rosa": {
+                "Value": "rosa"
+              },
               "route53": {
                 "Value": "route53",
                 "endpoint": {
@@ -27400,6 +27943,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "servicediscovery": {
                 "Value": "servicediscovery",
                 "endpoint": {
@@ -27497,6 +28049,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-6.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -27653,6 +28214,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -27764,6 +28334,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -27794,6 +28367,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -27810,6 +28401,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "codebuild": {
+                "Value": "codebuild",
+                "endpoint": {
+                  "Value": "codebuild.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "cognito-identity": {
@@ -27906,6 +28515,15 @@
                 "Value": "docdb",
                 "endpoint": {
                   "Value": "rds.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28032,6 +28650,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28325,6 +28952,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mcs": {
+                "Value": "mcs",
+                "endpoint": {
+                  "Value": "cassandra.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
+              },
               "mgn": {
                 "Value": "mgn",
                 "endpoint": {
@@ -28379,6 +29015,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "notifications": {
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-7.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -28425,6 +29070,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28482,6 +29136,15 @@
                 "Value": "redshift-serverless",
                 "endpoint": {
                   "Value": "redshift-serverless.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rekognition": {
+                "Value": "rekognition",
+                "endpoint": {
+                  "Value": "rekognition.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28758,6 +29421,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ap-southeast-7.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -29115,6 +29787,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -29125,7 +29800,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "b2bi": {
                 "Value": "b2bi",
@@ -30111,15 +30792,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -30580,15 +31252,6 @@
                 "Value": "outposts",
                 "endpoint": {
                   "Value": "outposts.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31212,6 +31875,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -31782,6 +32454,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -32220,6 +32910,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -32233,6 +32932,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.ca-west-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32386,6 +33094,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32565,6 +33282,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "servicecatalog": {
+                "Value": "servicecatalog",
+                "endpoint": {
+                  "Value": "servicecatalog.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "servicecatalog-appregistry": {
                 "Value": "servicecatalog-appregistry",
                 "endpoint": {
@@ -32689,6 +33415,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.ca-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -33565,15 +34300,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -33781,15 +34507,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "personalize": {
-                "Value": "personalize",
-                "endpoint": {
-                  "Value": "personalize.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -33942,6 +34659,15 @@
               },
               "s3control": {
                 "Value": "s3control"
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.cn-north-1.api.amazonwebservices.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -35390,6 +36116,15 @@
               "s3control": {
                 "Value": "s3control"
               },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.cn-northwest-1.api.amazonwebservices.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker": {
                 "Value": "sagemaker",
                 "endpoint": {
@@ -35718,8 +36453,14 @@
               "Value": "DE-HE"
             },
             "local-zones": {
+              "euc1-ath1-az1": {
+                "Value": "euc1-ath1-az1"
+              },
               "euc1-ham1-az1": {
                 "Value": "euc1-ham1-az1"
+              },
+              "euc1-ist1-az1": {
+                "Value": "euc1-ist1-az1"
               },
               "euc1-waw1-az1": {
                 "Value": "euc1-waw1-az1"
@@ -35986,6 +36727,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -37112,15 +37856,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotfleetwise": {
                 "Value": "iotfleetwise",
                 "endpoint": {
@@ -38105,6 +38840,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -38199,15 +38943,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "eu-central-1.signin.aws.amazon.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38358,6 +39093,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -38856,6 +39600,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -39184,6 +39937,15 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39580,6 +40342,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.eu-central-2.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-central-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -40060,6 +40828,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -40857,6 +41634,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -41014,6 +41800,15 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41649,6 +42444,12 @@
                   "Value": "observabilityadmin.eu-north-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-north-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -42117,15 +42918,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "snow-device-management": {
                 "Value": "snow-device-management",
                 "endpoint": {
@@ -42259,6 +43051,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -42693,6 +43494,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
               },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
@@ -43345,6 +44149,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot": {
+                "Value": "iot",
+                "endpoint": {
+                  "Value": "iot.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-data": {
+                "Value": "iot-data",
+                "endpoint": {
+                  "Value": "data-ats.iot.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotdevicemanagement": {
+                "Value": "iotdevicemanagement",
+                "endpoint": {
+                  "Value": "iot.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotsecuretunneling": {
+                "Value": "iotsecuretunneling",
+                "endpoint": {
+                  "Value": "api.tunneling.iot.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -43522,6 +44362,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.eu-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -43573,6 +44422,12 @@
                   "Value": "observabilityadmin.eu-south-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-south-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -43616,6 +44471,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.eu-south-1.amazonaws.com"
                 }
               },
               "pi": {
@@ -44098,6 +44959,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -44450,6 +45320,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -44682,6 +45555,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45188,6 +46070,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -45323,6 +46214,12 @@
                   "Value": "observabilityadmin.eu-south-2.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-south-2.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -45375,6 +46272,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.eu-south-2.amazonaws.com"
                 }
               },
               "pi": {
@@ -45821,6 +46724,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -46238,6 +47150,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -46902,6 +47817,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "elementalinference": {
+                "Value": "elementalinference",
+                "endpoint": {
+                  "Value": "elemental-inference.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "emr": {
                 "Value": "emr",
                 "endpoint": {
@@ -47323,15 +48247,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47946,15 +48861,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "payment-cryptography": {
                 "Value": "payment-cryptography"
               },
@@ -48387,6 +49293,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -48481,15 +49396,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "eu-west-1.signin.aws.amazon.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48649,6 +49555,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -49162,6 +50077,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -49172,7 +50090,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "backup": {
                 "Value": "backup",
@@ -49580,6 +50504,15 @@
                 "Value": "connectcases",
                 "endpoint": {
                   "Value": "cases.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "connecthealth": {
+                "Value": "connecthealth",
+                "endpoint": {
+                  "Value": "health-agent.eu-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50231,15 +51164,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51359,6 +52283,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -53011,6 +53944,12 @@
                   "Value": "observabilityadmin.eu-west-3.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.eu-west-3.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -53620,6 +54559,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -53866,6 +54814,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -54019,6 +54976,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-identity": {
                 "Value": "cognito-identity",
                 "endpoint": {
@@ -54136,6 +55102,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -54239,6 +55214,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54391,6 +55375,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "invoicing": {
+                "Value": "invoicing"
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -54493,6 +55480,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -54583,6 +55579,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pricing": {
                 "Value": "pricing",
                 "endpoint": {
@@ -54635,6 +55640,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.eusc-de-east-1.amazonaws.eu"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.eusc-de-east-1.amazonaws.eu"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54717,6 +55731,9 @@
               },
               "s3control": {
                 "Value": "s3control"
+              },
+              "s3vectors": {
+                "Value": "s3vectors"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -55739,6 +56756,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot": {
+                "Value": "iot",
+                "endpoint": {
+                  "Value": "iot.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-data": {
+                "Value": "iot-data",
+                "endpoint": {
+                  "Value": "data-ats.iot.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotdevicemanagement": {
+                "Value": "iotdevicemanagement",
+                "endpoint": {
+                  "Value": "iot.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotsecuretunneling": {
+                "Value": "iotsecuretunneling",
+                "endpoint": {
+                  "Value": "api.tunneling.iot.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -55770,6 +56823,15 @@
                 "Value": "kinesisanalytics",
                 "endpoint": {
                   "Value": "kinesisanalytics.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisvideo": {
+                "Value": "kinesisvideo",
+                "endpoint": {
+                  "Value": "kinesisvideo.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55899,6 +56961,15 @@
                 "Value": "mwaa",
                 "endpoint": {
                   "Value": "api.airflow.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.il-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56436,6 +57507,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.il-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -60241,6 +61321,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "codedeploy": {
+                "Value": "codedeploy",
+                "endpoint": {
+                  "Value": "codedeploy.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-identity": {
                 "Value": "cognito-identity",
                 "endpoint": {
@@ -60326,6 +61415,15 @@
                 "Value": "docdb",
                 "endpoint": {
                   "Value": "rds.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60443,6 +61541,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60742,10 +61849,28 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa-serverless": {
+                "Value": "mwaa-serverless",
+                "endpoint": {
+                  "Value": "airflow-serverless.mx-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60764,6 +61889,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "notifications": {
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.mx-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61159,6 +62293,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.mx-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -61218,6 +62361,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -61487,6 +62639,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
+              },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
                 "endpoint": {
@@ -61494,6 +62649,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "awstransform": {
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "backup": {
@@ -61531,6 +62695,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
               },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
@@ -61875,6 +63042,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62417,6 +63593,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -62666,6 +63851,12 @@
                   "Value": "observabilityadmin.sa-east-1.amazonaws.com"
                 }
               },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.sa-east-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -62702,6 +63893,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -62718,6 +63912,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.sa-east-1.amazonaws.com"
                 }
               },
               "pi": {
@@ -63284,6 +64484,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -63790,6 +64999,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -64640,6 +65852,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "elementalinference": {
+                "Value": "elementalinference",
+                "endpoint": {
+                  "Value": "elemental-inference.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "emr": {
                 "Value": "emr",
                 "endpoint": {
@@ -65061,15 +66282,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -65771,15 +66983,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "partnercentral-account": {
                 "Value": "partnercentral-account",
                 "endpoint": {
@@ -66275,6 +67478,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -66369,15 +67581,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "signin.aws.amazon.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66539,6 +67742,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "sustainability": {
                 "Value": "sustainability",
                 "endpoint": {
@@ -66664,6 +67876,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "uxc": {
+                "Value": "uxc",
+                "endpoint": {
+                  "Value": "uxc.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verified-access": {
                 "Value": "verified-access",
@@ -68177,15 +69398,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -68596,6 +69808,9 @@
                 "endpoint": {
                   "Value": "odb.us-east-2.amazonaws.com"
                 }
+              },
+              "omics": {
+                "Value": "omics"
               },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
@@ -69131,15 +70346,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "snow-device-management": {
                 "Value": "snow-device-management",
                 "endpoint": {
@@ -69276,6 +70482,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.us-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "swf": {
@@ -69438,6 +70653,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces": {
+                "Value": "workspaces",
+                "endpoint": {
+                  "Value": "workspaces.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -70686,6 +71910,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -70771,6 +72004,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-gov-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -70915,15 +72157,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "us-gov-east-1.signin.amazonaws-us-gov.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -71370,6 +72603,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
               },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
@@ -72085,15 +73321,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.us-gov-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -72526,6 +73753,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -72611,6 +73847,15 @@
                 "Value": "s3outposts",
                 "endpoint": {
                   "Value": "s3-outposts.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3vectors": {
+                "Value": "s3vectors",
+                "endpoint": {
+                  "Value": "s3vectors.us-gov-west-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -72755,15 +74000,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "signin.amazonaws-us-gov.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -75041,6 +76277,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.us-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -75505,6 +76750,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "aws-devops-agent": {
+                "Value": "aws-devops-agent"
               },
               "awshealthdashboard": {
                 "Value": "awshealthdashboard",
@@ -76277,6 +77525,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "elementalinference": {
+                "Value": "elementalinference",
+                "endpoint": {
+                  "Value": "elemental-inference.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "emr": {
                 "Value": "emr",
                 "endpoint": {
@@ -76689,15 +77946,6 @@
                 "Value": "iotevents",
                 "endpoint": {
                   "Value": "iotevents.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotevents-data": {
-                "Value": "iotevents-data",
-                "endpoint": {
-                  "Value": "data.iotevents.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -77282,15 +78530,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "panorama": {
-                "Value": "panorama",
-                "endpoint": {
-                  "Value": "panorama.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "payment-cryptography": {
                 "Value": "payment-cryptography"
               },
@@ -77750,6 +78989,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityagent": {
+                "Value": "securityagent",
+                "endpoint": {
+                  "Value": "securityagent.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -77844,15 +79092,6 @@
                 "Value": "signin",
                 "endpoint": {
                   "Value": "us-west-2.signin.aws.amazon.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "simspaceweaver": {
-                "Value": "simspaceweaver",
-                "endpoint": {
-                  "Value": "simspaceweaver.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -78021,6 +79260,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supportauthz": {
+                "Value": "supportauthz",
+                "endpoint": {
+                  "Value": "supportauthz.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "sustainability": {

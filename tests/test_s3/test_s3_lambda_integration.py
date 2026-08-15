@@ -44,6 +44,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_print_event()},
+        Timeout=30,
     )["FunctionArn"]
 
     # Put Notification
@@ -71,7 +72,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     # Find the output of AWSLambda
     expected_msg = "FINISHED_PRINTING_EVENT"
     log_group = f"/aws/lambda/{function_name}"
-    msg_showed_up, all_logs = wait_for_log_msg(expected_msg, log_group, wait_time=10)
+    msg_showed_up, all_logs = wait_for_log_msg(expected_msg, log_group, wait_time=90)
 
     if actual_event is None:
         # The event should not be fired on POST, as we've only PUT an event for now

@@ -1,6 +1,6 @@
 import json
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,9 +16,9 @@ class FilterResource(BaseModel):
         region: str,
         account_id: str,
         name: str,
-        reason: Optional[str],
+        reason: str | None,
         action: str,
-        description: Optional[str],
+        description: str | None,
         filter_criteria: dict[str, Any],
         backend: "Inspector2Backend",
     ):

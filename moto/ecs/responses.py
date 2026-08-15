@@ -211,6 +211,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         network_configuration = self._get_param("networkConfiguration")
         group = self._get_param("group")
         platform_version = self._get_param("platformVersion")
+        capacity_provider_strategy = self._get_param("capacityProviderStrategy")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -222,6 +223,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             network_configuration,
             group,
             platform_version,
+            capacity_provider_strategy,
         )
         return ActionResult({"tasks": tasks, "failures": []})
 
@@ -470,7 +472,8 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
-        tags = self._get_param("tags")
+        tags = self._get_param("tags") or []
+        tags = {tag["key"]: tag.get("value") for tag in tags}
         self.ecs_backend.tag_resource(resource_arn, tags)
         return EmptyResult()
 

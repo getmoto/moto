@@ -16,16 +16,16 @@ dax
 
 - [X] create_cluster
   
-        The following parameters are not yet processed:
-        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
-        
+The following parameters are not yet processed:
+AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
+
 
 - [ ] create_parameter_group
 - [ ] create_subnet_group
 - [X] decrease_replication_factor
   
-        The AvailabilityZones-parameter is not yet implemented
-        
+The AvailabilityZones-parameter is not yet implemented
+
 
 - [X] delete_cluster
 - [ ] delete_parameter_group
@@ -38,17 +38,17 @@ dax
 - [ ] describe_subnet_groups
 - [X] increase_replication_factor
   
-        The AvailabilityZones-parameter is not yet implemented
-        
+The AvailabilityZones-parameter is not yet implemented
+
 
 - [X] list_tags
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] reboot_node
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_cluster
 - [ ] update_parameter_group
 - [ ] update_subnet_group

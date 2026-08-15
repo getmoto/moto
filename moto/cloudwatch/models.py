@@ -1,8 +1,8 @@
 import json
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
-from typing import Any, Optional, SupportsFloat
+from typing import Any, SupportsFloat
 from uuid import uuid4
 
 from moto.core.base_backend import BaseBackend
@@ -12,6 +12,7 @@ from moto.core.common_models import (
     CloudFormationModel,
     CloudWatchMetricProvider,
 )
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
@@ -35,7 +36,7 @@ _EMPTY_LIST: Any = ()
 
 
 class Dimension:
-    def __init__(self, name: Optional[str], value: Optional[str]):
+    def __init__(self, name: str | None, value: str | None):
         self.name = name
         self.value = value
 
@@ -72,8 +73,8 @@ class MetricDataQuery:
         label: str,
         period: str,
         return_data: str,
-        expression: Optional[str] = None,
-        metric_stat: Optional[MetricStat] = None,
+        expression: str | None = None,
+        metric_stat: MetricStat | None = None,
     ):
         self.id = query_id
         self.label = label
@@ -124,25 +125,25 @@ class Alarm(BaseModel):
         name: str,
         namespace: str,
         metric_name: str,
-        metric_data_queries: Optional[list[MetricDataQuery]],
+        metric_data_queries: list[MetricDataQuery] | None,
         comparison_operator: str,
         evaluation_periods: int,
-        datapoints_to_alarm: Optional[int],
+        datapoints_to_alarm: int | None,
         period: int,
         threshold: float,
         statistic: str,
-        extended_statistic: Optional[str],
+        extended_statistic: str | None,
         description: str,
         dimensions: list[dict[str, str]],
         alarm_actions: list[str],
-        ok_actions: Optional[list[str]],
-        insufficient_data_actions: Optional[list[str]],
-        unit: Optional[str],
+        ok_actions: list[str] | None,
+        insufficient_data_actions: list[str] | None,
+        unit: str | None,
         actions_enabled: bool,
-        treat_missing_data: Optional[str],
-        evaluate_low_sample_count_percentile: Optional[str],
-        threshold_metric_id: Optional[str],
-        rule: Optional[str],
+        treat_missing_data: str | None,
+        evaluate_low_sample_count_percentile: str | None,
+        threshold_metric_id: str | None,
+        rule: str | None,
     ):
         self.region_name = region_name
         self.name = name
@@ -224,7 +225,7 @@ class MetricDatumBase(BaseModel):
         namespace: str,
         name: str,
         dimensions: list[dict[str, str]],
-        timestamp: Optional[datetime],
+        timestamp: datetime | None,
         unit: Any = None,
     ):
         self.namespace = namespace
@@ -237,10 +238,10 @@ class MetricDatumBase(BaseModel):
 
     def filter(
         self,
-        namespace: Optional[str],
-        name: Optional[str],
+        namespace: str | None,
+        name: str | None,
         dimensions: list[dict[str, str]],
-        already_present_metrics: Optional[list["MetricDatumBase"]] = None,
+        already_present_metrics: list["MetricDatumBase"] | None = None,
     ) -> bool:
         if namespace and namespace != self.namespace:
             return False
@@ -277,7 +278,7 @@ class MetricDatum(MetricDatumBase):
         name: str,
         value: float,
         dimensions: list[dict[str, str]],
-        timestamp: Optional[datetime],
+        timestamp: datetime | None,
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)
@@ -298,7 +299,7 @@ class MetricAggregatedDatum(MetricDatumBase):
         sample_count: float,
         sum_stat: float,
         dimensions: list[dict[str, str]],
-        timestamp: Optional[datetime],
+        timestamp: datetime | None,
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)
@@ -383,13 +384,13 @@ class Statistics:
     Helper class to calculate statics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
     """
 
-    def __init__(self, stats: list[str], dt: datetime, unit: Optional[str] = None):
+    def __init__(self, stats: list[str], dt: datetime, unit: str | None = None):
         self.timestamp: datetime = dt or utcnow()
         self.metric_data: list[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
 
-    def get_statistics_for_type(self, stat: str) -> Optional[SupportsFloat]:
+    def get_statistics_for_type(self, stat: str) -> SupportsFloat | None:
         """Calculates the statistic for the metric_data provided
 
         :param stat: the statistic that should be returned, case-sensitive (Sum, Average, Minium, Maximum, SampleCount)
@@ -424,21 +425,21 @@ class Statistics:
         ]
 
     @property
-    def sample_count(self) -> Optional[SupportsFloat]:
+    def sample_count(self) -> SupportsFloat | None:
         if "SampleCount" not in self.stats:
             return None
 
         return self.calc_sample_count()
 
     @property
-    def sum(self) -> Optional[SupportsFloat]:
+    def sum(self) -> SupportsFloat | None:
         if "Sum" not in self.stats:
             return None
 
         return self.calc_sum()
 
     @property
-    def minimum(self) -> Optional[SupportsFloat]:
+    def minimum(self) -> SupportsFloat | None:
         if "Minimum" not in self.stats:
             return None
         if not self.metric_single_values_list and not self.metric_aggregated_list:
@@ -450,7 +451,7 @@ class Statistics:
         return min(metrics)
 
     @property
-    def maximum(self) -> Optional[SupportsFloat]:
+    def maximum(self) -> SupportsFloat | None:
         if "Maximum" not in self.stats:
             return None
 
@@ -463,7 +464,7 @@ class Statistics:
         return max(metrics)
 
     @property
-    def average(self) -> Optional[SupportsFloat]:
+    def average(self) -> SupportsFloat | None:
         if "Average" not in self.stats:
             return None
 
@@ -493,8 +494,8 @@ class InsightRule(BaseModel):
         definition: str,
         name: str,
         state: str,
-        schema: Optional[str],
-        managed_rule: Optional[bool],
+        schema: str | None,
+        managed_rule: bool | None,
     ):
         self.definition = definition
         self.name = name
@@ -504,7 +505,9 @@ class InsightRule(BaseModel):
         self.rule_arn = make_arn_for_rule(region_name, account_id, name)
 
 
-class CloudWatchBackend(BaseBackend):
+class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "cloudwatch"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.alarms: dict[str, Alarm] = {}
@@ -541,18 +544,18 @@ class CloudWatchBackend(BaseBackend):
         description: str,
         dimensions: list[dict[str, str]],
         alarm_actions: list[str],
-        metric_data_queries: Optional[list[MetricDataQuery]] = None,
-        datapoints_to_alarm: Optional[int] = None,
-        extended_statistic: Optional[str] = None,
-        ok_actions: Optional[list[str]] = None,
-        insufficient_data_actions: Optional[list[str]] = None,
-        unit: Optional[str] = None,
+        metric_data_queries: list[MetricDataQuery] | None = None,
+        datapoints_to_alarm: int | None = None,
+        extended_statistic: str | None = None,
+        ok_actions: list[str] | None = None,
+        insufficient_data_actions: list[str] | None = None,
+        unit: str | None = None,
         actions_enabled: bool = True,
-        treat_missing_data: Optional[str] = None,
-        evaluate_low_sample_count_percentile: Optional[str] = None,
-        threshold_metric_id: Optional[str] = None,
-        rule: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        treat_missing_data: str | None = None,
+        evaluate_low_sample_count_percentile: str | None = None,
+        threshold_metric_id: str | None = None,
+        rule: str | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> Alarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
@@ -638,6 +641,14 @@ class CloudWatchBackend(BaseBackend):
     def delete_alarms(self, alarm_names: list[str]) -> None:
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
+
+    def enable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm in self.get_alarms_by_alarm_names(alarm_names):
+            alarm.actions_enabled = True
+
+    def disable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm in self.get_alarms_by_alarm_names(alarm_names):
+            alarm.actions_enabled = False
 
     def put_metric_data(
         self, namespace: str, metric_data: list[dict[str, Any]]
@@ -871,7 +882,7 @@ class CloudWatchBackend(BaseBackend):
         period: int,
         stats: list[str],
         dimensions: list[dict[str, str]],
-        unit: Optional[str] = None,
+        unit: str | None = None,
     ) -> list[Statistics]:
         start_time = start_time.replace(microsecond=0)
         end_time = end_time.replace(microsecond=0)
@@ -936,7 +947,7 @@ class CloudWatchBackend(BaseBackend):
             if key.startswith(prefix):
                 yield value
 
-    def delete_dashboards(self, dashboards: list[str]) -> Optional[str]:
+    def delete_dashboards(self, dashboards: list[str]) -> str | None:
         to_delete = set(dashboards)
         all_dashboards = set(self.dashboards.keys())
 
@@ -951,7 +962,7 @@ class CloudWatchBackend(BaseBackend):
 
         return None
 
-    def get_dashboard(self, dashboard: str) -> Optional[Dashboard]:
+    def get_dashboard(self, dashboard: str) -> Dashboard | None:
         return self.dashboards.get(dashboard)
 
     def set_alarm_state(
@@ -977,11 +988,11 @@ class CloudWatchBackend(BaseBackend):
 
     def list_metrics(
         self,
-        next_token: Optional[str],
+        next_token: str | None,
         namespace: str,
         metric_name: str,
         dimensions: list[dict[str, str]],
-    ) -> tuple[Optional[str], list[MetricDatumBase]]:
+    ) -> tuple[str | None, list[MetricDatumBase]]:
         if next_token:
             if next_token not in self.paged_metric_data:
                 raise InvalidParameterValue("Request parameter NextToken is invalid")
@@ -1011,24 +1022,9 @@ class CloudWatchBackend(BaseBackend):
     def list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
-        # From boto3:
-        # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
-        all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
-        if arn not in all_arns:
-            raise ResourceNotFoundException
-
-        self.tagger.tag_resource(arn, tags)
-
-    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
-        if arn not in self.tagger.tags.keys():
-            raise ResourceNotFoundException
-
-        self.tagger.untag_resource_using_names(arn, tag_keys)
-
     def _get_paginated(
         self, metrics: list[MetricDatumBase]
-    ) -> tuple[Optional[str], list[MetricDatumBase]]:
+    ) -> tuple[str | None, list[MetricDatumBase]]:
         if len(metrics) > 500:
             next_token = str(mock_random.uuid4())
             self.paged_metric_data[next_token] = metrics[500:]
@@ -1089,7 +1085,7 @@ class CloudWatchBackend(BaseBackend):
         name: str,
         state: str,
         definition: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> InsightRule:
         rule = InsightRule(
             account_id=self.account_id,
@@ -1109,8 +1105,8 @@ class CloudWatchBackend(BaseBackend):
 
     def describe_insight_rules(
         self,
-        next_token: Optional[str] = "",
-        max_results: Optional[int] = 500,
+        next_token: str | None = "",
+        max_results: int | None = 500,
     ) -> list[InsightRule]:
         rules = list(self.insight_rules.values())
 
@@ -1175,6 +1171,39 @@ class CloudWatchBackend(BaseBackend):
                     self.insight_rules[rule_name].state = "ENABLED"
 
         return failures
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        partition = self.partition
+        for alarm in self.alarms.values():
+            arn = f"arn:{partition}:cloudwatch:{self.region_name}:{self.account_id}:alarm:{alarm.name}"
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="cloudwatch:alarm",
+            )
+        for rule in self.insight_rules.values():
+            arn = f"arn:{partition}:cloudwatch:{self.region_name}:{self.account_id}:insight-rule/{rule.name}"
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="cloudwatch:insight-rule",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        # From boto3:
+        # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
+        all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
+        if arn not in all_arns:
+            raise ResourceNotFoundException
+
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

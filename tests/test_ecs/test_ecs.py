@@ -2107,6 +2107,143 @@ def test_run_task():
 
 
 @mock_aws
+def test_run_task_with_capacity_provider_strategy_fargate():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    client.create_cluster(clusterName="test_ecs_cluster")
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        taskDefinition="test_ecs_task",
+        count=2,
+        capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
+    )
+
+    assert len(response["tasks"]) == 2
+    task = response["tasks"][0]
+    # FARGATE-backed capacity providers need no container instance
+    assert task.get("containerInstanceArn") is None
+    assert task["capacityProviderName"] == "FARGATE"
+    # When a capacity provider strategy is used, launchType is not set
+    assert task.get("launchType", "") == ""
+
+
+@mock_aws
+def test_run_task_with_capacity_provider_strategy_ec2():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+    client.create_cluster(clusterName="test_ecs_cluster")
+    client.create_capacity_provider(
+        name="my_provider",
+        autoScalingGroupProvider={"autoScalingGroupArn": "asg:arn"},
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    client.register_container_instance(
+        cluster="test_ecs_cluster", instanceIdentityDocument=instance_id_document
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        taskDefinition="test_ecs_task",
+        count=1,
+        capacityProviderStrategy=[{"capacityProvider": "my_provider", "weight": 1}],
+    )
+
+    assert len(response["tasks"]) == 1
+    task = response["tasks"][0]
+    # User-defined capacity providers are EC2-backed and placed on a container instance
+    assert (
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/"
+        in task["containerInstanceArn"]
+    )
+    assert task["capacityProviderName"] == "my_provider"
+
+
+@mock_aws
+def test_run_task_with_launch_type_and_capacity_provider_strategy_fails():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    client.create_cluster(clusterName="test_ecs_cluster")
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.run_task(
+            cluster="test_ecs_cluster",
+            taskDefinition="test_ecs_task",
+            launchType="FARGATE",
+            capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+
+
+@mock_aws
+def test_run_task_uses_cluster_default_capacity_provider_strategy():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    client.create_cluster(
+        clusterName="test_ecs_cluster",
+        capacityProviders=["FARGATE"],
+        defaultCapacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
+    )
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    # No launchType and no container instances: without the default strategy this
+    # would raise "No instances found"; instead it should place on FARGATE.
+    response = client.run_task(
+        cluster="test_ecs_cluster", taskDefinition="test_ecs_task", count=1
+    )
+
+    assert len(response["tasks"]) == 1
+    assert response["tasks"][0]["capacityProviderName"] == "FARGATE"
+
+
+@mock_aws
 def test_wait_tasks_stopped():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")

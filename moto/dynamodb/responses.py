@@ -1,9 +1,8 @@
 import copy
 import itertools
-import json
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -13,7 +12,7 @@ from moto.dynamodb.models.table import (
     DEFAULT_WARM_THROUGHPUT_RCU,
     DEFAULT_WARM_THROUGHPUT_WCU,
 )
-from moto.dynamodb.models.utilities import dynamo_to_dict
+from moto.dynamodb.models.utilities import dynamo_json_dump, dynamo_to_dict
 from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeName,
     ExpressionAttributeValue,
@@ -37,6 +36,12 @@ from .exceptions import (
 )
 
 TRANSACTION_MAX_ITEMS = 25
+SELECT_VALUES = [
+    "SPECIFIC_ATTRIBUTES",
+    "COUNT",
+    "ALL_ATTRIBUTES",
+    "ALL_PROJECTED_ATTRIBUTES",
+]
 
 
 def include_consumed_capacity(
@@ -86,7 +91,7 @@ def include_consumed_capacity(
 
 
 def validate_put_has_empty_keys(
-    field_updates: dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
+    field_updates: dict[str, Any], table: Table, custom_error_msg: str | None = None
 ) -> None:
     """
     Error if any keys have an empty value. Checks Global index attributes as well
@@ -157,7 +162,7 @@ def validate_put_has_gsi_keys_set_to_none(item: dict[str, Any], table: Table) ->
 
 
 def validate_attributes_used(
-    attribute_names: Optional[dict[str, Any]],
+    attribute_names: dict[str, Any] | None,
     names_used: list[str],
     provided_attr: str = "Names",
 ) -> None:
@@ -165,6 +170,58 @@ def validate_attributes_used(
         if name not in names_used:
             raise MockValidationException(
                 f"Value provided in ExpressionAttribute{provided_attr} unused in expressions: keys: {{{name}}}"
+            )
+
+
+def validate_select(
+    *,
+    operation: str,
+    select: str | None,
+    projection_expression: str | None,
+    attributes_to_get: list[str] | None,
+    table: Table,
+    index_name: str | None,
+) -> None:
+    if select is None:
+        return
+
+    if select not in SELECT_VALUES:
+        raise MockValidationException(
+            f"1 validation error detected: Value '{select}' at 'select' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(SELECT_VALUES)}]"
+        )
+
+    validation_prefix = "1 validation error detected: " if operation == "Query" else ""
+
+    if select == "SPECIFIC_ATTRIBUTES" and not (
+        projection_expression or attributes_to_get
+    ):
+        raise MockValidationException(
+            f"{validation_prefix}Must specify the AttributesToGet or ProjectionExpression when choosing to get SPECIFIC_ATTRIBUTES"
+        )
+
+    if select != "SPECIFIC_ATTRIBUTES":
+        selection_description = "only the Count" if select == "COUNT" else select
+        if projection_expression:
+            raise MockValidationException(
+                f"{validation_prefix}Cannot specify the ProjectionExpression when choosing to get {selection_description}"
+            )
+        if attributes_to_get:
+            raise MockValidationException(
+                f"{validation_prefix}Cannot specify the AttributesToGet when choosing to get {selection_description}"
+            )
+
+    if select == "ALL_PROJECTED_ATTRIBUTES" and index_name is None:
+        raise MockValidationException(
+            f"{validation_prefix}ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName"
+        )
+
+    if select == "ALL_ATTRIBUTES" and index_name:
+        global_index = next(
+            (index for index in table.global_indexes if index.name == index_name), None
+        )
+        if global_index and global_index.projection.get("ProjectionType") != "ALL":
+            raise MockValidationException(
+                f"One or more parameter values were invalid: Select type ALL_ATTRIBUTES is not supported for global secondary index {index_name} because its projection type is not ALL"
             )
 
 
@@ -186,8 +243,8 @@ def check_projection_expression(expression: str) -> None:
 class ProjectionExpressionParser:
     def __init__(
         self,
-        projection_expression: Optional[str],
-        expression_attribute_names: Optional[dict[str, str]],
+        projection_expression: str | None,
+        expression_attribute_names: dict[str, str] | None,
     ):
         self.projection_expression = projection_expression
         self.expression_attribute_names = (
@@ -235,7 +292,7 @@ class DynamoHandler(BaseResponse):
         super().__init__(service_name="dynamodb")
         self.automated_parameter_parsing = True
 
-    def get_endpoint_name(self, headers: Any) -> Optional[str]:
+    def get_endpoint_name(self, headers: Any) -> str | None:
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
 
@@ -326,12 +383,12 @@ class DynamoHandler(BaseResponse):
     def _validate_table_creation(
         self,
         billing_mode: str,
-        throughput: Optional[dict[str, Any]],
+        throughput: dict[str, Any] | None,
         key_schema: list[dict[str, str]],
-        global_indexes: Optional[list[dict[str, Any]]],
-        local_secondary_indexes: Optional[list[dict[str, Any]]],
+        global_indexes: list[dict[str, Any]] | None,
+        local_secondary_indexes: list[dict[str, Any]] | None,
         attr: list[dict[str, str]],
-        warm_throughput: Optional[dict[str, Any]],
+        warm_throughput: dict[str, Any] | None,
     ) -> None:
         # Validate Throughput
         if billing_mode == "PAY_PER_REQUEST" and throughput:
@@ -522,7 +579,7 @@ class DynamoHandler(BaseResponse):
                     + dump_list(actual_attrs)
                 )
 
-    def _get_filter_expression(self) -> Optional[str]:
+    def _get_filter_expression(self) -> str | None:
         filter_expression = self.body.get("FilterExpression")
         if filter_expression == "":
             raise MockValidationException(
@@ -530,7 +587,7 @@ class DynamoHandler(BaseResponse):
             )
         return filter_expression
 
-    def _get_projection_expression(self) -> Optional[str]:
+    def _get_projection_expression(self) -> str | None:
         expression = self.body.get("ProjectionExpression")
         if expression == "":
             raise MockValidationException(
@@ -549,14 +606,15 @@ class DynamoHandler(BaseResponse):
 
     def tag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
-        tags = self.body["Tags"]
+        tags = self.body.get("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.dynamodb_backend.tag_resource(table_arn, tags)
         return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         table_arn = self.body["ResourceArn"]
-        tags = self.body["TagKeys"]
-        self.dynamodb_backend.untag_resource(table_arn, tags)
+        tag_keys = self.body.get("TagKeys") or []
+        self.dynamodb_backend.untag_resource(table_arn, tag_keys)
         return EmptyResult()
 
     def list_tags_of_resource(self) -> ActionResult:
@@ -692,8 +750,8 @@ class DynamoHandler(BaseResponse):
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
         if self._contains_duplicates(
-            [json.dumps(k[1]) for k in delete_requests]
-        ) or self._contains_duplicates([json.dumps(k[1]) for k in put_requests]):
+            [dynamo_json_dump(k[1]) for k in delete_requests]
+        ) or self._contains_duplicates([dynamo_json_dump(k[1]) for k in put_requests]):
             raise MockValidationException(
                 "Provided list of item keys contains duplicates"
             )
@@ -962,6 +1020,15 @@ class DynamoHandler(BaseResponse):
         scan_index_forward = self.body.get("ScanIndexForward", True)
         consistent_read = self.body.get("ConsistentRead", False)
 
+        validate_select(
+            operation="Query",
+            select=self.body.get("Select"),
+            projection_expression=projection_expression,
+            attributes_to_get=self.body.get("AttributesToGet"),
+            table=self.dynamodb_backend.get_table(name),
+            index_name=index_name,
+        )
+
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
             name,
             hash_key,
@@ -986,7 +1053,7 @@ class DynamoHandler(BaseResponse):
             "ScannedCount": scanned_count,
         }
 
-        if self.body.get("Select", "").upper() != "COUNT":
+        if self.body.get("Select") != "COUNT":
             result["Items"] = [item.attrs for item in items]
 
         if last_evaluated_key is not None:
@@ -1056,6 +1123,15 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names, expression_attribute_names_used
         )
 
+        validate_select(
+            operation="Scan",
+            select=self.body.get("Select"),
+            projection_expression=projection_expression,
+            attributes_to_get=self.body.get("AttributesToGet"),
+            table=self.dynamodb_backend.get_table(name),
+            index_name=index_name,
+        )
+
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(
                 name,
@@ -1073,11 +1149,12 @@ class DynamoHandler(BaseResponse):
         except ValueError as err:
             raise MockValidationException(f"Bad Filter Expression: {err}")
 
-        result = {
+        result: dict[str, Any] = {
             "Count": len(items),
-            "Items": [item.attrs for item in items],
             "ScannedCount": scanned_count,
         }
+        if self.body.get("Select") != "COUNT":
+            result["Items"] = [item.attrs for item in items]
         if last_evaluated_key is not None:
             result["LastEvaluatedKey"] = last_evaluated_key
         return DynamoResult(result)

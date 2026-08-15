@@ -3,6 +3,7 @@ import ipaddress
 import json
 import os
 import warnings
+from typing import NamedTuple
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -518,6 +519,51 @@ def test_get_instances_filtering_by_instance_type():
 
 
 @mock_aws
+def test_get_instances_filtering_by_availability_zone():
+    client = boto3.client("ec2", "us-west-1")
+    ec2 = boto3.resource("ec2", "us-west-1")
+    instance1 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-west-1a"},
+    )[0]
+    instance2 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-west-1b"},
+    )[0]
+
+    instances = retrieve_all_instances(
+        client, [{"Name": "availability-zone", "Values": ["us-west-1a"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance1.id in instance_ids
+    assert instance2.id not in instance_ids
+
+    instances = retrieve_all_instances(
+        client, [{"Name": "availability-zone", "Values": ["us-west-1b"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance2.id in instance_ids
+    assert instance1.id not in instance_ids
+
+    instances = retrieve_all_instances(
+        client,
+        [{"Name": "availability-zone", "Values": ["us-west-1a", "us-west-1b"]}],
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    assert instance1.id in instance_ids
+    assert instance2.id in instance_ids
+
+    res = client.describe_instances(
+        Filters=[{"Name": "availability-zone", "Values": ["us-west-2a"]}]
+    )
+    assert len(res["Reservations"]) == 0
+
+
+@mock_aws
 def test_get_instances_filtering_by_reason_code():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -750,6 +796,102 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     assert len(reservations[0]["Instances"]) == 1
+
+
+@mock_aws
+def test_get_instances_filtering_by_security_groups():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    class SG(NamedTuple):
+        id: str
+        name: str
+
+    sgs = []
+    for i in range(2):
+        group_name = f"group-{str(uuid4())[0:6]}"
+        resp = client.create_security_group(
+            Description=f"test-sg-{i}", GroupName=group_name
+        )
+        group_id = resp["GroupId"]
+        sgs.append(SG(group_id, group_name))
+    instance_id_with_first_sg = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[0].name],
+    )["Instances"][0]["InstanceId"]
+    instance_id_with_second_sg = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[1].name],
+    )["Instances"][0]["InstanceId"]
+    instance_id_with_both_sgs = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=[sgs[0].name, sgs[1].name],
+    )["Instances"][0]["InstanceId"]
+
+    for instance_filters, expected_instance_ids in [
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[0].id]}],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[0].name]}],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[1].id]}],
+            [instance_id_with_second_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[1].name]}],
+            [instance_id_with_second_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-id", "Values": [sgs[0].id, sgs[1].id]}],
+            [
+                instance_id_with_first_sg,
+                instance_id_with_second_sg,
+                instance_id_with_both_sgs,
+            ],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": [sgs[0].name, sgs[1].name]}],
+            [
+                instance_id_with_first_sg,
+                instance_id_with_second_sg,
+                instance_id_with_both_sgs,
+            ],
+        ),
+        (
+            [
+                {"Name": "instance.group-id", "Values": [sgs[0].id]},
+                {"Name": "instance.group-name", "Values": [sgs[1].name]},
+            ],
+            [instance_id_with_both_sgs],
+        ),
+        (
+            [
+                {"Name": "instance.group-id", "Values": [sgs[0].id]},
+                {"Name": "instance.group-name", "Values": [sgs[0].name]},
+            ],
+            [instance_id_with_first_sg, instance_id_with_both_sgs],
+        ),
+        (
+            [{"Name": "instance.group-name", "Values": ["non-existent-sg-name"]}],
+            [],
+        ),
+    ]:
+        resp = client.describe_instances(Filters=instance_filters)
+        instance_ids = []
+        if resp["Reservations"]:
+            instance_ids = [
+                i["InstanceId"] for r in resp["Reservations"] for i in r["Instances"]
+            ]
+        assert instance_ids == expected_instance_ids, instance_filters
 
 
 @mock_aws
@@ -3483,7 +3625,8 @@ def test_run_instances__instance_type_override_takes_priority(
 
 
 @ec2_aws_verified()
-@pytest.mark.aws_verified
+# Verified against AWS, but is flaky - that's why we do not run it against AWS
+# @pytest.mark.aws_verified
 def test_run_instances__key_name_from_launch_template(ec2_client=None):
     """KeyName in a launch template is applied when not supplied in RunInstances."""
     ami_id = _get_ami_id(ec2_client)
@@ -3511,7 +3654,8 @@ def test_run_instances__key_name_from_launch_template(ec2_client=None):
 
 
 @ec2_aws_verified()
-@pytest.mark.aws_verified
+# @pytest.mark.aws_verified
+# Verified against AWS, but it's flaky - that's why it's disabled against AWS
 def test_run_instances__security_group_ids_from_launch_template(ec2_client=None):
     """SecurityGroupIds in a launch template are applied when not supplied in RunInstances."""
     ami_id = _get_ami_id(ec2_client)

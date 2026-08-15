@@ -256,6 +256,7 @@ class StepFunctionResponse(BaseResponse):
     def tag_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
         tags = self._get_param("tags", [])
+        tags = {tag["key"]: tag["value"] for tag in tags}
         self.stepfunction_backend.tag_resource(arn, tags)
         return EmptyResult()
 

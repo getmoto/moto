@@ -1,9 +1,9 @@
-from typing import Any, Optional
+from typing import Any
 
 
 def find_metric_transformation_by_name(
     metric_transformations: list[dict[str, Any]], metric_name: str
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     for metric in metric_transformations:
         if metric["metricName"] == metric_name:
             return metric
@@ -12,7 +12,7 @@ def find_metric_transformation_by_name(
 
 def find_metric_transformation_by_namespace(
     metric_transformations: list[dict[str, Any]], metric_namespace: str
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     for metric in metric_transformations:
         if metric["metricNamespace"] == metric_namespace:
             return metric
@@ -41,10 +41,10 @@ class MetricFilters:
 
     def get_matching_filters(
         self,
-        prefix: Optional[str] = None,
-        log_group_name: Optional[str] = None,
-        metric_name: Optional[str] = None,
-        metric_namespace: Optional[str] = None,
+        prefix: str | None = None,
+        log_group_name: str | None = None,
+        metric_name: str | None = None,
+        metric_namespace: str | None = None,
     ) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
         for f in self.metric_filters:
@@ -76,7 +76,7 @@ class MetricFilters:
         return result
 
     def delete_filter(
-        self, filter_name: Optional[str] = None, log_group_name: Optional[str] = None
+        self, filter_name: str | None = None, log_group_name: str | None = None
     ) -> list[dict[str, Any]]:
         for f in self.metric_filters:
             if f["filterName"] == filter_name and f["logGroupName"] == log_group_name:

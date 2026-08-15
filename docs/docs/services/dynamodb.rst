@@ -16,8 +16,8 @@ dynamodb
 
 - [X] batch_execute_statement
   
-        Please see the documentation for `execute_statement` to see the limitations of what is supported.
-        
+Please see the documentation for `execute_statement` to see the limitations of what is supported.
+
 
 - [X] batch_get_item
 - [X] batch_write_item
@@ -45,25 +45,25 @@ dynamodb
 - [ ] enable_kinesis_streaming_destination
 - [X] execute_statement
   
-        Pagination is not yet implemented.
+Pagination is not yet implemented.
 
-        Parsing is highly experimental - please raise an issue if you find any bugs.
-        
+Parsing is highly experimental - please raise an issue if you find any bugs.
+
 
 - [X] execute_transaction
   
-        Please see the documentation for `execute_statement` to see the limitations of what is supported.
-        
+Please see the documentation for `execute_statement` to see the limitations of what is supported.
+
 
 - [ ] export_table_to_point_in_time
 - [X] get_item
 - [X] get_resource_policy
 - [X] import_table
   
-        Only InputFormat=DYNAMODB_JSON is supported so far.
-        InputCompressionType=ZSTD is not supported.
-        Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
-        
+Only InputFormat=DYNAMODB_JSON is supported so far.
+InputCompressionType=ZSTD is not supported.
+Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
+
 
 - [X] list_backups
 - [ ] list_contributor_insights
@@ -78,9 +78,9 @@ dynamodb
 - [X] restore_table_from_backup
 - [X] restore_table_to_point_in_time
   
-        Currently this only accepts the source and target table elements, and will
-        copy all items from the source without respect to other arguments.
-        
+Currently this only accepts the source and target table elements, and will
+copy all items from the source without respect to other arguments.
+
 
 - [X] scan
 - [X] tag_resource

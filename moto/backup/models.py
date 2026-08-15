@@ -1,8 +1,10 @@
+from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -20,7 +22,7 @@ class ReportPlan(BaseModel):
     def __init__(
         self,
         name: str,
-        report_plan_description: Optional[str],
+        report_plan_description: str | None,
         report_delivery_channel: dict[str, Any],
         report_setting: dict[str, Any],
         backend: "BackupBackend",
@@ -50,7 +52,7 @@ class Plan(BaseModel):
         self.backup_plan = backup_plan
         adv_settings = backup_plan.get("AdvancedBackupSettings")
         self.advanced_backup_settings = adv_settings or []
-        self.deletion_date: Optional[float] = None
+        self.deletion_date: float | None = None
         # Deletion Date is updated when the backup_plan is deleted
         self.last_execution_date = None  # start_restore_job not yet supported
         rules = backup_plan["Rules"]
@@ -114,10 +116,10 @@ class Vault(BaseModel):
         self.creator_request_id = creator_request_id
         self.num_of_recovery_points = 0  # start_backup_job not yet supported
         self.locked = False
-        self.min_retention_days: Optional[int] = None
-        self.max_retention_days: Optional[int] = None
-        self.lock_date: Optional[float] = None
-        self.changeable_for_days: Optional[int] = None
+        self.min_retention_days: int | None = None
+        self.max_retention_days: int | None = None
+        self.lock_date: float | None = None
+        self.changeable_for_days: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         dct = {
@@ -144,8 +146,10 @@ class Vault(BaseModel):
         return dct
 
 
-class BackupBackend(BaseBackend):
+class BackupBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of Backup APIs."""
+
+    SERVICE_NAMESPACE = "backup"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -177,7 +181,7 @@ class BackupBackend(BaseBackend):
         self.plans[plan.backup_plan_id] = plan
         return plan
 
-    def get_backup_plan(self, backup_plan_id: str, version_id: Optional[Any]) -> Plan:
+    def get_backup_plan(self, backup_plan_id: str, version_id: Any | None) -> Plan:
         msg = "Failed reading Backup plan with provided version"
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(msg=msg)
@@ -246,9 +250,9 @@ class BackupBackend(BaseBackend):
     def put_backup_vault_lock_configuration(
         self,
         backup_vault_name: str,
-        min_retention_days: Optional[int],
-        max_retention_days: Optional[int],
-        changeable_for_days: Optional[int],
+        min_retention_days: int | None,
+        max_retention_days: int | None,
+        changeable_for_days: int | None,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -328,17 +332,10 @@ class BackupBackend(BaseBackend):
         """
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
-        self.tagger.tag_resource(resource_arn, tags_input)
-
-    def untag_resource(self, resource_arn: str, tag_key_list: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_key_list)
-
     def create_report_plan(
         self,
         report_plan_name: str,
-        report_plan_description: Optional[str],
+        report_plan_description: str | None,
         report_delivery_channel: dict[str, Any],
         report_setting: dict[str, Any],
     ) -> ReportPlan:
@@ -370,6 +367,22 @@ class BackupBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.report_plans.values())
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for vault in self.vaults.values():
+            yield TaggedResource(
+                arn=vault.backup_vault_arn,
+                tags=self.tagger.get_tag_dict_for_resource(vault.backup_vault_arn),
+                resource_type="backup:backup-vault",
+            )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags_input)
+
+    def untag_resource(self, resource_arn: str, tag_key_list: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_key_list)
 
 
 backup_backends = BackendDict(BackupBackend, "backup")

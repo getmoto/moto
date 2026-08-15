@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -12,7 +12,7 @@ class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
 
-    def get_endpoint_name(self, headers: dict[str, str]) -> Optional[str]:  # type: ignore[return]
+    def get_endpoint_name(self, headers: dict[str, str]) -> str | None:  # type: ignore[return]
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
 
@@ -92,7 +92,7 @@ class DynamoHandler(BaseResponse):
         )
         return dynamo_json_dump(table.describe)
 
-    def delete_table(self) -> Union[str, TYPE_RESPONSE]:
+    def delete_table(self) -> str | TYPE_RESPONSE:
         name = self.body["TableName"]
         table = self.backend.delete_table(name)
         if table:
@@ -111,7 +111,7 @@ class DynamoHandler(BaseResponse):
         )
         return dynamo_json_dump(table.describe)
 
-    def describe_table(self) -> Union[TYPE_RESPONSE, str]:
+    def describe_table(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         try:
             table = self.backend.tables[name]
@@ -120,7 +120,7 @@ class DynamoHandler(BaseResponse):
             return self.error(er)
         return dynamo_json_dump(table.describe)
 
-    def put_item(self) -> Union[TYPE_RESPONSE, str]:
+    def put_item(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         item = self.body["Item"]
         result = self.backend.put_item(name, item)
@@ -159,7 +159,7 @@ class DynamoHandler(BaseResponse):
 
         return dynamo_json_dump(response)
 
-    def get_item(self) -> Union[TYPE_RESPONSE, str]:
+    def get_item(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         key = self.body["Key"]
         hash_key = key["HashKeyElement"]
@@ -201,7 +201,7 @@ class DynamoHandler(BaseResponse):
             }
         return dynamo_json_dump(results)
 
-    def query(self) -> Union[TYPE_RESPONSE, str]:
+    def query(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         hash_key = self.body["HashKeyValue"]
         range_condition = self.body.get("RangeKeyCondition")
@@ -232,7 +232,7 @@ class DynamoHandler(BaseResponse):
         #     }
         return dynamo_json_dump(result)
 
-    def scan(self) -> Union[TYPE_RESPONSE, str]:
+    def scan(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
 
         filters = {}
@@ -265,7 +265,7 @@ class DynamoHandler(BaseResponse):
         #     }
         return dynamo_json_dump(result)
 
-    def delete_item(self) -> Union[TYPE_RESPONSE, str]:
+    def delete_item(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         key = self.body["Key"]
         hash_key = key["HashKeyElement"]
@@ -283,7 +283,7 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er)
 
-    def update_item(self) -> Union[TYPE_RESPONSE, str]:
+    def update_item(self) -> TYPE_RESPONSE | str:
         name = self.body["TableName"]
         key = self.body["Key"]
         hash_key = key["HashKeyElement"]

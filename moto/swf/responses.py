@@ -209,10 +209,38 @@ class SWFResponse(BaseResponse):
         name = self._params["name"]
         retention = self._params["workflowExecutionRetentionPeriodInDays"]
         description = self._params.get("description")
+        raw_tags = self._params.get("tags", [])
         self._check_string(retention)
         self._check_string(name)
         self._check_none_or_string(description)
-        self.swf_backend.register_domain(name, retention, description=description)
+        tags = [{"Key": t["key"], "Value": t["value"]} for t in raw_tags]
+        self.swf_backend.register_domain(
+            name, retention, description=description, tags=tags
+        )
+        return ""
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        tags = self.swf_backend.tagger.list_tags_for_resource(resource_arn).get(
+            "Tags", []
+        )
+        return json.dumps(
+            {"tags": [{"key": t["Key"], "value": t["Value"]} for t in tags]}
+        )
+
+    def tag_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        raw_tags = self._params.get("tags", [])
+        self.swf_backend.tagger.tag_resource(
+            resource_arn,
+            [{"Key": t["key"], "Value": t["value"]} for t in raw_tags],
+        )
+        return ""
+
+    def untag_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        tag_keys = self._params.get("tagKeys", [])
+        self.swf_backend.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return ""
 
     def deprecate_domain(self) -> str:

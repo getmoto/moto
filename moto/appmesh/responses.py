@@ -3,7 +3,9 @@
 import json
 
 from moto.appmesh.utils.spec_parsing import (
+    build_gateway_route_spec,
     build_route_spec,
+    build_virtual_gateway_spec,
     build_virtual_node_spec,
     port_mappings_from_router_spec,
 )
@@ -325,5 +327,165 @@ class AppMeshResponse(BaseResponse):
             {
                 "nextToken": next_token,
                 "virtualNodes": [n.formatted_for_list_api() for n in virtual_nodes],
+            }
+        )
+
+    def describe_virtual_gateway(self) -> str:
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        virtual_gateway = self.appmesh_backend.describe_virtual_gateway(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(virtual_gateway.to_dict())
+
+    def create_virtual_gateway(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = build_virtual_gateway_spec(params.get("spec") or {})
+        tags = params.get("tags")
+        virtual_gateway_name = params.get("virtualGatewayName")
+        virtual_gateway = self.appmesh_backend.create_virtual_gateway(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            tags=tags,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(virtual_gateway.to_dict())
+
+    def update_virtual_gateway(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = build_virtual_gateway_spec(params.get("spec") or {})
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        virtual_gateway = self.appmesh_backend.update_virtual_gateway(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(virtual_gateway.to_dict())
+
+    def delete_virtual_gateway(self) -> str:
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        virtual_gateway = self.appmesh_backend.delete_virtual_gateway(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(virtual_gateway.to_dict())
+
+    def list_virtual_gateways(self) -> str:
+        limit = self._get_int_param("limit")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        next_token = self._get_param("nextToken")
+        virtual_gateways, next_token = self.appmesh_backend.list_virtual_gateways(
+            limit=limit,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "nextToken": next_token,
+                "virtualGateways": [
+                    g.formatted_for_list_api() for g in virtual_gateways
+                ],
+            }
+        )
+
+    def create_gateway_route(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        gateway_route_name = self._get_param("gatewayRouteName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = build_gateway_route_spec(params.get("spec") or {})
+        tags = params.get("tags")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        gateway_route = self.appmesh_backend.create_gateway_route(
+            client_token=client_token,
+            gateway_route_name=gateway_route_name,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            tags=tags,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(gateway_route.to_dict())
+
+    def describe_gateway_route(self) -> str:
+        gateway_route_name = self._get_param("gatewayRouteName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        gateway_route = self.appmesh_backend.describe_gateway_route(
+            gateway_route_name=gateway_route_name,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(gateway_route.to_dict())
+
+    def update_gateway_route(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        gateway_route_name = self._get_param("gatewayRouteName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = build_gateway_route_spec(params.get("spec") or {})
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        gateway_route = self.appmesh_backend.update_gateway_route(
+            client_token=client_token,
+            gateway_route_name=gateway_route_name,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(gateway_route.to_dict())
+
+    def delete_gateway_route(self) -> str:
+        gateway_route_name = self._get_param("gatewayRouteName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        gateway_route = self.appmesh_backend.delete_gateway_route(
+            gateway_route_name=gateway_route_name,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(gateway_route.to_dict())
+
+    def list_gateway_routes(self) -> str:
+        limit = self._get_int_param("limit")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        next_token = self._get_param("nextToken")
+        virtual_gateway_name = self._get_param("virtualGatewayName")
+        gateway_routes, next_token = self.appmesh_backend.list_gateway_routes(
+            limit=limit,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            next_token=next_token,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return json.dumps(
+            {
+                "nextToken": next_token,
+                "gatewayRoutes": [r.formatted_for_list_api() for r in gateway_routes],
             }
         )

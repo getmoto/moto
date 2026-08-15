@@ -47,10 +47,10 @@ swf
 - [X] respond_decision_task_completed
 - [X] signal_workflow_execution
 - [X] start_workflow_execution
-- [ ] tag_resource
+- [X] tag_resource
 - [X] terminate_workflow_execution
 - [ ] undeprecate_activity_type
 - [X] undeprecate_domain
 - [ ] undeprecate_workflow_type
-- [ ] untag_resource
+- [X] untag_resource
 

@@ -5,7 +5,7 @@ import itertools
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import cache
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from moto.core.common_models import CloudFormationModel
 
@@ -47,8 +47,8 @@ class SubnetCidrReservation(TaggedEC2Resource):
         cidr: ipaddress.IPv4Network | ipaddress.IPv6Network,
         reservation_type: Literal["explicit"] | Literal["prefix"],
         owner_id: str,
-        tag_specifications: Optional[list[dict[str, Any]]] = None,
-        subnet_cidr_reservation_id: Optional[str] = None,
+        tag_specifications: list[dict[str, Any]] | None = None,
+        subnet_cidr_reservation_id: str | None = None,
     ) -> None:
         self.ec2_backend = ec2_backend
         self.id = subnet_cidr_reservation_id or random_subnet_cidr_reservation_id()
@@ -58,9 +58,7 @@ class SubnetCidrReservation(TaggedEC2Resource):
         self.owner_id = owner_id
         self.tag_specifications = tag_specifications or []
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name == "reservationType":
             return self.reservation_type
         elif filter_name == "subnet-id":
@@ -76,7 +74,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         subnet_id: str,
         vpc_id: str,
         cidr_block: str,
-        ipv6_cidr_block: Optional[str],
+        ipv6_cidr_block: str | None,
         availability_zone: Zone,
         default_for_az: bool,
         map_public_ip_on_launch: bool,
@@ -219,9 +217,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         """
         API Version 2014-10-01 defines the following filters for DescribeSubnets:
 
@@ -329,7 +325,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self,
         reservation_type: Literal["explicit"] | Literal["prefix"],
         cidr_block: ipaddress.IPv4Network | ipaddress.IPv6Network,
-        tag_specifications: Optional[list[dict[str, Any]]] = None,
+        tag_specifications: list[dict[str, Any]] | None = None,
     ) -> SubnetCidrReservation:
         if not self._cidr_within_subnet_cidr_blocks(cidr_block):
             raise InvalidCidrReservationNotWithinSubnetCidr(str(self.cidr))
@@ -421,7 +417,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
     def delete_subnet_cidr_reservation(
         self,
         reservation_id: str,
-    ) -> Optional[SubnetCidrReservation]:
+    ) -> SubnetCidrReservation | None:
         for index, reservation in enumerate(self._cidr_reservations):
             if reservation.id == reservation_id:
                 self._cidr_reservations.pop(index)
@@ -522,11 +518,11 @@ class SubnetBackend:
         self,
         vpc_id: str,
         cidr_block: str,
-        ipv6_cidr_block: Optional[str] = None,
-        availability_zone: Optional[str] = None,
-        availability_zone_id: Optional[str] = None,
+        ipv6_cidr_block: str | None = None,
+        availability_zone: str | None = None,
+        availability_zone_id: str | None = None,
         ipv6_native: bool = False,
-        tags: Optional[dict[str, dict[str, str]]] = None,
+        tags: dict[str, dict[str, str]] | None = None,
     ) -> Subnet:
         subnet_id = random_subnet_id()
         # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
@@ -615,7 +611,7 @@ class SubnetBackend:
         return subnet
 
     def describe_subnets(
-        self, subnet_ids: Optional[list[str]] = None, filters: Optional[Any] = None
+        self, subnet_ids: list[str] | None = None, filters: Any | None = None
     ) -> list[Subnet]:
         # Extract a list of all subnets
         matches = list(
@@ -650,7 +646,7 @@ class SubnetBackend:
         else:
             raise InvalidParameterValueError(attr_name)
 
-    def get_subnet_from_ipv6_association(self, association_id: str) -> Optional[Subnet]:
+    def get_subnet_from_ipv6_association(self, association_id: str) -> Subnet | None:
         subnet = None
         for s in self.describe_subnets():
             if association_id in s.ipv6_cidr_block_associations:
@@ -687,7 +683,7 @@ class SubnetBackend:
         subnet_id: str,
         reservation_type: str,
         cidr: str,
-        tags: Optional[list[dict[str, Any]]] = None,
+        tags: list[dict[str, Any]] | None = None,
     ) -> SubnetCidrReservation:
         if reservation_type not in {"prefix", "explicit"}:
             raise InvalidPrefixReservationType(reservation_type)
@@ -712,7 +708,7 @@ class SubnetBackend:
     def get_subnet_cidr_reservations(
         self,
         subnet_id: str,
-        filters: Optional[Any] = None,
+        filters: Any | None = None,
     ) -> dict[str, list[SubnetCidrReservation]]:
         matches: list[SubnetCidrReservation] = self.get_subnet(
             subnet_id

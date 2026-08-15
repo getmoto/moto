@@ -23,8 +23,8 @@ pipes
   List pipes with optional filtering and pagination.
 
 - [X] list_tags_for_resource
-- [ ] start_pipe
-- [ ] stop_pipe
+- [X] start_pipe
+- [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_pipe

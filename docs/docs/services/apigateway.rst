@@ -79,8 +79,8 @@ apigateway
 - [X] get_gateway_response
 - [X] get_gateway_responses
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [X] get_integration
 - [X] get_integration_response
@@ -109,15 +109,15 @@ apigateway
 - [X] get_vpc_link
 - [X] get_vpc_links
   
-        Pagination has not yet been implemented
-        
+Pagination has not yet been implemented
+
 
 - [ ] import_api_keys
 - [ ] import_documentation_parts
 - [X] import_rest_api
   
-        Only a subset of the OpenAPI spec 3.x is currently implemented.
-        
+Only a subset of the OpenAPI spec 3.x is currently implemented.
+
 
 - [X] put_gateway_response
 - [X] put_integration
@@ -126,8 +126,8 @@ apigateway
 - [X] put_method_response
 - [X] put_rest_api
   
-        Only a subset of the OpenAPI spec 3.x is currently implemented.
-        
+Only a subset of the OpenAPI spec 3.x is currently implemented.
+
 
 - [ ] reject_domain_name_access_association
 - [ ] tag_resource
@@ -156,12 +156,12 @@ apigateway
 - [ ] update_usage
 - [X] update_usage_plan
   
-        The following PatchOperations are currently supported:
-        add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
-        replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
-        remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
-        copy   : Nothing yet
-        
+The following PatchOperations are currently supported:
+add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
+remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+copy   : Nothing yet
+
 
 - [ ] update_vpc_link
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import os
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,7 +16,7 @@ class ShardIterator(BaseModel):
         streams_backend: DynamoDBStreamsBackend,
         stream_shard: StreamShard,
         shard_iterator_type: str,
-        sequence_number: Optional[int] = None,
+        sequence_number: int | None = None,
     ):
         self.id = base64.b64encode(os.urandom(472)).decode("utf-8")
         self.streams_backend = streams_backend
@@ -89,7 +89,7 @@ class DynamoDBStreamsBackend(BaseBackend):
         }
         return stream
 
-    def list_streams(self, table_name: Optional[str] = None) -> list[dict[str, Any]]:
+    def list_streams(self, table_name: str | None = None) -> list[dict[str, Any]]:
         streams = []
         for table in self.dynamodb.tables.values():
             if table_name is not None and table.name != table_name:
@@ -110,7 +110,7 @@ class DynamoDBStreamsBackend(BaseBackend):
         arn: str,
         shard_id: str,
         shard_iterator_type: str,
-        sequence_number: Optional[str] = None,
+        sequence_number: str | None = None,
     ) -> ShardIterator:
         table = self._get_table_from_arn(arn)
         assert table.stream_shard.id == shard_id  # type: ignore[union-attr]

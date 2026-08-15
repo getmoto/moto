@@ -685,3 +685,120 @@ modified_http2_virtual_node_spec = {
         }
     },
 }
+
+virtual_gateway_spec = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/path/to/cert_chain.pem",
+                        "privateKey": "/path/to/private_key.pem",
+                    }
+                },
+                "enforce": True,
+                "ports": [443],
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["gateway.example.com"]}
+                    },
+                    "trust": {"file": {"certificateChain": "/path/to/ca_bundle.pem"}},
+                },
+            }
+        }
+    },
+    "listeners": [
+        {
+            "connectionPool": {
+                "http": {"maxConnections": 100, "maxPendingRequests": 10}
+            },
+            "healthCheck": {
+                "healthyThreshold": 5,
+                "intervalMillis": 10000,
+                "path": "/ping",
+                "port": 8080,
+                "protocol": "http",
+                "timeoutMillis": 5000,
+                "unhealthyThreshold": 2,
+            },
+            "portMapping": {"port": 8080, "protocol": "http"},
+            "tls": {
+                "certificate": {
+                    "acm": {
+                        "certificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/abc"
+                    }
+                },
+                "mode": "STRICT",
+            },
+        }
+    ],
+    "logging": {"accessLog": {"file": {"path": "/dev/stdout"}}},
+}
+
+modified_virtual_gateway_spec = {
+    "listeners": [
+        {
+            "connectionPool": {"grpc": {"maxRequests": 50}},
+            "portMapping": {"port": 9090, "protocol": "grpc"},
+        }
+    ],
+}
+
+http_gateway_route_spec = {
+    "priority": 1,
+    "httpRoute": {
+        "action": {
+            "rewrite": {
+                "hostname": {"defaultTargetHostname": "ENABLED"},
+                "prefix": {"defaultPrefix": "DISABLED"},
+            },
+            "target": {
+                "port": 8080,
+                "virtualService": {"virtualServiceName": "web.local"},
+            },
+        },
+        "match": {
+            "headers": [
+                {"invert": False, "match": {"exact": "v1"}, "name": "x-version"}
+            ],
+            "hostname": {"suffix": ".local"},
+            "method": "GET",
+            "port": 8080,
+            "prefix": "/",
+            "queryParameters": [{"match": {"exact": "example"}, "name": "q"}],
+        },
+    },
+}
+
+http2_gateway_route_spec = {
+    "priority": 2,
+    "http2Route": {
+        "action": {
+            "rewrite": {"path": {"exact": "/rewritten"}},
+            "target": {"virtualService": {"virtualServiceName": "h2.local"}},
+        },
+        "match": {
+            "hostname": {"exact": "h2.example.com"},
+            "path": {"exact": "/api"},
+        },
+    },
+}
+
+grpc_gateway_route_spec = {
+    "priority": 3,
+    "grpcRoute": {
+        "action": {
+            "rewrite": {"hostname": {"defaultTargetHostname": "ENABLED"}},
+            "target": {
+                "port": 9090,
+                "virtualService": {"virtualServiceName": "grpc.local"},
+            },
+        },
+        "match": {
+            "hostname": {"suffix": ".grpc.local"},
+            "metadata": [{"invert": True, "match": {"prefix": "m"}, "name": "x-meta"}],
+            "port": 9090,
+            "serviceName": "myService",
+        },
+    },
+}

@@ -9,6 +9,7 @@ import pytest
 from moto import mock_aws, settings
 
 from . import (
+    _teardown,
     allow_aws_request,
     aws_verified,
     sfn_allow_dynamodb,
@@ -179,3 +180,52 @@ def test_verify_template_with_credentials():
         assert output["TableNames"] == []
 
     verify_execution_result(_verify_result, "SUCCEEDED", "credentials")
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_state_machine_can_be_executed_multiple_times():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    # https://github.com/getmoto/moto/issues/10077
+    # The second execution of the same state machine used to fail with
+    # TypeError: cannot pickle '_thread.RLock' object
+    iam = boto3.client("iam", region_name="us-east-1")
+    role_name = f"sfn_role_{str(uuid4())[0:6]}"
+    sfn_role = iam.create_role(
+        RoleName=role_name,
+        AssumeRolePolicyDocument=json.dumps(sfn_role_policy),
+        Path="/",
+    )["Role"]["Arn"]
+    iam.put_role_policy(
+        PolicyDocument=json.dumps(sfn_allow_dynamodb),
+        PolicyName="allowLambdaInvoke",
+        RoleName=role_name,
+    )
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    definition = {"StartAt": "P", "States": {"P": {"Type": "Pass", "End": True}}}
+    name = f"sfn_name_{str(uuid4())[0:6]}"
+    state_machine_arn = client.create_state_machine(
+        name=name, definition=json.dumps(definition), roleArn=sfn_role
+    )["stateMachineArn"]
+
+    try:
+        execution_arns = [
+            client.start_execution(
+                name=exec_name, stateMachineArn=state_machine_arn, input="{}"
+            )["executionArn"]
+            for exec_name in ["run1", "run2"]
+        ]
+
+        for execution_arn in execution_arns:
+            status = None
+            for _ in range(30):
+                status = client.describe_execution(executionArn=execution_arn)["status"]
+                if status == "SUCCEEDED":
+                    break
+                sleep(10 if allow_aws_request() else 0.1)
+            assert status == "SUCCEEDED"
+    finally:
+        _teardown(client, iam, role_name, state_machine_arn)

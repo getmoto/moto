@@ -19,7 +19,7 @@ from botocore.exceptions import ClientError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import cognitoidp, mock_aws, settings
+from moto import mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
@@ -27,7 +27,7 @@ from moto.utilities.utils import load_resource
 from tests import allow_aws_request
 from tests.test_cognitoidp import cognitoidp_aws_verified
 
-private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+private_key = load_resource("cognitoidp/resources/jwks-private.json")
 PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
@@ -891,7 +891,9 @@ def test_update_user_pool():
     assert (
         updated_user_pool_details["UserPool"]["VerificationMessageTemplate"] is not None
     )
-    assert updated_user_pool_details["UserPool"]["AccountRecoverySetting"] is not None
+    # This pool was created without an AccountRecoverySetting, so AWS does not
+    # report one back.
+    assert "AccountRecoverySetting" not in updated_user_pool_details["UserPool"]
 
 
 @mock_aws
@@ -3516,7 +3518,7 @@ def test_user_authentication_flow_mfa_optional(user_pool=None, user_pool_client=
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    public_key = load_resource(cognitoidp.__name__, "resources/jwks-public.json")
+    public_key = load_resource("cognitoidp/resources/jwks-public.json")
     json_web_key = jwk.RSAKey.import_key(public_key["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
@@ -3621,9 +3623,11 @@ def test_forgot_password():
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
+    # No AccountRecoverySetting on this pool, so the legacy SMS-first behavior
+    # applies.
     assert result["CodeDeliveryDetails"]["Destination"] is not None
-    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
-    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
 @mock_aws
@@ -3691,6 +3695,35 @@ def test_forgot_password_user_with_all_recovery_attributes():
         AccountRecoverySetting={
             "RecoveryMechanisms": [{"Name": "verified_phone_number", "Priority": 1}]
         },
+    )
+
+    result = conn.forgot_password(ClientId=client_id, Username=username)
+
+    assert result["CodeDeliveryDetails"]["Destination"] == "555555555"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
+
+
+@mock_aws
+def test_forgot_password_without_account_recovery_setting():
+    # A pool created without an AccountRecoverySetting does not get one, and
+    # recovery falls back to the legacy behavior, which prefers SMS over email.
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]
+
+    assert "AccountRecoverySetting" not in user_pool
+
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool["Id"], ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    conn.admin_create_user(
+        UserPoolId=user_pool["Id"],
+        Username=username,
+        UserAttributes=[
+            {"Name": "email", "Value": "test@m***"},
+            {"Name": "phone_number", "Value": "555555555"},
+        ],
     )
 
     result = conn.forgot_password(ClientId=client_id, Username=username)

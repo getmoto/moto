@@ -2,7 +2,7 @@
 
 import copy
 import random
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -21,6 +21,8 @@ from .exceptions import (
     SubnetGroupInUseFault,
     SubnetGroupNotFoundFault,
     TagNotFoundFault,
+    UserAlreadyExistsFault,
+    UserNotFoundFault,
 )
 
 
@@ -147,19 +149,19 @@ class MemoryDBCluster(BaseModel):
 
     def update(
         self,
-        description: Optional[str],
-        security_group_ids: Optional[list[str]],
-        maintenance_window: Optional[str],
-        sns_topic_arn: Optional[str],
-        sns_topic_status: Optional[str],
-        parameter_group_name: Optional[str],
-        snapshot_window: Optional[str],
-        snapshot_retention_limit: Optional[int],
-        node_type: Optional[str],
-        engine_version: Optional[str],
-        replica_configuration: Optional[dict[str, int]],
-        shard_configuration: Optional[dict[str, int]],
-        acl_name: Optional[str],
+        description: str | None,
+        security_group_ids: list[str] | None,
+        maintenance_window: str | None,
+        sns_topic_arn: str | None,
+        sns_topic_status: str | None,
+        parameter_group_name: str | None,
+        snapshot_window: str | None,
+        snapshot_retention_limit: int | None,
+        node_type: str | None,
+        engine_version: str | None,
+        replica_configuration: dict[str, int] | None,
+        shard_configuration: dict[str, int] | None,
+        acl_name: str | None,
     ) -> None:
         if description is not None:
             self.description = description
@@ -236,7 +238,7 @@ class MemoryDBSubnetGroup(BaseModel):
         subnet_group_name: str,
         description: str,
         subnet_ids: list[str],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.ec2_backend = ec2_backend
         self.subnet_group_name = subnet_group_name
@@ -277,9 +279,9 @@ class MemoryDBSnapshot(BaseModel):
         region_name: str,
         cluster: MemoryDBCluster,
         snapshot_name: str,
-        kms_key_id: Optional[str],
-        tags: Optional[list[dict[str, str]]],
-        source: Optional[str],
+        kms_key_id: str | None,
+        tags: list[dict[str, str]] | None,
+        source: str | None,
     ):
         self.cluster = copy.copy(cluster)
         self.cluster_name = self.cluster.cluster_name
@@ -336,6 +338,61 @@ class MemoryDBSnapshot(BaseModel):
         return dct
 
 
+class MemoryDBUser(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        user_name: str,
+        authentication_mode: dict[str, Any],
+        access_string: str,
+    ):
+        self.user_name = user_name
+        self.access_string = access_string
+        self.status = "active"
+        self.minimum_engine_version = "6.2"
+        self.arn = f"arn:aws:memorydb:{region_name}:{account_id}:user/{user_name}"
+        # Users are not attached to any ACL on creation.
+        self.acl_names: list[str] = []
+        self.set_authentication(authentication_mode)
+
+    def set_authentication(self, authentication_mode: dict[str, Any]) -> None:
+        authentication_mode = authentication_mode or {}
+        auth_type = authentication_mode.get("Type", "password")
+        self.authentication: dict[str, Any]
+        if auth_type == "iam":
+            self.authentication = {"Type": "iam"}
+        elif auth_type == "no-password":
+            self.authentication = {"Type": "no-password"}
+        else:
+            passwords = authentication_mode.get("Passwords") or []
+            self.authentication = {
+                "Type": "password",
+                "PasswordCount": len(passwords),
+            }
+
+    def update(
+        self,
+        authentication_mode: dict[str, Any] | None,
+        access_string: str | None,
+    ) -> None:
+        if authentication_mode is not None:
+            self.set_authentication(authentication_mode)
+        if access_string is not None:
+            self.access_string = access_string
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.user_name,
+            "Status": self.status,
+            "AccessString": self.access_string,
+            "ACLNames": self.acl_names,
+            "MinimumEngineVersion": self.minimum_engine_version,
+            "Authentication": self.authentication,
+            "ARN": self.arn,
+        }
+
+
 class MemoryDBBackend(BaseBackend):
     """Implementation of MemoryDB APIs."""
 
@@ -344,6 +401,7 @@ class MemoryDBBackend(BaseBackend):
 
         self.ec2_backend = ec2_backends[account_id][region_name]
         self.clusters: dict[str, MemoryDBCluster] = {}
+        self.users: dict[str, MemoryDBUser] = {"default": self._default_user()}
         self.subnet_groups: dict[str, MemoryDBSubnetGroup] = {
             "default": MemoryDBSubnetGroup(
                 region_name,
@@ -357,6 +415,19 @@ class MemoryDBBackend(BaseBackend):
         self.snapshots: dict[str, MemoryDBSnapshot] = {}
         self.tagger = TaggingService()
 
+    def _default_user(self) -> "MemoryDBUser":
+        # AWS pre-creates an immutable "default" user in every account,
+        # attached to the "open-access" ACL.
+        user = MemoryDBUser(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            user_name="default",
+            authentication_mode={"Type": "no-password"},
+            access_string="on ~* &* +@all",
+        )
+        user.acl_names = ["open-access"]
+        return user
+
     def get_default_subnets(self) -> list[str]:
         default_subnets = self.ec2_backend.describe_subnets(
             filters={"default-for-az": "true"}
@@ -368,7 +439,8 @@ class MemoryDBBackend(BaseBackend):
         cluster_arns = [cluster.arn for cluster in self.clusters.values()]
         snapshot_arns = [snapshot.arn for snapshot in self.snapshots.values()]
         subnet_group_arns = [subnet.arn for subnet in self.subnet_groups.values()]
-        return cluster_arns + snapshot_arns + subnet_group_arns
+        user_arns = [user.arn for user in self.users.values()]
+        return cluster_arns + snapshot_arns + subnet_group_arns + user_arns
 
     def create_cluster(
         self,
@@ -438,7 +510,7 @@ class MemoryDBBackend(BaseBackend):
         subnet_group_name: str,
         description: str,
         subnet_ids: list[str],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> MemoryDBSubnetGroup:
         if subnet_group_name in self.subnet_groups:
             raise SubnetGroupAlreadyExistsFault(
@@ -462,8 +534,8 @@ class MemoryDBBackend(BaseBackend):
         self,
         cluster_name: str,
         snapshot_name: str,
-        kms_key_id: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: str | None = None,
+        tags: list[dict[str, str]] | None = None,
         source: str = "manual",
     ) -> MemoryDBSnapshot:
         if cluster_name not in self.clusters:
@@ -489,7 +561,7 @@ class MemoryDBBackend(BaseBackend):
         return snapshot
 
     def describe_clusters(
-        self, cluster_name: Optional[str] = None
+        self, cluster_name: str | None = None
     ) -> list[MemoryDBCluster]:
         if cluster_name:
             if cluster_name in self.clusters:
@@ -502,9 +574,9 @@ class MemoryDBBackend(BaseBackend):
 
     def describe_snapshots(
         self,
-        cluster_name: Optional[str] = None,
-        snapshot_name: Optional[str] = None,
-        source: Optional[str] = None,
+        cluster_name: str | None = None,
+        snapshot_name: str | None = None,
+        source: str | None = None,
     ) -> list[MemoryDBSnapshot]:
         sources = ["automated", "manual"] if source is None else [source]
 
@@ -570,6 +642,8 @@ class MemoryDBBackend(BaseBackend):
                 raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
             elif "snapshot" in resource_arn:
                 raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            elif "user" in resource_arn:
+                raise UserNotFoundFault(f"{resource_name} is not present")
             else:
                 raise ClusterNotFoundFault(f"{resource_name} is not present")
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
@@ -583,6 +657,8 @@ class MemoryDBBackend(BaseBackend):
                 raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
             elif "snapshot" in resource_arn:
                 raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            elif "user" in resource_arn:
+                raise UserNotFoundFault(f"{resource_name} is not present")
             else:
                 raise ClusterNotFoundFault(f"{resource_name} is not present")
         self.tagger.tag_resource(resource_arn, tags)
@@ -597,6 +673,8 @@ class MemoryDBBackend(BaseBackend):
                 raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
             elif "snapshot" in resource_arn:
                 raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            elif "user" in resource_arn:
+                raise UserNotFoundFault(f"{resource_name} is not present")
             else:
                 raise ClusterNotFoundFault(f"{resource_name} is not present")
         list_tags = self.list_tags(resource_arn=resource_arn)
@@ -610,19 +688,19 @@ class MemoryDBBackend(BaseBackend):
     def update_cluster(
         self,
         cluster_name: str,
-        description: Optional[str],
-        security_group_ids: Optional[list[str]],
-        maintenance_window: Optional[str],
-        sns_topic_arn: Optional[str],
-        sns_topic_status: Optional[str],
-        parameter_group_name: Optional[str],
-        snapshot_window: Optional[str],
-        snapshot_retention_limit: Optional[int],
-        node_type: Optional[str],
-        engine_version: Optional[str],
-        replica_configuration: Optional[dict[str, int]],
-        shard_configuration: Optional[dict[str, int]],
-        acl_name: Optional[str],
+        description: str | None,
+        security_group_ids: list[str] | None,
+        maintenance_window: str | None,
+        sns_topic_arn: str | None,
+        sns_topic_status: str | None,
+        parameter_group_name: str | None,
+        snapshot_window: str | None,
+        snapshot_retention_limit: int | None,
+        node_type: str | None,
+        engine_version: str | None,
+        replica_configuration: dict[str, int] | None,
+        shard_configuration: dict[str, int] | None,
+        acl_name: str | None,
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -645,7 +723,7 @@ class MemoryDBBackend(BaseBackend):
         raise ClusterNotFoundFault(msg="Cluster not found.")
 
     def delete_cluster(
-        self, cluster_name: str, final_snapshot_name: Optional[str]
+        self, cluster_name: str, final_snapshot_name: str | None
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -682,6 +760,69 @@ class MemoryDBBackend(BaseBackend):
         raise SubnetGroupNotFoundFault(
             msg=f"Subnet group {subnet_group_name} not found."
         )
+
+    def create_user(
+        self,
+        user_name: str,
+        authentication_mode: dict[str, Any],
+        access_string: str,
+        tags: list[dict[str, str]] | None = None,
+    ) -> MemoryDBUser:
+        if user_name in self.users:
+            raise UserAlreadyExistsFault(msg=f"User {user_name} already exists.")
+        user = MemoryDBUser(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            user_name=user_name,
+            authentication_mode=authentication_mode,
+            access_string=access_string,
+        )
+        self.users[user_name] = user
+        if tags:
+            self.tag_resource(user.arn, tags)
+        return user
+
+    def describe_users(
+        self,
+        user_name: str | None = None,
+        filters: list[dict[str, Any]] | None = None,
+    ) -> list[MemoryDBUser]:
+        if user_name:
+            if user_name in self.users:
+                return [self.users[user_name]]
+            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+        users = list(self.users.values())
+        for f in filters or []:
+            name = f["Name"]
+            values = f["Values"]
+            if name == "user-name":
+                users = [u for u in users if u.user_name in values]
+            elif name == "access-string":
+                users = [u for u in users if u.access_string in values]
+        return users
+
+    def update_user(
+        self,
+        user_name: str,
+        authentication_mode: dict[str, Any] | None,
+        access_string: str | None,
+    ) -> MemoryDBUser:
+        if user_name not in self.users:
+            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+        user = self.users[user_name]
+        user.update(authentication_mode, access_string)
+        return user
+
+    def delete_user(self, user_name: str) -> MemoryDBUser:
+        if user_name == "default":
+            raise InvalidParameterValueException(
+                msg="The default user cannot be deleted."
+            )
+        if user_name not in self.users:
+            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+        user = self.users[user_name]
+        user.status = "deleting"
+        return self.users.pop(user_name)
 
 
 memorydb_backends = BackendDict(MemoryDBBackend, "memorydb")

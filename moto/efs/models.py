@@ -8,10 +8,11 @@ import json
 import time
 from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -35,7 +36,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition, md5_hash
 
 
-def _lookup_az_id(account_id: str, az_name: str) -> Optional[str]:
+def _lookup_az_id(account_id: str, az_name: str) -> str | None:
     """Find the Availability zone ID given the AZ name."""
     ec2 = ec2_backends[account_id][az_name[:-1]]
     for zone in ec2.describe_availability_zones():
@@ -51,7 +52,7 @@ class AccessPoint(CloudFormationModel):
         region_name: str,
         client_token: str,
         file_system_id: str,
-        name: Optional[str],
+        name: str | None,
         posix_user: dict[str, Any],
         root_directory: dict[str, str],
         context: "EFSBackend",
@@ -156,7 +157,7 @@ class FileSystem(CloudFormationModel):
             )
         self._backup = backup
         self.lifecycle_policies: list[dict[str, str]] = []
-        self.file_system_policy: Optional[str] = None
+        self.file_system_policy: str | None = None
 
         self._context = context
 
@@ -189,7 +190,7 @@ class FileSystem(CloudFormationModel):
         return len(self._mount_targets)
 
     @property
-    def backup_policy(self) -> Optional[dict[str, str]]:
+    def backup_policy(self) -> dict[str, str] | None:
         if self._backup:
             return {"Status": "ENABLED"}
         else:
@@ -305,8 +306,8 @@ class MountTarget(CloudFormationModel):
         account_id: str,
         file_system: FileSystem,
         subnet: Subnet,
-        ip_address: Optional[str],
-        security_groups: Optional[list[str]],
+        ip_address: str | None,
+        security_groups: list[str] | None,
     ):
         # Set the simple given parameters.
         self.file_system_id = file_system.file_system_id
@@ -342,7 +343,7 @@ class MountTarget(CloudFormationModel):
         self.owner_id = account_id
         self.mount_target_id = f"fsmt-{mock_random.get_random_hex()}"
         self.life_cycle_state = "available"
-        self.network_interface_id: Optional[str] = None
+        self.network_interface_id: str | None = None
         self.availability_zone_id = subnet.availability_zone_id
         self.availability_zone_name = subnet.availability_zone
 
@@ -413,7 +414,7 @@ class MountTarget(CloudFormationModel):
         efs_backends[account_id][region_name].delete_mount_target(resource_name)
 
 
-class EFSBackend(BaseBackend):
+class EFSBackend(BaseBackend, TaggableResourcesMixin):
     """The backend manager of EFS resources.
 
     This is the state-machine for each region, tracking the file systems, mount targets,
@@ -421,18 +422,20 @@ class EFSBackend(BaseBackend):
     such resources should always go through this class.
     """
 
+    SERVICE_NAMESPACE = "elasticfilesystem"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.creation_tokens: set[str] = set()
         self.access_points: dict[str, AccessPoint] = {}
         self.file_systems_by_id: dict[str, FileSystem] = {}
         self.mount_targets_by_id: dict[str, MountTarget] = {}
-        self.next_markers: dict[str, Union[list[MountTarget], list[FileSystem]]] = {}
+        self.next_markers: dict[str, list[MountTarget] | list[FileSystem]] = {}
         self.tagging_service = TaggingService()
 
     def _mark_description(
-        self, corpus: Union[list[MountTarget], list[FileSystem]], max_items: int
-    ) -> Optional[str]:
+        self, corpus: list[MountTarget] | list[FileSystem], max_items: int
+    ) -> str | None:
         if max_items < len(corpus):
             new_corpus = corpus[max_items:]
             new_corpus_dict = [c.info_json() for c in new_corpus]
@@ -489,17 +492,17 @@ class EFSBackend(BaseBackend):
             availability_zone_name=availability_zone_name,
             backup=backup,
         )
-        self.tag_resource(fsid, tags)
+        self.tagging_service.tag_resource(fsid, tags)
         self.creation_tokens.add(creation_token)
         return self.file_systems_by_id[fsid]
 
     def describe_file_systems(
         self,
-        marker: Optional[str] = None,
+        marker: str | None = None,
         max_items: int = 10,
-        creation_token: Optional[str] = None,
-        file_system_id: Optional[str] = None,
-    ) -> tuple[Optional[str], list[FileSystem]]:
+        creation_token: str | None = None,
+        file_system_id: str | None = None,
+    ) -> tuple[str | None, list[FileSystem]]:
         """Describe all the EFS File Systems, or specific File Systems.
 
         https://docs.aws.amazon.com/efs/latest/ug/API_DescribeFileSystems.html
@@ -538,8 +541,8 @@ class EFSBackend(BaseBackend):
         self,
         file_system_id: str,
         subnet_id: str,
-        ip_address: Optional[str] = None,
-        security_groups: Optional[list[str]] = None,
+        ip_address: str | None = None,
+        security_groups: list[str] | None = None,
     ) -> MountTarget:
         """Create a new EFS Mount Target for a given File System to a given subnet.
 
@@ -582,11 +585,11 @@ class EFSBackend(BaseBackend):
     def describe_mount_targets(
         self,
         max_items: int,
-        file_system_id: Optional[str],
-        mount_target_id: Optional[str],
-        access_point_id: Optional[str],
-        marker: Optional[str],
-    ) -> tuple[Optional[str], list[MountTarget]]:
+        file_system_id: str | None,
+        mount_target_id: str | None,
+        access_point_id: str | None,
+        marker: str | None,
+    ) -> tuple[str | None, list[MountTarget]]:
         """Describe the mount targets given an access point ID, mount target ID or a file system ID.
 
         https://docs.aws.amazon.com/efs/latest/ug/API_DescribeMountTargets.html
@@ -680,7 +683,7 @@ class EFSBackend(BaseBackend):
 
     def describe_mount_target_security_groups(
         self, mount_target_id: str
-    ) -> Optional[list[str]]:
+    ) -> list[str] | None:
         if mount_target_id not in self.mount_targets_by_id:
             raise MountTargetNotFound(mount_target_id)
 
@@ -725,8 +728,8 @@ class EFSBackend(BaseBackend):
 
     def describe_access_points(
         self,
-        access_point_id: Optional[str],
-        file_system_id: Optional[str],
+        access_point_id: str | None,
+        file_system_id: str | None,
     ) -> list[AccessPoint]:
         """
         Pagination is not yet implemented
@@ -749,12 +752,6 @@ class EFSBackend(BaseBackend):
     def list_tags_for_resource(self, resource_id: str) -> list[dict[str, str]]:
         return self.tagging_service.list_tags_for_resource(resource_id)["Tags"]
 
-    def tag_resource(self, resource_id: str, tags: list[dict[str, str]]) -> None:
-        self.tagging_service.tag_resource(resource_id, tags)
-
-    def untag_resource(self, resource_id: str, tag_keys: list[str]) -> None:
-        self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
-
     def describe_file_system_policy(self, file_system_id: str) -> str:
         policy = self.file_systems_by_id[file_system_id].file_system_policy
         if not policy:
@@ -766,6 +763,31 @@ class EFSBackend(BaseBackend):
     ) -> None:
         file_system = self.file_systems_by_id[file_system_id]
         file_system.file_system_policy = policy
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for ap in self.access_points.values():
+            yield TaggedResource(
+                arn=ap.access_point_arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(ap.access_point_id),
+                resource_type="elasticfilesystem:access-point",
+            )
+        for fs in self.file_systems_by_id.values():
+            yield TaggedResource(
+                arn=fs.file_system_arn,
+                tags=self.tagging_service.get_tag_dict_for_resource(fs.file_system_id),
+                resource_type="elasticfilesystem:file-system",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        self.tagging_service.tag_resource(
+            resource_id, self.tagging_service.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        resource_id = arn.rsplit("/", 1)[-1]
+        self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
 
 
 efs_backends = BackendDict(EFSBackend, "efs")

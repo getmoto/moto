@@ -53,8 +53,8 @@ fsx
 - [ ] disassociate_file_system_aliases
 - [X] list_tags_for_resource
   
-        Pagination is not yet implemented
-        
+Pagination is not yet implemented
+
 
 - [ ] release_file_system_nfs_v3_locks
 - [ ] restore_volume_from_snapshot

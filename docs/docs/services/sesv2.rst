@@ -112,6 +112,7 @@ sesv2
 - [ ] put_email_identity_feedback_attributes
 - [ ] put_email_identity_mail_from_attributes
 - [ ] put_suppressed_destination
+- [ ] put_tenant_suppression_attributes
 - [ ] send_bulk_email
 - [ ] send_custom_verification_email
 - [X] send_email
@@ -119,8 +120,8 @@ sesv2
 - [ ] test_render_email_template
 - [X] untag_resource
 - [ ] update_configuration_set_event_destination
-- [ ] update_contact
-- [ ] update_contact_list
+- [X] update_contact
+- [X] update_contact_list
 - [ ] update_custom_verification_email_template
 - [X] update_email_identity_policy
 - [ ] update_email_template

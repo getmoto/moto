@@ -1,7 +1,7 @@
 import copy
 import datetime
 import json
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
@@ -46,7 +46,7 @@ from moto.stepfunctions.parser.backend.execution import Execution
 
 
 class StepFunctionsParserBackend(StepFunctionBackend):
-    def _get_executions(self, execution_status: Optional[ExecutionStatus] = None):
+    def _get_executions(self, execution_status: ExecutionStatus | None = None):
         executions = []
         for sm in self.state_machines:
             for execution in sm.executions:
@@ -54,7 +54,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
                     executions.append(execution)
         return executions
 
-    def _revision_by_name(self, name: str) -> Optional[StateMachine]:
+    def _revision_by_name(self, name: str) -> StateMachine | None:
         for state_machine in self.state_machines:
             if state_machine.name == name:
                 return state_machine
@@ -80,12 +80,12 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        publish: Optional[bool] = None,
-        loggingConfiguration: Optional[LoggingConfiguration] = None,
-        tracingConfiguration: Optional[TracingConfiguration] = None,
-        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
-        version_description: Optional[str] = None,
+        tags: list[dict[str, str]] | None = None,
+        publish: bool | None = None,
+        loggingConfiguration: LoggingConfiguration | None = None,
+        tracingConfiguration: TracingConfiguration | None = None,
+        encryptionConfiguration: EncryptionConfiguration | None = None,
+        version_description: str | None = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -172,7 +172,20 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             return existing_execution
 
         # Update event change parameters about the state machine and should not affect those about this execution.
-        state_machine_clone = copy.deepcopy(state_machine)
+        # The clone only acts as a snapshot of the state machine definition
+        # for this execution, so:
+        # * do not copy the executions: they can hold live worker threads and
+        #   locks that cannot be deepcopied;
+        # * share (rather than copy) the backend reference: the backend holds
+        #   every other state machine, whose executions have the same problem.
+        # https://github.com/getmoto/moto/issues/10077
+        state_machine_clone = copy.deepcopy(
+            state_machine,
+            {
+                id(state_machine.executions): [],
+                id(state_machine.backend): state_machine.backend,
+            },
+        )
 
         if execution_input is None:
             input_data = "{}"
@@ -225,7 +238,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
         encryption_configuration: EncryptionConfiguration = None,
-        publish: Optional[bool] = None,
+        publish: bool | None = None,
         version_description: str = None,
     ) -> StateMachine:
         if not any(
@@ -257,7 +270,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
 
     def describe_map_run(self, map_run_arn: str) -> dict[str, Any]:
         for execution in self._get_executions():
-            map_run_record: Optional[MapRunRecord] = (
+            map_run_record: MapRunRecord | None = (
                 execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
             )
             if map_run_record is not None:

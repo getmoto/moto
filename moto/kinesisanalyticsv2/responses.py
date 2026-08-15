@@ -50,10 +50,9 @@ class KinesisAnalyticsV2Response(BaseResponse):
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
-        tags = params.get("Tags")
-        self.kinesisanalyticsv2_backend.tag_resource(
-            resource_arn=resource_arn, tags=tags
-        )
+        tags = params.get("Tags") or []
+        tags = {tag["Key"]: tag.get("Value") for tag in tags}
+        self.kinesisanalyticsv2_backend.tag_resource(resource_arn, tags)
         return json.dumps({})
 
     def describe_application(self) -> str:

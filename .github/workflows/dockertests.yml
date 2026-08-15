@@ -11,9 +11,9 @@ jobs:
         python-version: [ "3.11" ]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
@@ -22,7 +22,7 @@ jobs:
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -44,11 +44,11 @@ jobs:
         python-version: ["3.11"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer on an unusual port
@@ -62,7 +62,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -101,11 +101,11 @@ jobs:
         python-version: ["3.11"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer on a custom Docker network bridge
@@ -120,7 +120,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -157,11 +157,11 @@ jobs:
         python-version: ["3.11"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer on an unusual port
@@ -175,7 +175,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}

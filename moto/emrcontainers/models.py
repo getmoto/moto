@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -31,8 +31,8 @@ class VirtualCluster(BaseModel):
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[dict[str, str]] = None,
-        virtual_cluster_id: Optional[str] = None,
+        tags: dict[str, str] | None = None,
+        virtual_cluster_id: str | None = None,
     ):
         self.id = virtual_cluster_id or random_cluster_id()
 
@@ -65,7 +65,7 @@ class JobRun(BaseModel):
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ):
         self.id = random_job_id()
         self.name = name
@@ -85,8 +85,8 @@ class JobRun(BaseModel):
         self.configuration_overrides = configuration_overrides
         self.created_at = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.created_by = None
-        self.finished_at: Optional[datetime] = None
-        self.state_details: Optional[str] = None
+        self.finished_at: datetime | None = None
+        self.state_details: str | None = None
         self.failure_reason = None
         self.tags = tags
 
@@ -107,7 +107,7 @@ class EMRContainersBackend(BaseBackend):
         name: str,
         container_provider: dict[str, Any],
         client_token: str,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> VirtualCluster:
         occupied_namespaces = [
             virtual_cluster.namespace
@@ -152,7 +152,7 @@ class EMRContainersBackend(BaseBackend):
         container_provider_type: str,
         created_after: datetime,
         created_before: datetime,
-        states: Optional[list[str]],
+        states: list[str] | None,
     ) -> list[VirtualCluster]:
         virtual_clusters = list(self.virtual_clusters.values())
 
@@ -266,7 +266,7 @@ class EMRContainersBackend(BaseBackend):
         created_before: datetime,
         created_after: datetime,
         name: str,
-        states: Optional[list[str]],
+        states: list[str] | None,
     ) -> list[JobRun]:
         jobs = list(self.job_runs.values())
 

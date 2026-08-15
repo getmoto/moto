@@ -1,7 +1,9 @@
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -23,8 +25,10 @@ def _create_id(aws_account_id: str, namespace: str, _id: str) -> str:
     return f"{aws_account_id}:{namespace}:{_id}"
 
 
-class QuickSightBackend(BaseBackend):
+class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of QuickSight APIs."""
+
+    SERVICE_NAMESPACE = "quicksight"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -42,7 +46,7 @@ class QuickSightBackend(BaseBackend):
         self,
         data_set_id: str,
         name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuicksightDataSet:
         dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
@@ -176,7 +180,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
@@ -326,10 +330,10 @@ class QuickSightBackend(BaseBackend):
         data_source_id: str,
         name: str,
         data_source_type: str,
-        data_source_parameters: Optional[dict[str, dict[str, Any]]] = None,
-        vpc_connection_properties: Optional[dict[str, Any]] = None,
-        ssl_properties: Optional[dict[str, Any]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        data_source_parameters: dict[str, dict[str, Any]] | None = None,
+        vpc_connection_properties: dict[str, Any] | None = None,
+        ssl_properties: dict[str, Any] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuickSightDataSource:
         data_source = QuickSightDataSource(
             account_id=aws_account_id,
@@ -358,9 +362,9 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Optional[dict[str, Any]] = None,
-        vpc_connection_properties: Optional[dict[str, Any]] = None,
-        ssl_properties: Optional[dict[str, Any]] = None,
+        data_source_parameters: dict[str, Any] | None = None,
+        vpc_connection_properties: dict[str, Any] | None = None,
+        ssl_properties: dict[str, Any] | None = None,
     ) -> QuickSightDataSource:
         data_source = self.data_sources.get(data_source_id)
 
@@ -402,21 +406,42 @@ class QuickSightBackend(BaseBackend):
 
         return data_source_list
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(
-            arn=resource_arn,
-            tags=tags,
-        )
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(
-            resource_arn,
-            tag_keys,
-        )
-
     def list_tags_for_resource(self, arn: str) -> list[dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(arn)
         return tags.get("Tags", [])
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for dashboard in self.dashboards.values():
+            yield TaggedResource(
+                arn=dashboard.arn,
+                tags=self.tagger.get_tag_dict_for_resource(dashboard.arn),
+                resource_type="quicksight:dashboards",
+            )
+        for source in self.data_sources.values():
+            yield TaggedResource(
+                arn=source.arn,
+                tags=self.tagger.get_tag_dict_for_resource(source.arn),
+                resource_type="quicksight:data_sources",
+            )
+        for ds in self.data_sets.values():
+            yield TaggedResource(
+                arn=ds.arn,
+                tags=self.tagger.get_tag_dict_for_resource(ds.arn),
+                resource_type="quicksight:data_sets",
+            )
+        for user in self.users.values():
+            yield TaggedResource(
+                arn=user.arn,
+                tags=self.tagger.get_tag_dict_for_resource(user.arn),
+                resource_type="quicksight:users",
+            )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

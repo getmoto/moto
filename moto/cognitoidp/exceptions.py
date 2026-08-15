@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -11,7 +9,7 @@ class AliasExistsException(JsonRESTError):
 
 
 class ResourceNotFoundError(JsonRESTError):
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: str | None):
         super().__init__(error_type="ResourceNotFoundException", message=message or "")
 
 
@@ -31,7 +29,7 @@ class GroupExistsException(JsonRESTError):
 
 
 class NotAuthorizedError(JsonRESTError):
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: str | None):
         super().__init__(error_type="NotAuthorizedException", message=message or "")
 
 
@@ -46,7 +44,7 @@ class ExpiredCodeException(JsonRESTError):
 
 
 class InvalidParameterException(JsonRESTError):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         self.code = 400
         super().__init__(
             "InvalidParameterException", msg or "A parameter is specified incorrectly."

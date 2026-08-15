@@ -6,11 +6,25 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
+
+
+def split_arn(arn: str) -> tuple[str, str, str, str]:
+    """Split an RDS ARN into (region, account_id, resource_type, resource_id).
+
+    Example:
+        arn:aws:rds:<region>:<account_id>:<resource_type>:<resource_id>
+
+    The resource identifier can itself contain colons - automated snapshots are
+    named `rds:<db-instance-identifier>-<timestamp>` - so everything after the
+    resource type is kept as-is.
+    """
+    _, _, _, region, account_id, resource_type, resource_id = arn.split(":", 6)
+    return region, account_id, resource_type, resource_id
 
 
 @dataclass
@@ -95,7 +109,7 @@ def get_object_value(obj: Any, attr: str) -> Any:
 
 
 def merge_filters(
-    filters_to_update: Optional[dict[str, Any]], filters_to_merge: dict[str, Any]
+    filters_to_update: dict[str, Any] | None, filters_to_merge: dict[str, Any]
 ) -> dict[str, Any]:
     """Given two groups of filters, merge the second into the first.
 
@@ -262,10 +276,10 @@ def get_overlap_between_two_date_ranges(
 
 def valid_preferred_maintenance_window(
     maintenance_window: Any, backup_window: Any
-) -> Optional[str]:
+) -> str | None:
     """Determines validity of preferred_maintenance_window
 
-    :param maintenance_windown:
+    :param maintenance_window:
         type DDD:HH24:MM-DDD:HH24:MM
     :param backup_window:
         type HH24:MM-HH24:MM
