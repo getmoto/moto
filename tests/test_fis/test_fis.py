@@ -1345,22 +1345,6 @@ def test_update_experiment_template_after_delete():
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_aws
-def test_get_action():
-    client = boto3.client("fis", region_name="eu-west-1")
-    resp = client.get_action()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_list_actions():
-    client = boto3.client("fis", region_name="ap-southeast-1")
-    resp = client.list_actions()
-
-    raise Exception("NotYetImplemented")
-
-
 def _start_experiment_with_target_account(
     client, region, account_id="111122223333", description="target account", **kwargs
 ):
@@ -1938,14 +1922,6 @@ def test_get_target_account_configuration_unknown_template():
 
 
 @mock_aws
-def test_get_target_resource_type():
-    client = boto3.client("fis", region_name="eu-west-1")
-    resp = client.get_target_resource_type()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
 def _start_experiment_with_targets(client, targets, client_token):
     template = client.create_experiment_template(
         clientToken=client_token,
@@ -2336,14 +2312,6 @@ def test_list_experiment_target_account_configurations_unknown_experiment():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Experiment unknown-experiment does not exist"
-
-
-@mock_aws
-def test_list_target_resource_types():
-    client = boto3.client("fis", region_name="ap-southeast-1")
-    resp = client.list_target_resource_types()
-
-    raise Exception("NotYetImplemented")
 
 
 @mock_aws
