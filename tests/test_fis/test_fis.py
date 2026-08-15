@@ -994,6 +994,1548 @@ def test_stop_experiment_unknown_id():
 @mock_aws
 def test_create_target_account_configuration():
     client = boto3.client("fis", region_name="eu-west-1")
-    resp = client.create_target_account_configuration()
+    template = _create_template(client, "eu-west-1", clientToken="token-create-tac")
+
+    config = client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="target account",
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert config["description"] == "target account"
+
+
+@mock_aws
+def test_create_target_account_configuration_without_description():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-create-nodesc")
+
+    config = client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="444455556666",
+        roleArn="arn:aws:iam::444455556666:role/FISTargetRole",
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "444455556666"
+    assert "description" not in config
+
+
+@mock_aws
+def test_create_target_account_configuration_with_client_token():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-create-ct")
+
+    config = client.create_target_account_configuration(
+        clientToken="token-tac-create",
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+
+
+@mock_aws
+def test_create_target_account_configuration_updates_the_template_count():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-create-count")
+
+    assert template["targetAccountConfigurationsCount"] == 0
+
+    for idx, account_id in enumerate(["111122223333", "444455556666"], start=1):
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        )
+        tmpl = client.get_experiment_template(id=template["id"])["experimentTemplate"]
+        assert tmpl["targetAccountConfigurationsCount"] == idx
+
+
+@mock_aws
+def test_create_target_account_configuration_is_readable():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    template = _create_template(
+        client, "ap-southeast-1", clientToken="token-create-read"
+    )
+
+    created = client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="target account",
+    )["targetAccountConfiguration"]
+
+    assert (
+        client.get_target_account_configuration(
+            experimentTemplateId=template["id"], accountId="111122223333"
+        )["targetAccountConfiguration"]
+        == created
+    )
+    assert client.list_target_account_configurations(
+        experimentTemplateId=template["id"]
+    )["targetAccountConfigurations"] == [created]
+
+
+@mock_aws
+def test_create_target_account_configuration_is_used_by_later_experiments():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-create-exp")
+    experiment_before = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+    experiment_after = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    assert experiment_before["targetAccountConfigurationsCount"] == 0
+    assert experiment_after["targetAccountConfigurationsCount"] == 1
+    assert (
+        client.get_experiment_target_account_configuration(
+            experimentId=experiment_after["id"], accountId="111122223333"
+        )["targetAccountConfiguration"]["accountId"]
+        == "111122223333"
+    )
+
+
+@mock_aws
+def test_create_target_account_configuration_is_per_template():
+    client = boto3.client("fis", region_name="us-east-2")
+    first = _create_template(client, "us-east-2", clientToken="token-create-tmpl-a")
+    second = _create_template(client, "us-east-2", clientToken="token-create-tmpl-b")
+
+    client.create_target_account_configuration(
+        experimentTemplateId=first["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+
+    assert (
+        client.list_target_account_configurations(experimentTemplateId=second["id"])[
+            "targetAccountConfigurations"
+        ]
+        == []
+    )
+
+
+@mock_aws
+def test_create_target_account_configuration_unknown_template():
+    client = boto3.client("fis", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_target_account_configuration(
+            experimentTemplateId="unknown-template",
+            accountId="111122223333",
+            roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_create_target_account_configuration_after_template_delete():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-create-deleted")
+    client.delete_experiment_template(id=template["id"])
+
+    with pytest.raises(ClientError) as exc:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId="111122223333",
+            roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_update_experiment_template():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    created = _create_template(
+        client,
+        "ap-southeast-1",
+        description="before",
+        clientToken="token-tmpl-update",
+        tags={"env": "test"},
+    )
+
+    tmpl = client.update_experiment_template(
+        id=created["id"],
+        description="after",
+        stopConditions=[
+            {
+                "source": "aws:cloudwatch:alarm",
+                "value": "arn:aws:cloudwatch:ap-southeast-1:123456789012:alarm:my-alarm",
+            }
+        ],
+        targets={
+            "t2": {
+                "resourceType": "aws:ecs:cluster",
+                "resourceTags": {"env": "prod"},
+                "filters": [{"path": "State.Name", "values": ["running"]}],
+                "selectionMode": "COUNT(1)",
+            }
+        },
+        actions={
+            "a2": {
+                "actionId": "aws:ecs:stop-task",
+                "description": "stop the task",
+                "parameters": {},
+                "targets": {"Clusters": "t2"},
+            }
+        },
+        roleArn="arn:aws:iam::123456789012:role/OtherFISRole",
+        logConfiguration={
+            "s3Configuration": {"bucketName": "my-bucket", "prefix": "fis/"},
+            "logSchemaVersion": 2,
+        },
+        experimentOptions={"emptyTargetResolutionMode": "skip"},
+        experimentReportConfiguration={
+            "outputs": {
+                "s3Configuration": {"bucketName": "report-bucket", "prefix": "reports/"}
+            },
+            "preExperimentDuration": "PT1M",
+            "postExperimentDuration": "PT5M",
+        },
+    )["experimentTemplate"]
+
+    # The identity of the template does not change
+    assert tmpl["id"] == created["id"]
+    assert tmpl["arn"] == created["arn"]
+    assert tmpl["creationTime"] == created["creationTime"]
+    assert tmpl["tags"] == {"env": "test"}
+
+    assert tmpl["description"] == "after"
+    assert tmpl["roleArn"] == "arn:aws:iam::123456789012:role/OtherFISRole"
+    assert tmpl["stopConditions"][0]["source"] == "aws:cloudwatch:alarm"
+    assert list(tmpl["targets"]) == ["t2"]
+    assert tmpl["targets"]["t2"]["resourceType"] == "aws:ecs:cluster"
+    assert list(tmpl["actions"]) == ["a2"]
+    assert tmpl["actions"]["a2"]["actionId"] == "aws:ecs:stop-task"
+    assert tmpl["logConfiguration"]["s3Configuration"]["bucketName"] == "my-bucket"
+    assert tmpl["experimentOptions"]["emptyTargetResolutionMode"] == "skip"
+    assert tmpl["experimentReportConfiguration"]["preExperimentDuration"] == "PT1M"
+
+    # The changes are persisted
+    assert (
+        client.get_experiment_template(id=created["id"])["experimentTemplate"] == tmpl
+    )
+
+
+@mock_aws
+def test_update_experiment_template_only_updates_supplied_parameters():
+    client = boto3.client("fis", region_name="eu-west-1")
+    created = _create_template(
+        client,
+        "eu-west-1",
+        description="original",
+        clientToken="token-tmpl-partial",
+    )
+
+    tmpl = client.update_experiment_template(id=created["id"], description="updated")[
+        "experimentTemplate"
+    ]
+
+    assert tmpl["description"] == "updated"
+    assert tmpl["targets"] == created["targets"]
+    assert tmpl["actions"] == created["actions"]
+    assert tmpl["stopConditions"] == created["stopConditions"]
+    assert tmpl["roleArn"] == created["roleArn"]
+
+
+@mock_aws
+def test_update_experiment_template_updates_last_update_time():
+    client = boto3.client("fis", region_name="us-east-2")
+    created = _create_template(client, "us-east-2", clientToken="token-tmpl-lut")
+
+    tmpl = client.update_experiment_template(id=created["id"], description="touched")[
+        "experimentTemplate"
+    ]
+
+    assert tmpl["creationTime"] == created["creationTime"]
+    assert tmpl["lastUpdateTime"] >= created["lastUpdateTime"]
+
+    summary = client.list_experiment_templates()["experimentTemplates"][0]
+    assert summary["description"] == "touched"
+    assert summary["lastUpdateTime"] == tmpl["lastUpdateTime"]
+
+
+@mock_aws
+def test_update_experiment_template_keeps_account_targeting():
+    client = boto3.client("fis", region_name="us-east-2")
+    created = _create_template(
+        client,
+        "us-east-2",
+        clientToken="token-tmpl-opts-update",
+        experimentOptions={
+            "accountTargeting": "multi-account",
+            "emptyTargetResolutionMode": "fail",
+        },
+    )
+
+    tmpl = client.update_experiment_template(
+        id=created["id"],
+        experimentOptions={"emptyTargetResolutionMode": "skip"},
+    )["experimentTemplate"]
+
+    # Only emptyTargetResolutionMode can be updated
+    assert tmpl["experimentOptions"] == {
+        "accountTargeting": "multi-account",
+        "emptyTargetResolutionMode": "skip",
+    }
+
+
+@mock_aws
+def test_update_experiment_template_does_not_affect_running_experiments():
+    client = boto3.client("fis", region_name="eu-west-1")
+    created = _create_template(
+        client, "eu-west-1", description="before", clientToken="token-tmpl-exp-update"
+    )
+    started = client.start_experiment(
+        clientToken="token-exp-update", experimentTemplateId=created["id"]
+    )["experiment"]
+
+    client.update_experiment_template(
+        id=created["id"],
+        targets={
+            "t9": {
+                "resourceType": "aws:ecs:cluster",
+                "resourceTags": {"env": "prod"},
+                "selectionMode": "ALL",
+            }
+        },
+    )
+
+    experiment = client.get_experiment(id=started["id"])["experiment"]
+    assert experiment["targets"] == created["targets"]
+
+
+@mock_aws
+def test_update_experiment_template_unknown_id():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_experiment_template(id="unknown-template", description="nope")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_update_experiment_template_after_delete():
+    client = boto3.client("fis", region_name="us-east-2")
+    created = _create_template(client, "us-east-2", clientToken="token-tmpl-upd-del")
+    client.delete_experiment_template(id=created["id"])
+
+    with pytest.raises(ClientError) as exc:
+        client.update_experiment_template(id=created["id"], description="nope")
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_action():
+    client = boto3.client("fis", region_name="eu-west-1")
+    resp = client.get_action()
 
     raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_actions():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    resp = client.list_actions()
+
+    raise Exception("NotYetImplemented")
+
+
+def _start_experiment_with_target_account(
+    client, region, account_id="111122223333", description="target account", **kwargs
+):
+    template = _create_template(client, region, **kwargs)
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId=account_id,
+        roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        description=description,
+    )
+    return client.start_experiment(experimentTemplateId=template["id"])["experiment"]
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    experiment = _start_experiment_with_target_account(
+        client, "ap-southeast-1", clientToken="token-exp-tac"
+    )
+
+    config = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert config["description"] == "target account"
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_without_description():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-no-desc")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="444455556666",
+        roleArn="arn:aws:iam::444455556666:role/FISTargetRole",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    config = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="444455556666"
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "444455556666"
+    assert "description" not in config
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_counts_on_the_experiment():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-count")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    assert experiment["targetAccountConfigurationsCount"] == 2
+    for account_id in ["111122223333", "444455556666"]:
+        config = client.get_experiment_target_account_configuration(
+            experimentId=experiment["id"], accountId=account_id
+        )["targetAccountConfiguration"]
+        assert config["accountId"] == account_id
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_is_a_snapshot():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-snapshot")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    # Adding a target account to the template afterwards does not change the
+    # configuration the experiment was started with.
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="777788889999",
+        roleArn="arn:aws:iam::777788889999:role/FISTargetRole",
+    )
+
+    config = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+    assert config["description"] == "original"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_experiment_target_account_configuration(
+            experimentId=experiment["id"], accountId="777788889999"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_unknown_account():
+    client = boto3.client("fis", region_name="eu-west-1")
+    experiment = _start_experiment_with_target_account(
+        client, "eu-west-1", clientToken="token-unknown-account"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_experiment_target_account_configuration(
+            experimentId=experiment["id"], accountId="999999999999"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Target account configuration for account 999999999999 does not exist"
+    )
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_unknown_experiment():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_experiment_target_account_configuration(
+            experimentId="unknown-experiment", accountId="111122223333"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment unknown-experiment does not exist"
+
+
+@mock_aws
+def test_get_experiment_target_account_configuration_on_experiment_without_accounts():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-no-accounts")
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    assert experiment["targetAccountConfigurationsCount"] == 0
+
+    with pytest.raises(ClientError) as exc:
+        client.get_experiment_target_account_configuration(
+            experimentId=experiment["id"], accountId="111122223333"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_update_target_account_configuration():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    template = _create_template(client, "ap-southeast-1", clientToken="token-upd-tac")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+
+    config = client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/UpdatedRole",
+        description="updated",
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/UpdatedRole"
+    assert config["description"] == "updated"
+
+
+@mock_aws
+def test_update_target_account_configuration_only_updates_supplied_parameters():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-upd-partial")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+
+    config = client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        description="only the description",
+    )["targetAccountConfiguration"]
+
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert config["description"] == "only the description"
+
+    config = client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/UpdatedRole",
+    )["targetAccountConfiguration"]
+
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/UpdatedRole"
+    assert config["description"] == "only the description"
+
+
+@mock_aws
+def test_update_target_account_configuration_only_updates_one_account():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-upd-one")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+            description="original",
+        )
+
+    client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        description="updated",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    assert experiment["targetAccountConfigurationsCount"] == 2
+    untouched = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="444455556666"
+    )["targetAccountConfiguration"]
+    assert untouched["description"] == "original"
+
+
+@mock_aws
+def test_update_target_account_configuration_does_not_affect_running_experiments():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-upd-running")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/UpdatedRole",
+        description="updated",
+    )
+
+    running = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+    assert running["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert running["description"] == "original"
+
+    # Experiments started after the update do pick it up.
+    later = client.start_experiment(experimentTemplateId=template["id"])["experiment"]
+    later_config = client.get_experiment_target_account_configuration(
+        experimentId=later["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+    assert later_config["roleArn"] == "arn:aws:iam::111122223333:role/UpdatedRole"
+    assert later_config["description"] == "updated"
+
+
+@mock_aws
+def test_update_target_account_configuration_unknown_account():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-upd-unknown")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId="999999999999",
+            description="nope",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Target account configuration for account 999999999999 does not exist"
+    )
+
+
+@mock_aws
+def test_update_target_account_configuration_unknown_template():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_target_account_configuration(
+            experimentTemplateId="unknown-template",
+            accountId="111122223333",
+            description="nope",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_delete_target_account_configuration():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-del-tac")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="to be deleted",
+    )
+
+    config = client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert config["description"] == "to be deleted"
+
+    tmpl = client.get_experiment_template(id=template["id"])["experimentTemplate"]
+    assert tmpl["targetAccountConfigurationsCount"] == 0
+
+
+@mock_aws
+def test_delete_target_account_configuration_only_deletes_one_account():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-del-one")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        )
+
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )
+
+    tmpl = client.get_experiment_template(id=template["id"])["experimentTemplate"]
+    assert tmpl["targetAccountConfigurationsCount"] == 1
+
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+    kept = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="444455556666"
+    )["targetAccountConfiguration"]
+    assert kept["accountId"] == "444455556666"
+
+
+@mock_aws
+def test_delete_target_account_configuration_does_not_affect_running_experiments():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-del-running")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )
+
+    running = client.get_experiment_target_account_configuration(
+        experimentId=experiment["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+    assert running["description"] == "original"
+    assert experiment["targetAccountConfigurationsCount"] == 1
+
+
+@mock_aws
+def test_delete_target_account_configuration_is_not_idempotent():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-del-twice")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_target_account_configuration(
+            experimentTemplateId=template["id"], accountId="111122223333"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_target_account_configuration_unknown_account():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-del-unknown")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_target_account_configuration(
+            experimentTemplateId=template["id"], accountId="999999999999"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Target account configuration for account 999999999999 does not exist"
+    )
+
+
+@mock_aws
+def test_delete_target_account_configuration_unknown_template():
+    client = boto3.client("fis", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_target_account_configuration(
+            experimentTemplateId="unknown-template", accountId="111122223333"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_get_target_account_configuration():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    template = _create_template(client, "ap-southeast-1", clientToken="token-get-tac")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="target account",
+    )
+
+    config = client.get_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "111122223333"
+    assert config["roleArn"] == "arn:aws:iam::111122223333:role/FISTargetRole"
+    assert config["description"] == "target account"
+
+
+@mock_aws
+def test_get_target_account_configuration_without_description():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-get-tac-nodesc")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="444455556666",
+        roleArn="arn:aws:iam::444455556666:role/FISTargetRole",
+    )
+
+    config = client.get_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="444455556666"
+    )["targetAccountConfiguration"]
+
+    assert config["accountId"] == "444455556666"
+    assert "description" not in config
+
+
+@mock_aws
+def test_get_target_account_configuration_reflects_updates():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-get-tac-upd")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+        description="original",
+    )
+
+    client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        description="updated",
+    )
+
+    config = client.get_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )["targetAccountConfiguration"]
+    assert config["description"] == "updated"
+
+
+@mock_aws
+def test_get_target_account_configuration_after_delete():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-get-tac-del")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_target_account_configuration(
+            experimentTemplateId=template["id"], accountId="111122223333"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_target_account_configuration_is_per_template():
+    client = boto3.client("fis", region_name="eu-west-1")
+    with_account = _create_template(client, "eu-west-1", clientToken="token-tac-a")
+    without_account = _create_template(client, "eu-west-1", clientToken="token-tac-b")
+    client.create_target_account_configuration(
+        experimentTemplateId=with_account["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_target_account_configuration(
+            experimentTemplateId=without_account["id"], accountId="111122223333"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_target_account_configuration_unknown_account():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(
+        client, "us-east-2", clientToken="token-get-tac-unknown"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_target_account_configuration(
+            experimentTemplateId=template["id"], accountId="999999999999"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Target account configuration for account 999999999999 does not exist"
+    )
+
+
+@mock_aws
+def test_get_target_account_configuration_unknown_template():
+    client = boto3.client("fis", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_target_account_configuration(
+            experimentTemplateId="unknown-template", accountId="111122223333"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_get_target_resource_type():
+    client = boto3.client("fis", region_name="eu-west-1")
+    resp = client.get_target_resource_type()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def _start_experiment_with_targets(client, targets, client_token):
+    template = client.create_experiment_template(
+        clientToken=client_token,
+        description="resolved targets",
+        stopConditions=[{"source": "none"}],
+        targets=targets,
+        actions={
+            "a1": {
+                "actionId": "aws:ec2:stop-instances",
+                "targets": {"Instances": list(targets)[0]},
+            }
+        },
+        roleArn="arn:aws:iam::123456789012:role/FISRole",
+    )["experimentTemplate"]
+    return client.start_experiment(experimentTemplateId=template["id"])["experiment"]
+
+
+@mock_aws
+def test_list_experiment_resolved_targets():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-resolved")
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    resp = client.list_experiment_resolved_targets(experimentId=experiment["id"])
+
+    assert "nextToken" not in resp
+    assert resp["resolvedTargets"] == [
+        {
+            "resourceType": "aws:ec2:instance",
+            "targetName": "t1",
+            "targetInformation": {
+                "arn": "arn:aws:ec2:eu-west-1:123456789012:instance/i-123"
+            },
+        }
+    ]
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_one_per_resource():
+    client = boto3.client("fis", region_name="us-east-2")
+    experiment = _start_experiment_with_targets(
+        client,
+        {
+            "instances": {
+                "resourceType": "aws:ec2:instance",
+                "resourceArns": [
+                    "arn:aws:ec2:us-east-2:123456789012:instance/i-111",
+                    "arn:aws:ec2:us-east-2:123456789012:instance/i-222",
+                ],
+                "selectionMode": "ALL",
+            }
+        },
+        client_token="token-resolved-multi",
+    )
+
+    targets = client.list_experiment_resolved_targets(experimentId=experiment["id"])[
+        "resolvedTargets"
+    ]
+
+    assert len(targets) == 2
+    assert {t["targetInformation"]["arn"] for t in targets} == {
+        "arn:aws:ec2:us-east-2:123456789012:instance/i-111",
+        "arn:aws:ec2:us-east-2:123456789012:instance/i-222",
+    }
+    assert {t["targetName"] for t in targets} == {"instances"}
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_filtered_by_target_name():
+    client = boto3.client("fis", region_name="us-east-2")
+    experiment = _start_experiment_with_targets(
+        client,
+        {
+            "instances": {
+                "resourceType": "aws:ec2:instance",
+                "resourceArns": ["arn:aws:ec2:us-east-2:123456789012:instance/i-111"],
+                "selectionMode": "ALL",
+            },
+            "clusters": {
+                "resourceType": "aws:rds:cluster",
+                "resourceArns": ["arn:aws:rds:us-east-2:123456789012:cluster:db-1"],
+                "selectionMode": "ALL",
+            },
+        },
+        client_token="token-resolved-filter",
+    )
+
+    assert (
+        len(
+            client.list_experiment_resolved_targets(experimentId=experiment["id"])[
+                "resolvedTargets"
+            ]
+        )
+        == 2
+    )
+
+    targets = client.list_experiment_resolved_targets(
+        experimentId=experiment["id"], targetName="clusters"
+    )["resolvedTargets"]
+
+    assert len(targets) == 1
+    assert targets[0]["targetName"] == "clusters"
+    assert targets[0]["resourceType"] == "aws:rds:cluster"
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_unknown_target_name():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(
+        client, "eu-west-1", clientToken="token-resolved-noname"
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    resp = client.list_experiment_resolved_targets(
+        experimentId=experiment["id"], targetName="does-not-exist"
+    )
+
+    assert resp["resolvedTargets"] == []
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_for_targets_selected_by_tag():
+    client = boto3.client("fis", region_name="eu-west-1")
+    experiment = _start_experiment_with_targets(
+        client,
+        {
+            "instances": {
+                "resourceType": "aws:ec2:instance",
+                "resourceTags": {"env": "test"},
+                "selectionMode": "ALL",
+            }
+        },
+        client_token="token-resolved-tags",
+    )
+
+    # Targets that select their resources by tag are not resolved by moto.
+    assert (
+        client.list_experiment_resolved_targets(experimentId=experiment["id"])[
+            "resolvedTargets"
+        ]
+        == []
+    )
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_paginated():
+    client = boto3.client("fis", region_name="us-east-1")
+    experiment = _start_experiment_with_targets(
+        client,
+        {
+            "instances": {
+                "resourceType": "aws:ec2:instance",
+                "resourceArns": [
+                    f"arn:aws:ec2:us-east-1:123456789012:instance/i-{idx}"
+                    for idx in range(5)
+                ],
+                "selectionMode": "ALL",
+            }
+        },
+        client_token="token-resolved-page",
+    )
+
+    page1 = client.list_experiment_resolved_targets(
+        experimentId=experiment["id"], maxResults=2
+    )
+    assert len(page1["resolvedTargets"]) == 2
+    assert page1["nextToken"]
+
+    page2 = client.list_experiment_resolved_targets(
+        experimentId=experiment["id"], maxResults=2, nextToken=page1["nextToken"]
+    )
+    assert len(page2["resolvedTargets"]) == 2
+    assert page2["nextToken"]
+
+    page3 = client.list_experiment_resolved_targets(
+        experimentId=experiment["id"], maxResults=2, nextToken=page2["nextToken"]
+    )
+    assert len(page3["resolvedTargets"]) == 1
+    assert "nextToken" not in page3
+
+    seen = [
+        target["targetInformation"]["arn"]
+        for page in (page1, page2, page3)
+        for target in page["resolvedTargets"]
+    ]
+    assert len(set(seen)) == 5
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_is_a_snapshot():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-resolved-snap")
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    client.update_experiment_template(
+        id=template["id"],
+        targets={
+            "t1": {
+                "resourceType": "aws:ec2:instance",
+                "resourceArns": [
+                    "arn:aws:ec2:us-east-2:123456789012:instance/i-999",
+                ],
+                "selectionMode": "ALL",
+            }
+        },
+    )
+
+    targets = client.list_experiment_resolved_targets(experimentId=experiment["id"])[
+        "resolvedTargets"
+    ]
+    assert targets[0]["targetInformation"]["arn"].endswith("i-123")
+
+
+@mock_aws
+def test_list_experiment_resolved_targets_unknown_experiment():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.list_experiment_resolved_targets(experimentId="unknown-experiment")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment unknown-experiment does not exist"
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-list-exp-tac")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+            description=f"account {account_id}",
+        )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    resp = client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )
+
+    assert "nextToken" not in resp
+    configurations = resp["targetAccountConfigurations"]
+    assert len(configurations) == 2
+    assert {c["accountId"] for c in configurations} == {
+        "111122223333",
+        "444455556666",
+    }
+    by_account = {c["accountId"]: c for c in configurations}
+    assert (
+        by_account["111122223333"]["roleArn"]
+        == "arn:aws:iam::111122223333:role/FISTargetRole"
+    )
+    assert by_account["111122223333"]["description"] == "account 111122223333"
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_empty():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-list-exp-empty")
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    resp = client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )
+
+    assert resp["targetAccountConfigurations"] == []
+    assert "nextToken" not in resp
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_without_description():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(
+        client, "eu-west-1", clientToken="token-list-exp-nodesc"
+    )
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    configurations = client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )["targetAccountConfigurations"]
+
+    assert len(configurations) == 1
+    assert "description" not in configurations[0]
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_matches_get():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    experiment = _start_experiment_with_target_account(
+        client, "ap-southeast-1", clientToken="token-list-exp-match"
+    )
+
+    for summary in client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )["targetAccountConfigurations"]:
+        config = client.get_experiment_target_account_configuration(
+            experimentId=experiment["id"], accountId=summary["accountId"]
+        )["targetAccountConfiguration"]
+        assert summary == config
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_is_a_snapshot():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-list-exp-snap")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="111122223333"
+    )
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="777788889999",
+        roleArn="arn:aws:iam::777788889999:role/FISTargetRole",
+    )
+
+    configurations = client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )["targetAccountConfigurations"]
+
+    assert [c["accountId"] for c in configurations] == ["111122223333"]
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_is_experiment_specific():
+    client = boto3.client("fis", region_name="eu-west-1")
+    with_accounts = _start_experiment_with_target_account(
+        client, "eu-west-1", clientToken="token-list-exp-a"
+    )
+    other_template = _create_template(
+        client, "eu-west-1", clientToken="token-list-exp-b"
+    )
+    without_accounts = client.start_experiment(
+        experimentTemplateId=other_template["id"]
+    )["experiment"]
+
+    assert (
+        len(
+            client.list_experiment_target_account_configurations(
+                experimentId=with_accounts["id"]
+            )["targetAccountConfigurations"]
+        )
+        == 1
+    )
+    assert (
+        client.list_experiment_target_account_configurations(
+            experimentId=without_accounts["id"]
+        )["targetAccountConfigurations"]
+        == []
+    )
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_unknown_experiment():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.list_experiment_target_account_configurations(
+            experimentId="unknown-experiment"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment unknown-experiment does not exist"
+
+
+@mock_aws
+def test_list_target_resource_types():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    resp = client.list_target_resource_types()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_target_account_configurations():
+    client = boto3.client("fis", region_name="ap-southeast-1")
+    template = _create_template(client, "ap-southeast-1", clientToken="token-list-tac")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+            description=f"account {account_id}",
+        )
+
+    resp = client.list_target_account_configurations(
+        experimentTemplateId=template["id"]
+    )
+
+    assert "nextToken" not in resp
+    configurations = resp["targetAccountConfigurations"]
+    assert len(configurations) == 2
+    by_account = {c["accountId"]: c for c in configurations}
+    assert set(by_account) == {"111122223333", "444455556666"}
+    assert (
+        by_account["444455556666"]["roleArn"]
+        == "arn:aws:iam::444455556666:role/FISTargetRole"
+    )
+    assert by_account["444455556666"]["description"] == "account 444455556666"
+
+
+@mock_aws
+def test_list_target_account_configurations_empty():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-list-tac-empty")
+
+    resp = client.list_target_account_configurations(
+        experimentTemplateId=template["id"]
+    )
+
+    assert resp["targetAccountConfigurations"] == []
+    assert "nextToken" not in resp
+
+
+@mock_aws
+def test_list_target_account_configurations_matches_get():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-list-tac-match")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+
+    for summary in client.list_target_account_configurations(
+        experimentTemplateId=template["id"]
+    )["targetAccountConfigurations"]:
+        config = client.get_target_account_configuration(
+            experimentTemplateId=template["id"], accountId=summary["accountId"]
+        )["targetAccountConfiguration"]
+        assert summary == config
+        assert "description" not in summary
+
+
+@mock_aws
+def test_list_target_account_configurations_reflects_updates_and_deletes():
+    client = boto3.client("fis", region_name="us-east-2")
+    template = _create_template(client, "us-east-2", clientToken="token-list-tac-upd")
+    for account_id in ["111122223333", "444455556666"]:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+            description="original",
+        )
+
+    client.update_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        description="updated",
+    )
+    client.delete_target_account_configuration(
+        experimentTemplateId=template["id"], accountId="444455556666"
+    )
+
+    configurations = client.list_target_account_configurations(
+        experimentTemplateId=template["id"]
+    )["targetAccountConfigurations"]
+
+    assert len(configurations) == 1
+    assert configurations[0]["accountId"] == "111122223333"
+    assert configurations[0]["description"] == "updated"
+
+
+@mock_aws
+def test_list_target_account_configurations_is_per_template():
+    client = boto3.client("fis", region_name="eu-west-1")
+    with_accounts = _create_template(
+        client, "eu-west-1", clientToken="token-list-tac-a"
+    )
+    without_accounts = _create_template(
+        client, "eu-west-1", clientToken="token-list-tac-b"
+    )
+    client.create_target_account_configuration(
+        experimentTemplateId=with_accounts["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+
+    assert (
+        len(
+            client.list_target_account_configurations(
+                experimentTemplateId=with_accounts["id"]
+            )["targetAccountConfigurations"]
+        )
+        == 1
+    )
+    assert (
+        client.list_target_account_configurations(
+            experimentTemplateId=without_accounts["id"]
+        )["targetAccountConfigurations"]
+        == []
+    )
+
+
+@mock_aws
+def test_list_target_account_configurations_paginated():
+    client = boto3.client("fis", region_name="us-east-1")
+    template = _create_template(client, "us-east-1", clientToken="token-list-tac-page")
+    account_ids = [f"11112222{idx:04d}" for idx in range(5)]
+    for account_id in account_ids:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        )
+
+    page1 = client.list_target_account_configurations(
+        experimentTemplateId=template["id"], maxResults=2
+    )
+    assert len(page1["targetAccountConfigurations"]) == 2
+    assert page1["nextToken"]
+
+    page2 = client.list_target_account_configurations(
+        experimentTemplateId=template["id"],
+        maxResults=2,
+        nextToken=page1["nextToken"],
+    )
+    assert len(page2["targetAccountConfigurations"]) == 2
+    assert page2["nextToken"]
+
+    page3 = client.list_target_account_configurations(
+        experimentTemplateId=template["id"],
+        maxResults=2,
+        nextToken=page2["nextToken"],
+    )
+    assert len(page3["targetAccountConfigurations"]) == 1
+    assert "nextToken" not in page3
+
+    seen = [
+        configuration["accountId"]
+        for page in (page1, page2, page3)
+        for configuration in page["targetAccountConfigurations"]
+    ]
+    assert set(seen) == set(account_ids)
+
+
+@mock_aws
+def test_list_target_account_configurations_unknown_template():
+    client = boto3.client("fis", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.list_target_account_configurations(
+            experimentTemplateId="unknown-template"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Experiment template unknown-template does not exist"
+
+
+@mock_aws
+def test_list_target_account_configurations_after_template_delete():
+    client = boto3.client("fis", region_name="eu-west-1")
+    template = _create_template(client, "eu-west-1", clientToken="token-list-tac-del")
+    client.create_target_account_configuration(
+        experimentTemplateId=template["id"],
+        accountId="111122223333",
+        roleArn="arn:aws:iam::111122223333:role/FISTargetRole",
+    )
+    client.delete_experiment_template(id=template["id"])
+
+    with pytest.raises(ClientError) as exc:
+        client.list_target_account_configurations(experimentTemplateId=template["id"])
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"

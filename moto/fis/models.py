@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ClassVar, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -16,6 +16,35 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException
+
+
+@dataclass
+class TargetAccountConfiguration(BaseModel):
+    account_id: str
+    role_arn: str
+    description: Optional[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "roleArn": self.role_arn,
+            "accountId": self.account_id,
+            "description": self.description,
+        }
+        return {k: v for k, v in dct.items() if v is not None}
+
+
+@dataclass
+class ResolvedTarget(BaseModel):
+    resource_type: str
+    target_name: str
+    resource_arn: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "resourceType": self.resource_type,
+            "targetName": self.target_name,
+            "targetInformation": {"arn": self.resource_arn},
+        }
 
 
 @dataclass
@@ -34,6 +63,9 @@ class ExperimentTemplate(BaseModel):
     experiment_report_configuration: Optional[dict[str, Any]]
     creation_time: float
     last_update_time: float
+    target_account_configurations: dict[str, TargetAccountConfiguration] = field(
+        default_factory=dict
+    )
 
     @property
     def arn(self) -> str:
@@ -53,7 +85,7 @@ class ExperimentTemplate(BaseModel):
             "tags": tags or {},
             "logConfiguration": self.log_configuration,
             "experimentOptions": self.experiment_options,
-            "targetAccountConfigurationsCount": 0,
+            "targetAccountConfigurationsCount": len(self.target_account_configurations),
             "experimentReportConfiguration": self.experiment_report_configuration,
         }
         return {k: v for k, v in dct.items() if v is not None}
@@ -95,6 +127,7 @@ class Experiment(ManagedState, BaseModel):
         log_configuration: Optional[dict[str, Any]],
         experiment_options: dict[str, Any],
         experiment_report_configuration: Optional[dict[str, Any]],
+        target_account_configurations: dict[str, TargetAccountConfiguration],
         creation_time: float,
         start_time: float,
     ):
@@ -120,6 +153,9 @@ class Experiment(ManagedState, BaseModel):
         self.log_configuration = log_configuration
         self.experiment_options = experiment_options
         self.experiment_report_configuration = experiment_report_configuration
+        # Taken from the experiment template when the experiment is started, so
+        # that later changes to the template do not affect this experiment.
+        self.target_account_configurations = target_account_configurations
         self.creation_time = creation_time
         self.start_time = start_time
         self.end_time: Optional[float] = None
@@ -146,6 +182,22 @@ class Experiment(ManagedState, BaseModel):
             if status in self.TERMINAL_STATUSES:
                 action["endTime"] = self.end_time
         return status
+
+    def resolved_targets(self) -> list[ResolvedTarget]:
+        """Resolve the targets of the experiment into the individual resources.
+
+        Only targets that list their resources by ARN are resolved - moto does
+        not look up the resources that a target selects by tag or by filter.
+        """
+        return [
+            ResolvedTarget(
+                resource_type=target.get("resourceType", ""),
+                target_name=target_name,
+                resource_arn=arn,
+            )
+            for target_name, target in self.targets.items()
+            for arn in target.get("resourceArns") or []
+        ]
 
     def to_summary_dict(self, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
         status = self._sync_state()
@@ -182,7 +234,7 @@ class Experiment(ManagedState, BaseModel):
             "tags": tags or {},
             "logConfiguration": self.log_configuration,
             "experimentOptions": self.experiment_options,
-            "targetAccountConfigurationsCount": 0,
+            "targetAccountConfigurationsCount": len(self.target_account_configurations),
             "experimentReportConfiguration": self.experiment_report_configuration,
         }
         return {k: v for k, v in dct.items() if v is not None}
@@ -201,6 +253,24 @@ class FISBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 100,
             "unique_attribute": "id",
+        },
+        "list_experiment_resolved_targets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": ["target_name", "resource_arn"],
+        },
+        # This API only takes a nextToken - there is no maxResults parameter.
+        "list_experiment_target_account_configurations": {
+            "input_token": "next_token",
+            "limit_default": 100,
+            "unique_attribute": "account_id",
+        },
+        "list_target_account_configurations": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "account_id",
         },
     }
 
@@ -353,6 +423,9 @@ class FISBackend(BaseBackend):
             experiment_report_configuration=deepcopy(
                 template.experiment_report_configuration
             ),
+            target_account_configurations=deepcopy(
+                template.target_account_configurations
+            ),
             creation_time=now,
             start_time=now,
         )
@@ -398,10 +471,174 @@ class FISBackend(BaseBackend):
             tags=self.tagger.get_tag_dict_for_resource(experiment.arn)
         )
 
-    def create_target_account_configuration(self, client_token, experiment_template_id, account_id, role_arn, description):
-        # implement here
-        return target_account_configuration
-    
+    def create_target_account_configuration(
+        self,
+        client_token: Optional[str],
+        experiment_template_id: str,
+        account_id: str,
+        role_arn: str,
+        description: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if experiment_template_id not in self.experiment_templates:
+            raise ResourceNotFoundException(
+                f"Experiment template {experiment_template_id} does not exist"
+            )
+        template = self.experiment_templates[experiment_template_id]
+        config = TargetAccountConfiguration(
+            account_id=account_id, role_arn=role_arn, description=description
+        )
+        template.target_account_configurations[account_id] = config
+        return config.to_dict()
+
+    def update_experiment_template(
+        self,
+        id: str,
+        description: Optional[str] = None,
+        stop_conditions: Optional[list[dict[str, Any]]] = None,
+        targets: Optional[dict[str, Any]] = None,
+        actions: Optional[dict[str, Any]] = None,
+        role_arn: Optional[str] = None,
+        log_configuration: Optional[dict[str, Any]] = None,
+        experiment_options: Optional[dict[str, Any]] = None,
+        experiment_report_configuration: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if id not in self.experiment_templates:
+            raise ResourceNotFoundException(f"Experiment template {id} does not exist")
+        template = self.experiment_templates[id]
+
+        # Only the parameters that are supplied are updated - anything omitted
+        # keeps its current value.
+        if description is not None:
+            template.description = description
+        if stop_conditions is not None:
+            template.stop_conditions = stop_conditions
+        if targets is not None:
+            template.targets = targets
+        if actions is not None:
+            template.actions = actions
+        if role_arn is not None:
+            template.role_arn = role_arn
+        if log_configuration is not None:
+            template.log_configuration = log_configuration
+        if experiment_options is not None:
+            # Only emptyTargetResolutionMode can be updated; accountTargeting is
+            # fixed when the template is created.
+            template.experiment_options = {
+                **(template.experiment_options or {}),
+                **experiment_options,
+            }
+        if experiment_report_configuration is not None:
+            template.experiment_report_configuration = experiment_report_configuration
+
+        template.last_update_time = unix_time()
+        return template.to_dict(
+            tags=self.tagger.get_tag_dict_for_resource(template.arn)
+        )
+
+    def get_experiment_target_account_configuration(
+        self, experiment_id: str, account_id: str
+    ) -> dict[str, Any]:
+        if experiment_id not in self.experiments:
+            raise ResourceNotFoundException(
+                f"Experiment {experiment_id} does not exist"
+            )
+        experiment = self.experiments[experiment_id]
+        if account_id not in experiment.target_account_configurations:
+            raise ResourceNotFoundException(
+                f"Target account configuration for account {account_id} does not exist"
+            )
+        return experiment.target_account_configurations[account_id].to_dict()
+
+    def _get_target_account_configuration(
+        self, experiment_template_id: str, account_id: str
+    ) -> TargetAccountConfiguration:
+        if experiment_template_id not in self.experiment_templates:
+            raise ResourceNotFoundException(
+                f"Experiment template {experiment_template_id} does not exist"
+            )
+        template = self.experiment_templates[experiment_template_id]
+        if account_id not in template.target_account_configurations:
+            raise ResourceNotFoundException(
+                f"Target account configuration for account {account_id} does not exist"
+            )
+        return template.target_account_configurations[account_id]
+
+    def update_target_account_configuration(
+        self,
+        experiment_template_id: str,
+        account_id: str,
+        role_arn: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict[str, Any]:
+        config = self._get_target_account_configuration(
+            experiment_template_id, account_id
+        )
+
+        # Only the parameters that are supplied are updated - anything omitted
+        # keeps its current value.
+        if role_arn is not None:
+            config.role_arn = role_arn
+        if description is not None:
+            config.description = description
+        return config.to_dict()
+
+    def delete_target_account_configuration(
+        self, experiment_template_id: str, account_id: str
+    ) -> dict[str, Any]:
+        config = self._get_target_account_configuration(
+            experiment_template_id, account_id
+        )
+        template = self.experiment_templates[experiment_template_id]
+        del template.target_account_configurations[account_id]
+        return config.to_dict()
+
+    def get_target_account_configuration(
+        self, experiment_template_id: str, account_id: str
+    ) -> dict[str, Any]:
+        config = self._get_target_account_configuration(
+            experiment_template_id, account_id
+        )
+        return config.to_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_experiment_resolved_targets(
+        self, experiment_id: str, target_name: Optional[str] = None
+    ) -> list[ResolvedTarget]:
+        if experiment_id not in self.experiments:
+            raise ResourceNotFoundException(
+                f"Experiment {experiment_id} does not exist"
+            )
+        resolved_targets = self.experiments[experiment_id].resolved_targets()
+        if target_name:
+            resolved_targets = [
+                target
+                for target in resolved_targets
+                if target.target_name == target_name
+            ]
+        return resolved_targets
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_experiment_target_account_configurations(
+        self, experiment_id: str
+    ) -> list[TargetAccountConfiguration]:
+        if experiment_id not in self.experiments:
+            raise ResourceNotFoundException(
+                f"Experiment {experiment_id} does not exist"
+            )
+        experiment = self.experiments[experiment_id]
+        return list(experiment.target_account_configurations.values())
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_target_account_configurations(
+        self, experiment_template_id: str
+    ) -> list[TargetAccountConfiguration]:
+        if experiment_template_id not in self.experiment_templates:
+            raise ResourceNotFoundException(
+                f"Experiment template {experiment_template_id} does not exist"
+            )
+        template = self.experiment_templates[experiment_template_id]
+        return list(template.target_account_configurations.values())
+
 
 fis_backends = BackendDict(
     FISBackend,

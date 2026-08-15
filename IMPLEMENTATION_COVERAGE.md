@@ -4659,6 +4659,38 @@
 - [X] update_destination
 </details>
 
+## fis
+<details>
+<summary>76% implemented</summary>
+
+- [X] create_experiment_template
+- [X] create_target_account_configuration
+- [X] delete_experiment_template
+- [X] delete_target_account_configuration
+- [ ] get_action
+- [X] get_experiment
+- [X] get_experiment_target_account_configuration
+- [X] get_experiment_template
+- [ ] get_safety_lever
+- [X] get_target_account_configuration
+- [ ] get_target_resource_type
+- [ ] list_actions
+- [X] list_experiment_resolved_targets
+- [X] list_experiment_target_account_configurations
+- [X] list_experiment_templates
+- [X] list_experiments
+- [X] list_tags_for_resource
+- [X] list_target_account_configurations
+- [ ] list_target_resource_types
+- [X] start_experiment
+- [X] stop_experiment
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_experiment_template
+- [ ] update_safety_lever_state
+- [X] update_target_account_configuration
+</details>
+
 ## forecast
 <details>
 <summary>7% implemented</summary>
@@ -11295,7 +11327,6 @@
 - evs
 - finspace
 - finspace-data
-- fis
 - fms
 - forecastquery
 - frauddetector
