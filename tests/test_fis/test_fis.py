@@ -1,10 +1,13 @@
 """Unit tests for fis-supported APIs."""
 
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
+from moto.moto_api import state_manager
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -626,7 +629,8 @@ def test_get_experiment_action_state_follows_the_experiment():
 
 @mock_aws
 def test_get_experiment_state_transition_is_configurable():
-    from moto.moto_api import state_manager
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't set transition directly outside of DecoratorMode")
 
     state_manager.set_transition(
         "fis::experiment", transition={"progression": "immediate"}
