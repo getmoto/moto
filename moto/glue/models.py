@@ -312,6 +312,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             table_input,
             catalog_id=self.account_id,
             open_table_format_input=open_table_format_input,
+            backend=self,
         )
         database.tables[table_name] = table
         return table
@@ -1706,6 +1707,16 @@ class FakeDatabase(BaseModel):
 
 
 class FakeTable(BaseModel):
+    # Fields that AWS Glue reads through from the target table when a table
+    # is a resource link (i.e. its definition contains a TargetTable).
+    # See https://docs.aws.amazon.com/lake-formation/latest/dg/resource-links-glue-apis.html
+    READ_THROUGH_FIELDS = (
+        "StorageDescriptor",
+        "PartitionKeys",
+        "TableType",
+        "Parameters",
+    )
+
     def __init__(
         self,
         database_name: str,
@@ -1713,10 +1724,12 @@ class FakeTable(BaseModel):
         table_input: dict[str, Any],
         catalog_id: str,
         open_table_format_input: dict[str, Any] | None = None,
+        backend: "GlueBackend | None" = None,
     ):
         self.database_name = database_name
         self.name = table_name
         self.catalog_id = catalog_id
+        self.backend = backend
         self.partitions: dict[str, FakePartition] = OrderedDict()
         self.created_time = utcnow()
         self.updated_time: datetime | None = None
@@ -1749,18 +1762,48 @@ class FakeTable(BaseModel):
 
     def as_dict(self, version: str | None = None) -> dict[str, Any]:
         version = version or self._current_version  # type: ignore
+        version_data = self.get_version(str(version))
         obj = {
             "DatabaseName": self.database_name,
             "Name": self.name,
             "CreateTime": self.created_time,
-            **self.get_version(str(version)),
+            **version_data,
             # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
             "VersionId": str(version),
             "CatalogId": self.catalog_id,
         }
         if self.updated_time is not None:
             obj["UpdateTime"] = self.updated_time
+
+        target_table = version_data.get("TargetTable")
+        if target_table and self.backend is not None:
+            self._merge_target_table(obj, target_table)
         return obj
+
+    def _merge_target_table(
+        self, obj: dict[str, Any], target_table: dict[str, Any]
+    ) -> None:
+        """
+        If this table is a resource link (its definition contains a
+        TargetTable), read through to the target table and merge its
+        schema/storage fields into the response - mirroring AWS Glue, which
+        issues a second GetTable-call against the target table and merges
+        the result. The link's own Name/DatabaseName/TargetTable are kept.
+
+        If the target table does not exist, the link is returned as-is.
+        """
+        target_database_name = target_table.get("DatabaseName")
+        target_name = target_table.get("Name")
+        if not target_database_name or not target_name:
+            return
+        try:
+            target = self.backend.get_table(target_database_name, target_name)  # type: ignore[union-attr]
+        except (DatabaseNotFoundException, TableNotFoundException):
+            return
+        target_version_data = target.get_version(str(target._current_version))
+        for field in self.READ_THROUGH_FIELDS:
+            if field in target_version_data:
+                obj[field] = target_version_data[field]
 
     def create_partition(self, partiton_input: dict[str, Any]) -> None:
         partition = FakePartition(self.database_name, self.name, partiton_input)
