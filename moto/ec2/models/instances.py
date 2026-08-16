@@ -316,7 +316,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @property
     def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
-        return self.block_device_mapping.items()
+        return list(self.block_device_mapping.items())
 
     @staticmethod
     def get_block_device_status(volume_status: str) -> str:
