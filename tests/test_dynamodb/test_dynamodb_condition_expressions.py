@@ -739,3 +739,36 @@ def test_conditional_check_failed_bytes():
     assert "Item" in exc.value.response
     assert exc.value.response["Item"]["my_bytes"]["B"] == b"somebytes"
     assert exc.value.response["Item"]["my_bytes_set"]["BS"] == [b"byte1", b"byte2"]
+
+
+@mock_aws
+def test_between_condition_includes_zero():
+    """
+    A numeric attribute value of exactly 0 must satisfy a BETWEEN range that
+    includes it; previously FuncBetween tested the attribute with bare
+    truthiness, so Decimal("0") was treated as missing and excluded.
+    """
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
+    table_name = f"T{uuid4()}"
+    dynamodb.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = dynamodb.Table(table_name)
+
+    table.put_item(Item={"id": "zero", "price": 0})
+    table.put_item(Item={"id": "five", "price": 5})
+
+    result = table.scan(
+        FilterExpression="price BETWEEN :lo AND :hi",
+        ExpressionAttributeValues={":lo": 0, ":hi": 100},
+    )
+    assert {item["id"] for item in result["Items"]} == {"zero", "five"}
+
+    result = table.scan(
+        FilterExpression="price BETWEEN :lo AND :hi",
+        ExpressionAttributeValues={":lo": -10, ":hi": 0},
+    )
+    assert {item["id"] for item in result["Items"]} == {"zero"}
