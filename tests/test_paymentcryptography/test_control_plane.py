@@ -10,11 +10,7 @@ from cryptography.hazmat.primitives import cmac
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 
 from moto import mock_aws
-from moto.core import DEFAULT_ACCOUNT_ID
-from moto.paymentcryptography.models import (
-    PaymentCryptographyControlPlaneBackend,
-    paymentcryptography_backends,
-)
+from moto.paymentcryptography.models import PaymentCryptographyControlPlaneBackend
 from moto.paymentcryptography.responses import PaymentCryptographyControlPlaneResponse
 
 ATTRIBUTES = {
@@ -235,13 +231,14 @@ def test_import_export_certificates_and_token_reuse():
 
 
 @mock_aws
-def test_kcv_matches_aes_cmac():
+def test_kcv_matches_aes_cmac(monkeypatch):
+    material = bytes(range(16))
+    monkeypatch.setattr(
+        "moto.paymentcryptography.models.os.urandom", lambda size: material[:size]
+    )
     pc = client()
     key = pc.create_key(KeyAttributes=ATTRIBUTES, Exportable=True)["Key"]
-    backend_key = paymentcryptography_backends[DEFAULT_ACCOUNT_ID]["us-east-1"].keys[
-        key["KeyArn"]
-    ]
-    calculator = cmac.CMAC(AES(backend_key.material))
+    calculator = cmac.CMAC(AES(material))
     calculator.update(bytes(16))
     assert key["KeyCheckValue"] == calculator.finalize()[:3].hex().upper()
 
