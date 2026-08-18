@@ -9,8 +9,11 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
+from cryptography.hazmat.primitives import cmac, hashes, hmac, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.ciphers import Cipher, modes
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.x509.oid import NameOID
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -51,6 +54,51 @@ def _material_size(algorithm: str) -> int:
     return sizes.get(algorithm, 32)
 
 
+def _private_key(algorithm: str) -> Any:
+    rsa_sizes = {"RSA_2048": 2048, "RSA_3072": 3072, "RSA_4096": 4096}
+    curves = {
+        "ECC_NIST_P256": ec.SECP256R1,
+        "ECC_NIST_P384": ec.SECP384R1,
+        "ECC_NIST_P521": ec.SECP521R1,
+    }
+    if algorithm in rsa_sizes:
+        return rsa.generate_private_key(
+            public_exponent=65537, key_size=rsa_sizes[algorithm]
+        )
+    if algorithm in curves:
+        return ec.generate_private_key(curves[algorithm]())
+    return None
+
+
+def _calculate_kcv(
+    material: bytes, algorithm: str, kcv_algorithm: str, private_key: Any = None
+) -> str:
+    if algorithm.startswith("AES") and kcv_algorithm == "CMAC":
+        cmac_calculator = cmac.CMAC(AES(material))
+        cmac_calculator.update(bytes(16))
+        return cmac_calculator.finalize()[:3].hex().upper()
+    if algorithm.startswith("TDES") and kcv_algorithm == "ANSI_X9_24":
+        encryptor = Cipher(TripleDES(material), modes.ECB()).encryptor()
+        return encryptor.update(bytes(8))[:3].hex().upper()
+    if algorithm.startswith("HMAC") and kcv_algorithm == "HMAC":
+        digest = {
+            "HMAC_SHA224": hashes.SHA224,
+            "HMAC_SHA256": hashes.SHA256,
+            "HMAC_SHA384": hashes.SHA384,
+            "HMAC_SHA512": hashes.SHA512,
+        }.get(algorithm, hashes.SHA256)
+        digest_algorithm = digest()
+        hmac_calculator = hmac.HMAC(material, digest_algorithm)
+        hmac_calculator.update(bytes(digest_algorithm.digest_size))
+        return hmac_calculator.finalize()[:3].hex().upper()
+    if private_key is not None:
+        material = private_key.public_key().public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+    return hashlib.sha1(material).hexdigest().upper()[:6]  # noqa: S324
+
+
 class Key:
     def __init__(
         self,
@@ -75,13 +123,39 @@ class Key:
         self.exportable = exportable
         self.enabled = enabled
         self.origin = origin
-        self.material = material or os.urandom(
-            _material_size(attributes.get("KeyAlgorithm", ""))
+        algorithm = attributes.get("KeyAlgorithm", "")
+        expected_class = (
+            "ASYMMETRIC_KEY_PAIR"
+            if algorithm.startswith(("RSA", "ECC"))
+            and origin == "AWS_PAYMENT_CRYPTOGRAPHY"
+            else None
         )
+        if expected_class and attributes.get("KeyClass") != expected_class:
+            raise ValidationException(
+                f"{algorithm} requires KeyClass {expected_class} when creating a key"
+            )
+        self.private_key: Any = _private_key(algorithm) if material is None else None
+        if material is not None:
+            self.material = material
+        elif self.private_key is not None:
+            self.material = self.private_key.private_bytes(
+                serialization.Encoding.DER,
+                serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption(),
+            )
+        else:
+            self.material = os.urandom(_material_size(algorithm))
         self.kcv_algorithm = kcv_algorithm or _default_kcv_algorithm(
             attributes.get("KeyAlgorithm", "")
         )
-        self.kcv = hashlib.sha256(self.material).hexdigest().upper()[:6]
+        expected_kcv = _default_kcv_algorithm(algorithm)
+        if self.kcv_algorithm != expected_kcv:
+            raise ValidationException(
+                f"{self.kcv_algorithm} is not valid for {algorithm}; expected {expected_kcv}"
+            )
+        self.kcv = _calculate_kcv(
+            self.material, algorithm, self.kcv_algorithm, self.private_key
+        )
         self.state = "CREATE_COMPLETE"
         self.created = utcnow()
         self.usage_start = self.created if enabled else None
@@ -94,7 +168,6 @@ class Key:
         self.replication_status: dict[str, dict[str, str]] | None = None
         self.using_defaults: bool | None = None
         self.public_certificate: str | None = None
-        self.private_key: Any = None
         self.mpa_status: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -148,6 +221,28 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             if identifier in (key.arn, key.key_id):
                 return key
         raise ResourceNotFoundException(f"Key {identifier} was not found")
+
+    def _related_keys(self, key: Key) -> list[Key]:
+        related = []
+        for backend in paymentcryptography_backends[self.account_id].values():
+            for candidate in backend.keys.values():
+                if candidate.key_id == key.key_id:
+                    related.append(candidate)
+        return related
+
+    def _update_related(self, key: Key, **values: Any) -> None:
+        for related in self._related_keys(key):
+            for name, value in values.items():
+                setattr(related, name, value)
+
+    def _require_mode(self, identifier: str, mode: str) -> Key:
+        key = self._resolve(identifier)
+        if not key.enabled or key.state != "CREATE_COMPLETE":
+            raise ConflictException("The wrapping key is not enabled")
+        modes_of_use = key.attributes.get("KeyModesOfUse", {})
+        if not (modes_of_use.get(mode) or modes_of_use.get("NoRestrictions")):
+            raise ValidationException(f"The key does not permit {mode.lower()}")
+        return key
 
     def _paginate(
         self, values: list[Any], token: str | None, limit: int | None
@@ -235,32 +330,40 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def delete_key(self, key_identifier: str, days: int | None) -> dict[str, Any]:
         key = self._resolve(key_identifier)
-        key.enabled = False
-        key.state = "DELETE_PENDING"
-        key.usage_stop = utcnow()
-        key.delete_pending = utcnow() + timedelta(days=days or 7)
+        if key.state == "DELETE_PENDING":
+            raise ConflictException("The key is already pending deletion")
+        usage_stop = utcnow()
+        delete_pending = usage_stop + timedelta(days=days or 7)
+        self._update_related(
+            key,
+            enabled=False,
+            state="DELETE_PENDING",
+            usage_stop=usage_stop,
+            delete_pending=delete_pending,
+        )
         return key.to_dict()
 
     def restore_key(self, key_identifier: str) -> dict[str, Any]:
         key = self._resolve(key_identifier)
         if key.state != "DELETE_PENDING":
             raise ConflictException("Only a key pending deletion can be restored")
-        key.state = "CREATE_COMPLETE"
-        key.delete_pending = None
+        self._update_related(key, state="CREATE_COMPLETE", delete_pending=None)
         return key.to_dict()
 
     def start_key_usage(self, key_identifier: str) -> dict[str, Any]:
         key = self._resolve(key_identifier)
         if key.state == "DELETE_PENDING":
             raise ConflictException("A key pending deletion cannot be enabled")
-        key.enabled = True
-        key.usage_start = utcnow()
+        if not key.enabled:
+            self._update_related(key, enabled=True, usage_start=utcnow())
         return key.to_dict()
 
     def stop_key_usage(self, key_identifier: str) -> dict[str, Any]:
         key = self._resolve(key_identifier)
-        key.enabled = False
-        key.usage_stop = utcnow()
+        if key.state == "DELETE_PENDING":
+            raise ConflictException("A key pending deletion cannot be disabled")
+        if key.enabled:
+            self._update_related(key, enabled=False, usage_stop=utcnow())
         return key.to_dict()
 
     def create_alias(self, alias_name: str, key_arn: str | None) -> dict[str, Any]:
@@ -380,11 +483,9 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         return key.to_dict()
 
     def _certificate(self, algorithm: str, common_name: str) -> tuple[Any, str]:
-        private = (
-            ec.generate_private_key(ec.SECP256R1())
-            if algorithm.startswith("ECC")
-            else rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        )
+        private = _private_key(algorithm)
+        if private is None:
+            raise ValidationException(f"{algorithm} is not an asymmetric key algorithm")
         subject = issuer = x509.Name(
             [x509.NameAttribute(NameOID.COMMON_NAME, common_name)]
         )
@@ -405,11 +506,17 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     ) -> dict[str, Any]:
         store = self.import_tokens if kind == "Import" else self.export_tokens
         last = self.last_import_token if kind == "Import" else self.last_export_token
-        if reuse and last and store[last]["expires"] > utcnow():
+        if (
+            reuse
+            and last
+            and store[last]["expires"] > utcnow()
+            and store[last]["algorithm"] == algorithm
+            and store[last]["material_type"] == material_type
+        ):
             token = last
             item = store[token]
         else:
-            token = str(uuid.uuid4())
+            token = f"{kind.lower()}-token-{uuid.uuid4().hex}"
             _, certificate = self._certificate(
                 algorithm, f"Moto Payment Cryptography {kind}"
             )
@@ -433,6 +540,57 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             "ParametersValidUntilTimestamp": item["expires"],
         }
 
+    def _validate_token(
+        self, token: str, kind: str, expected_material_type: str
+    ) -> dict[str, Any]:
+        store = self.import_tokens if kind == "Import" else self.export_tokens
+        if token not in store:
+            raise ValidationException(f"The {kind.lower()} token is not valid")
+        item = store[token]
+        if item["expires"] <= utcnow():
+            raise ValidationException(f"The {kind.lower()} token has expired")
+        if item["material_type"] != expected_material_type:
+            raise ValidationException(
+                f"The {kind.lower()} token is not valid for {expected_material_type}"
+            )
+        return item
+
+    def _wrapped_payload(self, key: Key, variant: str) -> str:
+        payload = json.dumps(
+            {
+                "attributes": key.attributes,
+                "derive_key_usage": key.derive_key_usage,
+                "exportable": key.exportable,
+                "material": base64.b64encode(key.material).decode(),
+            },
+            separators=(",", ":"),
+        ).encode()
+        if variant in {"Tr31KeyBlock", "DiffieHellmanTr31KeyBlock"}:
+            return "MOTO1" + base64.b32encode(payload).decode().rstrip("=")
+        return payload.hex().upper()
+
+    def _decode_wrapped_payload(
+        self, variant: str, value: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        wrapped = value.get("WrappedKeyBlock") or value.get("WrappedKeyCryptogram")
+        if not wrapped:
+            return None
+        try:
+            if variant in {"Tr31KeyBlock", "DiffieHellmanTr31KeyBlock"}:
+                if not wrapped.startswith("MOTO1"):
+                    return None
+                encoded = wrapped[5:]
+                encoded += "=" * (-len(encoded) % 8)
+                raw = base64.b32decode(encoded)
+            else:
+                raw = bytes.fromhex(wrapped)
+            payload = json.loads(raw)
+            if not {"attributes", "exportable", "material"}.issubset(payload):
+                return None
+            return payload
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return None
+
     def get_parameters_for_import(
         self, material_type: str, algorithm: str, reuse: bool
     ) -> dict[str, Any]:
@@ -445,8 +603,25 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def import_key(self, key_material: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         variant, value = next(iter(key_material.items()))
-        attrs = value.get("KeyAttributes")
-        exportable = value.get("Exportable", False)
+        material_types = {
+            "Tr31KeyBlock": "TR31_KEY_BLOCK",
+            "DiffieHellmanTr31KeyBlock": "TR31_KEY_BLOCK",
+            "Tr34KeyBlock": "TR34_KEY_BLOCK",
+            "KeyCryptogram": "KEY_CRYPTOGRAM",
+        }
+        token = value.get("ImportToken")
+        if token:
+            self._validate_token(token, "Import", material_types.get(variant, ""))
+        elif variant == "KeyCryptogram":
+            raise ValidationException("ImportToken is required for KeyCryptogram")
+        wrapping_identifier = value.get("WrappingKeyIdentifier")
+        if wrapping_identifier:
+            self._require_mode(wrapping_identifier, "Unwrap")
+        payload = self._decode_wrapped_payload(variant, value)
+        attrs = payload["attributes"] if payload else value.get("KeyAttributes")
+        exportable = (
+            payload["exportable"] if payload else value.get("Exportable", False)
+        )
         if attrs is None and variant == "As2805KeyCryptogram":
             attrs = {
                 "KeyUsage": value["As2805KeyVariant"],
@@ -462,12 +637,29 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
                 "KeyAlgorithm": "TDES_3KEY",
                 "KeyModesOfUse": {"NoRestrictions": True},
             }
-        raw = (
-            value.get("WrappedKeyBlock")
-            or value.get("WrappedKeyCryptogram")
-            or value.get("PublicKeyCertificate")
-            or str(uuid.uuid4())
-        ).encode()
+        public_certificate = value.get("PublicKeyCertificate")
+        if payload:
+            raw = base64.b64decode(payload["material"])
+        elif public_certificate:
+            try:
+                certificate = x509.load_pem_x509_certificate(
+                    public_certificate.encode()
+                )
+                raw = certificate.public_key().public_bytes(
+                    serialization.Encoding.DER,
+                    serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+            except ValueError:
+                raise ValidationException(
+                    "PublicKeyCertificate is not a valid certificate"
+                )
+        else:
+            wrapped = value.get("WrappedKeyBlock") or value.get("WrappedKeyCryptogram")
+            if not wrapped:
+                raise ValidationException("KeyMaterial does not contain key material")
+            raw = hashlib.sha256(wrapped.encode()).digest()[
+                : _material_size(attrs["KeyAlgorithm"])
+            ]
         key = Key(
             self.account_id,
             self.region_name,
@@ -476,10 +668,11 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             kwargs.get("enabled", True),
             kwargs.get("key_check_value_algorithm"),
             "EXTERNAL",
-            hashlib.sha256(raw).digest()[: _material_size(attrs["KeyAlgorithm"])],
+            raw,
+            derive_key_usage=(payload or {}).get("derive_key_usage"),
         )
-        if "PublicKeyCertificate" in value:
-            key.public_certificate = value["PublicKeyCertificate"]
+        if public_certificate:
+            key.public_certificate = public_certificate
         self.keys[key.arn] = key
         self.tags[key.arn] = {t["Key"]: t["Value"] for t in kwargs.get("tags") or []}
         if kwargs.get("replication_regions"):
@@ -496,12 +689,17 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         if not key.exportable:
             raise ConflictException("The key is not exportable")
         variant, spec = next(iter(key_material.items()))
+        if variant == "Tr34KeyBlock" and spec.get("ExportToken"):
+            self._validate_token(spec["ExportToken"], "Export", "TR34_KEY_BLOCK")
         wrapping_identifier = (
             spec.get("WrappingKeyIdentifier")
             or spec.get("CertificateAuthorityPublicKeyIdentifier")
             or identifier
         )
-        wrapping_arn = self._resolve(wrapping_identifier).arn
+        if spec.get("WrappingKeyIdentifier"):
+            wrapping_arn = self._require_mode(wrapping_identifier, "Wrap").arn
+        else:
+            wrapping_arn = self._resolve(wrapping_identifier).arn
         formats = {
             "Tr31KeyBlock": "TR31_KEY_BLOCK",
             "Tr34KeyBlock": "TR34_KEY_BLOCK",
@@ -512,7 +710,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         return {
             "WrappingKeyArn": wrapping_arn,
             "WrappedKeyMaterialFormat": formats[variant],
-            "KeyMaterial": base64.b64encode(key.material).decode(),
+            "KeyMaterial": self._wrapped_payload(key, variant),
             "KeyCheckValue": key.kcv,
             "KeyCheckValueAlgorithm": (export_attributes or {}).get(
                 "KeyCheckValueAlgorithm", key.kcv_algorithm
@@ -521,10 +719,32 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
     def get_public_key_certificate(self, identifier: str) -> dict[str, str]:
         key = self._resolve(identifier)
+        if key.attributes.get("KeyClass") not in {
+            "ASYMMETRIC_KEY_PAIR",
+            "PUBLIC_KEY",
+        }:
+            raise ValidationException("The key must be an asymmetric key")
         if not key.public_certificate:
-            key.private_key, key.public_certificate = self._certificate(
-                key.attributes.get("KeyAlgorithm", "RSA_2048"), key.key_id
+            if key.private_key is None:
+                raise ConflictException(
+                    "No public certificate is available for this key"
+                )
+            subject = issuer = x509.Name(
+                [x509.NameAttribute(NameOID.COMMON_NAME, key.key_id)]
             )
+            certificate = (
+                x509.CertificateBuilder()
+                .subject_name(subject)
+                .issuer_name(issuer)
+                .public_key(key.private_key.public_key())
+                .serial_number(x509.random_serial_number())
+                .not_valid_before(utcnow())
+                .not_valid_after(utcnow() + timedelta(days=365))
+                .sign(key.private_key, hashes.SHA256())
+            )
+            key.public_certificate = certificate.public_bytes(
+                serialization.Encoding.PEM
+            ).decode()
         return {
             "KeyCertificate": key.public_certificate,
             "KeyCertificateChain": key.public_certificate,
@@ -534,10 +754,10 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         self, identifier: str, signing_algorithm: str, subject: dict[str, str]
     ) -> str:
         key = self._resolve(identifier)
-        if not key.private_key:
-            key.private_key, key.public_certificate = self._certificate(
-                key.attributes.get("KeyAlgorithm", "RSA_2048"), key.key_id
-            )
+        if key.attributes.get("KeyClass") != "ASYMMETRIC_KEY_PAIR":
+            raise ValidationException("The key must be an asymmetric key pair")
+        if key.private_key is None:
+            raise ConflictException("The private key is not available")
         names = {
             "CommonName": NameOID.COMMON_NAME,
             "OrganizationUnit": NameOID.ORGANIZATIONAL_UNIT_NAME,
@@ -550,10 +770,16 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         csr_subject = x509.Name(
             [x509.NameAttribute(names[k], v) for k, v in subject.items() if k in names]
         )
+        signing_hash: Any = {
+            "SHA224": hashes.SHA224,
+            "SHA256": hashes.SHA256,
+            "SHA384": hashes.SHA384,
+            "SHA512": hashes.SHA512,
+        }[signing_algorithm]()
         return (
             x509.CertificateSigningRequestBuilder()
             .subject_name(csr_subject)
-            .sign(key.private_key, hashes.SHA256())
+            .sign(key.private_key, signing_hash)
             .public_bytes(serialization.Encoding.PEM)
             .decode()
         )
@@ -579,7 +805,7 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
     def disassociate_mpa_team(self, action: str, comment: str | None) -> dict[str, Any]:
         association = self.get_mpa_team_association(action).copy()
         association["AssociationState"] = "DELETE_PENDING"
-        del self.mpa_associations[action]
+        self.mpa_associations[action] = association
         return association
 
 

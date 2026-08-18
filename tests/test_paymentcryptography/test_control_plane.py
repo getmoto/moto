@@ -5,9 +5,16 @@ import pytest
 from botocore import xform_name
 from botocore.exceptions import ClientError
 from botocore.session import Session
+from cryptography import x509
+from cryptography.hazmat.primitives import cmac
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
 
 from moto import mock_aws
-from moto.paymentcryptography.models import PaymentCryptographyControlPlaneBackend
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.paymentcryptography.models import (
+    PaymentCryptographyControlPlaneBackend,
+    paymentcryptography_backends,
+)
 from moto.paymentcryptography.responses import PaymentCryptographyControlPlaneResponse
 
 ATTRIBUTES = {
@@ -22,6 +29,20 @@ PUBLIC_ATTRIBUTES = {
     "KeyClass": "PUBLIC_KEY",
     "KeyAlgorithm": "RSA_2048",
     "KeyModesOfUse": {"Verify": True},
+}
+
+PAIR_ATTRIBUTES = {
+    "KeyUsage": "TR31_S0_ASYMMETRIC_KEY_FOR_DIGITAL_SIGNATURE",
+    "KeyClass": "ASYMMETRIC_KEY_PAIR",
+    "KeyAlgorithm": "RSA_2048",
+    "KeyModesOfUse": {"Sign": True, "Verify": True},
+}
+
+WRAPPING_ATTRIBUTES = {
+    "KeyUsage": "TR31_K0_KEY_ENCRYPTION_KEY",
+    "KeyClass": "SYMMETRIC_KEY",
+    "KeyAlgorithm": "AES_128",
+    "KeyModesOfUse": {"Wrap": True, "Unwrap": True},
 }
 
 
@@ -132,6 +153,18 @@ def test_default_and_per_key_replication():
         ]
         == "REPLICA"
     )
+    east.stop_key_usage(KeyIdentifier=key["KeyArn"])
+    assert (
+        client("us-west-2").get_key(KeyIdentifier=replica_arn)["Key"]["Enabled"]
+        is False
+    )
+    east.start_key_usage(KeyIdentifier=key["KeyArn"])
+    east.delete_key(KeyIdentifier=key["KeyArn"])
+    assert (
+        client("us-west-2").get_key(KeyIdentifier=replica_arn)["Key"]["KeyState"]
+        == "DELETE_PENDING"
+    )
+    east.restore_key(KeyIdentifier=key["KeyArn"])
     east.remove_key_replication_regions(
         KeyIdentifier=key["KeyArn"], ReplicationRegions=["us-west-2"]
     )
@@ -163,8 +196,9 @@ def test_import_export_certificates_and_token_reuse():
     )["Key"]
     certificate = pc.get_public_key_certificate(KeyIdentifier=imported["KeyArn"])
     assert certificate["KeyCertificate"].startswith("-----BEGIN CERTIFICATE-----")
+    signing_key = pc.create_key(KeyAttributes=PAIR_ATTRIBUTES, Exportable=False)["Key"]
     csr = pc.get_certificate_signing_request(
-        KeyIdentifier=imported["KeyArn"],
+        KeyIdentifier=signing_key["KeyArn"],
         SigningAlgorithm="SHA256",
         CertificateSubject={"CommonName": "moto.example", "Country": "US"},
     )["CertificateSigningRequest"]
@@ -182,11 +216,69 @@ def test_import_export_certificates_and_token_reuse():
         == export_parameters["ExportToken"]
     )
     exportable = pc.create_key(KeyAttributes=ATTRIBUTES, Exportable=True)["Key"]
+    wrapping = pc.create_key(KeyAttributes=WRAPPING_ATTRIBUTES, Exportable=True)["Key"]
     wrapped = pc.export_key(
-        KeyMaterial={"Tr31KeyBlock": {"WrappingKeyIdentifier": exportable["KeyArn"]}},
+        KeyMaterial={"Tr31KeyBlock": {"WrappingKeyIdentifier": wrapping["KeyArn"]}},
         ExportKeyIdentifier=exportable["KeyArn"],
     )["WrappedKey"]
     assert wrapped["WrappedKeyMaterialFormat"] == "TR31_KEY_BLOCK"
+    reimported = pc.import_key(
+        KeyMaterial={
+            "Tr31KeyBlock": {
+                "WrappingKeyIdentifier": wrapping["KeyArn"],
+                "WrappedKeyBlock": wrapped["KeyMaterial"],
+            }
+        }
+    )["Key"]
+    assert reimported["KeyAttributes"] == exportable["KeyAttributes"]
+    assert reimported["KeyCheckValue"] == exportable["KeyCheckValue"]
+
+
+@mock_aws
+def test_kcv_matches_aes_cmac():
+    pc = client()
+    key = pc.create_key(KeyAttributes=ATTRIBUTES, Exportable=True)["Key"]
+    backend_key = paymentcryptography_backends[DEFAULT_ACCOUNT_ID]["us-east-1"].keys[
+        key["KeyArn"]
+    ]
+    calculator = cmac.CMAC(AES(backend_key.material))
+    calculator.update(bytes(16))
+    assert key["KeyCheckValue"] == calculator.finalize()[:3].hex().upper()
+
+
+@mock_aws
+def test_import_token_is_bound_to_material_type():
+    pc = client()
+    token = pc.get_parameters_for_import(
+        KeyMaterialType="TR31_KEY_BLOCK", WrappingKeyAlgorithm="RSA_2048"
+    )["ImportToken"]
+    with pytest.raises(ClientError) as error:
+        pc.import_key(
+            KeyMaterial={
+                "KeyCryptogram": {
+                    "KeyAttributes": ATTRIBUTES,
+                    "Exportable": True,
+                    "WrappedKeyCryptogram": "00" * 16,
+                    "ImportToken": token,
+                }
+            }
+        )
+    assert error.value.response["Error"]["Code"] == "ValidationException"
+
+
+@mock_aws
+def test_csr_uses_requested_key_size_and_hash():
+    pc = client()
+    attributes = {**PAIR_ATTRIBUTES, "KeyAlgorithm": "RSA_3072"}
+    key = pc.create_key(KeyAttributes=attributes, Exportable=False)["Key"]
+    pem = pc.get_certificate_signing_request(
+        KeyIdentifier=key["KeyArn"],
+        SigningAlgorithm="SHA384",
+        CertificateSubject={"CommonName": "moto.example"},
+    )["CertificateSigningRequest"]
+    csr = x509.load_pem_x509_csr(pem.encode())
+    assert csr.public_key().key_size == 3072
+    assert csr.signature_hash_algorithm.name == "sha384"
 
 
 @mock_aws
@@ -203,6 +295,7 @@ def test_mpa_team_association_lifecycle():
     )
     removed = pc.disassociate_mpa_team(Action=action)["MpaTeamAssociation"]
     assert removed["AssociationState"] == "DELETE_PENDING"
+    assert pc.get_mpa_team_association(Action=action)["MpaTeamAssociation"] == removed
 
 
 @mock_aws
