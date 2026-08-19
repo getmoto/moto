@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import boto3
@@ -231,13 +232,23 @@ def test_import_export_certificates_and_token_reuse():
 
 
 @mock_aws
-def test_kcv_matches_aes_cmac(monkeypatch):
-    material = bytes(range(16))
-    monkeypatch.setattr(
-        "moto.paymentcryptography.models.os.urandom", lambda size: material[:size]
-    )
+def test_kcv_matches_aes_cmac():
     pc = client()
-    key = pc.create_key(KeyAttributes=ATTRIBUTES, Exportable=True)["Key"]
+    wrapped = "00" * 16
+    token = pc.get_parameters_for_import(
+        KeyMaterialType="KEY_CRYPTOGRAM", WrappingKeyAlgorithm="RSA_2048"
+    )["ImportToken"]
+    key = pc.import_key(
+        KeyMaterial={
+            "KeyCryptogram": {
+                "KeyAttributes": ATTRIBUTES,
+                "Exportable": True,
+                "WrappedKeyCryptogram": wrapped,
+                "ImportToken": token,
+            }
+        }
+    )["Key"]
+    material = hashlib.sha256(wrapped.encode()).digest()[:16]
     calculator = cmac.CMAC(AES(material))
     calculator.update(bytes(16))
     assert key["KeyCheckValue"] == calculator.finalize()[:3].hex().upper()
