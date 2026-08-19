@@ -311,3 +311,26 @@ def test_missing_key_raises_resource_not_found():
     with pytest.raises(ClientError) as exc:
         client().get_key(KeyIdentifier="0000000000000000")
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_control_plane_validation_errors():
+    pc = client()
+    key = pc.create_key(KeyAttributes=ATTRIBUTES, Exportable=True)["Key"]
+
+    pc.create_alias(AliasName="alias/duplicate", KeyArn=key["KeyArn"])
+    with pytest.raises(ClientError) as error:
+        pc.create_alias(AliasName="alias/duplicate", KeyArn=key["KeyArn"])
+    assert error.value.response["Error"]["Code"] == "ConflictException"
+
+    with pytest.raises(ClientError) as error:
+        pc.list_keys(NextToken="not-a-pagination-token")
+    assert error.value.response["Error"]["Code"] == "ValidationException"
+
+    with pytest.raises(ClientError) as error:
+        pc.put_resource_policy(ResourceArn=key["KeyArn"], Policy="not-json")
+    assert error.value.response["Error"]["Code"] == "ValidationException"
+
+    with pytest.raises(ClientError) as error:
+        pc.get_public_key_certificate(KeyIdentifier=key["KeyArn"])
+    assert error.value.response["Error"]["Code"] == "ValidationException"
