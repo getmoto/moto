@@ -14,6 +14,9 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 from .exceptions import (
     DistributionAlreadyExists,
     DomainNameNotAnS3Bucket,
+    EntityAlreadyExists,
+    EntityNotFound,
+    FunctionAlreadyExists,
     InvalidIfMatchVersion,
     NoSuchDistribution,
     NoSuchInvalidation,
@@ -375,6 +378,75 @@ class KeyGroup(BaseModel):
         }
 
 
+class CloudFrontFunction(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        config: dict[str, Any],
+        code: bytes,
+    ):
+        self.name = name
+        self.arn = (
+            f"arn:{get_partition(region_name)}:cloudfront::{account_id}:function/{name}"
+        )
+        self.config = config
+        self.code = code
+        self.stage = "DEVELOPMENT"
+        self.status = "UNPUBLISHED"
+        self.created_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.etag = random_id()
+
+    @property
+    def function_summary(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Status": self.status,
+            "FunctionConfig": self.config,
+            "FunctionMetadata": {
+                "FunctionARN": self.arn,
+                "Stage": self.stage,
+                "CreatedTime": self.created_time,
+                "LastModifiedTime": self.last_modified_time,
+            },
+        }
+
+
+class KeyValueStore(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        comment: str,
+    ):
+        self.id = str(random.uuid4())
+        self.name = name
+        self.comment = comment
+        self.arn = f"arn:{get_partition(region_name)}:cloudfront::{account_id}:key-value-store/{self.id}"
+        self.status = "READY"
+        self.last_modified_time = utcnow()
+        self.etag = random_id()
+
+    def update(self, comment: str) -> None:
+        self.comment = comment
+        self.last_modified_time = utcnow()
+        self.etag = random_id()
+
+    @property
+    def key_value_store(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Name": self.name,
+            "Comment": self.comment,
+            "ARN": self.arn,
+            "Status": self.status,
+            "LastModifiedTime": self.last_modified_time,
+        }
+
+
 class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "cloudfront"
 
@@ -385,6 +457,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         self.origin_access_controls: dict[str, OriginAccessControl] = {}
         self.public_keys: dict[str, PublicKey] = {}
         self.key_groups: dict[str, KeyGroup] = {}
+        self.functions: dict[str, CloudFrontFunction] = {}
+        self.key_value_stores: dict[str, KeyValueStore] = {}
         self.tagger = TaggingService()
 
     def create_distribution(
@@ -578,6 +652,52 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         """
         return list(self.key_groups.values())
 
+    def create_function(
+        self,
+        name: str,
+        function_config: dict[str, Any],
+        function_code: bytes,
+        tags: list[dict[str, str]],
+    ) -> CloudFrontFunction:
+        if name in self.functions:
+            raise FunctionAlreadyExists(name)
+        function = CloudFrontFunction(
+            self.account_id, self.region_name, name, function_config, function_code
+        )
+        self.functions[name] = function
+        self.tagger.tag_resource(function.arn, tags)
+        return function
+
+    def create_key_value_store(
+        self, name: str, comment: str, tags: list[dict[str, str]]
+    ) -> KeyValueStore:
+        if name in self.key_value_stores:
+            raise EntityAlreadyExists(name)
+        kv_store = KeyValueStore(self.account_id, self.region_name, name, comment)
+        self.key_value_stores[name] = kv_store
+        self.tagger.tag_resource(kv_store.arn, tags)
+        return kv_store
+
+    def describe_key_value_store(self, name: str) -> KeyValueStore:
+        if name not in self.key_value_stores:
+            raise EntityNotFound
+        return self.key_value_stores[name]
+
+    def list_key_value_stores(self) -> list[KeyValueStore]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.key_value_stores.values())
+
+    def update_key_value_store(self, name: str, comment: str) -> KeyValueStore:
+        kv_store = self.describe_key_value_store(name)
+        kv_store.update(comment)
+        return kv_store
+
+    def delete_key_value_store(self, name: str) -> None:
+        self.describe_key_value_store(name)  # raises if not found
+        del self.key_value_stores[name]
+
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         for dist in self.distributions.values():
@@ -585,6 +705,18 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
                 arn=dist.arn,
                 tags=self.tagger.get_tag_dict_for_resource(dist.arn),
                 resource_type="cloudfront:distribution",
+            )
+        for function in self.functions.values():
+            yield TaggedResource(
+                arn=function.arn,
+                tags=self.tagger.get_tag_dict_for_resource(function.arn),
+                resource_type="cloudfront:function",
+            )
+        for kv_store in self.key_value_stores.values():
+            yield TaggedResource(
+                arn=kv_store.arn,
+                tags=self.tagger.get_tag_dict_for_resource(kv_store.arn),
+                resource_type="cloudfront:key-value-store",
             )
 
     def tag_resource(self, arn: str, tags: dict[str, str]) -> None:

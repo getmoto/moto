@@ -251,3 +251,75 @@ class CloudFrontResponse(BaseResponse):
             }
         }
         return ActionResult(result)
+
+    def create_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        function_config = self._get_param("FunctionConfig", {})
+        function_code = self._get_param("FunctionCode")
+        tags = self._get_param("Tags.Items", []) or []
+        function = self.backend.create_function(
+            name=name,
+            function_config=function_config,
+            function_code=function_code,
+            tags=tags,
+        )
+        result = {
+            "FunctionSummary": function.function_summary,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/function/{name}",
+            "ETag": function.etag,
+        }
+        return ActionResult(result)
+
+    def create_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        comment = self._get_param("Comment", "")
+        tags = self._get_param("Tags.Items", []) or []
+        kv_store = self.backend.create_key_value_store(
+            name=name,
+            comment=comment,
+            tags=tags,
+        )
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{kv_store.id}",
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def describe_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        kv_store = self.backend.describe_key_value_store(name=name)
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def list_key_value_stores(self) -> ActionResult:
+        kv_stores = self.backend.list_key_value_stores()
+        result = {
+            "KeyValueStoreList": {
+                "MaxItems": 100,
+                "Quantity": len(kv_stores),
+                "Items": [kv_store.key_value_store for kv_store in kv_stores],
+            }
+        }
+        return ActionResult(result)
+
+    def update_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        comment = self._get_param("Comment", "")
+        kv_store = self.backend.update_key_value_store(
+            name=name,
+            comment=comment,
+        )
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def delete_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.backend.delete_key_value_store(name=name)
+        return EmptyResult()

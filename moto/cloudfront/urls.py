@@ -20,4 +20,7 @@ url_paths = {
     "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)/config$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/public-key$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/public-key/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/key-value-store$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/key-value-store/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
 }
