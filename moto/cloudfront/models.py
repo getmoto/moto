@@ -680,7 +680,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     def describe_key_value_store(self, name: str) -> KeyValueStore:
         if name not in self.key_value_stores:
-            raise EntityNotFound(name)
+            raise EntityNotFound
         return self.key_value_stores[name]
 
     def list_key_value_stores(self) -> list[KeyValueStore]:

@@ -20,7 +20,7 @@ def test_create_function():
             "Items": [
                 {"Key": "Environment", "Value": "Test"},
             ]
-        }
+        },
     )
 
     function_summary = response["FunctionSummary"]
