@@ -57,3 +57,27 @@ class NoSuchInvalidation(CloudFrontException):
         super().__init__(
             "NoSuchInvalidation", "The specified invalidation does not exist."
         )
+
+
+class FunctionAlreadyExists(CloudFrontException):
+    def __init__(self, function_name: str) -> None:
+        super().__init__(
+            "FunctionAlreadyExists",
+            f"The function name that you are using to create a function is associated with another function. Already exists: {function_name}",
+        )
+
+
+class EntityAlreadyExists(CloudFrontException):
+    def __init__(self, name: str) -> None:
+        super().__init__(
+            "EntityAlreadyExists",
+            f"The Key value Store with the name {name} already exists.",
+        )
+
+
+class EntityNotFound(CloudFrontException):
+    def __init__(self) -> None:
+        super().__init__(
+            "EntityNotFound",
+            "The Key Value Store was not found.",
+        )
