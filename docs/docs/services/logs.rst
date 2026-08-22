@@ -49,6 +49,7 @@ Remove resource policy with a policy name matching given name.
 - [X] delete_retention_policy
 - [ ] delete_scheduled_query
 - [X] delete_subscription_filter
+- [ ] delete_syslog_configuration
 - [ ] delete_transformer
 - [ ] describe_account_policies
 - [ ] describe_configuration_templates
@@ -113,6 +114,7 @@ Not all query commands are implemented yet. Please raise an issue if you encount
 
 - [ ] get_scheduled_query
 - [ ] get_scheduled_query_history
+- [ ] get_storage_tier_policy
 - [ ] get_transformer
 - [ ] list_aggregate_log_group_summaries
 - [ ] list_anomalies
@@ -122,6 +124,7 @@ Not all query commands are implemented yet. Please raise an issue if you encount
 - [ ] list_log_groups_for_query
 - [ ] list_scheduled_queries
 - [ ] list_sources_for_s3_table_integration
+- [ ] list_syslog_configurations
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -148,7 +151,9 @@ Creates/updates resource policy and return policy object
 
 
 - [X] put_retention_policy
+- [ ] put_storage_tier_policy
 - [X] put_subscription_filter
+- [ ] put_syslog_configuration
 - [ ] put_transformer
 - [X] start_live_tail
 - [X] start_query

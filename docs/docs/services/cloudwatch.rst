@@ -14,6 +14,7 @@ cloudwatch
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_dataset_kms_key
 - [ ] delete_alarm_mute_rule
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
@@ -28,10 +29,12 @@ cloudwatch
 - [X] describe_insight_rules
 - [X] disable_alarm_actions
 - [X] disable_insight_rules
+- [ ] disassociate_dataset_kms_key
 - [X] enable_alarm_actions
 - [X] enable_insight_rules
 - [ ] get_alarm_mute_rule
 - [X] get_dashboard
+- [ ] get_dataset
 - [ ] get_insight_rule_report
 - [X] get_metric_data
 - [X] get_metric_statistics
@@ -49,6 +52,7 @@ cloudwatch
 - [ ] put_composite_alarm
 - [X] put_dashboard
 - [X] put_insight_rule
+- [ ] put_log_alarm
 - [ ] put_managed_insight_rules
 - [X] put_metric_alarm
 - [X] put_metric_data

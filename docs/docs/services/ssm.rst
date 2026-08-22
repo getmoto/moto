@@ -23,6 +23,7 @@ ssm
 - [ ] create_activation
 - [ ] create_association
 - [ ] create_association_batch
+- [ ] create_cloud_connector
 - [X] create_document
 - [X] create_maintenance_window
   
@@ -39,6 +40,7 @@ Registers a patch baseline. No error handling or input validation has been imple
 - [ ] create_resource_data_sync
 - [ ] delete_activation
 - [ ] delete_association
+- [ ] delete_cloud_connector
 - [X] delete_document
 - [ ] delete_inventory
 - [X] delete_maintenance_window
@@ -122,6 +124,7 @@ Returns all baselines. No pagination has been implemented yet.
 - [ ] get_access_token
 - [ ] get_automation_execution
 - [ ] get_calendar_state
+- [ ] get_cloud_connector
 - [X] get_command_invocation
 - [ ] get_connection_status
 - [ ] get_default_patch_baseline
@@ -157,6 +160,7 @@ The NextExecutionTime-field is not returned.
 - [X] label_parameter_version
 - [ ] list_association_versions
 - [ ] list_associations
+- [ ] list_cloud_connectors
 - [ ] list_command_invocations
 - [X] list_commands
   
@@ -208,6 +212,7 @@ Registers a target with a maintenance window. No error handling has been impleme
 - [X] unlabel_parameter_version
 - [ ] update_association
 - [ ] update_association_status
+- [ ] update_cloud_connector
 - [X] update_document
 - [X] update_document_default_version
 - [ ] update_document_metadata
@@ -220,4 +225,5 @@ Registers a target with a maintenance window. No error handling has been impleme
 - [ ] update_patch_baseline
 - [ ] update_resource_data_sync
 - [ ] update_service_setting
+- [ ] validate_cloud_connector
 

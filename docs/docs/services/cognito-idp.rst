@@ -29,6 +29,7 @@ cognito-idp
 - [ ] admin_forget_device
 - [ ] admin_get_device
 - [X] admin_get_user
+- [ ] admin_get_user_auth_factors
 - [X] admin_initiate_auth
 - [ ] admin_link_provider_for_user
 - [ ] admin_list_devices
@@ -100,6 +101,7 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [X] get_group
 - [ ] get_identity_provider_by_identifier
 - [ ] get_log_delivery_configuration
+- [ ] get_provisioned_limit
 - [ ] get_signing_certificate
 - [ ] get_tokens_from_refresh_token
 - [ ] get_ui_customization
@@ -143,6 +145,7 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [X] update_group
 - [X] update_identity_provider
 - [ ] update_managed_login_branding
+- [ ] update_provisioned_limit
 - [ ] update_resource_server
 - [ ] update_terms
 - [X] update_user_attributes

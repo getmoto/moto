@@ -23,6 +23,7 @@ account
 - [ ] get_contact_information
 - [ ] get_gov_cloud_account_information
 - [ ] get_primary_email
+- [ ] get_primary_email_update_status
 - [ ] get_region_opt_status
 - [ ] list_regions
 - [ ] put_account_name
