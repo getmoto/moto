@@ -151,9 +151,12 @@ def test_transact_write_items__update_with_multiple_set_clauses(table_name=None)
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
+    # In AWS, this is the full error message
+    # Moto prefixes this error with '1 validation error detected', as that is what other methods also return.
+    # Hopefully AWS streamlines the error messages soon to include that prefix everywhere
     assert (
-        err["Message"]
-        == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+        'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+        in err["Message"]
     )
 
     # Note that we can do this by simply separating the statements with a comma
