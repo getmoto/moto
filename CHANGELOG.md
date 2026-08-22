@@ -3,7 +3,7 @@ Moto Changelog
 
 5.2.3
 -----
-Docker Digest for 5.2.3: <autopopulateddigest>
+Docker Digest for 5.2.3: _sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c_
 
     General:
         * Dropped support for the Panorama service, following the removal by botocore
