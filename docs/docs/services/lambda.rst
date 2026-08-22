@@ -49,6 +49,7 @@ The Qualifier-parameter is not yet implemented
 
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
+- [ ] delete_resource_policy
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_capacity_provider
@@ -74,6 +75,7 @@ The Qualifier-parameter is not yet implemented
 - [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
+- [ ] get_resource_policy
 - [ ] get_runtime_management_config
 - [X] invoke
   
@@ -138,6 +140,7 @@ variable prior to testing.
 - [ ] put_function_recursion_config
 - [ ] put_function_scaling_config
 - [ ] put_provisioned_concurrency_config
+- [ ] put_resource_policy
 - [ ] put_runtime_management_config
 - [X] remove_layer_version_permission
 - [X] remove_permission

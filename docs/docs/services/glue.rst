@@ -14,6 +14,7 @@ glue
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_glossary_terms
 - [X] batch_create_partition
 - [ ] batch_delete_connection
 - [X] batch_delete_partition
@@ -23,7 +24,9 @@ glue
 - [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
+- [ ] batch_get_data_quality_ruleset_evaluation_run
 - [ ] batch_get_dev_endpoints
+- [ ] batch_get_iterable_forms
 - [X] batch_get_jobs
 - [X] batch_get_partition
 - [ ] batch_get_table_optimizer
@@ -47,6 +50,8 @@ glue
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
+- [ ] create_glossary
+- [ ] create_glossary_term
 - [ ] create_glue_identity_center_configuration
 - [ ] create_integration
 - [ ] create_integration_resource_property
@@ -70,6 +75,9 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] create_usage_profile
 - [ ] create_user_defined_function
 - [X] create_workflow
+- [ ] delete_asset
+- [ ] delete_asset_type
+- [ ] delete_attachment
 - [ ] delete_blueprint
 - [ ] delete_catalog
 - [ ] delete_classifier
@@ -83,6 +91,9 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [X] delete_dev_endpoint
+- [ ] delete_form_type
+- [ ] delete_glossary
+- [ ] delete_glossary_term
 - [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
 - [ ] delete_integration_resource_property
@@ -108,6 +119,9 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] describe_entity
 - [ ] describe_inbound_integrations
 - [ ] describe_integrations
+- [ ] disassociate_glossary_terms
+- [ ] get_asset
+- [ ] get_asset_type
 - [ ] get_blueprint
 - [ ] get_blueprint_run
 - [ ] get_blueprint_runs
@@ -129,6 +143,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_custom_entity_type
 - [ ] get_dashboard_url
 - [X] get_data_catalog_encryption_settings
+- [ ] get_data_catalog_export_configuration
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
@@ -141,6 +156,9 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [X] get_dev_endpoint
 - [X] get_dev_endpoints
 - [ ] get_entity_records
+- [ ] get_form_type
+- [ ] get_glossary
+- [ ] get_glossary_term
 - [ ] get_glue_identity_center_configuration
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
@@ -204,6 +222,7 @@ Expression caveats:
 - [X] get_workflow_run_properties
 - [X] get_workflow_runs
 - [ ] import_catalog_to_glue
+- [ ] list_asset_types
 - [ ] list_blueprints
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
@@ -218,7 +237,11 @@ Expression caveats:
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
 - [ ] list_entities
+- [ ] list_form_types
+- [ ] list_glossaries
+- [ ] list_glossary_terms
 - [ ] list_integration_resource_properties
+- [ ] list_iterable_forms
 - [X] list_jobs
 - [ ] list_materialized_view_refresh_task_runs
 - [ ] list_ml_transforms
@@ -232,8 +255,13 @@ Expression caveats:
 - [ ] list_usage_profiles
 - [X] list_workflows
 - [ ] modify_integration
+- [ ] put_asset
+- [ ] put_asset_type
+- [ ] put_attachment
 - [X] put_data_catalog_encryption_settings
+- [ ] put_data_catalog_export_configuration
 - [ ] put_data_quality_profile_annotation
+- [ ] put_form_type
 - [X] put_resource_policy
 - [X] put_schema_version_metadata
 - [X] put_workflow_run_properties
@@ -244,6 +272,7 @@ Expression caveats:
 - [ ] reset_job_bookmark
 - [ ] resume_workflow_run
 - [ ] run_statement
+- [ ] search_assets
 - [ ] search_tables
 - [ ] start_blueprint_run
 - [ ] start_column_statistics_task_run
@@ -271,6 +300,7 @@ Expression caveats:
 - [X] tag_resource
 - [ ] test_connection
 - [X] untag_resource
+- [ ] update_asset
 - [ ] update_blueprint
 - [ ] update_catalog
 - [ ] update_classifier
@@ -283,6 +313,8 @@ Expression caveats:
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
+- [ ] update_glossary
+- [ ] update_glossary_term
 - [ ] update_glue_identity_center_configuration
 - [ ] update_integration_resource_property
 - [ ] update_integration_table_properties

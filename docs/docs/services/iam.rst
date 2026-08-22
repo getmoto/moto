@@ -15,6 +15,7 @@ iam
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_delegation_request
+- [ ] acquire_role
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -82,6 +83,7 @@ iam
 - [X] get_access_key_last_used
 - [X] get_account_authorization_details
 - [X] get_account_password_policy
+- [ ] get_account_properties
 - [X] get_account_summary
 - [ ] get_context_keys_for_custom_policy
 - [ ] get_context_keys_for_principal_policy
@@ -104,6 +106,7 @@ Pagination is not yet implemented
 - [X] get_policy_version
 - [X] get_role
 - [X] get_role_policy
+- [ ] get_role_template_version
 - [X] get_saml_provider
 - [X] get_server_certificate
 - [ ] get_service_last_accessed_details
@@ -164,6 +167,7 @@ Pagination is not yet implemented
 - [X] list_user_tags
 - [X] list_users
 - [X] list_virtual_mfa_devices
+- [ ] put_account_properties
 - [X] put_group_policy
 - [X] put_role_permissions_boundary
 - [X] put_role_policy
