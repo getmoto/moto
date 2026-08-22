@@ -1403,6 +1403,30 @@ def test_filter_expression():
     )
     assert filter_expr.expr(row1) is True
 
+    # BETWEEN test where the attribute itself is exactly 0 -- regression test.
+    # 0 is a valid Decimal value and must not be treated as "no value" via
+    # bare truthiness (bool(Decimal("0")) is False), the same way start/end
+    # already correctly special-case 0. Item with Id=0 must be included in
+    # a BETWEEN 0 AND 10 (and BETWEEN -5 AND 10) range.
+    row_zero = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"Id": {"N": "0"}},
+    )
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "0"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is True
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "-5"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is True
+    # And it must still correctly exclude 0 when it falls outside the range.
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "1"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is False
+
     # PAREN test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id = :v0 AND (Subs = :v0 OR Subs = :v1)",
