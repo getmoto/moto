@@ -57,7 +57,7 @@ class Route53ResolverResponse(BaseResponse):
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
     def create_resolver_rule(self) -> str:
-        """Specify which Resolver enpoint the queries will pass through."""
+        """Specify which Resolver endpoint the queries will pass through."""
         creator_request_id = self._get_param("CreatorRequestId")
         name = self._get_param("Name")
         rule_type = self._get_param("RuleType")

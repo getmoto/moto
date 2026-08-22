@@ -2073,7 +2073,7 @@ class FakeCrawler(BaseModel):
                 return "STOPPING"
             else:
                 raise RuntimeError(
-                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                    f"Unexpected state found for crawler, found state {self.crawls[-1].status}"
                 )
 
 

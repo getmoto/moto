@@ -172,7 +172,7 @@ def convert_to_class_args(dict_arg: dict[str, Any]) -> dict[str, Any]:
     """Return dict that can be used to instantiate it's representative class.
 
     Given a dictionary in the incoming API request, convert the keys to
-    snake case to use as arguments when instatiating the representative
+    snake case to use as arguments when instantiating the representative
     class's __init__().
     """
     class_args = {}
@@ -499,7 +499,7 @@ class Scope(ConfigEmptyDictable):
     - combo of one resource type and one resource ID,
     - combo of tag key and value.
 
-    If no scope is specified, evaluations are trigged when any resource
+    If no scope is specified, evaluations are triggered when any resource
     in the recording group changes.
     """
 

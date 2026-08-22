@@ -164,7 +164,7 @@ class WorkSpaceDirectory(BaseModel):
             ),
             "EnableMaintenanceMode": True,
         }
-        # modify creation properites
+        # modify creation properties
         self.workspace_creation_properties = workspace_creation_properties
         self.ip_group_ids = ""  # create_ip_group
         # Default values for workspace access properties
@@ -515,7 +515,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
     def modify_workspace_creation_properties(
         self, resource_id: str, workspace_creation_properties: dict[str, Any]
     ) -> None:
-        # Raise Exception if Directory doesnot exist.
+        # Raise Exception if Directory does not exist.
         if resource_id not in self.workspace_directories:
             raise ValidationException("The request is invalid.")
 

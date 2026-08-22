@@ -513,7 +513,7 @@ class S3Response(BaseResponse):
                     self.response_headers["Access-Control-Allow-Origin"] = origin  # type: ignore
                 else:
                     raise AccessForbidden(
-                        "CORSResponse: This CORS request is not allowed. This is usually because the evalution of Origin, request method / Access-Control-Request-Method or Access-Control-Request-Headers are not whitelisted by the resource's CORS spec."
+                        "CORSResponse: This CORS request is not allowed. This is usually because the evaluation of Origin, request method / Access-Control-Request-Method or Access-Control-Request-Headers are not whitelisted by the resource's CORS spec."
                     )
             if cors_rule.allowed_headers is not None:
                 self.response_headers["Access-Control-Allow-Headers"] = _to_string(
