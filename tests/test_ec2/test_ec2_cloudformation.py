@@ -1002,16 +1002,22 @@ def test_launch_template_does_not_receive_stack_tags():
     assert lt_tags == []
 
     # Sanity check: a resource that *does* support the Tags property still
-    # gets the stack tags, so we know tagging itself isn't broken.
-    vpc = ec2.describe_vpcs(Filters=[{"Name": "cidr", "Values": ["10.0.0.0/16"]}])[
-        "Vpcs"
+    # gets the stack tags, so we know tagging itself isn't broken. Look the
+    # VPC up by its stack resource id (not by CidrBlock) since server-mode
+    # tests share one long-lived backend across the whole suite, and other
+    # tests may use the same generic CIDR.
+    resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
+    vpc_id = [
+        r["PhysicalResourceId"]
+        for r in resources
+        if r["LogicalResourceId"] == "TestVpc"
     ][0]
-    vpc_tags = ec2.describe_tags(
-        Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
-    )["Tags"]
+    vpc_tags = ec2.describe_tags(Filters=[{"Name": "resource-id", "Values": [vpc_id]}])[
+        "Tags"
+    ]
     assert {
         "Key": "aws:cloudformation:logical-id",
-        "ResourceId": vpc["VpcId"],
+        "ResourceId": vpc_id,
         "ResourceType": "vpc",
         "Value": "TestVpc",
     } in vpc_tags
