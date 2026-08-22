@@ -19,6 +19,7 @@ from .exceptions import (
     FunctionAlreadyExists,
     InvalidIfMatchVersion,
     NoSuchDistribution,
+    NoSuchFunctionExists,
     NoSuchInvalidation,
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
@@ -400,7 +401,7 @@ class CloudFrontFunction(BaseModel):
         self.etag = random_id()
 
     @property
-    def function_summary(self) -> dict[str, Any]:
+    def function_summary(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "Name": self.name,
             "Status": self.status,
@@ -436,7 +437,7 @@ class KeyValueStore(BaseModel):
         self.etag = random_id()
 
     @property
-    def key_value_store(self) -> dict[str, Any]:
+    def key_value_store(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "Id": self.id,
             "Name": self.name,
@@ -667,6 +668,30 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         self.functions[name] = function
         self.tagger.tag_resource(function.arn, tags)
         return function
+
+    def describe_function(self, name: str) -> CloudFrontFunction:
+        if name not in self.functions:
+            raise NoSuchFunctionExists(name)
+        return self.functions[name]
+
+    def get_function(self, name: str) -> CloudFrontFunction:
+        return self.describe_function(name)
+
+    def list_functions(self) -> list[CloudFrontFunction]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.functions.values())
+
+    def delete_function(self, name: str, if_match: bool) -> None:
+        """
+        The IfMatch-value is ignored - any value is considered valid.
+        Calling this function without a value is invalid, per AWS' behaviour
+        """
+        self.describe_function(name)
+        if not if_match:
+            raise InvalidIfMatchVersion
+        del self.functions[name]
 
     def create_key_value_store(
         self, name: str, comment: str, tags: list[dict[str, str]]

@@ -270,6 +270,32 @@ class CloudFrontResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def describe_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        function = self.backend.describe_function(name=name)
+        result = {
+            "FunctionSummary": function.function_summary,
+            "ETag": function.etag,
+        }
+        return ActionResult(result)
+
+    def list_functions(self) -> ActionResult:
+        functions = self.backend.list_functions()
+        result = {
+            "FunctionList": {
+                "MaxItems": 100,
+                "Quantity": len(functions),
+                "Items": [function.function_summary for function in functions],
+            }
+        }
+        return ActionResult(result)
+
+    def delete_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        if_match = self._get_param("IfMatch")
+        self.backend.delete_function(name=name, if_match=if_match)
+        return EmptyResult()
+
     def create_key_value_store(self) -> ActionResult:
         name = self._get_param("Name")
         comment = self._get_param("Comment", "")

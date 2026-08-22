@@ -81,3 +81,11 @@ class EntityNotFound(CloudFrontException):
             "EntityNotFound",
             "The Key Value Store was not found.",
         )
+
+
+class NoSuchFunctionExists(CloudFrontException):
+    def __init__(self, function_name: str) -> None:
+        super().__init__(
+            "NoSuchFunctionExists",
+            f"The function {function_name} does not exist.",
+        )

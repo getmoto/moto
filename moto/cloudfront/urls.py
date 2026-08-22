@@ -21,6 +21,8 @@ url_paths = {
     "{0}/2020-05-31/public-key$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/public-key/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/function$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function/(?P<function_name>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function/(?P<function_name>[^/]+)/describe$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/key-value-store$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/key-value-store/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
 }
