@@ -137,7 +137,7 @@ def validate_put_has_empty_attrs(field_updates: dict[str, Any], table: Table) ->
         for set_type, error in [("NS", "number"), ("SS", "string")]:
             if set_type in attr and attr[set_type] == []:
                 raise MockValidationException(
-                    f"One or more parameter values were invalid: An {error} set  may not be empty"
+                    f"1 validation error detected: One or more parameter values were invalid: An {error} set  may not be empty"
                 )
 
         else:
@@ -165,12 +165,14 @@ def validate_attributes_used(
     attribute_names: dict[str, Any] | None,
     names_used: list[str],
     provided_attr: str = "Names",
+    validation_error_prefix: bool = True,
 ) -> None:
     for name in attribute_names or []:
         if name not in names_used:
-            raise MockValidationException(
-                f"Value provided in ExpressionAttribute{provided_attr} unused in expressions: keys: {{{name}}}"
-            )
+            msg = f"Value provided in ExpressionAttribute{provided_attr} unused in expressions: keys: {{{name}}}"
+            if validation_error_prefix:
+                msg = f"1 validation error detected: {msg}"
+            raise MockValidationException(msg)
 
 
 def validate_select(
@@ -809,7 +811,9 @@ class DynamoHandler(BaseResponse):
         projection_expressions = parser.parse()
 
         validate_attributes_used(
-            expression_attribute_names, parser.expr_attr_names_found
+            expression_attribute_names,
+            parser.expr_attr_names_found,
+            validation_error_prefix=False,
         )
 
         item = self.dynamodb_backend.get_item(name, key, projection_expressions)
@@ -864,7 +868,9 @@ class DynamoHandler(BaseResponse):
             )
             projection_expressions = parser.parse()
             validate_attributes_used(
-                expression_attribute_names, parser.expr_attr_names_found
+                expression_attribute_names,
+                parser.expr_attr_names_found,
+                validation_error_prefix=False,
             )
 
             results["Responses"][table_name] = []
@@ -1012,7 +1018,9 @@ class DynamoHandler(BaseResponse):
                 filter_kwargs.update(query_filters)
 
         validate_attributes_used(
-            expression_attribute_names, expression_attribute_names_used
+            expression_attribute_names,
+            expression_attribute_names_used,
+            validation_error_prefix=False,
         )
         index_name = self.body.get("IndexName")
         exclusive_start_key = self.body.get("ExclusiveStartKey")
@@ -1120,7 +1128,9 @@ class DynamoHandler(BaseResponse):
             )
 
         validate_attributes_used(
-            expression_attribute_names, expression_attribute_names_used
+            expression_attribute_names,
+            expression_attribute_names_used,
+            validation_error_prefix=False,
         )
 
         validate_select(
@@ -1227,7 +1237,7 @@ class DynamoHandler(BaseResponse):
             update_expression = update_expression.strip()
             if update_expression == "":
                 raise MockValidationException(
-                    "Invalid UpdateExpression: The expression can not be empty;"
+                    "1 validation error detected: Invalid UpdateExpression: The expression can not be empty;"
                 )
             update_expression_ast = UpdateExpressionParser.make(update_expression)
             attr_name_clauses = update_expression_ast.find_clauses(
@@ -1341,7 +1351,7 @@ class DynamoHandler(BaseResponse):
         if values is None:
             return {}
         if len(values) == 0:
-            raise ExpressionAttributeValuesEmpty
+            raise ExpressionAttributeValuesEmpty(validation_error_prefix=True)
         for key in values:
             if not key.startswith(":"):
                 raise MockValidationException(
@@ -1349,7 +1359,7 @@ class DynamoHandler(BaseResponse):
                 )
             if values[key] == {"NS": []}:
                 raise MockValidationException(
-                    f"ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key {key}"
+                    "1 validation error detected: One or more parameter values were invalid: An number set  may not be empty"
                 )
         return values
 
@@ -1512,7 +1522,9 @@ class DynamoHandler(BaseResponse):
                 ]
 
             validate_attributes_used(
-                expression_attribute_names, expression_attribute_names_used
+                expression_attribute_names,
+                expression_attribute_names_used,
+                validation_error_prefix=False,
             )
 
         self.dynamodb_backend.transact_write_items(transact_items)
