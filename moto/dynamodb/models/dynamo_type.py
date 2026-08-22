@@ -22,6 +22,24 @@ deserializer = TypeDeserializer()
 serializer = TypeSerializer()
 
 
+def _number_size(raw_value: str) -> int:
+    """
+    Approximate the on-disk size of a DynamoDB Number attribute, matching
+    AWS's documented item-size rules:
+    https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/CapacityUnitCalculations.html
+
+    "The size of a number is approximately (1 byte per two significant
+    digits) + (1 byte)." Leading and trailing zeroes are trimmed before
+    counting significant digits, 0 itself has no significant digits, and
+    negative numbers use an extra byte for the sign.
+    """
+    is_negative = raw_value.startswith("-")
+    digits_only = raw_value.lstrip("-").replace(".", "")
+    significant_digits = digits_only.strip("0")
+    digit_count = len(significant_digits)
+    return -(-digit_count // 2) + (2 if is_negative else 1)
+
+
 class DDBType:
     """
     Official documentation at https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeValue.html
@@ -214,7 +232,7 @@ class DynamoType:
 
     def size(self) -> int:
         if self.is_number():
-            value_size = len(str(self.value))
+            value_size = _number_size(str(self.value))
         elif self.is_set():
             sub_type = self.type[0]
             value_size = sum([DynamoType({sub_type: v}).size() for v in self.value])
