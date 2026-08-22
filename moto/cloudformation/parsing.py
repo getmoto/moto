@@ -32,6 +32,7 @@ from moto.datapipeline import models as data_models  # noqa
 from moto.dynamodb import models as ddb_models  # noqa
 from moto.ec2 import models as ec2_models
 from moto.ec2.models.core import TaggedEC2Resource
+from moto.ec2.models.launch_templates import LaunchTemplate
 from moto.ecr import models as ecr_models  # noqa
 from moto.ecs import models as ecs_models  # noqa
 from moto.efs import models as efs_models  # noqa
@@ -752,7 +753,12 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         all_resources_ready = True
         for resource in self.__get_resources_in_dependency_order():
             instance = self[resource]
-            if isinstance(instance, TaggedEC2Resource):
+            # LaunchTemplate's CFN schema exposes tags via TagSpecifications
+            # (nested under LaunchTemplateData), not a top-level Tags property,
+            # so CloudFormation does not auto-propagate the stack tags to it.
+            if isinstance(instance, TaggedEC2Resource) and not isinstance(
+                instance, LaunchTemplate
+            ):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 backend = ec2_models.ec2_backends[self._account_id][self._region_name]
                 backend.create_tags([instance.physical_resource_id], self.tags)
