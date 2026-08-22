@@ -5235,7 +5235,7 @@
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
 - [X] create_job
-- [ ] create_ml_transform
+- [X] create_ml_transform
 - [X] create_partition
 - [ ] create_partition_index
 - [X] create_registry
@@ -5267,7 +5267,7 @@
 - [ ] delete_integration_resource_property
 - [ ] delete_integration_table_properties
 - [X] delete_job
-- [ ] delete_ml_transform
+- [X] delete_ml_transform
 - [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
@@ -5332,8 +5332,8 @@
 - [ ] get_materialized_view_refresh_task_run
 - [ ] get_ml_task_run
 - [ ] get_ml_task_runs
-- [ ] get_ml_transform
-- [ ] get_ml_transforms
+- [X] get_ml_transform
+- [X] get_ml_transforms
 - [X] get_partition
 - [ ] get_partition_indexes
 - [X] get_partitions
