@@ -69,6 +69,7 @@ directconnect
 - [ ] describe_virtual_interfaces
 - [ ] disassociate_connection_from_lag
 - [X] disassociate_mac_sec_key
+- [ ] list_virtual_interface_routes
 - [ ] list_virtual_interface_test_history
 - [ ] start_bgp_failover_test
 - [ ] stop_bgp_failover_test

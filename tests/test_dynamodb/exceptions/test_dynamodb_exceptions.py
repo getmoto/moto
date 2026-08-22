@@ -281,7 +281,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
         assert err["Code"] == "ValidationException"
         assert (
             err["Message"]
-            == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
+            == '1 validation error detected: Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
         )
 
     def test_multiple_remove_clauses(self):
@@ -296,7 +296,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
         assert err["Code"] == "ValidationException"
         assert (
             err["Message"]
-            == 'Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
+            == '1 validation error detected: Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
         )
 
     def test_multiple_set_clauses(self):
@@ -310,7 +310,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
         assert err["Code"] == "ValidationException"
         assert (
             err["Message"]
-            == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+            == '1 validation error detected: Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
         )
 
     def test_delete_and_add_on_same_set(self):
@@ -323,7 +323,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert exc.value.response["Error"]["Message"].startswith(
-            "Invalid UpdateExpression: Two document paths overlap with each other;"
+            "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_remove_and_add_on_same_set(self):
@@ -336,7 +336,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert exc.value.response["Error"]["Message"].startswith(
-            "Invalid UpdateExpression: Two document paths overlap with each other;"
+            "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_set_and_remove_on_overlapping_paths(self):
@@ -348,7 +348,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert exc.value.response["Error"]["Message"].startswith(
-            "Invalid UpdateExpression: Two document paths overlap with each other;"
+            "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_set_path_overlap(self):
@@ -360,7 +360,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert exc.value.response["Error"]["Message"].startswith(
-            "Invalid UpdateExpression: Two document paths overlap with each other;"
+            "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_path_overlap_error_uses_expression_attribute_name(self):
@@ -374,7 +374,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert (
             exc.value.response["Error"]["Message"]
-            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set]"
+            == "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set]"
         )
 
     def test_path_overlap_error_splits_paths(self):
@@ -387,7 +387,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert (
             exc.value.response["Error"]["Message"]
-            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set, nested], path two: [string_set, nested]"
+            == "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set, nested], path two: [string_set, nested]"
         )
 
     # pretty weird AWS behavior with the next two tests, seems like a bug
@@ -416,7 +416,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert exc.value.response["Error"]["Message"].startswith(
-            "Invalid UpdateExpression: Two document paths overlap with each other;"
+            "1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_update_item_with_shared_root_but_different_overall(self):
@@ -471,7 +471,7 @@ def test_update_item_unused_attributes(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+        == "1 validation error detected: Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
     # Unused Name (count) only
@@ -486,7 +486,7 @@ def test_update_item_unused_attributes(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+        == "1 validation error detected: Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
     # Unused Value (countChange)
@@ -501,7 +501,7 @@ def test_update_item_unused_attributes(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "Value provided in ExpressionAttributeValues unused in expressions: keys: {:countChange}"
+        == "1 validation error detected: Value provided in ExpressionAttributeValues unused in expressions: keys: {:countChange}"
     )
 
     # Used value in ConditionExpression
@@ -531,7 +531,7 @@ def test_update_item_unused_attributes(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key :one"
+        == "1 validation error detected: One or more parameter values were invalid: An number set  may not be empty"
     )
 
 
@@ -552,7 +552,7 @@ def test_put_item_unused_attributes(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+        == "1 validation error detected: Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
 
@@ -640,7 +640,7 @@ def test_delete_unused_attribute_name(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+        == "1 validation error detected: Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
 
@@ -1374,7 +1374,7 @@ def test_put_item_empty_set(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "One or more parameter values were invalid: An number set  may not be empty"
+        == "1 validation error detected: One or more parameter values were invalid: An number set  may not be empty"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -1385,7 +1385,7 @@ def test_put_item_empty_set(table_name=None):
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "One or more parameter values were invalid: An string set  may not be empty"
+        == "1 validation error detected: One or more parameter values were invalid: An string set  may not be empty"
     )
 
 
@@ -1811,15 +1811,16 @@ def test_list_append_errors_for_unknown_attribute_value():
     )
 
 
-@mock_aws
-def test_query_with_empty_filter_expression():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = ddb.create_table(
-        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_query_with_empty_filter_expression(table_name=None):
+    table = boto3.resource("dynamodb", region_name="us-east-1").Table(table_name)
+
     with pytest.raises(ClientError) as exc:
         table.query(
-            KeyConditionExpression="partitionKey = sth", ProjectionExpression=""
+            KeyConditionExpression="pk = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+            ProjectionExpression="",
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -1940,7 +1941,7 @@ class TestReturnValuesOnConditionCheckFailure(BaseTest):
             "Message": "The conditional request failed",
             "Code": "ConditionalCheckFailedException",
         }
-        assert "message" not in resp
+        assert resp["message"] == "The conditional request failed"
         assert resp["Item"] == {
             "pk": {"S": "the-key"},
             "body": {"S": "some test msg"},

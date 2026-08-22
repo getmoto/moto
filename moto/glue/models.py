@@ -153,6 +153,70 @@ class FakeDevEndpoint(BaseModel):
         return response
 
 
+class FakeMLTransform(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        input_record_tables: list[dict[str, Any]],
+        parameters: dict[str, Any],
+        role: str,
+        backend: "GlueBackend",
+        description: str | None = None,
+        glue_version: str | None = None,
+        max_capacity: float | None = None,
+        worker_type: str | None = None,
+        number_of_workers: int | None = None,
+        timeout: int | None = None,
+        max_retries: int | None = None,
+        transform_encryption: dict[str, Any] | None = None,
+    ):
+        self.transform_id = f"tfm-{mock_random.get_random_hex(32)}"
+        self.name = name
+        self.input_record_tables = input_record_tables or []
+        self.parameters = parameters or {}
+        self.role = role
+        self.description = description
+        self.glue_version = glue_version or "1.0"
+        self.max_capacity = max_capacity
+        self.worker_type = worker_type
+        self.number_of_workers = number_of_workers
+        self.timeout = timeout or 2880
+        self.max_retries = max_retries if max_retries is not None else 0
+        self.transform_encryption = transform_encryption
+        self.status = "READY"
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.label_count = 0
+        self.backend = backend
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:mlTransform/{self.transform_id}"
+
+    def as_dict(self) -> dict[str, Any]:
+        response: dict[str, Any] = {
+            "TransformId": self.transform_id,
+            "Name": self.name,
+            "Description": self.description,
+            "Status": self.status,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+            "InputRecordTables": self.input_record_tables,
+            "Parameters": self.parameters,
+            "Role": self.role,
+            "GlueVersion": self.glue_version,
+            "Timeout": self.timeout,
+            "MaxRetries": self.max_retries,
+            "LabelCount": self.label_count,
+        }
+        if self.max_capacity is not None:
+            response["MaxCapacity"] = self.max_capacity
+        if self.worker_type is not None:
+            response["WorkerType"] = self.worker_type
+        if self.number_of_workers is not None:
+            response["NumberOfWorkers"] = self.number_of_workers
+        if self.transform_encryption is not None:
+            response["TransformEncryption"] = self.transform_encryption
+        return response
+
+
 class GlueBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "glue"
 
@@ -229,6 +293,12 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             "limit_default": 100,
             "unique_attribute": "workflow_run_id",
         },
+        "get_ml_transforms": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "transform_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -251,6 +321,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: dict[str, FakeDevEndpoint] = OrderedDict()
+        self.ml_transforms: dict[str, FakeMLTransform] = OrderedDict()
         self.data_catalog_encryption_settings: dict[str, dict[str, Any]] = {}
         self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
@@ -1319,6 +1390,8 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             dev_endpoint.public_keys = public_keys
 
         self.dev_endpoints[endpoint_name] = dev_endpoint
+        resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:devEndpoint/{endpoint_name}"
+        self.tag_resource(resource_arn, tags)
         return dev_endpoint
 
     def get_dev_endpoint(self, endpoint_name: str) -> FakeDevEndpoint:
@@ -1332,6 +1405,60 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             del self.dev_endpoints[endpoint_name]
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+        resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:devEndpoint/{endpoint_name}"
+        self.tagger.delete_all_tags_for_resource(resource_arn)
+
+    def create_ml_transform(
+        self,
+        name: str,
+        input_record_tables: list[dict[str, Any]],
+        parameters: dict[str, Any],
+        role: str,
+        description: str | None = None,
+        glue_version: str | None = None,
+        max_capacity: float | None = None,
+        worker_type: str | None = None,
+        number_of_workers: int | None = None,
+        timeout: int | None = None,
+        max_retries: int | None = None,
+        tags: dict[str, str] | None = None,
+        transform_encryption: dict[str, Any] | None = None,
+    ) -> str:
+        ml_transform = FakeMLTransform(
+            name=name,
+            input_record_tables=input_record_tables,
+            parameters=parameters,
+            role=role,
+            description=description,
+            glue_version=glue_version,
+            max_capacity=max_capacity,
+            worker_type=worker_type,
+            number_of_workers=number_of_workers,
+            timeout=timeout,
+            max_retries=max_retries,
+            transform_encryption=transform_encryption,
+            backend=self,
+        )
+        self.ml_transforms[ml_transform.transform_id] = ml_transform
+        self.tag_resource(ml_transform.arn, tags)
+        return ml_transform.transform_id
+
+    def get_ml_transform(self, transform_id: str) -> "FakeMLTransform":
+        try:
+            return self.ml_transforms[transform_id]
+        except KeyError:
+            raise EntityNotFoundException(f"MLTransform {transform_id} not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_ml_transforms(self) -> list["FakeMLTransform"]:
+        return list(self.ml_transforms.values())
+
+    def delete_ml_transform(self, transform_id: str) -> str:
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(f"MLTransform {transform_id} not found")
+        ml_transform = self.ml_transforms.pop(transform_id)
+        self.tagger.delete_all_tags_for_resource(ml_transform.arn)
+        return transform_id
 
     def create_connection(
         self,
@@ -1516,6 +1643,8 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self.workflows[name] = FakeWorkflow(
             name, default_run_properties, description, max_concurrent_runs, tags
         )
+        resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:workflow/{name}"
+        self.tag_resource(resource_arn, tags)
         return name
 
     def get_workflow(
@@ -1558,6 +1687,8 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
     ) -> str:
         if self.workflows.get(name):
             del self.workflows[name]
+            resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:workflow/{name}"
+            self.tagger.delete_all_tags_for_resource(resource_arn)
         return name
 
     def get_workflow_run(

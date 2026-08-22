@@ -29,6 +29,7 @@ mq
 - [ ] describe_broker_instance_options
 - [X] describe_configuration
 - [X] describe_configuration_revision
+- [ ] describe_shared_resources
 - [X] describe_user
 - [X] list_brokers
   

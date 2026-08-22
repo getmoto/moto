@@ -49,6 +49,7 @@ SIGNING_ALIASES = {
     "execute-api": "iot",
     "iotdata": "data.iot",
     "mobiletargeting": "pinpoint",
+    "payment-cryptography": "controlplane.payment-cryptography",
 }
 
 # Some services are only recognizable by the version

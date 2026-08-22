@@ -28,12 +28,14 @@ inspector2
 - [ ] create_cis_scan_configuration
 - [ ] create_code_security_integration
 - [ ] create_code_security_scan_configuration
+- [ ] create_connector
 - [X] create_filter
 - [ ] create_findings_report
 - [ ] create_sbom_export
 - [ ] delete_cis_scan_configuration
 - [ ] delete_code_security_integration
 - [ ] delete_code_security_scan_configuration
+- [ ] delete_connector
 - [X] delete_filter
 - [X] describe_organization_configuration
 - [X] disable
@@ -62,6 +64,8 @@ inspector2
 - [ ] list_code_security_integrations
 - [ ] list_code_security_scan_configuration_associations
 - [ ] list_code_security_scan_configurations
+- [ ] list_connector_scan_configurations
+- [ ] list_connectors
 - [ ] list_coverage
 - [ ] list_coverage_statistics
 - [X] list_delegated_admin_accounts
@@ -120,6 +124,8 @@ Configure this queue by making an HTTP request to `/moto-api/static/inspector2/f
 - [ ] update_code_security_integration
 - [ ] update_code_security_scan_configuration
 - [ ] update_configuration
+- [ ] update_connector
+- [ ] update_connector_scan_configuration
 - [ ] update_ec2_deep_inspection_configuration
 - [ ] update_encryption_key
 - [ ] update_filter
