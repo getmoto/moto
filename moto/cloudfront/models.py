@@ -607,9 +607,6 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_invalidations(self, dist_id: str) -> list[Invalidation]:
-        """
-        Pagination is not yet implemented
-        """
         return self.invalidations.get(dist_id) or []
 
     def get_invalidation(self, dist_id: str, id: str) -> Invalidation:
@@ -652,9 +649,6 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_origin_access_controls(self) -> list[OriginAccessControl]:
-        """
-        Pagination is not yet implemented
-        """
         return list(self.origin_access_controls.values())
 
     def delete_origin_access_control(self, control_id: str) -> None:
@@ -681,9 +675,6 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_public_keys(self) -> list[PublicKey]:
-        """
-        Pagination is not yet implemented
-        """
         return list(self.public_keys.values())
 
     def create_key_group(self, name: str, items: list[str]) -> KeyGroup:
@@ -696,9 +687,6 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_key_groups(self) -> list[KeyGroup]:
-        """
-        Pagination is not yet implemented
-        """
         return list(self.key_groups.values())
 
     def create_function(
