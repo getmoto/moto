@@ -45,12 +45,17 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_distributions(self) -> ActionResult:
-        distributions = self.backend.list_distributions()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        distributions, next_marker = self.backend.list_distributions(
+            marker=marker, max_items=max_items
+        )
         result = {
             "DistributionList": {
-                "Marker": "",
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(distributions),
                 "Items": distributions if distributions else None,
             }
@@ -97,11 +102,17 @@ class CloudFrontResponse(BaseResponse):
 
     def list_invalidations(self) -> ActionResult:
         dist_id = self._get_param("DistributionId")
-        invalidations = self.backend.list_invalidations(dist_id)
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        invalidations, next_marker = self.backend.list_invalidations(
+            dist_id=dist_id, marker=marker, max_items=max_items
+        )
         result = {
             "InvalidationList": {
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(invalidations),
                 "Items": invalidations if invalidations else None,
             }
@@ -159,11 +170,15 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_origin_access_controls(self) -> ActionResult:
-        controls = self.backend.list_origin_access_controls()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        controls, next_marker = self.backend.list_origin_access_controls()
         result = {
             "OriginAccessControlList": {
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(controls),
                 "Items": controls,
             }
@@ -215,10 +230,15 @@ class CloudFrontResponse(BaseResponse):
         return EmptyResult()
 
     def list_public_keys(self) -> ActionResult:
-        keys = self.backend.list_public_keys()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        keys, next_marker = self.backend.list_public_keys(
+            marker=marker, max_items=max_items
+        )
         result = {
             "PublicKeyList": {
-                "MaxItems": 100,
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(keys),
                 "Items": keys if keys else None,
             }
@@ -243,9 +263,15 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_key_groups(self) -> ActionResult:
-        groups = self.backend.list_key_groups()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        groups, next_marker = self.backend.list_key_groups(
+            marker=marker, max_items=max_items
+        )
         result = {
             "KeyGroupList": {
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(groups),
                 "Items": [{"KeyGroup": key_group} for key_group in groups],
             }
@@ -280,10 +306,15 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_functions(self) -> ActionResult:
-        functions = self.backend.list_functions()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        functions, next_marker = self.backend.list_functions(
+            marker=marker, max_items=max_items
+        )
         result = {
             "FunctionList": {
-                "MaxItems": 100,
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(functions),
                 "Items": [function.function_summary for function in functions],
             }
@@ -322,10 +353,15 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_key_value_stores(self) -> ActionResult:
-        kv_stores = self.backend.list_key_value_stores()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        kv_stores, next_marker = self.backend.list_key_value_stores(
+            marker=marker, max_items=max_items
+        )
         result = {
             "KeyValueStoreList": {
-                "MaxItems": 100,
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(kv_stores),
                 "Items": [kv_store.key_value_store for kv_store in kv_stores],
             }

@@ -8,6 +8,7 @@ from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
@@ -327,7 +328,7 @@ class Invalidation(BaseModel):
         return self.distribution.location + f"/invalidation/{self.id}"
 
     @property
-    def invalidation_batch(self) -> dict[str, Any]:
+    def invalidation_batch(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "Paths": {"Quantity": len(self.paths), "Items": self.paths},
             "CallerReference": self.caller_ref,
@@ -372,7 +373,7 @@ class KeyGroup(BaseModel):
         )
 
     @property
-    def key_group_config(self) -> dict[str, Any]:
+    def key_group_config(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "Items": self.items,
             "Name": self.name,
@@ -451,6 +452,51 @@ class KeyValueStore(BaseModel):
 class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "cloudfront"
 
+    PAGINATION_MODEL = {
+        "list_distributions": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_invalidations": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_origin_access_controls": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_public_keys": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_key_groups": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_functions": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_key_value_stores": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.distributions: dict[str, Distribution] = {}
@@ -512,10 +558,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
             raise NoSuchDistribution
         del self.distributions[distribution_id]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_distributions(self) -> list[Distribution]:
-        """
-        Pagination is not supported yet.
-        """
         for dist in self.distributions.values():
             dist.advance()
         return list(self.distributions.values())
@@ -561,6 +605,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
         return invalidation
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_invalidations(self, dist_id: str) -> list[Invalidation]:
         """
         Pagination is not yet implemented
@@ -605,6 +650,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         control.update(config)
         return control
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_origin_access_controls(self) -> list[OriginAccessControl]:
         """
         Pagination is not yet implemented
@@ -633,6 +679,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         """
         self.public_keys.pop(key_id, None)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_public_keys(self) -> list[PublicKey]:
         """
         Pagination is not yet implemented
@@ -647,6 +694,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
     def get_key_group(self, group_id: str) -> KeyGroup:
         return self.key_groups[group_id]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_key_groups(self) -> list[KeyGroup]:
         """
         Pagination is not yet implemented
@@ -677,10 +725,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
     def get_function(self, name: str) -> CloudFrontFunction:
         return self.describe_function(name)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_functions(self) -> list[CloudFrontFunction]:
-        """
-        Pagination is not yet implemented
-        """
         return list(self.functions.values())
 
     def delete_function(self, name: str, if_match: bool) -> None:
@@ -708,6 +754,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
             raise EntityNotFound
         return self.key_value_stores[name]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_key_value_stores(self) -> list[KeyValueStore]:
         """
         Pagination is not yet implemented
