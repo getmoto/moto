@@ -4,6 +4,8 @@ import base64
 import json
 
 from moto.core.responses import BaseResponse
+from moto.ses.exceptions import BadRequestException
+from moto.ses.models import SESBackend
 
 from .models import SESV2Backend, sesv2_backends
 
@@ -40,17 +42,40 @@ class SESV2Response(BaseResponse):
                 raw_data=base64.b64decode(content["Raw"]["Data"]).decode("utf-8"),
             )
         elif "Simple" in content:
-            content_body = content["Simple"]["Body"]
+            simple = content["Simple"]
+            content_body = simple["Body"]
             body_text = content_body.get("Text", {}).get("Data")
             body_html = content_body.get("Html", {}).get("Data")
             body = body_html if body_html is not None else body_text
+            charsets = {
+                key: value
+                for key, value in (
+                    ("subject", simple["Subject"].get("Charset")),
+                    ("text", content_body.get("Text", {}).get("Charset")),
+                    ("html", content_body.get("Html", {}).get("Charset")),
+                )
+                if value
+            }
+            # Content.Simple.Headers: custom headers. SES refuses the ones it sets itself
+            # (API_SendEmail v2 / "Amazon SES header fields").
+            headers = [(h["Name"], h["Value"]) for h in simple.get("Headers", [])]
+            for name, _ in headers:
+                if name.lower() in SESBackend._DISALLOWED_CUSTOM_HEADERS:
+                    raise BadRequestException(
+                        f"Header '{name}' is set by Amazon SES and cannot be specified "
+                        "as a custom header."
+                    )
             message = self.sesv2_backend.send_email(  # type: ignore
                 source=from_email_address,
                 destinations=destination,
-                subject=content["Simple"]["Subject"]["Data"],
+                subject=simple["Subject"]["Data"],
                 body=body,
                 body_text=body_text,
                 body_html=body_html,
+                reply_to=params.get("ReplyToAddresses"),
+                return_path=params.get("FeedbackForwardingEmailAddress"),
+                charsets=charsets,
+                headers=headers,
             )
         elif "Template" in content:
             raise NotImplementedError("Template functionality not ready")
