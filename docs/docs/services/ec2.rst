@@ -156,7 +156,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] create_tags
 - [X] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
-- [ ] create_traffic_mirror_session
+- [X] create_traffic_mirror_session
 - [X] create_traffic_mirror_target
 - [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
@@ -248,7 +248,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
-- [ ] delete_traffic_mirror_session
+- [X] delete_traffic_mirror_session
 - [ ] delete_traffic_mirror_target
 - [X] delete_transit_gateway
 - [ ] delete_transit_gateway_client_vpn_attachment
@@ -451,7 +451,7 @@ The Filters-parameter is not yet implemented
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filter_rules
 - [X] describe_traffic_mirror_filters
-- [ ] describe_traffic_mirror_sessions
+- [X] describe_traffic_mirror_sessions
 - [X] describe_traffic_mirror_targets
 - [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
@@ -714,7 +714,7 @@ The DryRun parameter is ignored.
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
 - [ ] modify_traffic_mirror_filter_rule
-- [ ] modify_traffic_mirror_session
+- [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_metering_policy
 - [ ] modify_transit_gateway_prefix_list_reference
