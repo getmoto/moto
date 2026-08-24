@@ -3,12 +3,15 @@ import datetime
 import email
 import json
 import re
+import smtplib
 from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
-from email.utils import formataddr, getaddresses, parseaddr
+from email.mime.text import MIMEText
+from email.utils import formataddr, formatdate, getaddresses, parseaddr
 from typing import Any, Literal, Optional
 
+from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -79,12 +82,18 @@ class Message(BaseModel):
         subject: str,
         body: str,
         destinations: dict[str, list[str]],
+        body_text: str | None = None,
+        body_html: str | None = None,
     ):
         self.id = message_id
         self.source = source
         self.subject = subject
         self.body = body
         self.destinations = destinations
+        # The individual parts of Message.Body, when the caller supplied them. `body` is
+        # the historical single value (HTML if present, else text) and is kept as-is.
+        self.body_text = body_text
+        self.body_html = body_html
 
 
 class TemplateMessage(BaseModel):
@@ -474,7 +483,13 @@ class SESBackend(BaseBackend):
             del self.email_identities[identity]
 
     def send_email(
-        self, source: str, subject: str, body: str, destinations: dict[str, list[str]]
+        self,
+        source: str,
+        subject: str,
+        body: str,
+        destinations: dict[str, list[str]],
+        body_text: str | None = None,
+        body_html: str | None = None,
     ) -> Message:
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
@@ -493,9 +508,12 @@ class SESBackend(BaseBackend):
         self.__process_sns_feedback__(source, destinations)
 
         message_id = get_random_message_id()
-        message = Message(message_id, source, subject, body, destinations)
+        message = Message(
+            message_id, source, subject, body, destinations, body_text, body_html
+        )
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
+        self._relay_simple(message)
         return message
 
     def send_bulk_templated_email(
@@ -566,6 +584,7 @@ class SESBackend(BaseBackend):
         )
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
+        self._relay_templated(message)
         return message
 
     def __type_of_message__(self, destinations: Any) -> str | None:
@@ -652,7 +671,87 @@ class SESBackend(BaseBackend):
         message_id = get_random_message_id()
         raw_message = RawMessage(message_id, source, destinations, raw_data)
         self.sent_messages.append(raw_message)
+        self._relay(
+            source or "",
+            [parseaddr(d)[1] or d for d in destinations],
+            raw_data.encode("utf-8"),
+        )
         return raw_message
+
+    # ── SMTP relay (MOTO_SES_SMTP_RELAY) ─────────────────────────────────────────
+    #
+    # SES has no data plane here: a sent message is recorded in sent_messages and goes
+    # nowhere, which for local development means every email an application sends is
+    # invisible. When MOTO_SES_SMTP_RELAY=host:port is set, each accepted send is ALSO
+    # delivered over SMTP — to a capture server such as mailpit — as the MIME message SES
+    # itself would have constructed. Off by default; a relay failure is logged to stderr
+    # and never fails the SES call, since the API response is the emulation contract.
+
+    def _relay(self, source: str, recipients: list[str], mime_bytes: bytes) -> None:
+        target = settings.ses_smtp_relay()
+        if not target or not recipients:
+            return
+        host, _, port = target.rpartition(":")
+        try:
+            with smtplib.SMTP(
+                host or target, int(port) if port else 25, timeout=10
+            ) as smtp:
+                smtp.sendmail(parseaddr(source)[1] or source, recipients, mime_bytes)
+        except Exception as exc:  # noqa: BLE001 - the relay must never break the API
+            import sys
+
+            print(f"moto: SES SMTP relay to {target} failed: {exc}", file=sys.stderr)
+
+    @staticmethod
+    def _flatten_destinations(destinations: dict[str, list[str]]) -> list[str]:
+        return [
+            parseaddr(address)[1] or address
+            for addresses in destinations.values()
+            for address in addresses
+        ]
+
+    def _relay_simple(self, message: Message) -> None:
+        if not settings.ses_smtp_relay():
+            return
+        # Build what SES builds for a SendEmail: text and/or HTML parts under
+        # multipart/alternative, with the envelope headers the API parameters imply.
+        text = message.body_text
+        html = message.body_html
+        if text is None and html is None:
+            text = message.body
+        mime = MIMEMultipart("alternative")
+        mime["Subject"] = message.subject
+        mime["From"] = message.source
+        for header, key in (("To", "ToAddresses"), ("Cc", "CcAddresses")):
+            if message.destinations.get(key):
+                mime[header] = ", ".join(message.destinations[key])
+        mime["Date"] = formatdate(localtime=True)
+        if text is not None:
+            mime.attach(MIMEText(text, "plain", "utf-8"))
+        if html is not None:
+            mime.attach(MIMEText(html, "html", "utf-8"))
+        self._relay(
+            message.source,
+            self._flatten_destinations(message.destinations),
+            mime.as_bytes(),
+        )
+
+    def _relay_templated(self, message: TemplateMessage) -> None:
+        if not settings.ses_smtp_relay():
+            return
+        rendered = self.render_template(
+            {"name": message.template, "data": message.template_data}
+        )
+        # render_template returns "Date: ...\r\nSubject: ...\r\n<mime>"; add the envelope
+        # headers it leaves out so the capture server files it under the right sender.
+        headers = f"From: {message.source}\r\n"
+        if message.destinations.get("ToAddresses"):
+            headers += f"To: {', '.join(message.destinations['ToAddresses'])}\r\n"
+        self._relay(
+            message.source,
+            self._flatten_destinations(message.destinations),
+            (headers + rendered).encode("utf-8"),
+        )
 
     def get_send_quota(self) -> SESQuota:
         return SESQuota(self.sent_message_count)
