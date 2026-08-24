@@ -41,15 +41,16 @@ class SESV2Response(BaseResponse):
             )
         elif "Simple" in content:
             content_body = content["Simple"]["Body"]
-            if "Html" in content_body:
-                body = content_body["Html"]["Data"]
-            else:
-                body = content_body["Text"]["Data"]
+            body_text = content_body.get("Text", {}).get("Data")
+            body_html = content_body.get("Html", {}).get("Data")
+            body = body_html if body_html is not None else body_text
             message = self.sesv2_backend.send_email(  # type: ignore
                 source=from_email_address,
                 destinations=destination,
                 subject=content["Simple"]["Subject"]["Data"],
                 body=body,
+                body_text=body_text,
+                body_html=body_html,
             )
         elif "Template" in content:
             raise NotImplementedError("Template functionality not ready")

@@ -65,14 +65,22 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def send_email(self) -> ActionResult:
-        bodydatakey = "Message.Body.Text.Data"
-        if "Message.Body.Html.Data" in self.querystring:
-            bodydatakey = "Message.Body.Html.Data"
-        body = self._get_param(bodydatakey)
+        body_text = self._get_param("Message.Body.Text.Data")
+        body_html = self._get_param("Message.Body.Html.Data")
+        # `body` keeps its historical meaning (HTML if present, else text); the two parts
+        # travel separately so a relay can rebuild the multipart message SES would send.
+        body = body_html if body_html is not None else body_text
         source = self._get_param("Source")
         subject = self._get_param("Message.Subject.Data")
         destinations = self._get_param("Destination", {})
-        message = self.backend.send_email(source, subject, body, destinations)
+        message = self.backend.send_email(
+            source,
+            subject,
+            body,
+            destinations,
+            body_text=body_text,
+            body_html=body_html,
+        )
         result = {"MessageId": message.id}
         return ActionResult(result)
 
