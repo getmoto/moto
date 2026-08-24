@@ -73,6 +73,15 @@ class EmailResponse(BaseResponse):
         source = self._get_param("Source")
         subject = self._get_param("Message.Subject.Data")
         destinations = self._get_param("Destination", {})
+        charsets = {
+            key: value
+            for key, value in (
+                ("subject", self._get_param("Message.Subject.Charset")),
+                ("text", self._get_param("Message.Body.Text.Charset")),
+                ("html", self._get_param("Message.Body.Html.Charset")),
+            )
+            if value
+        }
         message = self.backend.send_email(
             source,
             subject,
@@ -80,6 +89,9 @@ class EmailResponse(BaseResponse):
             destinations,
             body_text=body_text,
             body_html=body_html,
+            reply_to=self._get_param("ReplyToAddresses", []),
+            return_path=self._get_param("ReturnPath"),
+            charsets=charsets,
         )
         result = {"MessageId": message.id}
         return ActionResult(result)
@@ -90,7 +102,12 @@ class EmailResponse(BaseResponse):
         template_data = self._get_param("TemplateData")
         destinations = self._get_param("Destination", {})
         message = self.backend.send_templated_email(
-            source, template, template_data, destinations
+            source,
+            template,
+            template_data,
+            destinations,
+            reply_to=self._get_param("ReplyToAddresses", []),
+            return_path=self._get_param("ReturnPath"),
         )
         result = {"MessageId": message.id}
         return ActionResult(result)

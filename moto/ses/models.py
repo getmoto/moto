@@ -84,6 +84,10 @@ class Message(BaseModel):
         destinations: dict[str, list[str]],
         body_text: str | None = None,
         body_html: str | None = None,
+        reply_to: list[str] | None = None,
+        return_path: str | None = None,
+        charsets: dict[str, str] | None = None,
+        headers: list[tuple[str, str]] | None = None,
     ):
         self.id = message_id
         self.source = source
@@ -94,6 +98,12 @@ class Message(BaseModel):
         # the historical single value (HTML if present, else text) and is kept as-is.
         self.body_text = body_text
         self.body_html = body_html
+        # ReplyToAddresses -> Reply-To header; ReturnPath (v2: FeedbackForwardingEmailAddress)
+        # -> envelope sender; Charset of Subject/Text/Html; SESv2 Content.Simple.Headers.
+        self.reply_to = reply_to or []
+        self.return_path = return_path
+        self.charsets = charsets or {}
+        self.headers = headers or []
 
 
 class TemplateMessage(BaseModel):
@@ -104,12 +114,16 @@ class TemplateMessage(BaseModel):
         template: str,
         template_data: str,
         destinations: Any,
+        reply_to: list[str] | None = None,
+        return_path: str | None = None,
     ):
         self.id = message_id
         self.source = source
         self.template = template
         self.template_data = template_data
         self.destinations = destinations
+        self.reply_to = reply_to or []
+        self.return_path = return_path
 
 
 class BulkTemplateMessage(BaseModel):
@@ -490,6 +504,10 @@ class SESBackend(BaseBackend):
         destinations: dict[str, list[str]],
         body_text: str | None = None,
         body_html: str | None = None,
+        reply_to: list[str] | None = None,
+        return_path: str | None = None,
+        charsets: dict[str, str] | None = None,
+        headers: list[tuple[str, str]] | None = None,
     ) -> Message:
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
@@ -509,7 +527,17 @@ class SESBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = Message(
-            message_id, source, subject, body, destinations, body_text, body_html
+            message_id,
+            source,
+            subject,
+            body,
+            destinations,
+            body_text,
+            body_html,
+            reply_to=reply_to,
+            return_path=return_path,
+            charsets=charsets,
+            headers=headers,
         )
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
@@ -558,6 +586,8 @@ class SESBackend(BaseBackend):
         template: str,
         template_data: str,
         destinations: dict[str, list[str]],
+        reply_to: list[str] | None = None,
+        return_path: str | None = None,
     ) -> TemplateMessage:
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
@@ -580,7 +610,13 @@ class SESBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = TemplateMessage(
-            message_id, source, template, template_data, destinations
+            message_id,
+            source,
+            template,
+            template_data,
+            destinations,
+            reply_to=reply_to,
+            return_path=return_path,
         )
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
@@ -671,11 +707,7 @@ class SESBackend(BaseBackend):
         message_id = get_random_message_id()
         raw_message = RawMessage(message_id, source, destinations, raw_data)
         self.sent_messages.append(raw_message)
-        self._relay(
-            source or "",
-            [parseaddr(d)[1] or d for d in destinations],
-            raw_data.encode("utf-8"),
-        )
+        self._relay_raw(raw_message)
         return raw_message
 
     # ── SMTP relay (MOTO_SES_SMTP_RELAY) ─────────────────────────────────────────
@@ -683,75 +715,189 @@ class SESBackend(BaseBackend):
     # SES has no data plane here: a sent message is recorded in sent_messages and goes
     # nowhere, which for local development means every email an application sends is
     # invisible. When MOTO_SES_SMTP_RELAY=host:port is set, each accepted send is ALSO
-    # delivered over SMTP — to a capture server such as mailpit — as the MIME message SES
-    # itself would have constructed. Off by default; a relay failure is logged to stderr
-    # and never fails the SES call, since the API response is the emulation contract.
+    # delivered over SMTP — to a capture server such as mailpit — as the message SES itself
+    # would have constructed (API_SendEmail, API_SendRawEmail, API_SendTemplatedEmail and
+    # the SES Developer Guide's "header fields" page):
+    #   * Date is set by SES in UTC and Message-ID to <MessageId@region.amazonses.com>;
+    #     both override anything the caller supplied, raw messages included.
+    #   * Envelope recipients are To + Cc + Bcc; Bcc never appears in the delivered headers.
+    #   * Envelope sender is ReturnPath (v2: FeedbackForwardingEmailAddress) if given,
+    #     otherwise the Source address. Real SES substitutes a per-message bounce address
+    #     here; the caller's identity is the useful thing to file under locally.
+    #   * ReplyToAddresses -> Reply-To. Text-only or HTML-only bodies are a single part;
+    #     both together are multipart/alternative. Charset follows the request.
+    # Off by default; a relay failure is logged to stderr and never fails the SES call,
+    # since the API response is the emulation contract.
 
-    def _relay(self, source: str, recipients: list[str], mime_bytes: bytes) -> None:
+    _DISALLOWED_CUSTOM_HEADERS = frozenset(
+        h.lower()
+        for h in (
+            "BCC",
+            "CC",
+            "Content-Disposition",
+            "Content-Type",
+            "Date",
+            "From",
+            "Message-ID",
+            "MIME-Version",
+            "Reply-To",
+            "Return-Path",
+            "Subject",
+            "To",
+        )
+    )
+
+    def _relay(
+        self, envelope_from: str, recipients: list[str], mime_bytes: bytes
+    ) -> None:
         target = settings.ses_smtp_relay()
-        if not target or not recipients:
+        if not target:
             return
-        host, _, port = target.rpartition(":")
+        # Dedupe while keeping order: raw sends can name a recipient both in Destinations
+        # and in the headers, and SES delivers one copy.
+        unique: list[str] = []
+        for address in recipients:
+            bare = parseaddr(address)[1] or address
+            if bare and bare not in unique:
+                unique.append(bare)
+        if not unique:
+            return
+        host, _, port = target.rpartition(":") if ":" in target else (target, "", "")
         try:
-            with smtplib.SMTP(
-                host or target, int(port) if port else 25, timeout=10
-            ) as smtp:
-                smtp.sendmail(parseaddr(source)[1] or source, recipients, mime_bytes)
+            with smtplib.SMTP(host, int(port) if port else 25, timeout=10) as smtp:
+                smtp.sendmail(
+                    parseaddr(envelope_from)[1] or envelope_from, unique, mime_bytes
+                )
         except Exception as exc:  # noqa: BLE001 - the relay must never break the API
             import sys
 
             print(f"moto: SES SMTP relay to {target} failed: {exc}", file=sys.stderr)
 
+    def _ses_message_id_header(self, message_id: str) -> str:
+        return f"<{message_id}@{self.region_name}.amazonses.com>"
+
     @staticmethod
     def _flatten_destinations(destinations: dict[str, list[str]]) -> list[str]:
-        return [
-            parseaddr(address)[1] or address
-            for addresses in destinations.values()
-            for address in addresses
-        ]
+        return [address for addresses in destinations.values() for address in addresses]
+
+    def _build_mime(
+        self,
+        message_id: str,
+        source: str,
+        destinations: dict[str, list[str]],
+        subject: str,
+        text: str | None,
+        html: str | None,
+        reply_to: list[str],
+        charsets: dict[str, str],
+        extra_headers: list[tuple[str, str]],
+    ) -> bytes:
+        """The message SES assembles for a Simple / Templated send."""
+
+        def part(content: str, subtype: str, key: str) -> MIMEText:
+            charset = charsets.get(key) or "UTF-8"
+            try:
+                content.encode(charset)
+            except (LookupError, UnicodeEncodeError):
+                charset = "UTF-8"
+            return MIMEText(content, subtype, charset)
+
+        parts = []
+        if text is not None:
+            parts.append(part(text, "plain", "text"))
+        if html is not None:
+            parts.append(part(html, "html", "html"))
+        mime: email.message.Message
+        if len(parts) == 1:
+            mime = parts[0]
+        else:
+            mime = MIMEMultipart("alternative")
+            for p in parts:
+                mime.attach(p)
+
+        mime["From"] = source
+        for header, key in (("To", "ToAddresses"), ("Cc", "CcAddresses")):
+            if destinations.get(key):
+                mime[header] = ", ".join(destinations[key])
+        if reply_to:
+            mime["Reply-To"] = ", ".join(reply_to)
+        try:
+            subject.encode("ascii")
+            mime["Subject"] = subject
+        except UnicodeEncodeError:
+            from email.header import Header
+
+            subject_charset = charsets.get("subject") or "UTF-8"
+            try:
+                subject.encode(subject_charset)
+            except (LookupError, UnicodeEncodeError):
+                subject_charset = "UTF-8"
+            mime["Subject"] = Header(subject, subject_charset)
+        mime["Date"] = formatdate(usegmt=True)
+        mime["Message-ID"] = self._ses_message_id_header(message_id)
+        for name, value in extra_headers:
+            mime[name] = value
+        return mime.as_bytes()
 
     def _relay_simple(self, message: Message) -> None:
         if not settings.ses_smtp_relay():
             return
-        # Build what SES builds for a SendEmail: text and/or HTML parts under
-        # multipart/alternative, with the envelope headers the API parameters imply.
         text = message.body_text
         html = message.body_html
         if text is None and html is None:
             text = message.body
-        mime = MIMEMultipart("alternative")
-        mime["Subject"] = message.subject
-        mime["From"] = message.source
-        for header, key in (("To", "ToAddresses"), ("Cc", "CcAddresses")):
-            if message.destinations.get(key):
-                mime[header] = ", ".join(message.destinations[key])
-        mime["Date"] = formatdate(localtime=True)
-        if text is not None:
-            mime.attach(MIMEText(text, "plain", "utf-8"))
-        if html is not None:
-            mime.attach(MIMEText(html, "html", "utf-8"))
-        self._relay(
+        mime = self._build_mime(
+            message.id,
             message.source,
+            message.destinations,
+            message.subject,
+            text,
+            html,
+            message.reply_to,
+            message.charsets,
+            message.headers,
+        )
+        self._relay(
+            message.return_path or message.source,
             self._flatten_destinations(message.destinations),
-            mime.as_bytes(),
+            mime,
         )
 
     def _relay_templated(self, message: TemplateMessage) -> None:
         if not settings.ses_smtp_relay():
             return
-        rendered = self.render_template(
-            {"name": message.template, "data": message.template_data}
+        subject, text, html = self._render_template_parts(
+            message.template, message.template_data
         )
-        # render_template returns "Date: ...\r\nSubject: ...\r\n<mime>"; add the envelope
-        # headers it leaves out so the capture server files it under the right sender.
-        headers = f"From: {message.source}\r\n"
-        if message.destinations.get("ToAddresses"):
-            headers += f"To: {', '.join(message.destinations['ToAddresses'])}\r\n"
-        self._relay(
+        mime = self._build_mime(
+            message.id,
             message.source,
-            self._flatten_destinations(message.destinations),
-            (headers + rendered).encode("utf-8"),
+            message.destinations,
+            subject,
+            text,
+            html,
+            message.reply_to,
+            {},
+            [],
         )
+        self._relay(
+            message.return_path or message.source,
+            self._flatten_destinations(message.destinations),
+            mime,
+        )
+
+    def _relay_raw(self, message: RawMessage) -> None:
+        if not settings.ses_smtp_relay():
+            return
+        parsed = email.message_from_string(message.raw_data)
+        # SES applies its own Date and Message-ID (overwriting the caller's), strips Bcc
+        # before delivery, and recipients see SES's Return-Path rather than the caller's.
+        for header in ("Date", "Message-ID", "Bcc", "Return-Path"):
+            del parsed[header]
+        parsed["Date"] = formatdate(usegmt=True)
+        parsed["Message-ID"] = self._ses_message_id_header(message.id)
+        source = message.source or parsed.get("From") or ""
+        self._relay(source, list(message.destinations), parsed.as_bytes())
 
     def get_send_quota(self) -> SESQuota:
         return SESQuota(self.sent_message_count)
@@ -912,6 +1058,31 @@ class SESBackend(BaseBackend):
     def list_templates(self) -> list[dict[str, str]]:
         return list(self.templates.values())
 
+    @staticmethod
+    def _render_parts(
+        template: dict[str, Any], template_data: Any
+    ) -> tuple[str, str, str]:
+        return (
+            parse_template(str(template["subject_part"]), template_data),
+            parse_template(str(template["text_part"]), template_data),
+            parse_template(str(template["html_part"]), template_data),
+        )
+
+    def _render_template_parts(
+        self, template_name: str, template_data: str
+    ) -> tuple[str, str, str]:
+        """(subject, text, html) for a stored template, as SendTemplatedEmail renders it."""
+        template = self.templates.get(template_name)
+        if not template:
+            raise TemplateDoesNotExist("Invalid Template Name.")
+        try:
+            data = json.loads(template_data)
+        except ValueError:
+            raise InvalidRenderingParameterException(
+                "Template rendering data is invalid"
+            )
+        return self._render_parts(template, data)
+
     def render_template(self, render_data: dict[str, Any]) -> str:
         template_name = render_data.get("name", "")
         template = self.templates.get(template_name, None)
@@ -926,13 +1097,7 @@ class SESBackend(BaseBackend):
                 "Template rendering data is invalid"
             )
 
-        subject_part = template["subject_part"]
-        text_part = template["text_part"]
-        html_part = template["html_part"]
-
-        subject_part = parse_template(str(subject_part), template_data)
-        text_part = parse_template(str(text_part), template_data)
-        html_part = parse_template(str(html_part), template_data)
+        subject_part, text_part, html_part = self._render_parts(template, template_data)
 
         email_obj = MIMEMultipart("alternative")
 
