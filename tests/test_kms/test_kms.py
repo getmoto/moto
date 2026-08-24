@@ -1344,6 +1344,14 @@ def test_sign_and_verify_ignoring_grant_tokens():
     assert verify_response["SignatureValid"] is True
 
 
+def _hash_for_signing_algorithm(signing_algorithm):
+    return {
+        "SHA_256": hashes.SHA256(),
+        "SHA_384": hashes.SHA384(),
+        "SHA_512": hashes.SHA512(),
+    }["SHA_" + signing_algorithm.rsplit("SHA_", 1)[-1]]
+
+
 @mock_aws
 @pytest.mark.parametrize(
     "key_spec, signing_algorithm",
@@ -1369,7 +1377,9 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
     )
     key_id = key["KeyMetadata"]["KeyId"]
 
-    digest = hashes.Hash(hashes.SHA256())
+    # The digest must be produced by the hash of the signing algorithm: with
+    # MessageType=DIGEST, AWS requires the message length to match that hash's length.
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
     digest.update(b"this works")
     digest.update(b"as well")
     message = digest.finalize()
@@ -1386,6 +1396,7 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
         Message=message,
         Signature=sign_response["Signature"],
         SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
     )
 
     assert verify_response["SignatureValid"] is True
@@ -1410,7 +1421,7 @@ def test_fail_verify_digest_message_type_RSA(
     )
     key_id = key["KeyMetadata"]["KeyId"]
 
-    digest = hashes.Hash(hashes.SHA256())
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
     digest.update(b"this works")
     digest.update(b"as well")
     falsified_digest = digest.copy()
@@ -1431,15 +1442,22 @@ def test_fail_verify_digest_message_type_RSA(
         Message=falsified_message,
         Signature=sign_response["Signature"],
         SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
     )
     assert verify_response["SignatureValid"] is False
 
-    # Verification fails if a different signing algorithm is used than the one used in signature.
+    # Verification fails under a different signing algorithm than the one that signed —
+    # the digest must be re-computed with the other algorithm's hash, since DIGEST
+    # messages must match that hash's length.
+    other_digest = hashes.Hash(_hash_for_signing_algorithm(another_signing_algorithm))
+    other_digest.update(b"this works")
+    other_digest.update(b"as well")
     verify_response = client.verify(
         KeyId=key_id,
-        Message=message,
+        Message=other_digest.finalize(),
         Signature=sign_response["Signature"],
         SigningAlgorithm=another_signing_algorithm,
+        MessageType="DIGEST",
     )
 
     assert verify_response["SignatureValid"] is False
@@ -1463,7 +1481,7 @@ def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
     )
     key_id = key["KeyMetadata"]["KeyId"]
 
-    digest = hashes.Hash(hashes.SHA256())
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
     digest.update(b"this works")
     digest.update(b"as well")
     message = digest.finalize()
@@ -1480,6 +1498,7 @@ def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
         Message=message,
         Signature=sign_response["Signature"],
         SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
     )
 
     assert verify_response["SignatureValid"] is True
@@ -1544,7 +1563,8 @@ def test_fail_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
     )
     key_id = key["KeyMetadata"]["KeyId"]
 
-    digest = hashes.Hash(hashes.SHA256())
+    # Sized for the signing algorithm's hash: DIGEST messages must match that length.
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
     digest.update(b"this works")
     digest.update(b"as well")
     falsified_digest = digest.copy()
