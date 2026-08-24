@@ -1846,3 +1846,167 @@ def test_ensure_key_can_be_verified_manually():
 
     public_key = serialization.load_der_public_key(public_key_data)
     public_key.verify(signature=raw_signature, data=message, **sign_kwargs)
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "signing_algorithm",
+    [
+        "RSASSA_PKCS1_V1_5_SHA_256",
+        "RSASSA_PKCS1_V1_5_SHA_384",
+        "RSASSA_PKCS1_V1_5_SHA_512",
+    ],
+)
+def test_sign_digest_is_equivalent_to_sign_raw_for_deterministic_rsa(signing_algorithm):
+    """RSASSA-PKCS1-v1_5 is deterministic, so signing a message RAW and signing its
+    digest with MessageType=DIGEST must produce byte-identical signatures — the defining
+    property of DIGEST ('skips the hashing step in the signing algorithm')."""
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")[
+        "KeyMetadata"
+    ]["KeyId"]
+
+    message = b"the same bytes, hashed once"
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
+    digest.update(message)
+
+    raw = client.sign(
+        KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm
+    )["Signature"]
+    digested = client.sign(
+        KeyId=key_id,
+        Message=digest.finalize(),
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )["Signature"]
+
+    assert raw == digested
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    [
+        ("RSA_2048", "RSASSA_PSS_SHA_256"),
+        ("RSA_2048", "RSASSA_PKCS1_V1_5_SHA_512"),
+        ("ECC_NIST_P256", "ECDSA_SHA_256"),
+        ("ECC_NIST_P384", "ECDSA_SHA_384"),
+    ],
+)
+def test_message_type_does_not_need_to_match_between_sign_and_verify(
+    key_spec, signing_algorithm
+):
+    """Per API_Verify.html: 'The message type does not need to be the same as the one
+    used for signing' — a message and its digest are the same message."""
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec=key_spec)["KeyMetadata"][
+        "KeyId"
+    ]
+
+    message = b"sign raw, verify digest, and back again"
+    digest = hashes.Hash(_hash_for_signing_algorithm(signing_algorithm))
+    digest.update(message)
+    hashed = digest.finalize()
+
+    signed_raw = client.sign(
+        KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm
+    )["Signature"]
+    assert client.verify(
+        KeyId=key_id,
+        Message=hashed,
+        Signature=signed_raw,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )["SignatureValid"]
+
+    signed_digest = client.sign(
+        KeyId=key_id,
+        Message=hashed,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )["Signature"]
+    assert client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=signed_digest,
+        SigningAlgorithm=signing_algorithm,
+    )["SignatureValid"]
+
+
+@mock_aws
+def test_sign_digest_verifies_outside_kms_with_the_public_key():
+    """The property partners depend on (and the regression that motivated DIGEST
+    support): a DIGEST signature must verify against GetPublicKey's key over the
+    ORIGINAL message, outside KMS."""
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")[
+        "KeyMetadata"
+    ]["KeyId"]
+
+    message = b"verified by someone who only has the public key"
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(message)
+
+    signature = client.sign(
+        KeyId=key_id,
+        Message=digest.finalize(),
+        SigningAlgorithm="RSASSA_PKCS1_V1_5_SHA_256",
+        MessageType="DIGEST",
+    )["Signature"]
+
+    public_key = serialization.load_der_public_key(
+        client.get_public_key(KeyId=key_id)["PublicKey"]
+    )
+    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+
+    # Raises InvalidSignature on failure — verifying over the ORIGINAL message proves
+    # KMS signed the digest as-is rather than hashing it again.
+    public_key.verify(signature, message, asym_padding.PKCS1v15(), hashes.SHA256())
+
+
+@mock_aws
+@pytest.mark.parametrize("operation", ["sign", "verify"])
+def test_digest_with_wrong_length_is_rejected(operation):
+    """With MessageType=DIGEST 'the length of the Message value must match the length
+    of hashed messages for the specified signing algorithm' (API_Sign.html)."""
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")[
+        "KeyMetadata"
+    ]["KeyId"]
+
+    thirty_two_bytes = b"x" * 32  # SHA-256-sized, offered to a SHA-384 algorithm
+    kwargs = {
+        "KeyId": key_id,
+        "Message": thirty_two_bytes,
+        "SigningAlgorithm": "RSASSA_PKCS1_V1_5_SHA_384",
+        "MessageType": "DIGEST",
+    }
+    with pytest.raises(ClientError) as ex:
+        if operation == "sign":
+            client.sign(**kwargs)
+        else:
+            client.verify(Signature=b"irrelevant", **kwargs)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "Digest is invalid length for algorithm" in err["Message"]
+
+
+@mock_aws
+def test_sign_with_external_mu_message_type_is_not_supported():
+    """EXTERNAL_MU is a valid enum value (ML-DSA keys only), which moto does not
+    implement — the error must say so rather than call the value invalid."""
+    client = boto3.client("kms", region_name="us-west-2")
+    key_id = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")[
+        "KeyMetadata"
+    ]["KeyId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.sign(
+            KeyId=key_id,
+            Message=b"m" * 64,
+            SigningAlgorithm="RSASSA_PKCS1_V1_5_SHA_256",
+            MessageType="EXTERNAL_MU",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "ML-DSA" in err["Message"]
