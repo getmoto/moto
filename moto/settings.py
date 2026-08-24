@@ -133,6 +133,18 @@ def moto_network_name() -> str | None:
     return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
 
 
+def ses_smtp_relay() -> str | None:
+    """
+    host:port of an SMTP server to relay every SES send to, or None (the default).
+
+    SES has no data plane in moto — a sent email is recorded and otherwise vanishes. For
+    local development that hides every email an application sends. Point this at a
+    capture server (mailpit, MailHog) and each SendEmail / SendTemplatedEmail /
+    SendRawEmail is additionally delivered there as the MIME message SES would have built.
+    """
+    return os.environ.get("MOTO_SES_SMTP_RELAY") or None
+
+
 def moto_network_mode() -> str | None:
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
