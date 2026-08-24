@@ -288,9 +288,9 @@ class Key(CloudFormationModel):
             }
         }
         if key_dict["KeyMetadata"]["MultiRegion"]:
-            key_dict["KeyMetadata"]["MultiRegionConfiguration"] = (
-                self.multi_region_configuration
-            )
+            key_dict["KeyMetadata"][
+                "MultiRegionConfiguration"
+            ] = self.multi_region_configuration
         if self.key_state == "PendingDeletion":
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
@@ -753,7 +753,11 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
             )
 
     def sign(
-        self, key_id: str, message: bytes, signing_algorithm: str
+        self,
+        key_id: str,
+        message: bytes,
+        signing_algorithm: str,
+        message_type: str = "RAW",
     ) -> tuple[str, bytes, str]:
         """
         Sign message using generated private key.
@@ -765,18 +769,22 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
-        signature = key.private_key.sign(message, signing_algorithm)
+        signature = key.private_key.sign(message, signing_algorithm, message_type)
 
         return key.arn, signature, signing_algorithm
 
     def verify(
-        self, key_id: str, message: bytes, signature: bytes, signing_algorithm: str
+        self,
+        key_id: str,
+        message: bytes,
+        signature: bytes,
+        signing_algorithm: str,
+        message_type: str = "RAW",
     ) -> tuple[str, bool, str]:
         """
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
-        - The MessageType-parameter DIGEST is not yet implemented
         """
         key = self.describe_key(key_id)
 
@@ -792,7 +800,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
 
         return (
             key.arn,
-            key.private_key.verify(message, signature, signing_algorithm),
+            key.private_key.verify(message, signature, signing_algorithm, message_type),
             signing_algorithm,
         )
 
