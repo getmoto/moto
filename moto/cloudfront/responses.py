@@ -3,7 +3,7 @@ from urllib.parse import unquote
 
 import xmltodict
 
-from moto.core.responses import TYPE_RESPONSE, BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse, ActionResult, EmptyResult
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from .models import CloudFrontBackend, cloudfront_backends, random_id
@@ -22,19 +22,374 @@ class CloudFrontResponse(BaseResponse):
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account][self.partition]
 
+    def _build_public_key_dict(self, key: Any, include_location: bool = False) -> dict[str, Any]:
+        """Build a dict for a public key response."""
+        result = {
+            "PublicKey": {
+                "Id": key.id,
+                "CreatedTime": key.created,
+                "PublicKeyConfig": {
+                    "CallerReference": key.caller_ref,
+                    "Name": key.name,
+                    "EncodedKey": key.encoded_key,
+                    "Comment": ""
+                }
+            },
+            "ETag": key.etag
+        }
+        if include_location:
+            result["Location"] = key.location
+        return result
+
+    def _build_public_key_list_dict(self, keys: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of public keys."""
+        items = []
+        for key in keys:
+            items.append({
+                "Id": key.id,
+                "Name": key.name,
+                "CreatedTime": key.created,
+                "EncodedKey": key.encoded_key,
+                "Comment": ""
+            })
+        return {
+            "PublicKeyList": {
+                "MaxItems": 100,
+                "Quantity": len(keys),
+                "Items": items if items else None
+            }
+        }
+
+    def _build_invalidation_dict(self, invalidation: Any) -> dict[str, Any]:
+        """Build a dict for an invalidation response."""
+        paths = invalidation.paths if isinstance(invalidation.paths, list) else [invalidation.paths]
+        return {
+            "Invalidation": {
+                "Id": invalidation.invalidation_id,
+                "Status": invalidation.status,
+                "CreateTime": invalidation.create_time,
+                "InvalidationBatch": {
+                    "CallerReference": invalidation.caller_ref,
+                    "Paths": {
+                        "Quantity": len(paths),
+                        "Items": {"Path": paths} if paths else None
+                    }
+                }
+            }
+        }
+
+    def _build_invalidation_list_dict(self, invalidations: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of invalidations."""
+        items = []
+        for inv in invalidations:
+            items.append({
+                "Id": inv.invalidation_id,
+                "CreateTime": inv.create_time,
+                "Status": inv.status
+            })
+        return {
+            "InvalidationList": {
+                "IsTruncated": False,
+                "Items": {"InvalidationSummary": items} if items else None,
+                "Marker": "",
+                "MaxItems": 100,
+                "Quantity": len(invalidations)
+            }
+        }
+
+    def _build_oac_dict(self, control: Any) -> dict[str, Any]:
+        """Build a dict for an Origin Access Control."""
+        return {
+            "OriginAccessControl": {
+                "Id": control.id,
+                "OriginAccessControlConfig": {
+                    "Name": control.name,
+                    "Description": control.description or "",
+                    "SigningProtocol": control.signing_protocol,
+                    "SigningBehavior": control.signing_behaviour,
+                    "OriginAccessControlOriginType": control.origin_type
+                }
+            }
+        }
+
+    def _build_oac_list_dict(self, controls: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of Origin Access Controls."""
+        items = []
+        for control in controls:
+            items.append({
+                "Id": control.id,
+                "Name": control.name,
+                "Description": control.description or "",
+                "SigningProtocol": control.signing_protocol,
+                "SigningBehavior": control.signing_behaviour,
+                "OriginAccessControlOriginType": control.origin_type
+            })
+        return {
+            "OriginAccessControlList": {
+                "Items": {"OriginAccessControlSummary": items} if items else None
+            }
+        }
+
+    def _build_oai_dict(self, oai: Any) -> dict[str, Any]:
+        """Build a dict for a CloudFront Origin Access Identity."""
+        return {
+            "CloudFrontOriginAccessIdentity": {
+                "Id": oai.id,
+                "S3CanonicalUserId": oai.s3_canonical_id,
+                "CloudFrontOriginAccessIdentityConfig": {
+                    "CallerReference": oai.caller_reference,
+                    "Comment": oai.comment or ""
+                }
+            }
+        }
+
+    def _build_oai_list_dict(self, oais: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of CloudFront Origin Access Identities."""
+        items = []
+        for oai in oais:
+            items.append({
+                "Id": oai.id,
+                "S3CanonicalUserId": oai.s3_canonical_id,
+                "Comment": oai.comment or ""
+            })
+        return {
+            "CloudFrontOriginAccessIdentityList": {
+                "IsTruncated": False,
+                "Items": {"CloudFrontOriginAccessIdentitySummary": items} if items else None,
+                "Marker": "",
+                "MaxItems": 100,
+                "Quantity": len(oais)
+            }
+        }
+
+    def _build_policy_dict(self, policy: Any, policy_type: str = "CachePolicy") -> dict[str, Any]:
+        """Generic helper to build policy dict."""
+        return {
+            policy_type: {
+                "Id": policy.id if hasattr(policy, 'id') else "",
+                f"{policy_type}Config": policy.__dict__ if hasattr(policy, '__dict__') else policy,
+                "ETag": policy.etag if hasattr(policy, 'etag') else ""
+            }
+        }
+
+    def _build_distribution_meta_dict(self, distribution: Any) -> dict[str, Any]:
+        """Build distribution metadata dict for list responses."""
+        return {
+            "Id": distribution.distribution_id,
+            "ARN": distribution.arn,
+            "Status": distribution.status,
+            "LastModifiedTime": distribution.last_modified_time,
+            "InProgressInvalidationBatches": distribution.in_progress_invalidation_batches,
+            "DomainName": distribution.domain_name,
+        }
+
+    def _build_distribution_list_dict(self, distributions: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of distributions."""
+        items = []
+        for dist in distributions:
+            items.append(self._build_distribution_meta_dict(dist))
+        return {
+            "DistributionList": {
+                "IsTruncated": False,
+                "Items": {"DistributionSummary": items} if items else None,
+                "Marker": "",
+                "MaxItems": 100,
+                "Quantity": len(distributions)
+            }
+        }
+
+    def _build_distribution_id_list_dict(self, dist_ids: list[str]) -> dict[str, Any]:
+        """Build a dict for a list of distribution IDs."""
+        return {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": len(dist_ids),
+                "Items": {"DistributionId": dist_ids} if dist_ids else None
+            }
+        }
+
+    def _build_key_group_dict(self, group: Any, include_location: bool = False) -> dict[str, Any]:
+        """Build a dict for a key group."""
+        result = {
+            "KeyGroup": {
+                "Id": group.id,
+                "KeyGroupConfig": {
+                    "Name": group.name,
+                    "Items": {"PublicKey": group.items} if group.items else None
+                }
+            },
+            "ETag": group.etag
+        }
+        if include_location:
+            result["Location"] = group.location
+        return result
+
+    def _build_key_group_list_dict(self, groups: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of key groups."""
+        items = []
+        for group in groups:
+            items.append({
+                "KeyGroup": {
+                    "Id": group.id,
+                    "KeyGroupConfig": {
+                        "Name": group.name,
+                        "Items": {"PublicKey": group.items} if group.items else None
+                    }
+                }
+            })
+        return {
+            "KeyGroupList": {
+                "MaxItems": 100,
+                "Quantity": len(groups),
+                "Items": {"KeyGroupSummary": items} if items else None
+            }
+        }
+
+    def _build_function_dict(self, func: Any, include_location: bool = False) -> dict[str, Any]:
+        """Build a dict for a function summary."""
+        result = {
+            "FunctionSummary": {
+                "Name": func.name,
+                "Status": func.status,
+                "FunctionConfig": func.function_config,
+                "FunctionMetadata": {
+                    "FunctionARN": func.arn,
+                    "CreationTime": func.created,
+                    "LastModifiedTime": func.last_modified,
+                    "Stage": func.stage
+                }
+            },
+            "ETag": func.etag
+        }
+        if include_location:
+            result["Location"] = f"https://cloudfront.amazonaws.com/2020-05-31/function/{func.name}"
+        return result
+
+    def _build_function_list_dict(self, funcs: list[Any]) -> dict[str, Any]:
+        """Build a dict for a list of functions."""
+        items = []
+        for func in funcs:
+            items.append({
+                "Name": func.name,
+                "Status": func.status,
+                "FunctionConfig": func.function_config,
+                "FunctionMetadata": {
+                    "FunctionARN": func.arn,
+                    "CreationTime": func.created,
+                    "LastModifiedTime": func.last_modified,
+                    "Stage": func.stage
+                }
+            })
+        return {
+            "FunctionList": {
+                "MaxItems": 100,
+                "Quantity": len(funcs),
+                "Items": {"FunctionSummary": items} if items else None
+            }
+        }
+
+    def _build_policy_response_dict(self, policy: Any, policy_type: str = "CachePolicy", include_location: bool = False) -> dict[str, Any]:
+        """Build a dict for a policy response."""
+        config_key = f"{policy_type}Config"
+        result = {
+            policy_type: {
+                "Id": policy.id,
+                "LastModifiedTime": policy.last_modified_time,
+                config_key: {
+                    "Name": policy.name,
+                    "Comment": policy.comment
+                }
+            },
+            "ETag": policy.etag
+        }
+        # Add policy-specific config fields
+        if hasattr(policy, 'default_ttl'):
+            result[policy_type][config_key]["DefaultTTL"] = policy.default_ttl
+        if hasattr(policy, 'max_ttl'):
+            result[policy_type][config_key]["MaxTTL"] = policy.max_ttl
+        if hasattr(policy, 'min_ttl'):
+            result[policy_type][config_key]["MinTTL"] = policy.min_ttl
+        if include_location:
+            policy_type_lower = "".join(["-" + c.lower() if c.isupper() else c for c in policy_type]).lstrip("-")
+            result["Location"] = f"https://cloudfront.amazonaws.com/2020-05-31/{policy_type_lower}/{policy.id}"
+        return result
+
+    def _build_generic_dict(self, obj: Any, type_name: str, include_location: bool = False) -> dict[str, Any]:
+        """Generic helper to build dict for objects with ETag."""
+        result = {type_name: obj.__dict__ if hasattr(obj, '__dict__') else obj}
+        if hasattr(obj, 'etag'):
+            result["ETag"] = obj.etag
+        if include_location and hasattr(obj, 'location'):
+            result["Location"] = obj.location
+        elif include_location and hasattr(obj, 'id'):
+            type_lower = "".join(["-" + c.lower() if c.isupper() else c for c in type_name]).lstrip("-")
+            result["Location"] = f"https://cloudfront.amazonaws.com/2020-05-31/{type_lower}/{obj.id}"
+        return result
+
+    def _build_generic_list_dict(self, items: list[Any], list_type_name: str, item_type_name: str) -> dict[str, Any]:
+        """Generic helper to build list dict for objects."""
+        return {
+            list_type_name: {
+                "MaxItems": 100,
+                "Quantity": len(items),
+                "Items": {item_type_name: [item.__dict__ if hasattr(item, '__dict__') else item for item in items]} if items else None
+            }
+        }
+
+    def _build_policy_list_dict(self, policies: list[Any], policy_type: str = "CachePolicy") -> dict[str, Any]:
+        """Build a dict for a list of policies."""
+        list_type = f"{policy_type}List"
+        summary_type = f"{policy_type}Summary"
+        config_key = f"{policy_type}Config"
+        items = []
+        for policy in policies:
+            items.append({
+                "Type": "custom",
+                policy_type: {
+                    "Id": policy.id,
+                    "LastModifiedTime": policy.last_modified_time,
+                    config_key: {
+                        "Name": policy.name,
+                        "Comment": policy.comment
+                    }
+                }
+            })
+            # Add policy-specific fields to config
+            if hasattr(policy, 'default_ttl'):
+                items[-1][policy_type][config_key]["DefaultTTL"] = policy.default_ttl
+            if hasattr(policy, 'max_ttl'):
+                items[-1][policy_type][config_key]["MaxTTL"] = policy.max_ttl
+            if hasattr(policy, 'min_ttl'):
+                items[-1][policy_type][config_key]["MinTTL"] = policy.min_ttl
+        return {
+            list_type: {
+                "MaxItems": 100,
+                "Quantity": len(policies),
+                "Items": {summary_type: items} if items else None
+            }
+        }
+
     @classmethod
-    def tagging(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def tagging(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE | ActionResult | EmptyResult:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         operation = response._get_param("Operation")
         if operation == "Tag":
-            return 204, {}, response.tag_resource()[2]
+            result = response.tag_resource()
+            if isinstance(result, EmptyResult):
+                return 204, {}, ""
+            return result
         if operation == "Untag":
-            return 204, {}, response.untag_resource()[2]
+            result = response.untag_resource()
+            if isinstance(result, EmptyResult):
+                return 204, {}, ""
+            return result
         if request.method == "GET":
-            return 200, {}, response.list_tags_for_resource()[2]
+            return response.list_tags_for_resource()
 
-    def create_distribution(self) -> TYPE_RESPONSE:
+    def create_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         if "DistributionConfigWithTags" in params:
             config = params.get("DistributionConfigWithTags")
@@ -54,33 +409,31 @@ class CloudFrontResponse(BaseResponse):
         headers = {"ETag": e_tag, "Location": location}
         return 200, headers, response
 
-    def list_distributions(self) -> TYPE_RESPONSE:
+    def list_distributions(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         distributions = self.backend.list_distributions()
-        template = self.response_template(LIST_TEMPLATE)
-        response = template.render(distributions=distributions)
-        return 200, {}, response
+        return ActionResult(self._build_distribution_list_dict(distributions))
 
-    def delete_distribution(self) -> TYPE_RESPONSE:
+    def delete_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         distribution_id = self.path.split("/")[-1]
         if_match = self._get_param("If-Match")
         self.backend.delete_distribution(distribution_id, if_match)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def get_distribution(self) -> TYPE_RESPONSE:
+    def get_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         distribution_id = self.path.split("/")[-1]
         dist, etag = self.backend.get_distribution(distribution_id)
         template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
         response = template.render(distribution=dist, xmlns=XMLNS)
         return 200, {"ETag": etag}, response
 
-    def get_distribution_config(self) -> TYPE_RESPONSE:
+    def get_distribution_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         distribution_config, etag = self.backend.get_distribution_config(dist_id)
         template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
         response = template.render(distribution=distribution_config, xmlns=XMLNS)
         return 200, {"ETag": etag}, response
 
-    def update_distribution(self) -> TYPE_RESPONSE:
+    def update_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         params = self._get_xml_body()
         dist_config = params.get("DistributionConfig")
@@ -95,92 +448,93 @@ class CloudFrontResponse(BaseResponse):
         headers = {"ETag": e_tag, "Location": location}
         return 200, headers, response
 
-    def create_invalidation(self) -> TYPE_RESPONSE:
+    def create_invalidation(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         params = self._get_xml_body()["InvalidationBatch"]
         paths = ((params.get("Paths") or {}).get("Items") or {}).get("Path") or []
         caller_ref = params.get("CallerReference")
 
         invalidation = self.backend.create_invalidation(dist_id, paths, caller_ref)  # type: ignore[arg-type]
-        template = self.response_template(CREATE_INVALIDATION_TEMPLATE)
-        response = template.render(invalidation=invalidation, xmlns=XMLNS)
+        result = self._build_invalidation_dict(invalidation)
+        result["Location"] = invalidation.location
+        return ActionResult(result)
 
-        return 200, {"Location": invalidation.location}, response
-
-    def list_invalidations(self) -> TYPE_RESPONSE:
+    def list_invalidations(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         invalidations = self.backend.list_invalidations(dist_id)
-        template = self.response_template(INVALIDATIONS_TEMPLATE)
-        response = template.render(invalidations=invalidations, xmlns=XMLNS)
+        return ActionResult(self._build_invalidation_list_dict(invalidations))
 
-        return 200, {}, response
-
-    def get_invalidation(self) -> TYPE_RESPONSE:
+    def get_invalidation(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         pathItems = self.path.split("/")
         dist_id = pathItems[-3]
         id = pathItems[-1]
         invalidation = self.backend.get_invalidation(dist_id, id)
-        template = self.response_template(GET_INVALIDATION_TEMPLATE)
-        response = template.render(invalidation=invalidation, xmlns=XMLNS)
-        return 200, {}, response
+        return ActionResult(self._build_invalidation_dict(invalidation))
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         resource = unquote(self._get_param("Resource"))
         tags = self.backend.list_tags_for_resource(resource=resource)["Tags"]
-        template = self.response_template(TAGS_TEMPLATE)
-        response = template.render(tags=tags, xmlns=XMLNS)
-        return 200, {}, response
+        items = []
+        for tag in tags:
+            items.append({"Key": tag["Key"], "Value": tag["Value"]})
+        return ActionResult({
+            "Tags": {
+                "Items": {"Tag": items} if items else None
+            }
+        })
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         resource = unquote(self._get_param("Resource"))
         params = self._get_xml_body()
         tags = params.get("Tags", {}).get("Items", {}).get("Tag", [])
         if not isinstance(tags, list):
             tags = [tags]
         self.backend.tag_resource(resource=resource, tags=tags)
-        return 204, {}, ""
+        return EmptyResult()
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         resource = unquote(self._get_param("Resource"))
         params = self._get_xml_body()
         tag_keys_data = params.get("TagKeys", {}).get("Items", {}).get("Key", [])
         if not isinstance(tag_keys_data, list):
             tag_keys_data = [tag_keys_data]
         self.backend.untag_resource(resource=resource, tag_keys=tag_keys_data)
-        return 204, {}, ""
+        return EmptyResult()
 
-    def create_origin_access_control(self) -> TYPE_RESPONSE:
+    def create_origin_access_control(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("OriginAccessControlConfig", {})
         config.pop("@xmlns", None)
         control = self.backend.create_origin_access_control(config)
-        template = self.response_template(ORIGIN_ACCESS_CONTROl)
-        return 200, {}, template.render(control=control)
+        result = self._build_oac_dict(control)
+        result["ETag"] = control.etag
+        return ActionResult(result)
 
-    def get_origin_access_control(self) -> TYPE_RESPONSE:
+    def get_origin_access_control(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         control_id = self.path.split("/")[-1]
         control = self.backend.get_origin_access_control(control_id)
-        template = self.response_template(ORIGIN_ACCESS_CONTROl)
-        return 200, {"ETag": control.etag}, template.render(control=control)
+        result = self._build_oac_dict(control)
+        result["ETag"] = control.etag
+        return ActionResult(result)
 
-    def list_origin_access_controls(self) -> TYPE_RESPONSE:
+    def list_origin_access_controls(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         controls = self.backend.list_origin_access_controls()
-        template = self.response_template(LIST_ORIGIN_ACCESS_CONTROl)
-        return 200, {}, template.render(controls=controls)
+        return ActionResult(self._build_oac_list_dict(controls))
 
-    def update_origin_access_control(self) -> TYPE_RESPONSE:
+    def update_origin_access_control(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         control_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("OriginAccessControlConfig", {})
         config.pop("@xmlns", None)
         control = self.backend.update_origin_access_control(control_id, config)
-        template = self.response_template(ORIGIN_ACCESS_CONTROl)
-        return 200, {"ETag": control.etag}, template.render(control=control)
+        result = self._build_oac_dict(control)
+        result["ETag"] = control.etag
+        return ActionResult(result)
 
-    def delete_origin_access_control(self) -> TYPE_RESPONSE:
+    def delete_origin_access_control(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         control_id = self.path.split("/")[-1]
         self.backend.delete_origin_access_control(control_id)
-        return 200, {}, "{}"
+        return EmptyResult()
 
-    def create_public_key(self) -> TYPE_RESPONSE:
+    def create_public_key(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body()["PublicKeyConfig"]
         caller_ref = config["CallerReference"]
         name = config["Name"]
@@ -188,33 +542,23 @@ class CloudFrontResponse(BaseResponse):
         public_key = self.backend.create_public_key(
             caller_ref=caller_ref, name=name, encoded_key=encoded_key
         )
+        return ActionResult(self._build_public_key_dict(public_key, include_location=True))
 
-        response = self.response_template(PUBLIC_KEY_TEMPLATE)
-        headers = {
-            "Location": public_key.location,
-            "ETag": public_key.etag,
-            "status": 201,
-        }
-        return 201, headers, response.render(key=public_key)
-
-    def get_public_key(self) -> TYPE_RESPONSE:
+    def get_public_key(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         key_id = self.parsed_url.path.split("/")[-1]
         public_key = self.backend.get_public_key(key_id=key_id)
+        return ActionResult(self._build_public_key_dict(public_key))
 
-        response = self.response_template(PUBLIC_KEY_TEMPLATE)
-        return 200, {"ETag": public_key.etag}, response.render(key=public_key)
-
-    def delete_public_key(self) -> TYPE_RESPONSE:
+    def delete_public_key(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         key_id = self.parsed_url.path.split("/")[-1]
         self.backend.delete_public_key(key_id=key_id)
-        return 204, {"status": 204}, "{}"
+        return EmptyResult()
 
-    def list_public_keys(self) -> TYPE_RESPONSE:
+    def list_public_keys(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         keys = self.backend.list_public_keys()
-        response = self.response_template(LIST_PUBLIC_KEYS)
-        return 200, {}, response.render(keys=keys)
+        return ActionResult(self._build_public_key_list_dict(keys))
 
-    def create_key_group(self) -> TYPE_RESPONSE:
+    def create_key_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("KeyGroupConfig") or {}
         config.pop("@xmlns", None)
         name = config.get("Name", "")
@@ -225,29 +569,18 @@ class CloudFrontResponse(BaseResponse):
             items = [items]
 
         key_group = self.backend.create_key_group(name=name, items=items)
+        return ActionResult(self._build_key_group_dict(key_group, include_location=True))
 
-        response = self.response_template(KEY_GROUP_TEMPLATE)
-        headers = {
-            "Location": key_group.location,
-            "ETag": key_group.etag,
-            "status": 201,
-        }
-        return 201, headers, response.render(group=key_group)
-
-    def get_key_group(self) -> TYPE_RESPONSE:
+    def get_key_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         group_id = self.parsed_url.path.split("/")[-1]
         key_group = self.backend.get_key_group(group_id=group_id)
+        return ActionResult(self._build_key_group_dict(key_group))
 
-        response = self.response_template(KEY_GROUP_TEMPLATE)
-        return 200, {"ETag": key_group.etag}, response.render(group=key_group)
-
-    def list_key_groups(self) -> TYPE_RESPONSE:
+    def list_key_groups(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         groups = self.backend.list_key_groups()
+        return ActionResult(self._build_key_group_list_dict(groups))
 
-        response = self.response_template(LIST_KEY_GROUPS_TEMPLATE)
-        return 200, {}, response.render(groups=groups)
-
-    def update_key_group(self) -> TYPE_RESPONSE:
+    def update_key_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         group_id = self.parsed_url.path.split("/")[-1]
         config = self._get_xml_body().get("KeyGroupConfig") or {}
         config.pop("@xmlns", None)
@@ -258,16 +591,15 @@ class CloudFrontResponse(BaseResponse):
         key_group = self.backend.update_key_group(
             group_id=group_id, name=name, items=items
         )
-        response = self.response_template(KEY_GROUP_TEMPLATE)
-        return 200, {"ETag": key_group.etag}, response.render(group=key_group)
+        return ActionResult(self._build_key_group_dict(key_group))
 
-    def delete_key_group(self) -> TYPE_RESPONSE:
+    def delete_key_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         group_id = self.parsed_url.path.split("/")[-1]
         self.backend.delete_key_group(group_id=group_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
     # CloudFront Functions
-    def create_function(self) -> TYPE_RESPONSE:
+    def create_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body().get("CreateFunctionRequest", {})
         params.pop("@xmlns", None)
         name = params.get("Name", "")
@@ -278,29 +610,20 @@ class CloudFrontResponse(BaseResponse):
             function_code=function_code,
             function_config=function_config,
         )
-        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
-        headers = {
-            "ETag": func.etag,
-            "Location": (
-                f"https://cloudfront.amazonaws.com/2020-05-31/function/{func.name}"
-            ),
-            "status": 201,
-        }
-        return 201, headers, template.render(func=func)
+        return ActionResult(self._build_function_dict(func, include_location=True))
 
-    def describe_function(self) -> TYPE_RESPONSE:
+    def describe_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-2]
         func = self.backend.describe_function(name)
-        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
-        return 200, {"ETag": func.etag}, template.render(func=func)
+        return ActionResult(self._build_function_dict(func))
 
-    def get_function(self) -> TYPE_RESPONSE:
+    def get_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         func = self.backend.get_function(name)
         headers = {"ETag": func.etag, "Content-Type": "application/octet-stream"}
         return 200, headers, func.function_code
 
-    def update_function(self) -> TYPE_RESPONSE:
+    def update_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         if_match = self.headers.get("If-Match", "")
         params = self._get_xml_body().get("UpdateFunctionRequest", {})
@@ -313,108 +636,82 @@ class CloudFrontResponse(BaseResponse):
             function_config=function_config,
             if_match=if_match,
         )
-        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
-        return 200, {"ETtag": func.etag}, template.render(func=func)
+        return ActionResult(self._build_function_dict(func))
 
-    def delete_function(self) -> TYPE_RESPONSE:
+    def delete_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         if_match = self.headers.get("If-Match", "")
         self.backend.delete_function(name=name, if_match=if_match)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def publish_function(self) -> TYPE_RESPONSE:
+    def publish_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-2]
         if_match = self.headers.get("If-Match", "")
         func = self.backend.publish_function(name=name, if_match=if_match)
-        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
-        return 200, {"ETag": func.etag}, template.render(func=func)
+        return ActionResult(self._build_function_dict(func))
 
-    def list_functions(self) -> TYPE_RESPONSE:
+    def list_functions(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         functions = self.backend.list_functions()
-        template = self.response_template(LIST_FUNCTIONS_TEMPLATE)
-        return 200, {}, template.render(functions=functions)
+        return ActionResult(self._build_function_list_dict(functions))
 
     # Cache Policies
-    def create_cache_policy(self) -> TYPE_RESPONSE:
+    def create_cache_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("CachePolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_cache_policy(config)
-        template = self.response_template(CACHE_POLICY_TEMPLATE)
-        headers = {
-            "ETag": policy.etag,
-            "Location": (
-                f"https://cloudfront.amazonaws.com/2020-05-31/cache-policy/{policy.id}"
-            ),
-            "status": 201,
-        }
-        return 201, headers, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "CachePolicy", include_location=True))
 
-    def get_cache_policy(self) -> TYPE_RESPONSE:
+    def get_cache_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_cache_policy(policy_id)
-        template = self.response_template(CACHE_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "CachePolicy"))
 
-    def update_cache_policy(self) -> TYPE_RESPONSE:
+    def update_cache_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("CachePolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_cache_policy(policy_id, config)
-        template = self.response_template(CACHE_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "CachePolicy"))
 
-    def delete_cache_policy(self) -> TYPE_RESPONSE:
+    def delete_cache_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         self.backend.delete_cache_policy(policy_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_cache_policies(self) -> TYPE_RESPONSE:
+    def list_cache_policies(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policies = self.backend.list_cache_policies()
-        template = self.response_template(LIST_CACHE_POLICIES_TEMPLATE)
-        return 200, {}, template.render(policies=policies)
+        return ActionResult(self._build_policy_list_dict(policies, "CachePolicy"))
 
     # Response Headers Policies
-    def create_response_headers_policy(self) -> TYPE_RESPONSE:
+    def create_response_headers_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_response_headers_policy(config)
-        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
-        headers = {
-            "ETag": policy.etag,
-            "Location": (
-                "https://cloudfront.amazonaws.com/2020-05-31"
-                f"/response-headers-policy/{policy.id}"
-            ),
-            "status": 201,
-        }
-        return 201, headers, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "ResponseHeadersPolicy", include_location=True))
 
-    def get_response_headers_policy(self) -> TYPE_RESPONSE:
+    def get_response_headers_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_response_headers_policy(policy_id)
-        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "ResponseHeadersPolicy"))
 
-    def update_response_headers_policy(self) -> TYPE_RESPONSE:
+    def update_response_headers_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_response_headers_policy(policy_id, config)
-        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "ResponseHeadersPolicy"))
 
-    def delete_response_headers_policy(self) -> TYPE_RESPONSE:
+    def delete_response_headers_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         self.backend.delete_response_headers_policy(policy_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_response_headers_policies(self) -> TYPE_RESPONSE:
+    def list_response_headers_policies(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policies = self.backend.list_response_headers_policies()
-        template = self.response_template(LIST_RESPONSE_HEADERS_POLICIES_TEMPLATE)
-        return 200, {}, template.render(policies=policies)
+        return ActionResult(self._build_policy_list_dict(policies, "ResponseHeadersPolicy"))
 
     # Origin Access Identities
-    def create_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE:
+    def create_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         config = params.get("CloudFrontOriginAccessIdentityConfig", {})
         config.pop("@xmlns", None)
@@ -423,27 +720,31 @@ class CloudFrontResponse(BaseResponse):
         oai = self.backend.create_cloud_front_origin_access_identity(
             caller_reference=caller_reference, comment=comment
         )
-        template = self.response_template(OAI_TEMPLATE)
-        headers = {
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-access-identity/cloudfront/{oai.id}",
-            "ETag": oai.etag,
-            "status": 201,
-        }
-        return 201, headers, template.render(oai=oai)
+        result = self._build_oai_dict(oai)
+        result["Location"] = f"https://cloudfront.amazonaws.com/2020-05-31/origin-access-identity/cloudfront/{oai.id}"
+        result["ETag"] = oai.etag
+        return ActionResult(result)
 
-    def get_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE:
+    def get_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         identity_id = self.path.split("/")[-1]
         oai = self.backend.get_cloud_front_origin_access_identity(identity_id)
-        template = self.response_template(OAI_TEMPLATE)
-        return 200, {"ETag": oai.etag}, template.render(oai=oai)
+        result = self._build_oai_dict(oai)
+        result["ETag"] = oai.etag
+        return ActionResult(result)
 
-    def get_cloud_front_origin_access_identity_config(self) -> TYPE_RESPONSE:
+    def get_cloud_front_origin_access_identity_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         identity_id = self.path.split("/")[-2]
         oai = self.backend.get_cloud_front_origin_access_identity_config(identity_id)
-        template = self.response_template(OAI_CONFIG_TEMPLATE)
-        return 200, {"ETag": oai.etag}, template.render(oai=oai)
+        result = {
+            "CloudFrontOriginAccessIdentityConfig": {
+                "CallerReference": oai.caller_reference,
+                "Comment": oai.comment or ""
+            },
+            "ETag": oai.etag
+        }
+        return ActionResult(result)
 
-    def update_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE:
+    def update_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         identity_id = self.path.split("/")[-2]
         params = self._get_xml_body()
         config = params.get("CloudFrontOriginAccessIdentityConfig", {})
@@ -451,21 +752,21 @@ class CloudFrontResponse(BaseResponse):
         oai = self.backend.update_cloud_front_origin_access_identity(
             identity_id, config.get("CallerReference", ""), config.get("Comment", "")
         )
-        template = self.response_template(OAI_TEMPLATE)
-        return 200, {"ETag": oai.etag}, template.render(oai=oai)
+        result = self._build_oai_dict(oai)
+        result["ETag"] = oai.etag
+        return ActionResult(result)
 
-    def delete_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE:
+    def delete_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         identity_id = self.path.split("/")[-1]
         self.backend.delete_cloud_front_origin_access_identity(identity_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_cloud_front_origin_access_identities(self) -> TYPE_RESPONSE:
+    def list_cloud_front_origin_access_identities(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         oais = self.backend.list_cloud_front_origin_access_identities()
-        template = self.response_template(LIST_OAI_TEMPLATE)
-        return 200, {}, template.render(oais=oais)
+        return ActionResult(self._build_oai_list_dict(oais))
 
     # Streaming Distributions
-    def create_streaming_distribution(self) -> TYPE_RESPONSE:
+    def create_streaming_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         if "StreamingDistributionConfigWithTags" in params:
             wrapper = params["StreamingDistributionConfigWithTags"] or {}
@@ -480,237 +781,209 @@ class CloudFrontResponse(BaseResponse):
             tags = []
         config.pop("@xmlns", None)
         dist = self.backend.create_streaming_distribution(config, tags)
-        template = self.response_template(STREAMING_DIST_TEMPLATE)
-        headers = {"Location": dist.location, "ETag": dist.etag, "status": 201}
-        return 201, headers, template.render(dist=dist)
+        return ActionResult(self._build_generic_dict(dist, "StreamingDistribution", include_location=True))
 
-    def create_streaming_distribution_with_tags(self) -> TYPE_RESPONSE:
+    def create_streaming_distribution_with_tags(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         return self.create_streaming_distribution()
 
-    def get_streaming_distribution(self) -> TYPE_RESPONSE:
+    def get_streaming_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-1]
         dist = self.backend.get_streaming_distribution(dist_id)
-        template = self.response_template(STREAMING_DIST_TEMPLATE)
-        return 200, {"ETag": dist.etag}, template.render(dist=dist)
+        return ActionResult(self._build_generic_dict(dist, "StreamingDistribution"))
 
-    def get_streaming_distribution_config(self) -> TYPE_RESPONSE:
+    def get_streaming_distribution_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         dist = self.backend.get_streaming_distribution_config(dist_id)
-        template = self.response_template(STREAMING_DIST_CONFIG_TEMPLATE)
-        return 200, {"ETag": dist.etag}, template.render(dist=dist)
+        result = {
+            "StreamingDistributionConfig": dist.__dict__ if hasattr(dist, '__dict__') else dist,
+            "ETag": dist.etag
+        }
+        return ActionResult(result)
 
-    def update_streaming_distribution(self) -> TYPE_RESPONSE:
+    def update_streaming_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         params = self._get_xml_body()
         config = params.get("StreamingDistributionConfig", {})
         config.pop("@xmlns", None)
         dist = self.backend.update_streaming_distribution(dist_id, config)
-        template = self.response_template(STREAMING_DIST_TEMPLATE)
-        return 200, {"ETag": dist.etag}, template.render(dist=dist)
+        return ActionResult(self._build_generic_dict(dist, "StreamingDistribution"))
 
-    def delete_streaming_distribution(self) -> TYPE_RESPONSE:
+    def delete_streaming_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-1]
         self.backend.delete_streaming_distribution(dist_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_streaming_distributions(self) -> TYPE_RESPONSE:
+    def list_streaming_distributions(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dists = self.backend.list_streaming_distributions()
-        template = self.response_template(LIST_STREAMING_DISTS_TEMPLATE)
-        return 200, {}, template.render(dists=dists)
+        return ActionResult(self._build_generic_list_dict(dists, "StreamingDistributionList", "StreamingDistributionSummary"))
 
     # Origin Request Policies
-    def create_origin_request_policy(self) -> TYPE_RESPONSE:
+    def create_origin_request_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("OriginRequestPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_origin_request_policy(config)
-        template = self.response_template(ORIGIN_REQUEST_POLICY_TEMPLATE)
-        headers = {
-            "ETag": policy.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-request-policy/{policy.id}",
-            "status": 201,
-        }
-        return 201, headers, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "OriginRequestPolicy", include_location=True))
 
-    def get_origin_request_policy(self) -> TYPE_RESPONSE:
+    def get_origin_request_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_origin_request_policy(policy_id)
-        template = self.response_template(ORIGIN_REQUEST_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "OriginRequestPolicy"))
 
-    def get_origin_request_policy_config(self) -> TYPE_RESPONSE:
+    def get_origin_request_policy_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_origin_request_policy_config(policy_id)
-        template = self.response_template(ORIGIN_REQUEST_POLICY_CONFIG_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        result = {
+            "OriginRequestPolicyConfig": policy.__dict__ if hasattr(policy, '__dict__') else policy,
+            "ETag": policy.etag
+        }
+        return ActionResult(result)
 
-    def update_origin_request_policy(self) -> TYPE_RESPONSE:
+    def update_origin_request_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("OriginRequestPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_origin_request_policy(policy_id, config)
-        template = self.response_template(ORIGIN_REQUEST_POLICY_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_policy_response_dict(policy, "OriginRequestPolicy"))
 
-    def delete_origin_request_policy(self) -> TYPE_RESPONSE:
+    def delete_origin_request_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         self.backend.delete_origin_request_policy(policy_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_origin_request_policies(self) -> TYPE_RESPONSE:
+    def list_origin_request_policies(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policies = self.backend.list_origin_request_policies()
-        template = self.response_template(LIST_ORIGIN_REQUEST_POLICIES_TEMPLATE)
-        return 200, {}, template.render(policies=policies)
+        return ActionResult(self._build_policy_list_dict(policies, "OriginRequestPolicy"))
 
     # Field Level Encryption
-    def create_field_level_encryption_config(self) -> TYPE_RESPONSE:
+    def create_field_level_encryption_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("FieldLevelEncryptionConfig", {})
         config.pop("@xmlns", None)
         fle = self.backend.create_field_level_encryption_config(config)
-        template = self.response_template(FIELD_LEVEL_ENCRYPTION_TEMPLATE)
-        headers = {
-            "ETag": fle.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption/{fle.id}",
-            "status": 201,
-        }
-        return 201, headers, template.render(fle=fle)
+        return ActionResult(self._build_generic_dict(fle, "FieldLevelEncryption", include_location=True))
 
-    def get_field_level_encryption(self) -> TYPE_RESPONSE:
+    def get_field_level_encryption(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config_id = self.path.split("/")[-1]
         fle = self.backend.get_field_level_encryption(config_id)
-        template = self.response_template(FIELD_LEVEL_ENCRYPTION_TEMPLATE)
-        return 200, {"ETag": fle.etag}, template.render(fle=fle)
+        return ActionResult(self._build_generic_dict(fle, "FieldLevelEncryption"))
 
-    def get_field_level_encryption_config(self) -> TYPE_RESPONSE:
+    def get_field_level_encryption_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config_id = self.path.split("/")[-2]
         fle = self.backend.get_field_level_encryption_config(config_id)
-        template = self.response_template(FIELD_LEVEL_ENCRYPTION_CONFIG_TEMPLATE)
-        return 200, {"ETag": fle.etag}, template.render(fle=fle)
+        result = {
+            "FieldLevelEncryptionConfig": fle.__dict__ if hasattr(fle, '__dict__') else fle,
+            "ETag": fle.etag
+        }
+        return ActionResult(result)
 
-    def update_field_level_encryption_config(self) -> TYPE_RESPONSE:
+    def update_field_level_encryption_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("FieldLevelEncryptionConfig", {})
         config.pop("@xmlns", None)
         fle = self.backend.update_field_level_encryption_config(config_id, config)
-        template = self.response_template(FIELD_LEVEL_ENCRYPTION_TEMPLATE)
-        return 200, {"ETag": fle.etag}, template.render(fle=fle)
+        return ActionResult(self._build_generic_dict(fle, "FieldLevelEncryption"))
 
-    def delete_field_level_encryption_config(self) -> TYPE_RESPONSE:
+    def delete_field_level_encryption_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config_id = self.path.split("/")[-1]
         self.backend.delete_field_level_encryption_config(config_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_field_level_encryption_configs(self) -> TYPE_RESPONSE:
+    def list_field_level_encryption_configs(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         configs = self.backend.list_field_level_encryption_configs()
-        template = self.response_template(LIST_FIELD_LEVEL_ENCRYPTION_TEMPLATE)
-        return 200, {}, template.render(configs=configs)
+        return ActionResult(self._build_generic_list_dict(configs, "FieldLevelEncryptionList", "FieldLevelEncryptionSummary"))
 
     # Field Level Encryption Profiles
-    def create_field_level_encryption_profile(self) -> TYPE_RESPONSE:
+    def create_field_level_encryption_profile(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("FieldLevelEncryptionProfileConfig", {})
         config.pop("@xmlns", None)
         profile = self.backend.create_field_level_encryption_profile(config)
-        template = self.response_template(FLE_PROFILE_TEMPLATE)
-        headers = {
-            "ETag": profile.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption-profile/{profile.id}",
-            "status": 201,
-        }
-        return 201, headers, template.render(profile=profile)
+        return ActionResult(self._build_generic_dict(profile, "FieldLevelEncryptionProfile", include_location=True))
 
-    def get_field_level_encryption_profile(self) -> TYPE_RESPONSE:
+    def get_field_level_encryption_profile(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         profile_id = self.path.split("/")[-1]
         profile = self.backend.get_field_level_encryption_profile(profile_id)
-        template = self.response_template(FLE_PROFILE_TEMPLATE)
-        return 200, {"ETag": profile.etag}, template.render(profile=profile)
+        return ActionResult(self._build_generic_dict(profile, "FieldLevelEncryptionProfile"))
 
-    def get_field_level_encryption_profile_config(self) -> TYPE_RESPONSE:
+    def get_field_level_encryption_profile_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         profile_id = self.path.split("/")[-2]
         profile = self.backend.get_field_level_encryption_profile_config(profile_id)
-        template = self.response_template(FLE_PROFILE_CONFIG_TEMPLATE)
-        return 200, {"ETag": profile.etag}, template.render(profile=profile)
+        result = {
+            "FieldLevelEncryptionProfileConfig": profile.__dict__ if hasattr(profile, '__dict__') else profile,
+            "ETag": profile.etag
+        }
+        return ActionResult(result)
 
-    def update_field_level_encryption_profile(self) -> TYPE_RESPONSE:
+    def update_field_level_encryption_profile(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         profile_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("FieldLevelEncryptionProfileConfig", {})
         config.pop("@xmlns", None)
         profile = self.backend.update_field_level_encryption_profile(profile_id, config)
-        template = self.response_template(FLE_PROFILE_TEMPLATE)
-        return 200, {"ETag": profile.etag}, template.render(profile=profile)
+        return ActionResult(self._build_generic_dict(profile, "FieldLevelEncryptionProfile"))
 
-    def delete_field_level_encryption_profile(self) -> TYPE_RESPONSE:
+    def delete_field_level_encryption_profile(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         profile_id = self.path.split("/")[-1]
         self.backend.delete_field_level_encryption_profile(profile_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_field_level_encryption_profiles(self) -> TYPE_RESPONSE:
+    def list_field_level_encryption_profiles(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         profiles = self.backend.list_field_level_encryption_profiles()
-        template = self.response_template(LIST_FLE_PROFILES_TEMPLATE)
-        return 200, {}, template.render(profiles=profiles)
+        return ActionResult(self._build_generic_list_dict(profiles, "FieldLevelEncryptionProfileList", "FieldLevelEncryptionProfileSummary"))
 
     # Continuous Deployment Policies
-    def create_continuous_deployment_policy(self) -> TYPE_RESPONSE:
+    def create_continuous_deployment_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         config = self._get_xml_body().get("ContinuousDeploymentPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_continuous_deployment_policy(config)
-        template = self.response_template(CDP_TEMPLATE)
-        headers = {
-            "ETag": policy.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/continuous-deployment-policy/{policy.id}",
-            "status": 201,
-        }
-        return 201, headers, template.render(policy=policy)
+        return ActionResult(self._build_generic_dict(policy, "ContinuousDeploymentPolicy", include_location=True))
 
-    def get_continuous_deployment_policy(self) -> TYPE_RESPONSE:
+    def get_continuous_deployment_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_continuous_deployment_policy(policy_id)
-        template = self.response_template(CDP_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_generic_dict(policy, "ContinuousDeploymentPolicy"))
 
-    def get_continuous_deployment_policy_config(self) -> TYPE_RESPONSE:
+    def get_continuous_deployment_policy_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_continuous_deployment_policy_config(policy_id)
-        template = self.response_template(CDP_CONFIG_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        result = {
+            "ContinuousDeploymentPolicyConfig": policy.__dict__ if hasattr(policy, '__dict__') else policy,
+            "ETag": policy.etag
+        }
+        return ActionResult(result)
 
-    def update_continuous_deployment_policy(self) -> TYPE_RESPONSE:
+    def update_continuous_deployment_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("ContinuousDeploymentPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_continuous_deployment_policy(policy_id, config)
-        template = self.response_template(CDP_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        return ActionResult(self._build_generic_dict(policy, "ContinuousDeploymentPolicy"))
 
-    def delete_continuous_deployment_policy(self) -> TYPE_RESPONSE:
+    def delete_continuous_deployment_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         self.backend.delete_continuous_deployment_policy(policy_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_continuous_deployment_policies(self) -> TYPE_RESPONSE:
+    def list_continuous_deployment_policies(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policies = self.backend.list_continuous_deployment_policies()
-        template = self.response_template(LIST_CDP_TEMPLATE)
-        return 200, {}, template.render(policies=policies)
+        return ActionResult(self._build_generic_list_dict(policies, "ContinuousDeploymentPolicyList", "ContinuousDeploymentPolicySummary"))
 
     # Monitoring Subscriptions
-    def create_monitoring_subscription(self) -> TYPE_RESPONSE:
+    def create_monitoring_subscription(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         params = self._get_xml_body()
         ms_config = params.get("MonitoringSubscription", {})
         ms_config.pop("@xmlns", None)
         realtime_config = ms_config.get("RealtimeMetricsSubscriptionConfig", {})
         sub = self.backend.create_monitoring_subscription(dist_id, realtime_config)
-        template = self.response_template(MONITORING_SUB_TEMPLATE)
-        return 200, {}, template.render(sub=sub)
+        return ActionResult(self._build_generic_dict(sub, "MonitoringSubscription"))
 
-    def get_monitoring_subscription(self) -> TYPE_RESPONSE:
+    def get_monitoring_subscription(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         sub = self.backend.get_monitoring_subscription(dist_id)
-        template = self.response_template(MONITORING_SUB_TEMPLATE)
-        return 200, {}, template.render(sub=sub)
+        return ActionResult(self._build_generic_dict(sub, "MonitoringSubscription"))
 
-    def delete_monitoring_subscription(self) -> TYPE_RESPONSE:
+    def delete_monitoring_subscription(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         self.backend.delete_monitoring_subscription(dist_id)
-        return 200, {}, ""
+        return EmptyResult()
 
     # Realtime Log Configs
     def _parse_realtime_body(self) -> dict[str, Any]:
@@ -755,7 +1028,7 @@ class CloudFrontResponse(BaseResponse):
             fields_raw = [fields_raw]
         return fields_raw
 
-    def create_realtime_log_config(self) -> TYPE_RESPONSE:
+    def create_realtime_log_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._parse_realtime_body()
         name = body.get("Name", "")
         sampling_rate = int(body.get("SamplingRate", 100))
@@ -767,18 +1040,16 @@ class CloudFrontResponse(BaseResponse):
             end_points=end_points,
             fields=fields,
         )
-        template = self.response_template(CREATE_REALTIME_LOG_CONFIG_RESULT)
-        return 201, {"status": 201}, template.render(config=config)
+        return ActionResult(self._build_generic_dict(config, "RealtimeLogConfig"))
 
-    def get_realtime_log_config(self) -> TYPE_RESPONSE:
+    def get_realtime_log_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._parse_realtime_body() if self.body else {}
         config = self.backend.get_realtime_log_config(
             name=body.get("Name"), arn=body.get("ARN")
         )
-        template = self.response_template(GET_REALTIME_LOG_CONFIG_RESULT)
-        return 200, {}, template.render(config=config)
+        return ActionResult(self._build_generic_dict(config, "RealtimeLogConfig"))
 
-    def update_realtime_log_config(self) -> TYPE_RESPONSE:
+    def update_realtime_log_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._parse_realtime_body() if self.body else {}
         sr = body.get("SamplingRate")
         end_points = self._extract_endpoints(body) if "EndPoints" in body else None
@@ -790,152 +1061,187 @@ class CloudFrontResponse(BaseResponse):
             end_points=end_points,
             fields=fields,
         )
-        template = self.response_template(UPDATE_REALTIME_LOG_CONFIG_RESULT)
-        return 200, {}, template.render(config=config)
+        return ActionResult(self._build_generic_dict(config, "RealtimeLogConfig"))
 
-    def delete_realtime_log_config(self) -> TYPE_RESPONSE:
+    def delete_realtime_log_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._parse_realtime_body() if self.body else {}
         self.backend.delete_realtime_log_config(
             name=body.get("Name"), arn=body.get("ARN")
         )
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def list_realtime_log_configs(self) -> TYPE_RESPONSE:
+    def list_realtime_log_configs(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         configs = self.backend.list_realtime_log_configs()
-        template = self.response_template(LIST_REALTIME_LOG_CONFIGS_TEMPLATE)
-        return 200, {}, template.render(configs=configs)
+        return ActionResult(self._build_generic_list_dict(configs, "RealtimeLogConfigList", "RealtimeLogConfigSummary"))
 
     # Distribution query operations
-    def list_distributions_by_web_acl_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_web_acl_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         web_acl_id = self.path.split("/")[-1]
         distributions = self.backend.list_distributions_by_web_acl_id(web_acl_id)
-        template = self.response_template(LIST_TEMPLATE)
-        return 200, {}, template.render(distributions=distributions)
+        return ActionResult(self._build_distribution_list_dict(distributions))
 
-    def list_distributions_by_web_a_c_l_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_web_a_c_l_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         return self.list_distributions_by_web_acl_id()
 
-    def list_distributions_by_cache_policy_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_cache_policy_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_cache_policy_id(policy_id)
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=dist_ids)
+        return ActionResult(self._build_distribution_id_list_dict(dist_ids))
 
-    def list_distributions_by_origin_request_policy_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_origin_request_policy_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_origin_request_policy_id(
             policy_id
         )
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=dist_ids)
+        return ActionResult(self._build_distribution_id_list_dict(dist_ids))
 
-    def list_distributions_by_response_headers_policy_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_response_headers_policy_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_response_headers_policy_id(
             policy_id
         )
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=dist_ids)
+        return ActionResult(self._build_distribution_id_list_dict(dist_ids))
 
-    def list_distributions_by_key_group(self) -> TYPE_RESPONSE:
+    def list_distributions_by_key_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         key_group_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_key_group(key_group_id)
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=dist_ids)
+        return ActionResult(self._build_distribution_id_list_dict(dist_ids))
 
-    def list_distributions_by_realtime_log_config(self) -> TYPE_RESPONSE:
+    def list_distributions_by_realtime_log_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._parse_realtime_body() if self.body else {}
         distributions = self.backend.list_distributions_by_realtime_log_config(
             body.get("RealtimeLogConfigArn", "")
         )
-        template = self.response_template(LIST_TEMPLATE)
-        return 200, {}, template.render(distributions=distributions)
+        return ActionResult(self._build_distribution_list_dict(distributions))
 
     # Config-only getters
-    def get_cache_policy_config(self) -> TYPE_RESPONSE:
+    def get_cache_policy_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_cache_policy_config(policy_id)
-        template = self.response_template(CACHE_POLICY_CONFIG_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        result = {
+            "CachePolicyConfig": policy.__dict__ if hasattr(policy, '__dict__') else policy,
+            "ETag": policy.etag
+        }
+        return ActionResult(result)
 
-    def get_key_group_config(self) -> TYPE_RESPONSE:
+    def get_key_group_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         group_id = self.path.split("/")[-2]
         group = self.backend.get_key_group_config(group_id)
-        template = self.response_template(KEY_GROUP_CONFIG_TEMPLATE)
-        return 200, {"ETag": group.etag}, template.render(group=group)
+        result = {
+            "KeyGroupConfig": {
+                "Name": group.name,
+                "Items": {"PublicKey": group.items}
+            },
+            "ETag": group.etag
+        }
+        return ActionResult(result)
 
-    def get_origin_access_control_config(self) -> TYPE_RESPONSE:
+    def get_origin_access_control_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         control_id = self.path.split("/")[-2]
         control = self.backend.get_origin_access_control_config(control_id)
-        template = self.response_template(OAC_CONFIG_TEMPLATE)
-        return 200, {"ETag": control.etag}, template.render(control=control)
+        result = {
+            "OriginAccessControlConfig": {
+                "Name": control.name,
+                "Description": control.description or "",
+                "SigningProtocol": control.signing_protocol,
+                "SigningBehavior": control.signing_behaviour,
+                "OriginAccessControlOriginType": control.origin_type
+            },
+            "ETag": control.etag
+        }
+        return ActionResult(result)
 
-    def get_public_key_config(self) -> TYPE_RESPONSE:
+    def get_public_key_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         key_id = self.path.split("/")[-2]
         key = self.backend.get_public_key_config(key_id)
-        template = self.response_template(PUBLIC_KEY_CONFIG_TEMPLATE)
-        return 200, {"ETag": key.etag}, template.render(key=key)
+        result = {
+            "PublicKeyConfig": {
+                "CallerReference": key.caller_ref,
+                "Name": key.name,
+                "EncodedKey": key.encoded_key,
+                "Comment": ""
+            },
+            "ETag": key.etag
+        }
+        return ActionResult(result)
 
-    def get_response_headers_policy_config(self) -> TYPE_RESPONSE:
+    def get_response_headers_policy_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_response_headers_policy_config(policy_id)
-        template = self.response_template(RESPONSE_HEADERS_POLICY_CONFIG_TEMPLATE)
-        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+        result = {
+            "ResponseHeadersPolicyConfig": policy.__dict__ if hasattr(policy, '__dict__') else policy,
+            "ETag": policy.etag
+        }
+        return ActionResult(result)
 
-    def update_public_key(self) -> TYPE_RESPONSE:
+    def update_public_key(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         key_id = self.path.split("/")[-2]
         key = self.backend.update_public_key(key_id)
-        template = self.response_template(PUBLIC_KEY_TEMPLATE)
-        return 200, {"ETag": key.etag}, template.render(key=key)
+        return ActionResult(self._build_public_key_dict(key))
 
     # Alias operations
-    def associate_alias(self) -> TYPE_RESPONSE:
+    def associate_alias(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         alias = self._get_param("Alias")
         self.backend.associate_alias(dist_id, alias)
-        return 200, {}, ""
+        return EmptyResult()
 
-    def test_function(self) -> TYPE_RESPONSE:
+    def test_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-2]
         result = self.backend.test_function(name, event_object="")
-        template = self.response_template(TEST_FUNCTION_TEMPLATE)
-        return 200, {}, template.render(result=result)
+        return ActionResult({
+            "TestResult": {
+                "FunctionOutput": '{"response":{"statusCode":200}}',
+                "ComputeUtilization": 12
+            }
+        })
 
-    def list_conflicting_aliases(self) -> TYPE_RESPONSE:
+    def list_conflicting_aliases(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self._get_param("DistributionId")
         alias = self._get_param("Alias")
         items = self.backend.list_conflicting_aliases(dist_id, alias)
-        template = self.response_template(CONFLICTING_ALIASES_TEMPLATE)
-        return 200, {}, template.render(items=items)
+        return ActionResult({
+            "ConflictingAliasesList": {
+                "IsTruncated": False,
+                "Items": {"ConflictingAlias": items} if items else None,
+                "MaxItems": 100,
+                "Quantity": len(items) if items else 0
+            }
+        })
 
-    def create_distribution_with_tags(self) -> TYPE_RESPONSE:
+    def create_distribution_with_tags(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         return self.create_distribution()
 
     # Stub operations for newer/niche APIs
-    def associate_distribution_web_acl(self) -> TYPE_RESPONSE:
-        return 200, {}, ""
+    def associate_distribution_web_acl(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
+
+    def copy_distribution(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        distribution_id = self.path.split("/")[-1]
+        dist, etag = self.backend.get_distribution(distribution_id)
+        return ActionResult({"Distribution": {"Id": dist.distribution_id, "ETag": etag}})
 
     # Alias for Moto dispatch compatibility
     associate_distribution_web_a_c_l = associate_distribution_web_acl
 
-    def disassociate_distribution_web_acl(self) -> TYPE_RESPONSE:
-        return 200, {}, ""
+    def disassociate_distribution_web_acl(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
 
     disassociate_distribution_web_a_c_l = disassociate_distribution_web_acl
 
-    def associate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE:
-        return 200, {}, ""
+    def associate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
 
     associate_distribution_tenant_web_a_c_l = associate_distribution_tenant_web_acl
 
-    def disassociate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE:
-        return 200, {}, ""
+    def disassociate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
 
     disassociate_distribution_tenant_web_a_c_l = (
         disassociate_distribution_tenant_web_acl
     )
 
-    def create_key_value_store(self) -> TYPE_RESPONSE:
+    def create_key_value_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         body = self._get_xml_body()
         req = body.get("CreateKeyValueStoreRequest") or body
         if isinstance(req, dict):
@@ -945,45 +1251,19 @@ class CloudFrontResponse(BaseResponse):
         name = req.get("Name", "")
         comment = req.get("Comment", "")
         kvs = self.backend.create_key_value_store(name=name, comment=comment)
-        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
-        response = template.render(
-            name=kvs.name,
-            kvs_id=kvs.id,
-            comment=kvs.comment,
-            arn=kvs.arn,
-            status=kvs.status,
-            last_modified=kvs.last_modified_time,
-        )
-        return (
-            201,
-            {
-                "status": 201,
-                "ETag": kvs.etag,
-                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}",
-            },
-            response,
-        )
+        return ActionResult(self._build_generic_dict(kvs, "KeyValueStore", include_location=True))
 
-    def describe_key_value_store(self) -> TYPE_RESPONSE:
+    def describe_key_value_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         kvs = self.backend.describe_key_value_store(name)
-        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
-        response = template.render(
-            name=kvs.name,
-            kvs_id=kvs.id,
-            comment=kvs.comment,
-            arn=kvs.arn,
-            status=kvs.status,
-            last_modified=kvs.last_modified_time,
-        )
-        return 200, {"ETag": kvs.etag}, response
+        return ActionResult(self._build_generic_dict(kvs, "KeyValueStore"))
 
-    def delete_key_value_store(self) -> TYPE_RESPONSE:
+    def delete_key_value_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         self.backend.delete_key_value_store(name)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_key_value_store(self) -> TYPE_RESPONSE:
+    def update_key_value_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         body = self._get_xml_body()
         req = body.get("UpdateKeyValueStoreRequest") or body
@@ -993,323 +1273,269 @@ class CloudFrontResponse(BaseResponse):
             req = {}
         comment = req.get("Comment", "")
         kvs = self.backend.update_key_value_store(name=name, comment=comment)
-        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
-        response = template.render(
-            name=kvs.name,
-            kvs_id=kvs.id,
-            comment=kvs.comment,
-            arn=kvs.arn,
-            status=kvs.status,
-            last_modified=kvs.last_modified_time,
-        )
-        return 200, {"ETag": kvs.etag}, response
+        return ActionResult(self._build_generic_dict(kvs, "KeyValueStore"))
 
-    def list_key_value_stores(self) -> TYPE_RESPONSE:
+    def list_key_value_stores(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         stores = self.backend.list_key_value_stores()
-        template = self.response_template(LIST_KEY_VALUE_STORES_TEMPLATE)
-        return 200, {}, template.render(stores=stores)
+        return ActionResult(self._build_generic_list_dict(stores, "KeyValueStoreList", "KeyValueStoreSummary"))
 
     # VPC Origins
-    def create_vpc_origin(self) -> TYPE_RESPONSE:
+    def create_vpc_origin(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateVpcOriginRequest", params)
         config = root.get("VpcOriginEndpointConfig", {})
         config.pop("@xmlns", None)
         vo = self.backend.create_vpc_origin(config)
-        template = self.response_template(VPC_ORIGIN_TEMPLATE)
-        return 202, {"status": 202, "ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(vo, "VpcOrigin", include_location=True))
 
-    def get_vpc_origin(self) -> TYPE_RESPONSE:
+    def get_vpc_origin(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         vpc_id = self.path.split("/")[-1]
         vo = self.backend.get_vpc_origin(vpc_id)
-        template = self.response_template(VPC_ORIGIN_TEMPLATE)
-        return 200, {"ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(vo, "VpcOrigin"))
 
-    def delete_vpc_origin(self) -> TYPE_RESPONSE:
+    def delete_vpc_origin(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         vpc_id = self.path.split("/")[-1]
         self.backend.delete_vpc_origin(vpc_id)
-        return 202, {"status": 202}, ""
+        return EmptyResult()
 
-    def update_vpc_origin(self) -> TYPE_RESPONSE:
+    def update_vpc_origin(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         vpc_id = self.path.split("/")[-1]
         params = self._get_xml_body()
         root = params.get("UpdateVpcOriginRequest", params)
         config = root.get("VpcOriginEndpointConfig", {})
         config.pop("@xmlns", None)
         vo = self.backend.update_vpc_origin(vpc_id, config)
-        template = self.response_template(VPC_ORIGIN_TEMPLATE)
-        return 200, {"ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(vo, "VpcOrigin"))
 
-    def list_vpc_origins(self) -> TYPE_RESPONSE:
+    def list_vpc_origins(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         origins = self.backend.list_vpc_origins()
-        template = self.response_template(LIST_VPC_ORIGINS_TEMPLATE)
-        return 200, {}, template.render(origins=origins, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(origins, "VpcOriginList", "VpcOriginSummary"))
 
     # Trust Stores
-    def create_trust_store(self) -> TYPE_RESPONSE:
+    def create_trust_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateTrustStoreRequest", params)
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         ts = self.backend.create_trust_store(name)
-        template = self.response_template(TRUST_STORE_TEMPLATE)
-        return 201, {"status": 201, "ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(ts, "TrustStore", include_location=True))
 
-    def get_trust_store(self) -> TYPE_RESPONSE:
+    def get_trust_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         store_id = self.path.split("/")[-1]
         ts = self.backend.get_trust_store(store_id)
-        template = self.response_template(TRUST_STORE_TEMPLATE)
-        return 200, {"ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(ts, "TrustStore"))
 
-    def delete_trust_store(self) -> TYPE_RESPONSE:
+    def delete_trust_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         store_id = self.path.split("/")[-1]
         self.backend.delete_trust_store(store_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_trust_store(self) -> TYPE_RESPONSE:
+    def update_trust_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         store_id = self.path.split("/")[-1]
         ts = self.backend.update_trust_store(store_id)
-        template = self.response_template(TRUST_STORE_TEMPLATE)
-        return 200, {"ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(ts, "TrustStore"))
 
-    def list_trust_stores(self) -> TYPE_RESPONSE:
+    def list_trust_stores(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         stores = self.backend.list_trust_stores()
-        template = self.response_template(LIST_TRUST_STORES_TEMPLATE)
-        return 200, {}, template.render(stores=stores, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(stores, "TrustStoreList", "TrustStoreSummary"))
 
     # Resource Policy
-    def get_resource_policy(self) -> TYPE_RESPONSE:
-        template = self.response_template(RESOURCE_POLICY_TEMPLATE)
-        return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
+    def get_resource_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"ResourcePolicy": {}, "ETag": random_id(length=14)})
 
-    def put_resource_policy(self) -> TYPE_RESPONSE:
-        template = self.response_template(RESOURCE_POLICY_TEMPLATE)
-        return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
+    def put_resource_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"ResourcePolicy": {}, "ETag": random_id(length=14)})
 
-    def delete_resource_policy(self) -> TYPE_RESPONSE:
-        return 204, {"status": 204}, ""
+    def delete_resource_policy(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
 
     # Anycast IP Lists
-    def create_anycast_ip_list(self) -> TYPE_RESPONSE:
+    def create_anycast_ip_list(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateAnycastIpListRequest", params)
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         aip = self.backend.create_anycast_ip_list(name)
-        template = self.response_template(ANYCAST_IP_LIST_TEMPLATE)
-        return 201, {"status": 201, "ETag": aip.etag}, template.render(aip=aip, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(aip, "AnycastIpList", include_location=True))
 
-    def get_anycast_ip_list(self) -> TYPE_RESPONSE:
+    def get_anycast_ip_list(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         list_id = self.path.split("/")[-1]
         aip = self.backend.get_anycast_ip_list(list_id)
-        template = self.response_template(ANYCAST_IP_LIST_TEMPLATE)
-        return 200, {"ETag": aip.etag}, template.render(aip=aip, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(aip, "AnycastIpList"))
 
-    def delete_anycast_ip_list(self) -> TYPE_RESPONSE:
+    def delete_anycast_ip_list(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         list_id = self.path.split("/")[-1]
         self.backend.delete_anycast_ip_list(list_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_anycast_ip_list(self) -> TYPE_RESPONSE:
+    def update_anycast_ip_list(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         return self.get_anycast_ip_list()
 
-    def list_anycast_ip_lists(self) -> TYPE_RESPONSE:
+    def list_anycast_ip_lists(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         lists = self.backend.list_anycast_ip_lists()
-        template = self.response_template(LIST_ANYCAST_IP_LISTS_TEMPLATE)
-        return 200, {}, template.render(lists=lists, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(lists, "AnycastIpListList", "AnycastIpListSummary"))
 
     # Connection Groups
-    def create_connection_group(self) -> TYPE_RESPONSE:
+    def create_connection_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateConnectionGroupRequest", params)
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         cg = self.backend.create_connection_group(name)
-        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
-        return 201, {"status": 201, "ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cg, "ConnectionGroup", include_location=True))
 
-    def get_connection_group(self) -> TYPE_RESPONSE:
+    def get_connection_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         cg_id = self.path.split("/")[-1]
         cg = self.backend.get_connection_group(cg_id)
-        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
-        return 200, {"ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cg, "ConnectionGroup"))
 
-    def delete_connection_group(self) -> TYPE_RESPONSE:
+    def delete_connection_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         cg_id = self.path.split("/")[-1]
         self.backend.delete_connection_group(cg_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_connection_group(self) -> TYPE_RESPONSE:
+    def update_connection_group(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         cg_id = self.path.split("/")[-1]
         cg = self.backend.get_connection_group(cg_id)
         cg.etag = random_id(length=14)
-        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
-        return 200, {"ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cg, "ConnectionGroup"))
 
-    def list_connection_groups(self) -> TYPE_RESPONSE:
+    def list_connection_groups(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         groups = self.backend.list_connection_groups()
-        template = self.response_template(LIST_CONNECTION_GROUPS_TEMPLATE)
-        return 200, {}, template.render(groups=groups, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(groups, "ConnectionGroupList", "ConnectionGroupSummary"))
 
-    def get_connection_group_by_routing_endpoint(self) -> TYPE_RESPONSE:
+    def get_connection_group_by_routing_endpoint(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         template = self.response_template(ERROR_TEMPLATE)
         return 404, {}, template.render(code="NoSuchResource", message="The specified resource does not exist.", xmlns=XMLNS)
 
     # Distribution Tenants
-    def create_distribution_tenant(self) -> TYPE_RESPONSE:
+    def create_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateDistributionTenantRequest", params)
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         dist_id = root.get("DistributionId", "")
         dt = self.backend.create_distribution_tenant(name, dist_id)
-        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
-        return 201, {"status": 201, "ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(dt, "DistributionTenant", include_location=True))
 
-    def get_distribution_tenant(self) -> TYPE_RESPONSE:
+    def get_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dt_id = self.path.split("/")[-1]
         dt = self.backend.get_distribution_tenant(dt_id)
-        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
-        return 200, {"ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(dt, "DistributionTenant"))
 
-    def delete_distribution_tenant(self) -> TYPE_RESPONSE:
+    def delete_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dt_id = self.path.split("/")[-1]
         self.backend.delete_distribution_tenant(dt_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_distribution_tenant(self) -> TYPE_RESPONSE:
+    def update_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dt_id = self.path.split("/")[-1]
         dt = self.backend.get_distribution_tenant(dt_id)
         dt.etag = random_id(length=14)
-        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
-        return 200, {"ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(dt, "DistributionTenant"))
 
-    def list_distribution_tenants(self) -> TYPE_RESPONSE:
+    def list_distribution_tenants(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         tenants = self.backend.list_distribution_tenants()
-        template = self.response_template(LIST_DISTRIBUTION_TENANTS_TEMPLATE)
-        return 200, {}, template.render(tenants=tenants, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(tenants, "DistributionTenantList", "DistributionTenantSummary"))
 
-    def get_distribution_tenant_by_domain(self) -> TYPE_RESPONSE:
+    def get_distribution_tenant_by_domain(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         template = self.response_template(ERROR_TEMPLATE)
         return 404, {}, template.render(code="NoSuchResource", message="The specified resource does not exist.", xmlns=XMLNS)
 
-    def list_distribution_tenants_by_customization(self) -> TYPE_RESPONSE:
-        template = self.response_template(LIST_DISTRIBUTION_TENANTS_TEMPLATE)
-        return 200, {}, template.render(tenants=[], xmlns=XMLNS)
+    def list_distribution_tenants_by_customization(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_generic_list_dict([], "DistributionTenantList", "DistributionTenantSummary"))
 
-    def create_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
+    def create_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         inv_id = random_id()
-        template = self.response_template(TENANT_INVALIDATION_TEMPLATE)
-        return 201, {"status": 201}, template.render(inv_id=inv_id, xmlns=XMLNS)
+        return ActionResult({"TenantInvalidation": {"Id": inv_id}})
 
-    def get_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
+    def get_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         inv_id = self.path.split("/")[-1]
-        template = self.response_template(TENANT_INVALIDATION_TEMPLATE)
-        return 200, {}, template.render(inv_id=inv_id, xmlns=XMLNS)
+        return ActionResult({"TenantInvalidation": {"Id": inv_id}})
 
-    def list_invalidations_for_distribution_tenant(self) -> TYPE_RESPONSE:
-        template = self.response_template(TENANT_INVALIDATION_LIST_TEMPLATE)
-        return 200, {}, template.render(xmlns=XMLNS)
+    def list_invalidations_for_distribution_tenant(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"TenantInvalidationList": {"Items": None, "Quantity": 0}})
 
     # Connection Functions
-    def create_connection_function(self) -> TYPE_RESPONSE:
+    def create_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         params = self._get_xml_body()
         root = params.get("CreateConnectionFunctionRequest", params)
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         cf = self.backend.create_connection_function(name)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 201, {"status": 201, "ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cf, "ConnectionFunction", include_location=True))
 
-    def get_connection_function(self) -> TYPE_RESPONSE:
+    def get_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         cf = self.backend.get_connection_function(name)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cf, "ConnectionFunction"))
 
-    def describe_connection_function(self) -> TYPE_RESPONSE:
+    def describe_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-2]
         cf = self.backend.get_connection_function(name)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cf, "ConnectionFunction"))
 
-    def delete_connection_function(self) -> TYPE_RESPONSE:
+    def delete_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         self.backend.delete_connection_function(name)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
-    def update_connection_function(self) -> TYPE_RESPONSE:
+    def update_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-1]
         cf = self.backend.get_connection_function(name)
         cf.etag = random_id(length=14)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cf, "ConnectionFunction"))
 
-    def publish_connection_function(self) -> TYPE_RESPONSE:
+    def publish_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         name = self.path.split("/")[-2]
         cf = self.backend.get_connection_function(name)
         cf.stage = "LIVE"
         cf.etag = random_id(length=14)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(self._build_generic_dict(cf, "ConnectionFunction"))
 
-    def test_connection_function(self) -> TYPE_RESPONSE:
-        template = self.response_template(TEST_CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {}, template.render(xmlns=XMLNS)
+    def test_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"TestConnectionFunctionResult": {"Status": "Success"}})
 
-    def list_connection_functions(self) -> TYPE_RESPONSE:
+    def list_connection_functions(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         funcs = self.backend.list_connection_functions()
-        template = self.response_template(LIST_CONNECTION_FUNCTIONS_TEMPLATE)
-        return 200, {}, template.render(funcs=funcs, xmlns=XMLNS)
+        return ActionResult(self._build_generic_list_dict(funcs, "ConnectionFunctionList", "ConnectionFunctionSummary"))
 
-    def copy_distribution(self) -> TYPE_RESPONSE:
-        return self.get_distribution()
+    def list_distributions_by_anycast_ip_list_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_id_list_dict([]))
 
-    def list_distributions_by_anycast_ip_list_id(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_connection_function(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_id_list_dict([]))
 
-    def list_distributions_by_connection_function(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_connection_mode(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_list_dict([]))
 
-    def list_distributions_by_connection_mode(self) -> TYPE_RESPONSE:
-        template = self.response_template(LIST_TEMPLATE)
-        return 200, {}, template.render(distributions=[])
+    def list_distributions_by_owned_resource(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_id_list_dict([]))
 
-    def list_distributions_by_owned_resource(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_trust_store(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_id_list_dict([]))
 
-    def list_distributions_by_trust_store(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_vpc_origin_id(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult(self._build_distribution_id_list_dict([]))
 
-    def list_distributions_by_vpc_origin_id(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_domain_conflicts(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"DomainConflictsList": {"Items": None, "Quantity": 0}})
 
-    def list_domain_conflicts(self) -> TYPE_RESPONSE:
-        template = self.response_template(EMPTY_LIST_TEMPLATE)
-        return 200, {}, template.render(root_tag="DomainConflicts", xmlns=XMLNS)
-
-    def update_distribution_with_staging_config(self) -> TYPE_RESPONSE:
+    def update_distribution_with_staging_config(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
         dist_id = self.path.split("/")[-2]
         dist, etag = self.backend.get_distribution(dist_id)
         template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
         response = template.render(distribution=dist, xmlns=XMLNS)
         return 200, {"ETag": etag}, response
 
-    def update_domain_association(self) -> TYPE_RESPONSE:
-        return 200, {}, ""
+    def update_domain_association(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return EmptyResult()
 
-    def get_managed_certificate_details(self) -> TYPE_RESPONSE:
-        template = self.response_template(MANAGED_CERTIFICATE_TEMPLATE)
-        return 200, {}, template.render(xmlns=XMLNS)
+    def get_managed_certificate_details(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"ManagedCertificateDetails": {"DomainName": "example.com", "ValidationMethod": "DNS"}})
 
-    def verify_dns_configuration(self) -> TYPE_RESPONSE:
-        template = self.response_template(VERIFY_DNS_TEMPLATE)
-        return 200, {}, template.render(xmlns=XMLNS)
+    def verify_dns_configuration(self) -> TYPE_RESPONSE | ActionResult | EmptyResult:
+        return ActionResult({"VerifyDnsConfigurationResult": {"Verified": True}})
 
 
 DIST_META_TEMPLATE = """
