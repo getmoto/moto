@@ -1,10 +1,11 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
 
 
 class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
-    def create_network_insights_access_scope(self) -> str:
+    def create_network_insights_access_scope(self) -> ActionResult:
         match_paths = self._get_param("MatchPath", [])
         exclude_paths = self._get_param("ExcludePath", [])
         client_token = self._get_param("ClientToken")
@@ -17,66 +18,74 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
             client_token=client_token,
             tags=tags,
         )
-        template = self.response_template(CREATE_NETWORK_INSIGHTS_ACCESS_SCOPE)
-        return template.render(scope=scope)
+        return ActionResult(
+            {
+                "NetworkInsightsAccessScope": scope,
+                "NetworkInsightsAccessScopeContent": {
+                    "NetworkInsightsAccessScopeId": scope.id
+                },
+            }
+        )
 
-    def delete_network_insights_access_scope(self) -> str:
+    def delete_network_insights_access_scope(self) -> ActionResult:
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
         scope = self.ec2_backend.delete_network_insights_access_scope(
             network_insights_access_scope_id=scope_id,
         )
-        template = self.response_template(DELETE_NETWORK_INSIGHTS_ACCESS_SCOPE)
-        return template.render(scope=scope)
+        return ActionResult({"NetworkInsightsAccessScopeId": scope.id})
 
-    def describe_network_insights_access_scopes(self) -> str:
+    def describe_network_insights_access_scopes(self) -> ActionResult:
         scope_ids = self._get_param("NetworkInsightsAccessScopeId", [])
         scopes = self.ec2_backend.describe_network_insights_access_scopes(
             scope_ids=scope_ids or None,
         )
-        template = self.response_template(DESCRIBE_NETWORK_INSIGHTS_ACCESS_SCOPES)
-        return template.render(scopes=scopes)
+        return ActionResult({"NetworkInsightsAccessScopes": scopes})
 
-    def start_network_insights_access_scope_analysis(self) -> str:
+    def start_network_insights_access_scope_analysis(self) -> ActionResult:
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
         tags = add_tag_specification(self._get_param("TagSpecifications", []))
         analysis = self.ec2_backend.start_network_insights_access_scope_analysis(
             network_insights_access_scope_id=scope_id,
             tags=tags,
         )
-        template = self.response_template(START_NETWORK_INSIGHTS_ACCESS_SCOPE_ANALYSIS)
-        return template.render(analysis=analysis)
+        return ActionResult({"NetworkInsightsAccessScopeAnalysis": analysis})
 
-    def describe_network_insights_access_scope_analyses(self) -> str:
+    def describe_network_insights_access_scope_analyses(self) -> ActionResult:
         analysis_ids = self._get_param("NetworkInsightsAccessScopeAnalysisId", [])
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
         analyses = self.ec2_backend.describe_network_insights_access_scope_analyses(
             analysis_ids=analysis_ids or None,
             scope_id=scope_id,
         )
-        template = self.response_template(
-            DESCRIBE_NETWORK_INSIGHTS_ACCESS_SCOPE_ANALYSES
-        )
-        return template.render(analyses=analyses)
+        return ActionResult({"NetworkInsightsAccessScopeAnalyses": analyses})
 
-    def get_network_insights_access_scope_analysis_findings(self) -> str:
+    def get_network_insights_access_scope_analysis_findings(self) -> ActionResult:
         analysis_id = self._get_param("NetworkInsightsAccessScopeAnalysisId")
         analysis, findings = (
             self.ec2_backend.get_network_insights_access_scope_analysis_findings(
                 analysis_id=analysis_id,
             )
         )
-        template = self.response_template(
-            GET_NETWORK_INSIGHTS_ACCESS_SCOPE_ANALYSIS_FINDINGS
-        )
-        return template.render(analysis=analysis, findings=findings)
+        result = {}
+        if analysis:
+            result["NetworkInsightsAccessScopeAnalysisId"] = analysis.id
+            result["AnalysisStatus"] = analysis.status
+        result["AnalysisFindings"] = []
+        return ActionResult(result)
 
-    def get_network_insights_access_scope_content(self) -> str:
+    def get_network_insights_access_scope_content(self) -> ActionResult:
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
         scope = self.ec2_backend.get_network_insights_access_scope_content(
             network_insights_access_scope_id=scope_id,
         )
-        template = self.response_template(GET_NETWORK_INSIGHTS_ACCESS_SCOPE_CONTENT)
-        return template.render(scope=scope)
+        result = {}
+        if scope:
+            result["NetworkInsightsAccessScopeContent"] = {
+                "NetworkInsightsAccessScopeId": scope.id,
+                "MatchPaths": [],
+                "ExcludePaths": [],
+            }
+        return ActionResult(result)
 
 
 CREATE_NETWORK_INSIGHTS_ACCESS_SCOPE = """<CreateNetworkInsightsAccessScopeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

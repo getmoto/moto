@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 
@@ -5,7 +6,7 @@ from ._base_response import EC2BaseResponse
 
 
 class TransitGatewayConnectResponse(EC2BaseResponse):
-    def create_transit_gateway_connect(self) -> str:
+    def create_transit_gateway_connect(self) -> ActionResult:
         transport_tgw_attachment_id = self._get_param(
             "TransportTransitGatewayAttachmentId"
         )
@@ -17,26 +18,23 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             options=options,
             tags=tags,
         )
-        template = self.response_template(CREATE_TRANSIT_GATEWAY_CONNECT)
-        return template.render(connect=connect)
+        return ActionResult({"TransitGatewayConnect": connect})
 
-    def delete_transit_gateway_connect(self) -> str:
+    def delete_transit_gateway_connect(self) -> ActionResult:
         tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
         connect = self.ec2_backend.delete_transit_gateway_connect(tgw_attachment_id)
-        template = self.response_template(DELETE_TRANSIT_GATEWAY_CONNECT)
-        return template.render(connect=connect)
+        return ActionResult({"TransitGatewayConnect": connect})
 
-    def describe_transit_gateway_connects(self) -> str:
+    def describe_transit_gateway_connects(self) -> ActionResult:
         tgw_attachment_ids = self._get_param("TransitGatewayAttachmentIds", [])
         filters = self._filters_from_querystring()
         connects = self.ec2_backend.describe_transit_gateway_connects(
             transit_gateway_attachment_ids=tgw_attachment_ids or None,
             filters=filters,
         )
-        template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_CONNECTS)
-        return template.render(connects=connects)
+        return ActionResult({"TransitGatewayConnects": connects})
 
-    def create_transit_gateway_connect_peer(self) -> str:
+    def create_transit_gateway_connect_peer(self) -> ActionResult:
         tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
         tgw_address = self._get_param("TransitGatewayAddress")
         peer_address = self._get_param("PeerAddress", "")
@@ -52,26 +50,23 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             inside_cidr_blocks=inside_cidr_blocks,
             tags=tags,
         )
-        template = self.response_template(CREATE_TRANSIT_GATEWAY_CONNECT_PEER)
-        return template.render(peer=peer)
+        return ActionResult({"TransitGatewayConnectPeer": peer})
 
-    def delete_transit_gateway_connect_peer(self) -> str:
+    def delete_transit_gateway_connect_peer(self) -> ActionResult:
         peer_id = self._get_param("TransitGatewayConnectPeerId")
         peer = self.ec2_backend.delete_transit_gateway_connect_peer(peer_id)
-        template = self.response_template(DELETE_TRANSIT_GATEWAY_CONNECT_PEER)
-        return template.render(peer=peer)
+        return ActionResult({"TransitGatewayConnectPeer": peer})
 
-    def describe_transit_gateway_connect_peers(self) -> str:
+    def describe_transit_gateway_connect_peers(self) -> ActionResult:
         peer_ids = self._get_param("TransitGatewayConnectPeerIds", [])
         filters = self._filters_from_querystring()
         peers = self.ec2_backend.describe_transit_gateway_connect_peers(
             transit_gateway_connect_peer_ids=peer_ids or None,
             filters=filters,
         )
-        template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_CONNECT_PEERS)
-        return template.render(peers=peers)
+        return ActionResult({"TransitGatewayConnectPeers": peers})
 
-    def create_transit_gateway_prefix_list_reference(self) -> str:
+    def create_transit_gateway_prefix_list_reference(self) -> ActionResult:
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
         prefix_list_id = self._get_param("PrefixListId")
         tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
@@ -83,10 +78,9 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             transit_gateway_attachment_id=tgw_attachment_id,
             blackhole=blackhole,
         )
-        template = self.response_template(CREATE_TGW_PREFIX_LIST_REFERENCE)
-        return template.render(ref=ref)
+        return ActionResult({"TransitGatewayPrefixListReference": ref})
 
-    def delete_transit_gateway_prefix_list_reference(self) -> str:
+    def delete_transit_gateway_prefix_list_reference(self) -> ActionResult:
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
         prefix_list_id = self._get_param("PrefixListId")
 
@@ -94,10 +88,9 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             transit_gateway_route_table_id=tgw_rt_id,
             prefix_list_id=prefix_list_id,
         )
-        template = self.response_template(DELETE_TGW_PREFIX_LIST_REFERENCE)
-        return template.render(ref=ref)
+        return ActionResult({"TransitGatewayPrefixListReference": ref})
 
-    def get_transit_gateway_prefix_list_references(self) -> str:
+    def get_transit_gateway_prefix_list_references(self) -> ActionResult:
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
         filters = self._filters_from_querystring()
 
@@ -105,8 +98,7 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             transit_gateway_route_table_id=tgw_rt_id,
             filters=filters,
         )
-        template = self.response_template(GET_TGW_PREFIX_LIST_REFERENCES)
-        return template.render(refs=refs)
+        return ActionResult({"TransitGatewayPrefixListReferences": refs})
 
 
 CREATE_TRANSIT_GATEWAY_CONNECT = """<CreateTransitGatewayConnectResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

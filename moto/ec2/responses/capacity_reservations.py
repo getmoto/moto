@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 
@@ -5,7 +6,7 @@ from ._base_response import EC2BaseResponse
 
 
 class CapacityReservations(EC2BaseResponse):
-    def create_capacity_reservation(self) -> str:
+    def create_capacity_reservation(self) -> ActionResult:
         instance_type = self._get_param("InstanceType")
         instance_platform = self._get_param("InstancePlatform")
         availability_zone = self._get_param("AvailabilityZone")
@@ -39,18 +40,16 @@ class CapacityReservations(EC2BaseResponse):
             instance_match_criteria=instance_match_criteria,
             tags=tags,
         )
-        template = self.response_template(CREATE_CAPACITY_RESERVATION)
-        return template.render(cr=cr)
+        return ActionResult({"CapacityReservation": cr})
 
-    def describe_capacity_reservations(self) -> str:
+    def describe_capacity_reservations(self) -> ActionResult:
         cr_ids = self._get_param("CapacityReservationId", [])
         crs = self.ec2_backend.describe_capacity_reservations(
             capacity_reservation_ids=cr_ids or None,
         )
-        template = self.response_template(DESCRIBE_CAPACITY_RESERVATIONS)
-        return template.render(reservations=crs)
+        return ActionResult({"CapacityReservations": crs})
 
-    def modify_capacity_reservation(self) -> str:
+    def modify_capacity_reservation(self) -> ActionResult:
         cr_id = self._get_param("CapacityReservationId")
         instance_count = self._get_param("InstanceCount")
         end_date = self._get_param("EndDate")
@@ -63,18 +62,16 @@ class CapacityReservations(EC2BaseResponse):
             end_date=end_date,
             end_date_type=end_date_type,
         )
-        template = self.response_template(MODIFY_CAPACITY_RESERVATION)
-        return template.render()
+        return ActionResult({"Return": True})
 
-    def cancel_capacity_reservation(self) -> str:
+    def cancel_capacity_reservation(self) -> ActionResult:
         cr_id = self._get_param("CapacityReservationId")
         self.ec2_backend.cancel_capacity_reservation(
             capacity_reservation_id=cr_id,
         )
-        template = self.response_template(CANCEL_CAPACITY_RESERVATION)
-        return template.render()
+        return ActionResult({"Return": True})
 
-    def create_capacity_reservation_fleet(self) -> str:
+    def create_capacity_reservation_fleet(self) -> ActionResult:
         specs = self._get_param("InstanceTypeSpecification", [])
         total = int(self._get_param("TotalTargetCapacity", "1"))
         alloc = self._get_param("AllocationStrategy", "prioritized")
@@ -94,24 +91,18 @@ class CapacityReservations(EC2BaseResponse):
             instance_match_criteria=match,
             tags=tags,
         )
-        template = self.response_template(
-            CREATE_CAPACITY_RESERVATION_FLEET
-        )
-        return template.render(fleet=fleet)
+        return ActionResult({"CapacityReservationFleet": fleet})
 
-    def describe_capacity_reservation_fleets(self) -> str:
+    def describe_capacity_reservation_fleets(self) -> ActionResult:
         fleet_ids = self._get_param(
             "CapacityReservationFleetId", []
         )
         fleets = self.ec2_backend.describe_capacity_reservation_fleets(
             capacity_reservation_fleet_ids=fleet_ids or None,
         )
-        template = self.response_template(
-            DESCRIBE_CAPACITY_RESERVATION_FLEETS
-        )
-        return template.render(fleets=fleets)
+        return ActionResult({"CapacityReservationFleets": fleets})
 
-    def modify_capacity_reservation_fleet(self) -> str:
+    def modify_capacity_reservation_fleet(self) -> ActionResult:
         fleet_id = self._get_param("CapacityReservationFleetId")
         total = self._get_param("TotalTargetCapacity")
         end_date = self._get_param("EndDate")
@@ -122,22 +113,22 @@ class CapacityReservations(EC2BaseResponse):
             ),
             end_date=end_date,
         )
-        template = self.response_template(
-            MODIFY_CAPACITY_RESERVATION_FLEET
-        )
-        return template.render()
+        return ActionResult({"Return": True})
 
-    def cancel_capacity_reservation_fleets(self) -> str:
+    def cancel_capacity_reservation_fleets(self) -> ActionResult:
         fleet_ids = self._get_param(
             "CapacityReservationFleetId", []
         )
         results = self.ec2_backend.cancel_capacity_reservation_fleets(
             capacity_reservation_fleet_ids=fleet_ids,
         )
-        template = self.response_template(
-            CANCEL_CAPACITY_RESERVATION_FLEETS
+        successful_fleets = [r for r in results if "error" not in r]
+        return ActionResult(
+            {
+                "SuccessfulFleetCancellations": successful_fleets,
+                "FailedFleetCancellations": [],
+            }
         )
-        return template.render(results=results)
 
 
 CREATE_CAPACITY_RESERVATION = """<CreateCapacityReservationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
