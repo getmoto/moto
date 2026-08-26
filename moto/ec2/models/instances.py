@@ -10,6 +10,7 @@ from moto import settings
 from moto.core.common_models import CloudFormationModel
 from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores, utcnow
+from moto.ec2.models.block_device import BlockDeviceMapping
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.instance_types import (
@@ -19,9 +20,6 @@ from moto.ec2.models.instance_types import (
 from moto.ec2.models.launch_templates import LaunchTemplateVersion
 from moto.ec2.models.security_groups import SecurityGroup
 from moto.ec2.models.subnets import Subnet
-from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
-from moto.packages.boto.ec2.instance import Instance as BotoInstance
-from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
@@ -74,7 +72,30 @@ class MetadataOptions:
         self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
 
 
-class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
+class InstancePlacement:
+    def __init__(self, zone: str | None = None):
+        self.zone = zone
+        self.group_name = ""
+        self.tenancy = "default"
+        self.host_id: str | None = None
+
+    @property
+    def availability_zone(self) -> str | None:
+        return self.zone
+
+
+class Reservation:
+    def __init__(self, reservation_id: str, owner_id: str | None = None):
+        self.id = reservation_id
+        self.owner_id = owner_id
+        self.groups: list[Any] = []
+        self.instances: list[Instance] = []
+
+    def __repr__(self) -> str:
+        return f"Reservation:{self.id}"
+
+
+class Instance(TaggedEC2Resource, CloudFormationModel):
     VALID_ATTRIBUTES = {
         "instanceType",
         "kernel",
@@ -106,6 +127,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.owner_id = ec2_backend.account_id
         self.client_token = kwargs.get("client_token")
         self.lifecycle: str | None = kwargs.get("lifecycle")
+        self._placement = InstancePlacement()
+        self.hypervisor = "xen"
+        # Modelled but never populated. Surfaced by DescribeInstances, and by
+        # DescribeInstanceAttribute via VALID_ATTRIBUTES.
+        self.kernel: str | None = None
+        self.ramdisk: str | None = None
+        self.product_codes: list[str] = []
 
         nics = copy.deepcopy(kwargs.get("nics", []))
 
@@ -201,6 +229,14 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             security_groups=self.security_groups,
             ipv6_address_count=kwargs.get("ipv6_address_count"),
         )
+
+    @property
+    def placement(self) -> InstancePlacement:
+        return self._placement
+
+    @property
+    def availability_zone(self) -> str | None:
+        return self._placement.zone
 
     @property
     def instance_state(self) -> InstanceState:

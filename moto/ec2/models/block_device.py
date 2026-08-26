@@ -60,10 +60,6 @@ class BlockDeviceType:
         self.throughput = None
 
 
-# for backwards compatibility
-EBSBlockDeviceType = BlockDeviceType
-
-
 class BlockDeviceMapping(dict[Any, Any]):
     """
     Represents a collection of BlockDeviceTypes when creating ec2 instances.
