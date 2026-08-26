@@ -211,7 +211,7 @@ class LaunchTemplates(EC2BaseResponse):
                     "HttpProtocolIpv6": "disabled",
                     "InstanceMetadataTags": "disabled",
                 },
-                "Monitoring": {"Enabled": False},
+                "Monitoring": {"Enabled": instance.monitored},
                 "NetworkInterfaces": [
                     {
                         "AssociatePublicIpAddress": True,

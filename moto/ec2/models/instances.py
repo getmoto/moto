@@ -129,8 +129,6 @@ class Instance(TaggedEC2Resource, CloudFormationModel):
         self.lifecycle: str | None = kwargs.get("lifecycle")
         self._placement = InstancePlacement()
         self.hypervisor = "xen"
-        # Modelled but never populated. Surfaced by DescribeInstances, and by
-        # DescribeInstanceAttribute via VALID_ATTRIBUTES.
         self.kernel: str | None = None
         self.ramdisk: str | None = None
         self.product_codes: list[str] = []
@@ -229,6 +227,10 @@ class Instance(TaggedEC2Resource, CloudFormationModel):
             security_groups=self.security_groups,
             ipv6_address_count=kwargs.get("ipv6_address_count"),
         )
+
+    @property
+    def monitored(self) -> bool:
+        return self.monitoring_state.lower() != "disabled"
 
     @property
     def placement(self) -> InstancePlacement:
