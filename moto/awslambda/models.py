@@ -48,6 +48,7 @@ from moto.utilities.utils import (
     ARN_PARTITION_REGEX,
     get_partition,
     load_resource_as_bytes,
+    load_resource_as_str,
 )
 
 from .exceptions import (
@@ -1245,10 +1246,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
         zip_file.writestr("index.py", code)
         # This should really be part of the 'lambci' docker image
-        from moto.packages.cfnresponse import cfnresponse
-
-        with open(cfnresponse.__file__) as cfn:
-            zip_file.writestr("cfnresponse.py", cfn.read())
+        zip_file.writestr(
+            "cfnresponse.py",
+            load_resource_as_str("awslambda/resources/cfnresponse.py.txt"),
+        )
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()

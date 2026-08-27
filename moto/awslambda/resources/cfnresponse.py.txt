@@ -27,7 +27,7 @@ def send(
 ) -> None:
     responseUrl = event["ResponseURL"]
 
-    print(responseUrl)  # noqa: T201
+    print(responseUrl)
 
     responseBody = {
         "Status": responseStatus,
@@ -43,16 +43,16 @@ def send(
 
     json_responseBody = json.dumps(responseBody)
 
-    print("Response body:")  # noqa: T201
-    print(json_responseBody)  # noqa: T201
+    print("Response body:")
+    print(json_responseBody)
 
     headers = {"content-type": "", "content-length": str(len(json_responseBody))}
 
     try:
-        response = http.request(  # type: ignore
+        response = http.request(
             "PUT", responseUrl, headers=headers, body=json_responseBody
         )
-        print("Status code:", response.status)  # noqa: T201
+        print("Status code:", response.status)
 
     except Exception as e:
-        print("send(..) failed executing http.request(..):", e)  # noqa: T201
+        print("send(..) failed executing http.request(..):", e)
