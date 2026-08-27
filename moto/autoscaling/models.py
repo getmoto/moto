@@ -15,16 +15,13 @@ from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
+from moto.ec2.models.block_device import BlockDeviceMapping, BlockDeviceType
 from moto.ec2.models.instances import Instance
 from moto.ec2.models.launch_templates import LaunchTemplate
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.moto_api._internal import mock_random as random
-from moto.packages.boto.ec2.blockdevicemapping import (
-    BlockDeviceMapping,
-    BlockDeviceType,
-)
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -139,7 +136,7 @@ class InstanceState:
             self.instance.autoscaling_group = autoscaling_group  # type: ignore[attr-defined]
         self.auto_scaling_group = self.instance.autoscaling_group  # type: ignore[attr-defined]
         self.auto_scaling_group_name = self.auto_scaling_group.name
-        self.availability_zone = self.instance.placement  # type: ignore[attr-defined]
+        self.availability_zone = self.instance.placement.zone
         self.instance_id = self.instance.id
         self.instance_type = self.instance.instance_type
 
@@ -1111,7 +1108,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             subnet_id=subnet_id,
         )
         for instance in reservation.instances:
-            instance.autoscaling_group = self
+            instance.autoscaling_group = self  # type: ignore[attr-defined]
             self.instance_states.append(
                 InstanceState(
                     instance,
