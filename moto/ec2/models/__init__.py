@@ -251,6 +251,7 @@ class EC2Backend(
                 for subnets_by_az in self.subnets.values()
                 for subnet in subnets_by_az.values()
             ),
+            "ec2:traffic-mirror-session": self.traffic_mirror_sessions.values(),
             "ec2:transit-gateway": self.transit_gateways.values(),
             "ec2:transit-gateway-attachment": self.transit_gateway_attachments.values(),
             "ec2:volume": self.volumes.values(),
