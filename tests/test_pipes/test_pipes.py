@@ -151,6 +151,49 @@ def test_describe_pipe():
 
 
 @mock_aws
+def test_update_pipe():
+    client = boto3.client("pipes", region_name="eu-west-1")
+    client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:first",
+        RoleArn="arn:aws:iam::123456789012:role/first-role",
+        Description="first",
+    )
+
+    resp = client.update_pipe(
+        Name="test-pipe",
+        RoleArn="arn:aws:iam::123456789012:role/second-role",
+        Description="second",
+        DesiredState="STOPPED",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:second",
+    )
+
+    assert resp["Name"] == "test-pipe"
+    assert resp["DesiredState"] == "STOPPED"
+    assert "LastModifiedTime" in resp
+
+    descr = client.describe_pipe(Name="test-pipe")
+    assert descr["Description"] == "second"
+    assert descr["Target"] == "arn:aws:lambda:eu-west-1:123456789012:function:second"
+    assert descr["RoleArn"] == "arn:aws:iam::123456789012:role/second-role"
+    assert descr["DesiredState"] == "STOPPED"
+    # Source is immutable and must be preserved across an update
+    assert descr["Source"] == "arn:aws:sqs:eu-west-1:123456789012:test-queue"
+
+
+@mock_aws
+def test_update_pipe_not_found():
+    client = boto3.client("pipes", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_pipe(
+            Name="missing",
+            RoleArn="arn:aws:iam::123456789012:role/test-role",
+        )
+    assert exc.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
 def test_delete_pipe():
     client = boto3.client("pipes", region_name="us-east-1")
 

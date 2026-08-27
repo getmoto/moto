@@ -27,5 +27,5 @@ pipes
 - [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_pipe
+- [X] update_pipe
 
