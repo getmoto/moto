@@ -122,8 +122,12 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
 
 
 class ExpressionAttributeValuesEmpty(MockValidationException):
-    def __init__(self) -> None:
-        super().__init__("ExpressionAttributeValues must not be empty")
+    def __init__(self, validation_error_prefix: bool = False) -> None:
+        msg = "ExpressionAttributeValues must not be empty"
+        if validation_error_prefix:
+            # Error messages are inconsistent - some operations have this prefix, others (like Transact* operations) do not
+            msg = f"1 validation error detected: {msg}"
+        super().__init__(msg)
 
 
 class UpdateExprSyntaxError(InvalidUpdateExpression):
@@ -216,7 +220,7 @@ class ConditionalCheckFailed(DynamodbException):
                     "__type": ConditionalCheckFailed.error_type,
                     # Note the uppercase Message
                     # This ensures the message is only part of the 'error': {'message': .., 'code': ..}
-                    "Message": _msg,
+                    "message": _msg,
                     "Item": item,
                 }
             )
@@ -299,24 +303,24 @@ class InvalidAttributeTypeError(MockValidationException):
         super().__init__(self.msg.format(name, expected_type, actual_type))
 
 
-class DuplicateUpdateExpression(InvalidUpdateExpression):
+class DuplicateUpdateExpression(MockValidationException):
     def __init__(self, name_1: str, name_2: str):
         super().__init__(
-            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(name_1.split('.'))}], path two: [{', '.join(name_2.split('.'))}]"
+            f"1 validation error detected: Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(name_1.split('.'))}], path two: [{', '.join(name_2.split('.'))}]"
         )
 
 
 class InvalidProjectionExpression(MockValidationException):
     def __init__(self, path_1: str, path_2: str):
         super().__init__(
-            f"Invalid ProjectionExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(path_1.split('.'))}], path two: [{', '.join(path_2.split('.'))}]"
+            f"1 validation error detected: Invalid ProjectionExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(path_1.split('.'))}], path two: [{', '.join(path_2.split('.'))}]"
         )
 
 
-class TooManyClauses(InvalidUpdateExpression):
+class TooManyClauses(MockValidationException):
     def __init__(self, _type: str) -> None:
         super().__init__(
-            f'The "{_type}" section can only be used once in an update expression;'
+            f'1 validation error detected: Invalid UpdateExpression: The "{_type}" section can only be used once in an update expression;'
         )
 
 

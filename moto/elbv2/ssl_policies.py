@@ -354,6 +354,16 @@ SSL_POLICIES = {
         ],
         "ssl_protocols": ["TLSv1.2", "TLSv1.1", "TLSv1"],
     },
+    "ELBSecurityPolicy-FS-1-2-Res-2020-10": {
+        "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ciphers": [
+            "ECDHE-ECDSA-AES128-GCM-SHA256",
+            "ECDHE-RSA-AES128-GCM-SHA256",
+            "ECDHE-ECDSA-AES256-GCM-SHA384",
+            "ECDHE-RSA-AES256-GCM-SHA384",
+        ],
+        "ssl_protocols": ["TLSv1.2"],
+    },
 }
 
 
