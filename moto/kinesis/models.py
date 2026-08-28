@@ -10,6 +10,7 @@ from gzip import GzipFile
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any
 
+from moto.cloudwatch.models import cloudwatch_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, utcnow
@@ -689,6 +690,29 @@ class KinesisBackend(BaseBackend):
 
         return next_shard_iterator, records, millis_behind_latest
 
+    def _send_stream_metrics(
+        self, stream_name: str, incoming_bytes: int, incoming_records: int
+    ) -> None:
+        cloudwatch_backend = cloudwatch_backends[self.account_id][self.region_name]
+        dimensions = [{"Name": "StreamName", "Value": stream_name}]
+        cloudwatch_backend.put_metric_data(
+            namespace="AWS/Kinesis",
+            metric_data=[
+                {
+                    "MetricName": "IncomingBytes",
+                    "Value": incoming_bytes,
+                    "Unit": "Bytes",
+                    "Dimensions": dimensions,
+                },
+                {
+                    "MetricName": "IncomingRecords",
+                    "Value": incoming_records,
+                    "Unit": "Count",
+                    "Dimensions": dimensions,
+                },
+            ],
+        )
+
     def put_record(
         self,
         stream_arn: str,
@@ -701,6 +725,12 @@ class KinesisBackend(BaseBackend):
 
         sequence_number, shard_id = stream.put_record(
             partition_key, explicit_hash_key, data
+        )
+
+        self._send_stream_metrics(
+            stream.stream_name,
+            incoming_bytes=len(b64decode(data)) + len(partition_key),
+            incoming_records=1,
         )
 
         return sequence_number, shard_id
@@ -740,6 +770,12 @@ class KinesisBackend(BaseBackend):
             response["Records"].append(
                 {"SequenceNumber": sequence_number, "ShardId": shard_id}
             )
+
+        self._send_stream_metrics(
+            stream.stream_name,
+            incoming_bytes=sum(data_sizes),
+            incoming_records=len(records),
+        )
 
         return response
 
