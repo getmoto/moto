@@ -200,6 +200,7 @@ def test_invoke_lambda_using_environment_port():
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_lambda_using_environment_port()},
+        Timeout=30,
     )
 
     success_result = conn.invoke(
