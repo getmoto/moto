@@ -4,7 +4,6 @@ from datetime import timezone
 from pathlib import Path
 
 import boto3
-import botocore
 
 from moto.core.utils import unix_time
 from moto.ec2.utils import gen_moto_amis
@@ -99,7 +98,7 @@ def main():
             save_to_file(destination_path, image_as_dicts)
 
             time.sleep(0.5)
-        except botocore.exceptions.ClientError as e:
+        except Exception as e:
             print(e)
             # We might encounter an error if we do not have access to a region - just ignore and try the next region
 
