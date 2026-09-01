@@ -2088,6 +2088,10 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sa-east-1"
  },
@@ -2889,6 +2893,10 @@
  },
  {
   "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
   "Location": "sa-east-1"
  },
  {
