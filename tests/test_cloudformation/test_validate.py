@@ -68,9 +68,12 @@ def test_json_invalid_missing_resource():
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=dummy_bad_template_json)
     err = exc.value.response["Error"]
-    assert err["Message"] in (
-        "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
-        "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+    assert (
+        err["Message"]
+        in (
+            "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
+            "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+        )
     )
 
 
@@ -123,9 +126,12 @@ def test_yaml_invalid_missing_resource():
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=yaml_bad_template)
     err = exc.value.response["Error"]
-    assert err["Message"] in (
-        "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
-        "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+    assert (
+        err["Message"]
+        in (
+            "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
+            "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+        )
     )
 
 
