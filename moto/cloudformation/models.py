@@ -10,6 +10,7 @@ import yaml
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
+from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
@@ -513,9 +514,9 @@ class Stack(CloudFormationModel):
         parameters = [
             {
                 "ParameterKey": k,
-                "ParameterValue": v
-                if v not in self.resource_map.no_echo_parameter_keys
-                else "****",
+                "ParameterValue": (
+                    v if v not in self.resource_map.no_echo_parameter_keys else "****"
+                ),
             }
             for k, v in self.resource_map.resolved_parameters.items()
         ]
@@ -1019,7 +1020,17 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Stack:
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
+
+        The TemplateBody can be validated against the cfn-lint ruleset, the same
+        way the ValidateTemplate-action does. This is disabled by default, as
+        cfn-lint may reject templates that would otherwise deploy successfully.
+        Enable this validation by setting the environment variable
+        `MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE=true`
         """
+        if settings.CFN_VALIDATE_TEMPLATE_ON_CREATE:
+            cfn_lint = self.validate_template(template)
+            if cfn_lint:
+                raise ValidationError(message=cfn_lint[0].message)
         if name in [stack.name for stack in self.stacks.values()]:
             raise AlreadyExistsException(f"Stack {name} already exists")
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
