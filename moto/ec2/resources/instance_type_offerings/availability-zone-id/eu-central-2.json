@@ -1244,6 +1244,54 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "r8gd.12xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.24xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.2xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.48xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.4xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.8xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.large",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.medium",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.metal-24xl",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.metal-48xl",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "r8gd.xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "r8i-flex.12xlarge",
   "Location": "euc2-az1"
  },
@@ -1393,6 +1441,10 @@
  },
  {
   "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "euc2-az1"
  },
  {
@@ -4269,6 +4321,54 @@
  },
  {
   "InstanceType": "r8g.xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.12xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.16xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.24xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.2xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.48xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.4xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.8xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.large",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.medium",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.metal-24xl",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.metal-48xl",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "r8gd.xlarge",
   "Location": "euc2-az3"
  },
  {
