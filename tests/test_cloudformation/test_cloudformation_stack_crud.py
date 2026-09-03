@@ -1009,6 +1009,24 @@ def test_create_stack_fail_missing_parameter():
 
 
 @mock_aws
+def test_create_stack_fail_missing_resources_key():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+
+    template = json.dumps(
+        {"AWSTemplateFormatVersion": "2010-09-09", "Description": "Stack 1"}
+    )
+
+    with pytest.raises(ClientError) as exc:
+        cf.create_stack(StackName="ts", TemplateBody=template)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Template format error: At least one Resources member must be defined."
+    )
+
+
+@mock_aws
 def test_create_stack_s3_long_name():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
 
