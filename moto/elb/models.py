@@ -150,6 +150,13 @@ class LoadBalancer(CloudFormationModel):
         return self.dns_name
 
     @property
+    def canonical_hosted_zone_name_id(self) -> str:
+        # AWS always returns the Route53 hosted zone of the load balancer itself,
+        # which callers need to write an alias record. ELBv2 reports the
+        # equivalent field; see #9115.
+        return "Z3ZONEIDFORELB"
+
+    @property
     def listener_descriptions(self) -> list[dict[str, Any]]:
         descriptions = [
             {
