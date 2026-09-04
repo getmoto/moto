@@ -10690,7 +10690,7 @@
 
 ## servicediscovery
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_http_namespace
 - [X] create_private_dns_namespace
@@ -10698,7 +10698,7 @@
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
-- [ ] delete_service_attributes
+- [X] delete_service_attributes
 - [X] deregister_instance
 - [X] discover_instances
 - [X] discover_instances_revision
@@ -10707,7 +10707,7 @@
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
-- [ ] get_service_attributes
+- [X] get_service_attributes
 - [X] list_instances
 - [X] list_namespaces
 - [X] list_operations
@@ -10721,7 +10721,7 @@
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
-- [ ] update_service_attributes
+- [X] update_service_attributes
 </details>
 
 ## ses
