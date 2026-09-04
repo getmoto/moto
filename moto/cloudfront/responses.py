@@ -45,12 +45,17 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_distributions(self) -> ActionResult:
-        distributions = self.backend.list_distributions()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        distributions, next_marker = self.backend.list_distributions(
+            marker=marker, max_items=max_items
+        )
         result = {
             "DistributionList": {
-                "Marker": "",
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(distributions),
                 "Items": distributions if distributions else None,
             }
@@ -97,11 +102,17 @@ class CloudFrontResponse(BaseResponse):
 
     def list_invalidations(self) -> ActionResult:
         dist_id = self._get_param("DistributionId")
-        invalidations = self.backend.list_invalidations(dist_id)
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        invalidations, next_marker = self.backend.list_invalidations(
+            dist_id=dist_id, marker=marker, max_items=max_items
+        )
         result = {
             "InvalidationList": {
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(invalidations),
                 "Items": invalidations if invalidations else None,
             }
@@ -159,11 +170,15 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_origin_access_controls(self) -> ActionResult:
-        controls = self.backend.list_origin_access_controls()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        controls, next_marker = self.backend.list_origin_access_controls()
         result = {
             "OriginAccessControlList": {
-                "MaxItems": 100,
-                "IsTruncated": False,
+                "Marker": marker or "",
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "IsTruncated": next_marker is not None,
                 "Quantity": len(controls),
                 "Items": controls,
             }
@@ -215,10 +230,15 @@ class CloudFrontResponse(BaseResponse):
         return EmptyResult()
 
     def list_public_keys(self) -> ActionResult:
-        keys = self.backend.list_public_keys()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        keys, next_marker = self.backend.list_public_keys(
+            marker=marker, max_items=max_items
+        )
         result = {
             "PublicKeyList": {
-                "MaxItems": 100,
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(keys),
                 "Items": keys if keys else None,
             }
@@ -243,11 +263,125 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(result)
 
     def list_key_groups(self) -> ActionResult:
-        groups = self.backend.list_key_groups()
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        groups, next_marker = self.backend.list_key_groups(
+            marker=marker, max_items=max_items
+        )
         result = {
             "KeyGroupList": {
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
                 "Quantity": len(groups),
                 "Items": [{"KeyGroup": key_group} for key_group in groups],
             }
         }
         return ActionResult(result)
+
+    def create_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        function_config = self._get_param("FunctionConfig", {})
+        function_code = self._get_param("FunctionCode")
+        tags = self._get_param("Tags.Items", []) or []
+        function = self.backend.create_function(
+            name=name,
+            function_config=function_config,
+            function_code=function_code,
+            tags=tags,
+        )
+        result = {
+            "FunctionSummary": function.function_summary,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/function/{name}",
+            "ETag": function.etag,
+        }
+        return ActionResult(result)
+
+    def describe_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        function = self.backend.describe_function(name=name)
+        result = {
+            "FunctionSummary": function.function_summary,
+            "ETag": function.etag,
+        }
+        return ActionResult(result)
+
+    def list_functions(self) -> ActionResult:
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        functions, next_marker = self.backend.list_functions(
+            marker=marker, max_items=max_items
+        )
+        result = {
+            "FunctionList": {
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "Quantity": len(functions),
+                "Items": [function.function_summary for function in functions],
+            }
+        }
+        return ActionResult(result)
+
+    def delete_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        if_match = self._get_param("IfMatch")
+        self.backend.delete_function(name=name, if_match=if_match)
+        return EmptyResult()
+
+    def create_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        comment = self._get_param("Comment", "")
+        tags = self._get_param("Tags.Items", []) or []
+        kv_store = self.backend.create_key_value_store(
+            name=name,
+            comment=comment,
+            tags=tags,
+        )
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{kv_store.id}",
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def describe_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        kv_store = self.backend.describe_key_value_store(name=name)
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def list_key_value_stores(self) -> ActionResult:
+        marker = self._get_param("Marker")
+        max_items = self._get_int_param("MaxItems")
+        kv_stores, next_marker = self.backend.list_key_value_stores(
+            marker=marker, max_items=max_items
+        )
+        result = {
+            "KeyValueStoreList": {
+                "NextMarker": next_marker,
+                "MaxItems": max_items or 100,
+                "Quantity": len(kv_stores),
+                "Items": [kv_store.key_value_store for kv_store in kv_stores],
+            }
+        }
+        return ActionResult(result)
+
+    def update_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        comment = self._get_param("Comment", "")
+        kv_store = self.backend.update_key_value_store(
+            name=name,
+            comment=comment,
+        )
+        result = {
+            "KeyValueStore": kv_store.key_value_store,
+            "ETag": kv_store.etag,
+        }
+        return ActionResult(result)
+
+    def delete_key_value_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.backend.delete_key_value_store(name=name)
+        return EmptyResult()
