@@ -2966,3 +2966,46 @@ def test_update_missing_stack_instance_raises_exception():
     assert error["Code"] == "StackInstanceNotFoundException"
     metadata = exc.value.response["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 404
+
+
+@mock_aws
+def test_update_stack_instances__existing_targets_are_not_skipped_on_missing_target():
+    # https://github.com/getmoto/moto/issues/10173
+    # A missing (account, region) target should still surface
+    # StackInstanceNotFoundException for the operation as a whole, but it
+    # must not prevent *other*, existing targets in the same request from
+    # being updated - and the outcome must not depend on where in the
+    # Accounts/Regions lists the missing target happens to be listed.
+    cf = boto3.client("cloudformation", region_name="eu-west-1")
+    missing_account = "333333333333"
+    stack_name = "test-stack-name"
+    cf.create_stack_set(
+        StackSetName=stack_name,
+        TemplateBody='{"Resources": {}}',
+        PermissionModel="SELF_MANAGED",
+        Parameters=[{"ParameterKey": "Foo", "ParameterValue": "original"}],
+    )
+    # Only ACCOUNT_ID has an instance - `missing_account` does not.
+    cf.create_stack_instances(
+        StackSetName=stack_name, Accounts=[ACCOUNT_ID], Regions=["eu-west-1"]
+    )
+
+    # The missing account is listed *before* the existing one.
+    with pytest.raises(ClientError) as exc:
+        cf.update_stack_instances(
+            StackSetName=stack_name,
+            Accounts=[missing_account, ACCOUNT_ID],
+            Regions=["eu-west-1"],
+            ParameterOverrides=[{"ParameterKey": "Foo", "ParameterValue": "updated"}],
+        )
+    assert exc.value.response["Error"]["Code"] == "StackInstanceNotFoundException"
+
+    # The existing target should have been updated regardless.
+    existing = cf.describe_stack_instance(
+        StackSetName=stack_name,
+        StackInstanceAccount=ACCOUNT_ID,
+        StackInstanceRegion="eu-west-1",
+    )
+    overrides = existing["StackInstance"]["ParameterOverrides"]
+    assert overrides[0]["ParameterKey"] == "Foo"
+    assert overrides[0]["ParameterValue"] == "updated"
