@@ -85,6 +85,7 @@ class LoadBalancer(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         name: str,
         zones: list[str],
         ports: list[dict[str, Any]],
@@ -94,6 +95,7 @@ class LoadBalancer(CloudFormationModel):
         security_groups: list[str] | None,
     ):
         self.account_id = account_id
+        self.region_name = region_name
         self.name = name
         self.health_check: FakeHealthCheck | None = None
         self.instance_sparse_ids: list[str] = []
@@ -109,7 +111,7 @@ class LoadBalancer(CloudFormationModel):
         self.subnets = subnets or []
         self.vpc_id = vpc_id
         self.tags: dict[str, str] = {}
-        self.dns_name = f"{name}.us-east-1.elb.amazonaws.com"
+        self.dns_name = f"{name}.{region_name}.elb.amazonaws.com"
 
         for port in ports:
             listener = FakeListener(
@@ -367,6 +369,7 @@ class ELBBackend(BaseBackend, TaggableResourcesMixin):
                 raise InvalidSecurityGroupError()
         new_load_balancer = LoadBalancer(
             account_id=self.account_id,
+            region_name=self.region_name,
             name=name,
             zones=zones,
             ports=ports,
