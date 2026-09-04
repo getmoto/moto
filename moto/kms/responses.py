@@ -645,6 +645,21 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({"Plaintext": response_entropy})
 
+    def _validate_message_type(self, message_type: str) -> None:
+        if message_type not in ("RAW", "DIGEST", "EXTERNAL_MU"):
+            raise ValidationException(
+                f"1 validation error detected: Value '{message_type}' at 'MessageType' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                "[RAW, DIGEST, EXTERNAL_MU]"
+            )
+        if message_type == "EXTERNAL_MU":
+            # Valid enum value, but only meaningful for ML-DSA keys, which moto does not
+            # implement yet.
+            raise ValidationException(
+                "MessageType EXTERNAL_MU is only supported for ML-DSA keys, "
+                "which are not yet implemented in moto"
+            )
+
     def sign(self) -> str:
         key_id = self._get_param("KeyId")
         message = self._get_param("Message")
@@ -664,10 +679,13 @@ class KmsResponse(BaseResponse):
         if not message_type:
             message_type = "RAW"
 
+        self._validate_message_type(message_type)
+
         key_id, signature, signing_algorithm = self.kms_backend.sign(
             key_id=key_id,
             message=message,
             signing_algorithm=signing_algorithm,
+            message_type=message_type,
         )
 
         signature_blob_response = base64.b64encode(signature).decode("utf-8")
@@ -710,11 +728,14 @@ class KmsResponse(BaseResponse):
                 "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
             )
 
+        self._validate_message_type(message_type)
+
         key_arn, signature_valid, signing_algorithm = self.kms_backend.verify(
             key_id=key_id,
             message=message,
             signature=signature,
             signing_algorithm=signing_algorithm,
+            message_type=message_type,
         )
 
         return json.dumps(
