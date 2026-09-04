@@ -28,6 +28,58 @@ def test_elb_attach_load_balancer_to_subnets():
 
 
 @mock_aws
+def test_elb_created_with_subnets_reports_their_availability_zones():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.64/26", AvailabilityZone="us-east-1b"
+    )
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        Subnets=[subnet1.id, subnet2.id],
+    )
+
+    lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+
+    assert sorted(lb["AvailabilityZones"]) == ["us-east-1a", "us-east-1b"]
+
+
+@mock_aws
+def test_elb_availability_zones_follow_attached_and_detached_subnets():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.64/26", AvailabilityZone="us-east-1b"
+    )
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        Subnets=[subnet1.id],
+    )
+
+    client.attach_load_balancer_to_subnets(
+        LoadBalancerName="my-lb", Subnets=[subnet2.id]
+    )
+    lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    assert sorted(lb["AvailabilityZones"]) == ["us-east-1a", "us-east-1b"]
+
+    client.detach_load_balancer_from_subnets(
+        LoadBalancerName="my-lb", Subnets=[subnet1.id]
+    )
+    lb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    assert lb["AvailabilityZones"] == ["us-east-1b"]
+
+
+@mock_aws
 def test_elb_detach_load_balancer_to_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
