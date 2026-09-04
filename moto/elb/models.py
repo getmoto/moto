@@ -24,6 +24,7 @@ from .exceptions import (
     PolicyNotFoundError,
     TooManyTagsError,
 )
+from .hosted_zone_ids import get_hosted_zone_id
 from .policies import (
     AppCookieStickinessPolicy,
     LbCookieStickinessPolicy,
@@ -151,10 +152,7 @@ class LoadBalancer(CloudFormationModel):
 
     @property
     def canonical_hosted_zone_name_id(self) -> str:
-        # AWS always returns the Route53 hosted zone of the load balancer itself,
-        # which callers need to write an alias record. ELBv2 reports the
-        # equivalent field; see #9115.
-        return "Z3ZONEIDFORELB"
+        return get_hosted_zone_id(self.region_name, "classic")
 
     @property
     def listener_descriptions(self) -> list[dict[str, Any]]:
