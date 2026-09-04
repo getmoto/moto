@@ -398,3 +398,45 @@ def test_delete_cluster_policy_not_found():
     assert metadata["HTTPStatusCode"] == 400
     assert error["Code"] == "NotFoundException"
     assert error["Message"] == "Resource not found: INVALID_ARN"
+
+
+@mock_aws
+def test_list_clusters_does_not_echo_the_request_token():
+    client = boto3.client("kafka", region_name="us-east-1")
+    client.create_cluster(
+        ClusterName="TestCluster",
+        BrokerNodeGroupInfo={
+            "ClientSubnets": ["subnet-0123456789abcdef0"],
+            "InstanceType": "kafka.m5.large",
+        },
+        KafkaVersion="2.8.1",
+        NumberOfBrokerNodes=3,
+    )
+
+    resp = client.list_clusters(NextToken="a-token-from-an-earlier-call")
+
+    # Echoing the caller's token back makes botocore raise PaginationError on
+    # the next page, because the token it just sent came straight back to it.
+    assert "NextToken" not in resp
+    assert len(resp["ClusterInfoList"]) == 1
+
+
+@mock_aws
+def test_list_clusters_pagination_terminates():
+    client = boto3.client("kafka", region_name="us-east-1")
+    for index in range(3):
+        client.create_cluster(
+            ClusterName=f"TestCluster{index}",
+            BrokerNodeGroupInfo={
+                "ClientSubnets": ["subnet-0123456789abcdef0"],
+                "InstanceType": "kafka.m5.large",
+            },
+            KafkaVersion="2.8.1",
+            NumberOfBrokerNodes=3,
+        )
+
+    paginator = client.get_paginator("list_clusters")
+    pages = list(paginator.paginate(PaginationConfig={"StartingToken": "a-token"}))
+
+    assert len(pages) == 1
+    assert len(pages[0]["ClusterInfoList"]) == 3
