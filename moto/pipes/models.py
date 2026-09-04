@@ -142,6 +142,48 @@ class EventBridgePipesBackend(BaseBackend):
 
         return pipe
 
+    def update_pipe(
+        self,
+        name: str,
+        role_arn: str,
+        description: str | None,
+        desired_state: str | None,
+        source_parameters: dict[str, Any] | None,
+        enrichment: str | None,
+        enrichment_parameters: dict[str, Any] | None,
+        target: str | None,
+        target_parameters: dict[str, Any] | None,
+        log_configuration: dict[str, Any] | None,
+        kms_key_identifier: str | None,
+    ) -> Pipe:
+        if name not in self.pipes:
+            raise NotFoundException(f"Pipe {name} not found")
+        pipe = self.pipes[name]
+        pipe.advance()
+
+        # Source is immutable; every other configurable field can be updated.
+        pipe.role_arn = role_arn
+        if description is not None:
+            pipe.description = description
+        if desired_state is not None:
+            pipe.desired_state = desired_state
+        if source_parameters is not None:
+            pipe.source_parameters = source_parameters
+        if enrichment is not None:
+            pipe.enrichment = enrichment
+        if enrichment_parameters is not None:
+            pipe.enrichment_parameters = enrichment_parameters
+        if target is not None:
+            pipe.target = target
+        if target_parameters is not None:
+            pipe.target_parameters = target_parameters
+        if log_configuration is not None:
+            pipe.log_configuration = log_configuration
+        if kms_key_identifier is not None:
+            pipe.kms_key_identifier = kms_key_identifier
+        pipe.last_modified_time = utcnow()
+        return pipe
+
     def describe_pipe(self, name: str) -> Pipe:
         if name not in self.pipes:
             raise NotFoundException(f"Pipe {name} not found")
