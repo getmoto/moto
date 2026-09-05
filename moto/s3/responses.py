@@ -1721,7 +1721,25 @@ class S3Response(BaseResponse):
                 if perm == PermissionResult.DENIED:
                     errors.append((obj["Key"], "AccessDenied", "Access Denied"))
                 else:
-                    objects_to_delete.append(obj)
+                    try:
+                        self._verify_etag_match(
+                            obj["Key"],
+                            obj.get("ETag", None),
+                            version_id=obj.get("VersionId", None),
+                            failed_condition="ETag",
+                        )
+                        objects_to_delete.append(obj)
+                    except PreconditionFailed:
+                        errors.append(
+                            (
+                                obj["Key"],
+                                "PreconditionFailed",
+                                "At least one of the pre-conditions you specified did not hold",
+                            )
+                        )
+                    except MissingKey:
+                        # Deletion is idempotent, and we need the format from `delete_objects`
+                        objects_to_delete.append(obj)
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
@@ -3054,18 +3072,37 @@ class S3Response(BaseResponse):
             return self.delete_object_tagging()
         return self.delete_object()
 
+    def _verify_etag_match(
+        self,
+        key_name: str,
+        etag: str | None,
+        version_id: str | None = None,
+        failed_condition: str = "If-Match",
+    ) -> None:
+        if etag is None or etag == "*":
+            return
+        if not (
+            obj := self.backend.get_object(
+                self.bucket_name, key_name, version_id=version_id
+            )
+        ):
+            raise MissingKey
+        # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
+        if etag.replace('"', "") != obj.etag.replace('"', ""):
+            raise PreconditionFailed(failed_condition)
+
     def delete_object(self) -> TYPE_RESPONSE:
         bypass = self.headers.get("X-Amz-Bypass-Governance-Retention")
         key_name = self.parse_key_name()
         version_id = self._get_param("versionId")
         if_match = self.headers.get("If-Match")
 
-        if if_match:
-            if not (obj := self.backend.get_object(self.bucket_name, key_name)):
-                raise MissingKey
-            # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
-            elif if_match.replace('"', "") != obj.etag.replace('"', ""):
-                raise PreconditionFailed("If-Match")
+        self._verify_etag_match(
+            key_name,
+            if_match,
+            version_id=version_id,
+            failed_condition="If-Match",
+        )
 
         _, response_meta = self.backend.delete_object(
             self.bucket_name, key_name, version_id=version_id, bypass=bypass
