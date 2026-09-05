@@ -93,3 +93,54 @@ def test_batch_meter_usage():
             Result.CUSTOMER_NOT_SUBSCRIBED,
             Result.SUCCESS,
         ]
+
+
+@mock_aws()
+def test_batch_meter_usage_with_customer_aws_account_id():
+    client = boto3.client("meteringmarketplace", region_name="us-east-1")
+
+    usage_records = [
+        {
+            "Timestamp": datetime(2026, 7, 27, 9, 0, 0),
+            "CustomerAWSAccountId": "111122223333",
+            "Dimension": "Instance-hours",
+            "Quantity": 1,
+        },
+        {
+            "Timestamp": datetime(2026, 7, 27, 10, 0, 0),
+            "CustomerIdentifier": "EqCDbVpkMBaQzPQv",
+            "CustomerAWSAccountId": "444455556666",
+            "Dimension": "Managed-nodes",
+            "Quantity": 2,
+        },
+    ]
+
+    res = client.batch_meter_usage(
+        UsageRecords=usage_records, ProductCode="PUFXZLyUElvQvrsG"
+    )
+
+    assert len(res["Results"]) == 2
+
+    first = res["Results"][0]["UsageRecord"]
+    assert "CustomerIdentifier" not in first
+    assert first["CustomerAWSAccountId"] == "111122223333"
+    assert first["Dimension"] == "Instance-hours"
+    assert first["Quantity"] == 1
+    assert res["Results"][0]["MeteringRecordId"]
+    assert res["Results"][0]["Status"] in [
+        Result.DUPLICATE_RECORD,
+        Result.CUSTOMER_NOT_SUBSCRIBED,
+        Result.SUCCESS,
+    ]
+
+    second = res["Results"][1]["UsageRecord"]
+    assert second["CustomerIdentifier"] == "EqCDbVpkMBaQzPQv"
+    assert second["CustomerAWSAccountId"] == "444455556666"
+    assert second["Dimension"] == "Managed-nodes"
+    assert second["Quantity"] == 2
+    assert res["Results"][1]["MeteringRecordId"]
+    assert res["Results"][1]["Status"] in [
+        Result.DUPLICATE_RECORD,
+        Result.CUSTOMER_NOT_SUBSCRIBED,
+        Result.SUCCESS,
+    ]
