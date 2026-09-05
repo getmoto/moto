@@ -1757,6 +1757,46 @@ def test_purge_queue_before_delete_message():
 
 
 @mock_aws
+def test_purge_queue_twice_raises_purge_in_progress():
+    client = boto3.client("sqs", region_name=REGION)
+    name = f"purge-{str(uuid4())[0:6]}"
+    queue_url = client.create_queue(QueueName=name)["QueueUrl"]
+
+    client.send_message(QueueUrl=queue_url, MessageBody="first")
+    client.purge_queue(QueueUrl=queue_url)
+
+    with pytest.raises(ClientError) as exc:
+        client.purge_queue(QueueUrl=queue_url)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AWS.SimpleQueueService.PurgeQueueInProgress"
+    assert err["Message"] == (
+        f"Only one PurgeQueue operation on {name} is allowed every 60 seconds."
+    )
+
+
+@mock_aws
+def test_purge_queue_allowed_after_60_seconds():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    client = boto3.client("sqs", region_name=REGION)
+    name = f"purge-{str(uuid4())[0:6]}"
+
+    with freeze_time("2015-01-01 12:00:00"):
+        queue_url = client.create_queue(QueueName=name)["QueueUrl"]
+        client.send_message(QueueUrl=queue_url, MessageBody="first")
+        client.purge_queue(QueueUrl=queue_url)
+
+    with freeze_time("2015-01-01 12:01:01"):
+        client.send_message(QueueUrl=queue_url, MessageBody="second")
+        client.purge_queue(QueueUrl=queue_url)
+
+        resp = client.receive_message(QueueUrl=queue_url)
+        assert resp.get("Messages", []) == []
+
+
+@mock_aws
 def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     sqs = boto3.resource("sqs", region_name=REGION)

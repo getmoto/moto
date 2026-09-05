@@ -34,6 +34,14 @@ class QueueAlreadyExists(SQSException):
         super().__init__("QueueAlreadyExists", message)
 
 
+class PurgeQueueInProgress(SQSException):
+    def __init__(self, queue_name: str) -> None:
+        super().__init__(
+            "AWS.SimpleQueueService.PurgeQueueInProgress",
+            f"Only one PurgeQueue operation on {queue_name} is allowed every 60 seconds.",
+        )
+
+
 class EmptyBatchRequest(SQSException):
     def __init__(self, action: str = "Send") -> None:
         super().__init__(
