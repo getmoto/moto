@@ -121,6 +121,17 @@ def test_list_access_points():
     assert "NextToken" not in resp2
 
 
+@mock_aws
+def test_list_access_points_with_invalid_next_token():
+    client = boto3.client("s3control", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.list_access_points(AccountId="111111111111", NextToken="invalid")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidNextTokenException"
+    assert err["Message"] == "The nextToken provided is invalid"
+
+
 @pytest.mark.aws_verified
 @s3_aws_verified
 def test_delete_access_point(bucket_name=None):
