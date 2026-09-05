@@ -19,6 +19,7 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 from .exceptions import (
     AccessPointNotFound,
     AccessPointPolicyNotFound,
+    InvalidNextTokenException,
     InvalidRequestException,
     MultiRegionAccessPointNotFound,
     MultiRegionAccessPointOperationNotFound,
@@ -32,18 +33,21 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_default": 100,
         "unique_attribute": "id",
+        "fail_on_invalid_token": InvalidNextTokenException,
     },
     "list_access_points": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 1000,
         "unique_attribute": "name",
+        "fail_on_invalid_token": InvalidNextTokenException,
     },
     "list_multi_region_access_points": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "name",
+        "fail_on_invalid_token": InvalidNextTokenException,
     },
 }
 

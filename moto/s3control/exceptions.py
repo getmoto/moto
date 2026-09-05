@@ -57,6 +57,13 @@ class NoSuchPublicAccessBlockConfiguration(S3ControlError):
         super().__init__("The public access block configuration was not found")
 
 
+class InvalidNextTokenException(S3ControlError):
+    code = "InvalidNextTokenException"
+
+    def __init__(self) -> None:
+        super().__init__("The nextToken provided is invalid")
+
+
 class InvalidRequestException(S3ControlError):
     code = "InvalidRequest"
 
