@@ -38,6 +38,22 @@ def test_add_servers():
         assert i["ImageId"] == EXAMPLE_AMI_ID
 
 
+@mock_aws
+def test_run_instances_min_and_max_count():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    # Moto has no capacity limits, so the number of launched instances equals MaxCount
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=3)
+    assert len(resp["Instances"]) == 3
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=4)
+    assert len(resp["Instances"]) == 4
+
+    with pytest.raises(ClientError) as ex:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=1)
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+
+
 @freeze_time("2014-01-01 05:00:00")
 @mock_aws
 def test_instance_launch_and_terminate():
