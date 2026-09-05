@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
 from typing import Any, Final
+
+import jsonata
 
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
@@ -81,17 +82,11 @@ class _JSONataJVMBridge:
             raise JSONataException("UNKNOWN", str(ex))
 
 
-# Lazy initialization of the `eval_jsonata` function pointer.
-# This ensures the JVM is only started when JSONata functionality is needed.
-_eval_jsonata: Callable[[JSONataExpression], Any] | None = None
-
-
 def eval_jsonata_expression(jsonata_expression: JSONataExpression) -> Any:
-    global _eval_jsonata
-    if _eval_jsonata is None:
-        # Initialize _eval_jsonata only when invoked for the first time using the Singleton pattern.
-        _eval_jsonata = None
-    return _eval_jsonata(jsonata_expression)
+    try:
+        return jsonata.Jsonata(jsonata_expression).evaluate(None)
+    except Exception as ex:
+        raise JSONataException("UNKNOWN", str(ex))
 
 
 class IllegalJSONataVariableReference(ValueError):
