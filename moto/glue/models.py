@@ -1884,7 +1884,7 @@ class FakeTable(BaseModel):
             "DatabaseName": self.database_name,
             "Name": self.name,
             "CreateTime": self.created_time,
-            **self.get_version(str(version)),
+            **self._with_defaults(self.get_version(str(version))),
             # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
             "VersionId": str(version),
             "CatalogId": self.catalog_id,
@@ -1892,6 +1892,22 @@ class FakeTable(BaseModel):
         if self.updated_time is not None:
             obj["UpdateTime"] = self.updated_time
         return obj
+
+    @staticmethod
+    def _with_defaults(table_input: dict[str, Any]) -> dict[str, Any]:
+        # Real AWS Glue populates these fields with defaults when omitted from
+        # the TableInput; clients that unbox them (e.g. the Hive metastore Glue
+        # client) NPE when they are absent. Mirror that behaviour here.
+        table = {"Retention": 0, **table_input}
+        storage_descriptor = table.get("StorageDescriptor")
+        if storage_descriptor is not None:
+            table["StorageDescriptor"] = {
+                "Compressed": False,
+                "NumberOfBuckets": 0,
+                "StoredAsSubDirectories": False,
+                **storage_descriptor,
+            }
+        return table
 
     def create_partition(self, partiton_input: dict[str, Any]) -> None:
         partition = FakePartition(self.database_name, self.name, partiton_input)
