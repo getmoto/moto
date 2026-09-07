@@ -541,7 +541,7 @@ def test_put_object_lock_with_versions():
 
     bucket_name = str(uuid4())
     key_name = "file.txt"
-    seconds_lock = 2
+    seconds_lock = 5
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
@@ -559,7 +559,7 @@ def test_put_object_lock_with_versions():
         Retention={"Mode": "COMPLIANCE", "RetainUntilDate": until},
     )
 
-    # assert that you can delete the locked version 1 of the object
+    # assert that you can't delete the locked version 1 of the object
     deleted = False
     try:
         s3_client.delete_object(

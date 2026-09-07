@@ -1490,8 +1490,31 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
     def get_connections(
         self, catalog_id: str, filter: dict[str, Any], hide_password: bool
     ) -> list["FakeConnection"]:
-        # TODO: Implement filtering
-        return list(self.connections.values())
+        connections = list(self.connections.values())
+        if not filter:
+            return connections
+
+        connection_type = filter.get("ConnectionType")
+        if connection_type:
+            connections = [
+                c
+                for c in connections
+                if c.connection_input.get("ConnectionType") == connection_type
+            ]
+
+        # A connection matches when every criteria string in the filter is
+        # recorded on the connection. A connection with no MatchCriteria of its
+        # own therefore matches nothing.
+        match_criteria = filter.get("MatchCriteria")
+        if match_criteria:
+            wanted = set(match_criteria)
+            connections = [
+                c
+                for c in connections
+                if wanted.issubset(set(c.connection_input.get("MatchCriteria") or []))
+            ]
+
+        return connections
 
     def put_data_catalog_encryption_settings(
         self,

@@ -8501,7 +8501,7 @@
 
 ## pipes
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_pipe
 - [X] delete_pipe
@@ -8512,7 +8512,7 @@
 - [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_pipe
+- [X] update_pipe
 </details>
 
 ## polly
