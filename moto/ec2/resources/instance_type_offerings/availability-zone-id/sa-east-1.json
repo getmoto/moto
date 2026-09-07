@@ -2808,6 +2808,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "sae1-az1"
  },
@@ -4685,6 +4689,10 @@
  },
  {
   "InstanceType": "p5e.48xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "p6-b300.48xlarge",
   "Location": "sae1-az2"
  },
  {
@@ -7212,6 +7220,10 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sae1-az3"
  },
@@ -8005,6 +8017,10 @@
  },
  {
   "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
   "Location": "sae1-az3"
  },
  {

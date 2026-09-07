@@ -42,6 +42,7 @@ from .utils import (
     flatten_attrs,
     generate_id,
     validate_username_format,
+    verify_totp,
 )
 
 # FIXME: Should be per user and stored in the user's profile
@@ -1739,7 +1740,7 @@ class CognitoIdpBackend(BaseBackend):
             ):
                 totp = cognito_totp(COGNITO_TOTP_MFA_SECRET)
                 try:
-                    totp.verify(mfa_code.encode("utf-8"), int(time.time()))
+                    verify_totp(totp, mfa_code.encode("utf-8"))
                 except InvalidToken:
                     raise CodeMismatchException("MFA Code Mismatch")
 
@@ -2229,7 +2230,7 @@ class CognitoIdpBackend(BaseBackend):
 
             if get_cognito_idp_user_pool_enable_totp():
                 try:
-                    totp.verify(user_code.encode("utf-8"), int(time.time()))
+                    verify_totp(totp, user_code.encode("utf-8"))
                 except InvalidToken:
                     raise CodeMismatchException(
                         f"Code mismatch ({friendly_device_name})"
@@ -2248,7 +2249,7 @@ class CognitoIdpBackend(BaseBackend):
 
                 if get_cognito_idp_user_pool_enable_totp():
                     try:
-                        totp.verify(user_code.encode("utf-8"), int(time.time()))
+                        verify_totp(totp, user_code.encode("utf-8"))
                     except InvalidToken:
                         raise CodeMismatchException(
                             f"Code mismatch ({friendly_device_name})"
