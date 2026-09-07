@@ -211,9 +211,22 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
         next_token: str | None,
     ) -> tuple[list[dict[str, Any]], str | None]:
         cluster_info_list = []
-        for cluster_arn in self.clusters.keys():
-            cluster_info = self.describe_cluster_v2(cluster_arn)
-            cluster_info_list.append(cluster_info)
+        for cluster_arn, cluster in self.clusters.items():
+            # Both filters were accepted and then ignored, so a caller asking
+            # for one name got back every cluster in the account. AWS matches
+            # ClusterNameFilter on the start of the name, and treats
+            # ClusterTypeFilter of ALL the same as leaving it out.
+            if cluster_name_filter and not cluster.cluster_name.startswith(
+                cluster_name_filter
+            ):
+                continue
+            if (
+                cluster_type_filter
+                and cluster_type_filter.upper() != "ALL"
+                and cluster.cluster_type != cluster_type_filter.upper()
+            ):
+                continue
+            cluster_info_list.append(self.describe_cluster_v2(cluster_arn))
 
         return cluster_info_list, None
 
@@ -309,7 +322,10 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
                 "creationTime": cluster.creation_time,
                 "clusterType": cluster.cluster_type,
             }
-            for cluster_arn, cluster in self.clusters.items()
+            for cluster in self.clusters.values()
+            # Matched on the start of the name, the way AWS documents it.
+            if not cluster_name_filter
+            or cluster.cluster_name.startswith(cluster_name_filter)
         ]
 
         return cluster_info_list, None
