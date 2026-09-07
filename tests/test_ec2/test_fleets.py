@@ -1042,6 +1042,48 @@ def test_user_data():
     assert attrs["UserData"]["Value"] == str(user_data)
 
 
+@mock_aws
+def test_launch_spec_user_data():
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    template_user_data = Base64EncodedString.from_raw_string("template user data")
+    spec_user_data = Base64EncodedString.from_raw_string("spec user data")
+    template_args = {
+        "LaunchTemplateName": "test-template",
+        "LaunchTemplateData": {
+            "ImageId": "ami-0157ed312f9c59a91",
+            "InstanceType": "t3.nano",
+            "UserData": str(template_user_data),
+        },
+    }
+    ec2_client.create_launch_template(**template_args)
+    fleet_args = {
+        "OnDemandOptions": {
+            "AllocationStrategy": "lowest-price",
+        },
+        "TargetCapacitySpecification": {
+            "TotalTargetCapacity": 1,
+            "DefaultTargetCapacityType": "on-demand",
+        },
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "test-template",
+                    "Version": "$Latest",
+                    "LaunchTemplateSpecificationUserData": str(spec_user_data),
+                },
+            },
+        ],
+        "Type": "instant",
+    }
+    fleet = ec2_client.create_fleet(**fleet_args)
+    instance = fleet["Instances"][0]
+    attrs = ec2_client.describe_instance_attribute(
+        InstanceId=instance["InstanceIds"][0],
+        Attribute="userData",
+    )
+    assert attrs["UserData"]["Value"] == str(spec_user_data)
+
+
 @pytest.mark.aws_verified
 @ec2_aws_verified()
 @pytest.mark.parametrize("version_specified", ["$Latest", "$Default"])
