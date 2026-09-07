@@ -183,6 +183,41 @@ def test_update_pipe():
 
 
 @mock_aws
+def test_update_pipe_all_fields():
+    client = boto3.client("pipes", region_name="eu-west-1")
+    client.create_pipe(
+        Name="test-pipe",
+        Source="arn:aws:sqs:eu-west-1:123456789012:test-queue",
+        Target="arn:aws:lambda:eu-west-1:123456789012:function:first",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+    )
+
+    client.update_pipe(
+        Name="test-pipe",
+        RoleArn="arn:aws:iam::123456789012:role/test-role",
+        SourceParameters={"FilterCriteria": {"Filters": [{"Pattern": '{"a": ["b"]}'}]}},
+        Enrichment="arn:aws:lambda:eu-west-1:123456789012:function:enrichment",
+        EnrichmentParameters={"InputTemplate": "enrichment-template"},
+        TargetParameters={"InputTemplate": "target-template"},
+        LogConfiguration={"Level": "INFO"},
+        KmsKeyIdentifier="arn:aws:kms:eu-west-1:123456789012:key/abcd",
+    )
+
+    descr = client.describe_pipe(Name="test-pipe")
+    assert descr["SourceParameters"]["FilterCriteria"]["Filters"] == [
+        {"Pattern": '{"a": ["b"]}'}
+    ]
+    assert (
+        descr["Enrichment"]
+        == "arn:aws:lambda:eu-west-1:123456789012:function:enrichment"
+    )
+    assert descr["EnrichmentParameters"]["InputTemplate"] == "enrichment-template"
+    assert descr["TargetParameters"]["InputTemplate"] == "target-template"
+    assert descr["LogConfiguration"]["Level"] == "INFO"
+    assert descr["KmsKeyIdentifier"] == "arn:aws:kms:eu-west-1:123456789012:key/abcd"
+
+
+@mock_aws
 def test_update_pipe_not_found():
     client = boto3.client("pipes", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
