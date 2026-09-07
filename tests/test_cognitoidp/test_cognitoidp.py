@@ -7,7 +7,9 @@ import random
 import re
 import time
 import uuid
+from functools import partial
 from unittest import SkipTest, mock
+from unittest.mock import patch
 from uuid import UUID
 
 import boto3
@@ -20,7 +22,7 @@ from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
 from moto import mock_aws, settings
-from moto.cognitoidp.utils import create_id
+from moto.cognitoidp.utils import create_id, verify_totp
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
 from moto.utilities.utils import load_resource
@@ -3150,6 +3152,10 @@ def test_authentication_flow_invalid_user_flow():
     assert err["Message"] == "Initiate Auth method not supported"
 
 
+# Patch TOTP verify to check +/- 30-second time window in case of clock drift in server mode.
+@patch.object(
+    moto.cognitoidp.models, "verify_totp", new=partial(verify_totp, valid_window=1)
+)
 def user_authentication_flow(
     conn, user_pool=None, user_pool_client=None, with_mfa=True, use_email=False
 ):
