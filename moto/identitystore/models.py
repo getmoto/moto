@@ -291,6 +291,56 @@ class IdentityStoreBackend(BaseBackend):
 
         return membership_id, identity_store_id
 
+    def get_group_membership_id(
+        self, identity_store_id: str, group_id: str, member_id: dict[str, str]
+    ) -> tuple[str, str]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        user_id = member_id["UserId"]
+
+        for membership in identity_store.group_memberships.values():
+            if (
+                membership["GroupId"] == group_id
+                and membership["MemberId"]["UserId"] == user_id
+            ):
+                return membership["MembershipId"], identity_store_id
+
+        raise ResourceNotFoundException(
+            message="GROUP_MEMBERSHIP not found.", resource_type="GROUP_MEMBERSHIP"
+        )
+
+    def describe_group_membership(
+        self, identity_store_id: str, membership_id: str
+    ) -> dict[str, Any]:
+        identity_store = self.__get_identity_store(identity_store_id)
+
+        if membership_id in identity_store.group_memberships:
+            return identity_store.group_memberships[membership_id]
+
+        raise ResourceNotFoundException(
+            message="GROUP_MEMBERSHIP not found.", resource_type="GROUP_MEMBERSHIP"
+        )
+
+    def is_member_in_groups(
+        self, identity_store_id: str, member_id: dict[str, str], group_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        user_id = member_id["UserId"]
+
+        groups_of_member = {
+            m["GroupId"]
+            for m in identity_store.group_memberships.values()
+            if m["MemberId"]["UserId"] == user_id
+        }
+
+        return [
+            {
+                "GroupId": group_id,
+                "MemberId": {"UserId": user_id},
+                "MembershipExists": group_id in groups_of_member,
+            }
+            for group_id in group_ids
+        ]
+
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_group_memberships(  # type: ignore[misc]
         self, identity_store_id: str, group_id: str
