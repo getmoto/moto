@@ -6095,7 +6095,7 @@
 
 ## identitystore
 <details>
-<summary>73% implemented</summary>
+<summary>89% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -6104,12 +6104,12 @@
 - [X] delete_group_membership
 - [X] delete_user
 - [X] describe_group
-- [ ] describe_group_membership
+- [X] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
-- [ ] get_group_membership_id
+- [X] get_group_membership_id
 - [X] get_user_id
-- [ ] is_member_in_groups
+- [X] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
 - [X] list_groups
@@ -8501,7 +8501,7 @@
 
 ## pipes
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_pipe
 - [X] delete_pipe
@@ -8512,7 +8512,7 @@
 - [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_pipe
+- [X] update_pipe
 </details>
 
 ## polly
