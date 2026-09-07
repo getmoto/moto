@@ -1,6 +1,6 @@
 import copy
 import time
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from datetime import datetime
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -96,10 +96,14 @@ class ECRResponse(BaseResponse):
             dto_images.append(dto_image)
         return ActionResult({"imageDetails": dto_images})
 
-    def batch_check_layer_availability(self) -> None:
-        raise NotImplementedError(
-            "ECR.batch_check_layer_availability is not yet implemented"
+    def batch_check_layer_availability(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        registry_id = self._get_param("registryId")
+        layer_digests = self._get_param("layerDigests")
+        result = self.ecr_backend.batch_check_layer_availability(
+            repository_name, layer_digests, registry_id=registry_id
         )
+        return ActionResult(result)
 
     def batch_delete_image(self) -> ActionResult:
         repository_str = self._get_param("repositoryName")
@@ -140,8 +144,15 @@ class ECRResponse(BaseResponse):
             }
         )
 
-    def complete_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
+    def complete_layer_upload(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        registry_id = self._get_param("registryId")
+        upload_id = self._get_param("uploadId")
+        layer_digests = self._get_param("layerDigests")
+        result = self.ecr_backend.complete_layer_upload(
+            repository_name, upload_id, layer_digests, registry_id=registry_id
+        )
+        return ActionResult(result)
 
     def delete_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -185,8 +196,13 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def initiate_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
+    def initiate_layer_upload(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        registry_id = self._get_param("registryId")
+        result = self.ecr_backend.initiate_layer_upload(
+            repository_name, registry_id=registry_id
+        )
+        return ActionResult(result)
 
     def set_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -204,8 +220,25 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def upload_layer_part(self) -> None:
-        raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+    def upload_layer_part(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        registry_id = self._get_param("registryId")
+        upload_id = self._get_param("uploadId")
+        part_first_byte = self._get_param("partFirstByte")
+        part_last_byte = self._get_param("partLastByte")
+        layer_part_blob = self._get_param("layerPartBlob")
+        # The JSON protocol delivers the blob as a base64-encoded string.
+        if isinstance(layer_part_blob, str):
+            layer_part_blob = b64decode(layer_part_blob)
+        result = self.ecr_backend.upload_layer_part(
+            repository_name,
+            upload_id,
+            part_first_byte,
+            part_last_byte,
+            layer_part_blob,
+            registry_id=registry_id,
+        )
+        return ActionResult(result)
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")

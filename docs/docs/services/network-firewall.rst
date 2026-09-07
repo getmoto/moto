@@ -21,6 +21,7 @@ network-firewall
 - [ ] associate_firewall_policy
 - [ ] associate_subnets
 - [ ] attach_rule_groups_to_proxy_configuration
+- [ ] create_container_association
 - [X] create_firewall
 - [ ] create_firewall_policy
 - [ ] create_proxy
@@ -30,6 +31,7 @@ network-firewall
 - [ ] create_rule_group
 - [ ] create_tls_inspection_configuration
 - [ ] create_vpc_endpoint_association
+- [ ] delete_container_association
 - [ ] delete_firewall
 - [ ] delete_firewall_policy
 - [ ] delete_network_firewall_transit_gateway_attachment
@@ -41,6 +43,7 @@ network-firewall
 - [ ] delete_rule_group
 - [ ] delete_tls_inspection_configuration
 - [ ] delete_vpc_endpoint_association
+- [ ] describe_container_association
 - [X] describe_firewall
 - [ ] describe_firewall_metadata
 - [ ] describe_firewall_policy
@@ -61,6 +64,7 @@ network-firewall
 - [ ] disassociate_subnets
 - [ ] get_analysis_report_results
 - [ ] list_analysis_reports
+- [ ] list_container_associations
 - [ ] list_firewall_policies
 - [X] list_firewalls
 - [ ] list_flow_operation_results
@@ -80,6 +84,7 @@ network-firewall
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_availability_zone_change_protection
+- [ ] update_container_association
 - [ ] update_firewall_analysis_settings
 - [ ] update_firewall_delete_protection
 - [ ] update_firewall_description
@@ -92,6 +97,7 @@ network-firewall
 - [ ] update_proxy_rule
 - [ ] update_proxy_rule_group_priorities
 - [ ] update_proxy_rule_priorities
+- [ ] update_proxy_settings
 - [ ] update_rule_group
 - [ ] update_subnet_change_protection
 - [ ] update_tls_inspection_configuration

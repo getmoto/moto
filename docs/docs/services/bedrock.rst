@@ -54,6 +54,7 @@ bedrock
 - [ ] delete_resource_policy
 - [ ] deregister_marketplace_model_endpoint
 - [ ] export_automated_reasoning_policy_version
+- [ ] get_account_data_retention
 - [ ] get_advanced_prompt_optimization_job
 - [ ] get_automated_reasoning_policy
 - [ ] get_automated_reasoning_policy_annotations
@@ -106,6 +107,7 @@ The foundation_model_arn_equals-argument is not yet supported
 - [ ] list_prompt_routers
 - [ ] list_provisioned_model_throughputs
 - [X] list_tags_for_resource
+- [ ] put_account_data_retention
 - [ ] put_enforced_guardrail_configuration
 - [X] put_model_invocation_logging_configuration
 - [ ] put_resource_policy

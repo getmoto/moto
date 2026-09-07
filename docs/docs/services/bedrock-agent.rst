@@ -39,6 +39,7 @@ bedrock-agent
 - [X] delete_knowledge_base
 - [ ] delete_knowledge_base_documents
 - [ ] delete_prompt
+- [ ] delete_resource_policy
 - [ ] disassociate_agent_collaborator
 - [ ] disassociate_agent_knowledge_base
 - [X] get_agent
@@ -55,6 +56,7 @@ bedrock-agent
 - [X] get_knowledge_base
 - [ ] get_knowledge_base_documents
 - [ ] get_prompt
+- [ ] get_resource_policy
 - [ ] ingest_knowledge_base_documents
 - [ ] list_agent_action_groups
 - [ ] list_agent_aliases
@@ -73,6 +75,7 @@ bedrock-agent
 - [X] list_tags_for_resource
 - [ ] prepare_agent
 - [ ] prepare_flow
+- [ ] put_resource_policy
 - [ ] start_ingestion_job
 - [ ] stop_ingestion_job
 - [X] tag_resource

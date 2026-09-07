@@ -376,6 +376,7 @@ class BackendDict(dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
                     use_boto3_regions=self._use_boto3_regions,
                     additional_regions=self._additional_regions,
                 )
+            if self not in BackendDict._instances:  # type: ignore[misc]
                 BackendDict._instances.append(self)  # type: ignore[misc]
 
     def iter_backends(self) -> Iterator[tuple[str, str, BaseBackend]]:

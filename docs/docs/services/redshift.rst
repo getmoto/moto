@@ -37,6 +37,7 @@ redshift
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
 - [ ] create_integration
+- [ ] create_qev2_idc_application
 - [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
@@ -57,6 +58,7 @@ redshift
 - [ ] delete_hsm_configuration
 - [ ] delete_integration
 - [ ] delete_partner
+- [ ] delete_qev2_idc_application
 - [ ] delete_redshift_idc_application
 - [ ] delete_resource_policy
 - [ ] delete_scheduled_action
@@ -94,6 +96,7 @@ redshift
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_qev2_idc_applications
 - [ ] describe_redshift_idc_applications
 - [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
@@ -134,6 +137,7 @@ redshift
 - [ ] modify_event_subscription
 - [ ] modify_integration
 - [ ] modify_lakehouse_configuration
+- [ ] modify_qev2_idc_application
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period

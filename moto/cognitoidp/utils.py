@@ -3,9 +3,11 @@ import hashlib
 import hmac
 import re
 import string
+import time
 from typing import Any
 
 from cryptography.hazmat.primitives.hashes import SHA1
+from cryptography.hazmat.primitives.twofactor import InvalidToken
 from cryptography.hazmat.primitives.twofactor.totp import TOTP
 
 from moto.moto_api._internal import mock_random as random
@@ -66,6 +68,8 @@ PAGINATION_MODEL = {
         "unique_attribute": "identifier",
     },
 }
+
+TOTP_TIME_STEP: int = 30
 
 
 def create_id() -> str:
@@ -136,6 +140,22 @@ def cognito_totp(key: str) -> TOTP:
         key=base64.b32decode(key_padded, casefold=True),
         length=6,
         algorithm=SHA1(),
-        time_step=30,
+        time_step=TOTP_TIME_STEP,
         enforce_key_length=False,
     )
+
+
+def verify_totp(totp: TOTP, code: bytes, valid_window: int = 0) -> None:
+    time_now = int(time.time())
+    time_step = TOTP_TIME_STEP
+
+    for i in range(-valid_window, valid_window + 1):
+        time_to_check = time_now + (i * time_step)
+        try:
+            totp.verify(code, time_to_check)
+        except InvalidToken:
+            continue  # Check next time code.
+        else:
+            return  # Token is valid.
+
+    raise InvalidToken("Supplied TOTP value does not match.")

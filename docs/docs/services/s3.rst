@@ -40,6 +40,7 @@ s3
 - [X] delete_bucket_tagging
 - [X] delete_bucket_website
 - [X] delete_object
+- [ ] delete_object_annotation
 - [X] delete_object_tagging
 - [X] delete_objects
 - [X] delete_public_access_block
@@ -70,6 +71,7 @@ s3
 - [ ] get_bucket_website
 - [X] get_object
 - [X] get_object_acl
+- [ ] get_object_annotation
 - [X] get_object_attributes
   
 The following attributes are not yet returned: DeleteMarker, RequestCharged, ObjectParts
@@ -94,6 +96,7 @@ The following attributes are not yet returned: DeleteMarker, RequestCharged, Obj
 The delimiter and max-uploads parameters have not yet been implemented.
 
 
+- [ ] list_object_annotations
 - [X] list_object_versions
   
 The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
@@ -170,6 +173,7 @@ Restrictions:
 - [X] put_bucket_website
 - [X] put_object
 - [X] put_object_acl
+- [ ] put_object_annotation
 - [X] put_object_legal_hold
 - [X] put_object_lock_configuration
 - [X] put_object_retention
@@ -188,6 +192,7 @@ Known missing features:
  - FieldDelimiters are ignored
 
 
+- [ ] update_bucket_metadata_annotation_table_configuration
 - [ ] update_bucket_metadata_inventory_table_configuration
 - [ ] update_bucket_metadata_journal_table_configuration
 - [ ] update_object_encryption

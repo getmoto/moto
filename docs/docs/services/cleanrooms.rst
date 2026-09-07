@@ -48,6 +48,7 @@ cleanrooms
 - [X] delete_membership
 - [ ] delete_privacy_budget_template
 - [ ] disallow_intermediate_table
+- [ ] get_analysis_log_export
 - [ ] get_analysis_template
 - [X] get_collaboration
 - [ ] get_collaboration_analysis_template
@@ -70,6 +71,7 @@ cleanrooms
 - [ ] get_protected_query
 - [ ] get_schema
 - [ ] get_schema_analysis_rule
+- [ ] list_analysis_log_exports
 - [ ] list_analysis_templates
 - [ ] list_collaboration_analysis_templates
 - [ ] list_collaboration_change_requests
@@ -96,6 +98,7 @@ cleanrooms
 - [ ] populate_id_mapping_table
 - [ ] populate_intermediate_table
 - [ ] preview_privacy_impact
+- [ ] start_analysis_log_export
 - [ ] start_protected_job
 - [ ] start_protected_query
 - [X] tag_resource

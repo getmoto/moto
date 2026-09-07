@@ -227,7 +227,7 @@ class AddExecutor(NodeExecutor):
             if value_to_add.is_set():
                 if len(value_to_add.value) == 0:
                     raise MockValidationException(
-                        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+                        "1 validation error detected: One or more parameter values were invalid: An string set  may not be empty"
                     )
                 try:
                     current_string_set = self.get_item_at_end_of_path(item)

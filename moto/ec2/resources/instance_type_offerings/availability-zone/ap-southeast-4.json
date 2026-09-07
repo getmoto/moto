@@ -1888,6 +1888,54 @@
   "Location": "ap-southeast-4b"
  },
  {
+  "InstanceType": "m8gd.12xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.16xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.24xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.2xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.48xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.4xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.8xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.large",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.medium",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.metal-24xl",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.metal-48xl",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m8gd.xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "ap-southeast-4b"
  },
@@ -3005,6 +3053,54 @@
  },
  {
   "InstanceType": "m8g.xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.12xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.16xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.24xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.2xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.48xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.4xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.8xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.large",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.medium",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.metal-24xl",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.metal-48xl",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m8gd.xlarge",
   "Location": "ap-southeast-4c"
  },
  {

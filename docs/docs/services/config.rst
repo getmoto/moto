@@ -44,6 +44,7 @@ Item is returned in AWS Config format.
 - [X] delete_configuration_aggregator
 - [X] delete_configuration_recorder
 - [ ] delete_conformance_pack
+- [ ] delete_connector
 - [X] delete_delivery_channel
 - [ ] delete_evaluation_results
 - [ ] delete_organization_config_rule
@@ -103,6 +104,7 @@ This should only receive at most 1 name in. It will raise a ValidationException 
 - [ ] get_compliance_summary_by_resource_type
 - [ ] get_conformance_pack_compliance_details
 - [ ] get_conformance_pack_compliance_summary
+- [ ] get_connector
 - [ ] get_custom_rule_policy
 - [ ] get_discovered_resource_counts
 - [ ] get_organization_config_rule_detailed_status
@@ -141,15 +143,15 @@ regions.
 
 - [ ] list_configuration_recorders
 - [ ] list_conformance_pack_compliance_scores
+- [ ] list_connectors
 - [X] list_discovered_resources
   Queries against AWS Config (non-aggregated) listing function.
 
 The listing function must exist for the resource backend.
 
 :param resource_type:
-:param backend_region:
-:param ids:
-:param name:
+:param resource_ids:
+:param resource_name:
 :param limit:
 :param next_token:
 :return:
@@ -172,6 +174,7 @@ interaction with the config recorder.
 - [X] put_configuration_aggregator
 - [X] put_configuration_recorder
 - [ ] put_conformance_pack
+- [ ] put_connector
 - [X] put_delivery_channel
 - [X] put_evaluations
 - [ ] put_external_evaluation
@@ -185,6 +188,7 @@ interaction with the config recorder.
 
 - [ ] put_service_linked_configuration_recorder
 - [ ] put_stored_query
+- [ ] put_third_party_service_linked_configuration_recorder
 - [ ] select_aggregate_resource_config
 - [X] select_resource_config
   

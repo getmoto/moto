@@ -870,6 +870,61 @@ class GlueResponse(BaseResponse):
         self.glue_backend.delete_dev_endpoint(endpoint_name)
         return EmptyResult()
 
+    def create_ml_transform(self) -> ActionResult:
+        name = self._get_param("Name")
+        input_record_tables = self._get_param("InputRecordTables")
+        parameters = self._get_param("Parameters")
+        role = self._get_param("Role")
+        description = self._get_param("Description")
+        glue_version = self._get_param("GlueVersion")
+        max_capacity = self._get_param("MaxCapacity")
+        worker_type = self._get_param("WorkerType")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        timeout = self._get_int_param("Timeout")
+        max_retries = self._get_int_param("MaxRetries")
+        tags = self._get_param("Tags")
+        transform_encryption = self._get_param("TransformEncryption")
+
+        transform_id = self.glue_backend.create_ml_transform(
+            name=name,
+            input_record_tables=input_record_tables,
+            parameters=parameters,
+            role=role,
+            description=description,
+            glue_version=glue_version,
+            max_capacity=max_capacity,
+            worker_type=worker_type,
+            number_of_workers=number_of_workers,
+            timeout=timeout,
+            max_retries=max_retries,
+            tags=tags,
+            transform_encryption=transform_encryption,
+        )
+        return ActionResult({"TransformId": transform_id})
+
+    def get_ml_transform(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        ml_transform = self.glue_backend.get_ml_transform(transform_id)
+        return ActionResult(ml_transform.as_dict())
+
+    def get_ml_transforms(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        ml_transforms, next_token = self.glue_backend.get_ml_transforms(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Transforms": [transform.as_dict() for transform in ml_transforms],
+                "NextToken": next_token,
+            }
+        )
+
+    def delete_ml_transform(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        transform_id = self.glue_backend.delete_ml_transform(transform_id)
+        return ActionResult({"TransformId": transform_id})
+
     def create_connection(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId")
         connection_input = self._get_param("ConnectionInput")

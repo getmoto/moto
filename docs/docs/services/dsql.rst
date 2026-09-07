@@ -32,3 +32,4 @@ dsql
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_cluster
+

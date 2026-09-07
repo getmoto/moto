@@ -1279,6 +1279,90 @@ def test_get_connections():
     assert connections[2]["Name"] == "test-connection-2"
 
 
+def _create_filterable_connections(client):
+    for name, conn_type, criteria in [
+        ("jdbc-prod-east", "JDBC", ["prod", "east"]),
+        ("jdbc-prod-west", "JDBC", ["prod", "west"]),
+        ("kafka-prod-east", "KAFKA", ["prod", "east"]),
+        ("jdbc-uncategorised", "JDBC", None),
+    ]:
+        connection_input = {
+            "Name": name,
+            "ConnectionType": conn_type,
+            "ConnectionProperties": {"key": "value"},
+        }
+        if criteria is not None:
+            connection_input["MatchCriteria"] = criteria
+        client.create_connection(ConnectionInput=connection_input)
+
+
+def _names(response):
+    return sorted(c["Name"] for c in response["ConnectionList"])
+
+
+@mock_aws
+def test_get_connections_filtered_by_connection_type():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    _create_filterable_connections(client)
+
+    response = client.get_connections(Filter={"ConnectionType": "KAFKA"})
+    assert _names(response) == ["kafka-prod-east"]
+
+    response = client.get_connections(Filter={"ConnectionType": "JDBC"})
+    assert _names(response) == [
+        "jdbc-prod-east",
+        "jdbc-prod-west",
+        "jdbc-uncategorised",
+    ]
+
+    response = client.get_connections(Filter={"ConnectionType": "MONGODB"})
+    assert _names(response) == []
+
+
+@mock_aws
+def test_get_connections_filtered_by_match_criteria():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    _create_filterable_connections(client)
+
+    # Every criteria in the filter has to be present on the connection, so
+    # "prod" alone matches the three that carry it and skips the one with no
+    # criteria at all.
+    response = client.get_connections(Filter={"MatchCriteria": ["prod"]})
+    assert _names(response) == ["jdbc-prod-east", "jdbc-prod-west", "kafka-prod-east"]
+
+    response = client.get_connections(Filter={"MatchCriteria": ["prod", "west"]})
+    assert _names(response) == ["jdbc-prod-west"]
+
+    response = client.get_connections(Filter={"MatchCriteria": ["staging"]})
+    assert _names(response) == []
+
+
+@mock_aws
+def test_get_connections_filtered_by_type_and_criteria():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    _create_filterable_connections(client)
+
+    response = client.get_connections(
+        Filter={"ConnectionType": "JDBC", "MatchCriteria": ["east"]}
+    )
+    assert _names(response) == ["jdbc-prod-east"]
+
+    # The type excludes the only connection the criteria would have matched.
+    response = client.get_connections(
+        Filter={"ConnectionType": "KAFKA", "MatchCriteria": ["west"]}
+    )
+    assert _names(response) == []
+
+
+@mock_aws
+def test_get_connections_with_empty_filter_returns_everything():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    _create_filterable_connections(client)
+
+    assert len(client.get_connections(Filter={})["ConnectionList"]) == 4
+    assert len(client.get_connections()["ConnectionList"]) == 4
+
+
 @mock_aws
 def test_put_data_catalog_encryption_settings():
     client = boto3.client("glue", region_name="us-east-1")
@@ -1834,3 +1918,127 @@ def test_get_security_configurations():
         "test-security-configuration-2",
     }
     assert "NextToken" not in response
+
+
+@mock_aws
+def test_create_ml_transform():
+    client = create_glue_client()
+
+    response = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={
+            "TransformType": "FIND_MATCHES",
+            "FindMatchesParameters": {"PrimaryKeyColumnName": "id"},
+        },
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+    )
+    assert response["TransformId"].startswith("tfm-")
+
+
+@mock_aws
+def test_get_ml_transform():
+    client = create_glue_client()
+
+    transform_id = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={
+            "TransformType": "FIND_MATCHES",
+            "FindMatchesParameters": {"PrimaryKeyColumnName": "id"},
+        },
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        Description="my transform",
+    )["TransformId"]
+
+    response = client.get_ml_transform(TransformId=transform_id)
+    assert response["TransformId"] == transform_id
+    assert response["Name"] == "test-transform"
+    assert response["Description"] == "my transform"
+    assert response["Status"] == "READY"
+    assert response["Role"] == "arn:aws:iam::123456789012:role/GlueMLTransform"
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_ml_transform(TransformId="tfm-nonexistent")
+
+
+@mock_aws
+def test_get_ml_transforms():
+    client = create_glue_client()
+
+    assert client.get_ml_transforms()["Transforms"] == []
+
+    for i in range(2):
+        client.create_ml_transform(
+            Name=f"transform-{i}",
+            InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+            Parameters={"TransformType": "FIND_MATCHES"},
+            Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        )
+
+    response = client.get_ml_transforms()
+    assert len(response["Transforms"]) == 2
+
+    response = client.get_ml_transforms(MaxResults=1)
+    assert len(response["Transforms"]) == 1
+    assert "NextToken" in response
+
+    response = client.get_ml_transforms(NextToken=response["NextToken"])
+    assert len(response["Transforms"]) == 1
+
+
+@mock_aws
+def test_delete_ml_transform():
+    client = create_glue_client()
+
+    transform_id = client.create_ml_transform(
+        Name="test-transform",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={"TransformType": "FIND_MATCHES"},
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+    )["TransformId"]
+
+    resp = client.delete_ml_transform(TransformId=transform_id)
+    assert resp["TransformId"] == transform_id
+    assert client.get_ml_transforms()["Transforms"] == []
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.delete_ml_transform(TransformId="tfm-nonexistent")
+
+
+@mock_aws
+def test_glue_resources_tagging_via_rgta():
+    """Dev endpoints, ML transforms, and workflows must surface their tags
+    through the Resource Groups Tagging API (used by c7n universal_augment)."""
+    glue = create_glue_client()
+    rgta = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    glue.create_dev_endpoint(
+        EndpointName="dev-endpoint-1",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        Tags={"OwnerContact": "team@example.com"},
+    )
+    glue.create_ml_transform(
+        Name="ml-transform-1",
+        InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+        Parameters={"TransformType": "FIND_MATCHES"},
+        Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        Tags={"BA": "BAFOO"},
+    )
+    glue.create_workflow(Name="workflow-1", Tags={"ASV": "ASVBAR"})
+
+    resources = rgta.get_resources(ResourceTypeFilters=["glue"])[
+        "ResourceTagMappingList"
+    ]
+    tags_by_arn = {
+        r["ResourceARN"]: {t["Key"]: t["Value"] for t in r["Tags"]} for r in resources
+    }
+
+    dev_arn = next(a for a in tags_by_arn if a.endswith("devEndpoint/dev-endpoint-1"))
+    assert tags_by_arn[dev_arn] == {"OwnerContact": "team@example.com"}
+
+    ml_arn = next(a for a in tags_by_arn if ":mlTransform/" in a)
+    assert tags_by_arn[ml_arn] == {"BA": "BAFOO"}
+
+    wf_arn = next(a for a in tags_by_arn if a.endswith("workflow/workflow-1"))
+    assert tags_by_arn[wf_arn] == {"ASV": "ASVBAR"}

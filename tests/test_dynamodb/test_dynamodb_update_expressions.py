@@ -176,8 +176,8 @@ def test_update_item_add_empty_set(table_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
-        in err["Message"]
+        err["Message"]
+        == "1 validation error detected: One or more parameter values were invalid: An string set  may not be empty"
     )
 
     assert dynamodb.scan(TableName=table_name)["Items"] == [{"pk": {"S": "foo"}}]
@@ -196,8 +196,8 @@ def test_update_item_add_empty_set(table_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
-        in err["Message"]
+        err["Message"]
+        == "1 validation error detected: One or more parameter values were invalid: An string set  may not be empty"
     )
 
     assert dynamodb.scan(TableName=table_name)["Items"] == [
@@ -221,7 +221,10 @@ def test_update_item_with_empty_values(table_name=None):
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-    assert err["Message"] == "ExpressionAttributeValues must not be empty"
+    assert (
+        err["Message"]
+        == "1 validation error detected: ExpressionAttributeValues must not be empty"
+    )
 
 
 @pytest.mark.aws_verified
@@ -239,7 +242,8 @@ def test_update_item_with_empty_expression(table_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        err["Message"] == "Invalid UpdateExpression: The expression can not be empty;"
+        err["Message"]
+        == "1 validation error detected: Invalid UpdateExpression: The expression can not be empty;"
     )
 
 

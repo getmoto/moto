@@ -19,6 +19,7 @@ guardduty
 - [ ] archive_findings
 - [X] create_detector
 - [X] create_filter
+- [ ] create_investigation
 - [ ] create_ip_set
 - [ ] create_malware_protection_plan
 - [ ] create_members
@@ -54,6 +55,7 @@ guardduty
 - [X] get_filter
 - [ ] get_findings
 - [ ] get_findings_statistics
+- [ ] get_investigation
 - [ ] get_invitations_count
 - [ ] get_ip_set
 - [ ] get_malware_protection_plan
@@ -77,6 +79,7 @@ The MaxResults and NextToken-parameter have not yet been implemented.
 
 - [ ] list_filters
 - [ ] list_findings
+- [ ] list_investigations
 - [ ] list_invitations
 - [ ] list_ip_sets
 - [ ] list_malware_protection_plans

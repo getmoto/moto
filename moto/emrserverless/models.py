@@ -134,6 +134,10 @@ class JobRun(BaseModel):
 
         self.tags = tags
 
+    @property
+    def execution_role(self) -> str:
+        return self.execution_role_arn
+
 
 class EMRServerlessBackend(BaseBackend):
     """Implementation of EMRServerless APIs."""

@@ -22,6 +22,7 @@ opensearch
 - [X] add_tags
 - [ ] associate_package
 - [ ] associate_packages
+- [ ] attach_data_source
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
@@ -41,6 +42,7 @@ opensearch
 - [ ] delete_package
 - [ ] delete_vpc_endpoint
 - [ ] deregister_capability
+- [ ] describe_data_source_attachment
 - [X] describe_domain
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
@@ -57,6 +59,7 @@ opensearch
 - [ ] describe_reserved_instance_offerings
 - [ ] describe_reserved_instances
 - [ ] describe_vpc_endpoints
+- [ ] detach_data_source
 - [ ] dissociate_package
 - [ ] dissociate_packages
 - [ ] get_application
@@ -67,10 +70,13 @@ opensearch
 - [ ] get_direct_query_data_source
 - [ ] get_domain_maintenance_status
 - [ ] get_index
+- [ ] get_migration
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
+- [ ] insight_feedback
 - [ ] list_applications
+- [ ] list_data_source_attachments
 - [ ] list_data_sources
 - [ ] list_direct_query_data_sources
 - [ ] list_domain_maintenances
@@ -78,6 +84,7 @@ opensearch
 - [ ] list_domains_for_package
 - [ ] list_insights
 - [ ] list_instance_type_details
+- [ ] list_migrations
 - [ ] list_packages_for_domain
 - [ ] list_scheduled_actions
 - [X] list_tags
@@ -93,6 +100,7 @@ opensearch
 - [ ] revoke_vpc_endpoint_access
 - [ ] rollback_service_software_update
 - [ ] start_domain_maintenance
+- [ ] start_migration
 - [ ] start_service_software_update
 - [ ] update_application
 - [ ] update_data_source

@@ -16,6 +16,7 @@ timestream-influxdb
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] create_db_backup
 - [X] create_db_cluster
 - [X] create_db_instance
   
@@ -28,11 +29,14 @@ influxAuthParametersSecretArn is not yet handled
 
 
 - [X] create_db_parameter_group
+- [ ] delete_db_backup
 - [ ] delete_db_cluster
 - [X] delete_db_instance
+- [ ] get_db_backup
 - [X] get_db_cluster
 - [X] get_db_instance
 - [X] get_db_parameter_group
+- [ ] list_db_backups
 - [X] list_db_clusters
 - [X] list_db_instances
   
@@ -44,6 +48,7 @@ Pagination is not yet implemented
 - [X] list_tags_for_resource
 - [ ] reboot_db_cluster
 - [ ] reboot_db_instance
+- [ ] restore_from_db_backup
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_db_cluster

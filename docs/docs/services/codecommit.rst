@@ -39,6 +39,7 @@ codecommit
 - [ ] evaluate_pull_request_approval_rules
 - [ ] get_approval_rule_template
 - [ ] get_blob
+- [ ] get_blob_differences
 - [ ] get_branch
 - [ ] get_comment
 - [ ] get_comment_reactions

@@ -378,7 +378,7 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [X] stop_notebook_instance
 - [ ] stop_optimization_job
 - [ ] stop_pipeline_execution
-- [ ] stop_processing_job
+- [X] stop_processing_job
 - [ ] stop_training_job
 - [ ] stop_transform_job
 - [ ] update_action

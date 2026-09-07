@@ -17,8 +17,12 @@ from .exceptions import (
     InvalidInput,
     NamespaceNotFound,
     OperationNotFound,
+    ServiceAttributesLimitExceededException,
     ServiceNotFound,
 )
+
+# The Cloud Map ServiceAttributesMap allows at most 30 attributes per service.
+MAX_SERVICE_ATTRIBUTES = 30
 
 
 def random_id(size: int) -> str:
@@ -84,6 +88,7 @@ class Service(BaseModel):
         service_type: str,
     ):
         self.id = f"srv-{random_id(8)}"
+        self.account_id = account_id
         self.arn = f"arn:{get_partition(region)}:servicediscovery:{region}:{account_id}:service/{self.id}"
         self.name = name
         self.namespace_id = namespace_id
@@ -96,6 +101,7 @@ class Service(BaseModel):
         self.created = unix_time()
         self.instances: list[ServiceInstance] = []
         self.instances_revision: dict[str, int] = {}
+        self.attributes: dict[str, str] = {}
 
     def update(self, details: dict[str, Any]) -> None:
         if "Description" in details:
@@ -125,6 +131,13 @@ class Service(BaseModel):
             "HealthCheckConfig": self.health_check_config,
             "HealthCheckCustomConfig": self.health_check_custom_config,
             "Type": self.service_type,
+        }
+
+    def attributes_to_json(self) -> dict[str, Any]:
+        return {
+            "ServiceArn": self.arn,
+            "ResourceOwner": self.account_id,
+            "Attributes": self.attributes,
         }
 
 
@@ -395,6 +408,27 @@ class ServiceDiscoveryBackend(BaseBackend):
             "UPDATE_SERVICE", targets={"SERVICE": service.id}
         )
         return operation_id
+
+    def get_service_attributes(self, service_id: str) -> Service:
+        return self.get_service(service_id)
+
+    def update_service_attributes(
+        self, service_id: str, attributes: dict[str, str]
+    ) -> None:
+        service = self.get_service(service_id)
+        updated = {**service.attributes, **attributes}
+        if len(updated) > MAX_SERVICE_ATTRIBUTES:
+            raise ServiceAttributesLimitExceededException(
+                f"Cannot update service attributes because the number of "
+                f"attributes for the service exceeds the limit of "
+                f"{MAX_SERVICE_ATTRIBUTES}."
+            )
+        service.attributes = updated
+
+    def delete_service_attributes(self, service_id: str, attributes: list[str]) -> None:
+        service = self.get_service(service_id)
+        for key in attributes:
+            service.attributes.pop(key, None)
 
     def update_http_namespace(
         self,

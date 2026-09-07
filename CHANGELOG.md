@@ -1,6 +1,161 @@
 Moto Changelog
 ==============
 
+5.2.3
+-----
+Docker Digest for 5.2.3: _sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c_
+
+    General:
+        * Dropped support for the Panorama service, following the removal by botocore
+
+    New Services:
+        * Clean Rooms:
+            * create_collaboration()
+            * create_configured_table()
+            * create_membership()
+            * delete_collaboration()
+            * delete_configured_table()
+            * delete_membership()
+            * get_collaboration()
+            * get_configured_table()
+            * get_membership()
+            * list_collaborations()
+            * list_configured_tables()
+            * list_members()
+            * list_memberships()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_collaboration()
+            * update_configured_table()
+            * update_membership()
+
+        * DevOps Agent:
+            * create_agent_space()
+            * delete_agent_space()
+            * get_agent_space()
+            * list_agent_spaces()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_agent_space()
+            * untag_resource()
+
+        * Payment Cryptography:
+            * add_key_replication_regions()
+            * create_alias()
+            * create_key()
+            * delete_alias()
+            * delete_resource_policy()
+            * disable_default_key_replication_regions()
+            * enable_default_key_replication_regions()
+            * get_alias()
+            * get_default_key_replication_regions()
+            * get_key()
+            * get_resource_policy()
+            * list_aliases()
+            * list_keys()
+            * list_tags_for_resource()
+            * put_resource_policy()
+            * remove_key_replication_regions()
+            * start_key_usage()
+            * stop_key_usage()
+            * tag_resource()
+            * untag_resource()
+            * update_alias()
+
+    New Methods:
+        * ApiGateway:
+            * get_tags()
+
+        * AppMesh:
+            * create_gateway_route()
+            * create_virtual_gateway()
+            * delete_gateway_route()
+            * delete_virtual_gateway()
+            * describe_gateway_route()
+            * describe_virtual_gateway()
+            * list_gateway_routes()
+            * list_virtual_gateways()
+            * update_gateway_route()
+            * update_virtual_gateway()
+
+        * CloudWatch:
+            * disable_alarm_actions()
+            * enable_alarm_actions()
+
+        * DSQL:
+            * create_stream()
+            * delete_cluster_policy()
+            * delete_stream()
+            * get_cluster_policy()
+            * get_stream()
+            * list_clusters()
+            * list_streams()
+            * put_cluster_policy()
+            * tag_resource()
+            * untag_resource()
+            * update_cluster()
+
+        * EC2:
+            * describe_snapshot_tier_status()
+            * modify_snapshot_tier()
+            * restore_snapshot_tier()
+
+        * FIS:
+            * create_target_account_configuration()
+            * delete_target_account_configuration()
+            * get_experiment()
+            * get_experiment_target_account_configuration()
+            * get_experiment_template()
+            * get_target_account_configuration()
+            * list_experiment_resolved_targets()
+            * list_experiment_target_account_configurations()
+            * list_experiment_templates()
+            * list_experiments()
+            * list_target_account_configurations()
+            * start_experiment()
+            * stop_experiment()
+            * update_experiment_template()
+            * update_target_account_configuration()
+
+        * Glue:
+            * create_ml_transform()
+            * get_ml_transform()
+            * get_ml_transforms()
+            * delete_ml_transform()
+
+        * IOT:
+            * list_principal_things_v2()
+
+        * MemoryDB:
+            * create_user()
+            * delete_user()
+            * describe_users()
+            * update_user()
+
+        * SageMaker:
+            * stop_processing_job()
+
+    Miscellaneous:
+        * AppMesh: list_gateway_routes()/list_virtual_gateways() now support pagination
+        * CloudFormation: create_stack_instances() is now idempotent for existing instances
+        * CloudFront: list_distributions() now returns all DistributionConfig attributes
+        * CloudTrail: start_logging()/stop_logging() now support a supplied Trail ARN as well as a Name
+        * Config: get_resource_config_history() now correctly returns SNS tags
+        * DynamoDB: scan() now validates and honors the Select-parameter
+        * DynamoDB: update_item() now correctly preserves decimal precision in SET-operations
+        * EC2: describe_instances() now correctly filters by 'availability-zone'
+        * ECS: run_task() now supports the capacityProviderStrategy-parameter
+        * EMRServerless: get_job_run() now returns the ExecutionRole-attribute
+        * Events: list_event_buses() now supports pagination
+        * Firehose: create_delivery_stream() now supports the IcebergDestinationConfiguration-parameter
+        * Glue: get_partitions() now supports empty Expression-attributes, returning everything
+        * Kinesis: list_stream_consumers() now supports pagination
+        * RDS: create_db_instance() now validates the combination of the MonitoringRoleArn/MonitoringInterval parameters
+        * S3: generate_presigned_url() now supports the Response*-headers
+        * Transfer: describe_connector/describe_server() no longer returns null-fields, matching AWS behaviour
+
+
 5.2.2
 -----
 Docker Digest for 5.2.2: _sha256:d8ae5edc2bf080e7e4c13f9bd4b29b53ac3b4427e92956318db3dbe23ec43eb7_
