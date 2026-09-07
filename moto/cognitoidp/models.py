@@ -47,6 +47,16 @@ from .utils import (
 # FIXME: Should be per user and stored in the user's profile
 COGNITO_TOTP_MFA_SECRET: Final[str] = "asdfasdfasdf"
 
+# PASSWORD_VERIFIER challenge_responses required by Cognito. Signature crypto is
+# intentionally not verified — AWS has no public spec, and moto only checks that
+# these fields are present and that USERNAME / SECRET_BLOCK match the session.
+PASSWORD_VERIFIER_REQUIRED_RESPONSES: Final[tuple[str, ...]] = (
+    "USERNAME",
+    "PASSWORD_CLAIM_SIGNATURE",
+    "PASSWORD_CLAIM_SECRET_BLOCK",
+    "TIMESTAMP",
+)
+
 
 class UserStatus(str, enum.Enum):
     FORCE_CHANGE_PASSWORD = "FORCE_CHANGE_PASSWORD"
@@ -1613,6 +1623,43 @@ class CognitoIdpBackend(BaseBackend):
             session, client_id, challenge_name, challenge_responses
         )
 
+    def _resolve_password_verifier_session(
+        self,
+        session: str | None,
+        challenge_responses: dict[str, str] | None,
+    ) -> str:
+        responses = challenge_responses or {}
+        for field in PASSWORD_VERIFIER_REQUIRED_RESPONSES:
+            if not responses.get(field):
+                raise InvalidParameterException(f"Missing required parameter {field}")
+
+        secret_block = responses["PASSWORD_CLAIM_SECRET_BLOCK"]
+        # initiate_auth stores SECRET_BLOCK == Session. When the caller also
+        # sends Session, it must match; otherwise the secret block is the session.
+        if session and secret_block != session:
+            raise NotAuthorizedError("Incorrect username or password.")
+        return secret_block
+
+    def _password_verifier_username_matches(
+        self,
+        user_pool: CognitoIdpUserPool,
+        session_username: str,
+        challenge_username: str | None,
+    ) -> bool:
+        if not challenge_username:
+            return False
+        if challenge_username == session_username:
+            return True
+        session_user = user_pool._get_user(session_username)
+        if session_user is None:
+            return False
+        # pycognito / amplify send ChallengeParameters.USERNAME, which is the
+        # internal username (or sub) and can differ from the initiate_auth alias.
+        if challenge_username in {session_user.username, session_user.id}:
+            return True
+        challenge_user = user_pool._get_user(challenge_username)
+        return challenge_user is session_user
+
     def respond_to_auth_challenge(
         self,
         session: str,
@@ -1621,11 +1668,13 @@ class CognitoIdpBackend(BaseBackend):
         challenge_responses: dict[str, str],
     ) -> dict[str, Any]:
         if challenge_name == "PASSWORD_VERIFIER":
-            session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")  # type: ignore[assignment]
+            session = self._resolve_password_verifier_session(
+                session, challenge_responses
+            )
 
         if session not in self.sessions:
             raise ResourceNotFoundError(session)
-        _, user_pool = self.sessions[session]
+        session_username, user_pool = self.sessions[session]
 
         client = user_pool.clients.get(client_id)
         if not client:
@@ -1664,21 +1713,11 @@ class CognitoIdpBackend(BaseBackend):
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "PASSWORD_VERIFIER":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
+            if not self._password_verifier_username_matches(
+                user_pool, session_username, username
+            ):
+                raise NotAuthorizedError("Incorrect username or password.")
             user = self.admin_get_user(user_pool.id, username)
-
-            password_claim_signature = challenge_responses.get(
-                "PASSWORD_CLAIM_SIGNATURE"
-            )
-            if not password_claim_signature:
-                raise ResourceNotFoundError(password_claim_signature)
-            password_claim_secret_block = challenge_responses.get(
-                "PASSWORD_CLAIM_SECRET_BLOCK"
-            )
-            if not password_claim_secret_block:
-                raise ResourceNotFoundError(password_claim_secret_block)
-            timestamp = challenge_responses.get("TIMESTAMP")
-            if not timestamp:
-                raise ResourceNotFoundError(timestamp)
 
             if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
                 return {

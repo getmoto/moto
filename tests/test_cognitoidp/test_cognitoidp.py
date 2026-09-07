@@ -5701,6 +5701,181 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
     assert err["Code"] == "NotAuthorizedException"
 
 
+def _confirmed_srp_user(conn, username=None, user_pool_id=None, generate_secret=False):
+    """Create a confirmed user and return ids needed for USER_SRP_AUTH tests."""
+    username = username or str(uuid.uuid4())
+    password = "P2$Sword"
+    if user_pool_id is None:
+        user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"][
+            "Id"
+        ]
+    client_kwargs = {
+        "UserPoolId": user_pool_id,
+        "ClientName": str(uuid.uuid4()),
+    }
+    if generate_secret:
+        client_kwargs["GenerateSecret"] = True
+    client_id = conn.create_user_pool_client(**client_kwargs)["UserPoolClient"][
+        "ClientId"
+    ]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
+    )
+    return {
+        "username": username,
+        "password": password,
+        "user_pool_id": user_pool_id,
+        "client_id": client_id,
+    }
+
+
+def _initiate_password_verifier(conn, client_id, username, secret_hash=None):
+    auth_parameters = {"USERNAME": username, "SRP_A": uuid.uuid4().hex}
+    if secret_hash:
+        auth_parameters["SECRET_HASH"] = secret_hash
+    return conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters=auth_parameters,
+    )
+
+
+def _password_verifier_responses(challenge, username):
+    return {
+        "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+        "PASSWORD_CLAIM_SECRET_BLOCK": challenge["Session"],
+        "TIMESTAMP": str(uuid.uuid4()),
+        "USERNAME": username,
+    }
+
+
+@mock_aws
+def test_respond_to_auth_challenge_password_verifier_mismatched_username():
+    """Regression for getmoto/moto#7562: a different username must not succeed.
+
+    Moto still does not validate PASSWORD_CLAIM_SIGNATURE (no public SRP spec).
+    This only asserts the username is bound to the initiate_auth session.
+    """
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_one = _confirmed_srp_user(conn, user_pool_id=user_pool_id)
+    user_two = _confirmed_srp_user(conn, user_pool_id=user_pool_id)
+
+    challenge = _initiate_password_verifier(
+        conn, user_one["client_id"], user_one["username"]
+    )
+    assert challenge["ChallengeName"] == "PASSWORD_VERIFIER"
+
+    with pytest.raises(ClientError) as exc:
+        conn.respond_to_auth_challenge(
+            ClientId=user_one["client_id"],
+            Session=challenge["Session"],
+            ChallengeName="PASSWORD_VERIFIER",
+            ChallengeResponses=_password_verifier_responses(
+                challenge, user_two["username"]
+            ),
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Incorrect username or password."
+
+
+@mock_aws
+def test_respond_to_auth_challenge_password_verifier_mismatched_secret_block():
+    """SECRET_BLOCK must match the session from initiate_auth."""
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user = _confirmed_srp_user(conn)
+    challenge = _initiate_password_verifier(conn, user["client_id"], user["username"])
+
+    with pytest.raises(ClientError) as exc:
+        conn.respond_to_auth_challenge(
+            ClientId=user["client_id"],
+            Session=challenge["Session"],
+            ChallengeName="PASSWORD_VERIFIER",
+            ChallengeResponses={
+                "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+                "PASSWORD_CLAIM_SECRET_BLOCK": str(uuid.uuid4()),
+                "TIMESTAMP": str(uuid.uuid4()),
+                "USERNAME": user["username"],
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Incorrect username or password."
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "USERNAME",
+        "PASSWORD_CLAIM_SIGNATURE",
+        "PASSWORD_CLAIM_SECRET_BLOCK",
+        "TIMESTAMP",
+    ],
+)
+def test_respond_to_auth_challenge_password_verifier_missing_fields(missing_field):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user = _confirmed_srp_user(conn)
+    challenge = _initiate_password_verifier(conn, user["client_id"], user["username"])
+    responses = _password_verifier_responses(challenge, user["username"])
+    del responses[missing_field]
+
+    with pytest.raises(ClientError) as exc:
+        conn.respond_to_auth_challenge(
+            ClientId=user["client_id"],
+            Session=challenge["Session"],
+            ChallengeName="PASSWORD_VERIFIER",
+            ChallengeResponses=responses,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert missing_field in err["Message"]
+
+
+@mock_aws
+def test_respond_to_auth_challenge_password_verifier_dummy_signature_succeeds():
+    """Dummy signatures are accepted — SRP crypto is out of scope (see #7562)."""
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user = _confirmed_srp_user(conn)
+    challenge = _initiate_password_verifier(conn, user["client_id"], user["username"])
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=user["client_id"],
+        Session=challenge["Session"],
+        ChallengeName="PASSWORD_VERIFIER",
+        ChallengeResponses=_password_verifier_responses(challenge, user["username"]),
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+
+
+@mock_aws
+def test_respond_to_auth_challenge_password_verifier_username_attribute_alias():
+    """Challenge USERNAME may be the internal username from ChallengeParameters."""
+    conn = boto3.client("cognito-idp", "us-west-2")
+    email = "alias-user@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    user = _confirmed_srp_user(conn, username=email, user_pool_id=user_pool_id)
+    challenge = _initiate_password_verifier(conn, user["client_id"], user["username"])
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=user["client_id"],
+        Session=challenge["Session"],
+        ChallengeName="PASSWORD_VERIFIER",
+        ChallengeResponses=_password_verifier_responses(
+            challenge, challenge["ChallengeParameters"]["USERNAME"]
+        ),
+    )
+
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+
+
 @mock_aws
 def test_admin_set_user_password():
     conn = boto3.client("cognito-idp", "us-west-2")
