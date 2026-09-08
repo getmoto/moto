@@ -1477,7 +1477,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self,
         catalog_id: str,
         name: str,
-        hide_password: bool,
         apply_override_for_compute_environment: str,
     ) -> "FakeConnection":
         # TODO: Implement filtering
@@ -1488,7 +1487,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_connections(
-        self, catalog_id: str, filter: dict[str, Any], hide_password: bool
+        self, catalog_id: str, filter: dict[str, Any]
     ) -> list["FakeConnection"]:
         # TODO: Implement filtering
         return list(self.connections.values())
@@ -2619,12 +2618,29 @@ class FakeConnection(BaseModel):
         self.athena_properties = self.connection_input.get("AthenaProperties", {})
         self.python_properties = self.connection_input.get("PythonProperties", {})
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self, hide_password: bool = False) -> dict[str, Any]:
+        connection_input = self.connection_input
+        connection_properties = self.connection_properties
+        if hide_password:
+            # HidePassword was carried all the way to the backend and then
+            # dropped, so a caller asking for the metadata without the secret
+            # got the secret. AWS leaves the PASSWORD entry out entirely
+            # rather than blanking it. Both copies of the properties are
+            # redacted, since the nested Connection carries them too.
+            connection_properties = {
+                key: value
+                for key, value in connection_properties.items()
+                if key != "PASSWORD"
+            }
+            connection_input = {
+                **connection_input,
+                "ConnectionProperties": connection_properties,
+            }
         return {
             "Name": self.name,
             "Description": self.description,
-            "Connection": self.connection_input,
-            "ConnectionProperties": self.connection_properties,
+            "Connection": connection_input,
+            "ConnectionProperties": connection_properties,
             "AthenaProperties": self.athena_properties,
             "SparkProperties": self.spark_properties,
             "PythonProperties": self.python_properties,

@@ -946,10 +946,9 @@ class GlueResponse(BaseResponse):
         connection = self.glue_backend.get_connection(
             catalog_id=catalog_id,
             name=name,
-            hide_password=hide_password,
             apply_override_for_compute_environment=apply_override_for_compute_environment,
         )
-        return ActionResult({"Connection": connection.as_dict()})
+        return ActionResult({"Connection": connection.as_dict(hide_password)})
 
     def get_connections(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId")
@@ -960,11 +959,12 @@ class GlueResponse(BaseResponse):
         connections, next_token = self.glue_backend.get_connections(
             catalog_id=catalog_id,
             filter=filter,
-            hide_password=hide_password,
             next_token=next_token,
             max_results=max_results,
         )
-        connection_list = [connection.as_dict() for connection in connections]
+        connection_list = [
+            connection.as_dict(hide_password) for connection in connections
+        ]
         return ActionResult(
             {"ConnectionList": connection_list, "NextToken": next_token}
         )
