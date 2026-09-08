@@ -34,7 +34,7 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = f"arn:{get_partition(region_name)}:resource-groups:us-west-1:{account_id}:group/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:resource-groups:{region_name}:{account_id}:group/{name}"
         self.configuration = configuration
 
     @staticmethod
