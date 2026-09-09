@@ -1006,8 +1006,9 @@ def test_create_fleet_api_response():
 def test_user_data():
     ec2_client = boto3.client("ec2", region_name="us-west-2")
     user_data = Base64EncodedString.from_raw_string("test user data")
+    template_name = "test" + str(uuid4())
     template_args = {
-        "LaunchTemplateName": "test-template",
+        "LaunchTemplateName": template_name,
         "LaunchTemplateData": {
             "ImageId": "ami-0157ed312f9c59a91",
             "InstanceType": "t3.nano",
@@ -1026,7 +1027,7 @@ def test_user_data():
         "LaunchTemplateConfigs": [
             {
                 "LaunchTemplateSpecification": {
-                    "LaunchTemplateName": "test-template",
+                    "LaunchTemplateName": template_name,
                     "Version": "$Latest",
                 },
             },
@@ -1047,8 +1048,9 @@ def test_launch_spec_user_data():
     ec2_client = boto3.client("ec2", region_name="us-west-2")
     template_user_data = Base64EncodedString.from_raw_string("template user data")
     spec_user_data = Base64EncodedString.from_raw_string("spec user data")
+    template_name = "test" + str(uuid4())
     template_args = {
-        "LaunchTemplateName": "test-template",
+        "LaunchTemplateName": template_name,
         "LaunchTemplateData": {
             "ImageId": "ami-0157ed312f9c59a91",
             "InstanceType": "t3.nano",
@@ -1067,7 +1069,7 @@ def test_launch_spec_user_data():
         "LaunchTemplateConfigs": [
             {
                 "LaunchTemplateSpecification": {
-                    "LaunchTemplateName": "test-template",
+                    "LaunchTemplateName": template_name,
                     "Version": "$Latest",
                     "LaunchTemplateSpecificationUserData": str(spec_user_data),
                 },
