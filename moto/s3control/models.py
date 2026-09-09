@@ -256,6 +256,7 @@ class S3ControlBackend(BaseBackend):
         bucket: str,
         vpc_configuration: dict[str, Any],
         public_access_block_configuration: dict[str, Any],
+        tags: list[dict[str, str]] | None = None,
     ) -> AccessPoint:
         access_point = AccessPoint(
             account_id,
@@ -266,6 +267,8 @@ class S3ControlBackend(BaseBackend):
             public_access_block_configuration=public_access_block_configuration,
         )
         self.access_points[account_id][name] = access_point
+        if tags:
+            self.tag_resource(access_point.arn, tags)
         return access_point
 
     def delete_access_point(self, account_id: str, name: str) -> None:
