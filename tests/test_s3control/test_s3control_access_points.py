@@ -1,4 +1,5 @@
 import re
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -160,3 +161,43 @@ def test_delete_access_point(bucket_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchAccessPoint"
     assert err["Message"] == "The specified accesspoint does not exist"
+
+
+def _create_access_point_supports_tags() -> bool:
+    # The `Tags` parameter was added to CreateAccessPoint when S3 Access Points
+    # gained tag support for ABAC (AWS announcement 2025-08-01). Older botocore
+    # versions - such as those exercised by the outdated-dependency CI job -
+    # reject the parameter client-side, so skip the test there.
+    import botocore.session
+
+    model = botocore.session.get_session().get_service_model("s3control")
+    op = model.operation_model("CreateAccessPoint")
+    return "Tags" in op.input_shape.members
+
+
+@mock_aws
+def test_create_access_point_with_tags():
+    if not _create_access_point_supports_tags():
+        raise SkipTest(
+            "CreateAccessPoint does not support Tags in this botocore version"
+        )
+    client = boto3.client("s3control", region_name="ap-southeast-1")
+    client.create_access_point(
+        AccountId="111111111111",
+        Name="ap_name",
+        Bucket="mybucket",
+        Tags=[
+            {"Key": "env", "Value": "prod"},
+            {"Key": "team", "Value": "storage"},
+        ],
+    )
+
+    ap_arn = "arn:aws:s3:us-east-1:111111111111:accesspoint/ap_name"
+
+    tags = client.list_tags_for_resource(AccountId="111111111111", ResourceArn=ap_arn)[
+        "Tags"
+    ]
+
+    assert len(tags) == 2
+    assert {"Key": "env", "Value": "prod"} in tags
+    assert {"Key": "team", "Value": "storage"} in tags
