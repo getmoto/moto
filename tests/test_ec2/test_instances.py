@@ -23,17 +23,28 @@ from .helpers import assert_dryrun_error
 decode_method = base64.decodebytes
 
 
+@pytest.mark.parametrize("min_count,max_count", [(1, 1), (2, 2), (1, 3), (2, 4)])
 @mock_aws
-def test_add_servers():
+def test_add_servers(min_count, max_count):
     client = boto3.client("ec2", region_name="us-east-1")
-    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    resp = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=min_count, MaxCount=max_count
+    )
+    assert len(resp["Instances"]) == max_count
+    assert len({instance["InstanceId"] for instance in resp["Instances"]}) == max_count
     for i in resp["Instances"]:
         assert i["ImageId"] == EXAMPLE_AMI_ID
 
-    instances = client.describe_instances(
+    reservations = client.describe_instances(
         InstanceIds=[i["InstanceId"] for i in resp["Instances"]]
-    )["Reservations"][0]["Instances"]
-    assert len(instances) == 2
+    )["Reservations"]
+    assert len(reservations) == 1
+    assert reservations[0]["ReservationId"] == resp["ReservationId"]
+    instances = reservations[0]["Instances"]
+    assert len(instances) == max_count
+    assert {i["InstanceId"] for i in instances} == {
+        i["InstanceId"] for i in resp["Instances"]
+    }
     for i in instances:
         assert i["ImageId"] == EXAMPLE_AMI_ID
 
