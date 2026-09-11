@@ -1,5 +1,6 @@
 import gzip
 import json
+import uuid
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
@@ -98,3 +99,28 @@ def test_bedrock_service_resolution(moto_server: str) -> None:
         )
         assert resp["performanceConfigLatency"] == "optimized"
         assert resp["serviceTier"] == "flex"
+
+
+def test_bedrock_agentcore_service_resolution(moto_server: str) -> None:
+    # Multiple Bedrock services use the same signing name (bedrock-agentcore),
+    # so this test checks that a bedrock-agentcore request is correctly
+    # differentiated in server mode (where there is no host name available).
+    from botocore.exceptions import UnknownServiceError
+
+    try:
+        client = boto3.client(
+            "bedrock-agentcore", region_name="us-east-1", endpoint_url=moto_server
+        )
+    except UnknownServiceError:
+        pytest.skip("Bedrock AgentCore not supported in this version of Botocore.")
+    else:
+        resp = client.create_event(
+            memoryId=str(uuid.uuid4()),
+            actorId="actor-1",
+            sessionId="session-1",
+            eventTimestamp="2026-01-01T00:00:00Z",
+            payload=[
+                {"conversational": {"content": {"text": "test text"}, "role": "USER"}}
+            ],
+        )
+        assert "event" in resp
