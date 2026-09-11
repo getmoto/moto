@@ -1,11 +1,9 @@
-import datetime
 from collections import defaultdict
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.parse import default_timestamp_parser
-from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time
+from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
@@ -21,7 +19,7 @@ class CodeBuildProjectMetadata(BaseModel):
         build_id: str,
         service_role: str,
     ):
-        current_date = iso_8601_datetime_with_milliseconds()
+        current_date = unix_time()
         self.build_metadata: dict[str, Any] = {}
 
         self.build_metadata["id"] = build_id
@@ -246,7 +244,7 @@ class CodeBuildBackend(BaseBackend):
         return self.build_metadata[project_name].build_metadata
 
     def _set_phases(self, phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        current_date = iso_8601_datetime_with_milliseconds()
+        current_date = unix_time()
         # No phaseStatus for QUEUED on first start
         for existing_phase in phases:
             if existing_phase["phaseType"] == "QUEUED":
@@ -282,9 +280,8 @@ class CodeBuildBackend(BaseBackend):
             for build in metadata:
                 if build["id"] in ids:
                     build["phases"] = self._set_phases(build["phases"])
-                    build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        default_timestamp_parser(build["startTime"])
-                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
+                    build["endTime"] = build["startTime"] + 60 * mock_random.randint(
+                        1, 5
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "SUCCEEDED"
@@ -316,9 +313,8 @@ class CodeBuildBackend(BaseBackend):
                 if build["id"] == build_id:
                     # set completion properties with variable completion time
                     build["phases"] = self._set_phases(build["phases"])
-                    build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        default_timestamp_parser(build["startTime"])
-                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
+                    build["endTime"] = build["startTime"] + 60 * mock_random.randint(
+                        1, 5
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "STOPPED"
