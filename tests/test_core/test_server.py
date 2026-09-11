@@ -103,7 +103,7 @@ def test_bedrock_service_resolution(moto_server: str) -> None:
 
 def test_bedrock_agentcore_service_resolution(moto_server: str) -> None:
     # Multiple Bedrock services use the same signing name (bedrock-agentcore),
-    # so this test checks that a bedrock-runtime request is correctly
+    # so this test checks that a bedrock-agentcore request is correctly
     # differentiated in server mode (where there is no host name available).
     from botocore.exceptions import UnknownServiceError
 
