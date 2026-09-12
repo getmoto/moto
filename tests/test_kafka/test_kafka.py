@@ -440,3 +440,112 @@ def test_list_clusters_pagination_terminates():
 
     assert len(pages) == 1
     assert len(pages[0]["ClusterInfoList"]) == 3
+
+
+def _create_serverless_cluster(client, name):
+    return client.create_cluster_v2(
+        ClusterName=name,
+        Serverless={
+            "VpcConfigs": [
+                {
+                    "SubnetIds": ["subnet-0123456789abcdef0"],
+                    "SecurityGroupIds": ["sg-0123456789abcdef0"],
+                }
+            ]
+        },
+    )
+
+
+def _create_provisioned_cluster(client, name):
+    return client.create_cluster_v2(
+        ClusterName=name,
+        Provisioned={
+            "BrokerNodeGroupInfo": {
+                "InstanceType": "kafka.m5.large",
+                "ClientSubnets": ["subnet-0123456789abcdef0"],
+                "SecurityGroups": ["sg-0123456789abcdef0"],
+            },
+            "KafkaVersion": "2.8.1",
+            "NumberOfBrokerNodes": 3,
+        },
+    )
+
+
+@mock_aws
+def test_list_clusters_v2_applies_the_cluster_name_filter():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_serverless_cluster(client, "analytics-stream")
+    _create_provisioned_cluster(client, "analytics-batch")
+    _create_provisioned_cluster(client, "billing")
+
+    clusters = client.list_clusters_v2(ClusterNameFilter="analytics")
+
+    names = sorted(c["ClusterName"] for c in clusters["ClusterInfoList"])
+    assert names == ["analytics-batch", "analytics-stream"]
+
+
+@mock_aws
+def test_list_clusters_v2_matches_the_name_filter_at_the_start_only():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_provisioned_cluster(client, "prod-events")
+    _create_provisioned_cluster(client, "events-prod")
+
+    clusters = client.list_clusters_v2(ClusterNameFilter="events")
+
+    names = [c["ClusterName"] for c in clusters["ClusterInfoList"]]
+    assert names == ["events-prod"]
+
+
+@mock_aws
+def test_list_clusters_v2_applies_the_cluster_type_filter():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_serverless_cluster(client, "stream")
+    _create_provisioned_cluster(client, "batch")
+
+    serverless = client.list_clusters_v2(ClusterTypeFilter="SERVERLESS")
+    provisioned = client.list_clusters_v2(ClusterTypeFilter="PROVISIONED")
+    every = client.list_clusters_v2(ClusterTypeFilter="ALL")
+
+    assert [c["ClusterName"] for c in serverless["ClusterInfoList"]] == ["stream"]
+    assert [c["ClusterName"] for c in provisioned["ClusterInfoList"]] == ["batch"]
+    assert len(every["ClusterInfoList"]) == 2
+
+
+@mock_aws
+def test_list_clusters_v2_combines_both_filters():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_serverless_cluster(client, "analytics-stream")
+    _create_provisioned_cluster(client, "analytics-batch")
+    _create_serverless_cluster(client, "billing-stream")
+
+    clusters = client.list_clusters_v2(
+        ClusterNameFilter="analytics", ClusterTypeFilter="SERVERLESS"
+    )
+
+    assert [c["ClusterName"] for c in clusters["ClusterInfoList"]] == [
+        "analytics-stream"
+    ]
+
+
+@mock_aws
+def test_list_clusters_applies_the_cluster_name_filter():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_provisioned_cluster(client, "analytics-batch")
+    _create_provisioned_cluster(client, "billing")
+
+    clusters = client.list_clusters(ClusterNameFilter="analytics")
+
+    assert [c["ClusterName"] for c in clusters["ClusterInfoList"]] == [
+        "analytics-batch"
+    ]
+
+
+@mock_aws
+def test_list_clusters_without_a_filter_returns_everything():
+    client = boto3.client("kafka", region_name="eu-west-1")
+    _create_provisioned_cluster(client, "analytics-batch")
+    _create_provisioned_cluster(client, "billing")
+
+    clusters = client.list_clusters()
+
+    assert len(clusters["ClusterInfoList"]) == 2
