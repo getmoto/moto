@@ -2622,11 +2622,8 @@ class FakeConnection(BaseModel):
         connection_input = self.connection_input
         connection_properties = self.connection_properties
         if hide_password:
-            # HidePassword was carried all the way to the backend and then
-            # dropped, so a caller asking for the metadata without the secret
-            # got the secret. AWS leaves the PASSWORD entry out entirely
-            # rather than blanking it. Both copies of the properties are
-            # redacted, since the nested Connection carries them too.
+            # AWS leaves the PASSWORD entry out entirely rather than blanking it.
+            # Both copies of the properties are redacted, since the nested Connection carries them too.
             connection_properties = {
                 key: value
                 for key, value in connection_properties.items()
