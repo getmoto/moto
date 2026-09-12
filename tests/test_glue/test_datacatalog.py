@@ -643,6 +643,41 @@ def test_batch_create_partition():
 
 
 @mock_aws
+def test_get_partitions_segmented():
+    # A segmented GetPartitions (used by parallel scanners such as the Hive Glue
+    # client) must return disjoint slices whose union is the full set with no
+    # duplicates, not the full set per segment.
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    partition_inputs = [
+        helpers.create_partition_input(database_name, table_name, values=[f"2018-10-{i:02}"])
+        for i in range(20)
+    ]
+    client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=partition_inputs,
+    )
+
+    total_segments = 5
+    seen = []
+    for segment_number in range(total_segments):
+        response = client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": segment_number, "TotalSegments": total_segments},
+        )
+        seen.extend(tuple(p["Values"]) for p in response["Partitions"])
+
+    assert len(seen) == 20
+    assert len(set(seen)) == 20
+
+
+@mock_aws
 def test_batch_create_partition_already_exist():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"

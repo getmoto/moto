@@ -146,10 +146,12 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
+        segment = self.parameters.get("Segment")
         partitions = self.glue_backend.get_partitions(
             database_name,  # type: ignore[arg-type]
             table_name,  # type: ignore[arg-type]
             expression,  # type: ignore[arg-type]
+            segment,
         )
 
         return ActionResult({"Partitions": [p.as_dict() for p in partitions]})
