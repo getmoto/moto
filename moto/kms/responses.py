@@ -25,7 +25,13 @@ class KmsResponse(BaseResponse):
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         params = json.loads(self.body)
 
-        for key in ("Plaintext", "CiphertextBlob", "Message"):
+        for key in (
+            "Plaintext",
+            "CiphertextBlob",
+            "Message",
+            "EncryptedKeyMaterial",
+            "ImportToken",
+        ):
             if key in params:
                 params[key] = base64.b64decode(params[key].encode("utf-8"))
 
@@ -774,6 +780,63 @@ class KmsResponse(BaseResponse):
                 "SigningAlgorithms": key.signing_algorithms,
             }
         )
+
+    def get_parameters_for_import(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetParametersForImport.html"""
+        key_id = self._get_param("KeyId")
+        wrapping_algorithm = self._get_param("WrappingAlgorithm")
+        wrapping_key_spec = self._get_param("WrappingKeySpec")
+
+        self._validate_key_id(key_id)
+
+        public_key, import_token, parameters_valid_to = (
+            self.kms_backend.get_parameters_for_import(
+                key_id=key_id,
+                wrapping_algorithm=wrapping_algorithm,
+                wrapping_key_spec=wrapping_key_spec,
+            )
+        )
+
+        return json.dumps(
+            {
+                "KeyId": key_id,
+                "ImportToken": base64.b64encode(import_token).decode("utf-8"),
+                "PublicKey": base64.b64encode(public_key).decode("utf-8"),
+                "ParametersValidTo": parameters_valid_to,
+            }
+        )
+
+    def import_key_material(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_ImportKeyMaterial.html"""
+        key_id = self._get_param("KeyId")
+        import_token = self._get_param("ImportToken")
+        encrypted_key_material = self._get_param("EncryptedKeyMaterial")
+        expiration_model = self._get_param(
+            "ExpirationModel", "KEY_MATERIAL_DOES_NOT_EXPIRE"
+        )
+        valid_to = self._get_param("ValidTo")
+
+        self._validate_key_id(key_id)
+
+        self.kms_backend.import_key_material(
+            key_id=key_id,
+            import_token=import_token,
+            encrypted_key_material=encrypted_key_material,
+            expiration_model=expiration_model,
+            valid_to=valid_to,
+        )
+
+        return json.dumps({"KeyId": key_id})
+
+    def delete_imported_key_material(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteImportedKeyMaterial.html"""
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+
+        self.kms_backend.delete_imported_key_material(key_id=key_id)
+
+        return "{}"
 
     def rotate_key_on_demand(self) -> str:
         key_id = self._get_param("KeyId")

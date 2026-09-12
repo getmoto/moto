@@ -1,4 +1,7 @@
 import pytest
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 from moto.kms.exceptions import (
     AccessDeniedException,
@@ -13,6 +16,7 @@ from moto.kms.utils import (
     ECDSAPrivateKey,
     KeySpec,
     RSAPrivateKey,
+    RSAWrappingKey,
     SigningAlgorithm,
     _deserialize_ciphertext_blob,
     _serialize_ciphertext_blob,
@@ -243,3 +247,70 @@ def test_decrypt_invalid_encryption_context():
             ciphertext_blob=ciphertext_blob,
             encryption_context={},
         )
+
+
+# RSAWrappingKey tests
+
+
+def test_rsa_wrapping_key_supports_all_key_sizes():
+    for key_size in (2048, 3072, 4096):
+        wrapping_key = RSAWrappingKey(key_size)
+        public_key = load_der_public_key(wrapping_key.public_key())
+        assert public_key.key_size == key_size
+
+
+def test_rsa_wrapping_key_rejects_invalid_key_size():
+    with pytest.raises(ValidationException):
+        RSAWrappingKey(1024)
+
+
+def test_rsa_wrapping_key_unwrap_sha256():
+    wrapping_key = RSAWrappingKey(2048)
+    plaintext = b"\x00" * 32  # 256-bit key material
+
+    # Encrypt with the public key using OAEP SHA-256
+    public_key = load_der_public_key(wrapping_key.public_key())
+    encrypted = public_key.encrypt(
+        plaintext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+
+    # Unwrap should recover the original plaintext
+    result = wrapping_key.unwrap(encrypted, "RSAES_OAEP_SHA_256")
+    assert result == plaintext
+
+
+def test_rsa_wrapping_key_unwrap_sha1():
+    wrapping_key = RSAWrappingKey(2048)
+    plaintext = b"\xab" * 32
+
+    public_key = load_der_public_key(wrapping_key.public_key())
+    encrypted = public_key.encrypt(
+        plaintext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA1()),
+            algorithm=hashes.SHA1(),
+            label=None,
+        ),
+    )
+
+    result = wrapping_key.unwrap(encrypted, "RSAES_OAEP_SHA_1")
+    assert result == plaintext
+
+
+def test_rsa_wrapping_key_unwrap_rejects_invalid_algorithm():
+    wrapping_key = RSAWrappingKey(2048)
+
+    with pytest.raises(ValidationException):
+        wrapping_key.unwrap(b"fake_data", "RSA_AES_KEY_WRAP_SHA_256")
+
+
+def test_rsa_wrapping_key_unwrap_rejects_bad_ciphertext():
+    wrapping_key = RSAWrappingKey(2048)
+
+    with pytest.raises(ValueError):
+        wrapping_key.unwrap(b"not_valid_ciphertext", "RSAES_OAEP_SHA_256")
