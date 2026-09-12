@@ -955,3 +955,69 @@ def test_launch_template_delete():
         err["Message"]
         == "At least one of the launch templates specified in the request does not exist."
     )
+
+
+@mock_aws
+def test_launch_template_does_not_receive_stack_tags():
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_name = str(uuid4())[0:6]
+    logical_id = str(uuid4())[0:6]
+    stack_name = str(uuid4())[0:6]
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                logical_id: {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": launch_template_name,
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID,
+                            "InstanceType": "t2.micro",
+                        },
+                    },
+                },
+                "TestVpc": {
+                    "Type": "AWS::EC2::VPC",
+                    "Properties": {"CidrBlock": "10.0.0.0/16"},
+                },
+            },
+        }
+    )
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    launch_template = ec2.describe_launch_templates(
+        LaunchTemplateNames=[launch_template_name]
+    )["LaunchTemplates"][0]
+    lt_tags = ec2.describe_tags(
+        Filters=[
+            {"Name": "resource-id", "Values": [launch_template["LaunchTemplateId"]]}
+        ]
+    )["Tags"]
+    # AWS::EC2::LaunchTemplate exposes tags via TagSpecifications, not a
+    # top-level Tags property, so CloudFormation does not auto-tag it
+    assert lt_tags == []
+
+    # Sanity check: a resource that *does* support the Tags property still
+    # gets the stack tags, so we know tagging itself isn't broken. Look the
+    # VPC up by its stack resource id (not by CidrBlock) since server-mode
+    # tests share one long-lived backend across the whole suite, and other
+    # tests may use the same generic CIDR.
+    resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
+    vpc_id = [
+        r["PhysicalResourceId"]
+        for r in resources
+        if r["LogicalResourceId"] == "TestVpc"
+    ][0]
+    vpc_tags = ec2.describe_tags(Filters=[{"Name": "resource-id", "Values": [vpc_id]}])[
+        "Tags"
+    ]
+    assert {
+        "Key": "aws:cloudformation:logical-id",
+        "ResourceId": vpc_id,
+        "ResourceType": "vpc",
+        "Value": "TestVpc",
+    } in vpc_tags
