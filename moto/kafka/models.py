@@ -212,10 +212,6 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[list[dict[str, Any]], str | None]:
         cluster_info_list = []
         for cluster_arn, cluster in self.clusters.items():
-            # Both filters were accepted and then ignored, so a caller asking
-            # for one name got back every cluster in the account. AWS matches
-            # ClusterNameFilter on the start of the name, and treats
-            # ClusterTypeFilter of ALL the same as leaving it out.
             if cluster_name_filter and not cluster.cluster_name.startswith(
                 cluster_name_filter
             ):
