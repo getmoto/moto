@@ -3,6 +3,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID
 
 REGION = "us-east-1"
 
@@ -195,3 +196,274 @@ def test_describe_traffic_mirror_targets_by_id():
     assert len(described_traffic_mirrors) == 1
     my_traffic_mirror_target = described_traffic_mirrors[0]
     assert my_traffic_mirror_target["TrafficMirrorTargetId"] == traffic_mirror_target_id
+
+
+@mock_aws
+def test_create_traffic_mirror_session():
+    client = boto3.client("ec2", REGION)
+
+    # Create required filter and target first
+    filter_response = client.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    tags = [
+        {"Key": "key1", "Value": "value1"},
+        {"Key": "key2", "Value": "value2"},
+    ]
+    client_token = "test_token"
+
+    response = client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source123",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+        PacketLength=100,
+        VirtualNetworkId=12345,
+        Description="test_description",
+        TagSpecifications=[
+            {
+                "ResourceType": "traffic-mirror-session",
+                "Tags": tags,
+            },
+        ],
+        ClientToken=client_token,
+    )
+
+    metadata = response["ResponseMetadata"]
+    assert metadata["HTTPStatusCode"] == 200
+
+    session = response["TrafficMirrorSession"]
+    assert "TrafficMirrorSessionId" in session
+    assert session["TrafficMirrorSessionId"].startswith("tms-")
+    assert session["TrafficMirrorTargetId"] == target_id
+    assert session["TrafficMirrorFilterId"] == filter_id
+    assert session["NetworkInterfaceId"] == "eni-source123"
+    assert session["SessionNumber"] == 1
+    assert session["PacketLength"] == 100
+    assert session["VirtualNetworkId"] == 12345
+    assert session["Description"] == "test_description"
+    assert session["OwnerId"] == DEFAULT_ACCOUNT_ID
+    assert response["ClientToken"] == client_token
+    assert session["Tags"] == tags
+
+
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_describe_traffic_mirror_sessions():
+    client = boto3.client("ec2", REGION)
+    response = client.describe_traffic_mirror_sessions()
+    assert response["TrafficMirrorSessions"] == []
+
+
+@mock_aws
+def test_describe_traffic_mirror_sessions_by_id():
+    client = boto3.client("ec2", REGION)
+
+    # Create required filter and target
+    filter_response = client.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    # Create multiple sessions
+    client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source1",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+    )
+    client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source2",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=2,
+    )
+    response = client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source3",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=3,
+    )
+
+    session_id = response["TrafficMirrorSession"]["TrafficMirrorSessionId"]
+    described_sessions = client.describe_traffic_mirror_sessions(
+        TrafficMirrorSessionIds=[session_id]
+    )["TrafficMirrorSessions"]
+
+    assert len(described_sessions) == 1
+    assert described_sessions[0]["TrafficMirrorSessionId"] == session_id
+
+
+@mock_aws
+def test_describe_traffic_mirror_sessions_by_filtering():
+    client = boto3.client("ec2", REGION)
+
+    # Create required filter and target
+    filter_response = client.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    # Create multiple sessions
+    client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source1",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+    )
+    response = client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source2",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=2,
+    )
+
+    session_id = response["TrafficMirrorSession"]["TrafficMirrorSessionId"]
+
+    filters = [{"Name": "traffic-mirror-session-id", "Values": [session_id]}]
+    described_sessions = client.describe_traffic_mirror_sessions(Filters=filters)[
+        "TrafficMirrorSessions"
+    ]
+
+    assert len(described_sessions) == 1
+    assert described_sessions[0]["TrafficMirrorSessionId"] == session_id
+
+
+@mock_aws
+def test_delete_traffic_mirror_session():
+    client = boto3.client("ec2", REGION)
+
+    # Create required filter and target
+    filter_response = client.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    # Create a session
+    create_response = client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source1",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+    )
+    session_id = create_response["TrafficMirrorSession"]["TrafficMirrorSessionId"]
+
+    # Delete the session
+    delete_response = client.delete_traffic_mirror_session(
+        TrafficMirrorSessionId=session_id
+    )
+    assert delete_response["TrafficMirrorSessionId"] == session_id
+
+    # Verify it's gone
+    described = client.describe_traffic_mirror_sessions(
+        TrafficMirrorSessionIds=[session_id]
+    )["TrafficMirrorSessions"]
+    assert len(described) == 0
+
+
+@mock_aws
+def test_modify_traffic_mirror_session():
+    client = boto3.client("ec2", REGION)
+
+    # Create required filter and target
+    filter_response = client.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = client.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    # Create a session
+    create_response = client.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source1",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+        Description="original",
+    )
+    session_id = create_response["TrafficMirrorSession"]["TrafficMirrorSessionId"]
+
+    # Modify the session
+    modify_response = client.modify_traffic_mirror_session(
+        TrafficMirrorSessionId=session_id,
+        Description="modified",
+        SessionNumber=99,
+        PacketLength=200,
+        VirtualNetworkId=54321,
+    )
+
+    modified_session = modify_response["TrafficMirrorSession"]
+    assert modified_session["Description"] == "modified"
+    assert modified_session["SessionNumber"] == 99
+    assert modified_session["PacketLength"] == 200
+    assert modified_session["VirtualNetworkId"] == 54321
+
+
+@mock_aws
+def test_traffic_mirror_session_tags_via_rgta():
+    """Test that traffic mirror session tags surface through Resource Groups Tagging API."""
+    ec2 = boto3.client("ec2", REGION)
+    rgta = boto3.client("resourcegroupstaggingapi", REGION)
+
+    # Create required filter and target
+    filter_response = ec2.create_traffic_mirror_filter()
+    filter_id = filter_response["TrafficMirrorFilter"]["TrafficMirrorFilterId"]
+
+    target_response = ec2.create_traffic_mirror_target(
+        NetworkInterfaceId="eni-12345678"
+    )
+    target_id = target_response["TrafficMirrorTarget"]["TrafficMirrorTargetId"]
+
+    tags = [
+        {"Key": "ASV", "Value": "test-asv"},
+        {"Key": "BA", "Value": "test-ba"},
+        {"Key": "OwnerContact", "Value": "test@example.com"},
+    ]
+
+    # Create a session with tags
+    create_response = ec2.create_traffic_mirror_session(
+        NetworkInterfaceId="eni-source1",
+        TrafficMirrorTargetId=target_id,
+        TrafficMirrorFilterId=filter_id,
+        SessionNumber=1,
+        TagSpecifications=[
+            {
+                "ResourceType": "traffic-mirror-session",
+                "Tags": tags,
+            },
+        ],
+    )
+    session_id = create_response["TrafficMirrorSession"]["TrafficMirrorSessionId"]
+
+    # Query via RGTA
+    resources = rgta.get_resources(ResourceTypeFilters=["ec2:traffic-mirror-session"])[
+        "ResourceTagMappingList"
+    ]
+
+    # Find our session
+    session_resources = [r for r in resources if session_id in r["ResourceARN"]]
+    assert len(session_resources) == 1
+
+    resource = session_resources[0]
+    assert f"traffic-mirror-session/{session_id}" in resource["ResourceARN"]
+
+    # Verify tags
+    tag_map = {t["Key"]: t["Value"] for t in resource["Tags"]}
+    assert tag_map["ASV"] == "test-asv"
+    assert tag_map["BA"] == "test-ba"
+    assert tag_map["OwnerContact"] == "test@example.com"

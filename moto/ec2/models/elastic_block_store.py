@@ -4,7 +4,7 @@ from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.utils import utcnow
-from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
+from moto.ec2.models.block_device import BlockDeviceType
 
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,

@@ -300,7 +300,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
         cluster_name_filter: str | None,
         max_results: int | None,
         next_token: str | None,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], str | None]:
         cluster_info_list = [
             {
                 "clusterArn": cluster.arn,
@@ -312,7 +312,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
             for cluster_arn, cluster in self.clusters.items()
         ]
 
-        return cluster_info_list
+        return cluster_info_list, None
 
     def delete_cluster(self, cluster_arn: str, current_version: str) -> tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)

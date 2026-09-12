@@ -1115,6 +1115,79 @@
 - [ ] validate_flow_definition
 </details>
 
+## bedrock-agentcore
+<details>
+<summary>5% implemented</summary>
+
+- [ ] batch_create_memory_records
+- [ ] batch_delete_memory_records
+- [ ] batch_update_memory_records
+- [ ] complete_resource_token_auth
+- [ ] create_ab_test
+- [X] create_event
+- [ ] create_payment_instrument
+- [ ] create_payment_session
+- [ ] delete_ab_test
+- [ ] delete_batch_evaluation
+- [ ] delete_capacity_provider_session
+- [X] delete_event
+- [ ] delete_memory_record
+- [ ] delete_payment_instrument
+- [ ] delete_payment_session
+- [ ] delete_recommendation
+- [ ] evaluate
+- [ ] get_ab_test
+- [ ] get_agent_card
+- [ ] get_batch_evaluation
+- [ ] get_browser_session
+- [ ] get_code_interpreter_session
+- [X] get_event
+- [ ] get_memory_record
+- [ ] get_payment_instrument
+- [ ] get_payment_instrument_balance
+- [ ] get_payment_session
+- [ ] get_recommendation
+- [ ] get_resource_api_key
+- [ ] get_resource_oauth2_token
+- [ ] get_resource_payment_token
+- [ ] get_workload_access_token
+- [ ] get_workload_access_token_for_jwt
+- [ ] get_workload_access_token_for_user_id
+- [ ] ingest_data
+- [ ] invoke_agent_runtime
+- [ ] invoke_agent_runtime_command
+- [ ] invoke_browser
+- [ ] invoke_code_interpreter
+- [ ] invoke_harness
+- [ ] list_ab_tests
+- [ ] list_actors
+- [ ] list_batch_evaluations
+- [ ] list_browser_sessions
+- [ ] list_code_interpreter_sessions
+- [X] list_events
+- [ ] list_memory_extraction_jobs
+- [ ] list_memory_records
+- [ ] list_payment_instruments
+- [ ] list_payment_sessions
+- [ ] list_recommendations
+- [ ] list_sessions
+- [ ] process_payment
+- [ ] retrieve_memory_records
+- [ ] save_browser_session_profile
+- [ ] search_registry_records
+- [ ] start_batch_evaluation
+- [ ] start_browser_session
+- [ ] start_code_interpreter_session
+- [ ] start_memory_extraction_job
+- [ ] start_recommendation
+- [ ] stop_batch_evaluation
+- [ ] stop_browser_session
+- [ ] stop_code_interpreter_session
+- [ ] stop_runtime_session
+- [ ] update_ab_test
+- [ ] update_browser_stream
+</details>
+
 ## bedrock-agentcore-control
 <details>
 <summary>17% implemented</summary>
@@ -3792,7 +3865,7 @@
 - [X] create_tags
 - [X] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
-- [ ] create_traffic_mirror_session
+- [X] create_traffic_mirror_session
 - [X] create_traffic_mirror_target
 - [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
@@ -3888,7 +3961,7 @@
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
-- [ ] delete_traffic_mirror_session
+- [X] delete_traffic_mirror_session
 - [ ] delete_traffic_mirror_target
 - [X] delete_transit_gateway
 - [ ] delete_transit_gateway_client_vpn_attachment
@@ -4080,7 +4153,7 @@
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filter_rules
 - [X] describe_traffic_mirror_filters
-- [ ] describe_traffic_mirror_sessions
+- [X] describe_traffic_mirror_sessions
 - [X] describe_traffic_mirror_targets
 - [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
@@ -4339,7 +4412,7 @@
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
 - [ ] modify_traffic_mirror_filter_rule
-- [ ] modify_traffic_mirror_session
+- [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_metering_policy
 - [ ] modify_transit_gateway_policy_table_entry
@@ -6095,7 +6168,7 @@
 
 ## identitystore
 <details>
-<summary>73% implemented</summary>
+<summary>89% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -6104,12 +6177,12 @@
 - [X] delete_group_membership
 - [X] delete_user
 - [X] describe_group
-- [ ] describe_group_membership
+- [X] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
-- [ ] get_group_membership_id
+- [X] get_group_membership_id
 - [X] get_user_id
-- [ ] is_member_in_groups
+- [X] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
 - [X] list_groups
@@ -8501,7 +8574,7 @@
 
 ## pipes
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_pipe
 - [X] delete_pipe
@@ -8512,7 +8585,7 @@
 - [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_pipe
+- [X] update_pipe
 </details>
 
 ## polly
@@ -10690,7 +10763,7 @@
 
 ## servicediscovery
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_http_namespace
 - [X] create_private_dns_namespace
@@ -10698,7 +10771,7 @@
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
-- [ ] delete_service_attributes
+- [X] delete_service_attributes
 - [X] deregister_instance
 - [X] discover_instances
 - [X] discover_instances_revision
@@ -10707,7 +10780,7 @@
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
-- [ ] get_service_attributes
+- [X] get_service_attributes
 - [X] list_instances
 - [X] list_namespaces
 - [X] list_operations
@@ -10721,7 +10794,7 @@
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
-- [ ] update_service_attributes
+- [X] update_service_attributes
 </details>
 
 ## ses
@@ -12049,7 +12122,6 @@
 - bcm-pricing-calculator
 - bcm-recommended-actions
 - bedrock-agent-runtime
-- bedrock-agentcore
 - bedrock-data-automation
 - bedrock-data-automation-runtime
 - billing

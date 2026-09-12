@@ -892,8 +892,10 @@ class ElasticMapReduceBackend(BaseBackend):
         response = self.ec2_backend.run_instances(
             EXAMPLE_AMI_ID, instances["instance_count"], None, [], **instances
         )
-        for instance in response.instances:
-            instance = Instance(ec2_instance=instance, instance_group=instance_group)
+        for ec2_instance in response.instances:
+            instance = Instance(
+                ec2_instance=ec2_instance, instance_group=instance_group
+            )
             cluster.add_instance(instance)
 
     def add_job_flow_steps(
