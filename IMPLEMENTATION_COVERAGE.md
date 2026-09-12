@@ -1740,7 +1740,7 @@
 
 ## cloudfront
 <details>
-<summary>14% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] associate_alias
 - [ ] associate_distribution_tenant_web_acl
@@ -1757,11 +1757,11 @@
 - [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
-- [ ] create_function
+- [X] create_function
 - [X] create_invalidation
 - [ ] create_invalidation_for_distribution_tenant
 - [X] create_key_group
-- [ ] create_key_value_store
+- [X] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
@@ -1782,9 +1782,9 @@
 - [ ] delete_distribution_tenant
 - [ ] delete_field_level_encryption_config
 - [ ] delete_field_level_encryption_profile
-- [ ] delete_function
+- [X] delete_function
 - [ ] delete_key_group
-- [ ] delete_key_value_store
+- [X] delete_key_value_store
 - [ ] delete_monitoring_subscription
 - [X] delete_origin_access_control
 - [ ] delete_origin_request_policy
@@ -1796,8 +1796,8 @@
 - [ ] delete_trust_store
 - [ ] delete_vpc_origin
 - [ ] describe_connection_function
-- [ ] describe_function
-- [ ] describe_key_value_store
+- [X] describe_function
+- [X] describe_key_value_store
 - [ ] disassociate_distribution_tenant_web_acl
 - [ ] disassociate_distribution_web_acl
 - [ ] get_anycast_ip_list
@@ -1818,7 +1818,7 @@
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
-- [ ] get_function
+- [X] get_function
 - [X] get_invalidation
 - [ ] get_invalidation_for_distribution_tenant
 - [X] get_key_group
@@ -1864,11 +1864,11 @@
 - [ ] list_domain_conflicts
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
-- [ ] list_functions
+- [X] list_functions
 - [X] list_invalidations
 - [ ] list_invalidations_for_distribution_tenant
 - [X] list_key_groups
-- [ ] list_key_value_stores
+- [X] list_key_value_stores
 - [X] list_origin_access_controls
 - [ ] list_origin_request_policies
 - [X] list_public_keys
@@ -1899,7 +1899,7 @@
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
-- [ ] update_key_value_store
+- [X] update_key_value_store
 - [X] update_origin_access_control
 - [ ] update_origin_request_policy
 - [ ] update_public_key
