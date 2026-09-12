@@ -15,6 +15,13 @@ class PipelineNotFoundException(JsonRESTError):
         super().__init__("PipelineNotFoundException", message)
 
 
+class PipelineExecutionNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("PipelineExecutionNotFoundException", message)
+
+
 class ResourceNotFoundException(JsonRESTError):
     code = 400
 
