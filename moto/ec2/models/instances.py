@@ -33,6 +33,7 @@ from ..exceptions import (
     MissingInputError,
     OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
+    UnsupportedInstanceTypeInAvailabilityZone,
     VPCIdNotSpecifiedError,
 )
 from ..utils import (
@@ -863,6 +864,29 @@ class InstanceBackend:
         ):
             if settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
+
+        if not kwargs["is_instance_type_default"]:
+            subnet_id = kwargs.get("subnet_id") or next(
+                (
+                    nic["SubnetId"]
+                    for nic in kwargs.get("nics") or []
+                    if "SubnetId" in nic
+                ),
+                None,
+            )
+            requested_zone: str | None = kwargs.get("placement") or (
+                self.get_subnet(subnet_id).availability_zone if subnet_id else None  # type: ignore[attr-defined]
+            )
+            # A zone outside this region, or a type this region does not list at all,
+            # is left to the opt-in validation above
+            if requested_zone and requested_zone in self.availability_zones_in_region():  # type: ignore[attr-defined]
+                offered_zones = self.availability_zones_offering_instance_type(  # type: ignore[attr-defined]
+                    kwargs["instance_type"]
+                )
+                if offered_zones and requested_zone not in offered_zones:
+                    raise UnsupportedInstanceTypeInAvailabilityZone(
+                        kwargs["instance_type"], requested_zone, offered_zones
+                    )
 
         security_groups = [
             self.get_security_group_by_name_or_id(name)  # type: ignore[attr-defined]

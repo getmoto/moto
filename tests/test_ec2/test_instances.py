@@ -1316,6 +1316,85 @@ def test_run_instance_with_default_placement():
 
 
 @mock_aws
+def test_run_instance_with_instance_type_not_offered_in_placement():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    offered = sorted(
+        o["Location"]
+        for o in client.describe_instance_type_offerings(
+            LocationType="availability-zone",
+            Filters=[{"Name": "instance-type", "Values": ["t3.small"]}],
+        )["InstanceTypeOfferings"]
+    )
+    assert "us-east-1e" not in offered
+
+    # An availability zone that offers the type is accepted
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t3.small",
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": offered[0]},
+    )["Instances"][0]
+    assert instance["Placement"]["AvailabilityZone"] == offered[0]
+
+    with pytest.raises(ClientError) as ex:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="t3.small",
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "us-east-1e"},
+        )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Code"] == "Unsupported"
+    assert ex.value.response["Error"]["Message"] == (
+        "Your requested instance type (t3.small) is not supported in your requested "
+        "Availability Zone (us-east-1e). Please retry your request by not specifying "
+        f"an Availability Zone or choosing {', '.join(offered)}."
+    )
+
+    # The default instance type is not validated
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-east-1e"},
+    )["Instances"][0]
+    assert instance["Placement"]["AvailabilityZone"] == "us-east-1e"
+
+
+@mock_aws
+def test_run_instance_with_instance_type_not_offered_in_subnet_zone():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = client.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-east-1e"
+    )["Subnet"]["SubnetId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="t3.small",
+            MinCount=1,
+            MaxCount=1,
+            SubnetId=subnet_id,
+        )
+    assert ex.value.response["Error"]["Code"] == "Unsupported"
+    assert "(us-east-1e)" in ex.value.response["Error"]["Message"]
+
+    # t2.small is offered in every us-east-1 zone
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.small",
+        MinCount=1,
+        MaxCount=1,
+        SubnetId=subnet_id,
+    )["Instances"][0]
+    assert instance["Placement"]["AvailabilityZone"] == "us-east-1e"
+
+
+@mock_aws
 @mock.patch(
     "moto.ec2.models.instances.settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
