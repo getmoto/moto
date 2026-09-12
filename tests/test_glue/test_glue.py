@@ -2042,3 +2042,62 @@ def test_glue_resources_tagging_via_rgta():
 
     wf_arn = next(a for a in tags_by_arn if a.endswith("workflow/workflow-1"))
     assert tags_by_arn[wf_arn] == {"ASV": "ASVBAR"}
+
+
+CONNECTION_WITH_PASSWORD = {
+    "Name": "prod-db",
+    "ConnectionType": "JDBC",
+    "ConnectionProperties": {
+        "JDBC_CONNECTION_URL": "jdbc:mysql://host:3306/db",
+        "USERNAME": "admin",
+        "PASSWORD": "hunter2",
+    },
+}
+
+
+@mock_aws
+def test_get_connection_hides_the_password_when_asked():
+    """HidePassword must actually drop the secret.
+
+    AWS leaves the PASSWORD entry out rather than blanking it, so a test
+    asserting the key is absent should pass under moto too.
+    """
+    client = boto3.client("glue", region_name="us-east-2")
+    client.create_connection(ConnectionInput=CONNECTION_WITH_PASSWORD)
+
+    connection = client.get_connection(Name="prod-db", HidePassword=True)["Connection"]
+
+    assert "PASSWORD" not in connection["ConnectionProperties"]
+    assert connection["ConnectionProperties"]["USERNAME"] == "admin"
+
+
+@mock_aws
+def test_get_connection_returns_the_password_by_default():
+    client = boto3.client("glue", region_name="us-east-2")
+    client.create_connection(ConnectionInput=CONNECTION_WITH_PASSWORD)
+
+    connection = client.get_connection(Name="prod-db")["Connection"]
+
+    assert connection["ConnectionProperties"]["PASSWORD"] == "hunter2"
+
+
+@mock_aws
+def test_get_connections_hides_the_password_when_asked():
+    client = boto3.client("glue", region_name="us-east-2")
+    client.create_connection(ConnectionInput=CONNECTION_WITH_PASSWORD)
+
+    connections = client.get_connections(HidePassword=True)["ConnectionList"]
+
+    assert "PASSWORD" not in connections[0]["ConnectionProperties"]
+
+
+@mock_aws
+def test_hiding_the_password_does_not_change_the_stored_connection():
+    """The redaction is applied on the way out, not to the stored copy."""
+    client = boto3.client("glue", region_name="us-east-2")
+    client.create_connection(ConnectionInput=CONNECTION_WITH_PASSWORD)
+
+    client.get_connection(Name="prod-db", HidePassword=True)
+    connection = client.get_connection(Name="prod-db")["Connection"]
+
+    assert connection["ConnectionProperties"]["PASSWORD"] == "hunter2"
