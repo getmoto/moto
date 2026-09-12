@@ -198,13 +198,17 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         keys = list(self.keys.values())
         if key_state:
             keys = [key for key in keys if key.key_state == key_state]
-        return [key.to_dict() for key in keys], next_token
+        # None, not the caller's own token. Every key comes back in one
+        # page, and handing the incoming token back made botocore raise
+        # "The same next token was received twice" on a resumed listing.
+        return [key.to_dict() for key in keys], None
 
     def list_tags_for_resource(
         self, resource_arn: str, next_token: Optional[str], max_results: Optional[int]
     ) -> tuple[list[dict[str, str]], Optional[str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
-        return tags, next_token
+        # See list_keys: the incoming token must not come back out.
+        return tags, None
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
@@ -370,7 +374,8 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
         aliases = list(self.aliases.values())
         if key_arn is not None:
             aliases = [alias for alias in aliases if alias.key_arn == key_arn]
-        return [alias.to_dict() for alias in aliases], next_token
+        # See list_keys: the incoming token must not come back out.
+        return [alias.to_dict() for alias in aliases], None
 
     def update_alias(self, alias_name: str, key_arn: Optional[str]) -> dict[str, Any]:
         if alias_name not in self.aliases:

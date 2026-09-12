@@ -810,3 +810,69 @@ def test_stop_key_usage_not_found():
     with pytest.raises(ClientError) as exc:
         client.stop_key_usage(KeyIdentifier=missing_arn)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+def _make_key(client):
+    return client.create_key(
+        Exportable=True,
+        KeyAttributes=KEY_ATTRIBUTES_1,
+    )["Key"]
+
+
+@mock_aws
+@pytest.mark.parametrize("operation", ["list_keys", "list_aliases"])
+def test_list_operations_do_not_echo_the_request_token(operation):
+    """A listing must not hand the caller's own NextToken back.
+
+    Every result fits in one page here, so the correct answer is no token at
+    all. Returning the incoming one makes a resumed listing repeat forever,
+    which botocore stops with "The same next token was received twice".
+    """
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    _make_key(client)
+
+    response = getattr(client, operation)(NextToken="resume-token")
+
+    assert "NextToken" not in response
+
+
+@mock_aws
+def test_list_tags_for_resource_does_not_echo_the_request_token():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    key = _make_key(client)
+    client.tag_resource(
+        ResourceArn=key["KeyArn"], Tags=[{"Key": "Env", "Value": "test"}]
+    )
+
+    response = client.list_tags_for_resource(
+        ResourceArn=key["KeyArn"], NextToken="resume-token"
+    )
+
+    assert "NextToken" not in response
+
+
+@mock_aws
+@pytest.mark.parametrize("operation", ["list_keys", "list_aliases"])
+def test_paginating_from_a_token_terminates(operation):
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    _make_key(client)
+
+    pages = list(
+        client.get_paginator(operation).paginate(
+            PaginationConfig={"StartingToken": "resume-token"}
+        )
+    )
+
+    assert len(pages) == 1
+
+
+@mock_aws
+def test_list_keys_still_filters_by_key_state():
+    client = boto3.client("payment-cryptography", region_name="us-east-1")
+    _make_key(client)
+
+    matching = client.list_keys(KeyState="CREATE_COMPLETE")
+    other = client.list_keys(KeyState="DELETE_PENDING")
+
+    assert len(matching["Keys"]) == 1
+    assert other["Keys"] == []
