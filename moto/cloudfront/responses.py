@@ -305,6 +305,16 @@ class CloudFrontResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def get_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        function = self.backend.get_function(name=name)
+        result = {
+            "FunctionCode": function.code,
+            "ETag": function.etag,
+            "ContentType": "application/octet-stream",
+        }
+        return ActionResult(result)
+
     def list_functions(self) -> ActionResult:
         marker = self._get_param("Marker")
         max_items = self._get_int_param("MaxItems")

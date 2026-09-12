@@ -103,6 +103,48 @@ def test_describe_function_not_found():
 
 
 @mock_aws
+def test_get_function():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    code = b"function handler(event) { return event; }"
+
+    create_response = client.create_function(
+        Name="test-function",
+        FunctionConfig={"Comment": "Test function", "Runtime": "cloudfront-js-1.0"},
+        FunctionCode=code,
+    )
+
+    response = client.get_function(Name="test-function")
+    assert response["FunctionCode"].read() == code
+    assert response["ETag"] == create_response["ETag"]
+
+
+@mock_aws
+def test_get_function_with_stage():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    code = b"function handler(event) { return event; }"
+
+    client.create_function(
+        Name="test-function",
+        FunctionConfig={"Comment": "Test function", "Runtime": "cloudfront-js-1.0"},
+        FunctionCode=code,
+    )
+
+    response = client.get_function(Name="test-function", Stage="DEVELOPMENT")
+    assert response["FunctionCode"].read() == code
+
+
+@mock_aws
+def test_get_function_not_found():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_function(Name="non-existent-function")
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "NoSuchFunctionExists"
+
+
+@mock_aws
 def test_list_functions():
     client = boto3.client("cloudfront", region_name="us-east-1")
     config1 = {
