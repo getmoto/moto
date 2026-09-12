@@ -2334,6 +2334,49 @@ def test_get_parameters_should_only_return_unique_requests():
     assert len(response["Parameters"]) == 1
 
 
+@pytest.mark.parametrize(
+    "as_arn",
+    [False, True],
+    ids=["by-name", "by-arn"],
+)
+@mock_aws
+def test_get_parameters_by_arn(as_arn):
+    # A parameter shared from another account is read by its full ARN.
+    # get_parameter already supported this; get_parameters did not.
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    client.put_parameter(Name="/Parameter1", Value="Value1", Type="String")
+    client.put_parameter(Name="/Parameter2", Value="Value2", Type="String")
+
+    def ref(name: str) -> str:
+        if as_arn:
+            return f"arn:aws:ssm:{SSM_REGION}:{ACCOUNT_ID}:parameter{name}"
+        return name
+
+    response = client.get_parameters(Names=[ref("/Parameter1"), ref("/Parameter2")])
+
+    assert response["InvalidParameters"] == []
+    assert {p["Name"]: p["Value"] for p in response["Parameters"]} == {
+        "/Parameter1": "Value1",
+        "/Parameter2": "Value2",
+    }
+
+
+@mock_aws
+def test_get_parameters_by_arn_reports_unknown_arn_as_invalid():
+    # An ARN that resolves to nothing must come back in InvalidParameters
+    # verbatim -- as requested -- not as the stripped name.
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    client.put_parameter(Name="/Parameter1", Value="Value1", Type="String")
+
+    known = f"arn:aws:ssm:{SSM_REGION}:{ACCOUNT_ID}:parameter/Parameter1"
+    unknown = f"arn:aws:ssm:{SSM_REGION}:{ACCOUNT_ID}:parameter/DoesNotExist"
+
+    response = client.get_parameters(Names=[known, unknown])
+
+    assert [p["Name"] for p in response["Parameters"]] == ["/Parameter1"]
+    assert response["InvalidParameters"] == [unknown]
+
+
 @mock_aws
 def test_get_parameter_history_should_throw_exception_when_MaxResults_is_too_large():
     client = boto3.client("ssm", region_name=SSM_REGION)
