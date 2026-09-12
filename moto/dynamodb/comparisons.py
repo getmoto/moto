@@ -1233,12 +1233,14 @@ class FuncBetween(Func):
         # Can't just check  'if start', because start could be 0, which is a valid number
         start_has_value = start is not None and (isinstance(start, Decimal) or start)
         end_has_value = end is not None and (isinstance(end, Decimal) or end)
-        if start_has_value and attr and end_has_value:
+        # The tested attribute needs the same zero-safe check, otherwise a value of 0 is excluded
+        attr_has_value = attr is not None and (isinstance(attr, Decimal) or attr)
+        if start_has_value and attr_has_value and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:
             # None is between None and None as well as None is between None and any number
             return True
-        elif start is None and attr and end:
+        elif start is None and attr_has_value and end_has_value:
             return attr <= end
         else:
             return False
