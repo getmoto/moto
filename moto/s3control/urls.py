@@ -18,7 +18,7 @@ url_paths = {
     "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)/tagging$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens$": S3ControlResponse.dispatch,
-    r"{0}/v20180820/tags/(?P<arn>[\w_:%-]+)$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/tags/(?P<arn>[\w_:%/-]+)$": S3ControlResponse.dispatch,
     "/v20180820/accesspoint": S3ControlResponse.dispatch,
     "/v20180820/configuration/publicAccessBlock": S3ControlResponse.dispatch,
     "/v20180820/accesspoint/<name>": S3ControlResponse.dispatch,
@@ -35,5 +35,5 @@ url_paths = {
     "/v20180820/storagelens/<storagelensid>": S3ControlResponse.dispatch,
     "/v20180820/storagelens/<storagelensid>/tagging": S3ControlResponse.dispatch,
     "/v20180820/storagelens": S3ControlResponse.dispatch,
-    "/v20180820/tags/<arn>": S3ControlResponse.dispatch,
+    "/v20180820/tags/<path:arn>": S3ControlResponse.dispatch,
 }
