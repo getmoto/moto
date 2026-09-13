@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import boto3
 
 from moto import mock_aws
@@ -140,3 +142,70 @@ def test_disable_enhanced_monitoring_all():
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     metrics = stream["EnhancedMonitoring"][0]["ShardLevelMetrics"]
     assert metrics == []
+
+
+@mock_aws
+def test_put_record_sends_basic_stream_metrics():
+    kinesis = boto3.client("kinesis", region_name="us-east-1")
+    cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
+    stream_name = "my_stream_metrics"
+    kinesis.create_stream(StreamName=stream_name, ShardCount=1)
+
+    utc_now = datetime.now(tz=timezone.utc)
+    kinesis.put_record(StreamName=stream_name, Data=b"hello world", PartitionKey="pk1")
+
+    for metric_name, expected_sum, expected_unit in [
+        ("IncomingBytes", len(b"hello world") + len("pk1"), "Bytes"),
+        ("IncomingRecords", 1, "Count"),
+    ]:
+        stats = cloudwatch.get_metric_statistics(
+            Namespace="AWS/Kinesis",
+            MetricName=metric_name,
+            Dimensions=[{"Name": "StreamName", "Value": stream_name}],
+            StartTime=utc_now - timedelta(seconds=60),
+            EndTime=utc_now + timedelta(seconds=60),
+            Period=60,
+            Statistics=["Sum"],
+        )
+        datapoint = stats["Datapoints"][0]
+        assert datapoint["Sum"] == expected_sum
+        assert datapoint["Unit"] == expected_unit
+
+
+@mock_aws
+def test_put_records_sends_aggregated_stream_metrics():
+    kinesis = boto3.client("kinesis", region_name="us-east-1")
+    cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
+    stream_name = "my_stream_metrics_batch"
+    kinesis.create_stream(StreamName=stream_name, ShardCount=1)
+
+    utc_now = datetime.now(tz=timezone.utc)
+    records = [
+        {"Data": b"rec1", "PartitionKey": "pk1"},
+        {"Data": b"rec2data", "PartitionKey": "pk2"},
+    ]
+    kinesis.put_records(StreamName=stream_name, Records=records)
+
+    expected_bytes = sum(len(r["Data"]) + len(r["PartitionKey"]) for r in records)
+
+    stats = cloudwatch.get_metric_statistics(
+        Namespace="AWS/Kinesis",
+        MetricName="IncomingBytes",
+        Dimensions=[{"Name": "StreamName", "Value": stream_name}],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["Sum"],
+    )
+    assert stats["Datapoints"][0]["Sum"] == expected_bytes
+
+    stats = cloudwatch.get_metric_statistics(
+        Namespace="AWS/Kinesis",
+        MetricName="IncomingRecords",
+        Dimensions=[{"Name": "StreamName", "Value": stream_name}],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["Sum"],
+    )
+    assert stats["Datapoints"][0]["Sum"] == len(records)
