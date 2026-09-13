@@ -1,4 +1,5 @@
 import re
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -6,6 +7,8 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core.versions import BOTOCORE_VERSION
+from moto.utilities.distutils_version import LooseVersion
 from tests.test_s3 import s3_aws_verified
 
 
@@ -160,3 +163,33 @@ def test_delete_access_point(bucket_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchAccessPoint"
     assert err["Message"] == "The specified accesspoint does not exist"
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_create_access_point_with_tags(bucket_name=None):
+    if LooseVersion(BOTOCORE_VERSION) < LooseVersion("1.40.0"):
+        raise SkipTest(
+            "CreateAccessPoint does not support Tags in this botocore version"
+        )
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
+    client = boto3.client("s3control", region_name="us-east-1")
+    ap_name = "ap-" + str(uuid4())[0:6]
+    resp = client.create_access_point(
+        AccountId=account_id,
+        Name=ap_name,
+        Bucket=bucket_name,
+        Tags=[
+            {"Key": "env", "Value": "prod"},
+            {"Key": "team", "Value": "storage"},
+        ],
+    )
+    ap_arn = resp["AccessPointArn"]
+    resp = client.list_tags_for_resource(AccountId=account_id, ResourceArn=ap_arn)
+    tags = resp["Tags"]
+    assert len(tags) == 2
+    assert {"Key": "env", "Value": "prod"} in tags
+    assert {"Key": "team", "Value": "storage"} in tags
+    # Test is marked `s3_aws_verified`, so we have to properly clean up.
+    client.delete_access_point(AccountId=account_id, Name=ap_name)
