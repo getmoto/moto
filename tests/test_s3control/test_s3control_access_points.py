@@ -7,6 +7,8 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core.versions import BOTOCORE_VERSION
+from moto.utilities.distutils_version import LooseVersion
 from tests.test_s3 import s3_aws_verified
 
 
@@ -163,21 +165,9 @@ def test_delete_access_point(bucket_name=None):
     assert err["Message"] == "The specified accesspoint does not exist"
 
 
-def _create_access_point_supports_tags() -> bool:
-    # The `Tags` parameter was added to CreateAccessPoint when S3 Access Points
-    # gained tag support for ABAC (AWS announcement 2025-08-01). Older botocore
-    # versions - such as those exercised by the outdated-dependency CI job -
-    # reject the parameter client-side, so skip the test there.
-    import botocore.session
-
-    model = botocore.session.get_session().get_service_model("s3control")
-    op = model.operation_model("CreateAccessPoint")
-    return "Tags" in op.input_shape.members
-
-
 @mock_aws
 def test_create_access_point_with_tags():
-    if not _create_access_point_supports_tags():
+    if LooseVersion(BOTOCORE_VERSION) < LooseVersion("1.40.0"):
         raise SkipTest(
             "CreateAccessPoint does not support Tags in this botocore version"
         )
