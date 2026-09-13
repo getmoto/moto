@@ -32,6 +32,7 @@ from .exceptions import (
     MessageAttributesInvalid,
     MissingParameter,
     OverLimit,
+    PurgeQueueInProgress,
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
@@ -253,6 +254,7 @@ class Queue(CloudFormationModel):
         self._pending_messages: set[Message] = set()
         self.deleted_messages: set[str] = set()
         self._messages_lock = Condition()
+        self.last_purged_at: float | None = None
 
         now = unix_time()
         self.created_timestamp = now
@@ -1136,6 +1138,10 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
 
     def purge_queue(self, queue_name: str) -> None:
         queue = self.get_queue(queue_name)
+        now = unix_time()
+        if queue.last_purged_at is not None and now - queue.last_purged_at < 60:
+            raise PurgeQueueInProgress(queue.name)
+        queue.last_purged_at = now
         queue._messages = []
         queue._pending_messages = set()
 

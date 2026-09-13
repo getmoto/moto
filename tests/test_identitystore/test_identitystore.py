@@ -111,6 +111,202 @@ def test_create_group_membership():
 
 
 @mock_aws
+def test_get_group_membership_id():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    _, _, group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+
+    membership_id = client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": user_id},
+    )["MembershipId"]
+
+    response = client.get_group_membership_id(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": user_id},
+    )
+
+    assert response["MembershipId"] == membership_id
+    assert response["IdentityStoreId"] == identity_store_id
+
+
+@mock_aws
+def test_get_group_membership_id_does_not_exist():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    _, _, group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+
+    # The user and the group both exist, but the user is not a member of it
+    with pytest.raises(ClientError) as exc:
+        client.get_group_membership_id(
+            IdentityStoreId=identity_store_id,
+            GroupId=group_id,
+            MemberId={"UserId": user_id},
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "GROUP_MEMBERSHIP not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "GROUP_MEMBERSHIP"
+    assert "RequestId" in err.response
+
+
+@mock_aws
+def test_get_group_membership_id_other_group():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    _, _, group_id = __create_test_group(client, identity_store_id)
+    _, _, other_group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+
+    client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": user_id},
+    )
+
+    # A membership for this user exists, but not in the group we ask about
+    with pytest.raises(ClientError) as exc:
+        client.get_group_membership_id(
+            IdentityStoreId=identity_store_id,
+            GroupId=other_group_id,
+            MemberId={"UserId": user_id},
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_describe_group_membership():
+    client = boto3.client("identitystore", region_name="eu-west-1")
+    identity_store_id = get_identity_store_id()
+
+    _, _, group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+
+    membership_id = client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": user_id},
+    )["MembershipId"]
+
+    response = client.describe_group_membership(
+        IdentityStoreId=identity_store_id, MembershipId=membership_id
+    )
+
+    assert response["IdentityStoreId"] == identity_store_id
+    assert response["MembershipId"] == membership_id
+    assert response["GroupId"] == group_id
+    assert response["MemberId"]["UserId"] == user_id
+
+
+@mock_aws
+def test_describe_group_membership_does_not_exist():
+    client = boto3.client("identitystore", region_name="eu-west-1")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_group_membership(
+            IdentityStoreId=identity_store_id, MembershipId=str(uuid4())
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "GROUP_MEMBERSHIP not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "GROUP_MEMBERSHIP"
+    assert "RequestId" in err.response
+
+
+@mock_aws
+def test_describe_group_membership_after_delete():
+    client = boto3.client("identitystore", region_name="eu-west-1")
+    identity_store_id = get_identity_store_id()
+
+    _, _, group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+
+    membership_id = client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": user_id},
+    )["MembershipId"]
+
+    client.delete_group_membership(
+        IdentityStoreId=identity_store_id, MembershipId=membership_id
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_group_membership(
+            IdentityStoreId=identity_store_id, MembershipId=membership_id
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_is_member_in_groups():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+    _, _, member_of = __create_test_group(client, identity_store_id)
+    _, _, not_member_of = __create_test_group(client, identity_store_id)
+
+    client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=member_of,
+        MemberId={"UserId": user_id},
+    )
+
+    response = client.is_member_in_groups(
+        IdentityStoreId=identity_store_id,
+        MemberId={"UserId": user_id},
+        GroupIds=[member_of, not_member_of],
+    )
+
+    results = response["Results"]
+    assert len(results) == 2
+
+    # The order of the results matches the order of the requested GroupIds
+    assert results[0]["GroupId"] == member_of
+    assert results[0]["MemberId"]["UserId"] == user_id
+    assert results[0]["MembershipExists"] is True
+
+    assert results[1]["GroupId"] == not_member_of
+    assert results[1]["MemberId"]["UserId"] == user_id
+    assert results[1]["MembershipExists"] is False
+
+
+@mock_aws
+def test_is_member_in_groups_ignores_other_members():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+    other_user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+    _, _, group_id = __create_test_group(client, identity_store_id)
+
+    client.create_group_membership(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        MemberId={"UserId": other_user_id},
+    )
+
+    response = client.is_member_in_groups(
+        IdentityStoreId=identity_store_id,
+        MemberId={"UserId": user_id},
+        GroupIds=[group_id],
+    )
+
+    assert response["Results"][0]["MembershipExists"] is False
+
+
+@mock_aws
 def test_create_duplicate_username():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()

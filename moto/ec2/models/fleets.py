@@ -73,6 +73,12 @@ class Fleet(TaggedEC2Resource):
             else:
                 continue
 
+            launch_spec_userdata = (
+                launch_spec.get("LaunchTemplateSpecificationUserData")
+                if self.fleet_type == "instant"
+                else None
+            )
+
             # Resolve $Latest or $Default to actual version number
             resolved_launch_spec = launch_spec.copy()
             if resolved_launch_spec.get("Version") == "$Latest":
@@ -112,7 +118,7 @@ class Fleet(TaggedEC2Resource):
                         spot_price=spec.get("SpotPrice"),
                         subnet_id=spec.get("SubnetId"),
                         tag_specifications=tags,
-                        user_data=spec.get("UserData"),
+                        user_data=launch_spec_userdata or spec.get("UserData"),
                         weighted_capacity=spec.get("WeightedCapacity", 1),
                         launch_template_spec=resolved_launch_spec,
                         overrides=override if override else None,
