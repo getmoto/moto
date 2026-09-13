@@ -191,3 +191,5 @@ def test_create_access_point_with_tags(bucket_name=None):
     assert len(tags) == 2
     assert {"Key": "env", "Value": "prod"} in tags
     assert {"Key": "team", "Value": "storage"} in tags
+    # Test is marked `s3_aws_verified`, so we have to properly clean up.
+    client.delete_access_point(AccountId=account_id, Name=ap_name)
