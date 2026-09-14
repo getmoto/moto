@@ -189,22 +189,15 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
 
         return key.to_dict()
 
-    def list_keys(
-        self,
-        key_state: Optional[str],
-        next_token: Optional[str],
-        max_results: Optional[int],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    def list_keys(self, key_state: Optional[str]) -> list[dict[str, Any]]:
         keys = list(self.keys.values())
         if key_state:
             keys = [key for key in keys if key.key_state == key_state]
-        return [key.to_dict() for key in keys], next_token
+        return [key.to_dict() for key in keys]
 
-    def list_tags_for_resource(
-        self, resource_arn: str, next_token: Optional[str], max_results: Optional[int]
-    ) -> tuple[list[dict[str, str]], Optional[str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
-        return tags, next_token
+        return tags
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
@@ -361,16 +354,11 @@ class PaymentCryptographyControlPlaneBackend(BaseBackend):
             raise ResourceNotFoundException(alias_name)
         return self.aliases[alias_name].to_dict()
 
-    def list_aliases(
-        self,
-        key_arn: Optional[str],
-        next_token: Optional[str],
-        max_results: Optional[int],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    def list_aliases(self, key_arn: Optional[str]) -> list[dict[str, Any]]:
         aliases = list(self.aliases.values())
         if key_arn is not None:
             aliases = [alias for alias in aliases if alias.key_arn == key_arn]
-        return [alias.to_dict() for alias in aliases], next_token
+        return [alias.to_dict() for alias in aliases]
 
     def update_alias(self, alias_name: str, key_arn: Optional[str]) -> dict[str, Any]:
         if alias_name not in self.aliases:
