@@ -422,7 +422,7 @@ def test_resourcegroupstaggingapi():
     membership = client.create_membership(
         collaborationIdentifier=collaboration["id"],
         queryLogStatus="ENABLED",
-        tags={"owner": "me"},
+        tags={"env": "test"},
     )["membership"]
     untagged = create_collaboration(client, name="untagged-collaboration")
 
@@ -437,14 +437,14 @@ def test_resourcegroupstaggingapi():
     # Filter by type
     assert [
         r["ResourceARN"]
-        for r in tagging.get_resources(ResourceTypeFilter=["cleanrooms:collaboration"])[
-            "ResourceTagMappingList"
-        ]
+        for r in tagging.get_resources(
+            ResourceTypeFilters=["cleanrooms:collaboration"]
+        )["ResourceTagMappingList"]
     ] == [collaboration["arn"]]
     assert [
         r["ResourceARN"]
         for r in tagging.get_resources(
-            ResourceTypeFilter=["cleanrooms:configuredtable"]
+            ResourceTypeFilters=["cleanrooms:configuredtable"]
         )["ResourceTagMappingList"]
     ] == [configured_table["arn"]]
 

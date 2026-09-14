@@ -5,7 +5,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.resource_tagging import TaggedResource
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -204,7 +204,7 @@ class ConfiguredTable(BaseModel):
         return {k: v for k, v in dct.items() if v is not None}
 
 
-class CleanRoomsBackend(BaseBackend):
+class CleanRoomsBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of CleanRoomsService APIs."""
 
     SERVICE_NAMESPACE = "cleanrooms"
