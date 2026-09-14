@@ -207,9 +207,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
         self,
         cluster_name_filter: str | None,
         cluster_type_filter: str | None,
-        max_results: int | None,
-        next_token: str | None,
-    ) -> tuple[list[dict[str, Any]], str | None]:
+    ) -> list[dict[str, Any]]:
         cluster_info_list = []
         for cluster_arn, cluster in self.clusters.items():
             if cluster_name_filter and not cluster.cluster_name.startswith(
@@ -224,7 +222,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
                 continue
             cluster_info_list.append(self.describe_cluster_v2(cluster_arn))
 
-        return cluster_info_list, None
+        return cluster_info_list
 
     def create_cluster(
         self,
@@ -304,12 +302,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
             "customerActionStatus": "NONE",
         }
 
-    def list_clusters(
-        self,
-        cluster_name_filter: str | None,
-        max_results: int | None,
-        next_token: str | None,
-    ) -> tuple[list[dict[str, Any]], str | None]:
+    def list_clusters(self, cluster_name_filter: str | None) -> list[dict[str, Any]]:
         cluster_info_list = [
             {
                 "clusterArn": cluster.arn,
@@ -324,7 +317,7 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
             or cluster.cluster_name.startswith(cluster_name_filter)
         ]
 
-        return cluster_info_list, None
+        return cluster_info_list
 
     def delete_cluster(self, cluster_arn: str, current_version: str) -> tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)
