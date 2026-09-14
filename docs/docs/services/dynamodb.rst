@@ -83,6 +83,7 @@ copy all items from the source without respect to other arguments.
 
 
 - [X] scan
+- [ ] search_vectors
 - [X] tag_resource
 - [X] transact_get_items
 - [X] transact_write_items

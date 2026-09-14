@@ -20,6 +20,7 @@ from tests.test_ec2.helpers import assert_dryrun_error
 # But we do need it for this specific test (and others in this file..)
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_snapshots_for_initial_amis():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -41,6 +42,7 @@ def test_snapshots_for_initial_amis():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_create_and_delete():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -179,6 +181,7 @@ def test_ami_copy_dryrun():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_copy():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -270,6 +273,7 @@ def test_ami_copy_nonexisting_source_region():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_copy_image_changes_owner_id():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -373,6 +377,7 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_filters():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -950,6 +955,7 @@ def test_ami_attribute_user_and_group_permissions():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_filter_description():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1156,6 +1162,7 @@ def test_ami_filter_wildcard():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_filter_by_owner_id():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1345,6 +1352,7 @@ def test_ami_filter_by_source_instance_id():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_filter_by_ownerid():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1442,6 +1450,7 @@ def test_delete_snapshot_from_create_image():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_describe_image_attribute_product_codes():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1470,6 +1479,7 @@ def test_ami_describe_image_attribute_product_codes():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_describe_image_attribute():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1504,6 +1514,7 @@ def test_ami_describe_image_attribute():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_describe_image_attribute_block_device_fail():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1529,6 +1540,7 @@ def test_ami_describe_image_attribute_block_device_fail():
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_aws
+@pytest.mark.requires_clean_slate
 def test_ami_describe_image_attribute_invalid_param():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")

@@ -122,3 +122,15 @@ class ScanNotFoundException(ServiceException):
 
 class ValidationException(ServiceException):
     code = "ValidationException"
+
+
+class UploadNotFoundException(ServiceException):
+    code = "UploadNotFoundException"
+
+    def __init__(self, upload_id: str, repository_name: str, registry_id: str):
+        message = (
+            f"Upload with id '{upload_id}' could not be found "
+            f"for the repository with name '{repository_name}' "
+            f"in the registry with id '{registry_id}'"
+        )
+        super().__init__(message)

@@ -27,7 +27,6 @@ IGNORE_BACKENDS = [
     "batch_simple",
     "core",
     "dynamodb_v20111205",
-    "packages",
     "utilities",
     "s3bucket_path",
     "neptune",

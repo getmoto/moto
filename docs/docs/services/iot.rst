@@ -246,7 +246,7 @@ Pagination is not yet implemented
 
 
 - [X] list_principal_things
-- [ ] list_principal_things_v2
+- [X] list_principal_things_v2
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding

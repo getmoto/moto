@@ -23,6 +23,7 @@ emr-containers
 - [X] create_virtual_cluster
 - [ ] delete_job_template
 - [ ] delete_managed_endpoint
+- [ ] delete_security_configuration
 - [X] delete_virtual_cluster
 - [X] describe_job_run
 - [ ] describe_job_template
@@ -39,4 +40,5 @@ emr-containers
 - [X] start_job_run
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_virtual_cluster
 

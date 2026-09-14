@@ -27,6 +27,7 @@ from moto.ecr.exceptions import (
     RepositoryNotFoundException,
     RepositoryPolicyNotFoundException,
     ScanNotFoundException,
+    UploadNotFoundException,
     ValidationException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
@@ -46,6 +47,12 @@ EcrRepositoryArn = namedtuple(
 )
 
 ImageTagMutabilityExclusionFilterT = dict[Literal["filter", "filterType"], str]
+
+# Advisory part size (in bytes) returned by InitiateLayerUpload. Amazon ECR does
+# not strictly enforce this value, so moto uses a fixed default.
+DEFAULT_LAYER_PART_SIZE = 10 * 1024 * 1024
+# Media type reported for image layers by BatchCheckLayerAvailability.
+LAYER_MEDIA_TYPE = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 
 
 class RepoTagMutability(str, Enum):
@@ -97,6 +104,10 @@ class Repository(CloudFormationModel, BaseModel):
         self.policy: str | None = None
         self.lifecycle_policy: str | None = None
         self.images: list[Image] = []
+        # Completed image layers, keyed by digest -> size in bytes.
+        self.layers: dict[str, int] = {}
+        # In-progress layer uploads, keyed by uploadId.
+        self.uploads: dict[str, LayerUpload] = {}
         self.scanning_config = {
             "repositoryArn": self.arn,
             "repositoryName": self.name,
@@ -430,6 +441,20 @@ class Image(BaseModel):
         self.image_tag = tag
         if tag not in self.image_tags and tag is not None:
             self.image_tags.append(tag)
+
+
+class LayerUpload(BaseModel):
+    def __init__(self, repository_name: str, registry_id: str):
+        self.upload_id = str(random.uuid4())
+        self.repository_name = repository_name
+        self.registry_id = registry_id
+        self.layer_parts = bytearray()
+
+    @property
+    def last_byte_received(self) -> int:
+        # Byte index of the last received byte. -1 when nothing has been
+        # uploaded yet, matching how Amazon ECR reports contiguous uploads.
+        return len(self.layer_parts) - 1
 
 
 class ECRBackend(BaseBackend):
@@ -806,6 +831,99 @@ class ECRBackend(BaseBackend):
                 repository.images,
             )
         )
+
+    def initiate_layer_upload(
+        self, repository_name: str, registry_id: str | None = None
+    ) -> dict[str, Any]:
+        repository = self._get_repository(repository_name, registry_id)
+        upload = LayerUpload(repository_name, repository.registry_id)
+        repository.uploads[upload.upload_id] = upload
+        return {"uploadId": upload.upload_id, "partSize": DEFAULT_LAYER_PART_SIZE}
+
+    def upload_layer_part(
+        self,
+        repository_name: str,
+        upload_id: str,
+        part_first_byte: int,
+        part_last_byte: int,
+        layer_part_blob: bytes,
+        registry_id: str | None = None,
+    ) -> dict[str, Any]:
+        repository = self._get_repository(repository_name, registry_id)
+        upload = repository.uploads.get(upload_id)
+        if upload is None:
+            raise UploadNotFoundException(
+                upload_id, repository_name, repository.registry_id
+            )
+        upload.layer_parts += layer_part_blob or b""
+        return {
+            "registryId": repository.registry_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "lastByteReceived": upload.last_byte_received,
+        }
+
+    def complete_layer_upload(
+        self,
+        repository_name: str,
+        upload_id: str,
+        layer_digests: list[str],
+        registry_id: str | None = None,
+    ) -> dict[str, Any]:
+        repository = self._get_repository(repository_name, registry_id)
+        upload = repository.uploads.get(upload_id)
+        if upload is None:
+            raise UploadNotFoundException(
+                upload_id, repository_name, repository.registry_id
+            )
+        # Amazon ECR computes the layer digest from the uploaded bytes. Moto does
+        # the same so that BatchCheckLayerAvailability can later find the layer.
+        layer_digest = "sha256:" + hashlib.sha256(bytes(upload.layer_parts)).hexdigest()
+        repository.layers[layer_digest] = len(upload.layer_parts)
+        del repository.uploads[upload_id]
+        return {
+            "registryId": repository.registry_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "layerDigest": layer_digest,
+        }
+
+    def batch_check_layer_availability(
+        self,
+        repository_name: str,
+        layer_digests: list[str],
+        registry_id: str | None = None,
+    ) -> dict[str, Any]:
+        repository = self._get_repository(repository_name, registry_id)
+        layers: list[dict[str, Any]] = []
+        failures: list[dict[str, Any]] = []
+        for digest in layer_digests:
+            if not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+                failures.append(
+                    {
+                        "layerDigest": digest,
+                        "failureCode": "InvalidLayerDigest",
+                        "failureReason": f"Invalid layer digest '{digest}'",
+                    }
+                )
+            elif digest in repository.layers:
+                layers.append(
+                    {
+                        "layerDigest": digest,
+                        "layerAvailability": "AVAILABLE",
+                        "layerSize": repository.layers[digest],
+                        "mediaType": LAYER_MEDIA_TYPE,
+                    }
+                )
+            else:
+                failures.append(
+                    {
+                        "layerDigest": digest,
+                        "failureCode": "MissingLayerDigest",
+                        "failureReason": f"Layer digest '{digest}' could not be found",
+                    }
+                )
+        return {"layers": layers, "failures": failures}
 
     def batch_get_image(
         self,

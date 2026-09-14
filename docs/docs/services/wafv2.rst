@@ -44,6 +44,9 @@ wafv2
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
 - [X] get_regex_pattern_set
+- [ ] get_revenue_statistics
+- [ ] get_revenue_statistics_summary
+- [ ] get_revenue_statistics_time_series
 - [X] get_rule_group
 - [ ] get_sampled_requests
 - [ ] get_top_path_statistics_by_traffic
@@ -59,6 +62,7 @@ wafv2
 - [X] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [X] list_rule_groups
+- [ ] list_settlement_records
 - [X] list_tags_for_resource
 - [X] list_web_acls
 - [X] put_logging_configuration

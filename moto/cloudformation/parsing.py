@@ -529,6 +529,10 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         cross_stack_resources: dict[str, "Export"] | None,
     ):
         self._template = template
+        if template != {} and "Resources" not in template:
+            raise ValidationError(
+                message="Template format error: At least one Resources member must be defined."
+            )
         self._resource_json_map: dict[str, Any] = (
             template["Resources"] if template != {} else {}
         )
