@@ -400,6 +400,64 @@ def test_tags_on_create():
 
 
 @mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("cleanrooms", region_name=REGION)
+    collaboration = create_collaboration(client, tags={"env": "test", "team": "data"})
+
+    untagged = create_configured_table(client, name="untagged-table")
+
+    assert client.list_tags_for_resource(resourceArn=collaboration["arn"])["tags"] == {
+        "env": "test",
+        "team": "data",
+    }
+    assert client.list_tags_for_resource(resourceArn=untagged["arn"])["tags"] == {}
+
+
+@mock_aws
+def test_resourcegroupstaggingapi():
+    client = boto3.client("cleanrooms", region_name=REGION)
+    tagging = boto3.client("resourcegroupstaggingapi", region_name=REGION)
+    collaboration = create_collaboration(client, tags={"env": "test"})
+    configured_table = create_configured_table(client, tags={"team": "data"})
+    membership = client.create_membership(
+        collaborationIdentifier=collaboration["id"],
+        queryLogStatus="ENABLED",
+        tags={"owner": "me"},
+    )["membership"]
+    untagged = create_collaboration(client, name="untagged-collaboration")
+
+    resources = tagging.get_resources()["ResourceTagMappingList"]
+    assert {r["ResourceARN"] for r in resources} == {
+        collaboration["arn"],
+        configured_table["arn"],
+        membership["arn"],
+    }
+    assert untagged["arn"] not in {r["ResourceARN"] for r in resources}
+
+    # Filter by type
+    assert [
+        r["ResourceARN"]
+        for r in tagging.get_resources(ResourceTypeFilter=["cleanrooms:collaboration"])[
+            "ResourceTagMappingList"
+        ]
+    ] == [collaboration["arn"]]
+    assert [
+        r["ResourceARN"]
+        for r in tagging.get_resources(
+            ResourceTypeFilter=["cleanrooms:configuredtable"]
+        )["ResourceTagMappingList"]
+    ] == [configured_table["arn"]]
+
+    # Filter by Tag
+    assert {
+        r["ResourceARN"]
+        for r in tagging.get_resources(TagFilters=[{"Key": "env", "Values": ["test"]}])[
+            "ResourceTagMappingList"
+        ]
+    } == {collaboration["arn"], membership["arn"]}
+
+
+@mock_aws
 def test_tag_and_untag_resource():
     client = boto3.client("cleanrooms", region_name=REGION)
     collaboration = create_collaboration(client)

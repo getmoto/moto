@@ -1,9 +1,11 @@
 """CleanRoomsBackend class with methods for supported APIs."""
 
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggedResource
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -204,6 +206,8 @@ class ConfiguredTable(BaseModel):
 
 class CleanRoomsBackend(BaseBackend):
     """Implementation of CleanRoomsService APIs."""
+
+    SERVICE_NAMESPACE = "cleanrooms"
 
     PAGINATION_MODEL = {
         "list_collaborations": {
@@ -424,6 +428,20 @@ class CleanRoomsBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        sources: dict[str, dict[str, Any]] = {
+            "cleanrooms:collaboration": self.collaborations,
+            "cleanrooms:membership": self.memberships,
+            "cleanrooms:configuredtable": self.configured_tables,
+        }
+        for resource_type, items in sources.items():
+            for item in items.values():
+                yield TaggedResource(
+                    arn=item.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(item.arn),
+                    resource_type=resource_type,
+                )
 
 
 cleanrooms_backends = BackendDict(CleanRoomsBackend, "cleanrooms")
