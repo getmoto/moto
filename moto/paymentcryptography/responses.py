@@ -40,28 +40,17 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
     def list_keys(self) -> str:
         key_state = self._get_param("KeyState")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        keys, next_token = self.paymentcryptography_backend.list_keys(
-            key_state=key_state,
-            next_token=next_token,
-            max_results=max_results,
-        )
-
-        return json.dumps({"Keys": keys, "NextToken": next_token})
+        keys = self.paymentcryptography_backend.list_keys(key_state=key_state)
+        return json.dumps({"Keys": keys})
 
     # add templates from here
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        tags, next_token = self.paymentcryptography_backend.list_tags_for_resource(
-            resource_arn=resource_arn,
-            next_token=next_token,
-            max_results=max_results,
+        tags = self.paymentcryptography_backend.list_tags_for_resource(
+            resource_arn=resource_arn
         )
-        return json.dumps({"Tags": tags, "NextToken": next_token})
+        return json.dumps({"Tags": tags})
 
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
@@ -184,15 +173,8 @@ class PaymentCryptographyControlPlaneResponse(BaseResponse):
 
     def list_aliases(self) -> str:
         key_arn = self._get_param("KeyArn")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        aliases, next_token = self.paymentcryptography_backend.list_aliases(
-            key_arn=key_arn,
-            next_token=next_token,
-            max_results=max_results,
-        )
-
-        return json.dumps({"Aliases": aliases, "NextToken": next_token})
+        aliases = self.paymentcryptography_backend.list_aliases(key_arn=key_arn)
+        return json.dumps({"Aliases": aliases})
 
     def update_alias(self) -> str:
         alias_name = self._get_param("AliasName")
