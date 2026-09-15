@@ -1229,16 +1229,17 @@ class FuncBetween(Func):
         start = self.start.expr(item)
         attr = self.attr.expr(item)
         end = self.end.expr(item)
-        # Need to verify whether start has a valid value
-        # Can't just check  'if start', because start could be 0, which is a valid number
+        # Need to verify whether start/attr/end have a valid value
+        # Can't just check 'if start', because start could be 0, which is a valid number
         start_has_value = start is not None and (isinstance(start, Decimal) or start)
+        attr_has_value = attr is not None and (isinstance(attr, Decimal) or attr)
         end_has_value = end is not None and (isinstance(end, Decimal) or end)
-        if start_has_value and attr and end_has_value:
+        if start_has_value and attr_has_value and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:
             # None is between None and None as well as None is between None and any number
             return True
-        elif start is None and attr and end:
+        elif start is None and attr_has_value and end_has_value:
             return attr <= end
         else:
             return False
