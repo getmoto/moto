@@ -7,6 +7,7 @@ from ..exceptions import InvalidInputError
 from ..utils import (
     convert_tag_spec,
     random_traffic_mirror_filter_id,
+    random_traffic_mirror_session_id,
     random_traffic_mirror_target_id,
 )
 from .core import TaggedEC2Resource
@@ -129,9 +130,69 @@ class TrafficMirrorTarget(TaggedEC2Resource):
         )
 
 
+class TrafficMirrorSession(TaggedEC2Resource):
+    def __init__(
+        self,
+        ec2_backend: Any,
+        network_interface_id: str,
+        traffic_mirror_target_id: str,
+        traffic_mirror_filter_id: str,
+        session_number: int,
+        packet_length: int | None,
+        virtual_network_id: int | None,
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
+    ):
+        self.ec2_backend = ec2_backend
+        self.id = random_traffic_mirror_session_id()
+
+        self.network_interface_id = network_interface_id
+        self.traffic_mirror_target_id = traffic_mirror_target_id
+        self.traffic_mirror_filter_id = traffic_mirror_filter_id
+        self.session_number = session_number
+        self.packet_length = packet_length
+        self.virtual_network_id = virtual_network_id
+        self.description = description
+        self.client_token = client_token
+
+        self.tags: list[dict[str, str]] = []
+        if tag_specifications:
+            tag_spec = convert_tag_spec(tag_specifications)
+            self.add_tags(tag_spec.get("traffic-mirror-session", {}))
+            self.tags = self.get_tags()
+
+    @property
+    def owner_id(self) -> str:
+        return self.ec2_backend.account_id
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:traffic-mirror-session/{self.id}"
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TrafficMirrorSessionId": self.id,
+            "TrafficMirrorTargetId": self.traffic_mirror_target_id,
+            "TrafficMirrorFilterId": self.traffic_mirror_filter_id,
+            "NetworkInterfaceId": self.network_interface_id,
+            "OwnerId": self.owner_id,
+            "SessionNumber": self.session_number,
+            "Tags": self.tags or [],
+        }
+        if self.packet_length is not None:
+            result["PacketLength"] = self.packet_length
+        if self.virtual_network_id is not None:
+            result["VirtualNetworkId"] = self.virtual_network_id
+        if self.description is not None:
+            result["Description"] = self.description
+        return result
+
+
 class TrafficMirrorsBackend:
     def __init__(self) -> None:
         self.traffic_mirror_filters: dict[str, TrafficMirrorFilter] = {}
+        self.traffic_mirror_sessions: dict[str, TrafficMirrorSession] = {}
         self.traffic_mirror_targets: dict[str, TrafficMirrorTarget] = {}
         self.tagger = TaggingService()
 
@@ -222,3 +283,94 @@ class TrafficMirrorsBackend:
             result = filter_resources(traffic_mirror_targets, filters, attr_pairs)
 
         return result
+
+    def create_traffic_mirror_session(
+        self,
+        network_interface_id: str,
+        traffic_mirror_target_id: str,
+        traffic_mirror_filter_id: str,
+        session_number: int,
+        packet_length: int | None,
+        virtual_network_id: int | None,
+        description: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
+        client_token: str | None,
+    ) -> TrafficMirrorSession:
+        mirror_session = TrafficMirrorSession(
+            self,
+            network_interface_id,
+            traffic_mirror_target_id,
+            traffic_mirror_filter_id,
+            session_number,
+            packet_length,
+            virtual_network_id,
+            description,
+            tag_specifications,
+            client_token,
+        )
+        self.traffic_mirror_sessions[mirror_session.id] = mirror_session
+        return mirror_session
+
+    def describe_traffic_mirror_sessions(
+        self,
+        traffic_mirror_session_ids: list[str] | None,
+        filters: list[Any] | None,
+    ) -> list[TrafficMirrorSession]:
+        traffic_mirror_sessions = list(self.traffic_mirror_sessions.values())
+
+        if traffic_mirror_session_ids:
+            traffic_mirror_sessions = [
+                item
+                for item in traffic_mirror_sessions
+                if item.id in traffic_mirror_session_ids
+            ]
+
+        attr_pairs = (
+            ("traffic-mirror-session-id", "id"),
+            ("traffic-mirror-target-id", "traffic_mirror_target_id"),
+            ("traffic-mirror-filter-id", "traffic_mirror_filter_id"),
+            ("network-interface-id", "network_interface_id"),
+            ("owner-id", "owner_id"),
+            ("session-number", "session_number"),
+            ("description", "description"),
+        )
+
+        result = traffic_mirror_sessions
+        if filters:
+            result = filter_resources(traffic_mirror_sessions, filters, attr_pairs)
+
+        return result
+
+    def delete_traffic_mirror_session(
+        self,
+        traffic_mirror_session_id: str,
+    ) -> str:
+        session = self.traffic_mirror_sessions.pop(traffic_mirror_session_id, None)
+        if session:
+            self.tagger.delete_all_tags_for_resource(session.arn)
+        return traffic_mirror_session_id
+
+    def modify_traffic_mirror_session(
+        self,
+        traffic_mirror_session_id: str,
+        traffic_mirror_target_id: str | None,
+        traffic_mirror_filter_id: str | None,
+        packet_length: int | None,
+        session_number: int | None,
+        virtual_network_id: int | None,
+        description: str | None,
+    ) -> TrafficMirrorSession:
+        session = self.traffic_mirror_sessions[traffic_mirror_session_id]
+        if traffic_mirror_target_id is not None:
+            session.traffic_mirror_target_id = traffic_mirror_target_id
+        if traffic_mirror_filter_id is not None:
+            session.traffic_mirror_filter_id = traffic_mirror_filter_id
+        if packet_length is not None:
+            session.packet_length = packet_length
+        if session_number is not None:
+            session.session_number = session_number
+        if virtual_network_id is not None:
+            session.virtual_network_id = virtual_network_id
+        if description is not None:
+            session.description = description
+        return session

@@ -21,6 +21,7 @@ bedrock-runtime
 - [ ] converse_stream
 - [ ] count_tokens
 - [ ] get_async_invoke
+- [ ] invoke_guardrail_checks
 - [X] invoke_model
 - [ ] invoke_model_with_bidirectional_stream
 - [ ] invoke_model_with_response_stream

@@ -70,6 +70,38 @@ class EventBridgePipesResponse(BaseResponse):
             }
         )
 
+    def update_pipe(self) -> ActionResult:
+        name = self.uri.split("?")[0].split("/")[-1]
+        body_params = json.loads(self.body) if self.body else {}
+
+        role_arn = body_params.get("RoleArn")
+        if not role_arn:
+            raise ValidationException("RoleArn is a required parameter")
+
+        pipe = self.pipes_backend.update_pipe(
+            name=name,
+            role_arn=role_arn,
+            description=body_params.get("Description"),
+            desired_state=body_params.get("DesiredState"),
+            source_parameters=body_params.get("SourceParameters"),
+            enrichment=body_params.get("Enrichment"),
+            enrichment_parameters=body_params.get("EnrichmentParameters"),
+            target=body_params.get("Target"),
+            target_parameters=body_params.get("TargetParameters"),
+            log_configuration=body_params.get("LogConfiguration"),
+            kms_key_identifier=body_params.get("KmsKeyIdentifier"),
+        )
+        return ActionResult(
+            {
+                "Arn": pipe.arn,
+                "Name": pipe.name,
+                "DesiredState": pipe.desired_state,
+                "CurrentState": pipe.current_state,
+                "CreationTime": pipe.creation_time,
+                "LastModifiedTime": pipe.last_modified_time,
+            }
+        )
+
     def describe_pipe(self) -> ActionResult:
         name = self.uri.split("?")[0].split("/")[-1]
         pipe = self.pipes_backend.describe_pipe(

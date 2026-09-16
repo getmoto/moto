@@ -94,6 +94,29 @@ def test_start_export_task_db():
 
 
 @mock_aws
+def test_start_export_task_automated_db_snapshot():
+    # The identifier of an automated snapshot contains a colon,
+    # so its ARN cannot be parsed by simply splitting on the colon.
+    client = boto3.client("rds", region_name="us-west-2")
+    _prepare_db_snapshot(client)
+    snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="automated"
+    )["DBSnapshots"][0]
+    source_arn = snapshot["DBSnapshotArn"]
+
+    export = client.start_export_task(
+        ExportTaskIdentifier="export-snapshot-1",
+        SourceArn=source_arn,
+        S3BucketName="export-bucket",
+        IamRoleArn="arn:aws:iam:::role/export-role",
+        KmsKeyId="arn:aws:kms:::key/0ea3fef3-80a7-4778-9d8c-1c0c6EXAMPLE",
+    )
+
+    assert export["SourceArn"] == source_arn
+    assert export["SourceType"] == "SNAPSHOT"
+
+
+@mock_aws
 def test_start_export_task_db_cluster():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_cluster_snapshot(client)

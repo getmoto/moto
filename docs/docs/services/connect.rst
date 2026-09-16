@@ -54,6 +54,8 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] claim_phone_number
 - [ ] complete_attached_file_upload
 - [ ] create_agent_status
+- [ ] create_attached_file
+- [ ] create_auth_code
 - [ ] create_contact
 - [ ] create_contact_flow
 - [ ] create_contact_flow_module
@@ -64,12 +66,14 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] create_data_table_attribute
 - [ ] create_email_address
 - [ ] create_evaluation_form
+- [ ] create_extraction_definition
 - [ ] create_hours_of_operation
 - [ ] create_hours_of_operation_override
 - [X] create_instance
   Create a new Connect instance.
 
 - [ ] create_integration_association
+- [ ] create_metric
 - [ ] create_notification
 - [ ] create_participant
 - [ ] create_persistent_contact_association
@@ -94,6 +98,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] create_workspace_page
 - [ ] deactivate_evaluation_form
 - [ ] delete_attached_file
+- [ ] delete_contact_data
 - [ ] delete_contact_evaluation
 - [ ] delete_contact_flow
 - [ ] delete_contact_flow_module
@@ -104,10 +109,12 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] delete_data_table_attribute
 - [ ] delete_email_address
 - [ ] delete_evaluation_form
+- [ ] delete_extraction_definition
 - [ ] delete_hours_of_operation
 - [ ] delete_hours_of_operation_override
 - [X] delete_instance
 - [ ] delete_integration_association
+- [ ] delete_metric
 - [ ] delete_notification
 - [ ] delete_predefined_attribute
 - [ ] delete_prompt
@@ -117,6 +124,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] delete_routing_profile
 - [ ] delete_rule
 - [ ] delete_security_profile
+- [ ] delete_session
 - [ ] delete_task_template
 - [ ] delete_test_case
 - [ ] delete_traffic_distribution_group
@@ -141,6 +149,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] describe_data_table_attribute
 - [ ] describe_email_address
 - [ ] describe_evaluation_form
+- [ ] describe_extraction_definition
 - [ ] describe_hours_of_operation
 - [ ] describe_hours_of_operation_override
 - [X] describe_instance
@@ -148,6 +157,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 
 - [ ] describe_instance_attribute
 - [ ] describe_instance_storage_config
+- [ ] describe_metric
 - [ ] describe_notification
 - [ ] describe_phone_number
 - [ ] describe_predefined_attribute
@@ -193,6 +203,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] get_current_metric_data
 - [ ] get_current_user_data
 - [ ] get_effective_hours_of_operations
+- [ ] get_evaluation_form_validation
 - [ ] get_federation_token
 - [ ] get_flow_association
 - [ ] get_metric_data
@@ -229,6 +240,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_entity_security_profiles
 - [ ] list_evaluation_form_versions
 - [ ] list_evaluation_forms
+- [ ] list_extraction_definitions
 - [ ] list_flow_associations
 - [ ] list_hours_of_operation_overrides
 - [ ] list_hours_of_operations
@@ -238,6 +250,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_integration_associations
 - [ ] list_lambda_functions
 - [ ] list_lex_bots
+- [ ] list_metrics
 - [ ] list_notifications
 - [ ] list_phone_numbers
 - [ ] list_phone_numbers_v2
@@ -292,6 +305,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] search_evaluation_forms
 - [ ] search_hours_of_operation_overrides
 - [ ] search_hours_of_operations
+- [ ] search_metrics
 - [ ] search_notifications
 - [ ] search_predefined_attributes
 - [ ] search_prompts
@@ -299,6 +313,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] search_quick_connects
 - [ ] search_resource_tags
 - [ ] search_routing_profiles
+- [ ] search_rules
 - [ ] search_security_profiles
 - [ ] search_test_cases
 - [ ] search_user_hierarchy_groups
@@ -309,13 +324,17 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] search_workspaces
 - [ ] send_chat_integration_event
 - [ ] send_outbound_email
+- [ ] send_outbound_web_notification
+- [ ] start_assistant_contact
 - [ ] start_attached_file_upload
 - [ ] start_chat_contact
+- [ ] start_contact_conversational_analytics_job
 - [ ] start_contact_evaluation
 - [ ] start_contact_media_processing
 - [ ] start_contact_recording
 - [ ] start_contact_streaming
 - [ ] start_email_contact
+- [ ] start_evaluation_form_validation
 - [ ] start_outbound_chat_contact
 - [ ] start_outbound_email_contact
 - [ ] start_outbound_voice_contact
@@ -349,15 +368,19 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] update_contact_flow_name
 - [ ] update_contact_routing_data
 - [ ] update_contact_schedule
+- [ ] update_contact_task_template
 - [ ] update_data_table_attribute
 - [ ] update_data_table_metadata
 - [ ] update_data_table_primary_values
 - [ ] update_email_address_metadata
 - [ ] update_evaluation_form
+- [ ] update_extraction_definition
 - [ ] update_hours_of_operation
 - [ ] update_hours_of_operation_override
 - [ ] update_instance_attribute
 - [ ] update_instance_storage_config
+- [ ] update_metric_content
+- [ ] update_metric_metadata
 - [ ] update_notification_content
 - [ ] update_participant_authentication
 - [ ] update_participant_role_config

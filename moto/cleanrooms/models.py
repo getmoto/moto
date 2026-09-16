@@ -1,9 +1,11 @@
 """CleanRoomsBackend class with methods for supported APIs."""
 
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -202,8 +204,10 @@ class ConfiguredTable(BaseModel):
         return {k: v for k, v in dct.items() if v is not None}
 
 
-class CleanRoomsBackend(BaseBackend):
+class CleanRoomsBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of CleanRoomsService APIs."""
+
+    SERVICE_NAMESPACE = "cleanrooms"
 
     PAGINATION_MODEL = {
         "list_collaborations": {
@@ -414,16 +418,29 @@ class CleanRoomsBackend(BaseBackend):
         self.get_configured_table(configured_table_identifier)
         del self.configured_tables[configured_table_identifier]
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
-        self.tagger.tag_resource(
-            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
-        )
-
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        sources: dict[str, dict[str, Any]] = {
+            "cleanrooms:collaboration": self.collaborations,
+            "cleanrooms:configuredtable": self.configured_tables,
+            "cleanrooms:membership": self.memberships,
+        }
+        for resource_type, items in sources.items():
+            for item in items.values():
+                yield TaggedResource(
+                    arn=item.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(item.arn),
+                    resource_type=resource_type,
+                )
+
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 cleanrooms_backends = BackendDict(CleanRoomsBackend, "cleanrooms")

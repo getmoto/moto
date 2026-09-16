@@ -18,6 +18,7 @@ backup
 
 - [ ] associate_backup_vault_mpa_approval_team
 - [ ] cancel_legal_hold
+- [ ] create_backup_access_point
 - [X] create_backup_plan
 - [ ] create_backup_selection
 - [X] create_backup_vault
@@ -33,6 +34,7 @@ The parameters ReportPlanTags and IdempotencyToken are not yet supported
 - [ ] create_restore_testing_plan
 - [ ] create_restore_testing_selection
 - [ ] create_tiering_configuration
+- [ ] delete_backup_access_point
 - [X] delete_backup_plan
 - [ ] delete_backup_selection
 - [X] delete_backup_vault
@@ -45,6 +47,7 @@ The parameters ReportPlanTags and IdempotencyToken are not yet supported
 - [ ] delete_restore_testing_plan
 - [ ] delete_restore_testing_selection
 - [ ] delete_tiering_configuration
+- [ ] describe_backup_access_point
 - [ ] describe_backup_job
 - [X] describe_backup_vault
 - [ ] describe_copy_job
@@ -77,6 +80,9 @@ The parameters ReportPlanTags and IdempotencyToken are not yet supported
 - [ ] get_restore_testing_selection
 - [ ] get_supported_resource_types
 - [ ] get_tiering_configuration
+- [ ] list_backup_access_points
+- [ ] list_backup_access_points_by_recovery_point
+- [ ] list_backup_access_points_by_resource
 - [ ] list_backup_job_summaries
 - [ ] list_backup_jobs
 - [ ] list_backup_plan_templates

@@ -15,7 +15,7 @@ jobs:
         python-version: "3.11"
     - name: Start MotoServer
       uses: ./.github/actions/run_moto_server
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@v7
     - name: Install dependencies
       run: |
         cd other_langs/tests_js && npm install && npm list

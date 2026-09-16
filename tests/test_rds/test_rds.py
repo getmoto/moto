@@ -994,6 +994,27 @@ def test_copy_db_snapshots_snapshot_type_is_always_manual(client):
 
 
 @mock_aws
+def test_copy_db_snapshot_automated_snapshot_by_arn(client):
+    # Automated snapshots have identifiers that contain a colon,
+    # e.g. "rds:db-master-1-2025-01-02-00-00", which means their ARN
+    # cannot be parsed by naively splitting on the colon.
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+    source_snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="automated"
+    )["DBSnapshots"][0]
+    assert source_snapshot["DBSnapshotIdentifier"].startswith("rds:")
+
+    target_snapshot = client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier=source_snapshot["DBSnapshotArn"],
+        TargetDBSnapshotIdentifier="snapshot-copy",
+    )["DBSnapshot"]
+
+    assert target_snapshot["DBSnapshotIdentifier"] == "snapshot-copy"
+    assert target_snapshot["DBInstanceIdentifier"] == "db-primary-1"
+    assert target_snapshot["SnapshotType"] == "manual"
+
+
+@mock_aws
 def test_copy_db_snapshot_invalid_arns(client):
     invalid_arn = (
         f"arn:aws:rds:{DEFAULT_REGION}:123456789012:this-is-not-a-snapshot:snapshot-1"

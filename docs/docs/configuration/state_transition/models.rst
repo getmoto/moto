@@ -70,6 +70,21 @@ Advancement:
 
     Call `boto3.client("dax").describe_clusters(..)`.
 
+Service: FIS
+---------------------
+
+**Model**: `fis::experiment`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "pending" --> "initiating" --> "running" --> "completed"  :raw-html:`<br />`
+    "stopping" --> "stopped"
+
+Transition type: `manual`  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("fis").get_experiment(..)`
+
+
 Service: Glue
 ---------------------
 

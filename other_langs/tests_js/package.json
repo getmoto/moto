@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@aws-sdk/client-codebuild": "^3.749.0",
     "@aws-sdk/client-ec2": "^3.749.0",
     "@aws-sdk/client-lambda": "^3.749.0",
     "@aws-sdk/client-rds": "^3.749.0",

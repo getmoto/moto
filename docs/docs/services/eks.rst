@@ -14,12 +14,15 @@ eks
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] activate_certificate_authority
 - [ ] associate_access_policy
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
+- [ ] cancel_update
 - [ ] create_access_entry
 - [ ] create_addon
 - [ ] create_capability
+- [ ] create_certificate_authority
 - [X] create_cluster
 - [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
@@ -28,6 +31,7 @@ eks
 - [ ] delete_access_entry
 - [ ] delete_addon
 - [ ] delete_capability
+- [ ] delete_certificate_authority
 - [X] delete_cluster
 - [ ] delete_eks_anywhere_subscription
 - [X] delete_fargate_profile
@@ -39,6 +43,7 @@ eks
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [ ] describe_capability
+- [ ] describe_certificate_authority
 - [X] describe_cluster
 - [ ] describe_cluster_versions
 - [ ] describe_eks_anywhere_subscription
@@ -56,6 +61,7 @@ eks
 - [ ] list_addons
 - [ ] list_associated_access_policies
 - [ ] list_capabilities
+- [ ] list_certificate_authorities
 - [X] list_clusters
 - [ ] list_eks_anywhere_subscriptions
 - [X] list_fargate_profiles

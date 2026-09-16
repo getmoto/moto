@@ -175,6 +175,32 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps({"OperationId": operation_id})
 
+    def get_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        service = self.servicediscovery_backend.get_service_attributes(
+            service_id=service_id
+        )
+        return json.dumps({"ServiceAttributes": service.attributes_to_json()})
+
+    def update_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        attributes = params.get("Attributes")
+        self.servicediscovery_backend.update_service_attributes(
+            service_id=service_id, attributes=attributes
+        )
+        return "{}"
+
+    def delete_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        attributes = params.get("Attributes")
+        self.servicediscovery_backend.delete_service_attributes(
+            service_id=service_id, attributes=attributes
+        )
+        return "{}"
+
     def update_http_namespace(self) -> str:
         params = json.loads(self.body)
         _id = params.get("Id")

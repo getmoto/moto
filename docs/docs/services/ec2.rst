@@ -34,6 +34,7 @@ ec2
 - [X] assign_private_ip_addresses
 - [ ] assign_private_nat_gateway_address
 - [X] associate_address
+- [ ] associate_application_status_check
 - [ ] associate_capacity_reservation_billing_owner
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
@@ -53,6 +54,7 @@ ec2
 - [ ] associate_trunk_interface
 - [X] associate_vpc_cidr_block
 - [ ] attach_classic_link_vpc
+- [ ] attach_image_watermark
 - [X] attach_internet_gateway
 - [X] attach_network_interface
 - [ ] attach_verified_access_trust_provider
@@ -61,6 +63,7 @@ ec2
 - [ ] authorize_client_vpn_ingress
 - [X] authorize_security_group_egress
 - [X] authorize_security_group_ingress
+- [ ] batch_modify_ipam_routing_policy_registrations
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
@@ -78,6 +81,7 @@ ec2
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] copy_volumes
+- [ ] create_application_status_check
 - [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
@@ -106,11 +110,13 @@ ec2
 - [ ] create_interruptible_capacity_reservation_allocation
 - [ ] create_ipam
 - [ ] create_ipam_external_resource_verification_token
+- [ ] create_ipam_internet_registry_association
 - [ ] create_ipam_policy
 - [ ] create_ipam_pool
 - [ ] create_ipam_prefix_list_resolver
 - [ ] create_ipam_prefix_list_resolver_target
 - [ ] create_ipam_resource_discovery
+- [ ] create_ipam_routing_policy_registration
 - [ ] create_ipam_scope
 - [X] create_key_pair
 - [X] create_launch_template
@@ -156,7 +162,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] create_tags
 - [X] create_traffic_mirror_filter
 - [ ] create_traffic_mirror_filter_rule
-- [ ] create_traffic_mirror_session
+- [X] create_traffic_mirror_session
 - [X] create_traffic_mirror_target
 - [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
@@ -166,6 +172,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] create_transit_gateway_multicast_domain
 - [X] create_transit_gateway_peering_attachment
 - [ ] create_transit_gateway_policy_table
+- [ ] create_transit_gateway_policy_table_entry
 - [ ] create_transit_gateway_prefix_list_reference
 - [X] create_transit_gateway_route
 - [X] create_transit_gateway_route_table
@@ -187,6 +194,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
 - [X] create_vpn_gateway
+- [ ] delete_application_status_check
 - [ ] delete_capacity_manager_data_export
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
@@ -205,11 +213,13 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] delete_internet_gateway
 - [ ] delete_ipam
 - [ ] delete_ipam_external_resource_verification_token
+- [ ] delete_ipam_internet_registry_association
 - [ ] delete_ipam_policy
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_prefix_list_resolver
 - [ ] delete_ipam_prefix_list_resolver_target
 - [ ] delete_ipam_resource_discovery
+- [ ] delete_ipam_routing_policy_registration
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [X] delete_launch_template
@@ -248,7 +258,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [X] delete_tags
 - [ ] delete_traffic_mirror_filter
 - [ ] delete_traffic_mirror_filter_rule
-- [ ] delete_traffic_mirror_session
+- [X] delete_traffic_mirror_session
 - [ ] delete_traffic_mirror_target
 - [X] delete_transit_gateway
 - [ ] delete_transit_gateway_client_vpn_attachment
@@ -259,6 +269,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_transit_gateway_multicast_domain
 - [X] delete_transit_gateway_peering_attachment
 - [ ] delete_transit_gateway_policy_table
+- [ ] delete_transit_gateway_policy_table_entry
 - [ ] delete_transit_gateway_prefix_list_reference
 - [X] delete_transit_gateway_route
 - [X] delete_transit_gateway_route_table
@@ -289,10 +300,14 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] deregister_transit_gateway_multicast_group_members
 - [ ] deregister_transit_gateway_multicast_group_sources
 - [ ] describe_account_attributes
+- [ ] describe_account_vpc_encryption_control
 - [ ] describe_address_transfers
 - [X] describe_addresses
 - [X] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
+- [ ] describe_application_status
+- [ ] describe_application_status_check_associations
+- [ ] describe_application_status_checks
 - [X] describe_availability_zones
   
 The following parameters are supported: ZoneIds, ZoneNames, Filters
@@ -374,6 +389,7 @@ Pagination is not yet implemented
 - [X] describe_internet_gateways
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
+- [ ] describe_ipam_internet_registry_associations
 - [ ] describe_ipam_policies
 - [ ] describe_ipam_pool_allocations
 - [ ] describe_ipam_pools
@@ -451,7 +467,7 @@ The Filters-parameter is not yet implemented
 - [X] describe_tags
 - [ ] describe_traffic_mirror_filter_rules
 - [X] describe_traffic_mirror_filters
-- [ ] describe_traffic_mirror_sessions
+- [X] describe_traffic_mirror_sessions
 - [X] describe_traffic_mirror_targets
 - [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
@@ -512,6 +528,7 @@ The DryRun parameter is ignored.
 - [X] describe_vpn_connections
 - [X] describe_vpn_gateways
 - [ ] detach_classic_link_vpc
+- [ ] detach_image_watermark
 - [X] detach_internet_gateway
 - [X] detach_network_interface
 - [ ] detach_verified_access_trust_provider
@@ -519,6 +536,7 @@ The DryRun parameter is ignored.
 - [X] detach_vpn_gateway
 - [ ] disable_address_transfer
 - [ ] disable_allowed_images_settings
+- [ ] disable_application_status_check_suppression
 - [ ] disable_aws_network_performance_metric_subscription
 - [ ] disable_capacity_manager
 - [X] disable_ebs_encryption_by_default
@@ -539,6 +557,7 @@ The DryRun parameter is ignored.
 - [X] disable_vpc_classic_link
 - [X] disable_vpc_classic_link_dns_support
 - [X] disassociate_address
+- [ ] disassociate_application_status_check
 - [ ] disassociate_capacity_reservation_billing_owner
 - [ ] disassociate_client_vpn_target_network
 - [ ] disassociate_enclave_certificate_iam_role
@@ -558,6 +577,7 @@ The DryRun parameter is ignored.
 - [X] disassociate_vpc_cidr_block
 - [ ] enable_address_transfer
 - [ ] enable_allowed_images_settings
+- [ ] enable_application_status_check_suppression
 - [ ] enable_aws_network_performance_metric_subscription
 - [ ] enable_capacity_manager
 - [X] enable_ebs_encryption_by_default
@@ -568,6 +588,7 @@ The DryRun parameter is ignored.
 - [ ] enable_image_deprecation
 - [ ] enable_image_deregistration_protection
 - [ ] enable_instance_sql_ha_standby_detections
+- [ ] enable_ipam_internet_registry_association
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_ipam_policy
 - [ ] enable_reachability_analyzer_organization_sharing
@@ -615,6 +636,9 @@ The DryRun parameter is ignored.
 - [ ] get_ipam_discovered_accounts
 - [ ] get_ipam_discovered_public_addresses
 - [ ] get_ipam_discovered_resource_cidrs
+- [ ] get_ipam_discovered_routes
+- [ ] get_ipam_internet_registry_association_asns
+- [ ] get_ipam_internet_registry_association_cidrs
 - [ ] get_ipam_policy_allocation_rules
 - [ ] get_ipam_policy_organization_targets
 - [ ] get_ipam_pool_allocations
@@ -623,6 +647,10 @@ The DryRun parameter is ignored.
 - [ ] get_ipam_prefix_list_resolver_version_entries
 - [ ] get_ipam_prefix_list_resolver_versions
 - [ ] get_ipam_resource_cidrs
+- [ ] get_ipam_route_origin_authorizations
+- [ ] get_ipam_route_protection_findings
+- [ ] get_ipam_routing_policy_registration_deltas
+- [ ] get_ipam_routing_policy_registrations
 - [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
@@ -664,7 +692,9 @@ The DryRun parameter is ignored.
 - [ ] list_snapshots_in_recycle_bin
 - [ ] list_volumes_in_recycle_bin
 - [ ] lock_snapshot
+- [ ] modify_account_vpc_encryption_control
 - [ ] modify_address_attribute
+- [ ] modify_application_status_check
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
 - [ ] modify_capacity_reservation_fleet
@@ -697,6 +727,7 @@ The DryRun parameter is ignored.
 - [ ] modify_ipam_prefix_list_resolver_target
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_resource_discovery
+- [ ] modify_ipam_routing_policy_registration
 - [ ] modify_ipam_scope
 - [X] modify_launch_template
 - [ ] modify_local_gateway_route
@@ -714,9 +745,10 @@ The DryRun parameter is ignored.
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
 - [ ] modify_traffic_mirror_filter_rule
-- [ ] modify_traffic_mirror_session
+- [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_metering_policy
+- [ ] modify_transit_gateway_policy_table_entry
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
 - [ ] modify_verified_access_endpoint
@@ -734,6 +766,7 @@ The DryRun parameter is ignored.
 - [ ] modify_vpc_encryption_control
 - [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
+- [ ] modify_vpc_endpoint_payer_responsibility
 - [X] modify_vpc_endpoint_service_configuration
   
 The following parameters are not yet implemented: RemovePrivateDnsName
