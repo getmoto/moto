@@ -1,5 +1,5 @@
 import json
-from typing import Any, cast
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -33,30 +33,20 @@ class SWFResponse(BaseResponse):
         if parameter is not None:
             self._check_string(parameter)
 
-    def _check_string(self, parameter: Any) -> None:
+    def _check_string(self, parameter: object) -> str:
         if not isinstance(parameter, str):
             raise SWFSerializationException(parameter)
+        return parameter
 
-    def _params_workflow_execution(self) -> tuple[str, str]:
-        """The runId and workflowId of the required ``execution`` member.
-
-        Reads the members with ``get`` and then validates, rather than indexing straight away.
-        SWF requires ``execution.runId`` and ``execution.workflowId``, so omitting either is
-        invalid input and the service answers SerializationException — but indexing first turns it
-        into a bare ``KeyError``, which a host embedding moto reports as an internal error (500)
-        with the Python detail as the message instead of a 400 fault. boto3 validates required
-        members client-side so its calls never reach this, but a client that does not (boto 2, or
-        any hand-rolled JSON request) does.
-        """
+    def _get_workflow_execution_ids(self) -> tuple[str, str]:
+        """Read and validate the required execution's runId and workflowId."""
         execution = self._params.get("execution")
         if not isinstance(execution, dict):
             raise SWFSerializationException(execution)
-        run_id = execution.get("runId")
-        workflow_id = execution.get("workflowId")
-        self._check_string(run_id)
-        self._check_string(workflow_id)
-        # _check_string has just proven both are str; cast so the signature stays honest.
-        return cast(str, run_id), cast(str, workflow_id)
+        return (
+            self._check_string(execution.get("runId")),
+            self._check_string(execution.get("workflowId")),
+        )
 
     def _check_none_or_list_of_strings(self, parameter: Any) -> None:
         if parameter is not None:
@@ -445,9 +435,8 @@ class SWFResponse(BaseResponse):
         return json.dumps({"runId": wfe.run_id})
 
     def describe_workflow_execution(self) -> str:
-        domain_name = self._params.get("domain")
-        self._check_string(domain_name)
-        run_id, workflow_id = self._params_workflow_execution()
+        domain_name = self._check_string(self._params.get("domain"))
+        run_id, workflow_id = self._get_workflow_execution_ids()
 
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id
@@ -455,9 +444,8 @@ class SWFResponse(BaseResponse):
         return json.dumps(wfe.to_full_dict())  # type: ignore[union-attr]
 
     def get_workflow_execution_history(self) -> str:
-        domain_name = self._params.get("domain")
-        self._check_string(domain_name)
-        run_id, workflow_id = self._params_workflow_execution()
+        domain_name = self._check_string(self._params.get("domain"))
+        run_id, workflow_id = self._get_workflow_execution_ids()
         reverse_order = self._params.get("reverseOrder", None)
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id

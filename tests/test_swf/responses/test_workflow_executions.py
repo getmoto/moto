@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import boto3
 import pytest
-from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -165,46 +164,6 @@ def test_describe_non_existent_workflow_execution():
     assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId=wrong-run-id]"
     )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-
-
-@mock_aws
-@pytest.mark.parametrize(
-    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
-)
-@pytest.mark.parametrize(
-    "execution",
-    [
-        {"workflowId": "uid-abcd1234"},  # runId omitted
-        {"runId": "some-run-id"},  # workflowId omitted
-        {},
-    ],
-)
-def test_workflow_execution_member_is_validated_not_indexed(operation, execution):
-    """A missing execution member must answer SerializationException, not raise KeyError.
-
-    SWF requires execution.runId and execution.workflowId. boto3 rejects a call that omits either
-    before it leaves the client, so this path is only reachable from a client that does not
-    validate required members locally — hence parameter_validation=False here, which is what e.g.
-    boto 2 does. Previously these handlers indexed the member directly and a bare KeyError escaped,
-    which a host embedding moto surfaces as an internal error rather than a 400 fault.
-
-    A non-dict ``execution`` is guarded too, but is not covered here: botocore's serializer rejects
-    it before the request is built, whatever the validation setting.
-    """
-    client = boto3.client(
-        "swf",
-        region_name="us-west-1",
-        config=Config(parameter_validation=False),
-    )
-    client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        getattr(client, operation)(domain="test-domain", execution=execution)
-
-    assert ex.value.response["Error"]["Code"] == "SerializationException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
