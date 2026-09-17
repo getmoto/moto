@@ -38,14 +38,40 @@ class SWFResponse(BaseResponse):
             raise SWFSerializationException(parameter)
         return parameter
 
-    def _get_workflow_execution_ids(self) -> tuple[str, str]:
-        """Read and validate the required execution's runId and workflowId."""
-        execution = self._params.get("execution")
-        if not isinstance(execution, dict):
+    def _get_workflow_execution_params(self) -> tuple[str, str, str]:
+        """Read and validate the domain and workflow execution identifiers."""
+        params = self._params
+        execution = params.get("execution")
+        if isinstance(execution, dict):
+            required = {
+                "execution.runId": execution.get("runId"),
+                "execution.workflowId": execution.get("workflowId"),
+                "domain": params.get("domain"),
+            }
+        elif execution is None:
+            required = {"execution": execution, "domain": params.get("domain")}
+        else:
             raise SWFSerializationException(execution)
+
+        validated = {
+            name: self._check_string(value)
+            for name, value in required.items()
+            if value is not None
+        }
+        errors = [
+            f"Value null at '{name}' failed to satisfy constraint: Member must not be null"
+            for name, value in required.items()
+            if value is None
+        ]
+        if errors:
+            label = "error" if len(errors) == 1 else "errors"
+            raise SWFValidationException(
+                f"{len(errors)} validation {label} detected: " + "; ".join(errors)
+            )
         return (
-            self._check_string(execution.get("runId")),
-            self._check_string(execution.get("workflowId")),
+            validated["domain"],
+            validated["execution.runId"],
+            validated["execution.workflowId"],
         )
 
     def _check_none_or_list_of_strings(self, parameter: Any) -> None:
@@ -435,8 +461,7 @@ class SWFResponse(BaseResponse):
         return json.dumps({"runId": wfe.run_id})
 
     def describe_workflow_execution(self) -> str:
-        domain_name = self._check_string(self._params.get("domain"))
-        run_id, workflow_id = self._get_workflow_execution_ids()
+        domain_name, run_id, workflow_id = self._get_workflow_execution_params()
 
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id
@@ -444,8 +469,7 @@ class SWFResponse(BaseResponse):
         return json.dumps(wfe.to_full_dict())  # type: ignore[union-attr]
 
     def get_workflow_execution_history(self) -> str:
-        domain_name = self._check_string(self._params.get("domain"))
-        run_id, workflow_id = self._get_workflow_execution_ids()
+        domain_name, run_id, workflow_id = self._get_workflow_execution_params()
         reverse_order = self._params.get("reverseOrder", None)
         wfe = self.swf_backend.describe_workflow_execution(
             domain_name, run_id, workflow_id
