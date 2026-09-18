@@ -162,3 +162,21 @@ class AmisResponse(EC2BaseResponse):
         self.error_on_dryrun()
 
         raise NotImplementedError("AMIs.reset_image_attribute is not yet implemented")
+
+    def disable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.disable_image(ami_id)
+        result = {"Return": True}
+        return ActionResult(result)
+
+    def enable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+
+        self.error_on_dryrun()
+
+        self.ec2_backend.enable_image(ami_id)
+        result = {"Return": True}
+        return ActionResult(result)
