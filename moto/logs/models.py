@@ -1358,14 +1358,19 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
         self.filters.delete_filter(filter_name, log_group_name)
 
     def describe_subscription_filters(
-        self, log_group_name: str
+        self, log_group_name: str, filter_name_prefix: str | None = None
     ) -> Iterable[SubscriptionFilter]:
         log_group = self.groups.get(log_group_name)
 
         if not log_group:
             raise ResourceNotFoundException()
 
-        return log_group.describe_subscription_filters()
+        return [
+            sub_filter
+            for sub_filter in log_group.describe_subscription_filters()
+            if filter_name_prefix is None
+            or sub_filter.name.startswith(filter_name_prefix)
+        ]
 
     def put_subscription_filter(
         self,

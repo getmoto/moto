@@ -398,8 +398,11 @@ class LogsResponse(BaseResponse):
 
     def describe_subscription_filters(self) -> str:
         log_group_name = self._get_param("logGroupName")
+        filter_name_prefix = self._get_param("filterNamePrefix")
 
-        _filters = self.logs_backend.describe_subscription_filters(log_group_name)
+        _filters = self.logs_backend.describe_subscription_filters(
+            log_group_name, filter_name_prefix
+        )
 
         return json.dumps({"subscriptionFilters": [f.to_json() for f in _filters]})
 
