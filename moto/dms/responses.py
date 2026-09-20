@@ -344,6 +344,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             multi_az=self._get_param("MultiAZ"),
             engine_version=self._get_param("EngineVersion"),
             auto_minor_version_upgrade=self._get_param("AutoMinorVersionUpgrade"),
+            allow_major_version_upgrade=self._get_param("AllowMajorVersionUpgrade"),
             replication_instance_identifier=self._get_param("ReplicationInstanceIdentifier"),
             network_type=self._get_param("NetworkType"),
             kerberos_authentication_settings=self._get_param("KerberosAuthenticationSettings"),

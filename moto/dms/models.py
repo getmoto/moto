@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Iterator
+from packaging.version import parse
 from datetime import datetime
 from typing import Any
 
@@ -11,6 +12,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
+    InvalidParameterCombinationException,
     InvalidResourceStateFault,
     ResourceAlreadyExistsFault,
     ResourceNotFoundFault,
@@ -551,6 +553,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             multi_az: bool | None = None,
             engine_version: str | None = None,
             auto_minor_version_upgrade: bool | None = None,
+            allow_major_version_upgrade: bool | None = False,
             replication_instance_identifier: str | None = None,
             network_type: str | None = None,
             kerberos_authentication_settings: dict[str, str] | None = None,
@@ -573,7 +576,17 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         if multi_az is not None:
             replication_instance.multi_az = multi_az
         if engine_version:
-            replication_instance.engine_version = engine_version
+            if allow_major_version_upgrade:
+                replication_instance.engine_version = engine_version
+            else:
+                old = parse(replication_instance.engine_version)
+                new = parse(engine_version)
+                if (new.major > old.major):
+                    raise InvalidParameterCombinationException(
+                        "The AllowMajorVersionUpgrade flag must be present when upgrading to a new major version"
+                    )
+                else:
+                    replication_instance.engine_version = engine_version
         if auto_minor_version_upgrade is not None:
             replication_instance.auto_minor_version_upgrade = auto_minor_version_upgrade
         if replication_instance_identifier:
