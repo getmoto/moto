@@ -540,6 +540,49 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
+    def modify_replication_instance(
+            self,
+            replication_instance_arn: str,
+            allocated_storage: int | None = None,
+            apply_immediately: bool | None = None,
+            replication_instance_class: str | None = None,
+            vpc_security_group_ids: list[str] | None = None,
+            preferred_maintenance_window: str | None = None,
+            multi_az: bool | None = None,
+            engine_version: str | None = None,
+            auto_minor_version_upgrade: bool | None = None,
+            replication_instance_identifier: str | None = None,
+            network_type: str | None = None,
+            kerberos_authentication_settings: dict[str, str] | None = None,
+    ) -> "FakeReplicationInstance":
+        if not self.replication_instances.get(replication_instance_arn):
+            raise ResourceNotFoundFault("Replication instance could not be found.")
+
+        replication_instance = self.replication_instances[replication_instance_arn]
+        if allocated_storage:
+            replication_instance.allocated_storage = allocated_storage
+        if replication_instance_class:
+            replication_instance.replication_instance_class = replication_instance_class
+        if vpc_security_group_ids:
+            replication_instance.vpc_security_groups = [
+                {"VpcSecurityGroupId": sg_id, "Status": "active"}
+                for sg_id in (vpc_security_group_ids or [])
+            ]
+        if preferred_maintenance_window:
+            replication_instance.preferred_maintenance_window = preferred_maintenance_window
+        if multi_az is not None:
+            replication_instance.multi_az = multi_az
+        if engine_version:
+            replication_instance.engine_version = engine_version
+        if auto_minor_version_upgrade is not None:
+            replication_instance.auto_minor_version_upgrade = auto_minor_version_upgrade
+        if replication_instance_identifier:
+            replication_instance.id = replication_instance_identifier
+        if network_type:
+            replication_instance.network_type = network_type
+        if kerberos_authentication_settings:
+            replication_instance.kerberos_authentication_settings = kerberos_authentication_settings
+        return replication_instance
 
 class Endpoint(BaseModel):
     def __init__(

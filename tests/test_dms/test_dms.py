@@ -935,3 +935,79 @@ def test_describe_connections_filters():
     invalid_endpoint_filter = {"Name": "endpoint-arn", "Values": ["invalid"]}
     response = client.describe_connections(Filters=[invalid_endpoint_filter])
     assert len(response["Connections"]) == 0
+
+
+@mock_aws
+def test_modify_replication_instance():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        AllocatedStorage=50,
+        VpcSecurityGroupIds=["sg-12345"],
+        AvailabilityZone="us-east-1a",
+        ReplicationSubnetGroupIdentifier="default-subnet-group",
+        PreferredMaintenanceWindow="sun:06:00-sun:14:00",
+        MultiAZ=False,
+        EngineVersion="3.4.6",
+        AutoMinorVersionUpgrade=True,
+        Tags=[{"Key": "Name", "Value": "Test Instance"}],
+        PubliclyAccessible=True,
+        NetworkType="IPV4",
+    )
+    client.modify_replication_instance(
+        ReplicationInstanceArn = response["ReplicationInstance"]["ReplicationInstanceArn"],
+        AllocatedStorage=51,
+        ApplyImmediately=True,
+        ReplicationInstanceClass="dms.t3.micro",
+        VpcSecurityGroupIds=["sg-12346"],
+        PreferredMaintenanceWindow="sat:06:00-sat:14:00",
+        MultiAZ=True,
+        EngineVersion="3.4.7",
+        AutoMinorVersionUpgrade=False,
+        ReplicationInstanceIdentifier="test-instance1",
+        NetworkType="IPV6",
+        KerberosAuthenticationSettings={
+            "KeyCacheSecretId": "abc",
+            "KeyCacheSecretIamArn": "def",
+            "Krb5FileContents": "ghi"
+        }
+    )
+    response = client.describe_replication_instances(
+        Filters=[{"Name": "replication-instance-id", "Values": ["test-instance"]}]
+    )
+    assert len(response["ReplicationInstances"]) == 0
+    response = client.describe_replication_instances(
+        Filters=[{"Name": "replication-instance-id", "Values": ["test-instance1"]}]
+    )
+    assert len(response["ReplicationInstances"]) == 1
+
+    instance = response["ReplicationInstances"][0]
+    assert instance["ReplicationInstanceIdentifier"] == "test-instance1"
+    assert instance["ReplicationInstanceClass"] == "dms.t3.micro"
+    assert instance["AllocatedStorage"] == 51
+    assert instance["MultiAZ"] is True
+    assert instance["EngineVersion"] == "3.4.7"
+    assert instance["AutoMinorVersionUpgrade"] is False
+    assert instance["NetworkType"] == "IPV6"
+    assert instance["VpcSecurityGroups"] == [
+        {"Status": "active", "VpcSecurityGroupId": "sg-12346"}
+    ]
+    assert instance["PreferredMaintenanceWindow"] == "sat:06:00-sat:14:00"
+    assert instance["KerberosAuthenticationSettings"] == {
+        "KeyCacheSecretId": "abc",
+        "KeyCacheSecretIamArn": "def",
+        "Krb5FileContents": "ghi"
+    }
+
+
+@mock_aws
+def test_modify_replication_instance_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.modify_replication_instance(
+            ReplicationInstanceArn = "arn:aws:dms:us-east-1:123456789012:endpoint:test",
+            AllocatedStorage=51
+        )
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"

@@ -332,3 +332,20 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         connection_list = [c.to_dict() for c in connections]
         # TODO: Add Marker (optional) to the response
         return json.dumps({"Connections": connection_list})
+
+    def modify_replication_instance(self) -> str:
+        replication_instance = self.dms_backend.modify_replication_instance(
+            replication_instance_arn=self._get_param("ReplicationInstanceArn"),
+            allocated_storage=self._get_param("AllocatedStorage"),
+            apply_immediately=self._get_param("ApplyImmediately"),
+            replication_instance_class=self._get_param("ReplicationInstanceClass"),
+            vpc_security_group_ids=self._get_param("VpcSecurityGroupIds"),
+            preferred_maintenance_window=self._get_param("PreferredMaintenanceWindow"),
+            multi_az=self._get_param("MultiAZ"),
+            engine_version=self._get_param("EngineVersion"),
+            auto_minor_version_upgrade=self._get_param("AutoMinorVersionUpgrade"),
+            replication_instance_identifier=self._get_param("ReplicationInstanceIdentifier"),
+            network_type=self._get_param("NetworkType"),
+            kerberos_authentication_settings=self._get_param("KerberosAuthenticationSettings"),
+        )
+        return json.dumps({"ReplicationInstance": replication_instance.to_dict()})
