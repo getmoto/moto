@@ -7,6 +7,7 @@ import boto3
 import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
@@ -5232,3 +5233,26 @@ def test_update_item_with_list_of_bytes(table_name=None):
 
     get = table.get_item(Key={"pk": "clientA"})
     assert get["Item"] == {"pk": "clientA", "items": [Binary(b1), Binary(b2)]}
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_between_function_operands_cannot_be_null(table_name=None):
+    bypass_param_validation = Config(parameter_validation=True)
+    client = boto3.client(
+        "dynamodb", region_name="us-east-1", config=bypass_param_validation
+    )
+    for expression_attribute_values in [
+        {":lo": {"NULL": True}, ":hi": {"N": "100"}},
+        {":lo": {"N": "1"}, ":hi": {"NULL": True}},
+    ]:
+        with pytest.raises(
+            ClientError,
+            match="Incorrect operand type for operator or function; operator or function: BETWEEN, operand type: NULL",
+        ) as exc:
+            client.scan(
+                TableName=table_name,
+                FilterExpression="price BETWEEN :lo AND :hi",
+                ExpressionAttributeValues=expression_attribute_values,
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
