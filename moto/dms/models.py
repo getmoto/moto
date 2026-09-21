@@ -544,20 +544,20 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def modify_replication_instance(
-            self,
-            replication_instance_arn: str,
-            allocated_storage: int | None = None,
-            apply_immediately: bool | None = None,
-            replication_instance_class: str | None = None,
-            vpc_security_group_ids: list[str] | None = None,
-            preferred_maintenance_window: str | None = None,
-            multi_az: bool | None = None,
-            engine_version: str | None = None,
-            auto_minor_version_upgrade: bool | None = None,
-            allow_major_version_upgrade: bool | None = False,
-            replication_instance_identifier: str | None = None,
-            network_type: str | None = None,
-            kerberos_authentication_settings: dict[str, str] | None = None,
+        self,
+        replication_instance_arn: str,
+        allocated_storage: int | None = None,
+        apply_immediately: bool | None = None,
+        replication_instance_class: str | None = None,
+        vpc_security_group_ids: list[str] | None = None,
+        preferred_maintenance_window: str | None = None,
+        multi_az: bool | None = None,
+        engine_version: str | None = None,
+        auto_minor_version_upgrade: bool | None = None,
+        allow_major_version_upgrade: bool | None = False,
+        replication_instance_identifier: str | None = None,
+        network_type: str | None = None,
+        kerberos_authentication_settings: dict[str, str] | None = None,
     ) -> "FakeReplicationInstance":
         if not self.replication_instances.get(replication_instance_arn):
             raise ResourceNotFoundFault("Replication instance could not be found.")
@@ -573,7 +573,9 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                 for sg_id in (vpc_security_group_ids or [])
             ]
         if preferred_maintenance_window:
-            replication_instance.preferred_maintenance_window = preferred_maintenance_window
+            replication_instance.preferred_maintenance_window = (
+                preferred_maintenance_window
+            )
         if multi_az is not None:
             replication_instance.multi_az = multi_az
         if engine_version:
@@ -582,7 +584,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             else:
                 old = parse(replication_instance.engine_version)
                 new = parse(engine_version)
-                if (new.major > old.major):
+                if new.major > old.major:
                     raise InvalidParameterCombinationException(
                         "The AllowMajorVersionUpgrade flag must be present when upgrading to a new major version"
                     )
@@ -595,8 +597,11 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         if network_type:
             replication_instance.network_type = network_type
         if kerberos_authentication_settings:
-            replication_instance.kerberos_authentication_settings = kerberos_authentication_settings
+            replication_instance.kerberos_authentication_settings = (
+                kerberos_authentication_settings
+            )
         return replication_instance
+
 
 class Endpoint(BaseModel):
     def __init__(

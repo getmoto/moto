@@ -957,7 +957,9 @@ def test_modify_replication_instance():
         NetworkType="IPV4",
     )
     client.modify_replication_instance(
-        ReplicationInstanceArn = response["ReplicationInstance"]["ReplicationInstanceArn"],
+        ReplicationInstanceArn=response["ReplicationInstance"][
+            "ReplicationInstanceArn"
+        ],
         AllocatedStorage=51,
         ApplyImmediately=True,
         ReplicationInstanceClass="dms.t3.micro",
@@ -971,8 +973,8 @@ def test_modify_replication_instance():
         KerberosAuthenticationSettings={
             "KeyCacheSecretId": "abc",
             "KeyCacheSecretIamArn": "def",
-            "Krb5FileContents": "ghi"
-        }
+            "Krb5FileContents": "ghi",
+        },
     )
     response = client.describe_replication_instances(
         Filters=[{"Name": "replication-instance-id", "Values": ["test-instance"]}]
@@ -998,7 +1000,7 @@ def test_modify_replication_instance():
     assert instance["KerberosAuthenticationSettings"] == {
         "KeyCacheSecretId": "abc",
         "KeyCacheSecretIamArn": "def",
-        "Krb5FileContents": "ghi"
+        "Krb5FileContents": "ghi",
     }
 
 
@@ -1007,8 +1009,8 @@ def test_modify_replication_instance_not_found_error():
     client = boto3.client("dms", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.modify_replication_instance(
-            ReplicationInstanceArn = "arn:aws:dms:us-east-1:123456789012:endpoint:test",
-            AllocatedStorage=51
+            ReplicationInstanceArn="arn:aws:dms:us-east-1:123456789012:endpoint:test",
+            AllocatedStorage=51,
         )
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
 
@@ -1026,7 +1028,9 @@ def test_modify_replication_instance_update_engine_major_version():
 
     with pytest.raises(ClientError) as ex:
         client.modify_replication_instance(
-            ReplicationInstanceArn = response["ReplicationInstance"]["ReplicationInstanceArn"],
+            ReplicationInstanceArn=response["ReplicationInstance"][
+                "ReplicationInstanceArn"
+            ],
             AllocatedStorage=51,
             ApplyImmediately=True,
             EngineVersion="8.4.7",
@@ -1035,7 +1039,9 @@ def test_modify_replication_instance_update_engine_major_version():
 
     with pytest.raises(ClientError) as ex:
         client.modify_replication_instance(
-            ReplicationInstanceArn = response["ReplicationInstance"]["ReplicationInstanceArn"],
+            ReplicationInstanceArn=response["ReplicationInstance"][
+                "ReplicationInstanceArn"
+            ],
             AllocatedStorage=51,
             ApplyImmediately=True,
             EngineVersion="8.4.7",
@@ -1044,7 +1050,9 @@ def test_modify_replication_instance_update_engine_major_version():
     assert ex.value.response["Error"]["Code"] == "InvalidParameterCombinationException"
 
     client.modify_replication_instance(
-        ReplicationInstanceArn = response["ReplicationInstance"]["ReplicationInstanceArn"],
+        ReplicationInstanceArn=response["ReplicationInstance"][
+            "ReplicationInstanceArn"
+        ],
         AllocatedStorage=51,
         ApplyImmediately=True,
         EngineVersion="8.9.9",

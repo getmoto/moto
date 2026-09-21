@@ -24,6 +24,7 @@ class ValidationError(DmsClientError):
     def __init__(self, message: str):
         super().__init__("ValidationError", message)
 
+
 class InvalidParameterCombinationException(DmsClientError):
     def __init__(self, message: str):
         super().__init__("InvalidParameterCombinationException", message)

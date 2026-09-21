@@ -345,8 +345,12 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             engine_version=self._get_param("EngineVersion"),
             auto_minor_version_upgrade=self._get_param("AutoMinorVersionUpgrade"),
             allow_major_version_upgrade=self._get_param("AllowMajorVersionUpgrade"),
-            replication_instance_identifier=self._get_param("ReplicationInstanceIdentifier"),
+            replication_instance_identifier=self._get_param(
+                "ReplicationInstanceIdentifier"
+            ),
             network_type=self._get_param("NetworkType"),
-            kerberos_authentication_settings=self._get_param("KerberosAuthenticationSettings"),
+            kerberos_authentication_settings=self._get_param(
+                "KerberosAuthenticationSettings"
+            ),
         )
         return json.dumps({"ReplicationInstance": replication_instance.to_dict()})
