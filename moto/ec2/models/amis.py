@@ -394,3 +394,17 @@ class AmiBackend:
 
     def describe_image_attribute(self, ami_id: str, attribute_name: str) -> Any:
         return self.amis[ami_id].__getattribute__(attribute_name)
+
+    def disable_image(self, ami_id: str) -> None:
+        if ami_id in self.deleted_amis:
+            raise UnvailableAMIIdError(ami_id)
+        if ami_id not in self.amis:
+            raise InvalidAMIIdError(ami_id)
+        self.amis[ami_id].state = "disabled"
+
+    def enable_image(self, ami_id: str) -> None:
+        if ami_id in self.deleted_amis:
+            raise UnvailableAMIIdError(ami_id)
+        if ami_id not in self.amis:
+            raise InvalidAMIIdError(ami_id)
+        self.amis[ami_id].state = "available"
