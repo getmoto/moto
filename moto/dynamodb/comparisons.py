@@ -1220,28 +1220,19 @@ class FuncBetween(Func):
 
     def __init__(self, attribute: Operand, start: Operand, end: Operand):
         self.attr = attribute
+        if start.expr(None) is None or end.expr(None) is None:
+            raise ValueError(
+                "Incorrect operand type for operator or function; operator or function: BETWEEN, operand type: NULL"
+            )
         self.start = start
         self.end = end
         super().__init__(attribute, start, end)
 
     def expr(self, item: Item | None) -> bool:
-        # In python3 None is not a valid comparator when using < or > so must be handled specially
         start = self.start.expr(item)
         attr = self.attr.expr(item)
         end = self.end.expr(item)
-        # Need to verify whether start has a valid value
-        # Can't just check  'if start', because start could be 0, which is a valid number
-        start_has_value = start is not None and (isinstance(start, Decimal) or start)
-        end_has_value = end is not None and (isinstance(end, Decimal) or end)
-        if start_has_value and attr and end_has_value:
-            return start <= attr <= end
-        elif start is None and attr is None:
-            # None is between None and None as well as None is between None and any number
-            return True
-        elif start is None and attr and end:
-            return attr <= end
-        else:
-            return False
+        return attr is not None and start <= attr <= end
 
 
 class FuncIn(Func):
