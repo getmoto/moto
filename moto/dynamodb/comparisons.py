@@ -14,6 +14,12 @@ from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
+class IncorrectOperandType(ValueError):
+    def __init__(self, op_or_func: str, op_type: str):
+        message = f"Incorrect operand type for operator or function; operator or function: {op_or_func}, operand type: {op_type}"
+        super().__init__(message)
+
+
 def create_condition_expression_parser(
     expr: str | None,
     names: dict[str, str] | None,
@@ -1219,11 +1225,10 @@ class FuncBetween(Func):
     FUNC = "BETWEEN"
 
     def __init__(self, attribute: Operand, start: Operand, end: Operand):
+        for bound in (start, end):
+            if bound.get_type(None) == "NULL":
+                raise IncorrectOperandType(FuncBetween.FUNC, "NULL")
         self.attr = attribute
-        if start.expr(None) is None or end.expr(None) is None:
-            raise ValueError(
-                "Incorrect operand type for operator or function; operator or function: BETWEEN, operand type: NULL"
-            )
         self.start = start
         self.end = end
         super().__init__(attribute, start, end)
