@@ -513,6 +513,49 @@ def test_list_deployments():
 
 
 @mock_aws
+def test_list_deployments_include_only_statuses_without_a_group():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    application_name = "mytestapp"
+    deployment_group_name = "mytestdeploymentgroup"
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+
+    client.create_application(
+        applicationName=application_name, computePlatform="Server"
+    )
+    client.create_deployment_group(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        serviceRoleArn=service_role_arn,
+    )
+    client.create_deployment(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        revision={
+            "revisionType": "S3",
+            "s3Location": {
+                "bucket": "my-bucket",
+                "key": "my-key",
+                "bundleType": "zip",
+                "version": "1",
+                "eTag": "my-etag",
+            },
+        },
+    )
+
+    created = client.list_deployments()["deployments"]
+    assert len(created) == 1
+    status = client.get_deployment(deploymentId=created[0])["deploymentInfo"]["status"]
+    assert status != "Failed"
+
+    # The status filter applies on its own, with no application or group named.
+    resp = client.list_deployments(includeOnlyStatuses=["Failed"])
+    assert resp["deployments"] == []
+
+    resp = client.list_deployments(includeOnlyStatuses=[status])
+    assert resp["deployments"] == created
+
+
+@mock_aws
 def test_list_deployments_group_required():
     client = boto3.client("codedeploy", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
