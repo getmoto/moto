@@ -1064,3 +1064,29 @@ def test_modify_replication_instance_update_engine_major_version():
     instance = response["ReplicationInstances"][0]
     assert instance["AllocatedStorage"] == 51
     assert instance["EngineVersion"] == "8.9.9"
+
+
+@mock_aws
+def test_modify_replication_instance_update_no_engine_version():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        AllocatedStorage=50,
+    )
+
+    client.modify_replication_instance(
+        ReplicationInstanceArn=response["ReplicationInstance"][
+            "ReplicationInstanceArn"
+        ],
+        AllocatedStorage=51,
+        ApplyImmediately=True,
+        EngineVersion="99.0.0",
+    )
+    response = client.describe_replication_instances(
+        Filters=[{"Name": "replication-instance-id", "Values": ["test-instance"]}]
+    )
+    instance = response["ReplicationInstances"][0]
+    assert instance["AllocatedStorage"] == 51
+    assert instance["EngineVersion"] == "99.0.0"

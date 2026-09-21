@@ -579,17 +579,14 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         if multi_az is not None:
             replication_instance.multi_az = multi_az
         if engine_version:
-            if allow_major_version_upgrade:
-                replication_instance.engine_version = engine_version
-            else:
+            if not allow_major_version_upgrade and replication_instance.engine_version:
                 old = parse(replication_instance.engine_version)
                 new = parse(engine_version)
                 if new.major > old.major:
                     raise InvalidParameterCombinationException(
                         "The AllowMajorVersionUpgrade flag must be present when upgrading to a new major version"
                     )
-                else:
-                    replication_instance.engine_version = engine_version
+            replication_instance.engine_version = engine_version
         if auto_minor_version_upgrade is not None:
             replication_instance.auto_minor_version_upgrade = auto_minor_version_upgrade
         if replication_instance_identifier:
