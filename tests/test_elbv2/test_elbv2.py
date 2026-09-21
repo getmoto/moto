@@ -1292,6 +1292,13 @@ def test_describe_ssl_policies():
     assert first_policy["SslProtocols"] == ["TLSv1.2"]
     assert len(resp["SslPolicies"]) == 2
 
+    # Ensure FS policy is present
+    fs_policies = client.describe_ssl_policies(
+        Names=["ELBSecurityPolicy-FS-1-2-Res-2020-10"]
+    )["SslPolicies"]
+    assert len(fs_policies) == 1
+    assert fs_policies[0]["Name"] == "ELBSecurityPolicy-FS-1-2-Res-2020-10"
+
 
 @mock_aws
 def test_set_ip_address_type():

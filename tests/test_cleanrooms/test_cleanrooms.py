@@ -400,6 +400,20 @@ def test_tags_on_create():
 
 
 @mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("cleanrooms", region_name=REGION)
+    collaboration = create_collaboration(client, tags={"env": "test", "team": "data"})
+
+    untagged = create_configured_table(client, name="untagged-table")
+
+    assert client.list_tags_for_resource(resourceArn=collaboration["arn"])["tags"] == {
+        "env": "test",
+        "team": "data",
+    }
+    assert client.list_tags_for_resource(resourceArn=untagged["arn"])["tags"] == {}
+
+
+@mock_aws
 def test_tag_and_untag_resource():
     client = boto3.client("cleanrooms", region_name=REGION)
     collaboration = create_collaboration(client)

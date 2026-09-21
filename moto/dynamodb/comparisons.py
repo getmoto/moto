@@ -14,6 +14,12 @@ from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
+class IncorrectOperandType(ValueError):
+    def __init__(self, op_or_func: str, op_type: str):
+        message = f"Incorrect operand type for operator or function; operator or function: {op_or_func}, operand type: {op_type}"
+        super().__init__(message)
+
+
 def create_condition_expression_parser(
     expr: str | None,
     names: dict[str, str] | None,
@@ -1219,31 +1225,19 @@ class FuncBetween(Func):
     FUNC = "BETWEEN"
 
     def __init__(self, attribute: Operand, start: Operand, end: Operand):
+        for bound in (start, end):
+            if bound.get_type(None) == "NULL":
+                raise IncorrectOperandType(FuncBetween.FUNC, "NULL")
         self.attr = attribute
         self.start = start
         self.end = end
         super().__init__(attribute, start, end)
 
     def expr(self, item: Item | None) -> bool:
-        # In python3 None is not a valid comparator when using < or > so must be handled specially
         start = self.start.expr(item)
         attr = self.attr.expr(item)
         end = self.end.expr(item)
-        # Need to verify whether start has a valid value
-        # Can't just check  'if start', because start could be 0, which is a valid number
-        start_has_value = start is not None and (isinstance(start, Decimal) or start)
-        end_has_value = end is not None and (isinstance(end, Decimal) or end)
-        # The tested attribute needs the same zero-safe check, otherwise a value of 0 is excluded
-        attr_has_value = attr is not None and (isinstance(attr, Decimal) or attr)
-        if start_has_value and attr_has_value and end_has_value:
-            return start <= attr <= end
-        elif start is None and attr is None:
-            # None is between None and None as well as None is between None and any number
-            return True
-        elif start is None and attr_has_value and end_has_value:
-            return attr <= end
-        else:
-            return False
+        return attr is not None and start <= attr <= end
 
 
 class FuncIn(Func):

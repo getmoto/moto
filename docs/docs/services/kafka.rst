@@ -18,18 +18,21 @@ kafka
 
 - [ ] batch_associate_scram_secret
 - [ ] batch_disassociate_scram_secret
+- [ ] create_channel
 - [X] create_cluster
 - [X] create_cluster_v2
 - [ ] create_configuration
 - [ ] create_replicator
 - [ ] create_topic
 - [ ] create_vpc_connection
+- [ ] delete_channel
 - [X] delete_cluster
 - [X] delete_cluster_policy
 - [ ] delete_configuration
 - [ ] delete_replicator
 - [ ] delete_topic
 - [ ] delete_vpc_connection
+- [ ] describe_channel
 - [X] describe_cluster
 - [ ] describe_cluster_operation
 - [ ] describe_cluster_operation_v2
@@ -43,6 +46,7 @@ kafka
 - [ ] get_bootstrap_brokers
 - [X] get_cluster_policy
 - [ ] get_compatible_kafka_versions
+- [ ] list_channels
 - [ ] list_client_vpc_connections
 - [ ] list_cluster_operations
 - [ ] list_cluster_operations_v2
@@ -65,6 +69,7 @@ kafka
 - [ ] update_broker_count
 - [ ] update_broker_storage
 - [ ] update_broker_type
+- [ ] update_channel
 - [ ] update_cluster_configuration
 - [ ] update_cluster_kafka_version
 - [ ] update_configuration
