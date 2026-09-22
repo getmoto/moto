@@ -632,10 +632,14 @@ class ECRBackend(BaseBackend):
         return self.repositories.pop(repository_name)
 
     def list_images(
-        self, repository_name: str, registry_id: str | None = None
+        self,
+        repository_name: str,
+        registry_id: str | None = None,
+        tag_status: str = "ANY",
     ) -> list[Image]:
         """
-        maxResults and filtering not implemented
+        The tagStatus filter is supported. maxResults, nextToken, and the
+        imageStatus filter are not implemented.
         """
         repository = None
         found = False
@@ -652,7 +656,12 @@ class ECRBackend(BaseBackend):
                 repository_name, registry_id or self.account_id
             )
 
-        return list(repository.images)  # type: ignore[union-attr]
+        images = list(repository.images)  # type: ignore[union-attr]
+        if tag_status == "TAGGED":
+            return [image for image in images if image.image_tags]
+        if tag_status == "UNTAGGED":
+            return [image for image in images if not image.image_tags]
+        return images
 
     def describe_images(
         self,
