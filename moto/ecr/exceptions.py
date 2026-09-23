@@ -124,6 +124,28 @@ class ValidationException(ServiceException):
     code = "ValidationException"
 
 
+class InvalidLayerPartException(ServiceException):
+    code = "InvalidLayerPartException"
+
+    def __init__(
+        self,
+        registry_id: str,
+        repository_name: str,
+        upload_id: str,
+        last_valid_byte_received: int,
+    ):
+        message = (
+            f"Invalid layer part upload for upload with id '{upload_id}' "
+            f"in the repository with name '{repository_name}' "
+            f"in the registry with id '{registry_id}'"
+        )
+        super().__init__(message)
+        self.registry_id = registry_id
+        self.repository_name = repository_name
+        self.upload_id = upload_id
+        self.last_valid_byte_received = last_valid_byte_received
+
+
 class UploadNotFoundException(ServiceException):
     code = "UploadNotFoundException"
 
