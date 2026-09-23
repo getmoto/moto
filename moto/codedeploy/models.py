@@ -487,11 +487,8 @@ class CodeDeployBackend(BaseBackend):
                     return False
                 if deployment.deployment_group_name != deployment_group_name:
                     return False
-                if (
-                    include_only_statuses
-                    and deployment.status not in include_only_statuses
-                ):
-                    return False
+            if include_only_statuses and deployment.status not in include_only_statuses:
+                return False
             return True
 
         return [
