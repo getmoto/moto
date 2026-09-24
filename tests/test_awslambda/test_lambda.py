@@ -300,6 +300,7 @@ def test_create_function_from_image_with_kmskey():
         ],
         "WorkingDirectory": "/opt",
     }
+    key_arn="arn:aws:kms:us-east-1:123456789012:key/abc123"
     result = conn.create_function(
         FunctionName=function_name,
         Role=get_role_name(),
@@ -307,13 +308,13 @@ def test_create_function_from_image_with_kmskey():
         Description="test lambda function",
         ImageConfig=image_config,
         PackageType="Image",
-        KMSKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123"
+        KMSKeyArn=key_arn,
     )
-    assert result["KMSKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert result["KMSKeyArn"] == key_arn
 
     result = conn.get_function(FunctionName=function_name)
     assert "KMSKeyArn" in result["Configuration"]
-    assert result["Configuration"]["KMSKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+    assert result["Configuration"]["KMSKeyArn"] == key_arn
 
 
 @mock_aws
