@@ -515,7 +515,7 @@ class _PartitionFilterExpressionCache:
         ).set_name("cond")
 
         # conditions can be joined using 2-ary AND and/or OR
-        expr = infix_notation(
+        expr = infix_notation(  # type: ignore[no-untyped-call]
             cond,
             [
                 (and_, 2, OpAssoc.LEFT, _BoolAnd),
