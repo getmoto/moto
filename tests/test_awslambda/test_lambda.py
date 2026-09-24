@@ -251,6 +251,7 @@ def test_create_function_from_zipfile():
         "TracingConfig": {"Mode": "PassThrough"},
         "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
     }
+    assert "KMSKeyArn" not in result
 
 
 @mock_aws
@@ -282,6 +283,7 @@ def test_create_function_from_image():
 
     assert "ImageConfigResponse" in result["Configuration"]
     assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
+    assert "KMSKeyArn" not in result["Configuration"]
 
 
 @mock_aws
