@@ -1,5 +1,7 @@
 """Unit tests for codedeploy-supported APIs."""
 
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -510,6 +512,44 @@ def test_list_deployments():
 
     resp = client.list_deployments()
     assert len(resp["deployments"]) == 2
+
+
+@mock_aws
+def test_list_deployments_with_status_filter():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+    application_name = str(uuid4())
+    client.create_application(
+        applicationName=application_name, computePlatform="Server"
+    )
+    deployment_group_name = str(uuid4())
+    client.create_deployment_group(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        serviceRoleArn=service_role_arn,
+    )
+    resp = client.create_deployment(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        revision={
+            "revisionType": "S3",
+            "s3Location": {
+                "bucket": "my-bucket",
+                "key": "my-key",
+                "bundleType": "zip",
+                "version": "1",
+                "eTag": "my-etag",
+            },
+        },
+    )
+    deployment_id = resp["deploymentId"]
+    resp = client.get_deployment(deploymentId=deployment_id)
+    deployment_status = resp["deploymentInfo"]["status"]
+    assert deployment_status != "Failed"
+    resp = client.list_deployments(includeOnlyStatuses=[deployment_status])
+    assert deployment_id in resp["deployments"]
+    resp = client.list_deployments(includeOnlyStatuses=["Failed"])
+    assert deployment_id not in resp["deployments"]
 
 
 @mock_aws
