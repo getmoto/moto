@@ -285,6 +285,38 @@ def test_create_function_from_image():
 
 
 @mock_aws
+def test_create_function_from_image_with_kmskey():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+        "WorkingDirectory": "/opt",
+    }
+    result = conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        PackageType="Image",
+        KMSKeyArn="arn:aws:kms:us-east-1:123456789012:key/abc123"
+    )
+    assert result["KMSKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+
+    result = conn.get_function(FunctionName=function_name)
+    assert "KMSKeyArn" in result["Configuration"]
+    assert result["Configuration"]["KMSKeyArn"] == "arn:aws:kms:us-east-1:123456789012:key/abc123"
+
+
+@mock_aws
 def test_create_function_from_image_default_working_directory():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
