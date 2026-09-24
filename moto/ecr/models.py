@@ -18,6 +18,7 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
     ImageAlreadyExistsException,
     ImageNotFoundException,
+    InvalidLayerPartException,
     InvalidParameterException,
     LifecyclePolicyNotFoundException,
     LimitExceededException,
@@ -854,6 +855,16 @@ class ECRBackend(BaseBackend):
         if upload is None:
             raise UploadNotFoundException(
                 upload_id, repository_name, repository.registry_id
+            )
+        # Parts have to arrive in order. A part that does not start where the
+        # last one ended would be concatenated in arrival order and change the
+        # layer digest, so reject it the way ECR does.
+        if part_first_byte != upload.last_byte_received + 1:
+            raise InvalidLayerPartException(
+                repository.registry_id,
+                repository_name,
+                upload_id,
+                upload.last_byte_received,
             )
         upload.layer_parts += layer_part_blob or b""
         return {
