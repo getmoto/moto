@@ -167,6 +167,10 @@ class QuicksightDashboard(BaseModel):
         self.last_updated_time = datetime.datetime.now()
         self.last_published_time = datetime.datetime.now()
 
+    @property
+    def version_arn(self) -> str:
+        return f"{self.arn}/version/{self.version_number}"
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
@@ -177,7 +181,7 @@ class QuicksightDashboard(BaseModel):
                 "Errors": [],
                 "Status": self.status,
                 "VersionNumber": self.version_number,
-                "Arn": self.arn,
+                "Arn": self.version_arn,
                 "SourceEntityArn": self.source_entity,
                 "ThemeArn": self.theme_arn,
                 "Description": self.version_description,
