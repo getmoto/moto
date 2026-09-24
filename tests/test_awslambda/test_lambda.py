@@ -300,7 +300,7 @@ def test_create_function_from_image_with_kmskey():
         ],
         "WorkingDirectory": "/opt",
     }
-    key_arn="arn:aws:kms:us-east-1:123456789012:key/abc123"
+    key_arn = "arn:aws:kms:us-east-1:123456789012:key/abc123"
     result = conn.create_function(
         FunctionName=function_name,
         Role=get_role_name(),
