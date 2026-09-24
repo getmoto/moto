@@ -229,5 +229,9 @@ class LooseVersion(Version):
         if self.version > other.version:
             return 1
 
+    @property
+    def major(self) -> int:
+        return int(self.version[0]) if len(self.version) >= 1 else 0
+
 
 # end class LooseVersion

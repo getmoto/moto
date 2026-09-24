@@ -2,13 +2,12 @@ from collections.abc import Iterable, Iterator
 from datetime import datetime
 from typing import Any
 
-from packaging.version import parse
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.utilities.distutils_version import LooseVersion
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -580,8 +579,8 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             replication_instance.multi_az = multi_az
         if engine_version:
             if not allow_major_version_upgrade and replication_instance.engine_version:
-                old = parse(replication_instance.engine_version)
-                new = parse(engine_version)
+                old = LooseVersion(replication_instance.engine_version)
+                new = LooseVersion(engine_version)
                 if new.major > old.major:
                     raise InvalidParameterCombinationException(
                         "The AllowMajorVersionUpgrade flag must be present when upgrading to a new major version"
