@@ -14,6 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives._asymmetric import AsymmetricPadding
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from moto.moto_api._internal import mock_random
@@ -143,11 +144,19 @@ def generate_master_key() -> bytes:
 
 class AbstractPrivateKey(metaclass=ABCMeta):
     @abstractmethod
-    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+    def sign(
+        self, message: bytes, signing_algorithm: str, message_type: str = "RAW"
+    ) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
-    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+    def verify(
+        self,
+        message: bytes,
+        signature: bytes,
+        signing_algorithm: str,
+        message_type: str = "RAW",
+    ) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -162,6 +171,18 @@ def validate_signing_algorithm(
         raise ValidationException(
             "1 validation error detected: Value at 'signing_algorithm' failed"
             f"to satisfy constraint: Member must satisfy enum value set: {valid_algorithms}"
+        )
+
+
+def validate_digest_length(
+    digest: bytes, hash_algorithm: hashes.HashAlgorithm, signing_algorithm: str
+) -> None:
+    # For MessageType=DIGEST, the Message must be the digest itself: "the length of the
+    # Message value must match the length of hashed messages for the specified signing
+    # algorithm" (API_Sign.html). The same constraint applies to Verify.
+    if len(digest) != hash_algorithm.digest_size:
+        raise ValidationException(
+            f"Digest is invalid length for algorithm {signing_algorithm}"
         )
 
 
@@ -217,19 +238,38 @@ class RSAPrivateKey(AbstractPrivateKey):
             algorithm = hashes.SHA512()
         return pad, algorithm
 
-    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+    def sign(
+        self, message: bytes, signing_algorithm: str, message_type: str = "RAW"
+    ) -> bytes:
         validate_signing_algorithm(
             signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
         )
         pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
+        if message_type == "DIGEST":
+            # The caller has already hashed the message; sign the digest as-is.
+            validate_digest_length(message, hash_algorithm, signing_algorithm)
+            return self.private_key.sign(message, pad, Prehashed(hash_algorithm))
         return self.private_key.sign(message, pad, hash_algorithm)
 
-    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+    def verify(
+        self,
+        message: bytes,
+        signature: bytes,
+        signing_algorithm: str,
+        message_type: str = "RAW",
+    ) -> bool:
         validate_signing_algorithm(
             signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
         )
         pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
         public_key = self.private_key.public_key()
+        if message_type == "DIGEST":
+            validate_digest_length(message, hash_algorithm, signing_algorithm)
+            try:
+                public_key.verify(signature, message, pad, Prehashed(hash_algorithm))
+                return True
+            except InvalidSignature:
+                return False
         try:
             public_key.verify(signature, message, pad, hash_algorithm)
             return True
@@ -272,15 +312,36 @@ class ECDSAPrivateKey(AbstractPrivateKey):
             algorithm = hashes.SHA512()
         return algorithm
 
-    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+    def sign(
+        self, message: bytes, signing_algorithm: str, message_type: str = "RAW"
+    ) -> bytes:
         validate_signing_algorithm(signing_algorithm, self.valid_signing_algorithms)
         hash_algorithm = self.__hash_algorithm(signing_algorithm)
+        if message_type == "DIGEST":
+            # The caller has already hashed the message; sign the digest as-is.
+            validate_digest_length(message, hash_algorithm, signing_algorithm)
+            return self.private_key.sign(message, ec.ECDSA(Prehashed(hash_algorithm)))
         return self.private_key.sign(message, ec.ECDSA(hash_algorithm))
 
-    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+    def verify(
+        self,
+        message: bytes,
+        signature: bytes,
+        signing_algorithm: str,
+        message_type: str = "RAW",
+    ) -> bool:
         validate_signing_algorithm(signing_algorithm, self.valid_signing_algorithms)
         hash_algorithm = self.__hash_algorithm(signing_algorithm)
         public_key = self.private_key.public_key()
+        if message_type == "DIGEST":
+            validate_digest_length(message, hash_algorithm, signing_algorithm)
+            try:
+                public_key.verify(
+                    signature, message, ec.ECDSA(Prehashed(hash_algorithm))
+                )
+                return True
+            except InvalidSignature:
+                return False
         try:
             public_key.verify(signature, message, ec.ECDSA(hash_algorithm))
             return True
