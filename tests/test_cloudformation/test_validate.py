@@ -1,10 +1,11 @@
 import json
+from unittest import SkipTest, mock
 
 import boto3
 import botocore
 import pytest
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_ID, aws_verified
 
 json_template = {
@@ -159,3 +160,68 @@ Outputs:
 
     response = cf_client.validate_template(TemplateBody=template)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+# Structurally valid (has a Resources section), but the resource carries
+# properties that don't exist on it - the kind of mistake cfn-lint catches
+# but moto's own parser doesn't.
+json_template_with_unknown_properties = json.dumps(
+    {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MyTopic": {
+                "Type": "AWS::SNS::Topic",
+                "Properties": {
+                    "TopicName": "MySNSTopic",
+                    "asdfasdf": True,
+                },
+            }
+        },
+    }
+)
+
+
+@mock_aws
+def test_create_stack_with_invalid_template_succeeds_by_default():
+    # MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE is off by default, so CreateStack
+    # does not run the template through cfn-lint
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    resp = cf_conn.create_stack(
+        StackName="test-stack", TemplateBody=json_template_with_unknown_properties
+    )
+    assert resp["StackId"]
+
+
+@mock_aws
+@mock.patch(
+    "moto.cloudformation.models.settings.CFN_VALIDATE_TEMPLATE_ON_CREATE",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_create_stack_with_invalid_template_is_rejected_when_enabled(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock.patch a setting on the separate server process")
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        cf_conn.create_stack(
+            StackName="test-stack", TemplateBody=json_template_with_unknown_properties
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert "asdfasdf" in err["Message"]
+    assert m_flag is True
+
+
+@mock_aws
+@mock.patch(
+    "moto.cloudformation.models.settings.CFN_VALIDATE_TEMPLATE_ON_CREATE",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_create_stack_with_valid_template_still_succeeds_when_enabled(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock.patch a setting on the separate server process")
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    resp = cf_conn.create_stack(
+        StackName="test-stack", TemplateBody=dummy_template_json
+    )
+    assert resp["StackId"]
+    assert m_flag is True
