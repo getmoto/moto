@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -6,7 +7,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -646,6 +647,8 @@ def test_lifecycle_empty_configuration():
 
 @mock_aws
 def test_lifecycle_transition_applies_to_object():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
     client = boto3.client("s3", DEFAULT_REGION_NAME)
     bucket_name = str(uuid4())
     client.create_bucket(Bucket=bucket_name)
@@ -688,6 +691,8 @@ def test_lifecycle_transition_applies_to_object():
 
 @mock_aws
 def test_lifecycle_transition_disabled_rule_is_ignored():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
     client = boto3.client("s3", DEFAULT_REGION_NAME)
     bucket_name = str(uuid4())
     client.create_bucket(Bucket=bucket_name)
