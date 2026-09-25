@@ -184,7 +184,7 @@ class TransferBackend(BaseBackend):
                 {
                     "date_imported": str(now),
                     "ssh_public_key_body": ssh_public_key_body,
-                    "ssh_public_key_id": "mock_ssh_public_key_id_{ssh_public_key_body}_{now}",
+                    "ssh_public_key_id": f"{server_id}:{user_name}:public_key:{now}",
                 }
             ]
             user.ssh_public_keys = ssh_public_keys
