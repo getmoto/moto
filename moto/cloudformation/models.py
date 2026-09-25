@@ -375,12 +375,22 @@ class StackInstances(BaseModel):
         regions: list[str],
         parameters: list[dict[str, Any]] | None,
     ) -> Any:
+        # Each requested (account, region) target is updated independently -
+        # a missing target should not prevent other, existing targets in the
+        # same request from being updated. We still surface
+        # StackInstanceNotFound for the operation as a whole if any target
+        # was missing, but only after every existing target has been
+        # updated, so the result no longer depends on request-list ordering.
+        any_missing = False
         for account in accounts:
             for region in regions:
                 instance = self.get_instance(account, region)
                 if instance is None:
-                    raise StackInstanceNotFound()
+                    any_missing = True
+                    continue
                 instance.parameters = parameters or []
+        if any_missing:
+            raise StackInstanceNotFound()
 
     def delete(self, accounts: list[str], regions: list[str]) -> None:
         to_delete = [
