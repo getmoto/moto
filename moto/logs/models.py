@@ -1554,16 +1554,21 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
 
         return task_id
 
-    def describe_export_tasks(self, task_id: str) -> list[ExportTask]:
+    def describe_export_tasks(
+        self, task_id: str, status_code: str | None = None
+    ) -> list[ExportTask]:
         """
         Pagination is not yet implemented
         """
         if task_id:
             if task_id not in self.export_tasks:
                 raise ResourceNotFoundException()
-            return [self.export_tasks[task_id]]
+            tasks = [self.export_tasks[task_id]]
         else:
-            return list(self.export_tasks.values())
+            tasks = list(self.export_tasks.values())
+        if status_code is not None:
+            tasks = [task for task in tasks if task.status["code"] == status_code]
+        return tasks
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
