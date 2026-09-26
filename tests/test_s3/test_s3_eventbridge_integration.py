@@ -7,6 +7,7 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
+from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -379,3 +380,87 @@ def test_delete_object_acl_update_notification():
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["object"]["key"] == "keyname"
     assert event_message["detail"]["reason"] == "ObjectAcl"
+
+
+@mock_aws
+def test_storage_class_changed_notification():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time does not work well with the Proxy or Server")
+
+    with freeze_time("2026-01-01 00:00:00"):
+        resource_names = _seteup_bucket_notification_eventbridge()
+        bucket_name = resource_names["bucket_name"]
+        log_group_name = resource_names["log_group_name"]
+        s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+        s3_client.put_bucket_lifecycle_configuration(
+            Bucket=bucket_name,
+            LifecycleConfiguration={
+                "Rules": [
+                    {
+                        "ID": "archive-rule",
+                        "Status": "Enabled",
+                        "Filter": {"Prefix": "logs/"},
+                        "Transitions": [
+                            {"Days": 30, "StorageClass": "STANDARD_IA"},
+                            {"Days": 90, "StorageClass": "GLACIER"},
+                        ],
+                    }
+                ]
+            },
+        )
+        s3_client.put_object(Bucket=bucket_name, Key="logs/a.txt", Body=b"hello")
+        s3_client.put_object(Bucket=bucket_name, Key="other/b.txt", Body=b"unaffected")
+
+    # Before any threshold has passed, nothing should transition
+    with freeze_time("2026-01-15 00:00:00"):
+        obj = s3_client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        assert obj.get("StorageClass", "STANDARD") == "STANDARD"
+        events = _get_send_events(log_group_name=log_group_name)
+        reasons = [json.loads(e["message"])["detail"]["reason"] for e in events]
+        assert "LifecycleTransition" not in reasons
+
+    # 35 days in: past the first (STANDARD_IA) threshold
+    with freeze_time("2026-02-05 00:00:00"):
+        obj = s3_client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        assert obj["StorageClass"] == "STANDARD_IA"
+
+        # A key outside the rule's prefix must not be affected
+        other = s3_client.head_object(Bucket=bucket_name, Key="other/b.txt")
+        assert other.get("StorageClass", "STANDARD") == "STANDARD"
+
+        events = _get_send_events(log_group_name=log_group_name)
+        transition_events = [
+            json.loads(e["message"])
+            for e in events
+            if json.loads(e["message"])["detail"]["reason"] == "LifecycleTransition"
+        ]
+        assert len(transition_events) == 1
+        event_message = transition_events[0]
+        assert event_message["detail-type"] == "Object Storage Class Changed"
+        assert event_message["source"] == "aws.s3"
+        assert event_message["detail"]["bucket"]["name"] == bucket_name
+        assert event_message["detail"]["object"]["key"] == "logs/a.txt"
+
+        # Reading again at the same point in time must not re-fire the event
+        s3_client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        events = _get_send_events(log_group_name=log_group_name)
+        transition_events = [
+            json.loads(e["message"])
+            for e in events
+            if json.loads(e["message"])["detail"]["reason"] == "LifecycleTransition"
+        ]
+        assert len(transition_events) == 1
+
+    # 94 days in: past the second (GLACIER) threshold too
+    with freeze_time("2026-04-05 00:00:00"):
+        obj = s3_client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        assert obj["StorageClass"] == "GLACIER"
+
+        events = _get_send_events(log_group_name=log_group_name)
+        transition_events = [
+            json.loads(e["message"])
+            for e in events
+            if json.loads(e["message"])["detail"]["reason"] == "LifecycleTransition"
+        ]
+        assert len(transition_events) == 2

@@ -2443,6 +2443,69 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
             response_keys["storage_class"] = key.storage_class
         return response_keys
 
+    def _apply_lifecycle_transitions(self, bucket: FakeBucket) -> None:
+        """
+        Checks each current (non-deleted) key against the bucket's lifecycle
+        rules and applies the most advanced day-based Transition whose
+        threshold has passed, firing the s3:LifecycleTransition event when a
+        key's storage class actually changes as a result.
+
+        This is evaluated lazily, on read, the same way moto already
+        lazy-evaluates other time-based state (see ManagedState/ACM) rather
+        than running a background scheduler. Only Days-based Transitions are
+        supported for now, not Date-based ones, and only the current version
+        of each key is considered (no NoncurrentVersionTransitions).
+        """
+        if not bucket.rules:
+            return
+
+        now = utcnow()
+        for key_name, key in bucket.keys.items():  # type: ignore[union-attr]
+            if isinstance(key, FakeDeleteMarker):
+                continue
+
+            target_storage_class = None
+            target_transition_date = None
+            for rule in bucket.rules:
+                if rule.status != "Enabled" or not rule.transitions:
+                    continue
+
+                prefix = rule.prefix
+                if prefix is None and rule.filter is not None:
+                    prefix = rule.filter.prefix
+                if prefix and not key_name.startswith(prefix):
+                    continue
+
+                for transition in rule.transitions:
+                    if transition.days is None or transition.storage_class is None:
+                        continue
+                    transition_date = key.last_modified + datetime.timedelta(
+                        days=int(transition.days)
+                    )
+                    if now < transition_date:
+                        continue
+                    # A key can be eligible for multiple transitions (e.g. a
+                    # multi-tier policy moving STANDARD -> STANDARD_IA ->
+                    # GLACIER) - apply whichever one is furthest along.
+                    if (
+                        target_transition_date is None
+                        or transition_date > target_transition_date
+                    ):
+                        target_transition_date = transition_date
+                        target_storage_class = transition.storage_class
+
+            if (
+                target_storage_class is not None
+                and target_storage_class != key.storage_class
+            ):
+                key.set_storage_class(target_storage_class)
+                notifications.send_event(
+                    self.account_id,
+                    notifications.S3NotificationEvent.LIFECYCLE_TRANSITION_EVENT,
+                    bucket,
+                    key,
+                )
+
     def get_object(
         self,
         bucket_name: str,
@@ -2456,6 +2519,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         key = None
 
         if bucket:
+            self._apply_lifecycle_transitions(bucket)
             if version_id is None:
                 if key_name in bucket.keys:
                     key = bucket.keys[key_name]
@@ -2805,6 +2869,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         """
         if isinstance(bucket, FakeTableStorageBucket):
             raise MethodNotAllowed()
+        self._apply_lifecycle_transitions(bucket)
         key_results = set()
         folder_results = set()
         if prefix:
