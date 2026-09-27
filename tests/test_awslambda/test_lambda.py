@@ -288,8 +288,6 @@ def test_create_function_from_image():
 
 @mock_aws
 def test_create_function_from_image_with_kmskey():
-    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
