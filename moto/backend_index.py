@@ -32,6 +32,10 @@ backend_url_patterns = [
     ("bedrock", re.compile("https?://bedrock\\.(.+)\\.amazonaws\\.com")),
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
     (
+        "bedrockagentcore",
+        re.compile("https?://bedrock-agentcore\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "bedrockagentcorecontrol",
         re.compile("https?://bedrock-agentcore-control\\.(.+)\\.amazonaws\\.com"),
     ),

@@ -719,3 +719,119 @@ def test_create_pipeline_without_tags():
 
     assert response["pipeline"] == expected_pipeline_details
     assert response["tags"] == []
+
+
+@mock_aws
+def test_start_pipeline_execution():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    response = client.start_pipeline_execution(name="test-pipeline")
+
+    assert "pipelineExecutionId" in response
+
+
+@mock_aws
+def test_start_pipeline_execution_errors():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.start_pipeline_execution(name="not-existing")
+    ex = e.value
+    assert ex.operation_name == "StartPipelineExecution"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "PipelineNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Account '123456789012' does not have a pipeline with name 'not-existing'"
+    )
+
+
+@mock_aws
+def test_get_pipeline_execution():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    variables = [{"name": "MyVar", "value": "my-value"}]
+    execution_id = client.start_pipeline_execution(
+        name="test-pipeline", variables=variables
+    )["pipelineExecutionId"]
+
+    response = client.get_pipeline_execution(
+        pipelineName="test-pipeline", pipelineExecutionId=execution_id
+    )["pipelineExecution"]
+
+    assert response["pipelineName"] == "test-pipeline"
+    assert response["pipelineVersion"] == 1
+    assert response["pipelineExecutionId"] == execution_id
+    assert response["status"] == "Succeeded"
+    assert response["variables"] == [{"name": "MyVar", "resolvedValue": "my-value"}]
+
+
+@mock_aws
+def test_get_pipeline_execution_errors():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    with pytest.raises(ClientError) as e:
+        client.get_pipeline_execution(
+            pipelineName="not-existing", pipelineExecutionId="some-id"
+        )
+    ex = e.value
+    assert ex.response["Error"]["Code"] == "PipelineNotFoundException"
+
+    with pytest.raises(ClientError) as e:
+        client.get_pipeline_execution(
+            pipelineName="test-pipeline", pipelineExecutionId="not-existing"
+        )
+    ex = e.value
+    assert ex.operation_name == "GetPipelineExecution"
+    assert ex.response["Error"]["Code"] == "PipelineExecutionNotFoundException"
+
+
+@mock_aws
+def test_list_pipeline_executions():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    first_id = client.start_pipeline_execution(name="test-pipeline")[
+        "pipelineExecutionId"
+    ]
+    second_id = client.start_pipeline_execution(name="test-pipeline")[
+        "pipelineExecutionId"
+    ]
+
+    response = client.list_pipeline_executions(pipelineName="test-pipeline")
+    summaries = response["pipelineExecutionSummaries"]
+
+    assert len(summaries) == 2
+    # most recent execution first
+    assert summaries[0]["pipelineExecutionId"] == second_id
+    assert summaries[1]["pipelineExecutionId"] == first_id
+    assert summaries[0]["status"] == "Succeeded"
+
+
+@mock_aws
+def test_list_pipeline_executions_max_results():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    for _ in range(3):
+        client.start_pipeline_execution(name="test-pipeline")
+
+    response = client.list_pipeline_executions(
+        pipelineName="test-pipeline", maxResults=2
+    )
+
+    assert len(response["pipelineExecutionSummaries"]) == 2
+
+
+@mock_aws
+def test_list_pipeline_executions_errors():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.list_pipeline_executions(pipelineName="not-existing")
+    ex = e.value
+    assert ex.operation_name == "ListPipelineExecutions"
+    assert ex.response["Error"]["Code"] == "PipelineNotFoundException"

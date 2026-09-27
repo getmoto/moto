@@ -7012,6 +7012,10 @@
   "Location": "apne2-az3"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "apne2-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "apne2-az3"
  },

@@ -1115,6 +1115,79 @@
 - [ ] validate_flow_definition
 </details>
 
+## bedrock-agentcore
+<details>
+<summary>5% implemented</summary>
+
+- [ ] batch_create_memory_records
+- [ ] batch_delete_memory_records
+- [ ] batch_update_memory_records
+- [ ] complete_resource_token_auth
+- [ ] create_ab_test
+- [X] create_event
+- [ ] create_payment_instrument
+- [ ] create_payment_session
+- [ ] delete_ab_test
+- [ ] delete_batch_evaluation
+- [ ] delete_capacity_provider_session
+- [X] delete_event
+- [ ] delete_memory_record
+- [ ] delete_payment_instrument
+- [ ] delete_payment_session
+- [ ] delete_recommendation
+- [ ] evaluate
+- [ ] get_ab_test
+- [ ] get_agent_card
+- [ ] get_batch_evaluation
+- [ ] get_browser_session
+- [ ] get_code_interpreter_session
+- [X] get_event
+- [ ] get_memory_record
+- [ ] get_payment_instrument
+- [ ] get_payment_instrument_balance
+- [ ] get_payment_session
+- [ ] get_recommendation
+- [ ] get_resource_api_key
+- [ ] get_resource_oauth2_token
+- [ ] get_resource_payment_token
+- [ ] get_workload_access_token
+- [ ] get_workload_access_token_for_jwt
+- [ ] get_workload_access_token_for_user_id
+- [ ] ingest_data
+- [ ] invoke_agent_runtime
+- [ ] invoke_agent_runtime_command
+- [ ] invoke_browser
+- [ ] invoke_code_interpreter
+- [ ] invoke_harness
+- [ ] list_ab_tests
+- [ ] list_actors
+- [ ] list_batch_evaluations
+- [ ] list_browser_sessions
+- [ ] list_code_interpreter_sessions
+- [X] list_events
+- [ ] list_memory_extraction_jobs
+- [ ] list_memory_records
+- [ ] list_payment_instruments
+- [ ] list_payment_sessions
+- [ ] list_recommendations
+- [ ] list_sessions
+- [ ] process_payment
+- [ ] retrieve_memory_records
+- [ ] save_browser_session_profile
+- [ ] search_registry_records
+- [ ] start_batch_evaluation
+- [ ] start_browser_session
+- [ ] start_code_interpreter_session
+- [ ] start_memory_extraction_job
+- [ ] start_recommendation
+- [ ] stop_batch_evaluation
+- [ ] stop_browser_session
+- [ ] stop_code_interpreter_session
+- [ ] stop_runtime_session
+- [ ] update_ab_test
+- [ ] update_browser_stream
+</details>
+
 ## bedrock-agentcore-control
 <details>
 <summary>17% implemented</summary>
@@ -1667,7 +1740,7 @@
 
 ## cloudfront
 <details>
-<summary>14% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] associate_alias
 - [ ] associate_distribution_tenant_web_acl
@@ -1684,11 +1757,11 @@
 - [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
-- [ ] create_function
+- [X] create_function
 - [X] create_invalidation
 - [ ] create_invalidation_for_distribution_tenant
 - [X] create_key_group
-- [ ] create_key_value_store
+- [X] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
@@ -1709,9 +1782,9 @@
 - [ ] delete_distribution_tenant
 - [ ] delete_field_level_encryption_config
 - [ ] delete_field_level_encryption_profile
-- [ ] delete_function
+- [X] delete_function
 - [ ] delete_key_group
-- [ ] delete_key_value_store
+- [X] delete_key_value_store
 - [ ] delete_monitoring_subscription
 - [X] delete_origin_access_control
 - [ ] delete_origin_request_policy
@@ -1723,8 +1796,8 @@
 - [ ] delete_trust_store
 - [ ] delete_vpc_origin
 - [ ] describe_connection_function
-- [ ] describe_function
-- [ ] describe_key_value_store
+- [X] describe_function
+- [X] describe_key_value_store
 - [ ] disassociate_distribution_tenant_web_acl
 - [ ] disassociate_distribution_web_acl
 - [ ] get_anycast_ip_list
@@ -1745,7 +1818,7 @@
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
-- [ ] get_function
+- [X] get_function
 - [X] get_invalidation
 - [ ] get_invalidation_for_distribution_tenant
 - [X] get_key_group
@@ -1791,11 +1864,11 @@
 - [ ] list_domain_conflicts
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
-- [ ] list_functions
+- [X] list_functions
 - [X] list_invalidations
 - [ ] list_invalidations_for_distribution_tenant
 - [X] list_key_groups
-- [ ] list_key_value_stores
+- [X] list_key_value_stores
 - [X] list_origin_access_controls
 - [ ] list_origin_request_policies
 - [X] list_public_keys
@@ -1826,7 +1899,7 @@
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
-- [ ] update_key_value_store
+- [X] update_key_value_store
 - [X] update_origin_access_control
 - [ ] update_origin_request_policy
 - [ ] update_public_key
@@ -6095,7 +6168,7 @@
 
 ## identitystore
 <details>
-<summary>73% implemented</summary>
+<summary>89% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -6104,12 +6177,12 @@
 - [X] delete_group_membership
 - [X] delete_user
 - [X] describe_group
-- [ ] describe_group_membership
+- [X] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
-- [ ] get_group_membership_id
+- [X] get_group_membership_id
 - [X] get_user_id
-- [ ] is_member_in_groups
+- [X] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
 - [X] list_groups
@@ -8501,7 +8574,7 @@
 
 ## pipes
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_pipe
 - [X] delete_pipe
@@ -8512,7 +8585,7 @@
 - [X] stop_pipe
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_pipe
+- [X] update_pipe
 </details>
 
 ## polly
@@ -10690,7 +10763,7 @@
 
 ## servicediscovery
 <details>
-<summary>90% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_http_namespace
 - [X] create_private_dns_namespace
@@ -10698,7 +10771,7 @@
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
-- [ ] delete_service_attributes
+- [X] delete_service_attributes
 - [X] deregister_instance
 - [X] discover_instances
 - [X] discover_instances_revision
@@ -10707,7 +10780,7 @@
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
-- [ ] get_service_attributes
+- [X] get_service_attributes
 - [X] list_instances
 - [X] list_namespaces
 - [X] list_operations
@@ -10721,7 +10794,7 @@
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
-- [ ] update_service_attributes
+- [X] update_service_attributes
 </details>
 
 ## ses
@@ -12049,7 +12122,6 @@
 - bcm-pricing-calculator
 - bcm-recommended-actions
 - bedrock-agent-runtime
-- bedrock-agentcore
 - bedrock-data-automation
 - bedrock-data-automation-runtime
 - billing

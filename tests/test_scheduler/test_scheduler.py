@@ -238,10 +238,10 @@ def test_delete_schedule_for_none_existing_schedule():
 
 @mock_aws
 @pytest.mark.parametrize(
-    "start_date,expected_start_date",
+    "start_date",
     pytest_parametrize_test_create_get_schedule__with_start_date(),
 )
-def test_create_get_schedule__with_start_date(start_date, expected_start_date):
+def test_create_get_schedule__with_start_date(start_date):
     # Act
     client = boto3.client("scheduler", region_name="eu-west-1")
     client.create_schedule(
@@ -263,7 +263,9 @@ def test_create_get_schedule__with_start_date(start_date, expected_start_date):
     start_date_as_utc = datetime.astimezone(resp["StartDate"], timezone.utc).replace(
         tzinfo=None
     )
-    assert start_date_as_utc == expected_start_date
+    # Older versions of botocore truncate sub-second precision when sending
+    # unix timestamps, newer versions send the microseconds as-is
+    assert start_date_as_utc in [start_date, start_date.replace(microsecond=0)]
 
 
 @mock_aws

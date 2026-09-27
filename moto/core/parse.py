@@ -393,9 +393,9 @@ class BaseRestParser(RequestParser):
             if body_shape.type_name in ["string", "blob"]:
                 # This is a stream
                 body = response["body"]
-                if isinstance(body, bytes):
+                if isinstance(body, bytes) and body_shape.type_name == "string":
                     body = body.decode(self.DEFAULT_ENCODING)
-                if body != "":
+                if body:
                     final_parsed[payload_member_name] = body
             else:
                 original_parsed = self._initial_body_parse(response["body"])

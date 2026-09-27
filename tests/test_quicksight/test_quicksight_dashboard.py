@@ -45,6 +45,22 @@ def test_describe_dashboard():
     assert resp["Version"]["Status"] == "CREATION_SUCCESSFUL"
     assert resp["Version"]["VersionNumber"] == 1
     assert resp["Version"]["Description"] == "This is my test dashboard"
+    assert resp["Version"]["Arn"] == f"{resp['Arn']}/version/1"
+
+
+@mock_aws
+def test_create_dashboard_returns_a_version_arn():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    resp = client.create_dashboard(
+        AwsAccountId=ACCOUNT_ID,
+        DashboardId="my-test-dashboard",
+        Name="My Test Dashboard",
+        VersionDescription="This is my test dashboard",
+    )
+    assert resp["Arn"] == (
+        f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:dashboard/my-test-dashboard"
+    )
+    assert resp["VersionArn"] == f"{resp['Arn']}/version/1"
 
 
 @mock_aws

@@ -36,3 +36,8 @@ class CustomHealthNotFound(JsonRESTError):
 class InvalidInput(JsonRESTError):
     def __init__(self, message: str):
         super().__init__("InvalidInput", message)
+
+
+class ServiceAttributesLimitExceededException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__("ServiceAttributesLimitExceededException", message)

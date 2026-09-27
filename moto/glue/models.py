@@ -1477,7 +1477,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self,
         catalog_id: str,
         name: str,
-        hide_password: bool,
         apply_override_for_compute_environment: str,
     ) -> "FakeConnection":
         # TODO: Implement filtering
@@ -1488,10 +1487,33 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_connections(
-        self, catalog_id: str, filter: dict[str, Any], hide_password: bool
+        self, catalog_id: str, filter: dict[str, Any]
     ) -> list["FakeConnection"]:
-        # TODO: Implement filtering
-        return list(self.connections.values())
+        connections = list(self.connections.values())
+        if not filter:
+            return connections
+
+        connection_type = filter.get("ConnectionType")
+        if connection_type:
+            connections = [
+                c
+                for c in connections
+                if c.connection_input.get("ConnectionType") == connection_type
+            ]
+
+        # A connection matches when every criteria string in the filter is
+        # recorded on the connection. A connection with no MatchCriteria of its
+        # own therefore matches nothing.
+        match_criteria = filter.get("MatchCriteria")
+        if match_criteria:
+            wanted = set(match_criteria)
+            connections = [
+                c
+                for c in connections
+                if wanted.issubset(set(c.connection_input.get("MatchCriteria") or []))
+            ]
+
+        return connections
 
     def put_data_catalog_encryption_settings(
         self,
@@ -2619,12 +2641,26 @@ class FakeConnection(BaseModel):
         self.athena_properties = self.connection_input.get("AthenaProperties", {})
         self.python_properties = self.connection_input.get("PythonProperties", {})
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self, hide_password: bool = False) -> dict[str, Any]:
+        connection_input = self.connection_input
+        connection_properties = self.connection_properties
+        if hide_password:
+            # AWS leaves the PASSWORD entry out entirely rather than blanking it.
+            # Both copies of the properties are redacted, since the nested Connection carries them too.
+            connection_properties = {
+                key: value
+                for key, value in connection_properties.items()
+                if key != "PASSWORD"
+            }
+            connection_input = {
+                **connection_input,
+                "ConnectionProperties": connection_properties,
+            }
         return {
             "Name": self.name,
             "Description": self.description,
-            "Connection": self.connection_input,
-            "ConnectionProperties": self.connection_properties,
+            "Connection": connection_input,
+            "ConnectionProperties": connection_properties,
             "AthenaProperties": self.athena_properties,
             "SparkProperties": self.spark_properties,
             "PythonProperties": self.python_properties,

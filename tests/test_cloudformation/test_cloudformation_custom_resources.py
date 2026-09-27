@@ -103,6 +103,7 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     execution_failed, logs = wait_for_log_msg(
         expected_msg=["failed executing http.request", "Status code: 400"],
         log_group=log_group_name,
+        wait_time=90,
     )
     assert execution_failed is True, logs
 

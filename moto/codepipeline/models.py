@@ -4,6 +4,7 @@ from typing import Any
 from moto.codepipeline.exceptions import (
     InvalidStructureException,
     InvalidTagsException,
+    PipelineExecutionNotFoundException,
     PipelineNotFoundException,
     ResourceNotFoundException,
     TooManyTagsException,
@@ -13,7 +14,62 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
+from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
+
+
+class PipelineExecution(BaseModel):
+    def __init__(
+        self,
+        pipeline_name: str,
+        pipeline_version: int,
+        variables: list[dict[str, str]] | None,
+    ):
+        self.pipeline_execution_id = str(mock_random.uuid4())
+        self.pipeline_name = pipeline_name
+        self.pipeline_version = pipeline_version
+        self.variables = variables or []
+        self.start_time = utcnow()
+        self.last_update_time = self.start_time
+        # moto doesn't actually run any actions, so the execution is
+        # considered to have succeeded as soon as it's started
+        self.status = "Succeeded"
+        self.status_summary: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "pipelineName": self.pipeline_name,
+            "pipelineVersion": self.pipeline_version,
+            "pipelineExecutionId": self.pipeline_execution_id,
+            "status": self.status,
+            "statusSummary": self.status_summary,
+            "artifactRevisions": [],
+            # response shape is ResolvedPipelineVariable (name/resolvedValue),
+            # not PipelineVariable (name/value) used on the request side
+            "variables": [
+                {"name": v["name"], "resolvedValue": v["value"]} for v in self.variables
+            ],
+            "trigger": {
+                "triggerType": "StartPipelineExecution",
+                "triggerDetail": "",
+            },
+        }
+
+    def to_summary_dict(self) -> dict[str, Any]:
+        return {
+            "pipelineExecutionId": self.pipeline_execution_id,
+            "status": self.status,
+            "statusSummary": self.status_summary,
+            "startTime": iso_8601_datetime_with_milliseconds(self.start_time),
+            "lastUpdateTime": iso_8601_datetime_with_milliseconds(
+                self.last_update_time
+            ),
+            "sourceRevisions": [],
+            "trigger": {
+                "triggerType": "StartPipelineExecution",
+                "triggerDetail": "",
+            },
+        }
 
 
 class CodePipeline(BaseModel):
@@ -23,6 +79,8 @@ class CodePipeline(BaseModel):
 
         self.pipeline = self.add_default_values(pipeline)
         self.tags: dict[str, str] = {}
+        # keyed by pipelineExecutionId, insertion order == chronological order
+        self.executions: dict[str, PipelineExecution] = {}
 
         self._arn = f"arn:{get_partition(region)}:codepipeline:{region}:{account_id}:{pipeline['name']}"
         self._created = utcnow()
@@ -133,6 +191,61 @@ class CodePipelineBackend(BaseBackend):
             )
 
         return codepipeline.pipeline, codepipeline.metadata
+
+    def start_pipeline_execution(
+        self, name: str, variables: list[dict[str, str]] | None
+    ) -> str:
+        codepipeline = self.pipelines.get(name)
+
+        if not codepipeline:
+            raise PipelineNotFoundException(
+                f"Account '{self.account_id}' does not have a pipeline with name '{name}'"
+            )
+
+        execution = PipelineExecution(
+            pipeline_name=name,
+            pipeline_version=codepipeline.pipeline["version"],
+            variables=variables,
+        )
+        codepipeline.executions[execution.pipeline_execution_id] = execution
+
+        return execution.pipeline_execution_id
+
+    def get_pipeline_execution(
+        self, pipeline_name: str, pipeline_execution_id: str
+    ) -> PipelineExecution:
+        codepipeline = self.pipelines.get(pipeline_name)
+
+        if not codepipeline:
+            raise PipelineNotFoundException(
+                f"Account '{self.account_id}' does not have a pipeline with name '{pipeline_name}'"
+            )
+
+        execution = codepipeline.executions.get(pipeline_execution_id)
+        if not execution:
+            raise PipelineExecutionNotFoundException(
+                f"Account '{self.account_id}' does not have an execution with id "
+                f"'{pipeline_execution_id}' for pipeline '{pipeline_name}'"
+            )
+
+        return execution
+
+    def list_pipeline_executions(
+        self, pipeline_name: str, max_results: int | None
+    ) -> list[dict[str, Any]]:
+        codepipeline = self.pipelines.get(pipeline_name)
+
+        if not codepipeline:
+            raise PipelineNotFoundException(
+                f"Account '{self.account_id}' does not have a pipeline with name '{pipeline_name}'"
+            )
+
+        # most recent execution first
+        executions = list(reversed(codepipeline.executions.values()))
+        if max_results:
+            executions = executions[:max_results]
+
+        return [execution.to_summary_dict() for execution in executions]
 
     def update_pipeline(self, pipeline: dict[str, Any]) -> dict[str, Any]:
         codepipeline = self.pipelines.get(pipeline["name"])

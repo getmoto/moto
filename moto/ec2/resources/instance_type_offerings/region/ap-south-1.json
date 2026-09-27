@@ -2148,6 +2148,58 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "m8id.12xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.2xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.32xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.4xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.8xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.96xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.large",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.metal-48xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.metal-96xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "m8id.xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-south-1"
  },
@@ -2873,6 +2925,58 @@
  },
  {
   "InstanceType": "r8i.xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.12xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.2xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.32xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.4xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.8xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.96xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.large",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.metal-48xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.metal-96xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8id.xlarge",
   "Location": "ap-south-1"
  },
  {

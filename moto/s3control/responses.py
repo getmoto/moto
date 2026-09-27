@@ -44,12 +44,14 @@ class S3ControlResponse(BaseResponse):
         public_access_block_configuration = self._get_param(
             "PublicAccessBlockConfiguration"
         )
+        tags = self._get_param("Tags")
         access_point = self.backend.create_access_point(
             account_id=account_id,
             name=name,
             bucket=bucket,
             vpc_configuration=vpc_configuration,
             public_access_block_configuration=public_access_block_configuration,
+            tags=tags,
         )
         return ActionResult(
             {

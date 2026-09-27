@@ -1,8 +1,7 @@
-import json
 import re
 from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -104,7 +103,7 @@ class CodeBuildResponse(BaseResponse):
     def codebuild_backend(self) -> CodeBuildBackend:
         return codebuild_backends[self.current_account][self.region]
 
-    def list_builds_for_project(self) -> str:
+    def list_builds_for_project(self) -> ActionResult:
         _validate_required_params_project_name(self._get_param("projectName"))
 
         if (
@@ -120,9 +119,9 @@ class CodeBuildResponse(BaseResponse):
             self._get_param("projectName")
         )
 
-        return json.dumps({"ids": ids})
+        return ActionResult({"ids": ids})
 
-    def create_project(self) -> str:
+    def create_project(self) -> ActionResult:
         _validate_required_params_source(self._get_param("source"))
         service_role = self._get_param("serviceRole")
         _validate_required_params_service_role(
@@ -154,18 +153,18 @@ class CodeBuildResponse(BaseResponse):
             vpc_config=self._get_param("vpcConfig"),
         )
 
-        return json.dumps({"project": project_metadata})
+        return ActionResult({"project": project_metadata})
 
-    def list_projects(self) -> str:
+    def list_projects(self) -> ActionResult:
         project_metadata = self.codebuild_backend.list_projects()
-        return json.dumps({"projects": project_metadata})
+        return ActionResult({"projects": project_metadata})
 
-    def batch_get_projects(self) -> str:
+    def batch_get_projects(self) -> ActionResult:
         names = self._get_param("names")
         project_metadata = self.codebuild_backend.batch_get_projects(names)
-        return json.dumps({"projects": project_metadata})
+        return ActionResult({"projects": project_metadata})
 
-    def start_build(self) -> str:
+    def start_build(self) -> ActionResult:
         _validate_required_params_project_name(self._get_param("projectName"))
 
         if (
@@ -182,30 +181,30 @@ class CodeBuildResponse(BaseResponse):
             self._get_param("sourceVersion"),
             self._get_param("artifactsOverride"),
         )
-        return json.dumps({"build": metadata})
+        return ActionResult({"build": metadata})
 
-    def batch_get_builds(self) -> str:
+    def batch_get_builds(self) -> ActionResult:
         for build_id in self._get_param("ids"):
             if ":" not in build_id:
                 raise InvalidInputException("Invalid build ID provided")
 
         metadata = self.codebuild_backend.batch_get_builds(self._get_param("ids"))
-        return json.dumps({"builds": metadata})
+        return ActionResult({"builds": metadata})
 
-    def list_builds(self) -> str:
+    def list_builds(self) -> ActionResult:
         ids = self.codebuild_backend.list_builds()
-        return json.dumps({"ids": ids})
+        return ActionResult({"ids": ids})
 
-    def delete_project(self) -> str:
+    def delete_project(self) -> EmptyResult:
         _validate_required_params_project_name(self._get_param("name"))
 
         self.codebuild_backend.delete_project(self._get_param("name"))
-        return "{}"
+        return EmptyResult()
 
-    def stop_build(self) -> str:
+    def stop_build(self) -> ActionResult:
         _validate_required_params_id(
             self._get_param("id"), self.codebuild_backend.list_builds()
         )
 
         metadata = self.codebuild_backend.stop_build(self._get_param("id"))
-        return json.dumps({"build": metadata})
+        return ActionResult({"build": metadata})

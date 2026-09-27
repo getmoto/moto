@@ -28,13 +28,27 @@ def create_group(client):
 
 
 @mock_aws
-def test_create_group():
-    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region_name,partition",
+    [
+        ("us-east-1", "aws"),
+        ("us-west-1", "aws"),
+        ("us-west-2", "aws"),
+        ("us-gov-west-1", "aws-us-gov"),
+        ("cn-north-1", "aws-cn"),
+    ],
+)
+def test_create_group(region_name, partition, account_id):
+    resource_groups = boto3.client("resource-groups", region_name=region_name)
 
     response = create_group(client=resource_groups)
     assert "test_resource_group" in response["Group"]["Name"]
     assert "TAG_FILTERS_1_0" in response["ResourceQuery"]["Type"]
     assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
+    assert (
+        response["Group"]["GroupArn"]
+        == f"arn:{partition}:resource-groups:{region_name}:{account_id}:group/test_resource_group"
+    )
 
 
 @mock_aws

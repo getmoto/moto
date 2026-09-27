@@ -27,6 +27,27 @@ class CodePipelineResponse(BaseResponse):
 
         return json.dumps({"pipeline": pipeline, "metadata": metadata})
 
+    def start_pipeline_execution(self) -> str:
+        pipeline_execution_id = self.codepipeline_backend.start_pipeline_execution(
+            self._get_param("name"), self._get_param("variables")
+        )
+
+        return json.dumps({"pipelineExecutionId": pipeline_execution_id})
+
+    def get_pipeline_execution(self) -> str:
+        execution = self.codepipeline_backend.get_pipeline_execution(
+            self._get_param("pipelineName"), self._get_param("pipelineExecutionId")
+        )
+
+        return json.dumps({"pipelineExecution": execution.to_dict()})
+
+    def list_pipeline_executions(self) -> str:
+        executions = self.codepipeline_backend.list_pipeline_executions(
+            self._get_param("pipelineName"), self._get_param("maxResults")
+        )
+
+        return json.dumps({"pipelineExecutionSummaries": executions, "nextToken": None})
+
     def update_pipeline(self) -> str:
         pipeline = self.codepipeline_backend.update_pipeline(
             self._get_param("pipeline")
