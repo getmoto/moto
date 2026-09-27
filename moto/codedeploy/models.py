@@ -1,6 +1,7 @@
 """CodeDeployBackend class with methods for supported APIs."""
 
 import uuid
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -17,7 +18,21 @@ from .exceptions import (
     DeploymentGroupAlreadyExistsException,
     DeploymentGroupDoesNotExistException,
     DeploymentGroupNameRequiredException,
+    InvalidTimeRangeException,
 )
+
+
+def _to_timestamp(val: Any) -> float:
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, datetime):
+        return val.timestamp()
+    if isinstance(val, str):
+        try:
+            return float(val)
+        except ValueError:
+            return datetime.fromisoformat(val.replace("Z", "+00:00")).timestamp()
+    return 0.0
 
 
 class Application(BaseModel):
@@ -157,6 +172,7 @@ class DeploymentInfo(BaseModel):
         file_exists_behavior: str | None,
         override_alarm_configuration: AlarmConfiguration | None,
         creator: str | None,
+        external_id: str | None = None,
     ):
         self.application = application
         self.deployment_group = deployment_group
@@ -197,7 +213,7 @@ class DeploymentInfo(BaseModel):
 
         self.file_exists_behavior = file_exists_behavior
         self.deployment_status_messages: list[str] = []
-        self.external_id = ""
+        self.external_id = external_id or ""
         self.related_deployments: dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
 
@@ -325,6 +341,7 @@ class CodeDeployBackend(BaseBackend):
         update_outdated_instances_only: bool | None = None,
         file_exists_behavior: str | None = None,
         override_alarm_configuration: Any | None = None,
+        external_id: str | None = None,
     ) -> str:
         if application_name not in self.applications:
             raise ApplicationDoesNotExistException(
@@ -367,6 +384,7 @@ class CodeDeployBackend(BaseBackend):
             file_exists_behavior,
             override_alarm_configuration,
             "user",
+            external_id=external_id,
         )
 
         self.deployments[deployment.deployment_id] = deployment
@@ -474,6 +492,18 @@ class CodeDeployBackend(BaseBackend):
                 "If deploymentGroupName is specified, applicationName must be specified."
             )
 
+        if create_time_range:
+            start = create_time_range.get("start")
+            end = create_time_range.get("end")
+            if (
+                start is not None
+                and end is not None
+                and _to_timestamp(start) > _to_timestamp(end)
+            ):
+                raise InvalidTimeRangeException(
+                    "The start time must be earlier than the end time."
+                )
+
         def matches_filters(deployment: DeploymentInfo) -> bool:
             if application_name and deployment.application_name != application_name:
                 return False
@@ -489,6 +519,16 @@ class CodeDeployBackend(BaseBackend):
                     return False
             if include_only_statuses and deployment.status not in include_only_statuses:
                 return False
+            if external_id and deployment.external_id != external_id:
+                return False
+            if create_time_range:
+                start = create_time_range.get("start")
+                end = create_time_range.get("end")
+                dep_ts = _to_timestamp(deployment.create_time)
+                if start is not None and dep_ts < _to_timestamp(start):
+                    return False
+                if end is not None and dep_ts > _to_timestamp(end):
+                    return False
             return True
 
         return [
