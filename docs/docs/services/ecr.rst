@@ -110,7 +110,8 @@ maxResults and nextToken not implemented
 - [ ] list_image_referrers
 - [X] list_images
   
-maxResults and filtering not implemented
+The tagStatus filter is supported. maxResults, nextToken, and the
+imageStatus filter are not implemented.
 
 
 - [ ] list_pull_time_update_exclusions

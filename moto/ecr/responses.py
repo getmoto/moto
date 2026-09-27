@@ -71,7 +71,10 @@ class ECRResponse(BaseResponse):
     def list_images(self) -> ActionResult:
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
-        images = self.ecr_backend.list_images(repository_str, registry_id)
+        image_filter = self._get_param("filter", {})
+        images = self.ecr_backend.list_images(
+            repository_str, registry_id, tag_status=image_filter.get("tagStatus", "ANY")
+        )
         resp = []
         for image in images:
             for tag in image.image_tags or [None]:  # type: ignore
