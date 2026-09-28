@@ -169,7 +169,6 @@ class CodeDeployResponse(BaseResponse):
         )
         file_exists_behavior = self._get_param("fileExistsBehavior")
         override_alarm_configuration = self._get_param("overrideAlarmConfiguration")
-        external_id = self._get_param("externalId")
         deployment_id = self.codedeploy_backend.create_deployment(
             application_name=application_name,
             deployment_group_name=deployment_group_name,
@@ -182,7 +181,6 @@ class CodeDeployResponse(BaseResponse):
             update_outdated_instances_only=update_outdated_instances_only,
             file_exists_behavior=file_exists_behavior,
             override_alarm_configuration=override_alarm_configuration,
-            external_id=external_id,
         )
         return ActionResult({"deploymentId": deployment_id})
 

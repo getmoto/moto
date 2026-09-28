@@ -9,8 +9,6 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
-from moto.codedeploy.models import codedeploy_backends
-from moto.core import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -554,72 +552,6 @@ def test_list_deployments_with_status_filter():
     assert deployment_id in resp["deployments"]
     resp = client.list_deployments(includeOnlyStatuses=["Failed"])
     assert deployment_id not in resp["deployments"]
-
-
-@pytest.mark.skipif(
-    settings.TEST_SERVER_MODE, reason="Cannot access backend directly in server mode"
-)
-@mock_aws
-def test_list_deployments_with_external_id_filter():
-    client = boto3.client("codedeploy", region_name="ap-southeast-1")
-    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
-    application_name = str(uuid4())
-    client.create_application(
-        applicationName=application_name, computePlatform="Server"
-    )
-    deployment_group_name = str(uuid4())
-    client.create_deployment_group(
-        applicationName=application_name,
-        deploymentGroupName=deployment_group_name,
-        serviceRoleArn=service_role_arn,
-    )
-    resp1 = client.create_deployment(
-        applicationName=application_name,
-        deploymentGroupName=deployment_group_name,
-        revision={
-            "revisionType": "S3",
-            "s3Location": {
-                "bucket": "my-bucket",
-                "key": "my-key",
-                "bundleType": "zip",
-                "version": "1",
-                "eTag": "my-etag",
-            },
-        },
-    )
-    dep1_id = resp1["deploymentId"]
-    resp2 = client.create_deployment(
-        applicationName=application_name,
-        deploymentGroupName=deployment_group_name,
-        revision={
-            "revisionType": "S3",
-            "s3Location": {
-                "bucket": "my-bucket",
-                "key": "my-key2",
-                "bundleType": "zip",
-                "version": "1",
-                "eTag": "my-etag2",
-            },
-        },
-    )
-    dep2_id = resp2["deploymentId"]
-
-    backend = codedeploy_backends[DEFAULT_ACCOUNT_ID]["ap-southeast-1"]
-    backend.deployments[dep1_id].external_id = "ext-123"
-
-    res = client.list_deployments(externalId="ext-123")
-    assert res["deployments"] == [dep1_id]
-    assert dep2_id not in res["deployments"]
-
-    res = client.list_deployments(
-        applicationName=application_name,
-        deploymentGroupName=deployment_group_name,
-        externalId="ext-123",
-    )
-    assert res["deployments"] == [dep1_id]
-
-    res = client.list_deployments(externalId="nonexistent-ext-id")
-    assert res["deployments"] == []
 
 
 @pytest.mark.skipif(

@@ -125,7 +125,6 @@ class DeploymentInfo(BaseModel):
         file_exists_behavior: str | None,
         override_alarm_configuration: AlarmConfiguration | None,
         creator: str | None,
-        external_id: str | None = None,
     ):
         self.application = application
         self.deployment_group = deployment_group
@@ -165,7 +164,7 @@ class DeploymentInfo(BaseModel):
 
         self.file_exists_behavior = file_exists_behavior
         self.deployment_status_messages: list[str] = []
-        self.external_id = external_id or ""
+        self.external_id = ""
         self.related_deployments: dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
 
@@ -271,7 +270,6 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
         update_outdated_instances_only: bool | None = None,
         file_exists_behavior: str | None = None,
         override_alarm_configuration: Any | None = None,
-        external_id: str | None = None,
     ) -> str:
         if application_name not in self.applications:
             raise ApplicationDoesNotExistException(
@@ -314,7 +312,6 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
             file_exists_behavior,
             override_alarm_configuration,
             "user",
-            external_id=external_id,
         )
 
         self.deployments[deployment.deployment_id] = deployment
@@ -445,8 +442,6 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
                 if deployment.deployment_group_name != deployment_group_name:
                     return False
             if include_only_statuses and deployment.status not in include_only_statuses:
-                return False
-            if external_id and deployment.external_id != external_id:
                 return False
             if create_time_range:
                 if start is not None and deployment.create_time < start:
