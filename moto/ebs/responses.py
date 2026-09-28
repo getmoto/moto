@@ -1,7 +1,5 @@
 """Handles incoming ebs requests, invokes methods, returns responses."""
 
-from typing import Any
-
 from moto.core.responses import ActionResult, BaseResponse
 
 from .models import EBSBackend, ebs_backends
