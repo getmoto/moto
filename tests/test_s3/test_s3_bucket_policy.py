@@ -6,7 +6,7 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import settings
+from moto import mock_aws, settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 from tests.test_s3 import s3_aws_verified
 
@@ -176,3 +176,77 @@ def test_deny_delete_policy(bucket_name=None):
 
     # Delete Policy to make sure bucket can be emptied during teardown
     client.delete_bucket_policy(Bucket=bucket_name)
+
+
+@mock_aws
+def test_get_bucket_policy_status_without_policy():
+    client = boto3.client("s3", "us-east-1")
+    client.create_bucket(Bucket="policy-status-bucket")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_bucket_policy_status(Bucket="policy-status-bucket")
+    assert exc.value.response["Error"]["Code"] == "NoSuchBucketPolicy"
+
+
+@mock_aws
+def test_get_bucket_policy_status_public_policy():
+    client = boto3.client("s3", "us-east-1")
+    client.create_bucket(Bucket="policy-status-bucket")
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::policy-status-bucket/*",
+            }
+        ],
+    }
+    client.put_bucket_policy(Bucket="policy-status-bucket", Policy=json.dumps(policy))
+
+    status = client.get_bucket_policy_status(Bucket="policy-status-bucket")
+    assert status["PolicyStatus"] == {"IsPublic": True}
+
+
+@mock_aws
+def test_get_bucket_policy_status_scoped_policy():
+    client = boto3.client("s3", "us-east-1")
+    client.create_bucket(Bucket="policy-status-bucket")
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::123456789012:role/reader"},
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::policy-status-bucket/*",
+            }
+        ],
+    }
+    client.put_bucket_policy(Bucket="policy-status-bucket", Policy=json.dumps(policy))
+
+    status = client.get_bucket_policy_status(Bucket="policy-status-bucket")
+    assert status["PolicyStatus"] == {"IsPublic": False}
+
+
+@mock_aws
+def test_get_bucket_policy_status_wildcard_with_condition_is_not_public():
+    client = boto3.client("s3", "us-east-1")
+    client.create_bucket(Bucket="policy-status-bucket")
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::policy-status-bucket/*",
+                "Condition": {"StringEquals": {"aws:SourceVpc": "vpc-12345678"}},
+            }
+        ],
+    }
+    client.put_bucket_policy(Bucket="policy-status-bucket", Policy=json.dumps(policy))
+
+    status = client.get_bucket_policy_status(Bucket="policy-status-bucket")
+    assert status["PolicyStatus"] == {"IsPublic": False}

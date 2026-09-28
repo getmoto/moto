@@ -661,6 +661,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
         self.package_type = spec.get("PackageType", "Zip")
+        self.kms_key_arn = spec.get("KMSKeyArn")
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
         self.layers: list[LayerDataType] = self._get_layers_data(spec.get("Layers", []))
@@ -793,6 +794,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "Runtime": self.run_time,
             "State": self.state,
             "PackageType": self.package_type,
+            "KMSKeyArn": self.kms_key_arn,
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,

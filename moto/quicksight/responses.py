@@ -260,7 +260,7 @@ class QuickSightResponse(BaseResponse):
         return json.dumps(
             {
                 "Arn": dashboard.arn,
-                "VersionArn": dashboard.version_number,
+                "VersionArn": dashboard.version_arn,
                 "DashboardId": dashboard.dashboard_id,
                 "CreationStatus": dashboard.status,
             }

@@ -90,6 +90,7 @@ from .models import (
 from .utils import (
     ARCHIVE_STORAGE_CLASSES,
     bucket_name_from_url,
+    bucket_policy_is_public,
     compute_checksum,
     cors_matches_origin,
     metadata_from_headers,
@@ -107,6 +108,7 @@ ACTION_MAP = {
             "lifecycle": "GetLifecycleConfiguration",
             "versioning": "GetBucketVersioning",
             "policy": "GetBucketPolicy",
+            "policyStatus": "GetBucketPolicyStatus",
             "website": "GetBucketWebsite",
             "acl": "GetBucketAcl",
             "tagging": "GetBucketTagging",
@@ -638,6 +640,8 @@ class S3Response(BaseResponse):
             return self.get_bucket_lifecycle()
         elif "versioning" in querystring:
             return self.get_bucket_versioning()
+        elif "policyStatus" in querystring:
+            return self.get_bucket_policy_status()
         elif "policy" in querystring:
             return self.get_bucket_policy()
         elif "website" in querystring:
@@ -1404,6 +1408,17 @@ class S3Response(BaseResponse):
         if not policy:
             raise NoSuchBucketPolicy(bucket_name=self.bucket_name)
         return 200, {}, policy
+
+    def get_bucket_policy_status(self) -> TYPE_RESPONSE:
+        policy = self.backend.get_bucket_policy(self.bucket_name)
+        if not policy:
+            raise NoSuchBucketPolicy(bucket_name=self.bucket_name)
+        self.data["Action"] = "GetBucketPolicyStatus"
+        return self.serialized(
+            ActionResult(
+                {"PolicyStatus": {"IsPublic": bucket_policy_is_public(policy)}}
+            )
+        )
 
     def get_bucket_replication(self) -> str | TYPE_RESPONSE:
         self.data["Action"] = "GetBucketReplication"
