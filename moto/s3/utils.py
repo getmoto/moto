@@ -1,6 +1,7 @@
 import base64
 import binascii
 import hashlib
+import json
 import logging
 import re
 import sys
@@ -240,4 +241,39 @@ def cors_matches_origin(origin_header: str, allowed_origins: list[str]) -> bool:
     for allowed in allowed_origins:
         if re.match(allowed.replace(".", "\\.").replace("*", ".*"), origin_header):
             return True
+    return False
+
+
+def bucket_policy_is_public(policy: bytes | str) -> bool:
+    """Determine whether a bucket policy makes the bucket public.
+
+    Mirrors the essence of AWS's public policy evaluation: a policy is public
+    if any statement allows access to a wildcard principal without narrowing
+    it down through a Condition block. Statements that carry any Condition are
+    treated as non-public, which matches how AWS treats condition keys that
+    restrict access (the full AWS evaluation of which condition keys still
+    count as public is intentionally out of scope here).
+    """
+    try:
+        parsed = json.loads(policy)
+    except (ValueError, TypeError):
+        return False
+
+    statements = parsed.get("Statement") or []
+    if isinstance(statements, dict):
+        statements = [statements]
+    for statement in statements:
+        if statement.get("Effect") != "Allow":
+            continue
+        if "Condition" in statement:
+            continue
+        principal = statement.get("Principal")
+        if principal == "*":
+            return True
+        if isinstance(principal, dict):
+            aws_principal = principal.get("AWS")
+            if aws_principal == "*":
+                return True
+            if isinstance(aws_principal, list) and "*" in aws_principal:
+                return True
     return False

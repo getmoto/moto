@@ -1,13 +1,15 @@
 """CodeDeployBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.utils import utcnow
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
@@ -44,21 +46,12 @@ class Application(BaseModel):
         self.compute_platform = compute_platform
         self.tags = tags.copy() if tags else []
 
-        # Boto docs mention that the field should be datetime, but AWS API says number
-        self.create_time = iso_8601_datetime_with_milliseconds()
+        self.create_time = utcnow()
 
         # these GitHub fields need to be set by the user in the console
         # so will be omitting them for now since they are not required and require console
         # self.github_account_name = ""
         # self.linked_to_github = False
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "applicationId": self.id,
-            "applicationName": self.application_name,
-            "createTime": self.create_time,
-            "computePlatform": self.compute_platform,
-        }
 
 
 class CodeDeployDefault(str, Enum):
@@ -129,40 +122,13 @@ class DeploymentGroup(BaseModel):
         self.termination_hook_enabled = termination_hook_enabled
         self.deployment_group_id = str(uuid.uuid4())
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "applicationName": self.application.application_name,
-            "deploymentGroupId": self.deployment_group_id,
-            "deploymentGroupName": self.deployment_group_name,
-            "deploymentConfigName": str(self.deployment_config_name),
-            "ec2TagFilters": self.ec2_tag_filters,
-            "onPremisesInstanceTagFilters": self.on_premises_instance_tag_filters,
-            "autoScalingGroups": self.auto_scaling_groups,
-            "serviceRoleArn": self.service_role_arn,
-            "targetRevision": {},  # TODO
-            "triggerConfigurations": self.trigger_configurations,
-            "alarmConfiguration": {},  # TODO
-            "autoRollbackConfiguration": self.auto_rollback_configuration,
-            "deploymentStyle": self.deployment_style,
-            "outdatedInstancesStrategy": self.outdated_instances_strategy,
-            "blueGreenDeploymentConfiguration": self.blue_green_deployment_configuration,
-            "loadBalancerInfo": self.load_balancer_info,
-            "lastSuccessfulDeployment": {},  # TODO
-            "lastAttemptedDeployment": {},  # TODO
-            "ec2TagSet": self.ec2_tag_set,
-            "onPremisesTagSet": self.on_premises_tag_set,
-            "computePlatform": self.application.compute_platform,
-            "ecsServices": self.ecs_services,
-            "terminationHookEnabled": self.termination_hook_enabled,
-        }
-
 
 class DeploymentInfo(BaseModel):
     def __init__(
         self,
         application: Application,
         deployment_group: DeploymentGroup,
-        revision: str,
+        revision: dict[str, Any],
         deployment_config_name: str | None,
         description: str | None,
         ignore_application_stop_failures: bool | None,
@@ -182,10 +148,9 @@ class DeploymentInfo(BaseModel):
         self.revision = revision
         self.status = "Created"
 
-        # Boto docs mention that the time fields should be datetime, but AWS API says number
-        self.create_time = iso_8601_datetime_with_milliseconds()
-        self.start_time = None  # iso_8601_datetime_with_milliseconds()
-        self.complete_time = None  # iso_8601_datetime_with_milliseconds()
+        self.create_time = utcnow()
+        self.start_time: datetime | None = None
+        self.complete_time: datetime | None = None
 
         # summary of deployment status of the instances in the deployment
         self.deployment_overview = {
@@ -217,43 +182,11 @@ class DeploymentInfo(BaseModel):
         self.related_deployments: dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "applicationName": self.application_name,
-            "deploymentGroupName": self.deployment_group_name,
-            "deploymentConfigName": str(self.deployment_config_name),
-            "deploymentId": self.deployment_id,
-            "previousRevision": {},  # TODO
-            "revision": self.revision,
-            "status": self.status,
-            "errorInformation": {},  # TODO
-            "createTime": self.create_time,
-            "startTime": self.start_time,
-            "completeTime": self.complete_time,
-            "deploymentOverview": self.deployment_overview,
-            "description": self.description,
-            "creator": self.creator,
-            "ignoreApplicationStopFailures": self.ignore_application_stop_failures,
-            "autoRollbackConfiguration": self.auto_rollback_configuration,
-            "updateOutdatedInstancesOnly": self.update_outdated_instances_only,
-            "rollbackInfo": {},  # TODO information about a deployment rollback
-            "deploymentStyle": self.deployment_group.deployment_style,
-            "targetInstances": self.target_instances,
-            "instanceTerminationWaitTimeStarted": self.instance_termination_wait_time_started,  # TODO
-            "blueGreenDeploymentConfiguration": self.deployment_group.blue_green_deployment_configuration,
-            "loadBalancerInfo": self.deployment_group.load_balancer_info,
-            "additionalDeploymentStatusInfo": self.additional_deployment_status_info,  # TODO
-            "fileExistsBehavior": self.file_exists_behavior,
-            "deploymentStatusMessages": self.deployment_status_messages,  # TODO
-            "computePlatform": self.application.compute_platform,
-            "externalId": self.external_id,
-            "relatedDeployments": self.related_deployments,  # TODO
-            "overrideAlarmConfiguration": self.override_alarm_configuration,
-        }
 
-
-class CodeDeployBackend(BaseBackend):
+class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of CodeDeploy APIs."""
+
+    SERVICE_NAMESPACE = "codedeploy"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -261,6 +194,17 @@ class CodeDeployBackend(BaseBackend):
         self.deployments: dict[str, DeploymentInfo] = {}
         self.deployment_groups: dict[str, dict[str, DeploymentGroup]] = {}
         self.tagger = TaggingService()
+
+    def _arn(self, resource: str) -> str:
+        return f"arn:{self.partition}:codedeploy:{self.region_name}:{self.account_id}:{resource}"
+
+    def _application_arn(self, application_name: str) -> str:
+        return self._arn(f"application:{application_name}")
+
+    def _deployment_group_arn(
+        self, application_name: str, deployment_group_name: str
+    ) -> str:
+        return self._arn(f"deploymentgroup:{application_name}/{deployment_group_name}")
 
     def get_application(self, application_name: str) -> Application:
         if application_name not in self.applications:
@@ -323,8 +267,7 @@ class CodeDeployBackend(BaseBackend):
         self.applications[app.application_name] = app
 
         if tags:
-            app_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:application:{application_name}"
-            self.tagger.tag_resource(app_arn, tags)
+            self.tagger.tag_resource(self._application_arn(application_name), tags)
 
         return app.id
 
@@ -332,7 +275,7 @@ class CodeDeployBackend(BaseBackend):
         self,
         application_name: str,
         deployment_group_name: str,
-        revision: str,
+        revision: dict[str, Any],
         deployment_config_name: str | None = None,
         description: str | None = None,
         ignore_application_stop_failures: bool | None = None,
@@ -389,7 +332,7 @@ class CodeDeployBackend(BaseBackend):
 
         self.deployments[deployment.deployment_id] = deployment
 
-        deployment_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deployment:{deployment.deployment_id}"
+        deployment_arn = self._arn(f"deployment:{deployment.deployment_id}")
         if self.deployment_groups[application_name][deployment_group_name].tags:
             self.tagger.tag_resource(
                 deployment_arn,
@@ -462,8 +405,10 @@ class CodeDeployBackend(BaseBackend):
         self.deployment_groups[application_name][dg.deployment_group_name] = dg
 
         if tags:
-            dg_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deploymentgroup:{application_name}/{deployment_group_name}"
-            self.tagger.tag_resource(dg_arn, tags)
+            self.tagger.tag_resource(
+                self._deployment_group_arn(application_name, deployment_group_name),
+                tags,
+            )
 
         return dg.deployment_group_id
 
@@ -549,20 +494,34 @@ class CodeDeployBackend(BaseBackend):
             for deployment_group in self.deployment_groups[application_name].values()
         ]
 
-    def list_tags_for_resource(
-        self, resource_arn: str
-    ) -> dict[str, list[dict[str, str]]]:
-        return self.tagger.list_tags_for_resource(resource_arn)
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
-    def tag_resource(
-        self, resource_arn: str, tags: list[dict[str, str]]
-    ) -> dict[str, Any]:
-        self.tagger.tag_resource(resource_arn, tags)
-        return {}
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for application_name in self.applications:
+            arn = self._application_arn(application_name)
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="codedeploy:application",
+            )
+        for application_name, groups in self.deployment_groups.items():
+            for deployment_group_name in groups:
+                arn = self._deployment_group_arn(
+                    application_name, deployment_group_name
+                )
+                yield TaggedResource(
+                    arn=arn,
+                    tags=self.tagger.get_tag_dict_for_resource(arn),
+                    resource_type="codedeploy:deploymentgroup",
+                )
 
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        return {}
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 codedeploy_backends = BackendDict(CodeDeployBackend, "codedeploy")
