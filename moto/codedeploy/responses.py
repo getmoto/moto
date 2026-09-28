@@ -272,7 +272,9 @@ class CodeDeployResponse(BaseResponse):
     def tag_resource(self) -> EmptyResult:
         resource_arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")
-        self.codedeploy_backend.tag_resource(resource_arn, tags)
+        self.codedeploy_backend.tag_resource(
+            resource_arn, {tag["Key"]: tag.get("Value", "") for tag in tags}
+        )
         return EmptyResult()
 
     def untag_resource(self) -> EmptyResult:

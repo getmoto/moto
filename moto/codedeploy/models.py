@@ -1,15 +1,14 @@
 """CodeDeployBackend class with methods for supported APIs."""
 
 import uuid
-from datetime import datetime
 from collections.abc import Iterator
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.utils import utcnow
 from moto.utilities.tagging_service import TaggingService
 
@@ -478,6 +477,7 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
                     tags=self.tagger.get_tag_dict_for_resource(arn),
                     resource_type="codedeploy:deploymentgroup",
                 )
+
     def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
 
