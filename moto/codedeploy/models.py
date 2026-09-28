@@ -1,11 +1,13 @@
 """CodeDeployBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from enum import Enum
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.tagging_service import TaggingService
 
@@ -236,8 +238,10 @@ class DeploymentInfo(BaseModel):
         }
 
 
-class CodeDeployBackend(BaseBackend):
+class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
     """Implementation of CodeDeploy APIs."""
+
+    SERVICE_NAMESPACE = "codedeploy"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -245,6 +249,17 @@ class CodeDeployBackend(BaseBackend):
         self.deployments: dict[str, DeploymentInfo] = {}
         self.deployment_groups: dict[str, dict[str, DeploymentGroup]] = {}
         self.tagger = TaggingService()
+
+    def _arn(self, resource: str) -> str:
+        return f"arn:{self.partition}:codedeploy:{self.region_name}:{self.account_id}:{resource}"
+
+    def _application_arn(self, application_name: str) -> str:
+        return self._arn(f"application:{application_name}")
+
+    def _deployment_group_arn(
+        self, application_name: str, deployment_group_name: str
+    ) -> str:
+        return self._arn(f"deploymentgroup:{application_name}/{deployment_group_name}")
 
     def get_application(self, application_name: str) -> Application:
         if application_name not in self.applications:
@@ -307,8 +322,7 @@ class CodeDeployBackend(BaseBackend):
         self.applications[app.application_name] = app
 
         if tags:
-            app_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:application:{application_name}"
-            self.tagger.tag_resource(app_arn, tags)
+            self.tagger.tag_resource(self._application_arn(application_name), tags)
 
         return app.id
 
@@ -371,7 +385,7 @@ class CodeDeployBackend(BaseBackend):
 
         self.deployments[deployment.deployment_id] = deployment
 
-        deployment_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deployment:{deployment.deployment_id}"
+        deployment_arn = self._arn(f"deployment:{deployment.deployment_id}")
         if self.deployment_groups[application_name][deployment_group_name].tags:
             self.tagger.tag_resource(
                 deployment_arn,
@@ -444,8 +458,10 @@ class CodeDeployBackend(BaseBackend):
         self.deployment_groups[application_name][dg.deployment_group_name] = dg
 
         if tags:
-            dg_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deploymentgroup:{application_name}/{deployment_group_name}"
-            self.tagger.tag_resource(dg_arn, tags)
+            self.tagger.tag_resource(
+                self._deployment_group_arn(application_name, deployment_group_name),
+                tags,
+            )
 
         return dg.deployment_group_id
 
@@ -514,15 +530,31 @@ class CodeDeployBackend(BaseBackend):
     ) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource_arn)
 
-    def tag_resource(
-        self, resource_arn: str, tags: list[dict[str, str]]
-    ) -> dict[str, Any]:
-        self.tagger.tag_resource(resource_arn, tags)
-        return {}
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for application_name in self.applications:
+            arn = self._application_arn(application_name)
+            yield TaggedResource(
+                arn=arn,
+                tags=self.tagger.get_tag_dict_for_resource(arn),
+                resource_type="codedeploy:application",
+            )
+        for application_name, groups in self.deployment_groups.items():
+            for deployment_group_name in groups:
+                arn = self._deployment_group_arn(
+                    application_name, deployment_group_name
+                )
+                yield TaggedResource(
+                    arn=arn,
+                    tags=self.tagger.get_tag_dict_for_resource(arn),
+                    resource_type="codedeploy:deploymentgroup",
+                )
 
-    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
-        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        return {}
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 codedeploy_backends = BackendDict(CodeDeployBackend, "codedeploy")

@@ -196,12 +196,14 @@ class CodeDeployResponse(BaseResponse):
         """Handler for tag_resource API call."""
         resource_arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")
-        response = self.codedeploy_backend.tag_resource(resource_arn, tags)
-        return json.dumps(response)
+        self.codedeploy_backend.tag_resource(
+            resource_arn, {tag["Key"]: tag.get("Value", "") for tag in tags}
+        )
+        return "{}"
 
     def untag_resource(self) -> str:
         """Handler for untag_resource API call."""
         resource_arn = self._get_param("ResourceArn")
         tag_keys = self._get_param("TagKeys")
-        response = self.codedeploy_backend.untag_resource(resource_arn, tag_keys)
-        return json.dumps(response)
+        self.codedeploy_backend.untag_resource(resource_arn, tag_keys)
+        return "{}"
