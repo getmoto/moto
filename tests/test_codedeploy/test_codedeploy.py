@@ -690,3 +690,25 @@ def test_deployment_inherits_tags():
     response = client.list_tags_for_resource(ResourceArn=deployment_arn)
     assert "Tags" in response
     assert len(response["Tags"]) == 1
+
+
+@mock_aws
+def test_tag_and_untag_resource():
+    client = boto3.client("codedeploy", region_name="us-west-2")
+    app_name = "test-tag-untag-app"
+    client.create_application(applicationName=app_name, computePlatform="Server")
+    app_arn = f"arn:aws:codedeploy:us-west-2:123456789012:application:{app_name}"
+
+    client.tag_resource(
+        ResourceArn=app_arn,
+        Tags=[{"Key": "Team", "Value": "Platform"}, {"Key": "Env", "Value": "Dev"}],
+    )
+    assert client.list_tags_for_resource(ResourceArn=app_arn)["Tags"] == [
+        {"Key": "Team", "Value": "Platform"},
+        {"Key": "Env", "Value": "Dev"},
+    ]
+
+    client.untag_resource(ResourceArn=app_arn, TagKeys=["Team"])
+    assert client.list_tags_for_resource(ResourceArn=app_arn)["Tags"] == [
+        {"Key": "Env", "Value": "Dev"}
+    ]
