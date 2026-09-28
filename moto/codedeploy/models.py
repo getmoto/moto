@@ -20,6 +20,7 @@ from .exceptions import (
     DeploymentGroupAlreadyExistsException,
     DeploymentGroupDoesNotExistException,
     DeploymentGroupNameRequiredException,
+    InvalidTimeRangeException,
 )
 
 
@@ -406,7 +407,7 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
         deployment_group_name: str,
         external_id: str,
         include_only_statuses: list[str],
-        create_time_range: dict[str, Any],
+        create_time_range: dict[str, datetime],
     ) -> list[str]:
         # Ensure if applicationName is specified, then deploymentGroupName must be specified.
         # If deploymentGroupName is specified, application must be specified else error.
@@ -418,6 +419,13 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
         if deployment_group_name and not application_name:
             raise ApplicationNameRequiredException(
                 "If deploymentGroupName is specified, applicationName must be specified."
+            )
+
+        start = create_time_range.get("start")
+        end = create_time_range.get("end")
+        if start is not None and end is not None and start > end:
+            raise InvalidTimeRangeException(
+                "The start time must be earlier than the end time."
             )
 
         def matches_filters(deployment: DeploymentInfo) -> bool:
@@ -435,6 +443,11 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
                     return False
             if include_only_statuses and deployment.status not in include_only_statuses:
                 return False
+            if create_time_range:
+                if start is not None and deployment.create_time < start:
+                    return False
+                if end is not None and deployment.create_time > end:
+                    return False
             return True
 
         return [
