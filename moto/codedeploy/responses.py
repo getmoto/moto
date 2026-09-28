@@ -242,7 +242,7 @@ class CodeDeployResponse(BaseResponse):
         deployment_group_name = self._get_param("deploymentGroupName")
         external_id = self._get_param("externalId")
         include_only_statuses = self._get_param("includeOnlyStatuses")
-        create_time_range = self._get_param("createTimeRange")
+        create_time_range = self._get_param("createTimeRange", {})
         deployments = self.codedeploy_backend.list_deployments(
             application_name=application_name,
             deployment_group_name=deployment_group_name,

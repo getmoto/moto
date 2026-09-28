@@ -24,19 +24,6 @@ from .exceptions import (
 )
 
 
-def _to_timestamp(val: Any) -> float:
-    if isinstance(val, (int, float)):
-        return float(val)
-    if isinstance(val, datetime):
-        return val.timestamp()
-    if isinstance(val, str):
-        try:
-            return float(val)
-        except ValueError:
-            return datetime.fromisoformat(val.replace("Z", "+00:00")).timestamp()
-    return 0.0
-
-
 class Application(BaseModel):
     def __init__(
         self, application_name: str, compute_platform: str, tags: list[dict[str, str]]
@@ -423,7 +410,7 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
         deployment_group_name: str,
         external_id: str,
         include_only_statuses: list[str],
-        create_time_range: dict[str, Any],
+        create_time_range: dict[str, datetime],
     ) -> list[str]:
         # Ensure if applicationName is specified, then deploymentGroupName must be specified.
         # If deploymentGroupName is specified, application must be specified else error.
@@ -437,17 +424,12 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
                 "If deploymentGroupName is specified, applicationName must be specified."
             )
 
-        if create_time_range:
-            start = create_time_range.get("start")
-            end = create_time_range.get("end")
-            if (
-                start is not None
-                and end is not None
-                and _to_timestamp(start) > _to_timestamp(end)
-            ):
-                raise InvalidTimeRangeException(
-                    "The start time must be earlier than the end time."
-                )
+        start = create_time_range.get("start")
+        end = create_time_range.get("end")
+        if start is not None and end is not None and start > end:
+            raise InvalidTimeRangeException(
+                "The start time must be earlier than the end time."
+            )
 
         def matches_filters(deployment: DeploymentInfo) -> bool:
             if application_name and deployment.application_name != application_name:
@@ -467,12 +449,9 @@ class CodeDeployBackend(BaseBackend, TaggableResourcesMixin):
             if external_id and deployment.external_id != external_id:
                 return False
             if create_time_range:
-                start = create_time_range.get("start")
-                end = create_time_range.get("end")
-                dep_ts = _to_timestamp(deployment.create_time)
-                if start is not None and dep_ts < _to_timestamp(start):
+                if start is not None and deployment.create_time < start:
                     return False
-                if end is not None and dep_ts > _to_timestamp(end):
+                if end is not None and deployment.create_time > end:
                     return False
             return True
 
