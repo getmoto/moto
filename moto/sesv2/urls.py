@@ -26,4 +26,7 @@ url_paths = {
     "{0}/v2/email/identities/(?P<EmailIdentity>[^/]+)/policies/(?P<PolicyName>[^/]+)$": SESV2Response.dispatch,
     "{0}/v2/email/identities/(?P<EmailIdentity>[^/]+)/policies$": SESV2Response.dispatch,
     "{0}/v2/email/tags$": SESV2Response.dispatch,
+    # Botocore 1.43.105 changed some request uri paths for SESv2. (I suspect these might get reverted.)
+    "{0}/v2/email/list-configuration-sets": SESV2Response.dispatch,
+    "{0}/v2/email/list-identities": SESV2Response.dispatch,
 }
