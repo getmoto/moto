@@ -2984,3 +2984,42 @@ def test_update_missing_stack_instance_raises_exception():
     assert error["Code"] == "StackInstanceNotFoundException"
     metadata = exc.value.response["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 404
+
+
+# https://github.com/getmoto/moto/issues/10173
+@mock_aws
+def test_update_stack_instances_updates_existing_targets_regardless_of_order():
+    cf = boto3.client("cloudformation", region_name="eu-west-1")
+    missing_account = "333333333333"
+    cf.create_stack_set(
+        StackSetName="demo",
+        TemplateBody='{"Resources": {}}',
+        PermissionModel="SELF_MANAGED",
+        Parameters=[{"ParameterKey": "Foo", "ParameterValue": "original"}],
+    )
+    # Only ACCOUNT_ID has an instance; missing_account does not.
+    cf.create_stack_instances(
+        StackSetName="demo", Accounts=[ACCOUNT_ID], Regions=["eu-west-1"]
+    )
+
+    # missing_account is ordered before ACCOUNT_ID in the request.
+    with pytest.raises(ClientError) as exc:
+        cf.update_stack_instances(
+            StackSetName="demo",
+            Accounts=[missing_account, ACCOUNT_ID],
+            Regions=["eu-west-1"],
+            ParameterOverrides=[{"ParameterKey": "Foo", "ParameterValue": "updated"}],
+        )
+    assert exc.value.response["Error"]["Code"] == "StackInstanceNotFoundException"
+
+    # ACCOUNT_ID's existing instance should still have been updated, despite
+    # being ordered after the missing target and despite the overall
+    # operation raising.
+    instance = cf.describe_stack_instance(
+        StackSetName="demo",
+        StackInstanceAccount=ACCOUNT_ID,
+        StackInstanceRegion="eu-west-1",
+    )["StackInstance"]
+    assert instance["ParameterOverrides"] == [
+        {"ParameterKey": "Foo", "ParameterValue": "updated"}
+    ]

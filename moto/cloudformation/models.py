@@ -375,12 +375,22 @@ class StackInstances(BaseModel):
         regions: list[str],
         parameters: list[dict[str, Any]] | None,
     ) -> Any:
+        # AWS updates every (account, region) target independently within
+        # the batch - a missing target doesn't stop the rest of the batch
+        # from being updated, it just makes the overall operation raise
+        # once everything else has been processed. Raising immediately on
+        # the first missing target, instead, made the result depend on
+        # request-list ordering.
+        missing_target = False
         for account in accounts:
             for region in regions:
                 instance = self.get_instance(account, region)
                 if instance is None:
-                    raise StackInstanceNotFound()
+                    missing_target = True
+                    continue
                 instance.parameters = parameters or []
+        if missing_target:
+            raise StackInstanceNotFound()
 
     def delete(self, accounts: list[str], regions: list[str]) -> None:
         to_delete = [
