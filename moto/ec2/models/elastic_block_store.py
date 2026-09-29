@@ -580,16 +580,16 @@ class EBSBackend:
         The CopyTagsFromSource-parameter is not yet implemented.
         """
         instance = self.get_instance(instance_spec["InstanceId"])  # type: ignore[attr-defined]
-        block_device_mappings = instance.block_device_mapping
+        block_device_mappings = instance.get_block_device_mapping
 
         if str(instance_spec.get("ExcludeBootVolume", False)).lower() == "true":
             volumes = [
                 m.volume_id
-                for k, m in block_device_mappings.items()
+                for k, m in block_device_mappings
                 if k != instance.root_device_name
             ]
         else:
-            volumes = [m.volume_id for m in block_device_mappings.values()]
+            volumes = [m.volume_id for _, m in block_device_mappings]
 
         snapshots = [
             self.create_snapshot(v_id, description=description) for v_id in volumes

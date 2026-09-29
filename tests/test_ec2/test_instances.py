@@ -244,7 +244,6 @@ def test_terminate_empty_instances():
 
 
 @mock_aws
-@pytest.mark.xfail(message="block device mapping attribute is not yet thread-safe")
 def test_describe_instances_while_attaching_and_detaching_volumes():
     """
     DescribeInstances iterates over the instance's block device mapping.
