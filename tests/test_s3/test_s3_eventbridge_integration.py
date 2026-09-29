@@ -7,6 +7,7 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
+from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -280,6 +281,55 @@ def test_restore_key_notifications():
         "ObjectRestore",
         "ObjectRestore",
     ]
+
+
+@mock_aws
+def test_intelligent_tiering_access_tier_changed_notification():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Freezing time only possible in DecoratorMode")
+
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    log_group_name = resource_names["log_group_name"]
+
+    s3_resource = boto3.resource("s3", region_name=REGION_NAME)
+    bucket = s3_resource.Bucket(bucket_name)
+
+    def tier_change_events() -> list[dict[str, Any]]:
+        events = _get_send_events(log_group_name=log_group_name)
+        return [
+            json.loads(e["message"])
+            for e in events
+            if json.loads(e["message"])["detail-type"] == "Object Access Tier Changed"
+        ]
+
+    with freeze_time("2023-01-01 12:00:00"):
+        key = bucket.put_object(
+            Key="the-key", Body=b"somedata", StorageClass="INTELLIGENT_TIERING"
+        )
+
+    # Still well within the Frequent Access window - no tier-change yet
+    with freeze_time("2023-01-20 12:00:00"):
+        key.load()
+    assert tier_change_events() == []
+
+    # 30+ days untouched: Frequent Access -> Infrequent Access
+    with freeze_time("2023-02-05 12:00:00"):
+        key.load()
+    events = tier_change_events()
+    assert len(events) == 1
+    assert events[0]["detail"]["reason"] == "IntelligentTiering"
+    assert events[0]["detail"]["bucket"]["name"] == bucket_name
+
+    # Reading again at the same point in time does not refire the event
+    with freeze_time("2023-02-05 12:00:01"):
+        key.load()
+    assert len(tier_change_events()) == 1
+
+    # 90+ days untouched: Infrequent Access -> Archive Instant Access
+    with freeze_time("2023-04-05 12:00:00"):
+        key.load()
+    assert len(tier_change_events()) == 2
 
 
 @mock_aws
