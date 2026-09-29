@@ -2,6 +2,8 @@ import base64
 import ipaddress
 import json
 import os
+import sys
+import threading
 import warnings
 from typing import NamedTuple
 from unittest import SkipTest, mock
@@ -239,6 +241,72 @@ def test_terminate_empty_instances():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
     assert ex.value.response["Error"]["Message"] == "No instances specified"
+
+
+@mock_aws
+@pytest.mark.xfail(message="block device mapping attribute is not yet thread-safe")
+def test_describe_instances_while_attaching_and_detaching_volumes():
+    """
+    DescribeInstances iterates over the instance's block device mapping.
+    Concurrently attaching/detaching volumes must not cause:
+        RuntimeError: dictionary changed size during iteration
+    """
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance_id = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[
+        "Instances"
+    ][0]["InstanceId"]
+    volume_ids = [
+        client.create_volume(Size=1, AvailabilityZone="us-east-1a")["VolumeId"]
+        for _ in range(20)
+    ]
+
+    errors: list[Exception] = []
+    stop = threading.Event()
+
+    def attach_and_detach_volumes() -> None:
+        try:
+            while not stop.is_set():
+                for idx, volume_id in enumerate(volume_ids):
+                    client.attach_volume(
+                        VolumeId=volume_id,
+                        InstanceId=instance_id,
+                        Device=f"/dev/sdb{idx}",
+                    )
+                for idx, volume_id in enumerate(volume_ids):
+                    client.detach_volume(
+                        VolumeId=volume_id,
+                        InstanceId=instance_id,
+                        Device=f"/dev/sdb{idx}",
+                    )
+        except Exception as e:
+            errors.append(e)
+            stop.set()
+
+    def describe_instance() -> None:
+        try:
+            while not stop.is_set():
+                client.describe_instances(InstanceIds=[instance_id])
+        except Exception as e:
+            errors.append(e)
+            stop.set()
+
+    threads = [threading.Thread(target=attach_and_detach_volumes)] + [
+        threading.Thread(target=describe_instance) for _ in range(4)
+    ]
+    # Switch threads more often, to make the race condition more likely to surface.
+    original_switch_interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        for thread in threads:
+            thread.start()
+        stop.wait(timeout=5)
+        stop.set()
+        for thread in threads:
+            thread.join()
+    finally:
+        sys.setswitchinterval(original_switch_interval)
+
+    assert errors == []
 
 
 @freeze_time("2014-01-01 05:00:00")
