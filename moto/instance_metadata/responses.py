@@ -84,7 +84,4 @@ class InstanceMetadataResponse(BaseResponse):
             raise NotImplementedError(
                 f"The {path} metadata path has not been implemented"
             )
-        # The response gets its own headers - echoing the request's back used to
-        # happen here, which meant the caller's Content-Length described the
-        # request body rather than the payload we are about to return.
         return 200, {}, result
