@@ -133,6 +133,18 @@ def test_nonexistent_file_system():
 
 
 @mock_aws
+def test_delete_nonexistent_file_system():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_file_system(FileSystemId="fs-0123456789abcdef0")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "FileSystemNotFound"
+    assert err["Message"] == "File system 'fs-0123456789abcdef0' does not exist."
+
+
+@mock_aws
 def test_delete_backup():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     fs = client.create_file_system(
