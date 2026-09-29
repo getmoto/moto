@@ -12,7 +12,7 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import filter_resources
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import FileSystemNotFound, ResourceNotFoundException
 from .utils import FileSystemType
 
 PAGINATION_MODEL = {
@@ -206,6 +206,8 @@ class FSxBackend(BaseBackend, TaggableResourcesMixin):
     ]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
+        if file_system_id not in self.file_systems:
+            raise FileSystemNotFound(file_system_id)
         file_system_type = self.file_systems[file_system_id].file_system_type
 
         lifecycle = "DELETING"
