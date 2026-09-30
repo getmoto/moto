@@ -91,7 +91,7 @@ class NetworkFirewallResponse(BaseResponse):
             max_results=max_results,
         )
         firewall_list = [fw.to_dict() for fw in firewalls]
-        return json.dumps({"nextToken": next_token, "Firewalls": firewall_list})
+        return json.dumps({"NextToken": next_token, "Firewalls": firewall_list})
 
     def describe_firewall(self) -> str:
         firewall_name = self._get_param("FirewallName")

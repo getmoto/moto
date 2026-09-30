@@ -58,15 +58,15 @@ class OpenSearchIngestionResponse(BaseResponse):
         return json.dumps({"Pipeline": pipeline.to_dict()})
 
     def list_pipelines(self) -> str:
-        max_results = self._get_int_param("MaxResults")
-        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         pipelines, next_token = self.osis_backend.list_pipelines(
             max_results=max_results,
             next_token=next_token,
         )
         return json.dumps(
             {
-                "nextToken": next_token,
+                "NextToken": next_token,
                 "Pipelines": [p.to_short_dict() for p in pipelines],
             }
         )

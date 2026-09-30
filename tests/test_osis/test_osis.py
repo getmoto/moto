@@ -655,6 +655,21 @@ def test_list_pipelines():
 
 
 @mock_aws
+def test_list_pipelines_pagination():
+    client = boto3.client("osis", region_name="ap-southeast-1")
+    for i in range(3):
+        client.create_pipeline(**{**BASIC_PIPELINE_KWARGS, "PipelineName": f"test-{i}"})
+
+    page = client.list_pipelines(MaxResults=2)
+    assert len(page["Pipelines"]) == 2
+    assert "NextToken" in page
+
+    page = client.list_pipelines(MaxResults=2, NextToken=page["NextToken"])
+    assert [p["PipelineName"] for p in page["Pipelines"]] == ["test-2"]
+    assert "NextToken" not in page
+
+
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("osis", region_name="eu-west-1")
     resp = client.create_pipeline(

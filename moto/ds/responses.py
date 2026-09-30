@@ -196,7 +196,7 @@ class DirectoryServiceResponse(BaseResponse):
             limit=limit,
         )
         trust_list = [trust.to_dict() for trust in trusts]
-        return json.dumps({"Trusts": trust_list, "nextToken": next_token})
+        return json.dumps({"Trusts": trust_list, "NextToken": next_token})
 
     def delete_trust(self) -> str:
         trust_id = self._get_param("TrustId")
@@ -221,7 +221,7 @@ class DirectoryServiceResponse(BaseResponse):
             limit=limit,
         )
         ldaps = [ldap.to_dict() for ldap in ldaps_settings_info]
-        return json.dumps({"LDAPSSettingsInfo": ldaps, "nextToken": next_token})
+        return json.dumps({"LDAPSSettingsInfo": ldaps, "NextToken": next_token})
 
     def enable_ldaps(self) -> str:
         directory_id = self._get_param("DirectoryId")
