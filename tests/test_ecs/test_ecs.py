@@ -2843,7 +2843,7 @@ def test_describe_tasks():
 
 
 @mock_aws
-def test_describe_tasks_reports_container_cpu_and_memory_as_strings():
+def test_describe_tasks_reports_container_cpu_and_memory():
     client = boto3.client("ecs", region_name=ECS_REGION)
     setup_ecs_cluster_with_ec2_instance(client, "test_ecs_cluster")
     client.register_task_definition(
@@ -2852,7 +2852,6 @@ def test_describe_tasks_reports_container_cpu_and_memory_as_strings():
             {"name": "no_cpu", "image": "docker/hello-world:latest", "memory": 128}
         ],
     )
-
     task_arns = [
         client.run_task(cluster="test_ecs_cluster", taskDefinition=family)["tasks"][0][
             "taskArn"
@@ -2863,7 +2862,6 @@ def test_describe_tasks_reports_container_cpu_and_memory_as_strings():
     containers = {
         t["taskDefinitionArn"].split("/")[-1]: t["containers"][0] for t in tasks
     }
-
     assert containers["test_ecs_task:1"]["cpu"] == "1024"
     assert containers["test_ecs_task:1"]["memory"] == "400"
     # "The value is 0 if no value was specified in the container definition"
