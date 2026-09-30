@@ -12,6 +12,7 @@ from moto.appmesh.dataclasses.virtual_node import (
     PortMapping,
 )
 from moto.appmesh.utils.common import clean_dict
+from moto.core.utils import unix_time
 
 
 @dataclass
@@ -66,8 +67,8 @@ class VirtualGatewayMetadata(Metadata):
     def formatted_for_list_api(self) -> dict[str, Any]:  # type: ignore
         return {
             "arn": self.arn,
-            "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
-            "lastUpdatedAt": self.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
+            "createdAt": unix_time(self.created_at),
+            "lastUpdatedAt": unix_time(self.last_updated_at),
             "meshName": self.mesh_name,
             "meshOwner": self.mesh_owner,
             "resourceOwner": self.resource_owner,
@@ -78,8 +79,8 @@ class VirtualGatewayMetadata(Metadata):
     def formatted_for_crud_apis(self) -> dict[str, Any]:  # type: ignore
         return {
             "arn": self.arn,
-            "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
-            "lastUpdatedAt": self.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
+            "createdAt": unix_time(self.created_at),
+            "lastUpdatedAt": unix_time(self.last_updated_at),
             "meshOwner": self.mesh_owner,
             "resourceOwner": self.resource_owner,
             "uid": self.uid,
