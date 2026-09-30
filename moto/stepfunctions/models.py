@@ -20,6 +20,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 from .exceptions import (
     ActivityAlreadyExists,
     ActivityDoesNotExist,
+    ConflictException,
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
@@ -127,11 +128,20 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
         )
-        self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
         self.aliases: dict[str, StateMachineAlias] = {}
-        self.latest_version: StateMachineVersion | None = None
         self.backend = backend
+
+    @property
+    def latest_version(self) -> StateMachineVersion | None:
+        if not self.versions:
+            return None
+        return max(self.versions.values(), key=lambda item: item.version)
+
+    @property
+    def latest_version_number(self) -> int:
+        latest_version = self.latest_version
+        return latest_version.version if latest_version else 0
 
     def publish(self, description: str | None) -> None:
         new_version_number = self.latest_version_number + 1
@@ -139,8 +149,6 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             source=self, version=new_version_number, description=description
         )
         self.versions[new_version_number] = new_version
-        self.latest_version = new_version
-        self.latest_version_number = new_version_number
 
     def start_execution(
         self,
@@ -687,20 +695,30 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
         sm.aliases[name] = alias
         return alias
 
+    def _get_state_machine(self, arn: str) -> StateMachine | None:
+        return next((x for x in self.state_machines if x.arn == arn), None)
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machines(self) -> list[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machine_aliases(self, arn: str) -> list[StateMachineAlias]:
-        sm = next((x for x in self.state_machines if x.arn == arn), None)
+        sm = self._get_state_machine(arn)
         if not sm:
             raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
         return sorted(sm.aliases.values(), key=lambda x: x.creation_date)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_state_machine_versions(self, arn: str) -> list[StateMachineVersion]:
+        sm = self._get_state_machine(arn)
+        if not sm:
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+        return sorted(sm.versions.values(), key=lambda x: x.creation_date, reverse=True)
+
     def describe_state_machine(self, arn: str) -> StateMachine:
         self._validate_machine_arn(arn)
-        sm = next((x for x in self.state_machines if x.arn == arn), None)
+        sm = self._get_state_machine(arn)
         if not sm:
             if (
                 (arn_parts := arn.split(":"))
@@ -709,9 +727,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
             ):
                 # we might have a versioned arn, ending in :stateMachine:name:version_nr
                 source_arn = ":".join(arn_parts[:-1])
-                source_sm = next(
-                    (x for x in self.state_machines if x.arn == source_arn), None
-                )
+                source_sm = self._get_state_machine(source_arn)
                 if source_sm:
                     sm = source_sm.versions.get(int(arn_parts[-1]))  # type: ignore[assignment]
         if not sm:
@@ -726,7 +742,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
 
         self._validate_machine_arn(state_machine_arn)
 
-        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        sm = self._get_state_machine(state_machine_arn)
         if not sm:
             raise StateMachineDoesNotExist(
                 f"State Machine Does Not Exist: '{state_machine_arn}'"
@@ -740,7 +756,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
 
     def delete_state_machine(self, arn: str) -> None:
         self._validate_machine_arn(arn)
-        sm = next((x for x in self.state_machines if x.arn == arn), None)
+        sm = self._get_state_machine(arn)
         if sm:
             self.state_machines.remove(sm)
 
@@ -751,7 +767,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
 
         self._validate_machine_arn(state_machine_arn)
 
-        sm = next((x for x in self.state_machines if x.arn == state_machine_arn), None)
+        sm = self._get_state_machine(state_machine_arn)
         if not sm:
             raise StateMachineDoesNotExist(
                 f"State Machine Does Not Exist: '{state_machine_arn}'"
@@ -761,6 +777,56 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
             raise ResourceNotFound(f"State Machine Alias Does Not Exist: '{arn}'")
 
         del sm.aliases[alias_name]
+
+    def delete_state_machine_version(self, arn: str) -> None:
+        version = None
+        state_machine = None
+        version_number = None
+
+        for sm in self.state_machines:
+            for current_version_number, current_version in sm.versions.items():
+                if current_version.arn == arn:
+                    state_machine = sm
+                    version = current_version
+                    version_number = current_version_number
+                    break
+            if version is not None:
+                break
+
+        if version is None or state_machine is None or version_number is None:
+            return
+
+        referencing_aliases = [
+            alias.name
+            for alias in state_machine.aliases.values()
+            if any(
+                routing["stateMachineVersionArn"] == arn
+                for routing in alias.routing_configuration
+            )
+        ]
+        if referencing_aliases:
+            alias_names = ", ".join(referencing_aliases)
+            raise ConflictException(
+                "Version to be deleted must not be referenced by an alias. "
+                f"Current list of aliases referencing this version: [{alias_names}]"
+            )
+
+        del state_machine.versions[version_number]
+
+    def publish_state_machine_version(
+        self,
+        arn: str,
+        description: str | None = None,
+    ) -> StateMachineVersion:
+        state_machine = self.describe_state_machine(arn)
+        if not isinstance(state_machine, StateMachine):
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+
+        state_machine.publish(description=description)
+        latest_version = state_machine.latest_version
+        if latest_version is None:
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+        return latest_version
 
     def update_state_machine(
         self,
