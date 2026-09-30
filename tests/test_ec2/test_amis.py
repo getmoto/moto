@@ -1558,3 +1558,79 @@ def test_ami_describe_image_attribute_invalid_param():
     # Verify
     assert e.value.response["Error"]["Code"] == "InvalidRequest"
     assert e.value.response["Error"]["Message"] == "The request received was invalid"
+
+
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_ami_enable_disable():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    images = conn.describe_images().get("Images", [])
+    image_id = images[0]["ImageId"]
+    assert images[0]["State"] == "available", "State should be available."
+
+    conn.disable_image(ImageId=image_id)
+    images = conn.describe_images(ImageIds=[image_id])["Images"]
+    assert images[0]["State"] == "disabled", "State should be disabled."
+
+    conn.enable_image(ImageId=image_id)
+    images = conn.describe_images(ImageIds=[image_id])["Images"]
+    assert images[0]["State"] == "available", "State should be available."
+
+
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_ami_enable_unavailable_error():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    images = conn.describe_images().get("Images", [])
+    image_id = images[0]["ImageId"]
+    conn.deregister_image(ImageId=image_id)
+
+    with pytest.raises(ClientError) as e:
+        conn.enable_image(ImageId=image_id)
+
+    assert e.value.response["Error"]["Code"] == "InvalidAMIID.Unavailable"
+
+
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
+@mock_aws
+@pytest.mark.requires_clean_slate
+def test_ami_disable_unavailable_error():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    images = conn.describe_images().get("Images", [])
+    image_id = images[0]["ImageId"]
+    conn.deregister_image(ImageId=image_id)
+
+    with pytest.raises(ClientError) as e:
+        conn.disable_image(ImageId=image_id)
+
+    assert e.value.response["Error"]["Code"] == "InvalidAMIID.Unavailable"
+
+
+@mock_aws
+def test_ami_enable_invalid_error():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        conn.enable_image(ImageId="invalid")
+
+    assert e.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
+
+
+@mock_aws
+def test_ami_disable_invalid_error():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        conn.disable_image(ImageId="invalid")
+
+    assert e.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"

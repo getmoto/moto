@@ -467,7 +467,13 @@ class ResourceGroupsBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         tag_sync_tasks = []
         for task in self.tag_sync_tasks.values():
-            tag_sync_tasks.append(task.as_dict())
+            task_dict = task.as_dict()
+            if filters and not any(
+                all(task_dict.get(key) == value for key, value in f.items())
+                for f in filters
+            ):
+                continue
+            tag_sync_tasks.append(task_dict)
         return tag_sync_tasks
 
     def start_tag_sync_task(

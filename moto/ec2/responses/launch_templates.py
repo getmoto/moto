@@ -188,7 +188,7 @@ class LaunchTemplates(EC2BaseResponse):
                             "VolumeType": device.volume_type,
                         },
                     }
-                    for device_name, device in instance.block_device_mapping.items()
+                    for device_name, device in instance.get_block_device_mapping
                 ],
                 "CapacityReservationSpecification": {
                     "CapacityReservationPreference": "open",

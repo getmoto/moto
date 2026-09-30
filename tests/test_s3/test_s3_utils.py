@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from moto.s3.utils import (
     _VersionedKeyStore,
     bucket_name_from_url,
+    bucket_policy_is_public,
     compute_checksum,
     cors_matches_origin,
     parse_region_from_url,
@@ -161,3 +163,95 @@ def test_cors_utils():
 
     assert not cors_matches_origin("http://www.google.com", ["http://www.*.org"])
     assert not cors_matches_origin("http://www.google.com", ["https://*"])
+
+
+def _policy(*statements):
+    return json.dumps({"Version": "2012-10-17", "Statement": list(statements)})
+
+
+def _statement(**kwargs):
+    statement = {
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::mybucket/*",
+    }
+    statement.update(kwargs)
+    return statement
+
+
+@pytest.mark.parametrize(
+    "policy,expected",
+    [
+        pytest.param(_policy(_statement(Principal="*")), True, id="wildcard"),
+        pytest.param(
+            _policy(_statement(Principal={"AWS": "*"})), True, id="aws-wildcard"
+        ),
+        pytest.param(
+            _policy(
+                _statement(Principal={"AWS": ["arn:aws:iam::123456789012:root", "*"]})
+            ),
+            True,
+            id="aws-wildcard-in-list",
+        ),
+        pytest.param(
+            json.dumps({"Statement": _statement(Principal="*")}),
+            True,
+            id="single-statement-dict",
+        ),
+        pytest.param(
+            _policy(
+                _statement(Principal={"AWS": "arn:aws:iam::123456789012:root"}),
+                _statement(Principal="*"),
+            ),
+            True,
+            id="any-public-statement",
+        ),
+        pytest.param(
+            _policy(_statement(Principal="*")).encode("utf-8"), True, id="bytes"
+        ),
+        pytest.param(
+            _policy(_statement(Principal="*", Effect="Deny")), False, id="deny"
+        ),
+        pytest.param(
+            _policy(
+                _statement(
+                    Principal="*",
+                    Condition={"StringEquals": {"aws:SourceVpc": "vpc-12345678"}},
+                )
+            ),
+            False,
+            id="wildcard-with-condition",
+        ),
+        pytest.param(
+            _policy(_statement(Principal={"AWS": "arn:aws:iam::123456789012:root"})),
+            False,
+            id="specific-principal",
+        ),
+        pytest.param(
+            _policy(
+                _statement(
+                    Principal={
+                        "AWS": [
+                            "arn:aws:iam::123456789012:root",
+                            "arn:aws:iam::210987654321:root",
+                        ]
+                    }
+                )
+            ),
+            False,
+            id="specific-principal-list",
+        ),
+        pytest.param(
+            _policy(_statement(Principal={"Service": "s3.amazonaws.com"})),
+            False,
+            id="service-principal",
+        ),
+        pytest.param(_policy(_statement()), False, id="no-principal"),
+        pytest.param(_policy(), False, id="empty-statement-list"),
+        pytest.param(json.dumps({"Version": "2012-10-17"}), False, id="no-statement"),
+        pytest.param("not json", False, id="invalid-json"),
+        pytest.param("", False, id="empty-string"),
+    ],
+)
+def test_bucket_policy_is_public(policy, expected):
+    assert bucket_policy_is_public(policy) is expected

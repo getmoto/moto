@@ -18,6 +18,7 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
     ImageAlreadyExistsException,
     ImageNotFoundException,
+    InvalidLayerPartException,
     InvalidParameterException,
     LifecyclePolicyNotFoundException,
     LimitExceededException,
@@ -632,10 +633,14 @@ class ECRBackend(BaseBackend):
         return self.repositories.pop(repository_name)
 
     def list_images(
-        self, repository_name: str, registry_id: str | None = None
+        self,
+        repository_name: str,
+        registry_id: str | None = None,
+        tag_status: str = "ANY",
     ) -> list[Image]:
         """
-        maxResults and filtering not implemented
+        The tagStatus filter is supported. maxResults, nextToken, and the
+        imageStatus filter are not implemented.
         """
         repository = None
         found = False
@@ -652,7 +657,12 @@ class ECRBackend(BaseBackend):
                 repository_name, registry_id or self.account_id
             )
 
-        return list(repository.images)  # type: ignore[union-attr]
+        images = list(repository.images)  # type: ignore[union-attr]
+        if tag_status == "TAGGED":
+            return [image for image in images if image.image_tags]
+        if tag_status == "UNTAGGED":
+            return [image for image in images if not image.image_tags]
+        return images
 
     def describe_images(
         self,
@@ -854,6 +864,16 @@ class ECRBackend(BaseBackend):
         if upload is None:
             raise UploadNotFoundException(
                 upload_id, repository_name, repository.registry_id
+            )
+        # Parts have to arrive in order. A part that does not start where the
+        # last one ended would be concatenated in arrival order and change the
+        # layer digest, so reject it the way ECR does.
+        if part_first_byte != upload.last_byte_received + 1:
+            raise InvalidLayerPartException(
+                repository.registry_id,
+                repository_name,
+                upload_id,
+                upload.last_byte_received,
             )
         upload.layer_parts += layer_part_blob or b""
         return {

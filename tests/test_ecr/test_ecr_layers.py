@@ -130,6 +130,50 @@ def test_upload_layer_part_unknown_upload():
 
 
 @mock_aws
+def test_upload_layer_part_out_of_order():
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(repositoryName=ECR_REPO)
+    upload_id = client.initiate_layer_upload(repositoryName=ECR_REPO)["uploadId"]
+
+    client.upload_layer_part(
+        repositoryName=ECR_REPO,
+        uploadId=upload_id,
+        partFirstByte=0,
+        partLastByte=3,
+        layerPartBlob=b"AAAA",
+    )
+
+    # Skipping bytes 4-7 would concatenate the parts in arrival order and give
+    # the layer a digest that does not match what the client uploaded.
+    with pytest.raises(ClientError) as exc:
+        client.upload_layer_part(
+            repositoryName=ECR_REPO,
+            uploadId=upload_id,
+            partFirstByte=8,
+            partLastByte=11,
+            layerPartBlob=b"BBBB",
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidLayerPartException"
+    assert exc.value.response["lastValidByteReceived"] == 3
+
+    # The next contiguous part is still accepted.
+    part = client.upload_layer_part(
+        repositoryName=ECR_REPO,
+        uploadId=upload_id,
+        partFirstByte=4,
+        partLastByte=7,
+        layerPartBlob=b"BBBB",
+    )
+    assert part["lastByteReceived"] == 7
+
+    digest = "sha256:" + hashlib.sha256(b"AAAABBBB").hexdigest()
+    resp = client.complete_layer_upload(
+        repositoryName=ECR_REPO, uploadId=upload_id, layerDigests=[digest]
+    )
+    assert resp["layerDigest"] == digest
+
+
+@mock_aws
 def test_complete_layer_upload_unknown_upload():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName=ECR_REPO)

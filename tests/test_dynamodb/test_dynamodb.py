@@ -7,6 +7,7 @@ import boto3
 import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
@@ -1402,6 +1403,30 @@ def test_filter_expression():
         "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "0"}, ":v1": {"N": "10"}}
     )
     assert filter_expr.expr(row1) is True
+
+    # BETWEEN test where the attribute itself is exactly 0 -- regression test.
+    # 0 is a valid Decimal value and must not be treated as "no value" via
+    # bare truthiness (bool(Decimal("0")) is False), the same way start/end
+    # already correctly special-case 0. Item with Id=0 must be included in
+    # a BETWEEN 0 AND 10 (and BETWEEN -5 AND 10) range.
+    row_zero = moto.dynamodb.models.Item(
+        hash_key=None,
+        range_key=None,
+        attrs={"Id": {"N": "0"}},
+    )
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "0"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is True
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "-5"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is True
+    # And it must still correctly exclude 0 when it falls outside the range.
+    filter_expr = moto.dynamodb.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "1"}, ":v1": {"N": "10"}}
+    )
+    assert filter_expr.expr(row_zero) is False
 
     # PAREN test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
@@ -5208,3 +5233,26 @@ def test_update_item_with_list_of_bytes(table_name=None):
 
     get = table.get_item(Key={"pk": "clientA"})
     assert get["Item"] == {"pk": "clientA", "items": [Binary(b1), Binary(b2)]}
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_between_function_operands_cannot_be_null(table_name=None):
+    bypass_param_validation = Config(parameter_validation=True)
+    client = boto3.client(
+        "dynamodb", region_name="us-east-1", config=bypass_param_validation
+    )
+    for expression_attribute_values in [
+        {":lo": {"NULL": True}, ":hi": {"N": "100"}},
+        {":lo": {"N": "1"}, ":hi": {"NULL": True}},
+    ]:
+        with pytest.raises(
+            ClientError,
+            match="Incorrect operand type for operator or function; operator or function: BETWEEN, operand type: NULL",
+        ) as exc:
+            client.scan(
+                TableName=table_name,
+                FilterExpression="price BETWEEN :lo AND :hi",
+                ExpressionAttributeValues=expression_attribute_values,
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"

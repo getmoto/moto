@@ -1,10 +1,14 @@
 """Unit tests for codedeploy-supported APIs."""
 
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -407,7 +411,7 @@ def test_batch_get_deployments():
 
     deployment_ids = []
     # create 2 deployments
-    for i in range(0, 2):
+    for i in range(2):
         application_name = f"sample_app{i}"
         deployment_group_name = f"sample_deployment_group{i}"
         service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
@@ -510,6 +514,167 @@ def test_list_deployments():
 
     resp = client.list_deployments()
     assert len(resp["deployments"]) == 2
+
+
+@mock_aws
+def test_list_deployments_with_status_filter():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+    application_name = str(uuid4())
+    client.create_application(
+        applicationName=application_name, computePlatform="Server"
+    )
+    deployment_group_name = str(uuid4())
+    client.create_deployment_group(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        serviceRoleArn=service_role_arn,
+    )
+    resp = client.create_deployment(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        revision={
+            "revisionType": "S3",
+            "s3Location": {
+                "bucket": "my-bucket",
+                "key": "my-key",
+                "bundleType": "zip",
+                "version": "1",
+                "eTag": "my-etag",
+            },
+        },
+    )
+    deployment_id = resp["deploymentId"]
+    resp = client.get_deployment(deploymentId=deployment_id)
+    deployment_status = resp["deploymentInfo"]["status"]
+    assert deployment_status != "Failed"
+    resp = client.list_deployments(includeOnlyStatuses=[deployment_status])
+    assert deployment_id in resp["deployments"]
+    resp = client.list_deployments(includeOnlyStatuses=["Failed"])
+    assert deployment_id not in resp["deployments"]
+
+
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="freeze_time does not affect server process"
+)
+@mock_aws
+def test_list_deployments_with_create_time_range_filter():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+    application_name = str(uuid4())
+    client.create_application(
+        applicationName=application_name, computePlatform="Server"
+    )
+    deployment_group_name = str(uuid4())
+    client.create_deployment_group(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        serviceRoleArn=service_role_arn,
+    )
+
+    with freeze_time("2026-01-01 12:00:00") as frozen_time:
+        d1 = client.create_deployment(
+            applicationName=application_name,
+            deploymentGroupName=deployment_group_name,
+            revision={
+                "revisionType": "S3",
+                "s3Location": {
+                    "bucket": "my-bucket",
+                    "key": "k1",
+                    "bundleType": "zip",
+                    "version": "1",
+                    "eTag": "e1",
+                },
+            },
+        )["deploymentId"]
+
+        frozen_time.tick(delta=timedelta(hours=2))
+        d2 = client.create_deployment(
+            applicationName=application_name,
+            deploymentGroupName=deployment_group_name,
+            revision={
+                "revisionType": "S3",
+                "s3Location": {
+                    "bucket": "my-bucket",
+                    "key": "k2",
+                    "bundleType": "zip",
+                    "version": "1",
+                    "eTag": "e2",
+                },
+            },
+        )["deploymentId"]
+
+        frozen_time.tick(delta=timedelta(hours=2))
+        d3 = client.create_deployment(
+            applicationName=application_name,
+            deploymentGroupName=deployment_group_name,
+            revision={
+                "revisionType": "S3",
+                "s3Location": {
+                    "bucket": "my-bucket",
+                    "key": "k3",
+                    "bundleType": "zip",
+                    "version": "1",
+                    "eTag": "e3",
+                },
+            },
+        )["deploymentId"]
+
+        # Range matching only d2 (13:00 to 15:00)
+        res = client.list_deployments(
+            createTimeRange={
+                "start": datetime(2026, 1, 1, 13, 0, tzinfo=timezone.utc),
+                "end": datetime(2026, 1, 1, 15, 0, tzinfo=timezone.utc),
+            }
+        )
+        assert res["deployments"] == [d2]
+
+        # Only start (open-ended end from 13:00) -> d2, d3
+        res = client.list_deployments(
+            createTimeRange={"start": datetime(2026, 1, 1, 13, 0, tzinfo=timezone.utc)}
+        )
+        assert set(res["deployments"]) == {d2, d3}
+
+        # Only end (open-ended start up to 15:00) -> d1, d2
+        res = client.list_deployments(
+            createTimeRange={"end": datetime(2026, 1, 1, 15, 0, tzinfo=timezone.utc)}
+        )
+        assert set(res["deployments"]) == {d1, d2}
+
+        # Future time range -> empty
+        res = client.list_deployments(
+            createTimeRange={
+                "start": datetime(2026, 1, 2, 0, 0, tzinfo=timezone.utc),
+                "end": datetime(2026, 1, 2, 12, 0, tzinfo=timezone.utc),
+            }
+        )
+        assert res["deployments"] == []
+
+        # Past time range -> empty
+        res = client.list_deployments(
+            createTimeRange={
+                "start": datetime(2025, 12, 1, 0, 0, tzinfo=timezone.utc),
+                "end": datetime(2025, 12, 31, 23, 59, tzinfo=timezone.utc),
+            }
+        )
+        assert res["deployments"] == []
+
+
+@mock_aws
+def test_list_deployments_invalid_create_time_range():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_deployments(
+            createTimeRange={
+                "start": datetime(2026, 1, 2, 0, 0, tzinfo=timezone.utc),
+                "end": datetime(2026, 1, 1, 0, 0, tzinfo=timezone.utc),
+            }
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidTimeRangeException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The start time must be earlier than the end time."
+    )
 
 
 @mock_aws
@@ -650,3 +815,25 @@ def test_deployment_inherits_tags():
     response = client.list_tags_for_resource(ResourceArn=deployment_arn)
     assert "Tags" in response
     assert len(response["Tags"]) == 1
+
+
+@mock_aws
+def test_tag_and_untag_resource():
+    client = boto3.client("codedeploy", region_name="us-west-2")
+    app_name = "test-tag-untag-app"
+    client.create_application(applicationName=app_name, computePlatform="Server")
+    app_arn = f"arn:aws:codedeploy:us-west-2:123456789012:application:{app_name}"
+
+    client.tag_resource(
+        ResourceArn=app_arn,
+        Tags=[{"Key": "Team", "Value": "Platform"}, {"Key": "Env", "Value": "Dev"}],
+    )
+    assert client.list_tags_for_resource(ResourceArn=app_arn)["Tags"] == [
+        {"Key": "Team", "Value": "Platform"},
+        {"Key": "Env", "Value": "Dev"},
+    ]
+
+    client.untag_resource(ResourceArn=app_arn, TagKeys=["Team"])
+    assert client.list_tags_for_resource(ResourceArn=app_arn)["Tags"] == [
+        {"Key": "Env", "Value": "Dev"}
+    ]
