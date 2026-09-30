@@ -712,8 +712,11 @@ class Container(CloudFormationModel, BaseModel):
         self.network_interfaces: list[dict[str, Any]] = []
         self.health_status = "HEALTHY"
 
-        self.cpu = container_def.get("cpu")
-        self.memory = container_def.get("memory")
+        # A task reports its containers' CPU and memory as strings, and the CPU as
+        # "0" when the container definition does not set it.
+        self.cpu = str(container_def.get("cpu", 0))
+        memory = container_def.get("memory")
+        self.memory = str(memory) if memory is not None else None
         self.environment = container_def.get("environment")
         self.name = container_def.get("name")
         self.command = container_def.get("command")
