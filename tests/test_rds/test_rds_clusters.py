@@ -1,3 +1,4 @@
+import datetime
 import re
 
 import boto3
@@ -1814,6 +1815,34 @@ def test_restore_db_cluster_to_point_in_time(client):
     assert details_target["CopyTagsToSnapshot"] is False
     assert details_target["DeletionProtection"] is True
     assert details_target["Port"] == 4321
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "restore_kwargs",
+    [
+        {"UseLatestRestorableTime": True},
+        {"RestoreType": "copy-on-write"},
+    ],
+)
+def test_restore_db_cluster_to_point_in_time_rejects_restore_to_time_combination(
+    client, restore_kwargs
+):
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.restore_db_cluster_to_point_in_time(
+            SourceDBClusterIdentifier="cluster-1",
+            DBClusterIdentifier="pit-id",
+            RestoreToTime=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            **restore_kwargs,
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert len(client.describe_db_clusters()["DBClusters"]) == 1
 
 
 @mock_aws
