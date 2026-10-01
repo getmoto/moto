@@ -864,26 +864,6 @@
   "Location": "ca-central-1a"
  },
  {
-  "InstanceType": "g4ad.16xlarge",
-  "Location": "ca-central-1a"
- },
- {
-  "InstanceType": "g4ad.2xlarge",
-  "Location": "ca-central-1a"
- },
- {
-  "InstanceType": "g4ad.4xlarge",
-  "Location": "ca-central-1a"
- },
- {
-  "InstanceType": "g4ad.8xlarge",
-  "Location": "ca-central-1a"
- },
- {
-  "InstanceType": "g4ad.xlarge",
-  "Location": "ca-central-1a"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "ca-central-1a"
  },
@@ -3080,6 +3060,22 @@
   "Location": "ca-central-1a"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "ca-central-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "ca-central-1a"
  },
@@ -3949,26 +3945,6 @@
  },
  {
   "InstanceType": "d3.xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "g4ad.16xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "g4ad.2xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "g4ad.4xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "g4ad.8xlarge",
-  "Location": "ca-central-1b"
- },
- {
-  "InstanceType": "g4ad.xlarge",
   "Location": "ca-central-1b"
  },
  {
@@ -6061,6 +6037,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "ca-central-1b"
  },
  {
@@ -8673,6 +8665,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "ca-central-1d"
  },
  {
