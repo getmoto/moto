@@ -4,6 +4,7 @@ from unittest import SkipTest
 from uuid import UUID, uuid4
 
 import boto3
+import botocore.session
 import pytest
 from botocore.exceptions import ClientError
 
@@ -12,6 +13,13 @@ from moto.moto_api import state_manager
 
 REGION = "us-east-1"
 MODEL_NAME = "sqs::messagemovetask"
+
+# The query-protocol CI job pins a botocore that predates these operations
+pytestmark = pytest.mark.skipif(
+    "StartMessageMoveTask"
+    not in botocore.session.get_session().get_service_model("sqs").operation_names,
+    reason="botocore does not know the SQS message move task operations",
+)
 
 
 def _queue_arn(client, queue_url):
@@ -505,6 +513,28 @@ def test_message_move_task_fails_when_destination_is_deleted():
             SourceArn=dlq_arn, DestinationArn=_queue_arn(client, destination_url)
         )
         client.delete_queue(QueueUrl=destination_url)
+
+        task = client.list_message_move_tasks(SourceArn=dlq_arn)["Results"][0]
+        assert task["Status"] == "FAILED"
+        assert task["FailureReason"] == "AWS.SimpleQueueService.NonExistentQueue"
+        assert task["ApproximateNumberOfMessagesMoved"] == 0
+        assert _bodies(client, dlq_url) == ["message-1"]
+    finally:
+        state_manager.unset_transition(MODEL_NAME)
+
+
+@mock_aws
+def test_message_move_task_fails_when_original_source_is_deleted():
+    _set_manual_transition()
+    try:
+        client = boto3.client("sqs", region_name=REGION)
+        queue_url, dlq_url = _create_queue_with_dlq(client)
+        dlq_arn = _queue_arn(client, dlq_url)
+        _send_to_dlq(client, queue_url, ["message-1"])
+
+        # No DestinationArn: each message goes back to the queue it came from
+        client.start_message_move_task(SourceArn=dlq_arn)
+        client.delete_queue(QueueUrl=queue_url)
 
         task = client.list_message_move_tasks(SourceArn=dlq_arn)["Results"][0]
         assert task["Status"] == "FAILED"
