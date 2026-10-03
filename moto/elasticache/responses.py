@@ -309,6 +309,21 @@ class ElastiCacheResponse(BaseResponse):
         result = {"ReplicationGroups": replication_groups}
         return PaginatedResult(result)
 
+    def modify_replication_group(self) -> ActionResult:
+        replication_group = self.elasticache_backend.modify_replication_group(
+            replication_group_id=self._get_param("ReplicationGroupId"),
+            replication_group_description=self._get_param(
+                "ReplicationGroupDescription"
+            ),
+            engine=self._get_param("Engine"),
+            cache_node_type=self._get_param("CacheNodeType"),
+            automatic_failover_enabled=self._get_bool_param("AutomaticFailoverEnabled"),
+            multi_az_enabled=self._get_bool_param("MultiAZEnabled"),
+            snapshot_retention_limit=self._get_int_param("SnapshotRetentionLimit"),
+        )
+        result = {"ReplicationGroup": replication_group}
+        return ActionResult(result)
+
     def delete_replication_group(self) -> ActionResult:
         replication_group_id = self._get_param("ReplicationGroupId")
         retain_primary_cluster = self._get_bool_param("RetainPrimaryCluster")
