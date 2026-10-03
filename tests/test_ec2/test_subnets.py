@@ -170,6 +170,19 @@ def test_subnet_should_have_proper_availability_zone_set():
 
 
 @mock_aws
+def test_omitted_availability_zone_is_deterministic():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    zones = [
+        subnet.availability_zone
+        for i in range(4)
+        for subnet in [ec2.create_subnet(VpcId=vpc.id, CidrBlock=f"10.0.{i}.0/24")]
+    ]
+    assert zones == ["us-west-1a"] * 4
+
+
+@mock_aws
 def test_availability_zone_in_create_subnet():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
