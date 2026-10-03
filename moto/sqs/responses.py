@@ -363,6 +363,33 @@ class SQSResponse(BaseResponse):
         result = {"queueUrls": [queue.url(request_url) for queue in queues]}
         return ActionResult(result)
 
+    def start_message_move_task(self) -> ActionResult:
+        task = self.sqs_backend.start_message_move_task(
+            source_arn=self._get_param("SourceArn"),
+            destination_arn=self._get_param("DestinationArn"),
+            max_number_of_messages_per_second=self._get_param(
+                "MaxNumberOfMessagesPerSecond"
+            ),
+        )
+        return ActionResult({"TaskHandle": task.task_handle})
+
+    def list_message_move_tasks(self) -> ActionResult:
+        tasks = self.sqs_backend.list_message_move_tasks(
+            source_arn=self._get_param("SourceArn"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult({"Results": [task.to_dict() for task in tasks]})
+
+    def cancel_message_move_task(self) -> ActionResult:
+        task = self.sqs_backend.cancel_message_move_task(
+            task_handle=self._get_param("TaskHandle"),
+        )
+        return ActionResult(
+            {
+                "ApproximateNumberOfMessagesMoved": task.approximate_number_of_messages_moved
+            }
+        )
+
     def add_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
         actions = self._get_param("Actions", [])
