@@ -158,6 +158,7 @@ class FakeKey(BaseModel, ManagedState):
         self.website_redirect_location: str | None = None
         self.checksum_algorithm: str | None = None
         self._storage_class: str | None = storage if storage else "STANDARD"
+        self._intelligent_tiering_access_tier = "FREQUENT_ACCESS"
         self._metadata = LowercaseDict()
         self._expiry: datetime.datetime | None = None
         self._etag = etag
@@ -257,6 +258,10 @@ class FakeKey(BaseModel, ManagedState):
     def set_storage_class(self, storage: str | None) -> None:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
+        if storage == "INTELLIGENT_TIERING" and self._storage_class != storage:
+            # A (newly-written or newly-transitioned) object always starts
+            # out in the Frequent Access tier.
+            self._intelligent_tiering_access_tier = "FREQUENT_ACCESS"
         self._storage_class = storage
 
     def set_expiry(self, expiry: datetime.datetime | None) -> None:
@@ -275,6 +280,41 @@ class FakeKey(BaseModel, ManagedState):
             bucket,
             key=self,
         )
+
+    def check_intelligent_tiering_transition(self) -> None:
+        """
+        Checked lazily on read, the same way restore-expiry is handled
+        elsewhere in this class. Real S3 Intelligent-Tiering automatically
+        moves an object between access tiers based on how long it goes
+        untouched: Frequent Access -> Infrequent Access after 30 days, then
+        -> Archive Instant Access after 90 days. These first three tiers
+        are automatic and don't require any bucket configuration - only the
+        deeper Archive Access / Deep Archive Access tiers are opt-in via a
+        bucket's IntelligentTieringConfiguration, which moto does not yet
+        support.
+
+        This uses days-since-last-modified as the clock rather than
+        tracking a separate last-accessed timestamp, so - unlike real AWS -
+        reading an object here does not reset it back to Frequent Access.
+        """
+        if self._storage_class != "INTELLIGENT_TIERING":
+            return
+        days = (utcnow() - self.last_modified).days
+        tier = self._intelligent_tiering_access_tier
+        if tier == "FREQUENT_ACCESS" and days >= 30:
+            tier = "INFREQUENT_ACCESS"
+        if tier == "INFREQUENT_ACCESS" and days >= 90:
+            tier = "ARCHIVE_INSTANT_ACCESS"
+        if tier != self._intelligent_tiering_access_tier:
+            self._intelligent_tiering_access_tier = tier
+            s3_backend = s3_backends[self.account_id][self.partition]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.INTELLIGENT_TIERING_EVENT,
+                bucket,
+                key=self,
+            )
 
     @property
     def etag(self) -> str:
@@ -2470,6 +2510,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
 
         if isinstance(key, FakeKey):
             key.advance()
+            key.check_intelligent_tiering_transition()
             return key
         else:
             if return_delete_marker and isinstance(key, FakeDeleteMarker):
