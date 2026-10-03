@@ -1842,7 +1842,17 @@ def test_restore_db_cluster_to_point_in_time_rejects_restore_to_time_combination
             **restore_kwargs,
         )
     assert exc.value.response["Error"]["Code"] == "InvalidParameterCombination"
-    assert len(client.describe_db_clusters()["DBClusters"]) == 1
+    resp = client.describe_db_clusters(
+        Filters=[
+            {
+                "Name": "db-cluster-id",
+                "Values": [
+                    "pit-id",
+                ],
+            },
+        ]
+    )
+    assert len(resp["DBClusters"]) == 0
 
 
 @mock_aws
