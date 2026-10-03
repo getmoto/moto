@@ -65,3 +65,24 @@ class KMSInvalidMacException(JsonRESTError):
         super().__init__("KMSInvalidMacException", "")
 
         self.description = '{"__type":"KMSInvalidMacException"}'
+
+
+class UnsupportedOperationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("UnsupportedOperationException", message)
+
+
+class KMSInvalidStateException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("KMSInvalidStateException", message)
+
+
+class InvalidImportTokenException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("InvalidImportTokenException", message)
