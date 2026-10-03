@@ -48,6 +48,11 @@ class InstanceResponse(EC2BaseResponse):
 
     def run_instances(self) -> ActionResult:
         min_count = int(self._get_param("MinCount", if_none="1"))
+        max_count = int(self._get_param("MaxCount", if_none="1"))
+        if min_count > max_count:
+            raise InvalidParameterCombination(
+                msg=f"MinCount ({min_count}) must not be greater than MaxCount ({max_count})"
+            )
         image_id = self._get_param("ImageId")
         user_data = parse_user_data(self._get_param("UserData"))
         security_group_names = self._get_param("SecurityGroups", [])
@@ -104,7 +109,7 @@ class InstanceResponse(EC2BaseResponse):
             )
         self.error_on_dryrun()
         new_reservation = self.ec2_backend.run_instances(
-            image_id, min_count, user_data, security_group_names, **kwargs
+            image_id, max_count, user_data, security_group_names, **kwargs
         )
         if iam_instance_profile_name:
             self.ec2_backend.associate_iam_instance_profile(
