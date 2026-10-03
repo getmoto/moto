@@ -1348,6 +1348,10 @@
   "Location": "ap-south-2"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "ap-south-2"
+ },
+ {
   "InstanceType": "p6-b300.48xlarge",
   "Location": "ap-south-2"
  },
@@ -1889,6 +1893,34 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "trn2.48xlarge",
+  "Location": "ap-south-2"
+ },
+ {
+  "InstanceType": "trn2u.48xlarge",
   "Location": "ap-south-2"
  },
  {
