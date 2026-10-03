@@ -225,6 +225,39 @@ def test_describe_global_networks():
 
 
 @mock_aws
+def test_paginators_return_every_page():
+    client = boto3.client("networkmanager", "us-east-1")
+    gn_id = create_global_network(client)
+    for _ in range(2):
+        create_global_network(client)
+    for _ in range(3):
+        client.create_site(GlobalNetworkId=gn_id)
+        client.create_link(
+            GlobalNetworkId=gn_id,
+            SiteId="site-id",
+            Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        )
+        client.create_device(GlobalNetworkId=gn_id)
+        client.create_core_network(GlobalNetworkId=gn_id)
+
+    page = client.describe_global_networks(MaxResults=2)
+    assert len(page["GlobalNetworks"]) == 2
+    assert "NextToken" in page
+
+    for operation, key, kwargs in (
+        ("list_core_networks", "CoreNetworks", {}),
+        ("describe_global_networks", "GlobalNetworks", {}),
+        ("get_sites", "Sites", {"GlobalNetworkId": gn_id}),
+        ("get_links", "Links", {"GlobalNetworkId": gn_id}),
+        ("get_devices", "Devices", {"GlobalNetworkId": gn_id}),
+    ):
+        pages = client.get_paginator(operation).paginate(
+            **kwargs, PaginationConfig={"PageSize": 2}
+        )
+        assert sum(len(page[key]) for page in pages) == 3, operation
+
+
+@mock_aws
 def test_create_site():
     client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)

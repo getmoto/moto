@@ -82,9 +82,8 @@ class NetworkManagerResponse(BaseResponse):
         return 200, {}, json.dumps({})
 
     def list_core_networks(self) -> str:
-        params = self._get_params()
-        max_results = params.get("maxResults")
-        next_token = params.get("nextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         core_networks, next_token = self.networkmanager_backend.list_core_networks(
             max_results=max_results,
             next_token=next_token,
@@ -102,8 +101,8 @@ class NetworkManagerResponse(BaseResponse):
     def describe_global_networks(self) -> str:
         params = self._get_params()
         global_network_ids = params.get("globalNetworkIds")
-        max_results = params.get("maxResults")
-        next_token = params.get("nextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         global_networks, next_token = (
             self.networkmanager_backend.describe_global_networks(
                 global_network_ids=global_network_ids,
@@ -115,7 +114,7 @@ class NetworkManagerResponse(BaseResponse):
             global_network.to_dict() for global_network in global_networks
         ]
         return json.dumps(
-            {"GlobalNetworks": list_global_networks, "nextToken": next_token}
+            {"GlobalNetworks": list_global_networks, "NextToken": next_token}
         )
 
     def create_site(self) -> str:
@@ -144,11 +143,10 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps({"Site": site.to_dict()})
 
     def get_sites(self) -> str:
-        params = self._get_params()
         global_network_id = unquote(self.path.split("/")[-2])
         site_ids = self.querystring.get("siteIds")
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         sites, next_token = self.networkmanager_backend.get_sites(
             global_network_id=global_network_id,
             site_ids=site_ids,
@@ -156,7 +154,7 @@ class NetworkManagerResponse(BaseResponse):
             next_token=next_token,
         )
         list_sites = [site.to_dict() for site in sites]
-        return json.dumps({"Sites": list_sites, "nextToken": next_token})
+        return json.dumps({"Sites": list_sites, "NextToken": next_token})
 
     def create_link(self) -> str:
         params = json.loads(self.body)
@@ -187,8 +185,8 @@ class NetworkManagerResponse(BaseResponse):
         site_id = params.get("SiteId")
         type = params.get("Type")
         provider = params.get("Provider")
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         links, next_token = self.networkmanager_backend.get_links(
             global_network_id=global_network_id,
             link_ids=link_ids,
@@ -199,7 +197,7 @@ class NetworkManagerResponse(BaseResponse):
             next_token=next_token,
         )
         list_links = [link.to_dict() for link in links]
-        return json.dumps({"Links": list_links, "nextToken": next_token})
+        return json.dumps({"Links": list_links, "NextToken": next_token})
 
     def delete_link(self) -> str:
         global_network_id = unquote(self.path.split("/")[-3])
@@ -245,8 +243,8 @@ class NetworkManagerResponse(BaseResponse):
         global_network_id = unquote(self.path.split("/")[-2])
         device_ids = self.querystring.get("deviceIds")
         site_id = params.get("SiteId")
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         devices, next_token = self.networkmanager_backend.get_devices(
             global_network_id=global_network_id,
             device_ids=device_ids,
@@ -255,7 +253,7 @@ class NetworkManagerResponse(BaseResponse):
             next_token=next_token,
         )
         list_devices = [device.to_dict() for device in devices]
-        return json.dumps({"Devices": list_devices, "nextToken": next_token})
+        return json.dumps({"Devices": list_devices, "NextToken": next_token})
 
     def delete_device(self) -> str:
         global_network_id = unquote(self.path.split("/")[-3])

@@ -396,6 +396,32 @@ def test_describe_trusts():
 
 
 @mock_aws
+def test_describe_trusts_pagination():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+    trust_ids = [
+        client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        for x in range(3)
+    ]
+
+    page = client.describe_trusts(DirectoryId=directory_id, Limit=2)
+    assert len(page["Trusts"]) == 2
+    assert "NextToken" in page
+
+    pages = client.get_paginator("describe_trusts").paginate(
+        DirectoryId=directory_id, PaginationConfig={"PageSize": 2}
+    )
+    assert [t["TrustId"] for page in pages for t in page["Trusts"]] == trust_ids
+
+
+@mock_aws
 def test_delete_trust():
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
