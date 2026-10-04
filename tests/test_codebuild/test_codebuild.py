@@ -33,15 +33,23 @@ def test_codebuild_create_project_s3_artifacts():
 
     project = client.create_project(
         name=name,
+        description="test",
         source=source,
         artifacts=artifacts,
         environment=environment,
         serviceRole=service_role,
         tags=[{"key": "k1", "value": "v1"}],
+        sourceVersion="test_source_version",
+        logsConfig={"s3Logs": {"status": "test"}},
+        vpcConfig={"vpcId": "test"},
     )["project"]
 
     assert "serviceRole" in project
     assert project["name"] == name
+    assert project["description"] == "test"
+    assert project["sourceVersion"] == "test_source_version"
+    assert project["logsConfig"] == {"s3Logs": {"status": "test"}}
+    assert project["vpcConfig"] == {"vpcId": "test"}
 
     assert project["environment"] == {
         "computeType": "BUILD_GENERAL1_SMALL",
