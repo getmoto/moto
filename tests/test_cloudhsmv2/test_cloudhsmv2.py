@@ -150,29 +150,6 @@ def test_delete_cluster():
 
 
 @mock_aws
-def test_delete_cluster():
-    client = boto3.client("cloudhsmv2", region_name="us-east-1")
-
-    response = client.create_cluster(
-        HsmType="hsm1.medium",
-        SubnetIds=["subnet-12345678"],
-        NetworkType="IPV4",
-        Mode="FIPS",
-    )
-    cluster_id = response["Cluster"]["ClusterId"]
-
-    delete_response = client.delete_cluster(ClusterId=cluster_id)
-
-    deleted_cluster = delete_response["Cluster"]
-    assert deleted_cluster["ClusterId"] == cluster_id
-    assert deleted_cluster["State"] == "DELETED"
-    assert deleted_cluster["StateMessage"] == "Cluster deleted"
-
-    clusters = client.describe_clusters()["Clusters"]
-    assert len(clusters) == 0
-
-
-@mock_aws
 def test_delete_cluster_not_found():
     client = boto3.client("cloudhsmv2", region_name="us-east-1")
     with pytest.raises(Exception) as exc:
