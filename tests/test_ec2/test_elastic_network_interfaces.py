@@ -1,4 +1,5 @@
 import random
+from unittest.mock import patch
 from uuid import uuid4
 
 import boto3
@@ -768,8 +769,11 @@ def test_unassign_private_ip_addresses():
     ]
 
 
+@pytest.mark.parametrize(
+    "ip_suffixes", [[1, 2, 3, 4, 5], [1, 2, 1, 3, 4, 5]], ids=["unique", "repeated"]
+)
 @mock_aws
-def test_unassign_private_ip_addresses__multiple():
+def test_unassign_private_ip_addresses__multiple(ip_suffixes):
     ec2resource, ec2client, vpc, subnet = setup_vpc()
 
     private_ip = "54.0.0.1"
@@ -777,9 +781,14 @@ def test_unassign_private_ip_addresses__multiple():
         SubnetId=subnet.id, PrivateIpAddress=private_ip
     )
 
-    ec2client.assign_private_ip_addresses(
-        NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=5
-    )
+    # Only control candidates during automatic secondary allocation.
+    with patch(
+        "moto.ec2.models.elastic_network_interfaces.random_private_ip",
+        side_effect=[f"10.0.0.{suffix}" for suffix in ip_suffixes],
+    ):
+        ec2client.assign_private_ip_addresses(
+            NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=5
+        )
     resp = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
     ips_before = [addr["PrivateIpAddress"] for addr in my_eni["PrivateIpAddresses"]]
