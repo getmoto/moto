@@ -231,7 +231,7 @@ class DataBrewBackend(BaseBackend):
         ruleset_name: str,
         ruleset_description: str,
         ruleset_rules: list[dict[str, Any]],
-        tags: dict[str, str],
+        tags: dict[str, str], #TODO: REVIEW tags is NOT in the official boto docs
     ) -> "FakeRuleset":
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
@@ -297,7 +297,7 @@ class DataBrewBackend(BaseBackend):
         dataset_format_options: dict[str, Any],
         dataset_input: dict[str, Any],
         dataset_path_options: dict[str, Any],
-        tags: dict[str, str],
+        tags: dict[str, str], #TODO: REVIEW tags is NOT in the official boto docs
     ) -> "FakeDataset":
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
