@@ -2135,6 +2135,45 @@ def test_modify_replication_group():
 
 
 @mock_aws
+def test_modify_replication_group_only_description():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        AutomaticFailoverEnabled=False,
+        MultiAZEnabled=False,
+        SnapshotRetentionLimit=0,
+    )
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Engine"] == "redis"
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert replication_group["AutomaticFailover"] == "disabled"
+    assert replication_group["MultiAZ"] == "disabled"
+    assert replication_group["SnapshotRetentionLimit"] == 0
+
+    client.modify_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test_modify_replication_group",
+    )
+    describe_resp = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id
+    )
+    replication_group = describe_resp["ReplicationGroups"][0]
+    assert replication_group["Description"] == "test_modify_replication_group"
+    assert replication_group["Engine"] == "redis"
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert replication_group["AutomaticFailover"] == "disabled"
+    assert replication_group["MultiAZ"] == "disabled"
+    assert replication_group["SnapshotRetentionLimit"] == 0
+
+
+@mock_aws
 def test_modify_replication_group_not_found():
     client = boto3.client("elasticache", region_name="us-east-2")
 

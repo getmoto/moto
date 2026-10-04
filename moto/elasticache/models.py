@@ -1057,14 +1057,20 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
             raise ReplicationGroupNotFound(replication_group_id)
 
         replication_group = self.replication_groups[replication_group_id]
-        replication_group.description = replication_group_description
-        replication_group.engine = engine
-        replication_group.cache_node_type = cache_node_type
-        replication_group.automatic_failover = (
-            "enabled" if automatic_failover_enabled else "disabled"
-        )
-        replication_group.multi_az = "enabled" if multi_az_enabled else "disabled"
-        replication_group.snapshot_retention_limit = snapshot_retention_limit
+        if replication_group_description is not None:
+            replication_group.description = replication_group_description
+        if engine is not None:
+            replication_group.engine = engine
+        if cache_node_type is not None:
+            replication_group.cache_node_type = cache_node_type
+        if automatic_failover_enabled is not None:
+            replication_group.automatic_failover = (
+                "enabled" if automatic_failover_enabled else "disabled"
+            )
+        if multi_az_enabled is not None:
+            replication_group.multi_az = "enabled" if multi_az_enabled else "disabled"
+        if snapshot_retention_limit is not None:
+            replication_group.snapshot_retention_limit = snapshot_retention_limit
         return replication_group
 
     def delete_replication_group(
