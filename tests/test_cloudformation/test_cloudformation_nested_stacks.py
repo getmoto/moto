@@ -2,6 +2,8 @@ import json
 from uuid import uuid4
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -135,6 +137,119 @@ def test_delete_basic_stack():
     assert len(stacks) == 2
     for stack in stacks:
         assert stack["StackStatus"] == "DELETE_COMPLETE"
+
+
+@mock_aws
+def test_get_nested_stack_output_with_getatt():
+    cf = boto3.client("cloudformation", "us-east-1")
+    ssm = boto3.client("ssm", "us-east-1")
+    bucket_created_by_cf = str(uuid4())
+    template_url = upload_inner_template(get_inner_template(bucket_created_by_cf))
+
+    stack_name = "a" + str(uuid4())[0:6]
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "NestedStack": {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"TemplateURL": template_url},
+            },
+            "Param": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "nested-bucket",
+                    "Type": "String",
+                    "Value": {"Fn::GetAtt": ["NestedStack", "Outputs.Bucket"]},
+                },
+            },
+        },
+        "Outputs": {
+            "NestedBucket": {
+                "Value": {"Fn::GetAtt": ["NestedStack", "Outputs.Bucket"]}
+            },
+            "NestedBucketSub": {"Value": {"Fn::Sub": "${NestedStack.Outputs.Bucket}"}},
+        },
+    }
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    outputs = get_stack_outputs(cf, stack_name)
+    assert outputs["NestedBucket"] == bucket_created_by_cf
+    assert outputs["NestedBucketSub"] == bucket_created_by_cf
+
+    param = ssm.get_parameter(Name="nested-bucket")["Parameter"]
+    assert param["Value"] == bucket_created_by_cf
+
+
+@mock_aws
+def test_get_nested_stack_output_with_yaml_getatt():
+    cf = boto3.client("cloudformation", "us-east-1")
+    bucket_created_by_cf = str(uuid4())
+    template_url = upload_inner_template(get_inner_template(bucket_created_by_cf))
+
+    stack_name = "a" + str(uuid4())[0:6]
+    template = f"""
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  NestedStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: {template_url}
+Outputs:
+  NestedBucket:
+    Value: !GetAtt NestedStack.Outputs.Bucket
+  NestedBucketSub:
+    Value: !Sub "${{NestedStack.Outputs.Bucket}}-suffix"
+"""
+    cf.create_stack(StackName=stack_name, TemplateBody=template)
+
+    outputs = get_stack_outputs(cf, stack_name)
+    assert outputs["NestedBucket"] == bucket_created_by_cf
+    assert outputs["NestedBucketSub"] == f"{bucket_created_by_cf}-suffix"
+
+
+@mock_aws
+def test_get_unknown_nested_stack_output():
+    cf = boto3.client("cloudformation", "us-east-1")
+    template_url = upload_inner_template(get_inner_template(str(uuid4())))
+
+    stack_name = "a" + str(uuid4())[0:6]
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "NestedStack": {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"TemplateURL": template_url},
+            },
+            "Param": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Type": "String",
+                    "Value": {"Fn::GetAtt": ["NestedStack", "Outputs.Unknown"]},
+                },
+            },
+        },
+    }
+    with pytest.raises(ClientError) as exc:
+        cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Template error: resource NestedStack does not support attribute type Outputs.Unknown in Fn::GetAtt"
+    )
+
+
+def upload_inner_template(template):
+    s3 = boto3.client("s3", "us-east-1")
+    cf_storage_bucket = str(uuid4())
+    s3.create_bucket(Bucket=cf_storage_bucket)
+    s3.put_object(Bucket=cf_storage_bucket, Key="stack.json", Body=json.dumps(template))
+    return f"https://s3.amazonaws.com/{cf_storage_bucket}/stack.json"
+
+
+def get_stack_outputs(cf, stack_name):
+    stack = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    return {o["OutputKey"]: o["OutputValue"] for o in stack["Outputs"]}
 
 
 def get_inner_template(bucket_created_by_cf):
