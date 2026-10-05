@@ -2264,6 +2264,94 @@
   "Location": "apse1-az1"
  },
  {
+  "InstanceType": "m9g.12xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.16xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.24xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.2xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.48xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.4xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.8xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.large",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.medium",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.metal-48xl",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9g.xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.12xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.16xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.24xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.2xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.48xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.4xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.8xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.large",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.medium",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.metal-48xl",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "m9gd.xlarge",
+  "Location": "apse1-az1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apse1-az1"
  },
@@ -3193,6 +3281,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "apse1-az1"
  },
  {
@@ -5696,6 +5800,94 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "m9g.12xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.16xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.2xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.48xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.4xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.8xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.large",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.medium",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.metal-48xl",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9g.xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.12xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.16xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.2xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.48xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.4xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.8xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.large",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.medium",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.metal-48xl",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "m9gd.xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apse1-az2"
  },
@@ -6677,6 +6869,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "apse1-az2"
  },
  {
@@ -8940,6 +9148,94 @@
   "Location": "apse1-az3"
  },
  {
+  "InstanceType": "m9g.12xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.16xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.24xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.2xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.48xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.4xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.8xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.large",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.medium",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.metal-48xl",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9g.xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.12xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.16xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.24xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.2xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.48xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.4xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.8xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.large",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.medium",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.metal-48xl",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "m9gd.xlarge",
+  "Location": "apse1-az3"
+ },
+ {
   "InstanceType": "p4de.24xlarge",
   "Location": "apse1-az3"
  },
@@ -9845,6 +10141,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "apse1-az3"
  },
  {
