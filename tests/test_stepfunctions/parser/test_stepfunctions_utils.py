@@ -1,7 +1,6 @@
 import pytest
 
 import moto.stepfunctions.parser.stepfunctions_utils as utils
-from moto.stepfunctions.parser.api import ValidationException
 
 
 def test_get_next_page_token_from_arn():

@@ -20,5 +20,5 @@ def test_backup():
     assert dict["SourceBackup"] == "test"
     assert dict["SourceCluster"] == "test"
     assert dict["SourceRegion"] == "test"
-    assert dict["NeverExpires"] == False
+    assert not dict["NeverExpires"]
     assert "arn:aws:cloudhsm:us-east-1" in dict["BackupArn"]
