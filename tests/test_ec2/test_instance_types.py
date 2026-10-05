@@ -37,7 +37,7 @@ def test_describe_instance_types_filter_by_type():
 def test_describe_instance_types_gpu_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
-        InstanceTypes=["p3dn.24xlarge", "g4ad.8xlarge"]
+        InstanceTypes=["p3dn.24xlarge", "g4dn.8xlarge"]
     )
 
     assert len(instance_types["InstanceTypes"]) == 2
@@ -53,19 +53,16 @@ def test_describe_instance_types_gpu_instance_types():
             # AWS seems to re-order these attributes every week
             gpu["Workloads"] = sorted(gpu["Workloads"])
     assert instance_type_to_gpu_info == {
-        "g4ad.8xlarge": {
+        "g4dn.8xlarge": {
             "Gpus": [
                 {
-                    "Count": 2,
+                    "Count": 1,
                     "GpuPartitionSize": 1.0,
-                    "LogicalGpuCount": 2,
-                    "Manufacturer": "AMD",
-                    "MemoryInfo": {"SizeInMiB": 8192},
-                    "Name": "Radeon Pro V520",
-                    "Workloads": [
-                        "graphics",
-                        "ml-ai",
-                    ],
+                    "LogicalGpuCount": 1,
+                    "Manufacturer": "NVIDIA",
+                    "MemoryInfo": {"SizeInMiB": 16384},
+                    "Name": "T4",
+                    "Workloads": ["graphics", "ml-ai"],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
@@ -193,16 +190,25 @@ def test_describe_instance_types_filter_by_current_generation():
 @mock_aws
 def test_describe_instance_types_small_instances():
     client = boto3.client("ec2", "us-east-1")
-    instance_types = client.describe_instance_types(Filters=[
-        {"Name": "bare-metal", "Values": ["false"]},
-        {"Name": "current-generation", "Values": ["true"]},
-        {"Name": "vcpu-info.default-cores", "Values": ["1"]},
-        {"Name": "memory-info.size-in-mib", "Values": ["512", "1024"]},
-        {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
-    ])  # fmt: skip
+    instance_types = client.describe_instance_types(
+        Filters=[
+            {"Name": "bare-metal", "Values": ["false"]},
+            {"Name": "current-generation", "Values": ["true"]},
+            {"Name": "vcpu-info.default-cores", "Values": ["1"]},
+            {"Name": "memory-info.size-in-mib", "Values": ["512", "1024"]},
+            {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
+        ]
+    )
 
     types = {t["InstanceType"] for t in instance_types["InstanceTypes"]}
-    assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
+    assert types == {
+        "t3.micro",
+        "t3.nano",
+        "t3a.micro",
+        "t3a.nano",
+        "t8i.micro",
+        "t8i.nano",
+    }
 
 
 @mock_aws
