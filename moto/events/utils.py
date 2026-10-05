@@ -105,7 +105,7 @@ class EventTemplateParser:
             input_paths_map or EventTemplateParser.DEFAULT_EVENT_INPUT_PATHS_MAP
         )
         for input_path in input_paths_map:
-            input_expr = parse(input_paths_map[input_path])
+            input_expr = parse(input_paths_map[input_path])  # type: ignore[no-untyped-call]
             matches = input_expr.find(event)
             result = (
                 EventTemplateParser._stringify(matches[0].value) if matches else None
