@@ -411,12 +411,12 @@ def test_describe_trusts_pagination():
         for x in range(3)
     ]
 
-    page = client.describe_trusts(DirectoryId=directory_id, Limit=2)
+    page = client.describe_trusts(DirectoryId=directory_id, TrustIds=trust_ids, Limit=2)
     assert len(page["Trusts"]) == 2
     assert "NextToken" in page
 
     pages = client.get_paginator("describe_trusts").paginate(
-        DirectoryId=directory_id, PaginationConfig={"PageSize": 2}
+        DirectoryId=directory_id, TrustIds=trust_ids, PaginationConfig={"PageSize": 2}
     )
     assert [t["TrustId"] for page in pages for t in page["Trusts"]] == trust_ids
 
