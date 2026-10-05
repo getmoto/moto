@@ -8,6 +8,7 @@ import yaml
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.paginator import paginate
@@ -109,8 +110,8 @@ class Pipeline(ManagedState, BaseModel):
             self.vpc_endpoint_service = None
 
         self.service_vpc_endpoints = self._get_service_vpc_endpoints()
-        self.created_at: datetime = datetime.now()
-        self.last_updated_at: datetime = datetime.now()
+        self.created_at: datetime = utcnow()
+        self.last_updated_at: datetime = utcnow()
 
     def _get_arn(self, name: str) -> str:
         return f"arn:{get_partition(self.region)}:osis:{self.region}:{self.account_id}:pipeline/{name}"
@@ -166,14 +167,8 @@ class Pipeline(ManagedState, BaseModel):
         self.status = "DELETING"
         self.set_last_updated()
 
-    def get_created_at(self) -> str:
-        return self.created_at.astimezone().isoformat()
-
-    def get_last_updated_at(self) -> str:
-        return self.last_updated_at.astimezone().isoformat()
-
     def set_last_updated(self) -> None:
-        self.last_updated_at = datetime.now()
+        self.last_updated_at = utcnow()
 
     def start(self) -> None:
         self.status = "STARTING"
@@ -212,54 +207,6 @@ class Pipeline(ManagedState, BaseModel):
         self.service_vpc_endpoints = self._get_service_vpc_endpoints()
         self.status = "UPDATING"
         self.set_last_updated()
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "PipelineName": self.pipeline_name,
-            "PipelineArn": self.arn,
-            "MinUnits": self.min_units,
-            "MaxUnits": self.max_units,
-            "Status": self.status,
-            "StatusReason": {
-                "Description": self.STATUS_REASON_MAP.get(self.status or "", ""),
-            },
-            "PipelineConfigurationBody": self.pipeline_configuration_body_str,
-            "CreatedAt": self.get_created_at(),
-            "LastUpdatedAt": self.get_last_updated_at(),
-            "IngestEndpointUrls": self.ingest_endpoint_urls,
-            "LogPublishingOptions": self.log_publishing_options,
-            "VpcEndpoints": None
-            if self.vpc_options is None
-            else [
-                {
-                    "VpcEndpointId": self.vpc_endpoint,
-                    "VpcId": self.vpc_id,
-                    "VpcOptions": self.vpc_options,
-                }
-            ],
-            "BufferOptions": self.buffer_options,
-            "EncryptionAtRestOptions": self.encryption_at_rest_options,
-            "VpcEndpointService": self.vpc_endpoint_service,
-            "ServiceVpcEndpoints": self.service_vpc_endpoints,
-            "Destinations": self.destinations,
-            "Tags": self.backend.list_tags_for_resource(self.arn)["Tags"],
-        }
-
-    def to_short_dict(self) -> dict[str, Any]:
-        return {
-            "Status": self.status,
-            "StatusReason": {
-                "Description": self.STATUS_REASON_MAP.get(self.status or "", ""),
-            },
-            "PipelineName": self.pipeline_name,
-            "PipelineArn": self.arn,
-            "MinUnits": self.min_units,
-            "MaxUnits": self.max_units,
-            "CreatedAt": self.get_created_at(),
-            "LastUpdatedAt": self.get_last_updated_at(),
-            "Destinations": self.destinations,
-            "Tags": self.backend.list_tags_for_resource(self.arn)["Tags"],
-        }
 
 
 class OpenSearchIngestionBackend(BaseBackend):
