@@ -190,16 +190,25 @@ def test_describe_instance_types_filter_by_current_generation():
 @mock_aws
 def test_describe_instance_types_small_instances():
     client = boto3.client("ec2", "us-east-1")
-    instance_types = client.describe_instance_types(Filters=[
-        {"Name": "bare-metal", "Values": ["false"]},
-        {"Name": "current-generation", "Values": ["true"]},
-        {"Name": "vcpu-info.default-cores", "Values": ["1"]},
-        {"Name": "memory-info.size-in-mib", "Values": ["512", "1024"]},
-        {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
-    ])  # fmt: skip
+    instance_types = client.describe_instance_types(
+        Filters=[
+            {"Name": "bare-metal", "Values": ["false"]},
+            {"Name": "current-generation", "Values": ["true"]},
+            {"Name": "vcpu-info.default-cores", "Values": ["1"]},
+            {"Name": "memory-info.size-in-mib", "Values": ["512", "1024"]},
+            {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
+        ]
+    )
 
     types = {t["InstanceType"] for t in instance_types["InstanceTypes"]}
-    assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
+    assert types == {
+        "t3.micro",
+        "t3.nano",
+        "t3a.micro",
+        "t3a.nano",
+        "t8i.micro",
+        "t8i.nano",
+    }
 
 
 @mock_aws
