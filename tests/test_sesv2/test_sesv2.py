@@ -904,6 +904,25 @@ def test_list_email_identities():
 
 
 @mock_aws
+def test_list_email_identities_paginates():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    identities = [f"user-{i}@example.com" for i in range(101)]
+    for identity in identities:
+        client.create_email_identity(EmailIdentity=identity)
+
+    first_page = client.list_email_identities(PageSize=100)
+    assert len(first_page["EmailIdentities"]) == 100
+    assert first_page["NextToken"]
+
+    second_page = client.list_email_identities(
+        PageSize=100, NextToken=first_page["NextToken"]
+    )
+    assert len(second_page["EmailIdentities"]) == 1
+    assert second_page["EmailIdentities"][0]["IdentityName"] == identities[-1]
+    assert second_page.get("NextToken") is None
+
+
+@mock_aws
 def test_create_configuration_set():
     # Setup
     client = boto3.client("sesv2", region_name="eu-west-1")
