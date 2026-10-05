@@ -449,13 +449,16 @@ class EventsHandler(BaseResponse):
         )
 
     def list_connections(self) -> tuple[str, dict[str, Any]]:
-        connections = self.events_backend.list_connections()
+        connections = self.events_backend.list_connections(
+            name_prefix=self._get_param("NamePrefix"),
+            connection_state=self._get_param("ConnectionState"),
+        )
         result = []
         for connection in connections:
             result.append(
                 {
                     "ConnectionArn": connection.arn,
-                    "ConnectionState": "AUTHORIZED",
+                    "ConnectionState": connection.state,
                     "CreationTime": connection.creation_time,
                     "Name": connection.name,
                     "LastModifiedTime": connection.creation_time,
@@ -506,7 +509,10 @@ class EventsHandler(BaseResponse):
         return self._create_response(result)
 
     def list_api_destinations(self) -> tuple[str, dict[str, Any]]:
-        destinations = self.events_backend.list_api_destinations()
+        destinations = self.events_backend.list_api_destinations(
+            name_prefix=self._get_param("NamePrefix"),
+            connection_arn=self._get_param("ConnectionArn"),
+        )
         result = []
         for destination in destinations:
             result.append(

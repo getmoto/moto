@@ -1995,8 +1995,15 @@ class EventsBackend(BaseBackend, TaggableResourcesMixin):
                 setattr(connection, attr, value)
         return connection.describe_short()
 
-    def list_connections(self) -> list[Connection]:
-        return list(self.connections.values())
+    def list_connections(
+        self, name_prefix: str | None = None, connection_state: str | None = None
+    ) -> list[Connection]:
+        connections = list(self.connections.values())
+        if name_prefix:
+            connections = [c for c in connections if c.name.startswith(name_prefix)]
+        if connection_state:
+            connections = [c for c in connections if c.state == connection_state]
+        return connections
 
     def describe_connection(self, name: str) -> dict[str, Any]:
         connection = self.connections.get(name)
@@ -2045,8 +2052,17 @@ class EventsBackend(BaseBackend, TaggableResourcesMixin):
         self.destinations[name] = destination
         return destination.describe_short()
 
-    def list_api_destinations(self) -> list[Destination]:
-        return list(self.destinations.values())
+    def list_api_destinations(
+        self, name_prefix: str | None = None, connection_arn: str | None = None
+    ) -> list[Destination]:
+        destinations = list(self.destinations.values())
+        if name_prefix:
+            destinations = [d for d in destinations if d.name.startswith(name_prefix)]
+        if connection_arn:
+            destinations = [
+                d for d in destinations if d.connection_arn == connection_arn
+            ]
+        return destinations
 
     def describe_api_destination(self, name: str) -> dict[str, Any]:
         destination = self.destinations.get(name)
