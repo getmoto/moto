@@ -26,10 +26,10 @@ class NetworkFirewallModel(BaseModel):
         firewall_name: str,
         firewall_policy_arn: str,
         vpc_id: str,
-        subnet_mappings: list[str],
-        delete_protection: bool,
-        subnet_change_protection: bool,
-        firewall_policy_change_protection: bool,
+        subnet_mappings: list[dict[str, str]],
+        delete_protection: bool | None,
+        subnet_change_protection: bool | None,
+        firewall_policy_change_protection: bool | None,
         description: str,
         tags: list[dict[str, str]],
         encryption_configuration: dict[str, str],
@@ -64,22 +64,6 @@ class NetworkFirewallModel(BaseModel):
         }
         self.logging_configs: dict[str, list[dict[str, Any]]] = {}
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "FirewallName": self.firewall_name,
-            "FirewallArn": self.arn,
-            "FirewallPolicyArn": self.firewall_policy_arn,
-            "VpcId": self.vpc_id,
-            "SubnetMappings": self.subnet_mappings,
-            "DeleteProtection": self.delete_protection,
-            "SubnetChangeProtection": self.subnet_change_protection,
-            "FirewallPolicyChangeProtection": self.firewall_policy_change_protection,
-            "Description": self.description,
-            "Tags": self.tags,
-            "EncryptionConfiguration": self.encryption_configuration,
-            "EnabledAnalysisTypes": self.enabled_analysis_types,
-        }
-
 
 class NetworkFirewallBackend(BaseBackend):
     """Implementation of NetworkFirewall APIs."""
@@ -94,10 +78,10 @@ class NetworkFirewallBackend(BaseBackend):
         firewall_name: str,
         firewall_policy_arn: str,
         vpc_id: str,
-        subnet_mappings: list[str],
-        delete_protection: bool,
-        subnet_change_protection: bool,
-        firewall_policy_change_protection: bool,
+        subnet_mappings: list[dict[str, str]],
+        delete_protection: bool | None,
+        subnet_change_protection: bool | None,
+        firewall_policy_change_protection: bool | None,
         description: str,
         tags: list[dict[str, str]],
         encryption_configuration: dict[str, str],
