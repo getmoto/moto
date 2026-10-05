@@ -170,7 +170,6 @@ def test_import_certificate_with_arn():
     )
     resp = client.get_certificate(CertificateArn=arn)
     assert resp["Certificate"] == RSA_2048_CRT.decode()
-    assert 1 == 2
 
 
 @mock_aws
