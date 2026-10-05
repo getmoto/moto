@@ -60,6 +60,7 @@ from collections import namedtuple
 from collections.abc import Callable, Generator, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from typing import (
     Any,
     TypedDict,
@@ -581,6 +582,15 @@ class BaseJSONSerializer(ResponseSerializer):
             serialized[key] = value
             return
         super()._serialize_type_structure(serialized, value, shape, key)
+
+    def _serialize_type_string(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # HACK for Enums.  (Once we're on Python 3.11+, we can use StrEnum)
+        if isinstance(value, Enum):
+            value = value.value
+        string_value = str(value) if value not in [None, {}, []] else value
+        self._default_serialize(serialized, string_value, shape, key)
 
 
 class BaseXMLSerializer(ResponseSerializer):

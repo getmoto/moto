@@ -1,10 +1,31 @@
 """Handles incoming networkfirewall requests, invokes methods, returns responses."""
 
-import json
+from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 
-from .models import NetworkFirewallBackend, networkfirewall_backends
+from .models import (
+    NetworkFirewallBackend,
+    NetworkFirewallModel,
+    networkfirewall_backends,
+)
+
+
+def _firewall(firewall: NetworkFirewallModel) -> dict[str, Any]:
+    return {
+        "FirewallName": firewall.firewall_name,
+        "FirewallArn": firewall.arn,
+        "FirewallPolicyArn": firewall.firewall_policy_arn,
+        "VpcId": firewall.vpc_id,
+        "SubnetMappings": firewall.subnet_mappings,
+        "DeleteProtection": firewall.delete_protection,
+        "SubnetChangeProtection": firewall.subnet_change_protection,
+        "FirewallPolicyChangeProtection": firewall.firewall_policy_change_protection,
+        "Description": firewall.description,
+        "Tags": firewall.tags,
+        "EncryptionConfiguration": firewall.encryption_configuration,
+        "EnabledAnalysisTypes": firewall.enabled_analysis_types,
+    }
 
 
 class NetworkFirewallResponse(BaseResponse):
@@ -12,20 +33,21 @@ class NetworkFirewallResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="network-firewall")
+        self.automated_parameter_parsing = True
 
     @property
     def networkfirewall_backend(self) -> NetworkFirewallBackend:
         """Return backend instance specific for this region."""
         return networkfirewall_backends[self.current_account][self.region]
 
-    def create_firewall(self) -> str:
+    def create_firewall(self) -> ActionResult:
         firewall_name = self._get_param("FirewallName")
         firewall_policy_arn = self._get_param("FirewallPolicyArn")
         vpc_id = self._get_param("VpcId")
         subnet_mappings = self._get_param("SubnetMappings")
-        delete_protection = self._get_param("DeleteProtection")
-        subnet_change_protection = self._get_param("SubnetChangeProtection")
-        firewall_policy_change_protection = self._get_param(
+        delete_protection = self._get_bool_param("DeleteProtection")
+        subnet_change_protection = self._get_bool_param("SubnetChangeProtection")
+        firewall_policy_change_protection = self._get_bool_param(
             "FirewallPolicyChangeProtection"
         )
         description = self._get_param("Description")
@@ -45,26 +67,26 @@ class NetworkFirewallResponse(BaseResponse):
             encryption_configuration=encryption_configuration,
             enabled_analysis_types=enabled_analysis_types,
         )
+        result = {
+            "Firewall": _firewall(firewall),
+            "FirewallStatus": firewall.firewall_status,
+        }
+        return ActionResult(result)
 
-        return json.dumps(
-            {"Firewall": firewall.to_dict(), "FirewallStatus": firewall.firewall_status}
-        )
-
-    def describe_logging_configuration(self) -> str:
+    def describe_logging_configuration(self) -> ActionResult:
         firewall_arn = self._get_param("FirewallArn")
         firewall_name = self._get_param("FirewallName")
         firewall = self.networkfirewall_backend.describe_logging_configuration(
             firewall_arn=firewall_arn,
             firewall_name=firewall_name,
         )
-        return json.dumps(
-            {
-                "FirewallArn": firewall.arn,
-                "LoggingConfiguration": firewall.logging_configs,
-            }
-        )
+        result = {
+            "FirewallArn": firewall.arn,
+            "LoggingConfiguration": firewall.logging_configs,
+        }
+        return ActionResult(result)
 
-    def update_logging_configuration(self) -> str:
+    def update_logging_configuration(self) -> ActionResult:
         firewall_arn = self._get_param("FirewallArn")
         firewall_name = self._get_param("FirewallName")
         logging_configuration = self._get_param("LoggingConfiguration")
@@ -73,15 +95,14 @@ class NetworkFirewallResponse(BaseResponse):
             firewall_name=firewall_name,
             logging_configuration=logging_configuration,
         )
-        return json.dumps(
-            {
-                "FirewallArn": firewall.arn,
-                "FirewallName": firewall.firewall_name,
-                "LoggingConfiguration": firewall.logging_configs,
-            }
-        )
+        result = {
+            "FirewallArn": firewall.arn,
+            "FirewallName": firewall.firewall_name,
+            "LoggingConfiguration": firewall.logging_configs,
+        }
+        return ActionResult(result)
 
-    def list_firewalls(self) -> str:
+    def list_firewalls(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         vpc_ids = self._get_param("VpcIds")
         max_results = self._get_param("MaxResults")
@@ -90,20 +111,22 @@ class NetworkFirewallResponse(BaseResponse):
             vpc_ids=vpc_ids,
             max_results=max_results,
         )
-        firewall_list = [fw.to_dict() for fw in firewalls]
-        return json.dumps({"NextToken": next_token, "Firewalls": firewall_list})
+        firewall_list = [
+            {"FirewallName": fw.firewall_name, "FirewallArn": fw.arn}
+            for fw in firewalls
+        ]
+        return ActionResult({"NextToken": next_token, "Firewalls": firewall_list})
 
-    def describe_firewall(self) -> str:
+    def describe_firewall(self) -> ActionResult:
         firewall_name = self._get_param("FirewallName")
         firewall_arn = self._get_param("FirewallArn")
         firewall = self.networkfirewall_backend.describe_firewall(
             firewall_name=firewall_name,
             firewall_arn=firewall_arn,
         )
-        return json.dumps(
-            {
-                "UpdateToken": firewall.update_token,
-                "Firewall": firewall.to_dict(),
-                "FirewallStatus": firewall.firewall_status,
-            }
-        )
+        result = {
+            "UpdateToken": firewall.update_token,
+            "Firewall": _firewall(firewall),
+            "FirewallStatus": firewall.firewall_status,
+        }
+        return ActionResult(result)
