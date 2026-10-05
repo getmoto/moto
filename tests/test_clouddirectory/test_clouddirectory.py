@@ -78,13 +78,16 @@ def test_publish_schema():
 def test_list_development_schema_arns():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
-    schema_arn1 = client.create_schema(Name="test-schema1")["SchemaArn"]
-    schema_arn2 = client.create_schema(Name="test-schema2")["SchemaArn"]
+    for i in range(101):
+        client.create_schema(Name=f"test-schema-{i}")
 
     resp = client.list_development_schema_arns()
-    assert len(resp["SchemaArns"]) == 2
-    assert schema_arn1 in resp["SchemaArns"]
-    assert schema_arn2 in resp["SchemaArns"]
+    assert len(resp["SchemaArns"]) == 100
+    assert resp["NextToken"]
+
+    resp = client.list_development_schema_arns(NextToken=resp["NextToken"])
+    assert len(resp["SchemaArns"]) == 1
+    assert resp["SchemaArns"][0].endswith("test-schema-100")
 
 
 @mock_aws

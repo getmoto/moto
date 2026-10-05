@@ -82,6 +82,25 @@ def test_paginator__paginate_5__use_different_range_keys():
     assert token_multiple != token_as_str
 
 
+def test_paginator__paginate_strings():
+    string_results = [f"item{i}" for i in range(5)]
+    p = Paginator(max_results=2, unique_attribute="id")
+
+    page, next_token = p.paginate(string_results)
+    assert page == string_results[:2]
+    assert next_token is not None
+
+    p = Paginator(max_results=2, unique_attribute="id", starting_token=next_token)
+    page, next_token = p.paginate(string_results)
+    assert page == string_results[2:4]
+    assert next_token is not None
+
+    p = Paginator(max_results=2, unique_attribute="id", starting_token=next_token)
+    page, next_token = p.paginate(string_results)
+    assert page == string_results[4:]
+    assert next_token is None
+
+
 def test_paginator__paginate_twice():
     p = Paginator(max_results=5, unique_attribute=["name"])
     resp = p.paginate(results)

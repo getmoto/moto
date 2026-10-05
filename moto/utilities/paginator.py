@@ -152,6 +152,8 @@ class Paginator:
             curr_val = (
                 item[attr] if isinstance(item, dict) else getattr(item, attr, None)
             )
+            if isinstance(item, str):
+                curr_val = item
             if not str(curr_val) == predicate_values[index]:
                 return False
 
@@ -165,6 +167,8 @@ class Paginator:
         for attr in self._unique_attributes:
             if isinstance(next_item, dict):
                 range_keys.append(str(next_item[attr]))
+            elif isinstance(next_item, str):
+                range_keys.append(next_item)
             else:
                 range_keys.append(str(getattr(next_item, attr)))
         token_dict["uniqueAttributes"] = "|".join(range_keys)
