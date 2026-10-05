@@ -2596,6 +2596,22 @@
   "Location": "us-west-1"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "us-west-1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "us-west-1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "us-west-1"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "us-west-1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "us-west-1"
  },

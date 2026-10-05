@@ -712,7 +712,7 @@ class Container(CloudFormationModel, BaseModel):
         self.network_interfaces: list[dict[str, Any]] = []
         self.health_status = "HEALTHY"
 
-        self.cpu = container_def.get("cpu")
+        self.cpu = container_def.get("cpu", 0)
         self.memory = container_def.get("memory")
         self.environment = container_def.get("environment")
         self.name = container_def.get("name")
