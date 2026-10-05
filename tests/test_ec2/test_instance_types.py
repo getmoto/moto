@@ -37,7 +37,7 @@ def test_describe_instance_types_filter_by_type():
 def test_describe_instance_types_gpu_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
-        InstanceTypes=["p3dn.24xlarge", "g4ad.8xlarge"]
+        InstanceTypes=["p3dn.24xlarge", "g4dn.8xlarge"]
     )
 
     assert len(instance_types["InstanceTypes"]) == 2
@@ -53,19 +53,16 @@ def test_describe_instance_types_gpu_instance_types():
             # AWS seems to re-order these attributes every week
             gpu["Workloads"] = sorted(gpu["Workloads"])
     assert instance_type_to_gpu_info == {
-        "g4ad.8xlarge": {
+        "g4dn.8xlarge": {
             "Gpus": [
                 {
-                    "Count": 2,
+                    "Count": 1,
                     "GpuPartitionSize": 1.0,
-                    "LogicalGpuCount": 2,
-                    "Manufacturer": "AMD",
-                    "MemoryInfo": {"SizeInMiB": 8192},
-                    "Name": "Radeon Pro V520",
-                    "Workloads": [
-                        "graphics",
-                        "ml-ai",
-                    ],
+                    "LogicalGpuCount": 1,
+                    "Manufacturer": "NVIDIA",
+                    "MemoryInfo": {"SizeInMiB": 16384},
+                    "Name": "T4",
+                    "Workloads": ["graphics", "ml-ai"],
                 }
             ],
             "TotalGpuMemoryInMiB": 16384,
