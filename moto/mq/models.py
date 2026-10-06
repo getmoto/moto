@@ -8,16 +8,19 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .configuration import DEFAULT_CONFIGURATION_DATA
 from .exceptions import (
+    ConfigurationInUse,
     UnknownBroker,
     UnknownConfiguration,
     UnknownEngineType,
     UnknownUser,
 )
+from .utils import PAGINATION_MODEL
 
 
 class ConfigurationRevision(BaseModel):
@@ -89,8 +92,7 @@ class Configuration(BaseModel):
         )
 
     def update(self, data: str, description: str) -> None:
-        max_revision_id, _ = sorted(self.revisions.items())[-1]
-        next_revision_id = str(int(max_revision_id) + 1)
+        next_revision_id = str(int(self.latest_revision.revision_id) + 1)
         latest_revision = ConfigurationRevision(
             configuration_id=self.id,
             revision_id=next_revision_id,
@@ -108,8 +110,9 @@ class Configuration(BaseModel):
 
     @property
     def latest_revision(self) -> ConfigurationRevision:
-        _, latest_revision = sorted(self.revisions.items())[-1]
-        return latest_revision
+        return max(
+            self.revisions.values(), key=lambda revision: int(revision.revision_id)
+        )
 
 
 class User(BaseModel):
@@ -450,11 +453,31 @@ class MQBackend(BaseBackend):
         config = self.configs[config_id]
         return config.get_revision(revision_id)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_configuration_revisions(
+        self, config_id: str
+    ) -> list[ConfigurationRevision]:
+        config = self.describe_configuration(config_id)
+        return sorted(
+            config.revisions.values(), key=lambda revision: int(revision.revision_id)
+        )
+
     def list_configurations(self) -> Iterable[Configuration]:
         """
         Pagination has not yet been implemented.
         """
         return self.configs.values()
+
+    def delete_configuration(self, config_id: str) -> None:
+        """
+        A configuration that is currently used by a broker cannot be deleted.
+        """
+        config = self.describe_configuration(config_id)
+        for broker in self.brokers.values():
+            if broker.configurations["current"].get("id") == config_id:
+                raise ConfigurationInUse(config_id, broker.id)
+        self.tagger.delete_all_tags_for_resource(config.arn)
+        del self.configs[config_id]
 
     def create_tags(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(

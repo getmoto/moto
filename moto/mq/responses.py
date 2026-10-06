@@ -173,6 +173,26 @@ class MQResponse(BaseResponse):
         resp = {"Configurations": configs}
         return ActionResult(resp)
 
+    def delete_configuration(self) -> ActionResult:
+        config_id = self.path.split("/")[-1]
+        self.mq_backend.delete_configuration(config_id)
+        return ActionResult({"ConfigurationId": config_id})
+
+    def list_configuration_revisions(self) -> ActionResult:
+        config_id = self.path.split("/")[-2]
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        revisions, next_token = self.mq_backend.list_configuration_revisions(
+            config_id=config_id, max_results=max_results, next_token=next_token
+        )
+        resp = {
+            "ConfigurationId": config_id,
+            "MaxResults": max_results,
+            "NextToken": next_token,
+            "Revisions": revisions,
+        }
+        return ActionResult(resp)
+
     def update_configuration(self) -> ActionResult:
         config_id = self.path.split("/")[-1]
         params = json.loads(self.body)
