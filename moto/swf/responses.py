@@ -33,45 +33,41 @@ class SWFResponse(BaseResponse):
         if parameter is not None:
             self._check_string(parameter)
 
-    def _check_string(self, parameter: object) -> str:
+    def _check_string(self, parameter: Any) -> None:
         if not isinstance(parameter, str):
             raise SWFSerializationException(parameter)
-        return parameter
 
     def _get_workflow_execution_params(self) -> tuple[str, str, str]:
-        """Read and validate the domain and workflow execution identifiers."""
         params = self._params
         execution = params.get("execution")
         if isinstance(execution, dict):
             required = {
                 "execution.runId": execution.get("runId"),
                 "execution.workflowId": execution.get("workflowId"),
-                "domain": params.get("domain"),
             }
         elif execution is None:
-            required = {"execution": execution, "domain": params.get("domain")}
+            required = {"execution": None}
         else:
             raise SWFSerializationException(execution)
+        required["domain"] = params.get("domain")
 
-        validated = {
-            name: self._check_string(value)
-            for name, value in required.items()
-            if value is not None
-        }
-        errors = [
-            f"Value null at '{name}' failed to satisfy constraint: Member must not be null"
-            for name, value in required.items()
-            if value is None
-        ]
+        errors = []
+        for name, value in required.items():
+            if value is None:
+                errors.append(
+                    f"Value null at '{name}' failed to satisfy constraint: Member must not be null"
+                )
+            else:
+                self._check_string(value)
         if errors:
             label = "error" if len(errors) == 1 else "errors"
             raise SWFValidationException(
                 f"{len(errors)} validation {label} detected: " + "; ".join(errors)
             )
         return (
-            validated["domain"],
-            validated["execution.runId"],
-            validated["execution.workflowId"],
+            params["domain"],
+            params["execution"]["runId"],
+            params["execution"]["workflowId"],
         )
 
     def _check_none_or_list_of_strings(self, parameter: Any) -> None:
