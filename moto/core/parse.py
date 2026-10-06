@@ -431,7 +431,9 @@ class BaseRestParser(RequestParser):
             elif location == "uri":
                 member_name = member_shape.serialization.get("name", name)
                 uri_params = response["url_params"]
-                value = uri_params.get(member_name)
+                # Regex group names can't contain hyphens, so `uri_to_regexp()`
+                # replaces them with underscores (e.g. {broker-id} -> broker_id)
+                value = uri_params.get(member_name.replace("-", "_"))
                 value = unquote(value)
                 final_parsed[name] = self._parse_shape(member_shape, value)
             elif location == "querystring":

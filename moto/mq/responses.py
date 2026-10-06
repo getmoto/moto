@@ -4,7 +4,7 @@ import copy
 import json
 from urllib.parse import unquote
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .models import MQBackend, mq_backends
 
@@ -14,6 +14,7 @@ class MQResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="mq")
+        self.automated_parameter_parsing = True
 
     @property
     def mq_backend(self) -> MQBackend:
@@ -180,18 +181,13 @@ class MQResponse(BaseResponse):
 
     def list_configuration_revisions(self) -> ActionResult:
         config_id = self.path.split("/")[-2]
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_param("nextToken")
-        revisions, next_token = self.mq_backend.list_configuration_revisions(
-            config_id=config_id, max_results=max_results, next_token=next_token
-        )
+        revisions = self.mq_backend.list_configuration_revisions(config_id=config_id)
         resp = {
             "ConfigurationId": config_id,
-            "MaxResults": max_results,
-            "NextToken": next_token,
+            "MaxResults": self._get_int_param("MaxResults"),
             "Revisions": revisions,
         }
-        return ActionResult(resp)
+        return PaginatedResult(resp)
 
     def update_configuration(self) -> ActionResult:
         config_id = self.path.split("/")[-1]
@@ -217,7 +213,7 @@ class MQResponse(BaseResponse):
 
     def delete_tags(self) -> ActionResult:
         resource_arn = unquote(self.path.split("/")[-1])
-        tag_keys = self._get_param("tagKeys")
+        tag_keys = self._get_param("TagKeys")
         self.mq_backend.delete_tags(resource_arn, tag_keys)
         return EmptyResult()
 

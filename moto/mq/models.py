@@ -8,7 +8,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
-from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -20,7 +19,6 @@ from .exceptions import (
     UnknownEngineType,
     UnknownUser,
 )
-from .utils import PAGINATION_MODEL
 
 
 class ConfigurationRevision(BaseModel):
@@ -453,7 +451,6 @@ class MQBackend(BaseBackend):
         config = self.configs[config_id]
         return config.get_revision(revision_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_configuration_revisions(
         self, config_id: str
     ) -> list[ConfigurationRevision]:
