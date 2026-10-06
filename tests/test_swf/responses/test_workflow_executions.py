@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -217,6 +218,117 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
     assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
     )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
+)
+@pytest.mark.parametrize(
+    "parameters,message",
+    [
+        pytest.param(
+            {},
+            "2 validation errors detected: Value null at 'execution' failed to satisfy constraint: Member must not be null; Value null at 'domain' failed to satisfy constraint: Member must not be null",
+            id="missing-domain-and-execution",
+        ),
+        pytest.param(
+            {"domain": "test-domain"},
+            "1 validation error detected: Value null at 'execution' failed to satisfy constraint: Member must not be null",
+            id="missing-execution",
+        ),
+        pytest.param(
+            {"execution": {"runId": "run-id", "workflowId": "workflow-id"}},
+            "1 validation error detected: Value null at 'domain' failed to satisfy constraint: Member must not be null",
+            id="missing-domain",
+        ),
+        pytest.param(
+            {
+                "domain": None,
+                "execution": {"runId": "run-id", "workflowId": "workflow-id"},
+            },
+            "1 validation error detected: Value null at 'domain' failed to satisfy constraint: Member must not be null",
+            id="null-domain",
+        ),
+        pytest.param(
+            {"domain": "test-domain", "execution": {"workflowId": "workflow-id"}},
+            "1 validation error detected: Value null at 'execution.runId' failed to satisfy constraint: Member must not be null",
+            id="missing-run-id",
+        ),
+        pytest.param(
+            {"domain": "test-domain", "execution": {"runId": "run-id"}},
+            "1 validation error detected: Value null at 'execution.workflowId' failed to satisfy constraint: Member must not be null",
+            id="missing-workflow-id",
+        ),
+        pytest.param(
+            {"domain": "test-domain", "execution": {}},
+            "2 validation errors detected: Value null at 'execution.runId' failed to satisfy constraint: Member must not be null; Value null at 'execution.workflowId' failed to satisfy constraint: Member must not be null",
+            id="empty-execution",
+        ),
+        pytest.param(
+            {
+                "domain": "test-domain",
+                "execution": {"runId": None, "workflowId": "workflow-id"},
+            },
+            "1 validation error detected: Value null at 'execution.runId' failed to satisfy constraint: Member must not be null",
+            id="null-run-id",
+        ),
+        pytest.param(
+            {
+                "domain": "test-domain",
+                "execution": {"runId": "run-id", "workflowId": None},
+            },
+            "1 validation error detected: Value null at 'execution.workflowId' failed to satisfy constraint: Member must not be null",
+            id="null-workflow-id",
+        ),
+    ],
+)
+def test_workflow_execution_missing_parameters(operation, parameters, message):
+    config = Config(parameter_validation=False)
+    client = boto3.client("swf", region_name="us-west-1", config=config)
+
+    with pytest.raises(ClientError) as ex:
+        getattr(client, operation)(**parameters)
+
+    # Messages verified against AWS SWF on 2026-09-17.
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == message
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
+)
+@pytest.mark.parametrize(
+    "domain,execution",
+    [
+        pytest.param(
+            123,
+            {"runId": "run-id", "workflowId": "workflow-id"},
+            id="non-string-domain",
+        ),
+        pytest.param(
+            "test-domain",
+            {"runId": 123, "workflowId": "workflow-id"},
+            id="non-string-run-id",
+        ),
+        pytest.param(
+            "test-domain",
+            {"runId": "run-id", "workflowId": []},
+            id="non-string-workflow-id",
+        ),
+    ],
+)
+def test_workflow_execution_invalid_parameter_types(operation, domain, execution):
+    config = Config(parameter_validation=False)
+    client = boto3.client("swf", region_name="us-west-1", config=config)
+
+    with pytest.raises(ClientError) as ex:
+        getattr(client, operation)(domain=domain, execution=execution)
+
+    assert ex.value.response["Error"]["Code"] == "SerializationException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
