@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -66,3 +68,43 @@ def test_list_items():
     items = client.list_items()["Items"]
     assert len(items) == 1
     assert any(d["Name"] == object_path for d in items)
+
+
+@mock_aws
+def test_describe_object():
+    client = boto3.client("mediastore-data", region_name=region)
+    client.put_object(
+        Body="011001",
+        Path="foo",
+        ContentType="video/mp4",
+        CacheControl="max-age=60",
+    )
+
+    response = client.describe_object(Path="foo")
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["ETag"] == "etag"
+    assert response["ContentType"] == "video/mp4"
+    assert response["ContentLength"] == 6
+    assert response["CacheControl"] == "max-age=60"
+    assert isinstance(response["LastModified"], datetime)
+
+
+@mock_aws
+def test_describe_object_without_optional_headers():
+    client = boto3.client("mediastore-data", region_name=region)
+    client.put_object(Body="0110010110", Path="foo")
+
+    response = client.describe_object(Path="foo")
+
+    assert response["ContentLength"] == 10
+    assert "CacheControl" not in response
+    assert "LastModified" in response
+
+
+@mock_aws
+def test_describe_object_throws_not_found_error():
+    client = boto3.client("mediastore-data", region_name=region)
+    with pytest.raises(ClientError) as ex:
+        client.describe_object(Path="foo")
+    assert ex.value.response["Error"]["Code"] == "ObjectNotFoundException"

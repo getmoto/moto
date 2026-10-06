@@ -7709,10 +7709,10 @@
 
 ## mediastore-data
 <details>
-<summary>80% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] delete_object
-- [ ] describe_object
+- [X] describe_object
 - [X] get_object
 - [X] list_items
 - [X] put_object

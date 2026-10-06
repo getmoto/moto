@@ -4,19 +4,30 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 
 from .exceptions import ClientError
 
 
 class Object(BaseModel):
     def __init__(
-        self, path: str, body: str, etag: str, storage_class: str = "TEMPORAL"
+        self,
+        path: str,
+        body: str,
+        etag: str,
+        storage_class: str = "TEMPORAL",
+        content_type: str | None = None,
+        cache_control: str | None = None,
     ):
         self.path = path
         self.body = body
         self.content_sha256 = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        self.content_length = len(body.encode("utf-8"))
         self.etag = etag
         self.storage_class = storage_class
+        self.content_type = content_type
+        self.cache_control = cache_control
+        self.last_modified = utcnow()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -36,13 +47,23 @@ class MediaStoreDataBackend(BaseBackend):
         self._objects: dict[str, Object] = OrderedDict()
 
     def put_object(
-        self, body: str, path: str, storage_class: str = "TEMPORAL"
+        self,
+        body: str,
+        path: str,
+        storage_class: str = "TEMPORAL",
+        content_type: str | None = None,
+        cache_control: str | None = None,
     ) -> Object:
         """
-        The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
+        The following parameters are not yet implemented: UploadAvailability
         """
         new_object = Object(
-            path=path, body=body, etag="etag", storage_class=storage_class
+            path=path,
+            body=body,
+            etag="etag",
+            storage_class=storage_class,
+            content_type=content_type,
+            cache_control=cache_control,
         )
         self._objects[path] = new_object
         return new_object
@@ -64,6 +85,13 @@ class MediaStoreDataBackend(BaseBackend):
                 "ObjectNotFoundException", f"Object with id={path} not found"
             )
         return objects_found[0]
+
+    def describe_object(self, path: str) -> Object:
+        if path not in self._objects:
+            raise ClientError(
+                "ObjectNotFoundException", f"Object with id={path} not found"
+            )
+        return self._objects[path]
 
     def list_items(self) -> list[dict[str, Any]]:
         """
