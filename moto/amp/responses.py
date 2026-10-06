@@ -1,7 +1,6 @@
 """Handles incoming amp requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -11,15 +10,6 @@ from .models import PrometheusServiceBackend, amp_backends
 
 class PrometheusServiceResponse(BaseResponse):
     """Handler for PrometheusService requests and responses."""
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
 
     def __init__(self) -> None:
         super().__init__(service_name="amp")
