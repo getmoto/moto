@@ -83,10 +83,19 @@ class SQSResponse(BaseResponse):
     def list_queues(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
-        queues = self.sqs_backend.list_queues(queue_name_prefix)
-        result = {}
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        queues, next_token = self.sqs_backend.list_queues(
+            queue_name_prefix=queue_name_prefix,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {}
         if queues:
             result["QueueUrls"] = [queue.url(request_url) for queue in queues]
+        # AWS only returns a NextToken if MaxResults was supplied
+        if next_token and max_results:
+            result["NextToken"] = next_token
         return ActionResult(result)
 
     def change_message_visibility(self) -> ActionResult:

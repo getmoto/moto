@@ -19,6 +19,7 @@ from moto.core.utils import (
     unix_time_millis,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition, md5_hash
 
 from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
@@ -39,7 +40,7 @@ from .exceptions import (
     SQSException,
     TooManyEntriesInBatchRequest,
 )
-from .utils import generate_receipt_handle
+from .utils import PAGINATION_MODEL, generate_receipt_handle
 
 if TYPE_CHECKING:
     from moto.awslambda.models import EventSourceMapping
@@ -735,6 +736,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     def get_queue_url(self, queue_name: str) -> Queue:
         return self.get_queue(queue_name)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_queues(self, queue_name_prefix: str) -> list[Queue]:
         re_str = ".*"
         if queue_name_prefix:
@@ -744,7 +746,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         for name, q in self.queues.items():
             if prefix_re.search(name):
                 qs.append(q)
-        return qs[:1000]
+        return qs
 
     def get_queue(self, queue_name: str) -> Queue:
         queue = self.queues.get(queue_name)
