@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from functools import cache
 from gzip import compress, decompress
-from typing import Any
+from typing import Any, cast
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
@@ -18,7 +18,7 @@ from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
 from .constants import MISSING
 from .loaders import create_loader
-from .request import normalize_request
+from .request import Request, normalize_request
 from .versions import PYTHON_311
 
 
@@ -122,7 +122,8 @@ class convert_to_flask_response:
         from moto.moto_api import recorder
 
         try:
-            request = normalize_request(flask_request)
+            # Moto's Flask app sets `request_class` to a subclass of our Request.
+            request = normalize_request(cast(Request, flask_request))
             recorder._record_request(request)
             # Use `raw_url` so every mode hands the callback the same URL.
             # (`request.url`, for example, will have been percent-decoded by Werkzeug.)

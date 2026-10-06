@@ -13,6 +13,7 @@ from typing import Any, cast
 import pytest
 from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
 from flask import request as flask_request
+from werkzeug.wrappers import Request as WerkzeugRequest
 
 import moto.server as server
 from moto.core.request import Request, normalize_request
@@ -109,7 +110,9 @@ class TestModeParity:
         """What the Flask app produces, via its configured request_class."""
         captured: list[Request] = []
         app = server.create_backend_app("s3")
-        app.before_request(lambda: captured.append(normalize_request(flask_request)))
+        app.before_request(
+            lambda: captured.append(normalize_request(cast(Request, flask_request)))
+        )
         app.test_client().open(
             path, method=self.METHOD, headers={"Host": self.HOST, "Authorization": "x"}
         )
@@ -305,3 +308,10 @@ class TestGzipInServerMode:
         response = client.get("/gzipbucket/key.gz", headers=headers)
 
         assert response.data == compressed
+
+
+def test_unsupported_request_types_are_rejected() -> None:
+    # A plain werkzeug request means something bypassed BackendRequest
+    werkzeug_request = WerkzeugRequest.from_values("/", base_url="http://localhost")
+    with pytest.raises(TypeError, match="of type Request$"):
+        normalize_request(cast(Any, werkzeug_request))

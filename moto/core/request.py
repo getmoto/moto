@@ -12,6 +12,8 @@ except ModuleNotFoundError:
             raise NotImplementedError()
 
 
+from botocore.awsrequest import AWSPreparedRequest
+from requests import PreparedRequest
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
 
@@ -19,9 +21,6 @@ from moto.settings import MAX_FORM_MEMORY_SIZE
 from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
 
 if TYPE_CHECKING:
-    from botocore.awsrequest import AWSPreparedRequest
-    from requests import PreparedRequest
-
     from moto.core.model import ServiceModel
 
 
@@ -91,24 +90,19 @@ class Request(WerkzeugRequest):
 
 
 def normalize_request(
-    request: AWSPreparedRequest
-    | LocalProxy[WerkzeugRequest]
-    | PreparedRequest
-    | Request
-    | WerkzeugRequest,
+    request: AWSPreparedRequest | LocalProxy[Request] | PreparedRequest | Request,
 ) -> Request:
     """Turn however this request reached us into the one type the core acts on."""
     if isinstance(request, LocalProxy):
         request = request._get_current_object()
     if isinstance(request, Request):
         return request
-    if isinstance(request, WerkzeugRequest):
-        return Request(request.environ.copy())
-    # Anything else is a prepared request from Botocore or Requests (via Responses).
-    assert request.method and request.url
-    return Request.from_primitives(
-        request.method, request.url, request.headers, request.body
-    )
+    if isinstance(request, (AWSPreparedRequest, PreparedRequest)):
+        assert request.method and request.url
+        return Request.from_primitives(
+            request.method, request.url, request.headers, request.body
+        )
+    raise TypeError(f"Cannot normalize request of type {type(request).__name__}")
 
 
 def determine_request_protocol(
