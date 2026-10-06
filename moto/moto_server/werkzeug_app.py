@@ -32,11 +32,7 @@ HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
 class BackendRequest(Request, FlaskRequest):
-    """The request class every backend app is served through.
-
-    Requests therefore arrive already normalized, rather than being rebuilt from
-    a prepared request the way the in-process mocks and the proxy have to.
-    """
+    """Set as the Moto Flask app's request class to ensure that server mode requests arrive already normalized."""
 
     from_wsgi_server = True
 

@@ -254,13 +254,12 @@ class BaseResponse(ActionAuthenticatorMixin):
         querystring: dict[str, Any] = OrderedDict()
         self.body: Any = request.data
 
-        # self.form_data is only used by s3 in one place and can be replaced
-        # with self.normalized_request.values
+        # TODO: self.form_data is only used by s3 and can be replaced with self.normalized_request.values
         self.form_data = request.form
         for key, value in request.form.items():
             querystring[key] = [value]
 
-        # This is all s3 only and can be removed and fixed in s3
+        # TODO: This is all s3 only and can be removed and fixed in s3.
         if "key" in request.form:
             if "file" in request.form:
                 self.body = request.form["file"]
@@ -326,8 +325,9 @@ class BaseResponse(ActionAuthenticatorMixin):
             # request.headers is an immutable view over the WSGI environ, so the
             # fallback has to be written to the environ itself.
             request.environ["HTTP_HOST"] = self.parsed_url.netloc
-        # Typed loosely on purpose: services reach into this for arbitrary
-        # x-amz-* values, and tightening it is a change of its own.
+
+        # Typed loosely on purpose: services reach into this for arbitrary x-amz-* values
+        # TODO: normalize headers type.
         self.headers: Any = request.headers
         self.response_headers = {
             "server": "amazon.com",

@@ -124,8 +124,8 @@ class convert_to_flask_response:
         try:
             request = normalize_request(flask_request)
             recorder._record_request(request)
-            # raw_url, so that every mode hands the callback the same URL -
-            # request.url has been percent-decoded by werkzeug
+            # Use `raw_url` so every mode hands the callback the same URL.
+            # (`request.url`, for example, will have been percent-decoded by Werkzeug.)
             result = self.callback(request, request.raw_url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]

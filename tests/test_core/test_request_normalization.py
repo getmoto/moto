@@ -1,9 +1,8 @@
 """Tests for the normalized request object.
 
-Whichever way a request reaches moto -- intercepted from botocore in-process,
-served by the Flask app in server mode, or relayed by the proxy -- the core code
-should see the same `moto.core.request.Request`, carrying the same view of the
-original request.
+Regardless of how a request reaches Moto--intercepted from botocore in-process,
+served by the Flask app in server mode, or relayed by the proxy--the core code
+should see a `moto.core.request.Request`.
 """
 
 import gzip
