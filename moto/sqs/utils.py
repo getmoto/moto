@@ -5,15 +5,6 @@ from moto.moto_api._internal import mock_random as random
 
 from .exceptions import MessageAttributesInvalid
 
-PAGINATION_MODEL = {
-    "list_queues": {
-        "input_token": "next_token",
-        "limit_key": "max_results",
-        "limit_default": 1000,
-        "unique_attribute": "name",
-    },
-}
-
 
 def generate_receipt_handle() -> str:
     # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ImportantIdentifiers.html#ImportantIdentifiers-receipt-handles

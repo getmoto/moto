@@ -2,7 +2,12 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
@@ -83,19 +88,12 @@ class SQSResponse(BaseResponse):
     def list_queues(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
-        max_results = self._get_int_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        queues, next_token = self.sqs_backend.list_queues(
-            queue_name_prefix=queue_name_prefix,
-            max_results=max_results,
-            next_token=next_token,
-        )
-        result: dict[str, Any] = {}
-        if queues:
-            result["QueueUrls"] = [queue.url(request_url) for queue in queues]
-        # AWS only returns a NextToken if MaxResults was supplied
-        if next_token and max_results:
-            result["NextToken"] = next_token
+        queues = self.sqs_backend.list_queues(queue_name_prefix)
+        queue_urls = [queue.url(request_url) for queue in queues]
+        # AWS only paginates (and returns a NextToken) if MaxResults was supplied
+        if self._get_param("MaxResults"):
+            return PaginatedResult({"QueueUrls": queue_urls})
+        result = {"QueueUrls": queue_urls[:1000]} if queue_urls else {}
         return ActionResult(result)
 
     def change_message_visibility(self) -> ActionResult:
