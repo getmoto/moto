@@ -6168,7 +6168,7 @@
 
 ## identitystore
 <details>
-<summary>89% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -6187,8 +6187,8 @@
 - [X] list_group_memberships_for_member
 - [X] list_groups
 - [X] list_users
-- [ ] update_group
-- [ ] update_user
+- [X] update_group
+- [X] update_user
 </details>
 
 ## inspector2
