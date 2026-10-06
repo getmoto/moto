@@ -3,7 +3,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 
-from botocore.httpchecksum import AwsChunkedWrapper
+try:
+    from botocore.httpchecksum import AwsChunkedWrapper
+except ModuleNotFoundError:
+
+    class AwsChunkedWrapper:  # type: ignore[no-redef]
+        def read(self) -> bytes:
+            raise NotImplementedError()
+
+
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
 
