@@ -59,6 +59,11 @@ class InvalidRequestException(SecretsManagerClientError):
         super().__init__("InvalidRequestException", message)
 
 
+class MalformedPolicyDocumentException(SecretsManagerClientError):
+    def __init__(self, message: str):
+        super().__init__("MalformedPolicyDocumentException", message)
+
+
 class ValidationException(SecretsManagerClientError):
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
