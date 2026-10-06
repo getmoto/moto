@@ -1891,6 +1891,38 @@ def test_describe_container_instances_exceptions():
 
 
 @mock_aws
+def test_list_container_instances_filter_by_status():
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+    cluster = "test_ecs_cluster"
+    ecs_client.create_cluster(clusterName=cluster)
+
+    arns = []
+    for _ in range(2):
+        instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[
+            0
+        ]
+        document = json.dumps(ec2_utils.generate_instance_identity_document(instance))
+        resp = ecs_client.register_container_instance(
+            cluster=cluster, instanceIdentityDocument=document
+        )
+        arns.append(resp["containerInstance"]["containerInstanceArn"])
+    active, drained = sorted(arns)
+    ecs_client.update_container_instances_state(
+        cluster=cluster, containerInstances=[drained], status="DRAINING"
+    )
+
+    def listed(**kwargs):
+        resp = ecs_client.list_container_instances(cluster=cluster, **kwargs)
+        return resp["containerInstanceArns"]
+
+    assert listed() == [active, drained]
+    assert listed(status="DRAINING") == [drained]
+    assert listed(status="ACTIVE") == [active]
+    assert listed(status="REGISTERING") == []
+
+
+@mock_aws
 def test_update_container_instances_state():
     ecs_client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
