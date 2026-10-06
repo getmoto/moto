@@ -2052,6 +2052,115 @@ def test_delete_message_batch_with_zero_entries(queue_name=None, queue_url=None)
     )
 
 
+def _send_and_receive_two_messages(client, queue_url):
+    for i in range(2):
+        client.send_message(QueueUrl=queue_url, MessageBody=f"body_{i}")
+    messages = client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=2)[
+        "Messages"
+    ]
+    assert len(messages) == 2
+    return [msg["ReceiptHandle"] for msg in messages]
+
+
+@mock_aws
+def test_delete_message_batch_errors():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+    handles = _send_and_receive_two_messages(client, queue_url)
+
+    for invalid_id in ["", ".!@#$%^&*()+=", "has space", "i" * 81]:
+        with pytest.raises(ClientError) as client_error:
+            client.delete_message_batch(
+                QueueUrl=queue_url,
+                Entries=[{"Id": invalid_id, "ReceiptHandle": handles[0]}],
+            )
+        assert client_error.value.response["Error"]["Message"] == (
+            "A batch entry id can only contain alphanumeric characters, "
+            "hyphens and underscores. It can be at most 80 letters long."
+        )
+
+    with pytest.raises(ClientError) as client_error:
+        # Ids are repeated, but the receipt handles are distinct
+        client.delete_message_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {"Id": "dup", "ReceiptHandle": handles[0]},
+                {"Id": "dup", "ReceiptHandle": handles[1]},
+            ],
+        )
+    assert client_error.value.response["Error"]["Message"] == "Id dup repeated."
+
+    entries = [{"Id": f"id_{i}", "ReceiptHandle": f"handle_{i}"} for i in range(11)]
+    with pytest.raises(ClientError) as client_error:
+        client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+    assert client_error.value.response["Error"]["Message"] == (
+        "Maximum number of entries per request are 10. You have sent 11."
+    )
+
+    # no messages are deleted
+    attributes = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessagesNotVisible"]
+    )["Attributes"]
+    assert attributes["ApproximateNumberOfMessagesNotVisible"] == "2"
+
+
+@mock_aws
+def test_change_message_visibility_batch_errors():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+    handles = _send_and_receive_two_messages(client, queue_url)
+
+    with pytest.raises(ClientError) as client_error:
+        client.change_message_visibility_batch(QueueUrl=queue_url, Entries=[])
+    assert client_error.value.response["Error"]["Message"] == (
+        "There should be at least one ChangeMessageVisibilityBatchRequestEntry "
+        "in the request."
+    )
+
+    for invalid_id in ["", ".!@#$%^&*()+=", "has space", "i" * 81]:
+        with pytest.raises(ClientError) as client_error:
+            client.change_message_visibility_batch(
+                QueueUrl=queue_url,
+                Entries=[
+                    {
+                        "Id": invalid_id,
+                        "ReceiptHandle": handles[0],
+                        "VisibilityTimeout": 0,
+                    }
+                ],
+            )
+        assert client_error.value.response["Error"]["Message"] == (
+            "A batch entry id can only contain alphanumeric characters, "
+            "hyphens and underscores. It can be at most 80 letters long."
+        )
+
+    with pytest.raises(ClientError) as client_error:
+        client.change_message_visibility_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {"Id": "dup", "ReceiptHandle": handles[0], "VisibilityTimeout": 0},
+                {"Id": "dup", "ReceiptHandle": handles[1], "VisibilityTimeout": 0},
+            ],
+        )
+    assert client_error.value.response["Error"]["Message"] == "Id dup repeated."
+
+    entries = [
+        {"Id": f"id_{i}", "ReceiptHandle": handles[0], "VisibilityTimeout": 0}
+        for i in range(11)
+    ]
+    with pytest.raises(ClientError) as client_error:
+        client.change_message_visibility_batch(QueueUrl=queue_url, Entries=entries)
+    assert client_error.value.response["Error"]["Message"] == (
+        "Maximum number of entries per request are 10. You have sent 11."
+    )
+
+    # no visibility timeouts were changed
+    attributes = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessagesNotVisible"]
+    )["Attributes"]
+    assert attributes["ApproximateNumberOfMessagesNotVisible"] == "2"
+
+
 @mock_aws
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name=REGION)
