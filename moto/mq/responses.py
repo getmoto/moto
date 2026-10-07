@@ -168,12 +168,12 @@ class MQResponse(BaseResponse):
         return ActionResult(resp)
 
     def delete_configuration(self) -> ActionResult:
-        config_id = self.path.split("/")[-1]
+        config_id = self._get_param("ConfigurationId")
         self.mq_backend.delete_configuration(config_id)
         return ActionResult({"ConfigurationId": config_id})
 
     def list_configuration_revisions(self) -> ActionResult:
-        config_id = self.path.split("/")[-2]
+        config_id = self._get_param("ConfigurationId")
         revisions = self.mq_backend.list_configuration_revisions(config_id=config_id)
         resp = {
             "ConfigurationId": config_id,
