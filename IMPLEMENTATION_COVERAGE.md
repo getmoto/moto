@@ -6953,23 +6953,23 @@
 
 ## lambda
 <details>
-<summary>52% implemented</summary>
+<summary>61% implemented</summary>
 
 - [X] add_layer_version_permission
 - [X] add_permission
 - [ ] checkpoint_durable_execution
 - [X] create_alias
 - [ ] create_capacity_provider
-- [ ] create_code_signing_config
+- [X] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
 - [X] create_function_url_config
 - [X] delete_alias
 - [ ] delete_capacity_provider
-- [ ] delete_code_signing_config
+- [X] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
-- [ ] delete_function_code_signing_config
+- [X] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [X] delete_function_event_invoke_config
 - [X] delete_function_url_config
@@ -6979,7 +6979,7 @@
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_capacity_provider
-- [ ] get_code_signing_config
+- [X] get_code_signing_config
 - [ ] get_durable_execution
 - [ ] get_durable_execution_history
 - [ ] get_durable_execution_state
@@ -7004,14 +7004,14 @@
 - [ ] invoke_with_response_stream
 - [X] list_aliases
 - [ ] list_capacity_providers
-- [ ] list_code_signing_configs
+- [X] list_code_signing_configs
 - [ ] list_durable_executions_by_function
 - [X] list_event_source_mappings
 - [X] list_function_event_invoke_configs
 - [ ] list_function_url_configs
 - [ ] list_function_versions_by_capacity_provider
 - [X] list_functions
-- [ ] list_functions_by_code_signing_config
+- [X] list_functions_by_code_signing_config
 - [X] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
@@ -7019,7 +7019,7 @@
 - [X] list_versions_by_function
 - [X] publish_layer_version
 - [X] publish_version
-- [ ] put_function_code_signing_config
+- [X] put_function_code_signing_config
 - [X] put_function_concurrency
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
@@ -7037,7 +7037,7 @@
 - [X] untag_resource
 - [X] update_alias
 - [ ] update_capacity_provider
-- [ ] update_code_signing_config
+- [X] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
