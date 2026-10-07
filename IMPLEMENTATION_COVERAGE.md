@@ -7781,14 +7781,14 @@
 
 ## mq
 <details>
-<summary>76% implemented</summary>
+<summary>84% implemented</summary>
 
 - [X] create_broker
 - [X] create_configuration
 - [X] create_tags
 - [X] create_user
 - [X] delete_broker
-- [ ] delete_configuration
+- [X] delete_configuration
 - [X] delete_tags
 - [X] delete_user
 - [X] describe_broker
@@ -7799,7 +7799,7 @@
 - [ ] describe_shared_resources
 - [X] describe_user
 - [X] list_brokers
-- [ ] list_configuration_revisions
+- [X] list_configuration_revisions
 - [X] list_configurations
 - [X] list_tags
 - [X] list_users
