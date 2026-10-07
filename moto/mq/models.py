@@ -471,7 +471,7 @@ class MQBackend(BaseBackend):
         """
         config = self.describe_configuration(config_id)
         for broker in self.brokers.values():
-            if broker.configurations["current"].get("id") == config_id:
+            if broker.configurations["current"].get("Id") == config_id:
                 raise ConfigurationInUse(config_id, broker.id)
         self.tagger.delete_all_tags_for_resource(config.arn)
         del self.configs[config_id]
