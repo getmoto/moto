@@ -2,7 +2,7 @@
 
 import copy
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .models import MQBackend, mq_backends
 
@@ -166,6 +166,21 @@ class MQResponse(BaseResponse):
         configs = self.mq_backend.list_configurations()
         resp = {"Configurations": configs}
         return ActionResult(resp)
+
+    def delete_configuration(self) -> ActionResult:
+        config_id = self._get_param("ConfigurationId")
+        self.mq_backend.delete_configuration(config_id)
+        return ActionResult({"ConfigurationId": config_id})
+
+    def list_configuration_revisions(self) -> ActionResult:
+        config_id = self._get_param("ConfigurationId")
+        revisions = self.mq_backend.list_configuration_revisions(config_id=config_id)
+        resp = {
+            "ConfigurationId": config_id,
+            "MaxResults": self._get_int_param("MaxResults"),
+            "Revisions": revisions,
+        }
+        return PaginatedResult(resp)
 
     def update_configuration(self) -> ActionResult:
         config_id = self._get_param("ConfigurationId")
