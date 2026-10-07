@@ -168,23 +168,23 @@ class Broker(BaseModel):
         self.deployment_mode = deployment_mode
         self.encryption_options = encryption_options
         if not self.encryption_options:
-            self.encryption_options = {"useAwsOwnedKey": True}
+            self.encryption_options = {"UseAwsOwnedKey": True}
         self.engine_type = engine_type
         self.engine_version = engine_version
         self.host_instance_type = host_instance_type
         self.ldap_server_metadata = ldap_server_metadata
         self.logs = logs
-        if "general" not in self.logs:
-            self.logs["general"] = False
-        if "audit" not in self.logs:
+        if "General" not in self.logs:
+            self.logs["General"] = False
+        if "Audit" not in self.logs:
             if self.engine_type.upper() == "ACTIVEMQ":
-                self.logs["audit"] = False
+                self.logs["Audit"] = False
         self.maintenance_window_start_time = maintenance_window_start_time
         if not self.maintenance_window_start_time:
             self.maintenance_window_start_time = {
-                "dayOfWeek": "Sunday",
-                "timeOfDay": "00:00",
-                "timeZone": "UTC",
+                "DayOfWeek": "Sunday",
+                "TimeOfDay": "00:00",
+                "TimeZone": "UTC",
             }
         self.publicly_accessible = publicly_accessible
         self.security_groups = security_groups
@@ -206,9 +206,9 @@ class Broker(BaseModel):
         self._users: dict[str, User] = {}
         for user in users:
             self.create_user(
-                username=user["username"],
-                groups=user.get("groups", []),
-                console_access=user.get("consoleAccess", False),
+                username=user["Username"],
+                groups=user.get("Groups", []),
+                console_access=user.get("ConsoleAccess", False),
             )
 
         self.configurations: dict[str, Any] = {"current": configuration, "history": []}
@@ -344,7 +344,7 @@ class MQBackend(BaseBackend):
                 engine_version=engine_version,
                 tags={},
             )
-            configuration = {"id": default_config.id, "revision": 1}
+            configuration = {"Id": default_config.id, "Revision": 1}
         broker = Broker(
             name=broker_name,
             account_id=self.account_id,
