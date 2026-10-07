@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from functools import cache
 from gzip import compress, decompress
-from typing import Any
+from typing import Any, cast
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
@@ -18,6 +18,7 @@ from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
 from .constants import MISSING
 from .loaders import create_loader
+from .request import Request, normalize_request
 from .versions import PYTHON_311
 
 
@@ -115,13 +116,18 @@ class convert_to_flask_response:
         return f"{outer}.{self.callback.__name__}"
 
     def __call__(self, args: Any = None, **kwargs: Any) -> Any:
-        from flask import Response, request
+        from flask import Response
+        from flask import request as flask_request
 
         from moto.moto_api import recorder
 
         try:
+            # Moto's Flask app sets `request_class` to a subclass of our Request.
+            request = normalize_request(cast(Request, flask_request))
             recorder._record_request(request)
-            result = self.callback(request, request.url, dict(request.headers))
+            # Use `raw_url` so every mode hands the callback the same URL.
+            # (`request.url`, for example, will have been percent-decoded by Werkzeug.)
+            result = self.callback(request, request.raw_url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
