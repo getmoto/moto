@@ -1,14 +1,12 @@
 import types
 from http.client import responses as http_responses
-from io import BytesIO
 from typing import Any
-from urllib.parse import urlparse
 
 import responses
-from werkzeug.wrappers import Request
 
 from moto.backends import get_service_from_url
 from moto.core.config import passthrough_service, passthrough_url
+from moto.core.request import normalize_request
 from moto.core.versions import is_responses_0_17_x
 
 from .responses import TYPE_RESPONSE
@@ -28,31 +26,12 @@ class CallbackResponse(responses.CallbackResponse):
         """
         Need to override this so we can pass decode_content=False
         """
-        if not isinstance(request, Request):
-            url = urlparse(request.url)
-            if request.body is None:
-                body = None
-            elif isinstance(request.body, str):
-                body = request.body.encode("UTF-8")
-            elif hasattr(request.body, "read"):
-                body = request.body.read()
-            else:
-                body = request.body
-            req = Request.from_values(
-                path="?".join([url.path, url.query]),
-                input_stream=BytesIO(body) if body else None,
-                content_length=request.headers.get("Content-Length"),
-                content_type=request.headers.get("Content-Type"),
-                method=request.method,
-                base_url=f"{url.scheme}://{url.netloc}",
-                headers=[(k, v) for k, v in request.headers.items()],
-            )
-            request = req
+        request = normalize_request(request)
         headers = self.get_headers()
 
         from moto.moto_api import recorder
 
-        recorder._record_request(request, body)
+        recorder._record_request(request)
 
         result = self.callback(request)
         if isinstance(result, Exception):

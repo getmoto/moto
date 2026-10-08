@@ -149,15 +149,20 @@ class Paginator:
         unique_attributes = self._parsed_token["uniqueAttributes"]
         predicate_values = unique_attributes.split("|")
         for index, attr in enumerate(self._unique_attributes):
-            curr_val = (
-                item[attr] if isinstance(item, dict) else getattr(item, attr, None)
-            )
-            if isinstance(item, str):
-                curr_val = item
+            curr_val = self._get_unique_value(item, attr, None)
             if not str(curr_val) == predicate_values[index]:
                 return False
 
         return True
+
+    @staticmethod
+    def _get_unique_value(item: Any, attr: Any, default: Any = None) -> Any:
+        # Scalar items (e.g. a list of ARNs or URLs) are their own unique value
+        if isinstance(item, str):
+            return item
+        if isinstance(item, dict):
+            return item[attr]
+        return getattr(item, attr, default)
 
     def _build_next_token(self, next_item: Any) -> str:
         token_dict: dict[str, Any] = {}
@@ -165,12 +170,7 @@ class Paginator:
             token_dict["parameterChecksum"] = self._param_checksum
         range_keys = []
         for attr in self._unique_attributes:
-            if isinstance(next_item, dict):
-                range_keys.append(str(next_item[attr]))
-            elif isinstance(next_item, str):
-                range_keys.append(next_item)
-            else:
-                range_keys.append(str(getattr(next_item, attr)))
+            range_keys.append(str(self._get_unique_value(next_item, attr)))
         token_dict["uniqueAttributes"] = "|".join(range_keys)
         return self._token_encoder.encode(token_dict)
 

@@ -144,7 +144,7 @@ class MotoAPIResponse(BaseResponse):
         return 201, {}, ""
 
     def seed(self, req: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        self.setup_class(req, full_url, headers)
+        self.setup_class(req)
         from . import mock_random
 
         a = self._get_param("a")

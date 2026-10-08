@@ -2,10 +2,12 @@ from http.server import BaseHTTPRequestHandler
 from typing import Any
 from unittest import SkipTest
 
+import boto3
 import pytest
 import requests
 
-from moto import settings
+from moto import mock_aws, settings
+from moto.moto_proxy.proxy3 import MotoRequestHandler
 from tests.test_core.utilities import SimpleServer
 
 url = "http://motoapi.amazonaws.com/moto-api/proxy/passthrough"
@@ -128,3 +130,51 @@ def test_https_request_can_be_passed_through() -> None:
     resp = requests.get(target_url, proxies=proxies)
     assert resp.status_code == 200
     assert "origin" in resp.json()
+
+
+def test_parse_request_unknown_host() -> None:
+    handler = MotoRequestHandler(port=5005)
+    status, _, body = handler.parse_request(
+        method="GET",
+        host="http://httpbin.org",
+        path="/robots.txt",
+        headers={},
+        body=b"",
+    )
+    assert status == 404
+    assert body == b"AWS Service not recognized or supported"
+
+
+@mock_aws
+def test_parse_request_query_protocol() -> None:
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Inspects in-process backend state")
+    handler = MotoRequestHandler(port=5005)
+    status, _, _ = handler.parse_request(
+        method="POST",
+        host="https://sqs.us-east-1.amazonaws.com",
+        path="/",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        body=b"Action=CreateQueue&QueueName=q1&Version=2012-11-05",
+    )
+    assert status == 200
+    urls = boto3.client("sqs", "us-east-1").list_queues()["QueueUrls"]
+    assert urls[0].endswith("/q1")
+
+
+@mock_aws
+def test_parse_request_rest_s3_encoded_key() -> None:
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Inspects in-process backend state")
+    boto3.client("s3", "us-east-1").create_bucket(Bucket="mybucket")
+    handler = MotoRequestHandler(port=5005)
+    status, _, _ = handler.parse_request(
+        method="PUT",
+        host="https://mybucket.s3.amazonaws.com",
+        path="/my%2Fkey?x-id=PutObject",
+        headers={"Content-Length": "5"},
+        body=b"hello",
+    )
+    assert status == 200
+    objs = boto3.client("s3", "us-east-1").list_objects_v2(Bucket="mybucket")
+    assert [o["Key"] for o in objs["Contents"]] == ["my/key"]

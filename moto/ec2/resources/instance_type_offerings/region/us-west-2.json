@@ -1368,26 +1368,6 @@
   "Location": "us-west-2"
  },
  {
-  "InstanceType": "g4ad.16xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g4ad.2xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g4ad.4xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g4ad.8xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g4ad.xlarge",
-  "Location": "us-west-2"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "us-west-2"
  },
@@ -5053,6 +5033,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "us-west-2"
  },
  {
