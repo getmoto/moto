@@ -1,10 +1,10 @@
 """NetworkManagerBackend class with methods for supported APIs."""
 
-from datetime import datetime, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES
@@ -59,18 +59,8 @@ class GlobalNetwork(BaseModel):
             mock_random.get_random_hex(18)
         )
         self.global_network_arn = f"arn:{partition}:networkmanager:{account_id}:global-network/{self.global_network_id}"
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = utcnow()
         self.state = "PENDING"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "GlobalNetworkId": self.global_network_id,
-            "GlobalNetworkArn": self.global_network_arn,
-            "Description": self.description,
-            "Tags": self.tags,
-            "State": self.state,
-            "CreatedAt": self.created_at,
-        }
 
 
 class CoreNetwork(BaseModel):
@@ -93,21 +83,8 @@ class CoreNetwork(BaseModel):
         self.core_network_id = "core-network-" + "".join(mock_random.get_random_hex(18))
         self.core_network_arn = f"arn:{partition}:networkmanager:{account_id}:core-network/{self.core_network_id}"
 
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = utcnow()
         self.state = "PENDING"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "CoreNetworkId": self.core_network_id,
-            "CoreNetworkArn": self.core_network_arn,
-            "GlobalNetworkId": self.global_network_id,
-            "OwnerAccountId": self.owner_account_id,
-            "Description": self.description,
-            "Tags": self.tags,
-            "PolicyDocument": self.policy_document,
-            "State": self.state,
-            "CreatedAt": self.created_at,
-        }
 
 
 class Site(BaseModel):
@@ -128,20 +105,8 @@ class Site(BaseModel):
         self.site_arn = (
             f"arn:{partition}:networkmanager:{account_id}:site/{self.site_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = utcnow()
         self.state = "PENDING"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "SiteId": self.site_id,
-            "SiteArn": self.site_arn,
-            "GlobalNetworkId": self.global_network_id,
-            "Description": self.description,
-            "Location": self.location,
-            "Tags": self.tags,
-            "State": self.state,
-            "CreatedAt": self.created_at,
-        }
 
 
 class Link(BaseModel):
@@ -168,23 +133,8 @@ class Link(BaseModel):
         self.link_arn = (
             f"arn:{partition}:networkmanager:{account_id}:link/{self.link_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = utcnow()
         self.state = "PENDING"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "LinkId": self.link_id,
-            "LinkArn": self.link_arn,
-            "GlobalNetworkId": self.global_network_id,
-            "Description": self.description,
-            "Type": self.type,
-            "Bandwidth": self.bandwidth,
-            "Provider": self.provider,
-            "SiteId": self.site_id,
-            "Tags": self.tags,
-            "State": self.state,
-            "CreatedAt": self.created_at,
-        }
 
 
 class Device(BaseModel):
@@ -217,26 +167,8 @@ class Device(BaseModel):
         self.device_arn = (
             f"arn:{partition}:networkmanager:{account_id}:device/{self.device_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = utcnow()
         self.state = "PENDING"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "DeviceId": self.device_id,
-            "DeviceArn": self.device_arn,
-            "GlobalNetworkId": self.global_network_id,
-            "AWSLocation": self.aws_location,
-            "Description": self.description,
-            "Type": self.type,
-            "Vendor": self.vendor,
-            "Model": self.model,
-            "SerialNumber": self.serial_number,
-            "Location": self.location,
-            "SiteId": self.site_id,
-            "Tags": self.tags,
-            "State": self.state,
-            "CreatedAt": self.created_at,
-        }
 
 
 class NetworkManagerBackend(BaseBackend):

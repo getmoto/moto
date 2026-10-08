@@ -2,7 +2,12 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
@@ -84,9 +89,11 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
         queues = self.sqs_backend.list_queues(queue_name_prefix)
-        result = {}
-        if queues:
-            result["QueueUrls"] = [queue.url(request_url) for queue in queues]
+        queue_urls = [queue.url(request_url) for queue in queues]
+        # AWS only paginates (and returns a NextToken) if MaxResults was supplied
+        if self._get_param("MaxResults"):
+            return PaginatedResult({"QueueUrls": queue_urls})
+        result = {"QueueUrls": queue_urls[:1000]} if queue_urls else {}
         return ActionResult(result)
 
     def change_message_visibility(self) -> ActionResult:

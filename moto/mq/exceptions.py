@@ -31,6 +31,18 @@ class UnknownUser(NotFoundException):
         super().__init__(message)
 
 
+class ConflictException(ServiceException):
+    code = "ConflictException"
+
+
+class ConfigurationInUse(ConflictException):
+    error_attribute = "configuration_id"
+
+    def __init__(self, config_id: str, broker_id: str):
+        message = f"Configuration [{config_id}] is in use by broker [{broker_id}] and can't be deleted."
+        super().__init__(message)
+
+
 class BadRequestException(ServiceException):
     code = "BadRequestException"
 

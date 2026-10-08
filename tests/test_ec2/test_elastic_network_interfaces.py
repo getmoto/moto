@@ -808,6 +808,28 @@ def test_unassign_private_ip_addresses__multiple():
 
 
 @mock_aws
+def test_assign_private_ip_addresses__by_count_are_unique():
+    ec2resource = boto3.resource("ec2", region_name="us-east-1")
+    ec2client = boto3.client("ec2", "us-east-1")
+    vpc = ec2resource.create_vpc(CidrBlock="10.0.0.0/16")
+    # A small subnet makes random IP collisions near-certain
+    subnet = ec2resource.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/28")
+    eni = ec2resource.create_network_interface(SubnetId=subnet.id)
+
+    ec2client.assign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=10
+    )
+
+    resp = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    ips = [
+        addr["PrivateIpAddress"]
+        for addr in resp["NetworkInterfaces"][0]["PrivateIpAddresses"]
+    ]
+    assert len(ips) == 11
+    assert len(set(ips)) == 11
+
+
+@mock_aws
 def test_assign_ipv6_addresses__by_address():
     ec2resource, ec2client, vpc, subnet = setup_vpc()
 

@@ -5,7 +5,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import utcnow
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -27,30 +27,16 @@ from moto.utilities.tagging_service import TaggingService
 
 class LdapsSettingInfo(BaseModel):
     def __init__(self) -> None:
-        self.last_updated_date_time = unix_time()
+        self.last_updated_date_time = utcnow()
         self.ldaps_status = "Enabled"
         self.ldaps_status_reason = ""
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "LastUpdatedDateTime": self.last_updated_date_time,
-            "LDAPSStatus": self.ldaps_status,
-            "LDAPSStatusReason": self.ldaps_status_reason,
-        }
 
 
 class LogSubscription(BaseModel):
     def __init__(self, directory_id: str, log_group_name: str) -> None:
         self.directory_id = directory_id
         self.log_group_name = log_group_name
-        self.created_date_time = unix_time()
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "SubscriptionCreatedDateTime": self.created_date_time,
-            "DirectoryId": self.directory_id,
-            "LogGroupName": self.log_group_name,
-        }
+        self.created_date_time = utcnow()
 
 
 class Trust(BaseModel):
@@ -65,7 +51,7 @@ class Trust(BaseModel):
         selective_auth: str | None,
     ) -> None:
         self.trust_id = f"t-{mock_random.get_random_hex(10)}"
-        self.created_date_time = unix_time()
+        self.created_date_time = utcnow()
         self.last_updated_date_time = self.created_date_time
         self.state_last_updated_date_time = self.created_date_time
         self.trust_state = "Creating"
@@ -77,21 +63,6 @@ class Trust(BaseModel):
         self.trust_type = trust_type
         self.conditional_forwarder_ip_addrs = conditional_forwarder_ip_addrs
         self.selective_auth = selective_auth
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "CreatedDateTime": self.created_date_time,
-            "DirectoryId": self.directory_id,
-            "LastUpdatedDateTime": self.last_updated_date_time,
-            "RemoteDomainName": self.remote_domain_name,
-            "SelectiveAuth": self.selective_auth,
-            "StateLastUpdatedDateTime": self.state_last_updated_date_time,
-            "TrustDirection": self.trust_direction,
-            "TrustId": self.trust_id,
-            "TrustState": self.trust_state,
-            "TrustStateReason": self.trust_state_reason,
-            "TrustType": self.trust_type,
-        }
 
 
 class Directory(BaseModel):
@@ -151,8 +122,8 @@ class Directory(BaseModel):
         self.desired_number_of_domain_controllers = 0
         self.sso_enabled = False
         self.stage = "Active"
-        self.launch_time = unix_time()
-        self.stage_last_updated_date_time = unix_time()
+        self.launch_time = utcnow()
+        self.stage_last_updated_date_time = utcnow()
         self.ldaps_settings_info: list[LdapsSettingInfo] = []
         self.radius_settings: dict[str, Any] | None = None
         self.radius_status: str | None = None
@@ -264,42 +235,6 @@ class Directory(BaseModel):
         """Clear RADIUS settings and status."""
         self.radius_settings = None
         self.radius_status = None
-
-    def to_dict(self) -> dict[str, Any]:
-        """Create a dictionary of attributes for Directory."""
-        attributes = {
-            "AccessUrl": self.access_url,
-            "Alias": self.alias,
-            "DirectoryId": self.directory_id,
-            "DesiredNumberOfDomainControllers": self.desired_number_of_domain_controllers,
-            "DnsIpAddrs": self.dns_ip_addrs,
-            "LaunchTime": self.launch_time,
-            "Name": self.name,
-            "SsoEnabled": self.sso_enabled,
-            "Stage": self.stage,
-            "StageLastUpdatedDateTime": self.stage_last_updated_date_time,
-            "Type": self.directory_type,
-        }
-
-        if self.edition:
-            attributes["Edition"] = self.edition
-        if self.size:
-            attributes["Size"] = self.size
-        if self.short_name:
-            attributes["ShortName"] = self.short_name
-        if self.description:
-            attributes["Description"] = self.description
-
-        if self.vpc_settings:
-            attributes["VpcSettings"] = self.vpc_settings
-        else:
-            attributes["ConnectSettings"] = self.connect_settings
-            attributes["ConnectSettings"]["CustomerDnsIps"] = None
-
-        attributes["RadiusSettings"] = self.radius_settings or {}
-        if self.radius_status:
-            attributes["RadiusStatus"] = self.radius_status
-        return attributes
 
 
 class DirectoryServiceBackend(BaseBackend):
