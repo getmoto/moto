@@ -3558,6 +3558,49 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     )
 
 
+@mock_aws
+def test_queue_attributes_are_not_recalculated_when_sending_messages():
+    # Queue.attributes iterates over every message in the queue, so calculating it
+    # for every message sent makes SendMessage slower as the queue grows
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+    client = boto3.client("sqs", region_name=REGION)
+    standard_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+    fifo_url = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )["QueueUrl"]
+
+    calls = []
+    original_attributes = Queue.attributes
+
+    def counting_attributes(queue):
+        calls.append(queue.name)
+        return original_attributes.fget(queue)
+
+    with mock.patch.object(Queue, "attributes", property(counting_attributes)):
+        client.send_message(QueueUrl=standard_url, MessageBody="body")
+        client.send_message(QueueUrl=fifo_url, MessageBody="body", MessageGroupId="g")
+        client.send_message_batch(
+            QueueUrl=fifo_url,
+            Entries=[
+                {"Id": "1", "MessageBody": "body_1", "MessageGroupId": "g"},
+                {"Id": "2", "MessageBody": "body_2", "MessageGroupId": "g"},
+            ],
+        )
+        assert calls == []
+
+        resp = client.get_queue_attributes(
+            QueueUrl=fifo_url,
+            AttributeNames=["ApproximateNumberOfMessages", "ContentBasedDeduplication"],
+        )
+        assert resp["Attributes"] == {
+            "ApproximateNumberOfMessages": "3",
+            "ContentBasedDeduplication": "true",
+        }
+        assert len(calls) == 1
+
+
 @aws_verified
 @pytest.mark.aws_verified
 @pytest.mark.parametrize(
