@@ -1550,8 +1550,12 @@ class DynamoHandler(BaseResponse):
 
     def list_backups(self) -> ActionResult:
         body = self.body
-        table_name = body.get("TableName")
-        backups = self.dynamodb_backend.list_backups(table_name)
+        backups = self.dynamodb_backend.list_backups(
+            table_name=body.get("TableName"),
+            lower_bound=body.get("TimeRangeLowerBound"),
+            upper_bound=body.get("TimeRangeUpperBound"),
+            backup_type=body.get("BackupType"),
+        )
         response = {"BackupSummaries": [backup.summary for backup in backups]}
         return DynamoResult(response)
 
