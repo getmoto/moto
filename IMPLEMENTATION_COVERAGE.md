@@ -11109,10 +11109,10 @@
 
 ## sqs
 <details>
-<summary>86% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] add_permission
-- [ ] cancel_message_move_task
+- [X] cancel_message_move_task
 - [X] change_message_visibility
 - [X] change_message_visibility_batch
 - [X] create_queue
@@ -11122,7 +11122,7 @@
 - [X] get_queue_attributes
 - [X] get_queue_url
 - [X] list_dead_letter_source_queues
-- [ ] list_message_move_tasks
+- [X] list_message_move_tasks
 - [X] list_queue_tags
 - [X] list_queues
 - [X] purge_queue
@@ -11131,7 +11131,7 @@
 - [X] send_message
 - [X] send_message_batch
 - [X] set_queue_attributes
-- [ ] start_message_move_task
+- [X] start_message_move_task
 - [X] tag_queue
 - [X] untag_queue
 </details>
