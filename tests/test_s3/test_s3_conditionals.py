@@ -380,3 +380,34 @@ def test_delete_object_if_match(bucket_name=None):
         s3.delete_object(Bucket=bucket_name, Key="unknown", IfMatch="test")
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchKey"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_objects_if_match_etag(bucket_name=None):
+    s3 = boto3.client("s3", region_name="us-east-1")
+    etag = s3.put_object(Bucket=bucket_name, Key="test_key", Body=b"test")["ETag"]
+
+    response = s3.delete_objects(
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": "test_key", "ETag": "test"}]},
+    )
+    errors = response.get("Errors", [])
+    assert len(errors) == 1
+    err = errors[0]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+
+    # We can if we match the etag
+    response = s3.delete_objects(
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": "test_key", "ETag": etag}]},
+    )
+    errors = response.get("Errors", [])
+    assert len(errors) == 0
+    deleted = response.get("Deleted", [])
+    assert len(deleted) == 1
+    assert deleted[0]["Key"] == "test_key"
