@@ -1,0 +1,16 @@
+{
+  "StartAt": "Call",
+  "States": {
+    "Call": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::apigateway:invoke",
+      "Parameters": {
+        "ApiEndpoint.$": "$.ApiEndpoint",
+        "Method.$": "$.Method",
+        "Headers.$": "$.Headers",
+        "RequestBody.$": "$.RequestBody"
+      },
+      "End": true
+    }
+  }
+}
