@@ -1,20 +1,16 @@
 from time import time
 
-from werkzeug.wrappers import Request
-
 from moto.core.botocore_stubber import BotocoreStubber
+from moto.core.request import Request
 
 
 def test_performance_for_url_with_many_dots() -> None:
     # See https://github.com/getmoto/moto/issues/8185
-    request = Request.from_values(
-        path="/a.1.1.1.1.1.1/b.2.2.2.2.2.2.2/c.3.3.3.3.3.3/d.4.4.4.4.4.4.4.4.4",
-        input_stream=None,
-        content_length="0",
-        content_type=None,
-        method="GET",
-        base_url="https://my-bucket.s3.eu-central-1.amazonaws.com",
-        headers=[],
+    request = Request.from_primitives(
+        "GET",
+        "https://my-bucket.s3.eu-central-1.amazonaws.com"
+        "/a.1.1.1.1.1.1/b.2.2.2.2.2.2.2/c.3.3.3.3.3.3/d.4.4.4.4.4.4.4.4.4",
+        headers={},
     )
     start = time()
     BotocoreStubber().process_request(request=request)

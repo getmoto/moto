@@ -11,13 +11,10 @@ from .models import ApiGatewayManagementApiBackend, apigatewaymanagementapi_back
 class ApiGatewayManagementApiResponse(BaseResponse):
     """Handler for ApiGatewayManagementApi requests and responses."""
 
+    use_raw_body = True
+
     def __init__(self) -> None:
         super().__init__(service_name="apigatewaymanagementapi")
-
-    def setup_class(
-        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
-    ) -> None:
-        super().setup_class(request, full_url, headers, use_raw_body=True)
 
     @property
     def apigatewaymanagementapi_backend(self) -> ApiGatewayManagementApiBackend:
@@ -52,7 +49,7 @@ class ApiGatewayManagementApiResponse(BaseResponse):
         request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
         self = ApiGatewayManagementApiResponse()
-        self.setup_class(request, full_url, headers, use_raw_body=True)
+        self.setup_class(request)
         if request.method == "GET":
             return 200, {}, self.get_connection()
         elif request.method == "DELETE":

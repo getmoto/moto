@@ -2923,6 +2923,43 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
 
 
 @mock_aws
+def test_list_queues_paginated():
+    client = boto3.client("sqs", region_name=REGION)
+
+    prefix = str(uuid4())[0:6]
+    queue_urls = [
+        client.create_queue(QueueName=f"{prefix}-{i}")["QueueUrl"] for i in range(5)
+    ]
+
+    page1 = client.list_queues(QueueNamePrefix=prefix, MaxResults=2)
+    assert page1["QueueUrls"] == queue_urls[0:2]
+    assert "NextToken" in page1
+
+    page2 = client.list_queues(
+        QueueNamePrefix=prefix, MaxResults=2, NextToken=page1["NextToken"]
+    )
+    assert page2["QueueUrls"] == queue_urls[2:4]
+    assert "NextToken" in page2
+
+    page3 = client.list_queues(
+        QueueNamePrefix=prefix, MaxResults=2, NextToken=page2["NextToken"]
+    )
+    assert page3["QueueUrls"] == queue_urls[4:]
+    assert "NextToken" not in page3
+
+    # NextToken is only returned when MaxResults is supplied
+    assert "NextToken" not in client.list_queues(QueueNamePrefix=prefix)
+
+    paginator = client.get_paginator("list_queues")
+    pages = paginator.paginate(QueueNamePrefix=prefix, PaginationConfig={"PageSize": 2})
+    assert [page["QueueUrls"] for page in pages] == [
+        queue_urls[0:2],
+        queue_urls[2:4],
+        queue_urls[4:],
+    ]
+
+
+@mock_aws
 def test_list_queues_limits_to_1000_queues():
     if settings.TEST_SERVER_MODE:
         # Re-visit once we have a NextToken-implementation for list_queues
