@@ -321,6 +321,104 @@ def test_get_tables_expression():
 
 
 @mock_aws
+def test_get_table_resource_link_reads_through_target_table():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    target_table_name = "targettable"
+    columns = [{"Name": "country", "Type": "string"}]
+    target_table_input = helpers.create_table_input(
+        database_name, target_table_name, columns=columns
+    )
+    helpers.create_table(client, database_name, target_table_name, target_table_input)
+
+    link_table_name = "resourcelinktable"
+    link_table_input = {
+        "Name": link_table_name,
+        "TargetTable": {
+            "CatalogId": ACCOUNT_ID,
+            "DatabaseName": database_name,
+            "Name": target_table_name,
+        },
+    }
+    helpers.create_table(client, database_name, link_table_name, link_table_input)
+
+    response = helpers.get_table(client, database_name, link_table_name)
+    table = response["Table"]
+
+    # The link keeps its own identity ...
+    assert table["Name"] == link_table_name
+    assert table["DatabaseName"] == database_name
+    assert table["TargetTable"] == link_table_input["TargetTable"]
+    # ... but reads through the schema/storage of the target table
+    assert table["StorageDescriptor"] == target_table_input["StorageDescriptor"]
+    assert table["PartitionKeys"] == target_table_input["PartitionKeys"]
+    assert table["TableType"] == target_table_input["TableType"]
+
+
+@mock_aws
+def test_get_tables_resource_link_reads_through_target_table():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    target_table_name = "targettable"
+    columns = [{"Name": "country", "Type": "string"}]
+    target_table_input = helpers.create_table_input(
+        database_name, target_table_name, columns=columns
+    )
+    helpers.create_table(client, database_name, target_table_name, target_table_input)
+
+    link_table_name = "resourcelinktable"
+    link_table_input = {
+        "Name": link_table_name,
+        "TargetTable": {
+            "CatalogId": ACCOUNT_ID,
+            "DatabaseName": database_name,
+            "Name": target_table_name,
+        },
+    }
+    helpers.create_table(client, database_name, link_table_name, link_table_input)
+
+    response = helpers.get_tables(client, database_name)
+    tables = {table["Name"]: table for table in response["TableList"]}
+
+    assert len(tables) == 2
+    link_table = tables[link_table_name]
+    assert link_table["TargetTable"] == link_table_input["TargetTable"]
+    assert link_table["StorageDescriptor"] == target_table_input["StorageDescriptor"]
+    assert link_table["PartitionKeys"] == target_table_input["PartitionKeys"]
+
+
+@mock_aws
+def test_get_table_resource_link_missing_target_table():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    link_table_name = "resourcelinktable"
+    link_table_input = {
+        "Name": link_table_name,
+        "TargetTable": {
+            "CatalogId": ACCOUNT_ID,
+            "DatabaseName": database_name,
+            "Name": "doesnotexist",
+        },
+    }
+    helpers.create_table(client, database_name, link_table_name, link_table_input)
+
+    response = helpers.get_table(client, database_name, link_table_name)
+    table = response["Table"]
+
+    # No target to read through from - the link is returned as-is
+    assert table["Name"] == link_table_name
+    assert table["TargetTable"] == link_table_input["TargetTable"]
+    assert "StorageDescriptor" not in table
+    assert "PartitionKeys" not in table
+
+
+@mock_aws
 def test_get_table_versions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
