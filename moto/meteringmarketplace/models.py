@@ -10,15 +10,19 @@ class UsageRecord(BaseModel, dict[str, Any]):  # type: ignore[misc]
     def __init__(
         self,
         timestamp: str,
-        customer_identifier: str,
+        customer_identifier: str | None,
         dimension: str,
         quantity: int = 0,
+        customer_aws_account_id: str | None = None,
     ):
         super().__init__()
         self.timestamp = timestamp
-        self.customer_identifier = customer_identifier
+        if customer_identifier is not None:
+            self.customer_identifier = customer_identifier
         self.dimension = dimension
         self.quantity = quantity
+        if customer_aws_account_id is not None:
+            self.customer_aws_account_id = customer_aws_account_id
         self.metering_record_id = mock_random.uuid4().hex
 
     @property
@@ -30,12 +34,20 @@ class UsageRecord(BaseModel, dict[str, Any]):  # type: ignore[misc]
         self["Timestamp"] = value
 
     @property
-    def customer_identifier(self) -> str:
-        return self["CustomerIdentifier"]
+    def customer_identifier(self) -> str | None:
+        return self.get("CustomerIdentifier")
 
     @customer_identifier.setter
     def customer_identifier(self, value: str) -> None:
         self["CustomerIdentifier"] = value
+
+    @property
+    def customer_aws_account_id(self) -> str | None:
+        return self.get("CustomerAWSAccountId")
+
+    @customer_aws_account_id.setter
+    def customer_aws_account_id(self, value: str) -> None:
+        self["CustomerAWSAccountId"] = value
 
     @property
     def dimension(self) -> str:
@@ -60,11 +72,16 @@ class Result(BaseModel, dict[str, Any]):  # type: ignore[misc]
     DUPLICATE_RECORD = "DuplicateRecord"
 
     def __init__(self, **kwargs: Any):
+        customer_identifier = kwargs.get("CustomerIdentifier")
+        customer_aws_account_id = kwargs.get("CustomerAWSAccountId")
+        if customer_identifier is None and customer_aws_account_id is None:
+            raise KeyError("CustomerIdentifier or CustomerAWSAccountId")
         self.usage_record = UsageRecord(
             timestamp=kwargs["Timestamp"],
-            customer_identifier=kwargs["CustomerIdentifier"],
+            customer_identifier=customer_identifier,
             dimension=kwargs["Dimension"],
             quantity=kwargs["Quantity"],
+            customer_aws_account_id=customer_aws_account_id,
         )
         self.status = Result.SUCCESS
         self["MeteringRecordId"] = self.usage_record.metering_record_id
@@ -99,6 +116,7 @@ class Result(BaseModel, dict[str, Any]):  # type: ignore[misc]
         usage_record, other = other.usage_record, self.usage_record
         return (
             other.customer_identifier == usage_record.customer_identifier
+            and other.customer_aws_account_id == usage_record.customer_aws_account_id
             and other.dimension == usage_record.dimension
             and other.timestamp == usage_record.timestamp
             and other.quantity != usage_record.quantity
@@ -131,8 +149,9 @@ class MeteringMarketplaceBackend(BaseBackend):
         results = []
         for usage in usage_records:
             result = Result(**usage)
+            usage_record = result.usage_record
             if not self.customers_by_product[product_code].is_subscribed(
-                result.usage_record.customer_identifier
+                usage_record.customer_identifier or usage_record.customer_aws_account_id
             ):
                 result.status = result.CUSTOMER_NOT_SUBSCRIBED
             elif self.records_by_product[product_code].is_duplicate(result):
