@@ -250,7 +250,11 @@ class Queue(CloudFormationModel):
         self.tags: dict[str, str] = {}
         self.permissions: dict[str, Any] = {}
 
-        self._messages: list[Message] = []
+        # Messages by ID, in the order they were sent.
+        # The indexes below let us find a message without iterating over the whole queue
+        self._messages: dict[str, Message] = {}
+        self._messages_by_receipt_handle: dict[str, Message] = {}
+        self._messages_by_deduplication_id: dict[str, dict[str, Message]] = {}
         self._pending_messages: set[Message] = set()
         self.deleted_messages: set[str] = set()
         self._messages_lock = Condition()
@@ -492,15 +496,21 @@ class Queue(CloudFormationModel):
 
     @property
     def approximate_number_of_messages_delayed(self) -> int:
-        return len([m for m in self._messages if m.delayed])
+        return len([m for m in self._all_messages() if m.delayed])
 
     @property
     def approximate_number_of_messages_not_visible(self) -> int:
-        return len([m for m in self._messages if not m.visible])
+        return len([m for m in self._all_messages() if not m.visible])
 
     @property
     def approximate_number_of_messages(self) -> int:
         return len(self.messages)
+
+    @property
+    def content_based_deduplication_enabled(self) -> bool:
+        # Read the flag directly instead of through self.attributes, which
+        # iterates over every message to calculate the ApproximateNumberOf* values
+        return self.fifo_queue and self.content_based_deduplication  # type: ignore
 
     @property
     def physical_resource_id(self) -> str:
@@ -541,34 +551,83 @@ class Queue(CloudFormationModel):
             f"{request_url.scheme}://{request_url.netloc}/{self.account_id}/{self.name}"
         )
 
+    def _all_messages(self) -> list[Message]:
+        # Copy the messages before iterating over them, as another request can add or remove messages concurrently in ServerMode
+        return list(self._messages.values())
+
+    def iter_messages(self) -> Iterator[Message]:
+        """
+        Iterate over the visible messages, in the order they were sent.
+
+        Unlike `messages`, this does not check every message upfront, so callers that only need a few messages can stop early.
+        """
+        for message in self._all_messages():
+            if message.visible and not message.delayed:
+                yield message
+
     @property
     def messages(self) -> list[Message]:
-        # TODO: This can become very inefficient if a large number of messages are in-flight
-        return [
-            message
-            for message in self._messages
-            if message.visible and not message.delayed
-        ]
+        return list(self.iter_messages())
+
+    def _index_message(self, message: Message) -> None:
+        self._messages[message.id] = message
+        for receipt_handle in message.all_receipt_handles:
+            if receipt_handle is not None:
+                self._messages_by_receipt_handle[receipt_handle] = message
+        if message.deduplication_id is not None:
+            self._messages_by_deduplication_id.setdefault(message.deduplication_id, {})[
+                message.id
+            ] = message
+
+    def remove_message(self, message: Message) -> None:
+        self._messages.pop(message.id, None)
+        for receipt_handle in message.all_receipt_handles:
+            if receipt_handle is not None:
+                self._messages_by_receipt_handle.pop(receipt_handle, None)
+        if message.deduplication_id is not None:
+            duplicates = self._messages_by_deduplication_id.get(
+                message.deduplication_id, {}
+            )
+            duplicates.pop(message.id, None)
+            if not duplicates:
+                self._messages_by_deduplication_id.pop(message.deduplication_id, None)
+        self.pending_messages.discard(message)
+
+    def remove_all_messages(self) -> None:
+        self._messages = {}
+        self._messages_by_receipt_handle = {}
+        self._messages_by_deduplication_id = {}
+        self._pending_messages = set()
+
+    def get_message_by_receipt_handle(self, receipt_handle: str) -> Message | None:
+        """
+        Return the message that has, or ever had, this receipt handle
+        """
+        return self._messages_by_receipt_handle.get(receipt_handle)
+
+    def mark_received(self, message: Message, visibility_timeout: int) -> None:
+        message.mark_received(visibility_timeout=visibility_timeout)
+        self._messages_by_receipt_handle[message.receipt_handle] = message  # type: ignore[index]
 
     def add_message(self, message: Message) -> None:
         if self.fifo_queue:
             # the cases in which we dedupe fifo messages
             # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
             # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
-            if (
-                self.attributes.get("ContentBasedDeduplication") == "true"
-                or message.deduplication_id
-            ):
-                for m in self._messages:
-                    if m.deduplication_id == message.deduplication_id:
-                        diff = message.sent_timestamp - m.sent_timestamp  # type: ignore
-                        # if a duplicate message is received within the deduplication time then it should
-                        # not be added to the queue
-                        if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
-                            return
+            if self.content_based_deduplication_enabled or message.deduplication_id:
+                duplicates = self._messages_by_deduplication_id.get(
+                    message.deduplication_id,  # type: ignore[arg-type]
+                    {},
+                )
+                for m in list(duplicates.values()):
+                    diff = message.sent_timestamp - m.sent_timestamp  # type: ignore
+                    # if a duplicate message is received within the deduplication time then it should
+                    # not be added to the queue
+                    if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                        return
 
         with self._messages_lock:
-            self._messages.append(message)
+            self._index_message(message)
             self._messages_lock.notify_all()
 
         for arn, esm in self.lambda_event_source_mappings.items():
@@ -612,24 +671,19 @@ class Queue(CloudFormationModel):
             # Already deleted - gracefully handle deleting it again
             return
 
-        if not any(
-            message.had_receipt_handle(receipt_handle) for message in self._messages
-        ):
+        message = self.get_message_by_receipt_handle(receipt_handle)
+        if message is None:
             raise ReceiptHandleIsInvalid()
 
         # Delete message from queue regardless of pending state
-        new_messages = []
-        for message in self._messages:
-            if message.had_receipt_handle(receipt_handle):
-                self.pending_messages.discard(message)
-                self.deleted_messages.update(message.all_receipt_handles)  # type: ignore
-                continue
-            new_messages.append(message)
-        self._messages = new_messages
+        self.remove_message(message)
+        self.deleted_messages.update(message.all_receipt_handles)  # type: ignore
 
     def wait_for_messages(self, timeout: int) -> None:
         with self._messages_lock:
-            self._messages_lock.wait_for(lambda: self.messages, timeout=timeout)
+            self._messages_lock.wait_for(
+                lambda: next(self.iter_messages(), None) is not None, timeout=timeout
+            )
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -778,13 +832,14 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
             raise InvalidAttributeName(invalid_name)
 
         attributes = {}
+        queue_attributes = queue.attributes
 
         if "All" in attribute_names:
-            attributes = queue.attributes
+            attributes = queue_attributes
         else:
-            for name in (name for name in attribute_names if name in queue.attributes):
-                if queue.attributes.get(name) is not None:
-                    attributes[name] = queue.attributes.get(name)
+            for name in attribute_names:
+                if queue_attributes.get(name) is not None:
+                    attributes[name] = queue_attributes[name]
 
         return attributes
 
@@ -805,15 +860,12 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         validate_group_id: bool = True,
     ) -> None:
         if queue.fifo_queue:
-            if (
-                queue.attributes.get("ContentBasedDeduplication") == "false"
-                and not group_id
-            ):
+            if not queue.content_based_deduplication_enabled and not group_id:
                 msg = "MessageGroupId"
                 raise MissingParameter(msg)
 
             if (
-                queue.attributes.get("ContentBasedDeduplication") == "false"
+                not queue.content_based_deduplication_enabled
                 and group_id
                 and not deduplication_id
             ):
@@ -870,7 +922,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
 
         # if content based deduplication is set then set sha256 hash of the message
         # as the deduplication_id
-        if queue.attributes.get("ContentBasedDeduplication") == "true":
+        if queue.content_based_deduplication_enabled:
             sha256 = hashlib.sha256()
             sha256.update(message_body.encode("utf-8"))
             message.deduplication_id = sha256.hexdigest()
@@ -990,14 +1042,14 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         polling_end = unix_time() + wait_seconds_timeout
         currently_pending_groups = deepcopy(queue.pending_message_groups)
 
-        # queue.messages only contains visible messages
+        # queue.iter_messages() only returns visible messages
         while True:
             if result or (wait_seconds_timeout and unix_time() > polling_end):
                 break
 
             messages_to_dlq: list[Message] = []
 
-            for message in queue.messages:
+            for message in queue.iter_messages():
                 if not message.visible:
                     continue
 
@@ -1022,7 +1074,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                     continue
 
                 queue.pending_messages.add(message)
-                message.mark_received(visibility_timeout=visibility_timeout)
+                queue.mark_received(message, visibility_timeout=visibility_timeout)
                 # Create deepcopy to not mutate the message state when filtering for attributes
                 message_copy = deepcopy(message)
                 _filter_message_attributes(message_copy, message_attribute_names)
@@ -1035,7 +1087,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                     break
 
             for message in messages_to_dlq:
-                queue._messages.remove(message)
+                queue.remove_message(message)
                 queue.dead_letter_queue.add_message(message)  # type: ignore
 
             if previous_result_count == len(result):
@@ -1080,23 +1132,23 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         self, queue_name: str, receipt_handle: str, visibility_timeout: int
     ) -> None:
         queue = self.get_queue(queue_name)
-        for message in queue._messages:
-            if message.had_receipt_handle(receipt_handle):
-                visibility_timeout_msec = int(visibility_timeout) * 1000
-                given_visibility_timeout = unix_time_millis() + visibility_timeout_msec
-                if given_visibility_timeout - message.sent_timestamp > 43200 * 1000:  # type: ignore
-                    raise InvalidParameterValue(
-                        f"Value {visibility_timeout} for parameter VisibilityTimeout is invalid. Reason: Total "
-                        "VisibilityTimeout for the message is beyond the limit [43200 seconds]"
-                    )
+        message = queue.get_message_by_receipt_handle(receipt_handle)
+        if message is None:
+            raise ReceiptHandleIsInvalid
 
-                message.change_visibility(visibility_timeout)
-                if message.visible and message in queue.pending_messages:
-                    # If the message is visible again, remove it from pending
-                    # messages.
-                    queue.pending_messages.remove(message)
-                return
-        raise ReceiptHandleIsInvalid
+        visibility_timeout_msec = int(visibility_timeout) * 1000
+        given_visibility_timeout = unix_time_millis() + visibility_timeout_msec
+        if given_visibility_timeout - message.sent_timestamp > 43200 * 1000:  # type: ignore
+            raise InvalidParameterValue(
+                f"Value {visibility_timeout} for parameter VisibilityTimeout is invalid. Reason: Total "
+                "VisibilityTimeout for the message is beyond the limit [43200 seconds]"
+            )
+
+        message.change_visibility(visibility_timeout)
+        if message.visible and message in queue.pending_messages:
+            # If the message is visible again, remove it from pending
+            # messages.
+            queue.pending_messages.remove(message)
 
     def change_message_visibility_batch(
         self, queue_name: str, entries: list[dict[str, Any]]
@@ -1142,8 +1194,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         if queue.last_purged_at is not None and now - queue.last_purged_at < 60:
             raise PurgeQueueInProgress(queue.name)
         queue.last_purged_at = now
-        queue._messages = []
-        queue._pending_messages = set()
+        queue.remove_all_messages()
 
     def list_dead_letter_source_queues(self, queue_name: str) -> list[Queue]:
         dlq = self.get_queue(queue_name)
@@ -1265,9 +1316,8 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     def is_message_valid_based_on_retention_period(
         self, queue_name: str, message: Message
     ) -> bool:
-        retention_period = self.get_queue_attributes(
-            queue_name, ["MessageRetentionPeriod"]
-        )["MessageRetentionPeriod"]
+        # Read the attribute directly, as building all queue attributes iterates over every message
+        retention_period = self.get_queue(queue_name).message_retention_period  # type: ignore[attr-defined]
         retain_until = retention_period + message.sent_timestamp / 1000  # type: ignore
         if retain_until <= unix_time():
             return False
