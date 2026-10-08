@@ -44,6 +44,16 @@ def test_paginator__ordered_dict():
     assert len(page) == 1
 
 
+def test_paginator__list_of_strings():
+    result_list = [f"id{i}" for i in range(0, 10)]
+    p = Paginator(max_results=5, unique_attribute="id")
+    page, token = p.paginate(result_list)
+    assert page == result_list[:5]
+    p = Paginator(max_results=5, starting_token=token, unique_attribute="id")
+    page, token = p.paginate(result_list)
+    assert page == result_list[5:]
+
+
 def test_paginator__paginate_without_range_key__throws_error():
     p = Paginator(max_results=2)
     with pytest.raises(KeyError):
