@@ -1451,6 +1451,55 @@ def test_tag_and_list_tags_for_resource(client):
 
 
 @mock_aws
+def test_untag_resource(client):
+    mesh = client.create_mesh(
+        meshName=MESH_NAME,
+        tags=[
+            {"key": "owner", "value": "moto"},
+            {"key": "organization", "value": "moto"},
+            {"key": "env", "value": "test"},
+        ],
+    )["mesh"]
+    mesh_arn = mesh["metadata"]["arn"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    virtual_node = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=http_virtual_node_spec,
+        tags=[{"key": "type", "value": "http"}, {"key": "k2", "value": "v2"}],
+        virtualNodeName="mock_http_node",
+    )["virtualNode"]
+    virtual_node_arn = virtual_node["metadata"]["arn"]
+
+    client.untag_resource(resourceArn=mesh_arn, tagKeys=["organization", "unknown"])
+    tags = client.list_tags_for_resource(resourceArn=mesh_arn)["tags"]
+    assert tags == [{"key": "owner", "value": "moto"}, {"key": "env", "value": "test"}]
+
+    # Untagging a resource should not affect the tags of other resources
+    tags = client.list_tags_for_resource(resourceArn=virtual_node_arn)["tags"]
+    assert tags == [{"key": "type", "value": "http"}, {"key": "k2", "value": "v2"}]
+
+    client.untag_resource(resourceArn=virtual_node_arn, tagKeys=["type", "k2"])
+    tags = client.list_tags_for_resource(resourceArn=virtual_node_arn)["tags"]
+    assert tags == []
+
+    client.untag_resource(resourceArn=mesh_arn, tagKeys=[])
+    tags = client.list_tags_for_resource(resourceArn=mesh_arn)["tags"]
+    assert tags == [{"key": "owner", "value": "moto"}, {"key": "env", "value": "test"}]
+
+
+@mock_aws
+def test_untag_resource_unknown_arn(client):
+    unknown_arn = f"arn:aws:appmesh:us-east-1:123456789012:mesh/{MESH_NAME}"
+    with pytest.raises(ClientError) as e:
+        client.untag_resource(resourceArn=unknown_arn, tagKeys=["owner"])
+    err = e.value.response["Error"]
+    assert err["Code"] == "ResourceNotFound"
+    assert err["Message"] == f"There are no mesh resources with the arn {unknown_arn}."
+
+
+@mock_aws
 def test_create_describe_list_update_delete_virtual_gateway(client):
     mesh = client.create_mesh(meshName=MESH_NAME)["mesh"]
     mesh_owner = mesh["metadata"]["meshOwner"]

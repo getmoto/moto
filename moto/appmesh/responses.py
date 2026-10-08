@@ -103,6 +103,16 @@ class AppMeshResponse(BaseResponse):
         )
         return json.dumps({})
 
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = params.get("tagKeys")
+        self.appmesh_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps({})
+
     def describe_virtual_router(self) -> str:
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
