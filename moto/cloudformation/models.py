@@ -25,6 +25,7 @@ from .exceptions import (
     StackInstanceNotFound,
     StackSetNotEmpty,
     StackSetNotFoundException,
+    UnformattedGetAttTemplateException,
     ValidationError,
 )
 from .parsing import Export, OutputMap, ResourceMap
@@ -618,6 +619,15 @@ class Stack(CloudFormationModel):
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
         return True
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        if attribute_name.startswith("Outputs."):
+            output_key = attribute_name[len("Outputs.") :]
+            if output_key in self.output_map.outputs:
+                output = self.output_map[output_key]
+                if output is not None:
+                    return output.value
+        raise UnformattedGetAttTemplateException()
 
     @property
     def physical_resource_id(self) -> str:
