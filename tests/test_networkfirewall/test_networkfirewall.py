@@ -130,6 +130,30 @@ def test_list_firewalls():
 
 
 @mock_aws
+def test_list_firewalls_pagination():
+    client = boto3.client("network-firewall", region_name="ap-southeast-1")
+    vpc_ids = []
+    for i in range(3):
+        vpc_id = f"vpc-1234567{i}"
+        client.create_firewall(
+            FirewallName=f"test-firewall-{i}",
+            FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+            VpcId=vpc_id,
+        )
+        vpc_ids.append(vpc_id)
+
+    page = client.list_firewalls(VpcIds=vpc_ids, MaxResults=2)
+    assert len(page["Firewalls"]) == 2
+    assert "NextToken" in page
+
+    pages = client.get_paginator("list_firewalls").paginate(
+        VpcIds=vpc_ids, PaginationConfig={"PageSize": 2}
+    )
+    names = [fw["FirewallName"] for page in pages for fw in page["Firewalls"]]
+    assert names == ["test-firewall-0", "test-firewall-1", "test-firewall-2"]
+
+
+@mock_aws
 def test_describe_firewall():
     client = boto3.client("network-firewall", region_name="ap-southeast-1")
     firewall = client.create_firewall(
