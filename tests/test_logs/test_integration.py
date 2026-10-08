@@ -16,6 +16,63 @@ from tests.markers import requires_docker
 
 
 @mock_aws
+def test_put_subscription_filter_updates_at_quota():
+    client = boto3.client("logs", region_name="us-east-1")
+    kinesis = boto3.client("kinesis", region_name="us-east-1")
+    group = "miruky-uvoccotgdstzcznc"
+    stream = "miruky-afihuylqonvcbcgz"
+    names = ["miruky-qccsgcxjhiktdmfn", "miruky-qwiqpdvbnbwdlsji"]
+    client.create_log_group(logGroupName=group)
+    kinesis.create_stream(StreamName=stream, ShardCount=1)
+    arn = kinesis.describe_stream(StreamName=stream)["StreamDescription"]["StreamARN"]
+    for name in names:
+        client.put_subscription_filter(
+            logGroupName=group, filterName=name, filterPattern="", destinationArn=arn
+        )
+    original = {
+        item["filterName"]: item
+        for item in client.describe_subscription_filters(logGroupName=group)[
+            "subscriptionFilters"
+        ]
+    }
+
+    for name in names:
+        client.put_subscription_filter(
+            logGroupName=group,
+            filterName=name,
+            filterPattern="ERROR",
+            destinationArn=arn,
+        )
+    result = {
+        item["filterName"]: item
+        for item in client.describe_subscription_filters(logGroupName=group)[
+            "subscriptionFilters"
+        ]
+    }
+    assert set(result) == set(names)
+    for name in names:
+        assert result[name]["filterPattern"] == "ERROR"
+        assert result[name]["creationTime"] == original[name]["creationTime"]
+
+    with pytest.raises(ClientError) as exc:
+        client.put_subscription_filter(
+            logGroupName=group,
+            filterName="miruky-abfuuecencylmdhm",
+            filterPattern="",
+            destinationArn=arn,
+        )
+    assert exc.value.response["Error"]["Code"] == "LimitExceededException"
+    assert (
+        len(
+            client.describe_subscription_filters(logGroupName=group)[
+                "subscriptionFilters"
+            ]
+        )
+        == 2
+    )
+
+
+@mock_aws
 def test_put_subscription_filter_update():
     # given
     region_name = "us-east-1"
