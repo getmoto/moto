@@ -65,6 +65,8 @@ def test_create_database(client):
         DBSecurityGroups=["my_sg"],
         VpcSecurityGroupIds=["sg-123456"],
         EnableCloudwatchLogsExports=["audit", "error"],
+        EnablePerformanceInsights=True,
+        PerformanceInsightsRetentionPeriod=7,
         AutoMinorVersionUpgrade=False,
     )
     db_instance = database["DBInstance"]
@@ -113,6 +115,8 @@ def test_create_database(client):
     )
     assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
     assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
+    assert db_instance["PerformanceInsightsEnabled"] is True
+    assert db_instance["PerformanceInsightsRetentionPeriod"] == 7
 
 
 @mock_aws
@@ -3863,4 +3867,38 @@ def test_create_database_without_monitoring_role_and_with_interval_throws_Invali
     assert (
         ex.value.response["Error"]["Message"]
         == "A MonitoringRoleARN value is required if you specify a MonitoringInterval value other than 0."
+    )
+
+
+@mock_aws
+def test_create_database_with_performance_insights_options_but_disabled_throws_InvalidParameterCombination():
+    with pytest.raises(ClientError) as ex:
+        create_db_instance(
+            PerformanceInsightsRetentionPeriod=31,
+        )
+
+    assert ex.value.operation_name == "CreateDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"] == "To enable Performance Insights, "
+        "EnablePerformanceInsights must be set to 'true'"
+    )
+
+
+@mock_aws
+def test_create_database_with_invalid_performance_insights_retention_period_throws_InvalidParameterValue():
+    with pytest.raises(ClientError) as ex:
+        create_db_instance(
+            EnablePerformanceInsights=True,
+            PerformanceInsightsRetentionPeriod=13,
+        )
+
+    assert ex.value.operation_name == "CreateDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid Performance Insights retention period. "
+        "Valid values are: [7, 31, 62, 93, 124, 155, 186, 217, "
+        "248, 279, 310, 341, 372, 403, 434, 465, 496, 527, "
+        "558, 589, 620, 651, 682, 713, 731]"
     )
