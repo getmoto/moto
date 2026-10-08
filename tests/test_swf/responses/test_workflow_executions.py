@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -217,6 +218,77 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
     assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
     )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
+)
+@pytest.mark.parametrize(
+    "parameter,bad_value",
+    [("domain", 123), ("execution.runId", 123), ("execution.workflowId", [])],
+)
+@pytest.mark.parametrize("case", ["missing", "null", "invalid-type"])
+def test_workflow_execution_invalid_parameters(operation, parameter, bad_value, case):
+    config = Config(parameter_validation=False)
+    client = boto3.client("swf", region_name="us-west-1", config=config)
+    parameters = {
+        "domain": "test-domain",
+        "execution": {"runId": "run-id", "workflowId": "workflow-id"},
+    }
+    parent, _, field = parameter.rpartition(".")
+    target = parameters[parent] if parent else parameters
+    if case == "missing":
+        target.pop(field)
+    else:
+        target[field] = None if case == "null" else bad_value
+
+    with pytest.raises(ClientError) as ex:
+        getattr(client, operation)(**parameters)
+
+    error = ex.value.response["Error"]
+    if case == "invalid-type":
+        assert error["Code"] == "SerializationException"
+    else:
+        assert error["Code"] == "ValidationException"
+        assert error["Message"] == (
+            f"1 validation error detected: Value null at '{parameter}' "
+            "failed to satisfy constraint: Member must not be null"
+        )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
+)
+@pytest.mark.parametrize(
+    "parameters,message",
+    [
+        (
+            {},
+            "2 validation errors detected: Value null at 'execution' failed to satisfy constraint: Member must not be null; Value null at 'domain' failed to satisfy constraint: Member must not be null",
+        ),
+        (
+            {"domain": "test-domain"},
+            "1 validation error detected: Value null at 'execution' failed to satisfy constraint: Member must not be null",
+        ),
+        (
+            {"domain": "test-domain", "execution": {}},
+            "2 validation errors detected: Value null at 'execution.runId' failed to satisfy constraint: Member must not be null; Value null at 'execution.workflowId' failed to satisfy constraint: Member must not be null",
+        ),
+    ],
+)
+def test_workflow_execution_missing_execution(operation, parameters, message):
+    config = Config(parameter_validation=False)
+    client = boto3.client("swf", region_name="us-west-1", config=config)
+
+    with pytest.raises(ClientError) as ex:
+        getattr(client, operation)(**parameters)
+
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == message
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
