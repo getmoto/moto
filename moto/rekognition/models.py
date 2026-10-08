@@ -10,6 +10,22 @@ from moto.moto_api._internal import mock_random as random
 class RekognitionBackend(BaseBackend):
     """Implementation of Rekognition APIs."""
 
+    def __init__(self, region_name: str, account_id: str):
+        super().__init__(region_name, account_id)
+        self.collections: dict[str, dict[str, Any]] = {}
+
+    def create_collection(
+        self, collection_id: str, tags: dict[str, str] | None = None
+    ) -> tuple[int, str, str]:
+        arn = f"arn:aws:rekognition:{self.region_name}:{self.account_id}:collection/{collection_id}"
+        face_model_version = "7.0"
+        self.collections[collection_id] = {
+            "arn": arn,
+            "tags": tags or {},
+            "face_model_version": face_model_version,
+        }
+        return 200, arn, face_model_version
+
     def start_face_search(self) -> str:
         return self._job_id()
 

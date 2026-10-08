@@ -130,3 +130,26 @@ def test_detect_custom_labels():
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert resp["CustomLabels"][0]["Name"] == "MyLogo"
+
+
+@mock_aws
+def test_create_collection():
+    client = boto3.client("rekognition", region_name="us-east-1")
+    resp = client.create_collection(CollectionId="my-photos")
+
+    assert resp["StatusCode"] == 200
+    assert "CollectionArn" in resp
+    assert "arn:aws:rekognition:us-east-1" in resp["CollectionArn"]
+    assert "collection/my-photos" in resp["CollectionArn"]
+    assert resp["FaceModelVersion"] == "7.0"
+
+
+@mock_aws
+def test_create_collection_with_tags():
+    client = boto3.client("rekognition", region_name="us-east-1")
+    resp = client.create_collection(
+        CollectionId="tagged-collection", Tags={"Project": "Attendance", "Env": "Dev"}
+    )
+
+    assert resp["StatusCode"] == 200
+    assert "tagged-collection" in resp["CollectionArn"]

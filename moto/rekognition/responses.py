@@ -124,3 +124,21 @@ class RekognitionResponse(BaseResponse):
         response = ('{"JobId":"' + job_id + '"}').encode()
 
         return 200, headers, response
+
+    def create_collection(self) -> str:
+        params = json.loads(self.body or "{}")
+        collection_id = params.get("CollectionId")
+        tags = params.get("Tags")
+        status_code, collection_arn, face_model_version = (
+            self.rekognition_backend.create_collection(
+                collection_id=collection_id,
+                tags=tags,
+            )
+        )
+        return json.dumps(
+            {
+                "StatusCode": status_code,
+                "CollectionArn": collection_arn,
+                "FaceModelVersion": face_model_version,
+            }
+        )
