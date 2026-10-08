@@ -53,9 +53,7 @@ test_service() {
   pip install -r requirements-tests.txt
   pip install .[$service]
   pip install boto
-  if [[ $service != "xray" ]]; then
-    pip uninstall setuptools pkg_resources -y
-  fi
+  pip uninstall setuptools pkg_resources -y
   # Restart venv - ensure these deps are loaded
   deactivate
   source ${venv_path}/bin/activate

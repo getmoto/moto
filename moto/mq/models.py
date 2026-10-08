@@ -13,6 +13,7 @@ from moto.utilities.utils import get_partition
 
 from .configuration import DEFAULT_CONFIGURATION_DATA
 from .exceptions import (
+    ConfigurationInUse,
     UnknownBroker,
     UnknownConfiguration,
     UnknownEngineType,
@@ -89,8 +90,7 @@ class Configuration(BaseModel):
         )
 
     def update(self, data: str, description: str) -> None:
-        max_revision_id, _ = sorted(self.revisions.items())[-1]
-        next_revision_id = str(int(max_revision_id) + 1)
+        next_revision_id = str(int(self.latest_revision.revision_id) + 1)
         latest_revision = ConfigurationRevision(
             configuration_id=self.id,
             revision_id=next_revision_id,
@@ -108,8 +108,9 @@ class Configuration(BaseModel):
 
     @property
     def latest_revision(self) -> ConfigurationRevision:
-        _, latest_revision = sorted(self.revisions.items())[-1]
-        return latest_revision
+        return max(
+            self.revisions.values(), key=lambda revision: int(revision.revision_id)
+        )
 
 
 class User(BaseModel):
@@ -168,23 +169,23 @@ class Broker(BaseModel):
         self.deployment_mode = deployment_mode
         self.encryption_options = encryption_options
         if not self.encryption_options:
-            self.encryption_options = {"useAwsOwnedKey": True}
+            self.encryption_options = {"UseAwsOwnedKey": True}
         self.engine_type = engine_type
         self.engine_version = engine_version
         self.host_instance_type = host_instance_type
         self.ldap_server_metadata = ldap_server_metadata
         self.logs = logs
-        if "general" not in self.logs:
-            self.logs["general"] = False
-        if "audit" not in self.logs:
+        if "General" not in self.logs:
+            self.logs["General"] = False
+        if "Audit" not in self.logs:
             if self.engine_type.upper() == "ACTIVEMQ":
-                self.logs["audit"] = False
+                self.logs["Audit"] = False
         self.maintenance_window_start_time = maintenance_window_start_time
         if not self.maintenance_window_start_time:
             self.maintenance_window_start_time = {
-                "dayOfWeek": "Sunday",
-                "timeOfDay": "00:00",
-                "timeZone": "UTC",
+                "DayOfWeek": "Sunday",
+                "TimeOfDay": "00:00",
+                "TimeZone": "UTC",
             }
         self.publicly_accessible = publicly_accessible
         self.security_groups = security_groups
@@ -206,9 +207,9 @@ class Broker(BaseModel):
         self._users: dict[str, User] = {}
         for user in users:
             self.create_user(
-                username=user["username"],
-                groups=user.get("groups", []),
-                console_access=user.get("consoleAccess", False),
+                username=user["Username"],
+                groups=user.get("Groups", []),
+                console_access=user.get("ConsoleAccess", False),
             )
 
         self.configurations: dict[str, Any] = {"current": configuration, "history": []}
@@ -344,7 +345,7 @@ class MQBackend(BaseBackend):
                 engine_version=engine_version,
                 tags={},
             )
-            configuration = {"id": default_config.id, "revision": 1}
+            configuration = {"Id": default_config.id, "Revision": 1}
         broker = Broker(
             name=broker_name,
             account_id=self.account_id,
@@ -450,11 +451,30 @@ class MQBackend(BaseBackend):
         config = self.configs[config_id]
         return config.get_revision(revision_id)
 
+    def list_configuration_revisions(
+        self, config_id: str
+    ) -> list[ConfigurationRevision]:
+        config = self.describe_configuration(config_id)
+        return sorted(
+            config.revisions.values(), key=lambda revision: int(revision.revision_id)
+        )
+
     def list_configurations(self) -> Iterable[Configuration]:
         """
         Pagination has not yet been implemented.
         """
         return self.configs.values()
+
+    def delete_configuration(self, config_id: str) -> None:
+        """
+        A configuration that is currently used by a broker cannot be deleted.
+        """
+        config = self.describe_configuration(config_id)
+        for broker in self.brokers.values():
+            if broker.configurations["current"].get("Id") == config_id:
+                raise ConfigurationInUse(config_id, broker.id)
+        self.tagger.delete_all_tags_for_resource(config.arn)
+        del self.configs[config_id]
 
     def create_tags(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(

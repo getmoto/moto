@@ -1,9 +1,7 @@
-import gzip
 import json
 from typing import Any
 from urllib.parse import urlencode
 
-from flask import current_app, request
 from flask.testing import FlaskClient
 from werkzeug.routing import BaseConverter
 
@@ -37,12 +35,3 @@ class AWSTestHelper(FlaskClient):
         deserialization of output.
         """
         return json.loads(self.action_data(action_name, **kwargs))
-
-
-def decompress_request_body() -> None:
-    """Intended to be used as a `before_request` handler in the Moto Server Flask app."""
-    if current_app.service == "s3":  # type: ignore[attr-defined]
-        return
-    if request.content_encoding == "gzip":
-        request.stream = gzip.GzipFile(fileobj=request.stream)  # type: ignore[assignment]
-        request.get_data(parse_form_data=True)

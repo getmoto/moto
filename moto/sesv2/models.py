@@ -32,7 +32,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "page_size",
         "limit_default": 100,
-        "unique_attribute": "IdentityName",
+        "unique_attribute": "email_identity",
     },
     "list_configuration_sets": {
         "input_token": "next_token",
