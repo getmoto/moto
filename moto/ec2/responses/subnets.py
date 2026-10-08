@@ -1,6 +1,5 @@
 from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
-from moto.moto_api._internal import mock_random as random
 
 from ..exceptions import InvalidParameterCombination, MissingParameter
 from ._base_response import EC2BaseResponse
@@ -29,9 +28,8 @@ class Subnets(EC2BaseResponse):
             )
 
         if not availability_zone and not availability_zone_id:
-            availability_zone = random.choice(
-                self.ec2_backend.describe_availability_zones()
-            ).name
+            zones = self.ec2_backend.describe_availability_zones()
+            availability_zone = min(zone.name for zone in zones)
         subnet = self.ec2_backend.create_subnet(
             vpc_id,
             cidr_block,
