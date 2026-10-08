@@ -35,10 +35,15 @@ The BlockPublicPolicy-parameter is not yet implemented
 - [X] replicate_secret_to_regions
 - [X] restore_secret
 - [X] rotate_secret
-- [ ] stop_replication_to_replica
+- [X] stop_replication_to_replica
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_secret
 - [X] update_secret_version_stage
-- [ ] validate_resource_policy
+- [X] validate_resource_policy
+  
+Only the syntax of the policy is validated.
+Checks for broad access (using Zelkova) and caller lock-out are not yet implemented.
+
+
 
