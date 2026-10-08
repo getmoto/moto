@@ -835,6 +835,22 @@ def test_delete_stack_set_by_name():
 
 
 @mock_aws
+def test_list_stack_sets_filter_by_status():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack_set(StackSetName="kept", TemplateBody=dummy_template_json)
+    cf.create_stack_set(StackSetName="removed", TemplateBody=dummy_template_json)
+    cf.delete_stack_set(StackSetName="removed")
+
+    def names(**kwargs):
+        summaries = cf.list_stack_sets(**kwargs)["Summaries"]
+        return sorted(s["StackSetName"] for s in summaries)
+
+    assert names() == ["kept", "removed"]
+    assert names(Status="ACTIVE") == ["kept"]
+    assert names(Status="DELETED") == ["removed"]
+
+
+@mock_aws
 def test_delete_stack_set_by_id():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     response = cf.create_stack_set(

@@ -907,7 +907,9 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
             # We don't remove StackSets from the list - they still show up when calling list_stack_sets
             stackset_to_delete.delete()
 
-    def list_stack_sets(self) -> Iterable[StackSet]:
+    def list_stack_sets(self, status: str | None = None) -> Iterable[StackSet]:
+        if status:
+            return [s for s in self.stacksets.values() if s.status == status]
         return self.stacksets.values()
 
     def list_stack_set_operations(self, stackset_name: str) -> list[dict[str, Any]]:

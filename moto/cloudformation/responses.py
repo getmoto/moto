@@ -588,7 +588,8 @@ class CloudFormationResponse(BaseResponse):
         return ActionResult(result)
 
     def list_stack_sets(self) -> ActionResult:
-        stacksets = self.cloudformation_backend.list_stack_sets()
+        status = self._get_param("Status")
+        stacksets = self.cloudformation_backend.list_stack_sets(status=status)
         result = {"Summaries": stacksets}
         return ActionResult(result)
 
