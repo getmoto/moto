@@ -113,6 +113,8 @@ class SQSResponse(BaseResponse):
     def change_message_visibility_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
         entries = self._get_param("Entries", [])
+        if not entries:
+            raise EmptyBatchRequest(action="ChangeMessageVisibility")
         success, failed = self.sqs_backend.change_message_visibility_batch(
             queue_name, entries
         )
@@ -234,7 +236,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         receipts = self._get_param("Entries", [])
         if not receipts:
-            raise EmptyBatchRequest(action="Delete")
+            raise EmptyBatchRequest(action="DeleteMessage")
         receipt_seen = set()
         for receipt_and_id in receipts:
             receipt = receipt_and_id["ReceiptHandle"]
