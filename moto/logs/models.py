@@ -629,7 +629,9 @@ class LogGroup(CloudFormationModel):
         self.retention_in_days = retention_in_days
 
     def describe_subscription_filters(self) -> Iterable[SubscriptionFilter]:
-        return self.subscription_filters.values()
+        return sorted(
+            self.subscription_filters.values(), key=lambda sub_filter: sub_filter.name
+        )
 
     def put_subscription_filter(
         self, filter_name: str, filter_pattern: str, destination_arn: str, role_arn: str
