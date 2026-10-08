@@ -17,5 +17,7 @@ url_paths = {
     "{0}/clusters/(?P<name>[^/]+)/fargate-profiles$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/fargate-profiles/(?P<fargateProfileName>[^/]+)$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/update-config$": response.dispatch,
+    "{0}/clusters/(?P<name>[^/]+)/access-entries$": response.dispatch,
+    "{0}/clusters/(?P<name>[^/]+)/access-entries/(?P<principalArn>.+)$": response.dispatch,
     "{0}/tags/(?P<resourceArn>.+)$": response.dispatch,
 }
