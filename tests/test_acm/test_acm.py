@@ -153,6 +153,41 @@ def test_import_certificate_with_tags():
 
 
 @mock_aws
+def test_import_certificate_with_arn():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.import_certificate(
+        Certificate=RSA_2048_CRT,
+        PrivateKey=RSA_2048_KEY,
+        CertificateChain=CA_CRT,
+    )
+    arn = resp["CertificateArn"]
+    resp = client.import_certificate(
+        Certificate=RSA_2048_CRT,
+        PrivateKey=RSA_2048_KEY,
+        CertificateChain=CA_CRT,
+        CertificateArn=arn,
+    )
+    resp = client.get_certificate(CertificateArn=arn)
+    assert resp["Certificate"] == RSA_2048_CRT.decode()
+
+
+@mock_aws
+def test_import_certificate_with_bad_arn():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.import_certificate(
+            Certificate=RSA_2048_CRT,
+            PrivateKey=RSA_2048_KEY,
+            CertificateChain=CA_CRT,
+            CertificateArn=BAD_ARN,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
 def test_import_bad_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -1036,6 +1071,15 @@ def test_account_configuration():
     # Test default configuration
     response = client.get_account_configuration()
     assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 45
+
+    # Test ValidationException update
+    with pytest.raises(ClientError) as exc:
+        client.put_account_configuration(
+            ExpiryEvents={"DaysBeforeExpiry": 99}, IdempotencyToken="test-token"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "DaysBeforeExpiry must be between 1 and 90"
 
     # Test successful update
     client.put_account_configuration(

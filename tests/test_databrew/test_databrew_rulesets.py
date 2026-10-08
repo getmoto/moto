@@ -148,24 +148,21 @@ def test_delete_ruleset():
 def test_update_ruleset(name):
     client = _create_databrew_client()
     _create_test_ruleset(client, ruleset_name=name)
-
+    rules = [
+        {
+            "Name": "Assert values > 0",
+            "Disabled": False,
+            "CheckExpression": ":col1 > :val1",
+            "SubstitutionMap": {":col1": "`Value`", ":val1": "10"},
+            "Threshold": {
+                "Value": 100,
+                "Type": "GREATER_THAN_OR_EQUAL",
+                "Unit": "PERCENTAGE",
+            },
+        }
+    ]
     # Update the ruleset and check response
-    ruleset = client.update_ruleset(
-        Name=name,
-        Rules=[
-            {
-                "Name": "Assert values > 0",
-                "Disabled": False,
-                "CheckExpression": ":col1 > :val1",
-                "SubstitutionMap": {":col1": "`Value`", ":val1": "10"},
-                "Threshold": {
-                    "Value": 100,
-                    "Type": "GREATER_THAN_OR_EQUAL",
-                    "Unit": "PERCENTAGE",
-                },
-            }
-        ],
-    )
+    ruleset = client.update_ruleset(Name=name, Rules=rules)
     assert ruleset["Name"] == name
 
     # Describe the ruleset and check the changes
@@ -173,3 +170,27 @@ def test_update_ruleset(name):
     assert ruleset["Name"] == name
     assert len(ruleset["Rules"]) == 1
     assert ruleset["Rules"][0]["SubstitutionMap"][":val1"] == "10"
+    assert "Description" not in ruleset
+
+    client.update_ruleset(Name=name, Rules=rules, Description="test")
+    ruleset = client.describe_ruleset(Name=name)
+    assert ruleset["Description"] == "test"
+
+
+@mock_aws
+def test_update_ruleset_not_found():
+    client = _create_databrew_client()
+
+    with pytest.raises(ClientError) as exc:
+        client.update_ruleset(
+            Name="not-found",
+            Rules=[
+                {
+                    "Name": "Assert values > 0",
+                    "CheckExpression": ":col1 > :val1",
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityNotFoundException"
+    assert err["Message"] == "Ruleset not-found not found."

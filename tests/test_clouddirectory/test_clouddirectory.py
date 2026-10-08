@@ -141,6 +141,34 @@ def test_delete_schema():
 
 
 @mock_aws
+def test_delete_schema_published():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema = client.create_schema(Name="test-schema")
+    pub_schema = client.publish_schema(
+        DevelopmentSchemaArn=schema["SchemaArn"],
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    resp = client.list_published_schema_arns()
+    assert len(resp["SchemaArns"]) == 1
+    client.delete_schema(SchemaArn=pub_schema["PublishedSchemaArn"])
+    resp = client.list_published_schema_arns()
+    assert len(resp["SchemaArns"]) == 0
+
+
+@mock_aws
+def test_delete_schema_with_bad_arn():
+    client = boto3.client("clouddirectory", region_name="us-west-2")
+    with pytest.raises(Exception) as exc:
+        client.delete_schema(SchemaArn="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource not found"
+
+
+@mock_aws
 def test_list_directories():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
@@ -265,6 +293,16 @@ def test_get_directory():
 
 
 @mock_aws
+def test_get_directory_with_bad_arn():
+    client = boto3.client("clouddirectory", region_name="us-west-2")
+    with pytest.raises(Exception) as exc:
+        client.get_directory(DirectoryArn="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArnException"
+    assert err["Message"] == "Invalid Arn"
+
+
+@mock_aws
 def test_apply_schema_with_nonexistent_schema():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
@@ -328,6 +366,28 @@ def test_apply_schema_updates_directory_schema():
 
     # Verify schema was updated
     assert resp["AppliedSchemaArn"] == pub_schema2_arn
+
+
+@mock_aws
+def test_apply_schema_with_bad_arn():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    schema2 = client.create_schema(Name="test-schema2")
+    schema2_arn = schema2["SchemaArn"]
+    pub_schema2 = client.publish_schema(
+        DevelopmentSchemaArn=schema2_arn,
+        Name="test-schema2",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema2_arn = pub_schema2["PublishedSchemaArn"]
+
+    with pytest.raises(Exception) as exc:
+        client.apply_schema(PublishedSchemaArn=pub_schema2_arn, DirectoryArn="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource not found"
 
 
 @mock_aws

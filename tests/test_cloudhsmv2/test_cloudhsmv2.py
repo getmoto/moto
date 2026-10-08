@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 import boto3
+import pytest
 
 from moto import mock_aws
 
@@ -146,6 +147,16 @@ def test_delete_cluster():
 
     clusters = client.describe_clusters()["Clusters"]
     assert len(clusters) == 0
+
+
+@mock_aws
+def test_delete_cluster_not_found():
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
+    with pytest.raises(Exception) as exc:
+        client.delete_cluster(ClusterId="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Cluster test not found"
 
 
 @mock_aws
