@@ -156,13 +156,13 @@ class Paginator:
         return True
 
     @staticmethod
-    def _get_unique_value(item: Any, attr: Any, *default: Any) -> Any:
+    def _get_unique_value(item: Any, attr: Any, default: Any = None) -> Any:
         # Scalar items (e.g. a list of ARNs or URLs) are their own unique value
         if isinstance(item, str):
             return item
         if isinstance(item, dict):
             return item[attr]
-        return getattr(item, attr, *default)
+        return getattr(item, attr, default)
 
     def _build_next_token(self, next_item: Any) -> str:
         token_dict: dict[str, Any] = {}

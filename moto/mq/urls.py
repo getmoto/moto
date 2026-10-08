@@ -16,6 +16,7 @@ url_paths = {
     "{0}/v1/brokers$": MQResponse.dispatch,
     "{0}/v1/configurations$": MQResponse.dispatch,
     "{0}/v1/configurations/(?P<config_id>[^/]+)$": MQResponse.dispatch,
+    "{0}/v1/configurations/(?P<config_id>[^/]+)/revisions$": MQResponse.dispatch,
     "{0}/v1/configurations/(?P<config_id>[^/]+)/revisions/(?P<revision_id>[^/]+)$": MQResponse.dispatch,
     "{0}/v1/tags/(?P<resource_arn>[^/]+)$": MQResponse.dispatch,
 }

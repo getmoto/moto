@@ -1,0 +1,14 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListConfigurationRevisions": {
+        "input_token": "NextToken",
+        "output_token": "NextToken",
+        "limit_key": "MaxResults",
+        "result_key": "Revisions",
+        "unique_attribute": "revision_id"
+      }
+    }
+  }
+}
