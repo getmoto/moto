@@ -21,7 +21,7 @@ lambda
 - [ ] checkpoint_durable_execution
 - [X] create_alias
 - [ ] create_capacity_provider
-- [ ] create_code_signing_config
+- [X] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
   
@@ -36,10 +36,10 @@ Function URLs are not yet mocked, so invoking them will fail
 
 - [X] delete_alias
 - [ ] delete_capacity_provider
-- [ ] delete_code_signing_config
+- [X] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
-- [ ] delete_function_code_signing_config
+- [X] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [X] delete_function_event_invoke_config
 - [X] delete_function_url_config
@@ -53,7 +53,7 @@ The Qualifier-parameter is not yet implemented
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_capacity_provider
-- [ ] get_code_signing_config
+- [X] get_code_signing_config
 - [ ] get_durable_execution
 - [ ] get_durable_execution_history
 - [ ] get_durable_execution_state
@@ -106,14 +106,14 @@ Configure this queue by making an HTTP request to `/moto-api/static/lambda-simpl
 - [ ] invoke_with_response_stream
 - [X] list_aliases
 - [ ] list_capacity_providers
-- [ ] list_code_signing_configs
+- [X] list_code_signing_configs
 - [ ] list_durable_executions_by_function
 - [X] list_event_source_mappings
 - [X] list_function_event_invoke_configs
 - [ ] list_function_url_configs
 - [ ] list_function_versions_by_capacity_provider
 - [X] list_functions
-- [ ] list_functions_by_code_signing_config
+- [X] list_functions_by_code_signing_config
 - [X] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
@@ -121,7 +121,7 @@ Configure this queue by making an HTTP request to `/moto-api/static/lambda-simpl
 - [X] list_versions_by_function
 - [X] publish_layer_version
 - [X] publish_version
-- [ ] put_function_code_signing_config
+- [X] put_function_code_signing_config
 - [X] put_function_concurrency
   Establish concurrency limit/reservations for a function
 
@@ -156,7 +156,7 @@ The RevisionId parameter is not yet implemented
 
 
 - [ ] update_capacity_provider
-- [ ] update_code_signing_config
+- [X] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
