@@ -2040,7 +2040,7 @@
 - [X] list_tags_for_resource
 - [ ] put_alarm_mute_rule
 - [ ] put_anomaly_detector
-- [ ] put_composite_alarm
+- [X] put_composite_alarm
 - [X] put_dashboard
 - [X] put_insight_rule
 - [ ] put_log_alarm
