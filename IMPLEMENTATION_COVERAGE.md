@@ -10042,7 +10042,7 @@
 
 ## s3vectors
 <details>
-<summary>71% implemented</summary>
+<summary>85% implemented</summary>
 
 - [X] create_index
 - [X] create_vector_bucket
@@ -10055,15 +10055,15 @@
 - [X] get_vector_bucket_policy
 - [X] get_vectors
 - [X] list_indexes
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_vector_buckets
 - [X] list_vectors
 - [ ] put_vector_bucket_default_index_mode
 - [X] put_vector_bucket_policy
 - [X] put_vectors
 - [ ] query_vectors
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_index_mode
 </details>
 
