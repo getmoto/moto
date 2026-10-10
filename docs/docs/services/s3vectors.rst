@@ -29,7 +29,7 @@ s3vectors
 - [X] list_indexes
   Pagination is not yet implemented. The prefix-parameter is also not yet implemented.
 
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_vector_buckets
 - [X] list_vectors
   
@@ -40,6 +40,6 @@ Segmentation is not yet implemented
 - [X] put_vector_bucket_policy
 - [X] put_vectors
 - [ ] query_vectors
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 

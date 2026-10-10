@@ -6,10 +6,12 @@ from typing import Any, Literal, TypedDict
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.arns import parse_arn
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     IndexNotFound,
+    ResourceNotFound,
     VectorBucketAlreadyExists,
     VectorBucketNotEmpty,
     VectorBucketNotFound,
@@ -92,12 +94,14 @@ class S3VectorsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.vector_buckets: dict[str, VectorBucket] = {}
+        self.tagger = TaggingService()
 
     def create_vector_bucket(
         self,
         region: str,
         vector_bucket_name: str,
         encryption_configuration: dict[str, str],
+        tags: dict[str, str] | None = None,
     ) -> None:
         vector_bucket_arn = create_vector_bucket_arn(
             self.account_id, region, name=vector_bucket_name
@@ -110,6 +114,11 @@ class S3VectorsBackend(BaseBackend):
             encryption_configuration=encryption_configuration,
         )
         self.vector_buckets[vector_bucket.vector_bucket_arn] = vector_bucket
+        if tags:
+            self.tagger.tag_resource(
+                vector_bucket.vector_bucket_arn,
+                TaggingService.convert_dict_to_tags_input(tags),
+            )
 
     def get_vector_bucket(
         self,
@@ -130,6 +139,7 @@ class S3VectorsBackend(BaseBackend):
             if bucket.indexes:
                 raise VectorBucketNotEmpty
             self.vector_buckets.pop(bucket.vector_bucket_arn, None)
+            self.tagger.delete_all_tags_for_resource(bucket.vector_bucket_arn)
 
     def list_vector_buckets(self, prefix: str | None) -> list[VectorBucket]:
         return [
@@ -146,6 +156,7 @@ class S3VectorsBackend(BaseBackend):
         data_type: Literal["float32"],
         dimension: int,
         distance_metric: str,
+        tags: dict[str, str] | None = None,
     ) -> None:
         bucket = self.get_vector_bucket(
             vector_bucket_name=vector_bucket_name, vector_bucket_arn=vector_bucket_arn
@@ -158,12 +169,18 @@ class S3VectorsBackend(BaseBackend):
             distance_metric=distance_metric,
         )
         bucket.indexes[index.index_arn] = index
+        if tags:
+            self.tagger.tag_resource(
+                index.index_arn,
+                TaggingService.convert_dict_to_tags_input(tags),
+            )
 
     def delete_index(
         self, vector_bucket_name: str, index_name: str, index_arn: str
     ) -> None:
         index = self.get_index(vector_bucket_name, index_name, index_arn)
         index._bucket.indexes.pop(index.index_arn)
+        self.tagger.delete_all_tags_for_resource(index.index_arn)
 
     def get_index(
         self, vector_bucket_name: str, index_name: str, index_arn: str
@@ -267,6 +284,28 @@ class S3VectorsBackend(BaseBackend):
         )
         for key in keys:
             index.vectors.pop(key, None)
+
+    def _verify_resource_exists(self, resource_arn: str) -> None:
+        if resource_arn in self.vector_buckets:
+            return
+        for bucket in self.vector_buckets.values():
+            if resource_arn in bucket.indexes:
+                return
+        raise ResourceNotFound
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        self._verify_resource_exists(resource_arn)
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self._verify_resource_exists(resource_arn)
+        self.tagger.tag_resource(
+            resource_arn, TaggingService.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self._verify_resource_exists(resource_arn)
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 s3vectors_backends = BackendDict(
