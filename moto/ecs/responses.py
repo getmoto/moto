@@ -381,7 +381,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_container_instances(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
-        container_instance_arns = self.ecs_backend.list_container_instances(cluster_str)
+        status = self._get_param("status")
+        container_instance_arns = self.ecs_backend.list_container_instances(
+            cluster_str, status=status
+        )
         return ActionResult({"containerInstanceArns": container_instance_arns})
 
     def describe_container_instances(self) -> ActionResult:
