@@ -1465,3 +1465,124 @@ def test_list_service_network_service_associations_service_id():
     )
 
     assert len(resp["items"]) == 3
+
+
+def _test_paginated_vpclattice(list_operation, **kwargs):
+    seen_tokens = set()
+    response = list_operation(**kwargs)
+    items = list(response["items"])
+    assert len(items) == 50
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = list_operation(nextToken=response["nextToken"], **kwargs)
+        items.extend(response["items"])
+    assert len(items) == 51
+
+
+@mock_aws
+def test_list_service_network_vpc_associations_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    network_id = client.create_service_network(
+        name="pagination-network", authType="NONE"
+    )["id"]
+    for idx in range(51):
+        client.create_service_network_vpc_association(
+            serviceNetworkIdentifier=network_id,
+            vpcIdentifier=f"vpc-{idx:017d}",
+        )
+    _test_paginated_vpclattice(
+        client.list_service_network_vpc_associations,
+        serviceNetworkIdentifier=network_id,
+    )
+
+
+@mock_aws
+def test_list_listeners_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    service_id = client.create_service(name="pagination-service", authType="NONE")["id"]
+    for idx in range(51):
+        client.create_listener(
+            serviceIdentifier=service_id,
+            name=f"pagination-listener-{idx}",
+            protocol="HTTP",
+            port=80 + idx,
+            defaultAction={
+                "forward": {
+                    "targetGroups": [{"targetGroupIdentifier": "tg-1234567890abcdef"}]
+                }
+            },
+        )
+    _test_paginated_vpclattice(
+        client.list_listeners,
+        serviceIdentifier=service_id,
+    )
+
+
+@mock_aws
+def test_list_target_groups_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    for idx in range(51):
+        client.create_target_group(
+            name=f"pagination-target-group-{idx}",
+            type="IP",
+            config={
+                "port": 80 + idx,
+                "protocol": "HTTP",
+                "vpcIdentifier": "vpc-12345678",
+            },
+        )
+    _test_paginated_vpclattice(client.list_target_groups)
+
+
+@mock_aws
+def test_list_service_network_resource_associations_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    network_id = client.create_service_network(
+        name="pagination-network", authType="NONE"
+    )["id"]
+    for idx in range(51):
+        client.create_service_network_resource_association(
+            serviceNetworkIdentifier=network_id,
+            resourceConfigurationIdentifier=f"resource-configuration-id-{idx:02d}",
+        )
+    _test_paginated_vpclattice(
+        client.list_service_network_resource_associations,
+        serviceNetworkIdentifier=network_id,
+    )
+
+
+@mock_aws
+def test_list_service_network_service_associations_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    network_id = client.create_service_network(
+        name="pagination-network", authType="NONE"
+    )["id"]
+    for idx in range(51):
+        service_id = client.create_service(
+            name=f"pagination-service-{idx}", authType="NONE"
+        )["id"]
+        client.create_service_network_service_association(
+            serviceNetworkIdentifier=network_id,
+            serviceIdentifier=service_id,
+        )
+    _test_paginated_vpclattice(
+        client.list_service_network_service_associations,
+        serviceNetworkIdentifier=network_id,
+    )
+
+
+@mock_aws
+def test_list_services_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    for idx in range(51):
+        client.create_service(name=f"pagination-service-{idx}", authType="NONE")
+    _test_paginated_vpclattice(client.list_services)
+
+
+@mock_aws
+def test_list_service_networks_paginate():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    for idx in range(51):
+        client.create_service_network(name=f"pagination-network-{idx}", authType="NONE")
+    _test_paginated_vpclattice(client.list_service_networks)

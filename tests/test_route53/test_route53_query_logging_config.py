@@ -305,3 +305,29 @@ def test_list_query_logging_configs_good_args():
     )
     assert len(response["QueryLoggingConfigs"]) == 8
     assert "NextToken" not in response
+
+
+@mock_aws
+def test_list_query_logging_configs_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53", region_name="us-east-1")
+    logs_client = boto3.client("logs", region_name="us-east-1")
+    log_group_arn = create_log_group_arn(logs_client, "test_name")
+    for i in range(101):
+        test_name = f"route53_query_log_{i}.test"
+        hosted_zone_id = create_hosted_zone_id(client, test_name)
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
+        )
+
+    page = client.list_query_logging_configs()
+    assert len(page["QueryLoggingConfigs"]) == 100
+    assert page.get("NextToken")
+    configs = list(page["QueryLoggingConfigs"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_query_logging_configs(NextToken=next_token)
+        configs.extend(page["QueryLoggingConfigs"])
+    assert len(configs) == 101

@@ -399,3 +399,30 @@ def test_route53resolver_bad_list_resolver_rule_associations():
         "Value '250' at 'maxResults' failed to satisfy constraint: Member "
         "must have length less than or equal to 100"
     ) in err["Message"]
+
+
+@mock_aws
+def test_list_resolver_rule_associations_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    expected = {
+        create_test_rule_association(client, ec2_client, name=f"page-association-{i}")[
+            "Id"
+        ]
+        for i in range(101)
+    }
+    page = client.list_resolver_rule_associations()
+    assert len(page["ResolverRuleAssociations"]) == 100
+    assert page.get("NextToken")
+    associations = list(page["ResolverRuleAssociations"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resolver_rule_associations(NextToken=next_token)
+        associations.extend(page["ResolverRuleAssociations"])
+
+    ids = [association["Id"] for association in associations]
+    assert set(ids) == expected
+    assert len(ids) == 101

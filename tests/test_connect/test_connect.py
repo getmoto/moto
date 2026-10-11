@@ -635,3 +635,64 @@ def test_list_tags_for_resource_empty():
     response = client.list_tags_for_resource(resourceArn=instance_arn)
 
     assert response["tags"] == {}
+
+
+@mock_aws
+def test_list_instances_paginate():
+    seen_tokens = set()
+    client = boto3.client("connect", region_name="us-east-1")
+    expected_ids = set()
+    for i in range(11):
+        expected_ids.add(
+            client.create_instance(
+                IdentityManagementType="CONNECT_MANAGED",
+                InboundCallsEnabled=True,
+                OutboundCallsEnabled=True,
+                InstanceAlias=f"instance-{i}",
+            )["Id"]
+        )
+    response = client.list_instances()
+    pages = [response["InstanceSummaryList"]]
+    assert len(pages[0]) == 10
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_instances(NextToken=next_token)
+        pages.append(response["InstanceSummaryList"])
+    instance_ids = [instance["Id"] for page in pages for instance in page]
+    assert [len(page) for page in pages] == [10, 1]
+    assert len(instance_ids) == 11
+    assert set(instance_ids) == expected_ids
+
+
+@mock_aws
+def test_list_analytics_data_associations_paginate():
+    seen_tokens = set()
+    client = boto3.client("connect", region_name="us-east-1")
+    create_response = client.create_instance(
+        IdentityManagementType="CONNECT_MANAGED",
+        InboundCallsEnabled=True,
+        OutboundCallsEnabled=True,
+    )
+    instance_id = create_response["Id"]
+    expected_ids = {f"dataset-{i:04d}" for i in range(1001)}
+    for i in range(1001):
+        client.associate_analytics_data_set(
+            InstanceId=instance_id, DataSetId=f"dataset-{i:04d}"
+        )
+    response = client.list_analytics_data_associations(InstanceId=instance_id)
+    pages = [response["Results"]]
+    assert len(pages[0]) == 1000
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_analytics_data_associations(
+            InstanceId=instance_id, NextToken=next_token
+        )
+        pages.append(response["Results"])
+    dataset_ids = [item["DataSetId"] for page in pages for item in page]
+    assert [len(page) for page in pages] == [1000, 1]
+    assert len(dataset_ids) == 1001
+    assert set(dataset_ids) == expected_ids

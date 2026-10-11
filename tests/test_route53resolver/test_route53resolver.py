@@ -168,7 +168,7 @@ def test_list_resolver_query_log_configs():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
     config_ids = []
-    for i in range(3):
+    for i in range(101):
         response = client.create_resolver_query_log_config(
             Name=f"test-query-log-config-{i}",
             DestinationArn=f"arn:aws:s3:::test-bucket-{i}",
@@ -384,7 +384,7 @@ def test_list_resolver_query_log_config_associations_empty():
 def test_list_resolver_query_log_configs_pagination():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
-    for i in range(3):
+    for i in range(101):
         client.create_resolver_query_log_config(
             Name=f"test-config-{i}",
             DestinationArn=f"arn:aws:s3:::test-bucket-{i}",
@@ -435,3 +435,38 @@ def test_list_resolver_query_log_config_associations_pagination():
 
     assert len(response2["ResolverQueryLogConfigAssociations"]) == 1
     assert "NextToken" not in response2
+
+
+@mock_aws
+def test_list_resolver_query_log_config_associations_paginate():
+    seen_tokens = set()
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    client = boto3.client("route53resolver", region_name="us-east-1")
+    config_id = client.create_resolver_query_log_config(
+        Name="page-query-config",
+        DestinationArn="arn:aws:s3:::pagination-bucket",
+        CreatorRequestId="page-query-creator",
+    )["ResolverQueryLogConfig"]["Id"]
+    vpc_ids = {
+        ec2_client.create_vpc(CidrBlock=f"10.{i}.0.0/16")["Vpc"]["VpcId"]
+        for i in range(101)
+    }
+    for vpc_id in vpc_ids:
+        client.associate_resolver_query_log_config(
+            ResolverQueryLogConfigId=config_id, ResourceId=vpc_id
+        )
+
+    page = client.list_resolver_query_log_config_associations()
+    assert len(page["ResolverQueryLogConfigAssociations"]) == 100
+    assert page.get("NextToken")
+    associations = list(page["ResolverQueryLogConfigAssociations"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resolver_query_log_config_associations(NextToken=next_token)
+        associations.extend(page["ResolverQueryLogConfigAssociations"])
+
+    resource_ids = [item["ResourceId"] for item in associations]
+    assert set(resource_ids) == vpc_ids
+    assert len(resource_ids) == 101

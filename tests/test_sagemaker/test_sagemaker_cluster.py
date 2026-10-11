@@ -708,3 +708,50 @@ def test_create_cluster_bad_source_s3_uri():
         str(e.value)
         == "An error occurred (ValidationException) when calling the CreateCluster operation: Validation Error: SourceS3Uri s3://lifecycleconfig does not start with 's3://sagemaker'."
     )
+
+
+@mock_aws
+def test_list_clusters_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"cluster-{index}" for index in range(101)]
+    for name in names:
+        client.create_cluster(
+            ClusterName=name,
+            InstanceGroups=[
+                {
+                    "InstanceCount": 1,
+                    "InstanceGroupName": "workers",
+                    "InstanceType": "ml.m5.xlarge",
+                    "LifeCycleConfig": {
+                        "SourceS3Uri": "s3://sagemaker-lifecycleconfig",
+                        "OnCreate": "setup.sh",
+                    },
+                    "ExecutionRole": "arn:aws:iam::123456789012:role/FakeRole",
+                    "ThreadsPerCore": 1,
+                }
+            ],
+            VpcConfig={
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        )
+
+    response = client.list_clusters()
+    cluster_summaries = response["ClusterSummaries"]
+    assert len(cluster_summaries) == 100
+    actual_names = []
+    for _ in range(len(names) + 1):
+        actual_names.extend(summary["ClusterName"] for summary in cluster_summaries)
+        if "NextToken" not in response:
+            break
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_clusters(NextToken=next_token)
+        cluster_summaries = response["ClusterSummaries"]
+    else:
+        raise AssertionError("list_clusters did not finish paging")
+
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

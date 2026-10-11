@@ -652,3 +652,112 @@ def test_describe_account_assignment_deletion_status():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_account_assignments_paginate():
+    seen_tokens = set()
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    expected_principal_ids = {str(uuid4()) for _ in range(101)}
+    for principal_id in expected_principal_ids:
+        client.create_account_assignment(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            TargetId="111111111111",
+            TargetType="AWS_ACCOUNT",
+            PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+            PrincipalType="USER",
+            PrincipalId=principal_id,
+        )
+
+    response = client.list_account_assignments(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        AccountId="111111111111",
+        PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+    )
+    assignments = list(response["AccountAssignments"])
+    assert len(assignments) == 100
+    assert response.get("NextToken")
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_account_assignments(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            AccountId="111111111111",
+            PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+            NextToken=response["NextToken"],
+        )
+        assignments.extend(response["AccountAssignments"])
+
+    principal_ids = {assignment["PrincipalId"] for assignment in assignments}
+    assert len(assignments) == 101
+    assert principal_ids == expected_principal_ids
+
+
+@mock_aws
+def test_list_account_assignments_for_principal_paginate():
+    seen_tokens = set()
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    principal_id = str(uuid4())
+    expected_account_ids = {f"{idx:012d}" for idx in range(101)}
+    for account_id in expected_account_ids:
+        client.create_account_assignment(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            TargetId=account_id,
+            TargetType="AWS_ACCOUNT",
+            PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+            PrincipalType="USER",
+            PrincipalId=principal_id,
+        )
+
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=principal_id,
+        PrincipalType="USER",
+    )
+    assignments = list(response["AccountAssignments"])
+    assert len(assignments) == 100
+    assert response.get("NextToken")
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_account_assignments_for_principal(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PrincipalId=principal_id,
+            PrincipalType="USER",
+            NextToken=response["NextToken"],
+        )
+        assignments.extend(response["AccountAssignments"])
+
+    account_ids = {assignment["AccountId"] for assignment in assignments}
+    assert len(assignments) == 101
+    assert account_ids == expected_account_ids
+
+
+@mock_aws
+def test_list_permission_sets_paginate():
+    seen_tokens = set()
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    expected_arns = {
+        client.create_permission_set(
+            Name=f"pagination-permission-set-{idx}",
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            SessionDuration="PT1H",
+        )["PermissionSet"]["PermissionSetArn"]
+        for idx in range(101)
+    }
+
+    response = client.list_permission_sets(InstanceArn=DUMMY_INSTANCE_ARN)
+    permission_set_arns = list(response["PermissionSets"])
+    assert len(permission_set_arns) == 100
+    assert response.get("NextToken")
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_permission_sets(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            NextToken=response["NextToken"],
+        )
+        permission_set_arns.extend(response["PermissionSets"])
+
+    assert len(permission_set_arns) == 101
+    assert set(permission_set_arns) == expected_arns

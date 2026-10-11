@@ -499,3 +499,28 @@ def test_create_model_package_in_model_package_group():
         resp_version_2["ModelPackageArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package-group/2"
     )
+
+
+@mock_aws
+def test_list_model_packages_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"package-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_package(
+            ModelPackageName=name, ModelPackageDescription=f"description-{name}"
+        )
+
+    pagination_response = client.list_model_packages()
+    paginated_items = list(pagination_response["ModelPackageSummaryList"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_model_packages(NextToken=next_token)
+        paginated_items.extend(pagination_response["ModelPackageSummaryList"])
+    actual_names = [item["ModelPackageName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

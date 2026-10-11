@@ -287,3 +287,56 @@ def test_describe_unknown_resiliency_policy():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "ResiliencyPolicy unknownarn not found"
+
+
+@mock_aws
+def test_list_apps_paginate():
+    seen_tokens = set()
+    client = boto3.client("resiliencehub", region_name="us-east-1")
+    expected = {
+        client.create_app(name=f"pagination-app-{i}")["app"]["appArn"]
+        for i in range(101)
+    }
+    page = client.list_apps()
+    assert len(page["appSummaries"]) == 100
+    assert page.get("nextToken")
+    apps = list(page["appSummaries"])
+    while page.get("nextToken"):
+        next_token = page["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_apps(nextToken=next_token)
+        apps.extend(page["appSummaries"])
+
+    arns = [app["appArn"] for app in apps]
+    assert set(arns) == expected
+    assert len(arns) == 101
+
+
+@mock_aws
+def test_list_resiliency_policies_paginate():
+    seen_tokens = set()
+    client = boto3.client("resiliencehub", region_name="us-east-1")
+    expected = set()
+    for i in range(101):
+        policy = client.create_resiliency_policy(
+            policy=valid_resiliency_policy,
+            policyName=f"pagination-policy-{i}",
+            tier="NonCritical",
+        )["policy"]
+        expected.add(policy["policyArn"])
+
+    page = client.list_resiliency_policies()
+    assert len(page["resiliencyPolicies"]) == 100
+    assert page.get("nextToken")
+    policies = list(page["resiliencyPolicies"])
+    while page.get("nextToken"):
+        next_token = page["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resiliency_policies(nextToken=next_token)
+        policies.extend(page["resiliencyPolicies"])
+
+    arns = [policy["policyArn"] for policy in policies]
+    assert set(arns) == expected
+    assert len(arns) == 101

@@ -508,3 +508,46 @@ def test_update_state_machine_alias_fails_nonexistent():
             description="New description",
         )
     assert exc.value.response["Error"]["Code"] == "ResourceNotFound"
+
+
+@mock_aws
+def test_list_state_machine_aliases_paginate():
+    seen_tokens = set()
+    client = boto3.client("stepfunctions", region_name=region)
+    machine = client.create_state_machine(
+        name="AliasPaginationMachine",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        publish=True,
+    )
+    expected_arns = {
+        client.create_state_machine_alias(
+            name=f"pagination-alias-{idx}",
+            routingConfiguration=[
+                {
+                    "stateMachineVersionArn": machine["stateMachineVersionArn"],
+                    "weight": 100,
+                }
+            ],
+        )["stateMachineAliasArn"]
+        for idx in range(101)
+    }
+
+    response = client.list_state_machine_aliases(
+        stateMachineArn=machine["stateMachineArn"]
+    )
+    aliases = list(response["stateMachineAliases"])
+    assert len(aliases) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_state_machine_aliases(
+            stateMachineArn=machine["stateMachineArn"],
+            nextToken=response["nextToken"],
+        )
+        aliases.extend(response["stateMachineAliases"])
+
+    arns = {alias["stateMachineAliasArn"] for alias in aliases}
+    assert len(aliases) == 101
+    assert arns == expected_arns

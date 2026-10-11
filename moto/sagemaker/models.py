@@ -153,13 +153,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "arn",
+        "unique_attribute": "MonitoringJobDefinitionArn",
     },
     "list_data_quality_job_definitions": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "arn",
+        "unique_attribute": "MonitoringJobDefinitionArn",
     },
 }
 

@@ -191,3 +191,26 @@ def test_delete_channel_not_exists():
     with raises(ClientError) as exc:
         client.delete_channel(arn="nope")
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_channels_paginate():
+    seen_tokens = set()
+    client = boto3.client("ivs", region_name="eu-west-1")
+    names = [f"paginate-channel-{idx}" for idx in range(101)]
+    for name in names:
+        client.create_channel(name=name)
+
+    response = client.list_channels()
+    channels = list(response["channels"])
+    assert len(channels) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_channels(nextToken=next_token)
+        channels.extend(response["channels"])
+
+    actual = [channel["name"] for channel in channels]
+    assert len(actual) == len(names)
+    assert set(actual) == set(names)

@@ -835,3 +835,27 @@ def test_invalid_policy_error():
         )
     assert ex.value.response["Error"]["Code"] == "ValidationException"
     assert ex.value.response["Error"]["Message"] == "Invalid policy"
+
+
+@mock_aws
+def test_list_pipelines_paginate():
+    seen_tokens = set()
+    client = boto3.client("osis", region_name="us-east-1")
+    expected = {f"pagination-{i}" for i in range(101)}
+    for name in expected:
+        client.create_pipeline(**{**BASIC_PIPELINE_KWARGS, "PipelineName": name})
+
+    page = client.list_pipelines()
+    assert len(page["Pipelines"]) == 100
+    assert page.get("NextToken")
+    pipelines = list(page["Pipelines"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_pipelines(NextToken=next_token)
+        pipelines.extend(page["Pipelines"])
+
+    names = [pipeline["PipelineName"] for pipeline in pipelines]
+    assert set(names) == expected
+    assert len(names) == 101

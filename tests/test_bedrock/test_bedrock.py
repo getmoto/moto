@@ -1359,3 +1359,61 @@ def test_list_tags_for_resource_not_found():
     with pytest.raises(ClientError) as ex:
         client.list_tags_for_resource(resourceARN=job_arn["jobArn"] + "no")
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_custom_models_paginate():
+    seen_tokens = set()
+    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
+    for index in range(101):
+        client.create_model_customization_job(
+            jobName=f"testjob{index}",
+            customModelName=f"testmodel{index}",
+            roleArn="testrole",
+            baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
+            trainingDataConfig={"s3Uri": "s3://training_bucket"},
+            outputDataConfig={"s3Uri": "s3://output_bucket"},
+            hyperParameters={"learning_rate": "0.01"},
+        )
+    response = client.list_custom_models()
+    pages = [response["modelSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_custom_models(nextToken=next_token)
+        pages.append(response["modelSummaries"])
+    names = [model["modelName"] for page in pages for model in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(names) == 101
+    assert set(names) == {f"testmodel{index}" for index in range(101)}
+
+
+@mock_aws
+def test_list_model_customization_jobs_paginate():
+    seen_tokens = set()
+    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
+    for index in range(101):
+        client.create_model_customization_job(
+            jobName=f"testjob{index}",
+            customModelName=f"testmodel{index}",
+            roleArn="testrole",
+            baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
+            trainingDataConfig={"s3Uri": "s3://training_bucket"},
+            outputDataConfig={"s3Uri": "s3://output_bucket"},
+            hyperParameters={"learning_rate": "0.01"},
+        )
+    response = client.list_model_customization_jobs()
+    pages = [response["modelCustomizationJobSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_model_customization_jobs(nextToken=next_token)
+        pages.append(response["modelCustomizationJobSummaries"])
+    job_names = [job["jobName"] for page in pages for job in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(job_names) == 101
+    assert set(job_names) == {f"testjob{index}" for index in range(101)}

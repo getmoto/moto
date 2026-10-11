@@ -331,3 +331,58 @@ def test_list_tags_for_resource():
     resp = client.list_tags_for_resource(ResourceARN=resource_arn)
     assert len(resp["Tags"]) == 2
     assert resp["Tags"] == tags
+
+
+def test_describe_file_systems_paginate(client):
+    seen_tokens = set()
+    file_system_ids = []
+    for _ in range(3):
+        response = client.create_file_system(
+            FileSystemType="LUSTRE",
+            StorageCapacity=1200,
+            StorageType="SSD",
+            SubnetIds=[FAKE_SUBNET_ID],
+            SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+        )
+        file_system_ids.append(response["FileSystem"]["FileSystemId"])
+
+    page = client.describe_file_systems(MaxResults=1)
+    actual = [file_system["FileSystemId"] for file_system in page["FileSystems"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.describe_file_systems(MaxResults=1, NextToken=page["NextToken"])
+        actual.extend(
+            file_system["FileSystemId"] for file_system in page["FileSystems"]
+        )
+
+    assert len(actual) == len(file_system_ids)
+    assert set(actual) == set(file_system_ids)
+
+
+def test_describe_backups_paginate(client):
+    seen_tokens = set()
+    file_system_id = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )["FileSystem"]["FileSystemId"]
+    backup_ids = [
+        client.create_backup(FileSystemId=file_system_id)["Backup"]["BackupId"]
+        for _ in range(3)
+    ]
+
+    page = client.describe_backups(MaxResults=1)
+    actual = [backup["BackupId"] for backup in page["Backups"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.describe_backups(MaxResults=1, NextToken=page["NextToken"])
+        actual.extend(backup["BackupId"] for backup in page["Backups"])
+
+    assert len(actual) == len(backup_ids)
+    assert set(actual) == set(backup_ids)

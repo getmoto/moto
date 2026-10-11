@@ -582,3 +582,56 @@ def test_tag_model_quality_job_definition():
         ResourceArn=f"arn:aws:sagemaker:eu-west-1:{ACCOUNT_ID}:model-quality-job-definition/testmodelqualityjobdefinition"
     )
     assert resp3["Tags"] == [{"Key": "testkey2", "Value": "testvalue2"}]
+
+
+@mock_aws
+def test_list_model_quality_job_definitions_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"quality-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_quality_job_definition(
+            JobDefinitionName=name,
+            ModelQualityAppSpecification={"ImageUri": "test-image"},
+            ModelQualityJobInput={
+                "EndpointInput": {
+                    "EndpointName": "test-endpoint",
+                    "LocalPath": "/opt/ml/input",
+                },
+                "GroundTruthS3Input": {"S3Uri": "s3://bucket/ground-truth"},
+            },
+            ModelQualityJobOutputConfig={
+                "MonitoringOutputs": [
+                    {
+                        "S3Output": {
+                            "S3Uri": "s3://bucket/output",
+                            "LocalPath": "/opt/ml/output",
+                        }
+                    }
+                ]
+            },
+            JobResources={
+                "ClusterConfig": {
+                    "InstanceCount": 1,
+                    "InstanceType": "ml.m5.xlarge",
+                    "VolumeSizeInGB": 4,
+                }
+            },
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+        )
+
+    pagination_response = client.list_model_quality_job_definitions()
+    paginated_items = list(pagination_response["JobDefinitionSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_model_quality_job_definitions(
+            NextToken=next_token
+        )
+        paginated_items.extend(pagination_response["JobDefinitionSummaries"])
+    actual_names = [item["MonitoringJobDefinitionName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

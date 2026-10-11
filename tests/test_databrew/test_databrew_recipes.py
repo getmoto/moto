@@ -592,3 +592,27 @@ def test_delete_recipe_version_unknown_version():
         == f"The recipe {recipe_name} version {recipe_version} wasn't found."
     )
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+
+
+@mock_aws
+def test_list_recipes_paginate():
+    seen_tokens = set()
+    client = _create_databrew_client()
+    expected_names = {f"recipe-{index}" for index in range(101)}
+    for name in expected_names:
+        _create_test_recipe(client, recipe_name=name)
+    response = client.list_recipes(RecipeVersion="LATEST_WORKING")
+    pages = [response["Recipes"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_recipes(
+            NextToken=next_token, RecipeVersion="LATEST_WORKING"
+        )
+        pages.append(response["Recipes"])
+    names = [recipe["Name"] for page in pages for recipe in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(names) == 101
+    assert set(names) == expected_names

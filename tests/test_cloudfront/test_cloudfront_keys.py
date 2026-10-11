@@ -148,3 +148,58 @@ def test_create_distribution_with_key_groups():
     config = dist["DistributionConfig"]
     key_groups = config["DefaultCacheBehavior"]["TrustedKeyGroups"]
     assert key_groups == {"Enabled": True, "Quantity": 1, "Items": [key_group_id]}
+
+
+@mock_aws
+def test_list_public_keys_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    expected_ids = set()
+    for index in range(101):
+        expected_ids.add(
+            client.create_public_key(
+                PublicKeyConfig={
+                    "CallerReference": f"ref-{index}",
+                    "Name": f"key-{index}",
+                    "EncodedKey": "some data",
+                }
+            )["PublicKey"]["Id"]
+        )
+    response = client.list_public_keys()["PublicKeyList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_public_keys(Marker=next_marker)["PublicKeyList"]
+        pages.append(response["Items"])
+    ids = [key["Id"] for page in pages for key in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids
+
+
+@mock_aws
+def test_list_key_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    expected_ids = {
+        client.create_key_group(KeyGroupConfig={"Name": f"group-{index}", "Items": []})[
+            "KeyGroup"
+        ]["Id"]
+        for index in range(101)
+    }
+    response = client.list_key_groups()["KeyGroupList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_key_groups(Marker=next_marker)["KeyGroupList"]
+        pages.append(response["Items"])
+    ids = [item["KeyGroup"]["Id"] for page in pages for item in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids

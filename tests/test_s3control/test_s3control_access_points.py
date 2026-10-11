@@ -193,3 +193,31 @@ def test_create_access_point_with_tags(bucket_name=None):
     assert {"Key": "team", "Value": "storage"} in tags
     # Test is marked `s3_aws_verified`, so we have to properly clean up.
     client.delete_access_point(AccountId=account_id, Name=ap_name)
+
+
+@mock_aws
+def test_list_access_points_paginate():
+    seen_tokens = set()
+    account_id = "111111111111"
+    client = boto3.client("s3control", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    expected = {f"page-ap-{i}" for i in range(1001)}
+    for i, name in enumerate(sorted(expected)):
+        bucket = f"page-ap-bucket-{i}"
+        s3_client.create_bucket(Bucket=bucket)
+        client.create_access_point(AccountId=account_id, Name=name, Bucket=bucket)
+
+    page = client.list_access_points(AccountId=account_id)
+    assert len(page["AccessPointList"]) == 1000
+    assert page.get("NextToken")
+    access_points = list(page["AccessPointList"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_access_points(AccountId=account_id, NextToken=next_token)
+        access_points.extend(page["AccessPointList"])
+
+    names = [access_point["Name"] for access_point in access_points]
+    assert set(names) == expected
+    assert len(names) == 1001
