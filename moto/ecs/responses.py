@@ -268,6 +268,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         started_by = self._get_param("startedBy")
         service_name = self._get_param("serviceName")
         desired_status = self._get_param("desiredStatus")
+        launch_type = self._get_param("launchType")
         tasks = self.ecs_backend.list_tasks(
             cluster_str,
             container_instance,
@@ -275,6 +276,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             started_by,
             service_name,
             desired_status,
+            launch_type=launch_type,
         )
         return ActionResult({"taskArns": [t.task_arn for t in tasks]})
 

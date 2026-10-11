@@ -1514,6 +1514,7 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
         started_by: str | None = None,
         service_name: str | None = None,
         desiredStatus: str | None = None,
+        launch_type: str | None = None,
     ) -> list[Task]:
         filtered_tasks = []
         for tasks in self.tasks.values():
@@ -1557,6 +1558,9 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
             filtered_tasks = list(
                 filter(lambda t: t.desired_status == desiredStatus, filtered_tasks)
             )
+
+        if launch_type:
+            filtered_tasks = [t for t in filtered_tasks if t.launch_type == launch_type]
 
         return filtered_tasks
 
