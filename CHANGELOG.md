@@ -3,7 +3,7 @@ Moto Changelog
 
 5.2.4
 -----
-Docker Digest for 5.2.4: <autopopulateddigest>
+Docker Digest for 5.2.4: _sha256:120b1589c6df7e35d2092935f6ff724486bb2c4189d0e36ce795baba1400ffd2_
 
     General:
         * The `aws-xray-sdk` dependency now has a lower limit of 2.10.0, allowing us to drop the `setuptools` dependency
