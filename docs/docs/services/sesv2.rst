@@ -16,6 +16,7 @@ sesv2
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_email_identity_certificate
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
 - [X] create_configuration_set
@@ -46,6 +47,7 @@ sesv2
 - [ ] delete_suppressed_destination
 - [ ] delete_tenant
 - [ ] delete_tenant_resource_association
+- [ ] disassociate_email_identity_certificate
 - [ ] get_account
 - [ ] get_blacklist_reports
 - [X] get_configuration_set
@@ -79,6 +81,7 @@ sesv2
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
 - [X] list_email_identities
+- [ ] list_email_identity_certificates
 - [ ] list_email_templates
 - [ ] list_export_jobs
 - [ ] list_import_jobs
@@ -120,6 +123,7 @@ sesv2
 - [X] tag_resource
 - [ ] test_render_email_template
 - [X] untag_resource
+- [ ] update_configuration_set
 - [ ] update_configuration_set_event_destination
 - [X] update_contact
 - [X] update_contact_list

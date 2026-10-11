@@ -86,6 +86,7 @@ ec2
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
 - [ ] create_capacity_reservation_cancellation_quote
+- [ ] create_capacity_reservation_date_change_quote
 - [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
@@ -198,6 +199,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_capacity_manager_data_export
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
+- [ ] delete_client_vpn_endpoint_authorization_policy
 - [ ] delete_client_vpn_route
 - [ ] delete_coip_cidr
 - [ ] delete_coip_pool
@@ -325,6 +327,7 @@ The following filters are supported: zone-id, zone-type, zone-name, region-name,
 - [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_cancellation_quotes
+- [ ] describe_capacity_reservation_date_change_quotes
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservation_topology
 - [ ] describe_capacity_reservations
@@ -542,7 +545,7 @@ The DryRun parameter is ignored.
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
-- [ ] disable_image
+- [X] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_image_deregistration_protection
@@ -583,7 +586,7 @@ The DryRun parameter is ignored.
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
-- [ ] enable_image
+- [X] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_image_deregistration_protection
@@ -615,6 +618,7 @@ The DryRun parameter is ignored.
 - [ ] get_capacity_manager_metric_dimensions
 - [ ] get_capacity_manager_monitored_tag_keys
 - [ ] get_capacity_reservation_usage
+- [ ] get_client_vpn_endpoint_authorization_policy
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
 - [ ] get_console_screenshot
@@ -699,6 +703,7 @@ The DryRun parameter is ignored.
 - [ ] modify_capacity_reservation
 - [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
+- [ ] modify_client_vpn_endpoint_authorization_policy
 - [ ] modify_default_credit_specification
 - [X] modify_ebs_default_kms_key_id
 - [ ] modify_fleet
@@ -810,6 +815,7 @@ The following parameters are not yet implemented: RemovePrivateDnsName
 - [ ] release_ipam_pool_allocation
 - [X] replace_iam_instance_profile_association
 - [ ] replace_image_criteria_in_allowed_images_settings
+- [ ] replace_image_instance_type_specification
 - [X] replace_network_acl_association
 - [X] replace_network_acl_entry
 - [X] replace_route
@@ -876,5 +882,6 @@ The following filters are currently supported: type, state, route-search.exact-m
 - [ ] update_interruptible_capacity_reservation_allocation
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
+- [ ] validate_security_group_quotas_for_interface
 - [ ] withdraw_byoip_cidr
 
