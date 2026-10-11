@@ -29,5 +29,7 @@ account
 - [ ] put_account_name
 - [X] put_alternate_contact
 - [ ] put_contact_information
+- [ ] send_phone_number_verification
 - [ ] start_primary_email_update
+- [ ] verify_phone_number
 

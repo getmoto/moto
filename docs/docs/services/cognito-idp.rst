@@ -21,6 +21,7 @@ cognito-idp
 - [X] admin_add_user_to_group
 - [X] admin_confirm_sign_up
 - [X] admin_create_user
+- [ ] admin_delete_software_token
 - [X] admin_delete_user
 - [X] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
@@ -80,6 +81,7 @@ cognito-idp
 - [X] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_terms
+- [ ] describe_terms_by_client
 - [ ] describe_user_import_job
 - [X] describe_user_pool
 - [X] describe_user_pool_client
@@ -96,6 +98,7 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - same as above, but email / email_verified
 
 
+- [ ] get_client_token
 - [ ] get_csv_header
 - [ ] get_device
 - [X] get_group

@@ -30,6 +30,7 @@ securityhub
 - [ ] batch_update_findings
 - [ ] batch_update_findings_v2
 - [ ] batch_update_standards_control_associations
+- [ ] cancel_export_job_v2
 - [ ] create_action_target
 - [ ] create_aggregator_v2
 - [ ] create_automation_rule
@@ -82,6 +83,7 @@ securityhub
 - [ ] get_connector
 - [ ] get_connector_v2
 - [ ] get_enabled_standards
+- [ ] get_export_job_v2
 - [ ] get_finding_aggregator
 - [ ] get_finding_history
 - [ ] get_finding_statistics_v2
@@ -98,6 +100,7 @@ Filters and SortCriteria is not yet implemented
 - [X] get_master_account
 - [X] get_members
 - [ ] get_recommended_policy_v2
+- [ ] get_remediations_v2
 - [ ] get_resources_statistics_v2
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2
@@ -111,6 +114,8 @@ Filters and SortCriteria is not yet implemented
 - [ ] list_connectors
 - [ ] list_connectors_v2
 - [ ] list_enabled_products_for_import
+- [ ] list_export_jobs_v2
+- [ ] list_exposures_by_remediation_v2
 - [ ] list_finding_aggregators
 - [ ] list_free_trial_statuses_v2
 - [ ] list_invitations
@@ -122,6 +127,7 @@ Filters and SortCriteria is not yet implemented
 - [ ] register_connector_v2
 - [ ] start_configuration_policy_association
 - [ ] start_configuration_policy_disassociation
+- [ ] start_export_job_v2
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_action_target

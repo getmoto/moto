@@ -17,6 +17,7 @@ batch
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_job
+- [ ] cancel_jobs
 - [X] create_compute_environment
 - [ ] create_consumable_resource
 - [X] create_job_queue
@@ -78,7 +79,9 @@ Parameters RetryStrategy and Parameters are not yet implemented.
 - [ ] submit_service_job
 - [X] tag_resource
 - [X] terminate_job
+- [ ] terminate_jobs
 - [ ] terminate_service_job
+- [ ] terminate_service_jobs
 - [X] untag_resource
 - [X] update_compute_environment
 - [ ] update_consumable_resource

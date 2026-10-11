@@ -1,6 +1,104 @@
 Moto Changelog
 ==============
 
+5.2.4
+-----
+Docker Digest for 5.2.4: <autopopulateddigest>
+
+    General:
+        * The `aws-xray-sdk` dependency now has a lower limit of 2.10.0, allowing us to drop the `setuptools` dependency
+
+    New Services:
+
+        * Bedrock AgentCore:
+            * create_event()
+            * delete_event()
+            * get_event()
+            * list_events()
+
+    New Methods:
+        * CloudFront:
+            * create_function()
+            * delete_function()
+            * describe_function()
+            * get_function()
+            * list_functions()
+            * create_key_value_store()
+            * delete_key_value_store()
+            * describe_key_value_store()
+            * list_key_value_stores()
+            * update_key_value_store()
+
+        * CodePipeline:
+            * get_pipeline_execution()
+            * list_pipeline_executions()
+            * start_pipeline_execution()
+
+        * DMS:
+            * modify_replication_instance()
+
+        * EC2:
+            * create_traffic_mirror_session()
+            * delete_traffic_mirror_session()
+            * describe_traffic_mirror_sessions()
+            * disable_image()
+            * enable_image()
+            * modify_traffic_mirror_session()
+
+        * ElastiCache:
+            * modify_replication_group()
+
+        * ECR:
+            * batch_check_layer_availability()
+            * complete_layer_upload()
+            * initiate_layer_upload()
+            * upload_layer_part()
+
+        * IdentityStore:
+            * describe_group_membership()
+            * get_group_membership_id()
+            * is_member_in_groups()
+
+        * MQ:
+            * delete_configuration()
+            * list_configuration_revisions()
+
+        * Pipes:
+            * update_pipe()
+
+        * S3:
+            * get_bucket_policy_status()
+
+        * ServiceDiscovery:
+            * delete_service_attributes()
+            * get_service_attributes()
+            * update_service_attributes()
+
+    Miscellaneous:
+        * CloudFormation: create_stack() now raises a ValidationError when template has no Resources key
+        * CloudFront: list_distributions() now supports pagination
+        * CloudFront: list_key_groups() now supports pagination
+        * CloudFront: list_invalidations() now supports pagination
+        * CloudFront: list_origin_access_controls() now supports pagination
+        * CloudFront: list_public_keys() now supports pagination
+        * CodeDeploy: list_deployments() now correctly handles the includeOnlyStatuses-parameter
+        * CodeDeploy: list_deployments() now supports the createTimeRange-parameter
+        * Dynamodb: BETWEEN expressions no longer exclude attribute values of 0
+        * EC2: create_launch_template() now supports the LaunchTemplateSpecificationUserData-parameter
+        * ECR: list_images() now supports the tagStatus-filter
+        * FSX: delete_file_system() now correctly throws a FileSystemNotFound for an unknown FileSystemId
+        * Glue: get_connection() now supports the HidePassword-parameter
+        * Glue: get_connections() now supports the Filter-parameter
+        * Kafka: list_clusters_v2() now supports the parameters ClusterTypeFilter and ClusterNameFilter
+        * Kinesis: put_record/put_records now push IncomingBytes and IncomingRecords metrics to CloudWatch
+        * Lambda: create_function() now supports the KMSKeyArn-parameter
+        * OSIS: list_pipelines() now correctly supports pagination
+        * ResourceGroups: list_tag_sync_tasks now supports the Filters-parameter
+        * S3Control: create_access_point() now supports the Tags-parameter
+        * S3Control: list_access_points() now validates the NextToken-parameter
+        * SSM: get_parameters() now supports ARN's for the Name-parameter
+        * SQS: purge_queue() now raises PurgeQueueInProgress on repeated purge within 60 seconds
+
 5.2.3
 -----
 Docker Digest for 5.2.3: _sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c_
