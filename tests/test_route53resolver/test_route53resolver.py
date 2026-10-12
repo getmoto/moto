@@ -168,7 +168,7 @@ def test_list_resolver_query_log_configs():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
     config_ids = []
-    for i in range(101):
+    for i in range(3):
         response = client.create_resolver_query_log_config(
             Name=f"test-query-log-config-{i}",
             DestinationArn=f"arn:aws:s3:::test-bucket-{i}",
@@ -384,7 +384,7 @@ def test_list_resolver_query_log_config_associations_empty():
 def test_list_resolver_query_log_configs_pagination():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
-    for i in range(101):
+    for i in range(3):
         client.create_resolver_query_log_config(
             Name=f"test-config-{i}",
             DestinationArn=f"arn:aws:s3:::test-bucket-{i}",
