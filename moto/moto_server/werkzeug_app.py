@@ -5,6 +5,8 @@ from collections.abc import Callable
 from threading import Lock
 from typing import Any
 
+from werkzeug.serving import WSGIRequestHandler
+
 try:
     from flask import Flask
     from flask import Request as FlaskRequest
@@ -22,7 +24,11 @@ import moto.backend_index as backend_index
 import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
-from moto.core.request import Request
+from moto.core.request import (
+    HEADER_NAMES_ENVIRON_KEY,
+    Request,
+    environ_key_for_header,
+)
 from moto.core.utils import convert_to_flask_response
 from moto.settings import DISABLE_GLOBAL_CORS
 
@@ -35,6 +41,36 @@ class BackendRequest(Request, FlaskRequest):
     """Set as the Moto Flask app's request class to ensure that server mode requests arrive already normalized."""
 
     from_wsgi_server = True
+
+
+class MotoRequestHandler(WSGIRequestHandler):
+    """Keeps headers whose names contain underscores.
+
+    Werkzeug's dev server drops them, since WSGI can't tell ``X_Foo`` from
+    ``X-Foo`` and one could otherwise spoof the other.  AWS accepts them
+    though (S3 user metadata keys, for one), so we add them back - without
+    overwriting a dashed header of the same name - and record every header's
+    original spelling for ``Request.headers`` to report.
+    """
+
+    def make_environ(self) -> dict[str, Any]:
+        environ = super().make_environ()
+        names: dict[str, str] = {}
+        added: set[str] = set()
+        for name, value in self.headers.items():
+            key = environ_key_for_header(name)
+            if "_" in name:
+                value = value.replace("\r\n", "")
+                if key in added:
+                    environ[key] = f"{environ[key]},{value}"
+                elif key not in environ:
+                    environ[key] = value
+                    added.add(key)
+                else:
+                    continue
+            names.setdefault(key, name)
+        environ[HEADER_NAMES_ENVIRON_KEY] = names
+        return environ
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")

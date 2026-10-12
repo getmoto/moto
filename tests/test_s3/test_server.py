@@ -2,6 +2,7 @@ import io
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import boto3
 import pytest
 import requests
 import xmltodict
@@ -470,3 +471,30 @@ def test_s3_server_post_cors_multiple_origins():
         assert preflight_response.headers["Access-Control-Allow-Origin"] == origin
 
     thread.stop()
+
+
+def test_s3_server_metadata_keys_with_underscores():
+    # Werkzeug's dev server drops headers with underscores in their names;
+    # MotoRequestHandler has to keep them, and keep their original spelling.
+    thread = ThreadedMotoServer(port=0, verbose=False)
+    thread.start()
+    host, port = thread.get_host_and_port()
+    try:
+        s3 = boto3.client(
+            "s3",
+            region_name="us-east-1",
+            endpoint_url=f"http://{host}:{port}",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
+        s3.create_bucket(Bucket="probe-bucket")
+        s3.put_object(
+            Bucket="probe-bucket",
+            Key="k",
+            Body=b"x",
+            Metadata={"transform_watermark": "t", "source": "s"},
+        )
+        metadata = s3.get_object(Bucket="probe-bucket", Key="k")["Metadata"]
+        assert metadata == {"transform_watermark": "t", "source": "s"}
+    finally:
+        thread.stop()
