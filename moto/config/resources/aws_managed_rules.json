@@ -982,9 +982,27 @@
       "Resource Types": "AWS::AuditManager::Assessment",
       "Trigger type": "Configuration changes"
     },
+    "AURORA_GLOBAL_DATABASE_DELETION_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::RDS::GlobalCluster",
+      "Trigger type": "Configuration changes"
+    },
     "AURORA_GLOBAL_DATABASE_ENCRYPTION_AT_REST": {
       "AWS Region": "All supported AWS regions except Asia Pacific (New Zealand), China (Beijing), Asia Pacific (Thailand), Asia Pacific (Malaysia), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Asia Pacific (Taipei), Canada West (Calgary), China (Ningxia) Region",
       "Parameters": [],
+      "Resource Types": "AWS::RDS::GlobalCluster",
+      "Trigger type": "Configuration changes"
+    },
+    "AURORA_GLOBAL_DATABASE_TAGGED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
       "Resource Types": "AWS::RDS::GlobalCluster",
       "Trigger type": "Configuration changes"
     },
@@ -2588,6 +2606,12 @@
       "Resource Types": "AWS::DynamoDB::Table",
       "Trigger type": "Periodic"
     },
+    "DYNAMODB_TABLE_CROSS_REGION_REPLICATION_ENABLED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::DynamoDB::Table",
+      "Trigger type": "Configuration changes"
+    },
     "DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Taipei) Region",
       "Parameters": [],
@@ -3615,6 +3639,18 @@
       "Resource Types": "AWS::EFS::AccessPoint",
       "Trigger type": "Configuration changes"
     },
+    "EFS_ACCESS_POINT_TAGGED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::EFS::AccessPoint",
+      "Trigger type": "Configuration changes"
+    },
     "EFS_AUTOMATIC_BACKUPS_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -3642,6 +3678,12 @@
           "Type": "String"
         }
       ],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Configuration changes"
+    },
+    "EFS_FILESYSTEM_MULTI_AZ": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (New Zealand), Middle East (Bahrain), Asia Pacific (Thailand), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Asia Pacific (Taipei), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
+      "Parameters": [],
       "Resource Types": "AWS::EFS::FileSystem",
       "Trigger type": "Configuration changes"
     },
@@ -5664,6 +5706,18 @@
       "Resource Types": "AWS::KMS::Key",
       "Trigger type": "Configuration changes"
     },
+    "LAMBDA_CODE_SIGNING_CONFIGURATION_TAGGED": {
+      "AWS Region": "Only available in Europe (Stockholm), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::Lambda::CodeSigningConfig",
+      "Trigger type": "Configuration changes"
+    },
     "LAMBDA_CONCURRENCY_CHECK": {
       "AWS Region": "All supported AWS regions except China (Ningxia) Region",
       "Parameters": [
@@ -5759,6 +5813,18 @@
           "Name": "logLevel",
           "Optional": false,
           "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::Lambda::Function",
+      "Trigger type": "Configuration changes"
+    },
+    "LAMBDA_FUNCTION_TAGGED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
         }
       ],
       "Resource Types": "AWS::Lambda::Function",
@@ -6432,6 +6498,30 @@
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Configuration changes"
     },
+    "RDS_CLUSTER_SNAPSHOT_TAGGED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBClusterSnapshot",
+      "Trigger type": "Configuration changes"
+    },
+    "RDS_CLUSTER_TAGGED": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBCluster",
+      "Trigger type": "Configuration changes"
+    },
     "RDS_DB_SECURITY_GROUP_NOT_ALLOWED": {
       "AWS Region": "Only available in Europe (Ireland), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
       "Parameters": [],
@@ -6520,6 +6610,18 @@
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Periodic"
+    },
+    "RDS_INTEGRATION_TAGGED": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (New Zealand), Middle East (Bahrain), Asia Pacific (Thailand), Middle East (UAE), Asia Pacific (Malaysia), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Asia Pacific (Taipei) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::RDS::Integration",
+      "Trigger type": "Configuration changes"
     },
     "RDS_IN_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
@@ -6623,6 +6725,12 @@
           "Type": "CSV"
         }
       ],
+      "Resource Types": "AWS::RDS::OptionGroup",
+      "Trigger type": "Configuration changes"
+    },
+    "RDS_ORACLE_OPTIONGROUP_ENHANCED_MONITORING_ENABLED": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (New Zealand), Middle East (Bahrain), Asia Pacific (Thailand), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Asia Pacific (Taipei) Region",
+      "Parameters": [],
       "Resource Types": "AWS::RDS::OptionGroup",
       "Trigger type": "Configuration changes"
     },

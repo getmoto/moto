@@ -744,7 +744,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         for name, q in self.queues.items():
             if prefix_re.search(name):
                 qs.append(q)
-        return qs[:1000]
+        return qs
 
     def get_queue(self, queue_name: str) -> Queue:
         queue = self.queues.get(queue_name)

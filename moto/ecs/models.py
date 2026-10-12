@@ -712,7 +712,7 @@ class Container(CloudFormationModel, BaseModel):
         self.network_interfaces: list[dict[str, Any]] = []
         self.health_status = "HEALTHY"
 
-        self.cpu = container_def.get("cpu")
+        self.cpu = container_def.get("cpu", 0)
         self.memory = container_def.get("memory")
         self.environment = container_def.get("environment")
         self.name = container_def.get("name")
@@ -1789,13 +1789,20 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
         self.clusters[cluster_name].registered_container_instances_count += 1
         return container_instance
 
-    def list_container_instances(self, cluster_str: str) -> list[str]:
+    def list_container_instances(
+        self, cluster_str: str, status: str | None = None
+    ) -> list[str]:
+        """
+        The filter-parameter (cluster query language) is not yet implemented
+        """
         cluster_name = cluster_str.split("/")[-1]
         container_instances_values = self.container_instances.get(
             cluster_name, {}
         ).values()
         container_instances = [
-            ci.container_instance_arn for ci in container_instances_values
+            ci.container_instance_arn
+            for ci in container_instances_values
+            if status is None or ci.status == status
         ]
         return sorted(container_instances)
 

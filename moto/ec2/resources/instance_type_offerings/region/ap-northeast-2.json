@@ -2780,6 +2780,22 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "ap-northeast-2"
  },

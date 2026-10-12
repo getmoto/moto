@@ -24,7 +24,7 @@ class OpenSearchServiceResponse(BaseResponse):
     @classmethod
     def list_domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
         if request.method == "GET":
             return 200, {}, response.list_domain_names()
         if request.method == "POST":
@@ -33,14 +33,14 @@ class OpenSearchServiceResponse(BaseResponse):
     @classmethod
     def domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
         if request.method == "POST":
             return 200, {}, response.create_domain()
 
     @classmethod
     def domain(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
         if request.method == "DELETE":
             return 200, {}, response.delete_domain()
         if request.method == "GET":
@@ -49,7 +49,7 @@ class OpenSearchServiceResponse(BaseResponse):
     @classmethod
     def tags(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
         if request.method == "GET":
             return 200, {}, response.list_tags()
         if request.method == "POST":
@@ -58,7 +58,7 @@ class OpenSearchServiceResponse(BaseResponse):
     @classmethod
     def tag_removal(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
         if request.method == "POST":
             return 200, {}, response.remove_tags()
 
@@ -150,7 +150,7 @@ class OpenSearchServiceResponse(BaseResponse):
         cls, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
         response = cls()
-        response.setup_class(request, full_url, headers)
+        response.setup_class(request)
 
         domain_name = request.url.split("/")[-2]
         domain_config = response.opensearch_backend.describe_domain_config(

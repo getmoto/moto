@@ -18,6 +18,7 @@ class S3VectorsResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="s3vectors")
+        self.automated_parameter_parsing = True
 
     @property
     def s3vectors_backend(self) -> S3VectorsBackend:
@@ -26,6 +27,7 @@ class S3VectorsResponse(BaseResponse):
     def create_vector_bucket(self) -> ActionResult:
         vector_bucket_name = self._get_param("vectorBucketName")
         encryption_configuration = self._get_param("encryptionConfiguration")
+        tags = self._get_param("tags")
 
         if not 2 < len(vector_bucket_name) < 64:
             raise VectorBucketInvalidLength(length=len(vector_bucket_name))
@@ -36,6 +38,7 @@ class S3VectorsResponse(BaseResponse):
             region=self.region,
             vector_bucket_name=vector_bucket_name,
             encryption_configuration=encryption_configuration,
+            tags=tags,
         )
         return EmptyResult()
 
@@ -69,6 +72,7 @@ class S3VectorsResponse(BaseResponse):
         data_type = self._get_param("dataType")
         dimension = self._get_param("dimension")
         distance_metric = self._get_param("distanceMetric")
+        tags = self._get_param("tags")
 
         if data_type not in ["float32"]:
             raise ValidationError(
@@ -90,6 +94,7 @@ class S3VectorsResponse(BaseResponse):
             data_type=data_type,
             dimension=dimension,
             distance_metric=distance_metric,
+            tags=tags,
         )
         return EmptyResult()
 
@@ -214,11 +219,17 @@ class S3VectorsResponse(BaseResponse):
             index_name=index_name,
             keys=keys,
         )
-        response = [
-            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
-        ]
-
-        return ActionResult(result={"vectors": response})
+        result = {
+            "vectors": [
+                {
+                    "key": v.key,
+                    "data": v.data if return_data else None,
+                    "metadata": v.metadata if return_metadata else None,
+                }
+                for v in vectors
+            ]
+        }
+        return ActionResult(result)
 
     def list_vectors(self) -> ActionResult:
         vector_bucket_name = self._get_param("vectorBucketName")
@@ -234,11 +245,17 @@ class S3VectorsResponse(BaseResponse):
             index_arn=index_arn,
             index_name=index_name,
         )
-        response = [
-            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
-        ]
-
-        return ActionResult(result={"vectors": response})
+        result = {
+            "vectors": [
+                {
+                    "key": v.key,
+                    "data": v.data if return_data else None,
+                    "metadata": v.metadata if return_metadata else None,
+                }
+                for v in vectors
+            ]
+        }
+        return ActionResult(result)
 
     def delete_vectors(self) -> ActionResult:
         vector_bucket_name = self._get_param("vectorBucketName")
@@ -260,10 +277,27 @@ class S3VectorsResponse(BaseResponse):
     def _validate_index_params(
         self, index_arn: str, index_name: str, vector_bucket_name: str
     ) -> None:
-        if vector_bucket_name and index_name and not index_arn:
-            return  # Valid
-        elif index_arn and not vector_bucket_name and not index_name:
+        if (vector_bucket_name and index_name and not index_arn) or (
+            index_arn and not vector_bucket_name and not index_name
+        ):
             return  # Valid
         raise ValidationError(
             "Must specify either indexArn or both vectorBucketName and indexName"
         )
+
+    def tag_resource(self) -> EmptyResult:
+        resource_arn = self._get_param("resourceArn")
+        tags = self._get_param("tags", {})
+        self.s3vectors_backend.tag_resource(resource_arn, tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> EmptyResult:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys", [])
+        self.s3vectors_backend.untag_resource(resource_arn, tag_keys)
+        return EmptyResult()
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.s3vectors_backend.list_tags_for_resource(resource_arn)
+        return ActionResult(result={"tags": tags})
