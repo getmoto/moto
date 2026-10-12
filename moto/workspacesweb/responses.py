@@ -23,7 +23,7 @@ class WorkSpacesWebResponse(BaseResponse):
     @staticmethod
     def network_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
-        handler.setup_class(request, full_url, headers)
+        handler.setup_class(request)
         if request.method == "GET":
             return handler.get_network_settings()
         else:
@@ -32,7 +32,7 @@ class WorkSpacesWebResponse(BaseResponse):
     @staticmethod
     def browser_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
-        handler.setup_class(request, full_url, headers)
+        handler.setup_class(request)
         if request.method == "GET":
             return handler.get_browser_settings()
         else:
@@ -41,7 +41,7 @@ class WorkSpacesWebResponse(BaseResponse):
     @staticmethod
     def user_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
-        handler.setup_class(request, full_url, headers)
+        handler.setup_class(request)
         if request.method == "GET":
             return handler.get_user_settings()
         else:
@@ -52,7 +52,7 @@ class WorkSpacesWebResponse(BaseResponse):
         request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
         handler = WorkSpacesWebResponse()
-        handler.setup_class(request, full_url, headers)
+        handler.setup_class(request)
         if request.method == "GET":
             return handler.get_user_access_logging_settings()
         else:
@@ -61,7 +61,7 @@ class WorkSpacesWebResponse(BaseResponse):
     @staticmethod
     def portal(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
-        handler.setup_class(request, full_url, headers)
+        handler.setup_class(request)
         if request.method == "GET":
             return handler.get_portal()
         else:

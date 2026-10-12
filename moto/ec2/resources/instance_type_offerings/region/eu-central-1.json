@@ -1232,26 +1232,6 @@
   "Location": "eu-central-1"
  },
  {
-  "InstanceType": "g4ad.16xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g4ad.2xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g4ad.4xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g4ad.8xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g4ad.xlarge",
-  "Location": "eu-central-1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "eu-central-1"
  },
@@ -1413,6 +1393,30 @@
  },
  {
   "InstanceType": "g6f.xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.12xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.24xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.2xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.48xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.4xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "g7.8xlarge",
   "Location": "eu-central-1"
  },
  {
@@ -4397,6 +4401,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "eu-central-1"
  },
  {

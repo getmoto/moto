@@ -26,5 +26,6 @@
   "emr-6.9.0",
   "emr-5.36.2",
   "emr-5.36.1",
-  "emr-spark-8.0.0"
+  "emr-spark-8.0.0",
+  "emr-spark-8.1.0"
 ]

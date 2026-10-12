@@ -16,12 +16,14 @@ support
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
+- [ ] complete_attachment_upload
 - [X] create_case
   
 The IssueType-parameter is not yet implemented
 
 
 - [ ] describe_attachment
+- [ ] describe_attachment_upload_status
 - [X] describe_cases
   
 The following parameters have not yet been implemented:
@@ -41,6 +43,8 @@ DisplayID, AfterTime, BeforeTime, MaxResults, Language
 The Language-parameter is not yet implemented
 
 
+- [ ] get_attachment_download_link
+- [ ] get_attachment_upload_links
 - [X] refresh_trusted_advisor_check
 - [X] resolve_case
 

@@ -494,6 +494,7 @@ class NetworkInterfaceBackend:
                 eni.private_ip_addresses.append(
                     {"Primary": False, "PrivateIpAddress": ip}
                 )
+                eni_assigned_ips.append(ip)
                 secondary_ips_count -= 1
         return eni
 

@@ -200,6 +200,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] get_attached_file
 - [ ] get_contact_attributes
 - [ ] get_contact_metrics
+- [ ] get_cross_region_routing
 - [ ] get_current_metric_data
 - [ ] get_current_user_data
 - [ ] get_effective_hours_of_operations
@@ -238,6 +239,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_data_tables
 - [ ] list_default_vocabularies
 - [ ] list_entity_security_profiles
+- [ ] list_evaluation_form_ai_versions
 - [ ] list_evaluation_form_versions
 - [ ] list_evaluation_forms
 - [ ] list_extraction_definitions
@@ -266,6 +268,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_routing_profiles
 - [ ] list_rules
 - [ ] list_security_keys
+- [ ] list_security_profile_ai_agents
 - [ ] list_security_profile_applications
 - [ ] list_security_profile_flow_modules
 - [ ] list_security_profile_permissions
@@ -369,6 +372,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] update_contact_routing_data
 - [ ] update_contact_schedule
 - [ ] update_contact_task_template
+- [ ] update_cross_region_routing
 - [ ] update_data_table_attribute
 - [ ] update_data_table_metadata
 - [ ] update_data_table_primary_values

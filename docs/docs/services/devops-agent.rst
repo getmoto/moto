@@ -66,6 +66,7 @@ devops-agent
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_agent_space
+- [ ] update_approval_action
 - [ ] update_asset
 - [ ] update_asset_file
 - [ ] update_association

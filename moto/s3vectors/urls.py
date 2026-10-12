@@ -22,4 +22,5 @@ url_paths = {
     "{0}/DeleteVectors$": S3VectorsResponse.dispatch,
     "{0}/GetVectors$": S3VectorsResponse.dispatch,
     "{0}/PutVectors$": S3VectorsResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>.+)$": S3VectorsResponse.dispatch,
 }

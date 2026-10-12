@@ -88,6 +88,21 @@ def test_list_development_schema_arns():
 
 
 @mock_aws
+def test_list_development_schema_arns__pagination():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    expected_arns = []
+    for i in range(10):
+        arn = client.create_schema(Name=f"test-schema-{i}")["SchemaArn"]
+        expected_arns.append(arn)
+    paginator = client.get_paginator("list_development_schema_arns")
+    result = paginator.paginate(PaginationConfig={"PageSize": 3}).build_full_result()
+    assert expected_arns == [
+        arn for arn in expected_arns if arn in result["SchemaArns"]
+    ]
+
+
+@mock_aws
 def test_list_published_schema_arns():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
