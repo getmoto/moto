@@ -635,7 +635,10 @@ class LogGroup(CloudFormationModel):
         self, filter_name: str, filter_pattern: str, destination_arn: str, role_arn: str
     ) -> None:
         # only two subscription filters can be associated with a log group
-        if len(self.subscription_filters) == 2:
+        if (
+            len(self.subscription_filters) == 2
+            and filter_name not in self.subscription_filters
+        ):
             raise LimitExceededException()
 
         # Update existing filter
