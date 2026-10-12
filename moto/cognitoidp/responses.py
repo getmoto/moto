@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from urllib.parse import urlparse
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.utilities.utils import load_resource
@@ -650,4 +651,34 @@ class CognitoIdpJsonWebKeyResponse(BaseResponse):
             200,
             {"Content-Type": "application/json"},
             CognitoIdpJsonWebKeyResponse.json_web_key,
+        )
+
+
+class CognitoIdpOpenIdConfigurationResponse(BaseResponse):
+    def __init__(self) -> None:
+        super().__init__(service_name="cognito-idp")
+
+    @staticmethod
+    def serve_openid_configuration(*args) -> TYPE_RESPONSE:  # type: ignore
+        # Called with (request, full_url, headers), like serve_json_web_key
+        url = urlparse(args[1])
+        pool_id = url.path.strip("/").split("/")[0]
+        # User pool IDs start with the region, e.g. us-east-1_abc123
+        region = pool_id.rsplit("_", 1)[0] if "_" in pool_id else "us-east-1"
+        # The issuer has to match the "iss" claim of the tokens Moto hands out.
+        # The JWKS URI is relative to wherever this request was made, so that
+        # it can be reached in ServerMode as well.
+        issuer = f"https://cognito-idp.{region}.amazonaws.com/{pool_id}"
+        document = {
+            "issuer": issuer,
+            "jwks_uri": f"{url.scheme}://{url.netloc}/{pool_id}/.well-known/jwks.json",
+            "response_types_supported": ["code", "token"],
+            "scopes_supported": ["openid", "email", "phone", "profile"],
+            "subject_types_supported": ["public"],
+            "id_token_signing_alg_values_supported": ["RS256"],
+        }
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(document).encode("utf-8"),
         )
