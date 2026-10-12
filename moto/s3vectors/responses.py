@@ -293,9 +293,7 @@ class S3VectorsResponse(BaseResponse):
 
     def untag_resource(self) -> EmptyResult:
         resource_arn = self._get_param("resourceArn")
-        tag_keys = self.querystring.get("tagKeys") or self._get_param("tagKeys", [])
-        if isinstance(tag_keys, str):
-            tag_keys = [tag_keys]
+        tag_keys = self._get_param("tagKeys", [])
         self.s3vectors_backend.untag_resource(resource_arn, tag_keys)
         return EmptyResult()
 
