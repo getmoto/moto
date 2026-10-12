@@ -15,12 +15,14 @@ cloudwatch
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_dataset_kms_key
+- [ ] create_resource_metrics_configuration
 - [ ] delete_alarm_mute_rule
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
 - [X] delete_dashboards
 - [X] delete_insight_rules
 - [ ] delete_metric_stream
+- [ ] delete_resource_metrics_configuration
 - [ ] describe_alarm_contributors
 - [ ] describe_alarm_history
 - [X] describe_alarms
@@ -41,6 +43,7 @@ cloudwatch
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
 - [ ] get_otel_enrichment
+- [ ] get_resource_metrics_configuration
 - [ ] list_alarm_mute_rules
 - [X] list_dashboards
 - [ ] list_managed_insight_rules
@@ -64,4 +67,6 @@ cloudwatch
 - [ ] stop_otel_enrichment
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_otel_enrichment
+- [ ] update_resource_metrics_configuration
 
