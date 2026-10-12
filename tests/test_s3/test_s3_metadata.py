@@ -7,6 +7,21 @@ from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 @mock_aws
+def test_s3_metadata_keys_with_underscores():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="probe-bucket")
+    s3.put_object(
+        Bucket="probe-bucket",
+        Key="k",
+        Body=b"x",
+        Metadata={"transform_watermark": "t", "source": "s"},
+    )
+    resp = s3.get_object(Bucket="probe-bucket", Key="k")
+    metadata = resp["Metadata"]
+    assert metadata["transform_watermark"] == "t"
+
+
+@mock_aws
 def test_s3_returns_requestid():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid4())
