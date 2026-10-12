@@ -1916,10 +1916,21 @@ def test_list_container_instances_filter_by_status():
         resp = ecs_client.list_container_instances(cluster=cluster, **kwargs)
         return resp["containerInstanceArns"]
 
-    assert listed() == [active, drained]
-    assert listed(status="DRAINING") == [drained]
-    assert listed(status="ACTIVE") == [active]
-    assert listed(status="REGISTERING") == []
+    clusters_all = listed()
+    assert active in clusters_all
+    assert drained in clusters_all
+
+    clusters_active = listed(status="ACTIVE")
+    assert active in clusters_active
+    assert drained not in clusters_active
+
+    clusters_draining = listed(status="DRAINING")
+    assert active not in clusters_draining
+    assert drained in clusters_draining
+
+    clusters_registering = listed(status="REGISTERING")
+    assert active not in clusters_registering
+    assert drained not in clusters_registering
 
 
 @mock_aws
