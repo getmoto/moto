@@ -16,6 +16,43 @@ from tests.markers import requires_docker
 
 
 @mock_aws
+def test_describe_subscription_filters_name_prefix():
+    client = boto3.client("logs", region_name="us-east-1")
+    kinesis = boto3.client("kinesis", region_name="us-east-1")
+    group = "miruky-jxuidbqrqhgrytrv"
+    stream = "miruky-klanipfkgzqngqon"
+    names = {"miruky-gpwctitcasbrxukp", "miruky-snyemdgrlyuhaiin"}
+    client.create_log_group(logGroupName=group)
+    kinesis.create_stream(StreamName=stream, ShardCount=1)
+    arn = kinesis.describe_stream(StreamName=stream)["StreamDescription"]["StreamARN"]
+    for name in sorted(names):
+        client.put_subscription_filter(
+            logGroupName=group, filterName=name, filterPattern="", destinationArn=arn
+        )
+
+    for prefix, expected in [
+        ("miruky-gpw", {"miruky-gpwctitcasbrxukp"}),
+        ("miruky-snyemdgrlyuhaiin", {"miruky-snyemdgrlyuhaiin"}),
+        ("miruky-", names),
+        ("gpwctit", set()),
+        ("MIRUKY-", set()),
+    ]:
+        result = client.describe_subscription_filters(
+            logGroupName=group, filterNamePrefix=prefix
+        )["subscriptionFilters"]
+        assert {item["filterName"] for item in result} == expected
+
+    result = client.describe_subscription_filters(logGroupName=group)[
+        "subscriptionFilters"
+    ]
+    assert {item["filterName"] for item in result} == names
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.describe_subscription_filters(
+            logGroupName="unknown-group", filterNamePrefix="miruky-"
+        )
+
+
+@mock_aws
 def test_put_subscription_filter_update():
     # given
     region_name = "us-east-1"
