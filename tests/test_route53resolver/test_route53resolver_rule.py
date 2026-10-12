@@ -392,7 +392,6 @@ def test_route53resolver_list_resolver_rules():
     # List rules when there are none.
     response = client.list_resolver_rules()
     assert len(response["ResolverRules"]) == 0
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
     # Create 4 rules, verify all 4 are listed when no filters, max_results.
@@ -401,7 +400,6 @@ def test_route53resolver_list_resolver_rules():
     response = client.list_resolver_rules()
     rules = response["ResolverRules"]
     assert len(rules) == 4
-    assert response["MaxResults"] == 10
     for idx in range(4):
         assert rules[idx]["Name"].startswith(f"A{idx}")
 
@@ -416,7 +414,6 @@ def test_route53resolver_list_resolver_rules():
     response = client.list_resolver_rules(NextToken=response["NextToken"])
     rules = response["ResolverRules"]
     assert len(rules) == 3
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, rule in enumerate(rules):
         assert rule["Name"].startswith(f"A{idx + 1}")

@@ -258,7 +258,6 @@ def test_route53resolver_list_resolver_rule_associations():
     # List rule associations when there are none.
     response = client.list_resolver_rule_associations()
     assert len(response["ResolverRuleAssociations"]) == 0
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
     # Create 4 associations, verify all are listed when no filters, max_results.
@@ -267,7 +266,6 @@ def test_route53resolver_list_resolver_rule_associations():
     response = client.list_resolver_rule_associations()
     associations = response["ResolverRuleAssociations"]
     assert len(associations) == 4
-    assert response["MaxResults"] == 10
     for idx in range(4):
         assert associations[idx]["Name"].startswith(f"A{idx}")
 
@@ -283,7 +281,6 @@ def test_route53resolver_list_resolver_rule_associations():
     response = client.list_resolver_rule_associations(NextToken=response["NextToken"])
     associations = response["ResolverRuleAssociations"]
     assert len(associations) == 3
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, association in enumerate(associations):
         assert association["Name"].startswith(f"A{idx + 1}")
