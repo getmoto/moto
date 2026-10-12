@@ -18,6 +18,7 @@ class S3VectorsResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="s3vectors")
+        self.automated_parameter_parsing = True
 
     @property
     def s3vectors_backend(self) -> S3VectorsBackend:
@@ -214,11 +215,17 @@ class S3VectorsResponse(BaseResponse):
             index_name=index_name,
             keys=keys,
         )
-        response = [
-            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
-        ]
-
-        return ActionResult(result={"vectors": response})
+        result = {
+            "vectors": [
+                {
+                    "key": v.key,
+                    "data": v.data if return_data else None,
+                    "metadata": v.metadata if return_metadata else None,
+                }
+                for v in vectors
+            ]
+        }
+        return ActionResult(result)
 
     def list_vectors(self) -> ActionResult:
         vector_bucket_name = self._get_param("vectorBucketName")
@@ -234,11 +241,17 @@ class S3VectorsResponse(BaseResponse):
             index_arn=index_arn,
             index_name=index_name,
         )
-        response = [
-            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
-        ]
-
-        return ActionResult(result={"vectors": response})
+        result = {
+            "vectors": [
+                {
+                    "key": v.key,
+                    "data": v.data if return_data else None,
+                    "metadata": v.metadata if return_metadata else None,
+                }
+                for v in vectors
+            ]
+        }
+        return ActionResult(result)
 
     def delete_vectors(self) -> ActionResult:
         vector_bucket_name = self._get_param("vectorBucketName")
