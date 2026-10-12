@@ -35,11 +35,11 @@ use-case.
 - [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
-- [ ] create_function
+- [X] create_function
 - [X] create_invalidation
 - [ ] create_invalidation_for_distribution_tenant
 - [X] create_key_group
-- [ ] create_key_value_store
+- [X] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
@@ -65,9 +65,14 @@ Calling this function without a value is invalid, per AWS' behaviour
 - [ ] delete_distribution_tenant
 - [ ] delete_field_level_encryption_config
 - [ ] delete_field_level_encryption_profile
-- [ ] delete_function
+- [X] delete_function
+  
+The IfMatch-value is ignored - any value is considered valid.
+Calling this function without a value is invalid, per AWS' behaviour
+
+
 - [ ] delete_key_group
-- [ ] delete_key_value_store
+- [X] delete_key_value_store
 - [ ] delete_monitoring_subscription
 - [X] delete_origin_access_control
   
@@ -87,8 +92,8 @@ IfMatch is not yet implemented - deletion always succeeds
 - [ ] delete_trust_store
 - [ ] delete_vpc_origin
 - [ ] describe_connection_function
-- [ ] describe_function
-- [ ] describe_key_value_store
+- [X] describe_function
+- [X] describe_key_value_store
 - [ ] disassociate_distribution_tenant_web_acl
 - [ ] disassociate_distribution_web_acl
 - [ ] get_anycast_ip_list
@@ -109,7 +114,7 @@ IfMatch is not yet implemented - deletion always succeeds
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
-- [ ] get_function
+- [X] get_function
 - [X] get_invalidation
 - [ ] get_invalidation_for_distribution_tenant
 - [X] get_key_group
@@ -140,10 +145,6 @@ IfMatch is not yet implemented - deletion always succeeds
 - [ ] list_distribution_tenants
 - [ ] list_distribution_tenants_by_customization
 - [X] list_distributions
-  
-Pagination is not supported yet.
-
-
 - [ ] list_distributions_by_anycast_ip_list_id
 - [ ] list_distributions_by_cache_policy_id
 - [ ] list_distributions_by_connection_function
@@ -159,30 +160,18 @@ Pagination is not supported yet.
 - [ ] list_domain_conflicts
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
-- [ ] list_functions
+- [X] list_functions
 - [X] list_invalidations
-  
-Pagination is not yet implemented
-
-
 - [ ] list_invalidations_for_distribution_tenant
 - [X] list_key_groups
+- [X] list_key_value_stores
   
 Pagination is not yet implemented
 
 
-- [ ] list_key_value_stores
 - [X] list_origin_access_controls
-  
-Pagination is not yet implemented
-
-
 - [ ] list_origin_request_policies
 - [X] list_public_keys
-  
-Pagination is not yet implemented
-
-
 - [ ] list_realtime_log_configs
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions
@@ -215,7 +204,7 @@ Calling this function without a value is invalid, per AWS' behaviour
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
-- [ ] update_key_value_store
+- [X] update_key_value_store
 - [X] update_origin_access_control
   
 The IfMatch-parameter is not yet implemented

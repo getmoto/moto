@@ -15,8 +15,10 @@ kinesis
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_tags_to_stream
+- [ ] create_channel
 - [X] create_stream
 - [X] decrease_stream_retention_period
+- [ ] delete_channel
 - [X] delete_resource_policy
   
 Remove resource policy with a matching given resource arn.
@@ -25,6 +27,7 @@ Remove resource policy with a matching given resource arn.
 - [X] delete_stream
 - [X] deregister_stream_consumer
 - [ ] describe_account_settings
+- [ ] describe_channel
 - [X] describe_limits
   Return fixed Kinesis limits.
 
@@ -41,6 +44,7 @@ Get resource policy with a matching given resource arn.
 
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
+- [ ] list_channels
 - [X] list_shards
 - [X] list_stream_consumers
 - [X] list_streams
@@ -63,8 +67,10 @@ Creates/updates resource policy and return policy object
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_settings
+- [ ] update_channel
 - [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
+- [ ] update_stream_record_distribution_strategy
 - [ ] update_stream_warm_throughput
 

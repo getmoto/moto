@@ -116,7 +116,7 @@ The parameter WithoutSettings has not yet been implemented
 - [ ] modify_instance_profile
 - [ ] modify_migration_project
 - [ ] modify_replication_config
-- [ ] modify_replication_instance
+- [X] modify_replication_instance
 - [ ] modify_replication_subnet_group
 - [ ] modify_replication_task
 - [ ] move_replication_task

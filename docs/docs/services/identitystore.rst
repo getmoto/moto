@@ -24,6 +24,7 @@ identitystore
 - [X] delete_user
 - [X] describe_group
 - [X] describe_group_membership
+- [ ] describe_identity_store
 - [X] describe_user
 - [X] get_group_id
   
@@ -40,7 +41,9 @@ The ExternalId alternate identifier is not yet implemented
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
 - [X] list_groups
+- [ ] list_identity_stores
 - [X] list_users
 - [ ] update_group
+- [ ] update_identity_store
 - [ ] update_user
 

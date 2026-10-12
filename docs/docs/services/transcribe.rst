@@ -54,6 +54,7 @@ transcribe
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_call_analytics_category
+- [ ] update_language_model
 - [ ] update_medical_vocabulary
 - [ ] update_vocabulary
 - [ ] update_vocabulary_filter

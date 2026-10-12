@@ -27,13 +27,13 @@ codepipeline
 - [ ] get_action_type
 - [ ] get_job_details
 - [X] get_pipeline
-- [ ] get_pipeline_execution
+- [X] get_pipeline_execution
 - [ ] get_pipeline_state
 - [ ] get_third_party_job_details
 - [ ] list_action_executions
 - [ ] list_action_types
 - [ ] list_deploy_action_execution_targets
-- [ ] list_pipeline_executions
+- [X] list_pipeline_executions
 - [X] list_pipelines
 - [ ] list_rule_executions
 - [ ] list_rule_types
@@ -52,7 +52,7 @@ codepipeline
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
 - [ ] rollback_stage
-- [ ] start_pipeline_execution
+- [X] start_pipeline_execution
 - [ ] stop_pipeline_execution
 - [X] tag_resource
 - [X] untag_resource
