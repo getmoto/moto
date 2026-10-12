@@ -276,6 +276,35 @@ class FakeKey(BaseModel, ManagedState):
             key=self,
         )
 
+    def check_restore_expiry(self) -> None:
+        """
+        Checked lazily on read (see _apply_lifecycle_transitions for the
+        same pattern). Once a temporary Glacier/Deep Archive restore's
+        expiry-date has passed, the restored copy is gone - clear _expiry
+        so x-amz-restore/response_dict stops reporting it as restored
+        (GetObject on the key will correctly start raising
+        InvalidObjectState again, same as real AWS), and fire the
+        s3:ObjectRestore:Delete / "Object Restore Expired" event.
+
+        Deliberately does not read self.status (RESTORED/IN_PROGRESS) here -
+        that property has a side effect of completing the restore the
+        moment it's read, which would fire it prematurely on every
+        get_object call. _expiry being set and already in the past is
+        sufficient on its own: the restore window is measured in whole
+        days, so by the time it has elapsed the restore has certainly
+        completed already.
+        """
+        if self._expiry is not None and utcnow() > self._expiry:
+            self._expiry = None
+            s3_backend = s3_backends[self.account_id][self.partition]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.OBJECT_RESTORE_DELETE_EVENT,
+                bucket,
+                key=self,
+            )
+
     @property
     def etag(self) -> str:
         if self._etag is None:
@@ -2470,6 +2499,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
 
         if isinstance(key, FakeKey):
             key.advance()
+            key.check_restore_expiry()
             return key
         else:
             if return_delete_marker and isinstance(key, FakeDeleteMarker):
