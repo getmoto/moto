@@ -37,13 +37,6 @@ class Vector(BaseModel):
         self.data = data
         self.metadata = metadata
 
-    def to_dict(self, return_data: bool, return_metadata: bool) -> VectorType:
-        return (
-            {"key": self.key}  # type: ignore[return-value]
-            | ({"data": self.data} if return_data else {})
-            | ({"metadata": self.metadata} if return_metadata else {})
-        )
-
     @staticmethod
     def from_dict(dct: VectorType) -> "Vector":
         return Vector(
