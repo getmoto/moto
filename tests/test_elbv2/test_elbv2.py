@@ -2270,3 +2270,25 @@ def test_describe_capacity_reservation():
     resp = conn.describe_capacity_reservation(LoadBalancerArn=load_balancer_arn)
     for crs in resp["CapacityReservationState"]:
         assert crs["State"]["Code"] == "provisioned"
+
+
+@mock_aws
+def test_create_load_balancer_without_scheme_defaults_to_internet_facing():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1b"
+    )
+
+    created = conn.create_load_balancer(
+        Name="my-lb", Subnets=[subnet1.id, subnet2.id]
+    )["LoadBalancers"][0]
+    assert created["Scheme"] == "internet-facing"
+
+    described = conn.describe_load_balancers(Names=["my-lb"])["LoadBalancers"][0]
+    assert described["Scheme"] == "internet-facing"
