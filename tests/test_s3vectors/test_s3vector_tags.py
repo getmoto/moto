@@ -112,8 +112,10 @@ def test_tag_and_untag_index(bucket_name=None):
 @s3vectors_aws_verified()
 @pytest.mark.aws_verified
 def test_tag_resource_not_found(bucket_name=None):
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
     client = boto3.client("s3vectors", region_name="us-east-1")
-    fake_arn = f"arn:aws:s3vectors:us-east-1:123456789012:bucket/{uuid4()!s}"
+    fake_arn = f"arn:aws:s3vectors:us-east-1:{account_id}:bucket/{uuid4()!s}"
 
     with pytest.raises(ClientError) as exc:
         client.list_tags_for_resource(resourceArn=fake_arn)
