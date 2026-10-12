@@ -14,6 +14,7 @@ from moto.ec2.models.subnets import Subnet
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
+from ..elb.hosted_zone_ids import get_hosted_zone_id
 from ..elb.models import register_certificate
 from ..utilities.utils import ARN_PARTITION_REGEX
 from .exceptions import (
@@ -591,6 +592,7 @@ class FakeLoadBalancer(CloudFormationModel):
     def __init__(
         self,
         name: str,
+        region_name: str,
         security_groups: list[str],
         subnets: list[Subnet],
         vpc_id: str,
@@ -623,8 +625,7 @@ class FakeLoadBalancer(CloudFormationModel):
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
         }
-        # TODO: This was hardcoded in the original XML template and still needs to be implemented.
-        self.canonical_hosted_zone_id = "Z2P70J7EXAMPLE"
+        self.canonical_hosted_zone_id = get_hosted_zone_id(region_name, self.type)
 
     @property
     def load_balancer_state(self) -> dict[str, str]:
@@ -782,6 +783,7 @@ class ELBv2Backend(BaseBackend, TaggableResourcesMixin):
 
         new_load_balancer = FakeLoadBalancer(
             name=name,
+            region_name=self.region_name,
             security_groups=security_groups,
             arn=arn,
             scheme=scheme,
