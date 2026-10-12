@@ -31,11 +31,11 @@ def _setup(ec2_client, iam_client):
     )
     subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
+        Description="test_sg_desc", GroupName=f"sg-{uuid4()}", VpcId=vpc_id
     )
     sg_id = resp["GroupId"]
 
-    role_name = str(uuid4())[0:6]
+    role_name = f"batch-role-{uuid4()}"
     resp = iam_client.create_role(
         RoleName=role_name, AssumeRolePolicyDocument="some_policy"
     )
