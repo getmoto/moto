@@ -37,9 +37,11 @@ Pagination is not yet implemented
 Segmentation is not yet implemented
 
 
+- [ ] put_vector_bucket_default_index_mode
 - [X] put_vector_bucket_policy
 - [X] put_vectors
 - [ ] query_vectors
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_index_mode
 

@@ -61,6 +61,7 @@ quicksight
 - [ ] delete_action_connector
 - [ ] delete_agent
 - [ ] delete_analysis
+- [ ] delete_app
 - [ ] delete_approval_policy
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -108,6 +109,8 @@ quicksight
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
+- [ ] describe_app
+- [ ] describe_app_permissions
 - [ ] describe_approval_policy
 - [ ] describe_asset_bundle_export_job
 - [ ] describe_asset_bundle_import_job
@@ -178,6 +181,7 @@ quicksight
 - [ ] list_agents
 - [ ] list_analyses
 - [ ] list_approval_policies
+- [ ] list_apps
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
 - [ ] list_brands
@@ -233,6 +237,7 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] search_action_connectors
 - [ ] search_agents
 - [ ] search_analyses
+- [ ] search_apps
 - [ ] search_dashboards
 - [ ] search_data_sets
 - [ ] search_data_sources
@@ -259,6 +264,7 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] update_agent_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
+- [ ] update_app_permissions
 - [ ] update_application_with_token_exchange_grant
 - [ ] update_approval_policy
 - [ ] update_brand

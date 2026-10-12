@@ -904,6 +904,27 @@ def test_list_email_identities():
 
 
 @mock_aws
+def test_list_email_identities_paginates():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    identities = [f"user-{i}@example.com" for i in range(10)]
+    for identity in identities:
+        client.create_email_identity(EmailIdentity=identity)
+    # No boto3 paginator exists for this operation, so page through manually.
+    names = []
+    page_count = 0
+    kwargs = {"PageSize": 3}
+    while True:
+        page = client.list_email_identities(**kwargs)
+        page_count += 1
+        names.extend(ei["IdentityName"] for ei in page["EmailIdentities"])
+        if "NextToken" not in page:
+            break
+        kwargs["NextToken"] = page["NextToken"]
+    assert page_count == 4
+    assert names == identities
+
+
+@mock_aws
 def test_create_configuration_set():
     # Setup
     client = boto3.client("sesv2", region_name="eu-west-1")
