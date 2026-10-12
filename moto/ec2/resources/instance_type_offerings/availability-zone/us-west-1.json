@@ -2592,6 +2592,22 @@
   "Location": "us-west-1a"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "us-west-1a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "us-west-1a"
  },
@@ -5261,6 +5277,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "us-west-1b"
  },
  {

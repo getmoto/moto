@@ -1096,26 +1096,6 @@
   "Location": "eu-west-1"
  },
  {
-  "InstanceType": "g4ad.16xlarge",
-  "Location": "eu-west-1"
- },
- {
-  "InstanceType": "g4ad.2xlarge",
-  "Location": "eu-west-1"
- },
- {
-  "InstanceType": "g4ad.4xlarge",
-  "Location": "eu-west-1"
- },
- {
-  "InstanceType": "g4ad.8xlarge",
-  "Location": "eu-west-1"
- },
- {
-  "InstanceType": "g4ad.xlarge",
-  "Location": "eu-west-1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "eu-west-1"
  },
@@ -2948,6 +2928,94 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "m9g.12xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.24xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.48xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.large",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.medium",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.metal-48xl",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9g.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.12xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.24xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.48xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.large",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.medium",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.metal-48xl",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "m9gd.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "mac-m4.metal",
   "Location": "eu-west-1"
  },
@@ -4301,6 +4369,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "eu-west-1"
  },
  {

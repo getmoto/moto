@@ -9,6 +9,7 @@ from moto.core.base_backend import BackendDict
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import passthrough_service, passthrough_url, service_whitelisted
 from moto.core.exceptions import ServiceNotWhitelisted
+from moto.core.request import Request, normalize_request
 from moto.core.utils import get_equivalent_url_in_aws_domain
 
 
@@ -34,7 +35,7 @@ class BotocoreStubber:
     ) -> AWSResponse | None:
         if not self.enabled:
             return None
-
+        request = normalize_request(request)
         response = self.process_request(request)
         if response is not None:
             status, headers, body = response
@@ -42,10 +43,10 @@ class BotocoreStubber:
         else:
             return response
 
-    def process_request(self, request: Any) -> TYPE_RESPONSE | None:
+    def process_request(self, request: Request) -> TYPE_RESPONSE | None:
         # Handle non-standard AWS endpoint hostnames from ISO regions or custom
         # S3 endpoints.
-        parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)
+        parsed_url, _ = get_equivalent_url_in_aws_domain(request.raw_url)
         # Remove the querystring from the URL, as we'll never match on that
         clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
@@ -75,10 +76,6 @@ class BotocoreStubber:
                 else:
                     backend = backend_dict["global"]
 
-                for header, value in request.headers.items():
-                    if isinstance(value, bytes):
-                        request.headers[header] = value.decode("utf-8")
-
                 for url, method_to_execute in backend.urls.items():
                     if re.compile(url).match(clean_url):
                         from moto.moto_api import recorder
@@ -86,7 +83,7 @@ class BotocoreStubber:
                         try:
                             recorder._record_request(request)
                             status, headers, body = method_to_execute(
-                                request, request.url, request.headers
+                                request, request.raw_url, request.headers
                             )
                         except HTTPException as e:
                             status = e.code

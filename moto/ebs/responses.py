@@ -1,7 +1,5 @@
 """Handles incoming ebs requests, invokes methods, returns responses."""
 
-from typing import Any
-
 from moto.core.responses import ActionResult, BaseResponse
 
 from .models import EBSBackend, ebs_backends
@@ -10,12 +8,11 @@ from .models import EBSBackend, ebs_backends
 class EBSResponse(BaseResponse):
     """Handler for EBS requests and responses."""
 
+    use_raw_body = True
+
     def __init__(self) -> None:
         super().__init__(service_name="ebs")
         self.automated_parameter_parsing = True
-
-    def setup_class(self, request: Any, full_url: str, headers: Any) -> None:  # type: ignore
-        super().setup_class(request, full_url, headers, use_raw_body=True)
 
     @property
     def ebs_backend(self) -> EBSBackend:

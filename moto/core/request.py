@@ -1,39 +1,108 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 
-from werkzeug.wrappers import Request
+try:
+    from botocore.httpchecksum import AwsChunkedWrapper
+except ModuleNotFoundError:
 
-from moto.core.utils import gzip_decompress
+    class AwsChunkedWrapper:  # type: ignore[no-redef]
+        def read(self) -> bytes:
+            raise NotImplementedError()
+
+
+from botocore.awsrequest import AWSPreparedRequest
+from requests import PreparedRequest
+from werkzeug.local import LocalProxy
+from werkzeug.wrappers import Request as WerkzeugRequest
+
 from moto.settings import MAX_FORM_MEMORY_SIZE
 from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
 
 if TYPE_CHECKING:
-    from botocore.awsrequest import AWSPreparedRequest
-
     from moto.core.model import ServiceModel
 
 
-def normalize_request(request: AWSPreparedRequest | Request) -> Request:
+class Request(WerkzeugRequest):
+    #: True when this request was received by a real WSGI server (Moto Server).
+    from_wsgi_server = False
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.max_form_memory_size = MAX_FORM_MEMORY_SIZE
+
+    @classmethod
+    def from_primitives(
+        cls, method: str, url: str, headers: Any, body: Any = None
+    ) -> Request:
+        """Build a request from the basic components of an HTTP message."""
+        if isinstance(body, AwsChunkedWrapper):
+            body = body.read()
+        parsed_url = urlparse(url)
+        request = cast(
+            Request,
+            cls.from_values(
+                method=method,
+                base_url=f"{parsed_url.scheme}://{parsed_url.netloc}",
+                path=parsed_url.path,
+                query_string=parsed_url.query,
+                data=body if body is not None else b"",
+                # The proxy de-chunks before we ever see the request, and we (above) read
+                # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
+                headers=[
+                    (key, value.decode("utf-8") if isinstance(value, bytes) else value)
+                    for key, value in headers.items()
+                    if key.lower() not in ["transfer-encoding"]
+                ],
+            ),
+        )
+        # Ensure a Content-Length header is present, even for bodiless requests.
+        # (Some S3 endpoints return a 411 if this header is missing.)
+        request.environ.setdefault("CONTENT_LENGTH", "0")
+        return request
+
+    @property
+    def raw_path(self) -> str:
+        """The path as it arrived, before werkzeug percent-decoded it.
+
+        S3 keys routinely contain characters - an encoded slash, most awkwardly -
+        that `path` decodes away, and Moto matches backend URLs against the
+        encoded form.
+        """
+        # RAW_URI holds either a path or a full URL, depending on the server.
+        # A path may begin with a double slash, which urlparse would read as the
+        # start of a netloc, so only parse when there is really a scheme to strip.
+        raw_uri: str = self.environ.get("RAW_URI", "") or self.path
+        parsed = urlparse(raw_uri)
+        raw_path = parsed.path if parsed.scheme else raw_uri.split("?", 1)[0]
+        if not raw_path:
+            return "/"
+        return raw_path if raw_path.startswith("/") else f"/{raw_path}"
+
+    @property
+    def raw_url(self) -> str:
+        """The full URL as it arrived.  See `raw_path`."""
+        raw_url = f"{self.url_root.rstrip('/')}{self.raw_path}"
+        if self.query_string:
+            raw_url += f"?{self.query_string.decode()}"
+        return raw_url
+
+
+def normalize_request(
+    request: AWSPreparedRequest | LocalProxy[Request] | PreparedRequest | Request,
+) -> Request:
+    """Turn however this request reached us into the one type the core acts on."""
+    if isinstance(request, LocalProxy):
+        request = request._get_current_object()
     if isinstance(request, Request):
         return request
-    body = request.body
-    # Request.from_values() does not automatically handle gzip-encoded bodies,
-    # like the full WSGI server would, so we need to do it manually.
-    if request.headers.get("Content-Encoding") == "gzip":
-        body = gzip_decompress(body)  # type: ignore[arg-type]
-    parsed_url = urlparse(request.url)
-    Request.max_form_memory_size = MAX_FORM_MEMORY_SIZE
-    normalized_request = Request.from_values(
-        method=request.method,
-        base_url=f"{parsed_url.scheme}://{parsed_url.netloc}",
-        path=parsed_url.path,
-        query_string=parsed_url.query,
-        data=body,
-        headers=[(k, v) for k, v in request.headers.items()],
-    )
-    return normalized_request
+    if isinstance(request, (AWSPreparedRequest, PreparedRequest)):
+        assert request.method and request.url
+        return Request.from_primitives(
+            request.method, request.url, request.headers, request.body
+        )
+    raise TypeError(f"Cannot normalize request of type {type(request).__name__}")
 
 
 def determine_request_protocol(

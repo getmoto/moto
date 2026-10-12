@@ -203,6 +203,8 @@ Expression caveats:
 - [X] get_session
 - [ ] get_session_endpoint
 - [ ] get_statement
+- [ ] get_system_logs_for_job_run
+- [ ] get_system_logs_for_session
 - [X] get_table
 - [ ] get_table_optimizer
 - [X] get_table_version
@@ -241,6 +243,7 @@ Expression caveats:
 - [ ] list_glossaries
 - [ ] list_glossary_terms
 - [ ] list_integration_resource_properties
+- [ ] list_integration_table_properties
 - [ ] list_iterable_forms
 - [X] list_jobs
 - [ ] list_materialized_view_refresh_task_runs
