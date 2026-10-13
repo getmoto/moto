@@ -87,7 +87,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "arn",
+        "unique_attribute": "instance_id",
     },
     "list_auto_ml_jobs": {
         "input_token": "next_token",

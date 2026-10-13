@@ -737,7 +737,10 @@ def test_list_clusters_paginate():
             },
         )
 
-    response = client.list_clusters()
+    response = client.list_clusters(
+        CreationTimeBefore="2999-01-01T02:00:00Z",
+        CreationTimeAfter="2010-01-01T00:00:00Z",
+    )
     cluster_summaries = response["ClusterSummaries"]
     assert len(cluster_summaries) == 100
     actual_names = []
@@ -748,10 +751,59 @@ def test_list_clusters_paginate():
         next_token = response["NextToken"]
         assert next_token not in seen_tokens
         seen_tokens.add(next_token)
-        response = client.list_clusters(NextToken=next_token)
+        response = client.list_clusters(
+            NextToken=next_token,
+            CreationTimeBefore="2999-01-01T02:00:00Z",
+            CreationTimeAfter="2010-01-01T00:00:00Z",
+        )
         cluster_summaries = response["ClusterSummaries"]
     else:
         raise AssertionError("list_clusters did not finish paging")
 
     assert len(actual_names) == len(names)
     assert set(actual_names) == set(names)
+
+
+@mock_aws
+def test_list_cluster_nodes_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="ap-southeast-1")
+    client.create_cluster(
+        ClusterName="testcluster",
+        InstanceGroups=[
+            {
+                "InstanceCount": 105,
+                "InstanceGroupName": "testgroup",
+                "InstanceType": "ml.p4d.24xlarge",
+                "LifeCycleConfig": {
+                    "SourceS3Uri": "s3://sagemaker-lifecycleconfig",
+                    "OnCreate": "filename",
+                },
+                "ExecutionRole": "arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-TestExecutionRole",
+                "ThreadsPerCore": 2,
+            },
+        ],
+        VpcConfig={
+            "SecurityGroupIds": [
+                "sg-12345678901234567",
+            ],
+            "Subnets": [
+                "subnet-12345678901234567",
+            ],
+        },
+    )
+    resp = client.list_cluster_nodes(
+        ClusterName="testcluster",
+        CreationTimeBefore="2999-01-01T02:00:00Z",
+        CreationTimeAfter="2010-01-01T00:00:00Z",
+    )
+    assert len(resp["ClusterNodeSummaries"]) == 100
+    assert "NextToken" in resp
+    resp = client.list_cluster_nodes(
+        NextToken=resp["NextToken"],
+        ClusterName="testcluster",
+        CreationTimeBefore="2999-01-01T02:00:00Z",
+        CreationTimeAfter="2010-01-01T00:00:00Z",
+    )
+    assert "NextToken" not in resp
+    assert len(resp["ClusterNodeSummaries"]) == 5
