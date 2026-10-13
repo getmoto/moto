@@ -71,12 +71,14 @@ class Request(WerkzeugRequest):
         """Build a request from the basic components of an HTTP message."""
         if isinstance(body, AwsChunkedWrapper):
             body = body.read()
-        parsed_url = urlparse(url)
+        # The proxy de-chunks before we ever see the request, and we (above) read
+        # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
         header_items = [
             (key, value.decode("utf-8") if isinstance(value, bytes) else value)
             for key, value in headers.items()
             if key.lower() not in ["transfer-encoding"]
         ]
+        parsed_url = urlparse(url)
         request = cast(
             Request,
             cls.from_values(
@@ -85,8 +87,6 @@ class Request(WerkzeugRequest):
                 path=parsed_url.path,
                 query_string=parsed_url.query,
                 data=body if body is not None else b"",
-                # The proxy de-chunks before we ever see the request, and we (above) read
-                # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
                 headers=header_items,
             ),
         )

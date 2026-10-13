@@ -1,4 +1,5 @@
 import io
+from unittest import SkipTest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
@@ -9,6 +10,7 @@ import xmltodict
 from flask.testing import FlaskClient
 
 import moto.server as server
+from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 
@@ -474,6 +476,8 @@ def test_s3_server_post_cors_multiple_origins():
 
 
 def test_s3_server_metadata_keys_with_underscores():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("No point testing the ThreadedMotoServer in Server/Proxy-mode")
     # Werkzeug's dev server drops headers with underscores in their names;
     # MotoRequestHandler has to keep them, and keep their original spelling.
     thread = ThreadedMotoServer(port=0, verbose=False)
