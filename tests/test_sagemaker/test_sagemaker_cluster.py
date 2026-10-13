@@ -766,7 +766,6 @@ def test_list_clusters_paginate():
 
 @mock_aws
 def test_list_cluster_nodes_paginate():
-    seen_tokens = set()
     client = boto3.client("sagemaker", region_name="ap-southeast-1")
     client.create_cluster(
         ClusterName="testcluster",
