@@ -25,10 +25,10 @@ import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.request import (
-    HEADER_NAMES_ENVIRON_KEY,
+    PRESERVED_HEADER_NAMES_ENVIRON_KEY,
     Request,
     environ_key_for_header,
-    preserves_header_name,
+    should_preserve_original_header_name,
 )
 from moto.core.utils import convert_to_flask_response
 from moto.settings import DISABLE_GLOBAL_CORS
@@ -45,21 +45,18 @@ class BackendRequest(Request, FlaskRequest):
 
 
 class MotoRequestHandler(WSGIRequestHandler):
-    """Keeps S3 user metadata headers whose names contain underscores.
-
-    Werkzeug's dev server drops every header with an underscore in its name,
-    since WSGI can't tell ``X_Foo`` from ``X-Foo`` and one could otherwise
-    spoof the other.  S3 metadata keys may contain underscores though, so we
-    add ``x-amz-meta-*`` headers back - without overwriting a dashed header
-    of the same name - and record their original spelling for
-    ``Request.headers`` to report.
-    """
+    """Moto customizations for WSGI request handling."""
 
     def make_environ(self) -> dict[str, Any]:
+        """Werkzeug's dev server drops every header with an underscore in its name,
+        since WSGI can't tell ``X_Foo`` from ``X-Foo`` and one could otherwise
+        spoof the other.  S3 metadata keys may contain underscores though, so we
+        preserve their original spelling for ``Request.headers`` to report.
+        """
         environ = super().make_environ()
         names: dict[str, str] = {}
         for name, value in self.headers.items():
-            if not preserves_header_name(name):
+            if not should_preserve_original_header_name(name):
                 continue
             key = environ_key_for_header(name)
             value = value.replace("\r\n", "")
@@ -68,7 +65,7 @@ class MotoRequestHandler(WSGIRequestHandler):
             elif key not in environ:
                 environ[key] = value
                 names[key] = name
-        environ[HEADER_NAMES_ENVIRON_KEY] = names
+        environ[PRESERVED_HEADER_NAMES_ENVIRON_KEY] = names
         return environ
 
 

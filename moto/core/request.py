@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 from botocore.awsrequest import AWSPreparedRequest
 from requests import PreparedRequest
-from werkzeug.datastructures import EnvironHeaders
+from werkzeug.datastructures import EnvironHeaders as WerkzeugEnvironHeaders
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
 
@@ -28,16 +28,16 @@ if TYPE_CHECKING:
 
 #: Environ key holding the original spelling of preserved header names, keyed
 #: by the WSGI name each was stored under (e.g. ``HTTP_X_AMZ_META_MY_KEY``).
-HEADER_NAMES_ENVIRON_KEY = "moto.header_names"
+PRESERVED_HEADER_NAMES_ENVIRON_KEY = "moto.preserved_header_names"
 
 
-def preserves_header_name(header_name: str) -> bool:
-    """Whether the underscores in this header's name must survive the environ.
-
-    Only S3 user metadata keys need them, so other headers are left as
-    werkzeug reports them.
-    """
-    return "_" in header_name and header_name.lower().startswith("x-amz-meta-")
+def should_preserve_original_header_name(header_name: str) -> bool:
+    """Whether underscores in a header name should be preserved."""
+    if "_" in header_name:
+        # Right now we're only preserving S3 object metadata headers.
+        if header_name.lower().startswith("x-amz-meta-"):
+            return True
+    return False
 
 
 def environ_key_for_header(header_name: str) -> str:
@@ -47,18 +47,21 @@ def environ_key_for_header(header_name: str) -> str:
     return f"HTTP_{key}"
 
 
-class OriginalNameEnvironHeaders(EnvironHeaders):
-    """EnvironHeaders that reports headers under the names they were sent with.
+class EnvironHeaders(WerkzeugEnvironHeaders):
+    """EnvironHeaders that report any preserved headers under their original names.
 
     WSGI folds both ``-`` and ``_`` into ``_`` in environ keys, so werkzeug
     rebuilds every name with dashes: ``x-amz-meta-my_key`` comes back as
     ``X-Amz-Meta-My-Key``.  S3 treats the two as distinct for user metadata
-    keys, so for those headers we report the name as originally sent.  Lookups are unaffected - werkzeug already maps
-    either spelling to the same environ key.
+    keys, so for those headers we report the name as originally sent.
+
+    Lookups are unaffected - werkzeug already maps either spelling to the same key.
     """
 
     def __iter__(self) -> Iterator[tuple[str, str]]:
-        names: dict[str, str] = self.environ.get(HEADER_NAMES_ENVIRON_KEY) or {}
+        names: dict[str, str] = (
+            self.environ.get(PRESERVED_HEADER_NAMES_ENVIRON_KEY) or {}
+        )
         for key, value in super().__iter__():
             yield names.get(environ_key_for_header(key), key), value
 
@@ -70,7 +73,7 @@ class Request(WerkzeugRequest):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.max_form_memory_size = MAX_FORM_MEMORY_SIZE
-        self.headers = OriginalNameEnvironHeaders(self.environ)
+        self.headers = EnvironHeaders(self.environ)
 
     @classmethod
     def from_primitives(
@@ -98,10 +101,11 @@ class Request(WerkzeugRequest):
                 headers=header_items,
             ),
         )
-        request.environ[HEADER_NAMES_ENVIRON_KEY] = {
+        # Preserve original header names in the environment for later lookup.
+        request.environ[PRESERVED_HEADER_NAMES_ENVIRON_KEY] = {
             environ_key_for_header(key): key
             for key, _ in header_items
-            if preserves_header_name(key)
+            if should_preserve_original_header_name(key)
         }
         # Ensure a Content-Length header is present, even for bodiless requests.
         # (Some S3 endpoints return a 411 if this header is missing.)
