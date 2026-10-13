@@ -28,6 +28,7 @@ from moto.core.request import (
     HEADER_NAMES_ENVIRON_KEY,
     Request,
     environ_key_for_header,
+    preserves_header_name,
 )
 from moto.core.utils import convert_to_flask_response
 from moto.settings import DISABLE_GLOBAL_CORS
@@ -44,31 +45,29 @@ class BackendRequest(Request, FlaskRequest):
 
 
 class MotoRequestHandler(WSGIRequestHandler):
-    """Keeps headers whose names contain underscores.
+    """Keeps S3 user metadata headers whose names contain underscores.
 
-    Werkzeug's dev server drops them, since WSGI can't tell ``X_Foo`` from
-    ``X-Foo`` and one could otherwise spoof the other.  AWS accepts them
-    though (S3 user metadata keys, for one), so we add them back - without
-    overwriting a dashed header of the same name - and record every header's
-    original spelling for ``Request.headers`` to report.
+    Werkzeug's dev server drops every header with an underscore in its name,
+    since WSGI can't tell ``X_Foo`` from ``X-Foo`` and one could otherwise
+    spoof the other.  S3 metadata keys may contain underscores though, so we
+    add ``x-amz-meta-*`` headers back - without overwriting a dashed header
+    of the same name - and record their original spelling for
+    ``Request.headers`` to report.
     """
 
     def make_environ(self) -> dict[str, Any]:
         environ = super().make_environ()
         names: dict[str, str] = {}
-        added: set[str] = set()
         for name, value in self.headers.items():
+            if not preserves_header_name(name):
+                continue
             key = environ_key_for_header(name)
-            if "_" in name:
-                value = value.replace("\r\n", "")
-                if key in added:
-                    environ[key] = f"{environ[key]},{value}"
-                elif key not in environ:
-                    environ[key] = value
-                    added.add(key)
-                else:
-                    continue
-            names.setdefault(key, name)
+            value = value.replace("\r\n", "")
+            if key in names:
+                environ[key] = f"{environ[key]},{value}"
+            elif key not in environ:
+                environ[key] = value
+                names[key] = name
         environ[HEADER_NAMES_ENVIRON_KEY] = names
         return environ
 

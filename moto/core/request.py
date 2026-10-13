@@ -26,9 +26,18 @@ if TYPE_CHECKING:
     from moto.core.model import ServiceModel
 
 
-#: Environ key holding the original spelling of each header name, keyed by
-#: the WSGI name it was stored under (e.g. ``HTTP_X_AMZ_META_MY_KEY``).
+#: Environ key holding the original spelling of preserved header names, keyed
+#: by the WSGI name each was stored under (e.g. ``HTTP_X_AMZ_META_MY_KEY``).
 HEADER_NAMES_ENVIRON_KEY = "moto.header_names"
+
+
+def preserves_header_name(header_name: str) -> bool:
+    """Whether the underscores in this header's name must survive the environ.
+
+    Only S3 user metadata keys need them, so other headers are left as
+    werkzeug reports them.
+    """
+    return "_" in header_name and header_name.lower().startswith("x-amz-meta-")
 
 
 def environ_key_for_header(header_name: str) -> str:
@@ -43,9 +52,8 @@ class OriginalNameEnvironHeaders(EnvironHeaders):
 
     WSGI folds both ``-`` and ``_`` into ``_`` in environ keys, so werkzeug
     rebuilds every name with dashes: ``x-amz-meta-my_key`` comes back as
-    ``X-Amz-Meta-My-Key``.  AWS treats the two as distinct (S3 user metadata
-    keys may contain underscores), so when the original names are known we
-    report those instead.  Lookups are unaffected - werkzeug already maps
+    ``X-Amz-Meta-My-Key``.  S3 treats the two as distinct for user metadata
+    keys, so for those headers we report the name as originally sent.  Lookups are unaffected - werkzeug already maps
     either spelling to the same environ key.
     """
 
@@ -91,7 +99,9 @@ class Request(WerkzeugRequest):
             ),
         )
         request.environ[HEADER_NAMES_ENVIRON_KEY] = {
-            environ_key_for_header(key): key for key, _ in header_items
+            environ_key_for_header(key): key
+            for key, _ in header_items
+            if preserves_header_name(key)
         }
         # Ensure a Content-Length header is present, even for bodiless requests.
         # (Some S3 endpoints return a 411 if this header is missing.)
