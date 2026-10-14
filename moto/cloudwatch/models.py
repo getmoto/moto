@@ -603,6 +603,48 @@ class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
 
         return alarm
 
+    def put_composite_alarm(
+        self,
+        name: str,
+        rule: str,
+        description: str | None = None,
+        alarm_actions: list[str] | None = None,
+        ok_actions: list[str] | None = None,
+        insufficient_data_actions: list[str] | None = None,
+        actions_enabled: bool = True,
+        tags: list[dict[str, str]] | None = None,
+    ) -> Alarm:
+        alarm = Alarm(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            namespace=None,  # type: ignore[arg-type]
+            metric_name=None,  # type: ignore[arg-type]
+            metric_data_queries=None,
+            comparison_operator=None,  # type: ignore[arg-type]
+            evaluation_periods=None,  # type: ignore[arg-type]
+            datapoints_to_alarm=None,
+            period=None,  # type: ignore[arg-type]
+            threshold=None,  # type: ignore[arg-type]
+            statistic=None,  # type: ignore[arg-type]
+            extended_statistic=None,
+            description=description,  # type: ignore[arg-type]
+            dimensions=[],
+            alarm_actions=alarm_actions or [],
+            ok_actions=ok_actions,
+            insufficient_data_actions=insufficient_data_actions,
+            unit=None,
+            actions_enabled=actions_enabled,
+            treat_missing_data=None,
+            evaluate_low_sample_count_percentile=None,
+            threshold_metric_id=None,
+            rule=rule,
+        )
+        self.alarms[name] = alarm
+        if tags:
+            self.tagger.tag_resource(alarm.alarm_arn, tags)
+        return alarm
+
     def describe_alarms(self) -> Iterable[Alarm]:
         return self.alarms.values()
 
