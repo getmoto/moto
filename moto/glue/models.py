@@ -62,7 +62,15 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
+from .utils import (
+    Action,
+    CrawlFilter,
+    FilterField,
+    FilterOperator,
+    Predicate,
+    count_dqdl_rules,
+    to_naive_utc_datetime,
+)
 
 
 class FakeDevEndpoint(BaseModel):
@@ -299,6 +307,12 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             "limit_default": 100,
             "unique_attribute": "transform_id",
         },
+        "list_data_quality_rulesets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -313,6 +327,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self.sessions: dict[str, FakeSession] = OrderedDict()
         self.tagger = TaggingService()
         self.triggers: dict[str, FakeTrigger] = OrderedDict()
+        self.data_quality_rulesets: dict[str, FakeDataQualityRuleset] = OrderedDict()
         self.registries: dict[str, FakeRegistry] = OrderedDict()
         self.workflows: dict[str, FakeWorkflow] = OrderedDict()
         self.security_configurations: dict[str, FakeSecurityConfiguration] = (
@@ -1797,6 +1812,74 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
 
+    def create_data_quality_ruleset(
+        self,
+        name: str,
+        description: str | None,
+        ruleset: str,
+        tags: dict[str, str] | None,
+        target_table: dict[str, str] | None,
+        data_quality_security_configuration: str | None,
+    ) -> str:
+        """
+        The ruleset is not validated against the DQDL syntax.
+        """
+        if name in self.data_quality_rulesets:
+            raise AlreadyExistsException("DataQualityRuleset")
+        dq_ruleset = FakeDataQualityRuleset(
+            backend=self,
+            name=name,
+            description=description,
+            ruleset=ruleset,
+            target_table=target_table,
+            data_quality_security_configuration=data_quality_security_configuration,
+        )
+        self.data_quality_rulesets[name] = dq_ruleset
+        self.tag_resource(dq_ruleset.arn, tags)
+        return name
+
+    def get_data_quality_ruleset(self, name: str) -> "FakeDataQualityRuleset":
+        try:
+            return self.data_quality_rulesets[name]
+        except KeyError:
+            raise EntityNotFoundException(
+                f"Cannot find Data Quality Ruleset in account {self.account_id} with name {name}"
+            )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_data_quality_rulesets(
+        self,
+        filter_criteria: dict[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
+    ) -> list["FakeDataQualityRuleset"]:
+        """
+        The RuleCount is the number of rules in the `Rules = [...]` block of the ruleset.
+        """
+        rulesets = list(self.data_quality_rulesets.values())
+        if filter_criteria:
+            rulesets = [r for r in rulesets if r.matches_filter(filter_criteria)]
+        if tags:
+            rulesets = [
+                r for r in rulesets if tags.items() <= self.get_tags(r.arn).items()
+            ]
+        return rulesets
+
+    def update_data_quality_ruleset(
+        self, name: str, description: str | None, ruleset: str | None
+    ) -> "FakeDataQualityRuleset":
+        dq_ruleset = self.get_data_quality_ruleset(name)
+        if description is not None:
+            dq_ruleset.description = description
+        if ruleset is not None:
+            dq_ruleset.ruleset = ruleset
+        dq_ruleset.last_modified_on = utcnow()
+        return dq_ruleset
+
+    def delete_data_quality_ruleset(self, name: str) -> None:
+        dq_ruleset = self.get_data_quality_ruleset(name)
+        del self.data_quality_rulesets[name]
+        self.tagger.delete_all_tags_for_resource(dq_ruleset.arn)
+
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
         for arn, tags in self.tagger.tags.items():
@@ -1817,6 +1900,79 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+
+class FakeDataQualityRuleset(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        description: str | None,
+        ruleset: str,
+        target_table: dict[str, str] | None,
+        data_quality_security_configuration: str | None,
+    ):
+        self.name = name
+        self.description = description
+        self.ruleset = ruleset
+        self.target_table = target_table
+        self.data_quality_security_configuration = data_quality_security_configuration
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:dataQualityRuleset/{name}"
+
+    def matches_filter(self, filter_criteria: dict[str, Any]) -> bool:
+        if "Name" in filter_criteria and filter_criteria["Name"] != self.name:
+            return False
+        if (
+            "Description" in filter_criteria
+            and filter_criteria["Description"] != self.description
+        ):
+            return False
+        target_table = filter_criteria.get("TargetTable")
+        if target_table:
+            if not self.target_table:
+                return False
+            for key in ("TableName", "DatabaseName", "CatalogId"):
+                if key in target_table and target_table[key] != self.target_table.get(
+                    key
+                ):
+                    return False
+        for key, timestamp, before in (
+            ("CreatedBefore", self.created_on, True),
+            ("CreatedAfter", self.created_on, False),
+            ("LastModifiedBefore", self.last_modified_on, True),
+            ("LastModifiedAfter", self.last_modified_on, False),
+        ):
+            if key not in filter_criteria:
+                continue
+            boundary = to_naive_utc_datetime(filter_criteria[key])
+            if before and timestamp >= boundary:
+                return False
+            if not before and timestamp <= boundary:
+                return False
+        return True
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "Ruleset": self.ruleset,
+            "TargetTable": self.target_table,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+            "DataQualitySecurityConfiguration": self.data_quality_security_configuration,
+        }
+
+    def as_list_item(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+            "TargetTable": self.target_table,
+            "RuleCount": count_dqdl_rules(self.ruleset),
+        }
 
 
 class FakeSecurityConfiguration(BaseModel):

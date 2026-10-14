@@ -5527,7 +5527,7 @@
 
 ## glue
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] associate_glossary_terms
 - [X] batch_create_partition
@@ -5562,7 +5562,7 @@
 - [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
-- [ ] create_data_quality_ruleset
+- [X] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
 - [ ] create_glossary
@@ -5599,7 +5599,7 @@
 - [ ] delete_connection_type
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
-- [ ] delete_data_quality_ruleset
+- [X] delete_data_quality_ruleset
 - [X] delete_database
 - [X] delete_dev_endpoint
 - [ ] delete_form_type
@@ -5659,7 +5659,7 @@
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
 - [ ] get_data_quality_rule_recommendation_run
-- [ ] get_data_quality_ruleset
+- [X] get_data_quality_ruleset
 - [ ] get_data_quality_ruleset_evaluation_run
 - [X] get_database
 - [X] get_databases
@@ -5731,7 +5731,7 @@
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
-- [ ] list_data_quality_rulesets
+- [X] list_data_quality_rulesets
 - [ ] list_data_quality_statistic_annotations
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
@@ -5810,7 +5810,7 @@
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [ ] update_data_quality_ruleset
+- [X] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_glossary
