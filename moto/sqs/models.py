@@ -1,3 +1,5 @@
+import base64
+import binascii
 import hashlib
 import json
 import re
@@ -19,6 +21,7 @@ from moto.core.utils import (
     unix_time_millis,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition, md5_hash
 
 from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
@@ -36,6 +39,7 @@ from .exceptions import (
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
+    ResourceNotFoundException,
     SQSException,
     TooManyEntriesInBatchRequest,
 )
@@ -93,6 +97,8 @@ class Message(BaseModel):
         self.visible_at = 0.0
         self.delayed_until = 0.0
         self.system_attributes = system_attributes or {}
+        # ARN of the queue this message was moved from, when it was moved to a DLQ
+        self.dead_letter_source_arn: str | None = None
 
     @property
     def body_md5(self) -> str:
@@ -688,12 +694,85 @@ def _filter_message_attributes(
     message.message_attributes = filtered_message_attributes
 
 
+class MessageMoveTask(BaseModel, ManagedState):
+    ACTIVE_STATUSES = ("RUNNING", "CANCELLING")
+
+    def __init__(
+        self,
+        source_arn: str,
+        destination_arn: str | None,
+        max_number_of_messages_per_second: int | None,
+        approximate_number_of_messages_to_move: int,
+    ):
+        ManagedState.__init__(
+            self,
+            model_name="sqs::messagemovetask",
+            transitions=[("RUNNING", "COMPLETED"), ("CANCELLING", "CANCELLED")],
+        )
+        self.task_id = str(random.uuid4())
+        self.source_arn = source_arn
+        self.destination_arn = destination_arn
+        self.max_number_of_messages_per_second = max_number_of_messages_per_second
+        self.approximate_number_of_messages_to_move = (
+            approximate_number_of_messages_to_move
+        )
+        self.approximate_number_of_messages_moved = 0
+        self.failure_reason: str | None = None
+        self.started_timestamp = int(unix_time_millis())
+        # Messages are moved once, when the task first reports COMPLETED
+        self.messages_moved = False
+        # The status as last read by the backend, which is what the API returns
+        self.last_status = "RUNNING"
+
+    @property
+    def task_handle(self) -> str:
+        handle = json.dumps(
+            {"taskId": self.task_id, "sourceArn": self.source_arn},
+            separators=(",", ":"),
+        )
+        return base64.b64encode(handle.encode("utf-8")).decode("utf-8")
+
+    @staticmethod
+    def decode_task_handle(task_handle: str) -> tuple[str, str]:
+        try:
+            decoded = json.loads(base64.b64decode(task_handle, validate=True))
+            return str(decoded["taskId"]), str(decoded["sourceArn"])
+        except (binascii.Error, ValueError, TypeError, KeyError):
+            raise InvalidParameterValue("Value for parameter TaskHandle is invalid.")
+
+    def fail(self, reason: str) -> None:
+        self.status = "FAILED"
+        self.failure_reason = reason
+
+    def to_dict(self) -> dict[str, Any]:
+        status = self.last_status
+        result: dict[str, Any] = {
+            "Status": status,
+            "SourceArn": self.source_arn,
+            "ApproximateNumberOfMessagesMoved": self.approximate_number_of_messages_moved,
+            "ApproximateNumberOfMessagesToMove": self.approximate_number_of_messages_to_move,
+            "StartedTimestamp": self.started_timestamp,
+        }
+        if status == "RUNNING":
+            result["TaskHandle"] = self.task_handle
+        if self.destination_arn:
+            result["DestinationArn"] = self.destination_arn
+        if self.max_number_of_messages_per_second is not None:
+            result["MaxNumberOfMessagesPerSecond"] = (
+                self.max_number_of_messages_per_second
+            )
+        if status == "FAILED" and self.failure_reason:
+            result["FailureReason"] = self.failure_reason
+        return result
+
+
 class SQSBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "sqs"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.queues: dict[str, Queue] = {}
+        self.message_move_tasks: dict[str, MessageMoveTask] = {}
 
     def create_queue(
         self, name: str, tags: dict[str, str] | None = None, **kwargs: Any
@@ -1036,6 +1115,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
 
             for message in messages_to_dlq:
                 queue._messages.remove(message)
+                message.dead_letter_source_arn = queue.queue_arn
                 queue.dead_letter_queue.add_message(message)  # type: ignore
 
             if previous_result_count == len(result):
@@ -1272,6 +1352,165 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         if retain_until <= unix_time():
             return False
         return True
+
+    def _get_queue_by_arn(self, queue_arn: str) -> Queue | None:
+        return next(
+            (queue for queue in self.queues.values() if queue.queue_arn == queue_arn),
+            None,
+        )
+
+    def _get_message_move_task_status(self, task: MessageMoveTask) -> str:
+        """
+        Read the (possibly transitioned) status of a task.
+        The messages are moved the moment the task transitions to COMPLETED.
+        """
+        status = task.status
+        if status == "COMPLETED" and not task.messages_moved:
+            task.messages_moved = True
+            self._move_messages(task)
+            # Either COMPLETED or FAILED - neither will transition any further
+            status = task.status
+        task.last_status = status or task.last_status
+        return task.last_status
+
+    def _move_messages(self, task: MessageMoveTask) -> None:
+        source = self._get_queue_by_arn(task.source_arn)
+        destination = None
+        if task.destination_arn:
+            destination = self._get_queue_by_arn(task.destination_arn)
+        if source is None or (task.destination_arn and destination is None):
+            task.fail("AWS.SimpleQueueService.NonExistentQueue")
+            return
+
+        # Messages are moved in the order they were received, oldest first
+        for message in source.messages[: task.approximate_number_of_messages_to_move]:
+            if destination is not None:
+                target: Queue | None = destination
+            elif message.dead_letter_source_arn is None:
+                # For instance, a message that was sent to the DLQ directly
+                task.fail("CouldNotDetermineMessageSource")
+                return
+            else:
+                target = self._get_queue_by_arn(message.dead_letter_source_arn)
+            if target is None:
+                task.fail("AWS.SimpleQueueService.NonExistentQueue")
+                return
+
+            source._messages.remove(message)
+            source.pending_messages.discard(message)
+
+            # A moved message is a new message, with a new MessageId
+            moved = Message(
+                str(random.uuid4()), message.body, deepcopy(message.system_attributes)
+            )
+            moved.message_attributes = deepcopy(message.message_attributes)
+            moved.group_id = message.group_id
+            moved.deduplication_id = message.deduplication_id
+            if target.fifo_queue:
+                moved.sequence_number = "".join(
+                    random.choice(string.digits) for _ in range(20)
+                )
+            moved.mark_sent()
+            target.add_message(moved)
+            task.approximate_number_of_messages_moved += 1
+
+    def start_message_move_task(
+        self,
+        source_arn: str,
+        destination_arn: str | None,
+        max_number_of_messages_per_second: int | None,
+    ) -> MessageMoveTask:
+        """
+        The status of a task progresses according to the state transition model `sqs::messagemovetask`.
+        By default, a task completes immediately, so the messages have already been moved when this call returns.
+
+        MaxNumberOfMessagesPerSecond is stored and returned, but does not throttle the move.
+        """
+        source = self._get_queue_by_arn(source_arn)
+        if source is None:
+            raise ResourceNotFoundException(
+                "The resource that you specified for the SourceArn parameter doesn't exist."
+            )
+        is_dlq = any(
+            queue.redrive_policy
+            and queue.redrive_policy.get("deadLetterTargetArn") == source_arn
+            for queue in self.queues.values()
+        )
+        if not is_dlq:
+            raise InvalidParameterValue(
+                "Source queue must be configured as a Dead Letter Queue."
+            )
+        if destination_arn and self._get_queue_by_arn(destination_arn) is None:
+            raise ResourceNotFoundException(
+                "The resource that you specified for the DestinationArn parameter doesn't exist."
+            )
+        if max_number_of_messages_per_second is not None and not (
+            1 <= max_number_of_messages_per_second <= 500
+        ):
+            raise InvalidParameterValue(
+                f"Value {max_number_of_messages_per_second} for parameter MaxNumberOfMessagesPerSecond is invalid. Reason: Must be between 1 and 500."
+            )
+        for existing_task in self.message_move_tasks.values():
+            if (
+                existing_task.source_arn == source_arn
+                and self._get_message_move_task_status(existing_task)
+                in MessageMoveTask.ACTIVE_STATUSES
+            ):
+                raise InvalidParameterValue(
+                    "There is already a task running. Only one active task is allowed for a source queue arn at a given time."
+                )
+
+        task = MessageMoveTask(
+            source_arn=source_arn,
+            destination_arn=destination_arn or None,
+            max_number_of_messages_per_second=max_number_of_messages_per_second,
+            approximate_number_of_messages_to_move=source.approximate_number_of_messages,
+        )
+        self.message_move_tasks[task.task_id] = task
+        self._get_message_move_task_status(task)
+        return task
+
+    def list_message_move_tasks(
+        self, source_arn: str, max_results: int | None
+    ) -> list[MessageMoveTask]:
+        """
+        Calling this method advances the status of the tasks that are returned.
+        """
+        if max_results is not None and not (1 <= max_results <= 10):
+            raise InvalidParameterValue(
+                f"Value {max_results} for parameter MaxResults is invalid. Reason: Must be between 1 and 10."
+            )
+        if self._get_queue_by_arn(source_arn) is None:
+            raise ResourceNotFoundException(
+                "The resource that you specified for the SourceArn parameter doesn't exist."
+            )
+        # Most recent task first
+        tasks = [
+            task
+            for task in reversed(self.message_move_tasks.values())
+            if task.source_arn == source_arn
+        ][: max_results or 1]
+        for task in tasks:
+            task.advance()
+            self._get_message_move_task_status(task)
+        return tasks
+
+    def cancel_message_move_task(self, task_handle: str) -> MessageMoveTask:
+        task_id, source_arn = MessageMoveTask.decode_task_handle(task_handle)
+        if self._get_queue_by_arn(source_arn) is None:
+            raise ResourceNotFoundException(
+                "The resource that you specified for the SourceArn parameter doesn't exist."
+            )
+        task = self.message_move_tasks.get(task_id)
+        if (
+            task is None
+            or task.source_arn != source_arn
+            or self._get_message_move_task_status(task) != "RUNNING"
+        ):
+            raise ResourceNotFoundException("Task does not exist.")
+        # Messages are only moved when a task completes, so a cancelled task does not move any
+        task.status = "CANCELLING"
+        return task
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
