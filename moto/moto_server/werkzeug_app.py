@@ -52,19 +52,29 @@ class MotoRequestHandler(WSGIRequestHandler):
         since WSGI can't tell ``X_Foo`` from ``X-Foo`` and one could otherwise
         spoof the other.  S3 metadata keys may contain underscores though, so we
         preserve their original spelling for ``Request.headers`` to report.
+
+        Werkzeug < 2.1 doesn't drop them, but folds them into the environ like
+        any other header, so we write these entries ourselves either way.
         """
         environ = super().make_environ()
+        dashed_keys = {
+            environ_key_for_header(name)
+            for name in self.headers.keys()
+            if "_" not in name
+        }
         names: dict[str, str] = {}
+        values: dict[str, list[str]] = {}
         for name, value in self.headers.items():
             if not should_preserve_original_header_name(name):
                 continue
             key = environ_key_for_header(name)
-            value = value.replace("\r\n", "")
-            if key in names:
-                environ[key] = f"{environ[key]},{value}"
-            elif key not in environ:
-                environ[key] = value
-                names[key] = name
+            # Never let an underscored header stand in for a dashed one.
+            if key in dashed_keys:
+                continue
+            names.setdefault(key, name)
+            values.setdefault(key, []).append(value.replace("\r\n", ""))
+        for key, key_values in values.items():
+            environ[key] = ",".join(key_values)
         environ[PRESERVED_HEADER_NAMES_ENVIRON_KEY] = names
         return environ
 
