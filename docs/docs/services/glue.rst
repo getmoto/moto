@@ -47,7 +47,11 @@ glue
 - [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
-- [ ] create_data_quality_ruleset
+- [X] create_data_quality_ruleset
+  
+        The ruleset is not validated against the DQDL syntax.
+        
+
 - [X] create_database
 - [X] create_dev_endpoint
 - [ ] create_glossary
@@ -88,7 +92,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] delete_connection_type
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
-- [ ] delete_data_quality_ruleset
+- [X] delete_data_quality_ruleset
 - [X] delete_database
 - [X] delete_dev_endpoint
 - [ ] delete_form_type
@@ -148,7 +152,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
 - [ ] get_data_quality_rule_recommendation_run
-- [ ] get_data_quality_ruleset
+- [X] get_data_quality_ruleset
 - [ ] get_data_quality_ruleset_evaluation_run
 - [X] get_database
 - [X] get_databases
@@ -234,7 +238,11 @@ Expression caveats:
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
-- [ ] list_data_quality_rulesets
+- [X] list_data_quality_rulesets
+  
+        The RuleCount is the number of rules in the `Rules = [...]` block of the ruleset.
+        
+
 - [ ] list_data_quality_statistic_annotations
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
@@ -313,7 +321,7 @@ Expression caveats:
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
-- [ ] update_data_quality_ruleset
+- [X] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
 - [ ] update_glossary
