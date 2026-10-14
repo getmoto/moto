@@ -30,6 +30,52 @@ class ShieldResponse(BaseResponse):
         )
         return json.dumps({"ProtectionId": protection_id})
 
+    def create_protection_group(self) -> str:
+        params = json.loads(self.body)
+        self.shield_backend.create_protection_group(
+            protection_group_id=params.get("ProtectionGroupId"),
+            aggregation=params.get("Aggregation"),
+            pattern=params.get("Pattern"),
+            resource_type=params.get("ResourceType"),
+            members=params.get("Members"),
+            tags=params.get("Tags"),
+        )
+        return "{}"
+
+    def describe_protection_group(self) -> str:
+        params = json.loads(self.body)
+        protection_group = self.shield_backend.describe_protection_group(
+            protection_group_id=params.get("ProtectionGroupId"),
+        )
+        return json.dumps({"ProtectionGroup": protection_group.to_dict()})
+
+    def update_protection_group(self) -> str:
+        params = json.loads(self.body)
+        self.shield_backend.update_protection_group(
+            protection_group_id=params.get("ProtectionGroupId"),
+            aggregation=params.get("Aggregation"),
+            pattern=params.get("Pattern"),
+            resource_type=params.get("ResourceType"),
+            members=params.get("Members"),
+        )
+        return "{}"
+
+    def delete_protection_group(self) -> str:
+        params = json.loads(self.body)
+        self.shield_backend.delete_protection_group(
+            protection_group_id=params.get("ProtectionGroupId"),
+        )
+        return "{}"
+
+    def list_protection_groups(self) -> str:
+        params = json.loads(self.body)
+        protection_groups = self.shield_backend.list_protection_groups(
+            inclusion_filters=params.get("InclusionFilters"),
+        )
+        return json.dumps(
+            {"ProtectionGroups": [group.to_dict() for group in protection_groups]}
+        )
+
     def describe_protection(self) -> str:
         params = json.loads(self.body)
         protection_id = params.get("ProtectionId")
