@@ -9,6 +9,13 @@ decode_method = base64.decodebytes
 
 
 PAGINATION_MODEL = {
+    "list_streams": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10,
+        "unique_attribute": "stream_name",
+        "fail_on_invalid_token": False,
+    },
     "list_shards": {
         "input_token": "next_token",
         "limit_key": "limit",

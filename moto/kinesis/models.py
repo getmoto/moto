@@ -5,7 +5,6 @@ import json
 import re
 from base64 import b64decode, b64encode
 from collections import OrderedDict
-from collections.abc import Iterable
 from gzip import GzipFile
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any
@@ -635,8 +634,15 @@ class KinesisBackend(BaseBackend):
     ) -> Stream:
         return self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
 
-    def list_streams(self) -> Iterable[Stream]:
-        return self.streams.values()
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_streams(
+        self, exclusive_start_stream_name: str | None = None
+    ) -> list[Stream]:
+        streams = list(self.streams.values())
+        if exclusive_start_stream_name:
+            names = [stream.stream_name for stream in streams]
+            streams = streams[names.index(exclusive_start_stream_name) + 1 :]
+        return streams
 
     def delete_stream(self, stream_arn: str | None, stream_name: str | None) -> Stream:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
