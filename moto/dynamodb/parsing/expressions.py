@@ -545,8 +545,11 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
             self.skip_white_space()
             if self.get_next_token_type() == Token.COMMA:
                 self.goto_next_significant_token()
-                if self.is_at_end():
-                    # The expression should not end with a comma
+                if self.is_at_end() or any(
+                    parser.is_possible_start(self.get_next_token())
+                    for parser in UpdateExpressionParser._sub_factories()
+                ):
+                    # A comma must be followed by another action in the same clause.
                     self.raise_unexpected_token()
             else:
                 break
