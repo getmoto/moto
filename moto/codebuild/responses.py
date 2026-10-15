@@ -116,7 +116,8 @@ class CodeBuildResponse(BaseResponse):
             )
 
         ids = self.codebuild_backend.list_builds_for_project(
-            self._get_param("projectName")
+            self._get_param("projectName"),
+            sort_order=self._get_param("sortOrder"),
         )
 
         return ActionResult({"ids": ids})
