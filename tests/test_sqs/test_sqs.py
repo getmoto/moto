@@ -20,6 +20,7 @@ from moto.sqs.models import (
     MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
+    Message,
     Queue,
     sqs_backends,
 )
@@ -3556,6 +3557,100 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
         "The queue should either have ContentBasedDeduplication enabled "
         "or MessageDeduplicationId provided explicitly"
     )
+
+
+@mock_aws
+def test_queue_attributes_are_not_recalculated_when_sending_messages():
+    # Queue.attributes iterates over every message in the queue, so calculating it
+    # for every message sent makes SendMessage slower as the queue grows
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+    client = boto3.client("sqs", region_name=REGION)
+    standard_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+    fifo_url = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )["QueueUrl"]
+
+    calls = []
+    original_attributes = Queue.attributes
+
+    def counting_attributes(queue):
+        calls.append(queue.name)
+        return original_attributes.fget(queue)
+
+    with mock.patch.object(Queue, "attributes", property(counting_attributes)):
+        client.send_message(QueueUrl=standard_url, MessageBody="body")
+        client.send_message(QueueUrl=fifo_url, MessageBody="body", MessageGroupId="g")
+        client.send_message_batch(
+            QueueUrl=fifo_url,
+            Entries=[
+                {"Id": "1", "MessageBody": "body_1", "MessageGroupId": "g"},
+                {"Id": "2", "MessageBody": "body_2", "MessageGroupId": "g"},
+            ],
+        )
+        assert calls == []
+
+        resp = client.get_queue_attributes(
+            QueueUrl=fifo_url,
+            AttributeNames=["ApproximateNumberOfMessages", "ContentBasedDeduplication"],
+        )
+        assert resp["Attributes"] == {
+            "ApproximateNumberOfMessages": "3",
+            "ContentBasedDeduplication": "true",
+        }
+        assert len(calls) == 1
+
+
+@mock_aws
+def test_receiving_and_deleting_a_message_only_looks_at_that_message():
+    # Checking every message in the queue on each receive or delete makes consuming a queue quadratic
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot access backend directly in server mode")
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+    for i in range(0, 50, 10):
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[{"Id": str(j), "MessageBody": f"body_{i + j}"} for j in range(10)],
+        )
+
+    visibility_checks = []
+    receipt_handle_checks = []
+    original_visible = Message.visible
+    original_all_receipt_handles = Message.all_receipt_handles
+
+    def counting_visible(message):
+        visibility_checks.append(message.id)
+        return original_visible.fget(message)
+
+    def counting_all_receipt_handles(message):
+        receipt_handle_checks.append(message.id)
+        return original_all_receipt_handles.fget(message)
+
+    with (
+        mock.patch.object(Message, "visible", property(counting_visible)),
+        mock.patch.object(
+            Message, "all_receipt_handles", property(counting_all_receipt_handles)
+        ),
+    ):
+        message = client.receive_message(QueueUrl=queue_url)["Messages"][0]
+        client.change_message_visibility(
+            QueueUrl=queue_url,
+            ReceiptHandle=message["ReceiptHandle"],
+            VisibilityTimeout=10,
+        )
+        client.delete_message(
+            QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"]
+        )
+
+    assert set(visibility_checks) == {message["MessageId"]}
+    assert set(receipt_handle_checks) == {message["MessageId"]}
+
+    resp = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
+    )
+    assert resp["Attributes"]["ApproximateNumberOfMessages"] == "49"
 
 
 @aws_verified
