@@ -1,0 +1,18 @@
+{
+  "StartAt": "Call",
+  "States": {
+    "Call": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::apigateway:invoke",
+      "Parameters": {
+        "ApiEndpoint.$": "$.ApiEndpoint",
+        "Method": "GET",
+        "AuthType": "IAM_ROLE",
+        "AllowNullValues": true,
+        "QueryParameters": {"name": "moto", "empty": []},
+        "Headers": {"X-Custom": "single"}
+      },
+      "End": true
+    }
+  }
+}
