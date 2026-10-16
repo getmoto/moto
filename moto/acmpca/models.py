@@ -1,6 +1,5 @@
 """ACMPCABackend class with methods for supported APIs."""
 
-import base64
 import contextlib
 import datetime
 from typing import Any, cast
@@ -154,7 +153,7 @@ class CertificateAuthority(BaseModel):
         return csr.public_bytes(serialization.Encoding.PEM)
 
     def issue_certificate(self, csr_bytes: bytes, template_arn: str | None) -> str:
-        csr = x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
+        csr = x509.load_pem_x509_csr(csr_bytes)
         extensions = self._x509_extensions(csr, template_arn)
         new_cert = self.generate_cert(
             subject=csr.subject,
