@@ -12,6 +12,7 @@ from typing import Any, cast
 
 import pytest
 from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
+from botocore.httpchecksum import AwsChunkedWrapper
 from flask import request as flask_request
 from werkzeug.wrappers import Request as WerkzeugRequest
 
@@ -46,7 +47,7 @@ def _prepared(
     method: str,
     url: str,
     headers: dict[str, Any] | None = None,
-    body: bytes | None = None,
+    body: bytes | BytesIO | AwsChunkedWrapper | None = None,
 ) -> AWSPreparedRequest:
     return AWSPreparedRequest(
         method,
@@ -255,6 +256,29 @@ class TestHeaderNormalization:
         response.setup_class(request, "http://queue.amazonaws.com/", request.headers)
 
         assert response.headers["host"] == "queue.amazonaws.com"
+
+
+class TestStreamedBodies:
+    def test_body_stream_is_left_where_it_was_found(self) -> None:
+        # Moto may not handle this request, and then botocore still has to send it
+        body = BytesIO(b"skip:hello world")
+        body.seek(5)
+        request = normalize_request(
+            _prepared("PUT", "http://localhost:5000/bucket/key", {}, body)
+        )
+        assert request.get_data() == b"hello world"
+        assert body.tell() == 5
+        assert body.read() == b"hello world"
+
+    def test_aws_chunked_body_is_rewound(self) -> None:
+        body = AwsChunkedWrapper(BytesIO(b"hello world"))
+        encoded = body.read()
+        body.seek(0)
+        request = normalize_request(
+            _prepared("PUT", "http://localhost:5000/bucket/key", {}, body)
+        )
+        assert request.get_data() == encoded
+        assert body.read() == encoded
 
 
 class TestGzipInServerMode:
