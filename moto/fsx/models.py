@@ -19,13 +19,13 @@ PAGINATION_MODEL = {
     "describe_file_systems": {
         "input_token": "next_token",
         "limit_key": "max_results",
-        "limit_default": 2147483647,
+        "limit_default": 50,
         "unique_attribute": "resource_arn",
     },
     "describe_backups": {
         "input_token": "next_token",
         "limit_key": "max_results",
-        "limit_default": 2147483647,
+        "limit_default": 50,
         "unique_attribute": "resource_arn",
     },
 }
