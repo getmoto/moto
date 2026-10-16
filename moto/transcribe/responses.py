@@ -6,6 +6,7 @@ from .models import TranscribeBackend, transcribe_backends
 class TranscribeResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="transcribe")
+        self.automated_parameter_parsing = True
 
     @property
     def transcribe_backend(self) -> TranscribeBackend:
