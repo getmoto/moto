@@ -47,6 +47,31 @@ def environ_key_for_header(header_name: str) -> str:
     return f"HTTP_{key}"
 
 
+def _read_body(body: Any) -> Any:
+    """Read a file-like body, leaving the stream where we found it.
+
+    Moto may not handle the request at all - a passthrough, or an endpoint that
+    isn't mocked, such as a Moto Server - in which case botocore still has to
+    send this body, so it must not find the stream already consumed.
+    """
+    if isinstance(body, AwsChunkedWrapper):
+        data = body.read()
+        # The wrapper can only seek back to the start, which is where botocore
+        # itself rewinds it to
+        body.seek(0)
+        return data
+    if not hasattr(body, "read"):
+        return body
+    try:
+        position = body.tell()
+    except (AttributeError, OSError):
+        # Not seekable, so there is no putting it back
+        return body.read()
+    data = body.read()
+    body.seek(position)
+    return data
+
+
 class EnvironHeaders(WerkzeugEnvironHeaders):
     """EnvironHeaders that report any preserved headers under their original names.
 
@@ -80,8 +105,7 @@ class Request(WerkzeugRequest):
         cls, method: str, url: str, headers: Any, body: Any = None
     ) -> Request:
         """Build a request from the basic components of an HTTP message."""
-        if isinstance(body, AwsChunkedWrapper):
-            body = body.read()
+        body = _read_body(body)
         # The proxy de-chunks before we ever see the request, and we (above) read
         # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
         header_items = [
