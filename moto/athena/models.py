@@ -206,6 +206,16 @@ class NamedQuery(BaseModel):
         self.query_string = query_string
         self.workgroup = workgroup
 
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "Database": self.database,
+            "QueryString": self.query_string,
+            "NamedQueryId": self.id,
+            "WorkGroup": self.workgroup.name,
+        }
+
 
 class PreparedStatement(BaseModel):
     def __init__(
@@ -400,6 +410,18 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
         execution.advance()
         return execution
 
+    def batch_get_query_execution(
+        self, exec_ids: list[str]
+    ) -> tuple[list[Execution], list[str]]:
+        executions = []
+        unprocessed_ids = []
+        for exec_id in exec_ids:
+            if exec_id in self.executions:
+                executions.append(self.get_query_execution(exec_id))
+            else:
+                unprocessed_ids.append(exec_id)
+        return executions, unprocessed_ids
+
     def list_query_executions(self, workgroup: str | None) -> dict[str, Execution]:
         # Note: We do not advance the execution status here, only in `get_query_execution`
         # This method simply returns the QueryExecutionIds to the user
@@ -547,6 +569,21 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_named_query(self, query_id: str) -> NamedQuery | None:
         return self.named_queries[query_id] if query_id in self.named_queries else None
+
+    def batch_get_named_query(
+        self, query_ids: list[str]
+    ) -> tuple[list[NamedQuery], list[str]]:
+        named_queries = []
+        unprocessed_ids = []
+        for query_id in query_ids:
+            if query_id in self.named_queries:
+                named_queries.append(self.named_queries[query_id])
+            else:
+                unprocessed_ids.append(query_id)
+        return named_queries, unprocessed_ids
+
+    def delete_named_query(self, query_id: str) -> None:
+        self.named_queries.pop(query_id, None)
 
     def list_data_catalogs(self) -> list[dict[str, str]]:
         return [
