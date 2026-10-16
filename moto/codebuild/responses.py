@@ -98,6 +98,7 @@ def _validate_required_params_id(build_id: str, build_ids: list[str]) -> None:
 class CodeBuildResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="codebuild")
+        self.automated_parameter_parsing = True
 
     @property
     def codebuild_backend(self) -> CodeBuildBackend:
