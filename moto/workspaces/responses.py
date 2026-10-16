@@ -1,8 +1,6 @@
 """Handles incoming workspaces requests, invokes methods, returns responses."""
 
-import json
-
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import WorkSpacesBackend, workspaces_backends
 
@@ -12,61 +10,57 @@ class WorkSpacesResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="workspaces")
+        self.automated_parameter_parsing = True
 
     @property
     def workspaces_backend(self) -> WorkSpacesBackend:
         """Return backend instance specific for this region."""
         return workspaces_backends[self.current_account][self.region]
 
-    def create_workspaces(self) -> str:
-        params = json.loads(self.body)
-        workspaces = params.get("Workspaces")
+    def create_workspaces(self) -> ActionResult:
+        workspaces = self._get_param("Workspaces")
         failed_requests, pending_requests = self.workspaces_backend.create_workspaces(
             workspaces=workspaces,
         )
-        return json.dumps(
+        return ActionResult(
             {"FailedRequests": failed_requests, "PendingRequests": pending_requests}
         )
 
-    def describe_workspaces(self) -> str:
-        params = json.loads(self.body)
-        workspace_ids = params.get("WorkspaceIds")
-        directory_id = params.get("DirectoryId")
-        user_name = params.get("UserName")
-        bundle_id = params.get("BundleId")
+    def describe_workspaces(self) -> ActionResult:
+        workspace_ids = self._get_param("WorkspaceIds")
+        directory_id = self._get_param("DirectoryId")
+        user_name = self._get_param("UserName")
+        bundle_id = self._get_param("BundleId")
         workspaces = self.workspaces_backend.describe_workspaces(
             workspace_ids=workspace_ids,
             directory_id=directory_id,
             user_name=user_name,
             bundle_id=bundle_id,
         )
-        return json.dumps({"Workspaces": [x.to_dict_pending() for x in workspaces]})
+        return ActionResult({"Workspaces": [x.to_dict_pending() for x in workspaces]})
 
-    def describe_workspace_directories(self) -> str:
-        params = json.loads(self.body)
-        directory_ids = params.get("DirectoryIds")
+    def describe_workspace_directories(self) -> ActionResult:
+        directory_ids = self._get_param("DirectoryIds")
         directories = self.workspaces_backend.describe_workspace_directories(
             directory_ids=directory_ids,
         )
-        return json.dumps({"Directories": [d.to_dict() for d in directories]})
+        return ActionResult({"Directories": [d.to_dict() for d in directories]})
 
-    def terminate_workspaces(self) -> str:
-        params = json.loads(self.body)
-        terminate_requests = params.get("TerminateWorkspaceRequests")
+    def terminate_workspaces(self) -> ActionResult:
+        terminate_requests = self._get_param("TerminateWorkspaceRequests")
 
         failed_requests = self.workspaces_backend.terminate_workspaces(
             terminate_workspace_requests=terminate_requests,
         )
 
-        return json.dumps(failed_requests)
+        return ActionResult(failed_requests)
 
-    def register_workspace_directory(self) -> str:
-        params = json.loads(self.body)
-        directory_id = params.get("DirectoryId")
-        subnet_ids = params.get("SubnetIds")
-        enable_self_service = params.get("EnableSelfService")
-        tenancy = params.get("Tenancy")
-        tags = params.get("Tags")
+    def register_workspace_directory(self) -> ActionResult:
+        directory_id = self._get_param("DirectoryId")
+        subnet_ids = self._get_param("SubnetIds")
+        enable_self_service = self._get_param("EnableSelfService")
+        tenancy = self._get_param("Tenancy")
+        tags = self._get_param("Tags")
         self.workspaces_backend.register_workspace_directory(
             directory_id=directory_id,
             subnet_ids=subnet_ids,
@@ -74,115 +68,106 @@ class WorkSpacesResponse(BaseResponse):
             tenancy=tenancy,
             tags=tags,
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def modify_workspace_creation_properties(self) -> str:
-        params = json.loads(self.body)
-        resource_id = params.get("ResourceId")
-        workspace_creation_properties = params.get("WorkspaceCreationProperties")
+    def modify_workspace_creation_properties(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        workspace_creation_properties = self._get_param("WorkspaceCreationProperties")
         self.workspaces_backend.modify_workspace_creation_properties(
             resource_id=resource_id,
             workspace_creation_properties=workspace_creation_properties,
         )
-        return "{}"
+        return EmptyResult()
 
-    def create_tags(self) -> str:
-        params = json.loads(self.body)
-        resource_id = params.get("ResourceId")
-        tags = params.get("Tags")
+    def create_tags(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        tags = self._get_param("Tags")
         self.workspaces_backend.create_tags(
             resource_id=resource_id,
             tags=tags,
         )
-        return "{}"
+        return EmptyResult()
 
-    def describe_tags(self) -> str:
-        params = json.loads(self.body)
-        resource_id = params.get("ResourceId")
+    def describe_tags(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
         tag_list = self.workspaces_backend.describe_tags(
             resource_id=resource_id,
         )
-        return json.dumps({"TagList": tag_list})
+        return ActionResult({"TagList": tag_list})
 
-    def describe_client_properties(self) -> str:
-        params = json.loads(self.body)
-        resource_ids = params.get("ResourceIds")
+    def describe_client_properties(self) -> ActionResult:
+        resource_ids = self._get_param("ResourceIds")
         client_properties_list = self.workspaces_backend.describe_client_properties(
             resource_ids=resource_ids,
         )
-        return json.dumps({"ClientPropertiesList": client_properties_list})
+        return ActionResult({"ClientPropertiesList": client_properties_list})
 
-    def modify_client_properties(self) -> str:
-        params = json.loads(self.body)
-        resource_id = params.get("ResourceId")
-        client_properties = params.get("ClientProperties")
+    def modify_client_properties(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        client_properties = self._get_param("ClientProperties")
         self.workspaces_backend.modify_client_properties(
             resource_id=resource_id,
             client_properties=client_properties,
         )
-        return "{}"
+        return EmptyResult()
 
-    def create_workspace_image(self) -> str:
-        params = json.loads(self.body)
-        name = params.get("Name")
-        description = params.get("Description")
-        workspace_id = params.get("WorkspaceId")
-        tags = params.get("Tags")
+    def create_workspace_image(self) -> ActionResult:
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        workspace_id = self._get_param("WorkspaceId")
+        tags = self._get_param("Tags")
         workspace_image = self.workspaces_backend.create_workspace_image(
             name=name,
             description=description,
             workspace_id=workspace_id,
             tags=tags,
         )
-        return json.dumps(workspace_image)
+        return ActionResult(workspace_image)
 
-    def describe_workspace_images(self) -> str:
-        params = json.loads(self.body)
-        image_ids = params.get("ImageIds")
-        image_type = params.get("ImageType")
+    def describe_workspace_images(self) -> ActionResult:
+        image_ids = self._get_param("ImageIds")
+        image_type = self._get_param("ImageType")
         images = self.workspaces_backend.describe_workspace_images(
             image_ids=image_ids,
             image_type=image_type,
         )
-        return json.dumps({"Images": images})
+        return ActionResult({"Images": images})
 
-    def update_workspace_image_permission(self) -> str:
-        params = json.loads(self.body)
-        image_id = params.get("ImageId")
-        allow_copy_image = params.get("AllowCopyImage")
-        shared_account_id = params.get("SharedAccountId")
+    def update_workspace_image_permission(self) -> ActionResult:
+        image_id = self._get_param("ImageId")
+        allow_copy_image = self._get_param("AllowCopyImage")
+        shared_account_id = self._get_param("SharedAccountId")
         self.workspaces_backend.update_workspace_image_permission(
             image_id=image_id,
             allow_copy_image=allow_copy_image,
             shared_account_id=shared_account_id,
         )
-        return "{}"
+        return EmptyResult()
 
-    def describe_workspace_image_permissions(self) -> str:
-        params = json.loads(self.body)
-        image_id = params.get("ImageId")
+    def describe_workspace_image_permissions(self) -> ActionResult:
+        image_id = self._get_param("ImageId")
         (
             image_id,
             image_permissions,
         ) = self.workspaces_backend.describe_workspace_image_permissions(
             image_id=image_id,
         )
-        return json.dumps({"ImageId": image_id, "ImagePermissions": image_permissions})
+        return ActionResult(
+            {"ImageId": image_id, "ImagePermissions": image_permissions}
+        )
 
-    def deregister_workspace_directory(self) -> str:
-        params = json.loads(self.body)
-        directory_id = params.get("DirectoryId")
+    def deregister_workspace_directory(self) -> ActionResult:
+        directory_id = self._get_param("DirectoryId")
         self.workspaces_backend.deregister_workspace_directory(
             directory_id=directory_id,
         )
-        return "{}"
+        return EmptyResult()
 
-    def modify_selfservice_permissions(self) -> str:
-        params = json.loads(self.body)
-        resource_id = params.get("ResourceId")
-        selfservice_permissions = params.get("SelfservicePermissions")
+    def modify_selfservice_permissions(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        selfservice_permissions = self._get_param("SelfservicePermissions")
         self.workspaces_backend.modify_selfservice_permissions(
             resource_id=resource_id,
             selfservice_permissions=selfservice_permissions,
         )
-        return "{}"
+        return EmptyResult()
