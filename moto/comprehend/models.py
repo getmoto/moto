@@ -736,13 +736,18 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
                 job for job in results if job.job_status == job_filter["JobStatus"]
             ]
         if "SubmitTimeBefore" in job_filter:
-            before_time = job_filter["SubmitTimeBefore"]
+            before_time = self._as_utc(job_filter["SubmitTimeBefore"])
             results = [job for job in results if job.submit_time < before_time]
         if "SubmitTimeAfter" in job_filter:
-            after_time = job_filter["SubmitTimeAfter"]
+            after_time = self._as_utc(job_filter["SubmitTimeAfter"])
             results = [job for job in results if job.submit_time > after_time]
 
         return results
+
+    @staticmethod
+    def _as_utc(value: datetime) -> datetime:
+        # Request timestamps are parsed as naive UTC datetimes
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
     def start_pii_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("PiiEntitiesDetection", **kwargs)
