@@ -183,3 +183,31 @@ def test_describe_firewall():
     # Describe the firewall using the name
     resp_name = client.describe_firewall(FirewallName="test-firewall")
     assert resp_name["Firewall"]["FirewallName"] == "test-firewall"
+
+
+@mock_aws
+def test_list_firewalls_paginate():
+    seen_tokens = set()
+    client = boto3.client("network-firewall", region_name="us-east-1")
+    expected_names = {f"page-firewall-{i}" for i in range(101)}
+    for i in range(101):
+        client.create_firewall(
+            FirewallName=f"page-firewall-{i}",
+            FirewallPolicyArn="arn:aws:network-firewall:us-east-1:123456789012:firewall-policy/test",
+            VpcId=f"vpc-page-{i}",
+        )
+
+    page = client.list_firewalls()
+    assert len(page["Firewalls"]) == 100
+    assert page.get("NextToken")
+    firewalls = list(page["Firewalls"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_firewalls(NextToken=next_token)
+        firewalls.extend(page["Firewalls"])
+
+    names = [fw["FirewallName"] for fw in firewalls]
+    assert set(names) == expected_names
+    assert len(names) == 101

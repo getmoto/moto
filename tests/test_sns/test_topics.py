@@ -727,3 +727,31 @@ def test_get_config_resource():
         ]
     )
     assert len(response["baseConfigurationItems"]) == 0
+
+
+@mock_aws
+def test_list_config_service_resources_paginate():
+    seen_tokens = set()
+    sns_client = boto3.client("sns", region_name="us-east-1")
+    config_client = boto3.client("config", region_name="us-east-1")
+    expected_topic_arns = {
+        sns_client.create_topic(Name=f"pagination-topic-{idx}")["TopicArn"]
+        for idx in range(101)
+    }
+
+    response = config_client.list_discovered_resources(resourceType="AWS::SNS::Topic")
+    resources = list(response["resourceIdentifiers"])
+    assert len(resources) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = config_client.list_discovered_resources(
+            resourceType="AWS::SNS::Topic",
+            nextToken=response["nextToken"],
+        )
+        resources.extend(response["resourceIdentifiers"])
+
+    resource_arns = {resource["resourceId"] for resource in resources}
+    assert len(resources) == 101
+    assert resource_arns == expected_topic_arns

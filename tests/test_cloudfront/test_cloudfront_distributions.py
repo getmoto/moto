@@ -791,3 +791,31 @@ def test_list_distributions_config_fields():
     assert item["ViewerCertificate"]["CloudFrontDefaultCertificate"] is True
     assert item["Enabled"] is False
     assert item["Comment"] == "an optional comment that's not actually optional"
+
+
+@mock_aws
+def test_list_distributions_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    expected_ids = {
+        client.create_distribution(
+            DistributionConfig=scaffold.example_distribution_config(ref=f"ref{idx}")
+        )["Distribution"]["Id"]
+        for idx in range(101)
+    }
+    response = client.list_distributions()["DistributionList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_distributions(Marker=next_marker)["DistributionList"]
+        pages.append(response["Items"])
+    ids = [distribution["Id"] for page in pages for distribution in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids
+    assert all(
+        distribution["Status"] == "Deployed" for page in pages for distribution in page
+    )

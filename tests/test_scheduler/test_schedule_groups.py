@@ -92,3 +92,25 @@ def test_list_schedule_groups_with_filters():
     filtered_groups = [g for g in groups if g["Name"] != "default"]
     assert all(g["Name"].startswith("blabla") for g in filtered_groups)
     assert "NextToken" in client.list_schedule_groups(NamePrefix="blabla", MaxResults=2)
+
+
+@mock_aws
+def test_list_schedule_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("scheduler", region_name="us-east-1")
+    expected_names = {"default"} | {f"group-{index}" for index in range(50)}
+    for name in expected_names - {"default"}:
+        client.create_schedule_group(Name=name)
+
+    response = client.list_schedule_groups()
+    assert len(response["ScheduleGroups"]) == 50
+    actual_names = [group["Name"] for group in response["ScheduleGroups"]]
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_schedule_groups(NextToken=next_token)
+        actual_names.extend(group["Name"] for group in response["ScheduleGroups"])
+
+    assert len(actual_names) == len(expected_names)
+    assert set(actual_names) == expected_names

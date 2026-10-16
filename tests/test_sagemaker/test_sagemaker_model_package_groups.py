@@ -298,3 +298,29 @@ def test_search_model_package_groups():
         summary[1]["ModelPackageGroup"]["ModelPackageGroupName"]
         == "test-model-package-group-2"
     )
+
+
+@mock_aws
+def test_list_model_package_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"model-package-group-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_package_group(
+            ModelPackageGroupName=name,
+            ModelPackageGroupDescription=f"description-{name}",
+        )
+
+    pagination_response = client.list_model_package_groups()
+    paginated_items = list(pagination_response["ModelPackageGroupSummaryList"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_model_package_groups(NextToken=next_token)
+        paginated_items.extend(pagination_response["ModelPackageGroupSummaryList"])
+    actual_names = [item["ModelPackageGroupName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

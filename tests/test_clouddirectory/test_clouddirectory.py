@@ -398,3 +398,86 @@ def test_publish_already_published_schema():
             Version="1",
             MinorVersion="0",
         )
+
+
+@mock_aws
+def test_list_development_schema_arns_paginate():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    expected_arns = []
+    for i in range(101):
+        arn = client.create_schema(Name=f"test-schema-{i}")["SchemaArn"]
+        expected_arns.append(arn)
+    seen_tokens = set()
+    page = client.list_development_schema_arns()
+    assert len(page["SchemaArns"]) == 100
+    pages = [page["SchemaArns"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_development_schema_arns(NextToken=next_token)
+        pages.append(page["SchemaArns"])
+    actual_arns = [arn for page_arns in pages for arn in page_arns]
+    assert [len(page_arns) for page_arns in pages] == [100, 1]
+    assert len(actual_arns) == 101
+    assert set(actual_arns) == set(expected_arns)
+
+
+@mock_aws
+def test_list_published_schema_arns_paginate():
+    seen_tokens = set()
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    expected_arns = []
+    for index in range(101):
+        schema_name = f"test-schema{index}"
+        schema_arn = client.create_schema(Name=schema_name)["SchemaArn"]
+        expected_arns.append(
+            client.publish_schema(
+                DevelopmentSchemaArn=schema_arn,
+                Name=schema_name,
+                Version="1",
+                MinorVersion="0",
+            )["PublishedSchemaArn"]
+        )
+    response = client.list_published_schema_arns()
+    pages = [response["SchemaArns"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_published_schema_arns(NextToken=next_token)
+        pages.append(response["SchemaArns"])
+    actual_arns = [arn for page in pages for arn in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(actual_arns) == 101
+    assert set(actual_arns) == set(expected_arns)
+
+
+@mock_aws
+def test_list_directories_paginate():
+    seen_tokens = set()
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = (
+        f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
+    )
+    expected_names = {f"test-directory-{index}" for index in range(101)}
+    for name in expected_names:
+        client.create_directory(SchemaArn=schema_arn, Name=name)
+    resp = client.list_directories()
+    pages = [resp["Directories"]]
+    assert len(pages[0]) == 100
+    while resp.get("NextToken"):
+        next_token = resp["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        resp = client.list_directories(NextToken=next_token)
+        pages.append(resp["Directories"])
+    page_names = [directory["Name"] for page in pages for directory in page]
+    page_arns = [directory["DirectoryArn"] for page in pages for directory in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(page_arns) == 101
+    assert set(page_names) == expected_names

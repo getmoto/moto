@@ -552,3 +552,32 @@ def test_throttling_exception_with_all_parameters():
     assert body["quotaCode"] == "L-12345678"
     assert body["retryAfterSeconds"] == 60
     assert body["serviceCode"] == "pipes"
+
+
+@mock_aws
+def test_list_pipes_paginate():
+    seen_tokens = set()
+    client = boto3.client("pipes", region_name="us-east-1")
+    expected = {f"pagination-pipe-{i}" for i in range(101)}
+    for name in expected:
+        client.create_pipe(
+            Name=name,
+            Source=f"arn:aws:sqs:us-east-1:123456789012:{name}-queue",
+            Target=f"arn:aws:lambda:us-east-1:123456789012:function:{name}",
+            RoleArn="arn:aws:iam::123456789012:role/test-role",
+        )
+
+    page = client.list_pipes()
+    assert len(page["Pipes"]) == 100
+    assert page.get("NextToken")
+    pipes = list(page["Pipes"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_pipes(NextToken=next_token)
+        pipes.extend(page["Pipes"])
+
+    names = [pipe["Name"] for pipe in pipes]
+    assert set(names) == expected
+    assert len(names) == 101

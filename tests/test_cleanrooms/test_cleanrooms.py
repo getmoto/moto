@@ -442,3 +442,75 @@ def test_collaborations_are_region_specific():
 
     assert collaboration["arn"].startswith(f"arn:aws:cleanrooms:eu-west-1:{ACCOUNT_ID}")
     assert len(client_euw1.list_collaborations()["collaborationList"]) == 1
+
+
+@mock_aws
+def test_list_collaborations_paginate():
+    seen_tokens = set()
+    client = boto3.client("cleanrooms", region_name=REGION)
+    for idx in range(101):
+        create_collaboration(client, name=f"collaboration-{idx}")
+    response = client.list_collaborations()
+    pages = [response["collaborationList"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_collaborations(nextToken=next_token)
+        pages.append(response["collaborationList"])
+    names = [item["name"] for page in pages for item in page]
+    ids = [item["id"] for page in pages for item in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(names) == {f"collaboration-{idx}" for idx in range(101)}
+
+
+@mock_aws
+def test_list_memberships_paginate():
+    seen_tokens = set()
+    client = boto3.client("cleanrooms", region_name=REGION)
+    expected_ids = set()
+    for idx in range(101):
+        collaboration = create_collaboration(client, name=f"collaboration-{idx}")
+        expected_ids.add(
+            client.create_membership(
+                collaborationIdentifier=collaboration["id"], queryLogStatus="ENABLED"
+            )["membership"]["id"]
+        )
+    response = client.list_memberships()
+    pages = [response["membershipSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_memberships(nextToken=next_token)
+        pages.append(response["membershipSummaries"])
+    ids = [membership["id"] for page in pages for membership in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids
+
+
+@mock_aws
+def test_list_configured_tables_paginate():
+    seen_tokens = set()
+    client = boto3.client("cleanrooms", region_name=REGION)
+    expected_ids = {
+        create_configured_table(client, name=f"table-{index}")["id"]
+        for index in range(101)
+    }
+    response = client.list_configured_tables()
+    pages = [response["configuredTableSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_configured_tables(nextToken=next_token)
+        pages.append(response["configuredTableSummaries"])
+    ids = [table["id"] for page in pages for table in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids

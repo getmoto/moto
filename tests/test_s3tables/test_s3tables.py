@@ -464,3 +464,90 @@ def test_rename_table_fails_when_no_updates_are_specified() -> None:
             versionToken=resp["versionToken"],
         )
     assert ctx.match("Neither a new namespace name nor a new table name is specified.")
+
+
+@mock_aws
+def test_list_table_buckets_paginate():
+    seen_tokens = set()
+    client = boto3.client("s3tables", region_name="us-east-1")
+    expected = {f"pagination-bucket-{i}" for i in range(1001)}
+    for name in expected:
+        client.create_table_bucket(name=name)
+
+    page = client.list_table_buckets()
+    assert len(page["tableBuckets"]) == 1000
+    assert page.get("continuationToken")
+    buckets = list(page["tableBuckets"])
+    while page.get("continuationToken"):
+        next_token = page["continuationToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_table_buckets(continuationToken=next_token)
+        buckets.extend(page["tableBuckets"])
+
+    names = [bucket["name"] for bucket in buckets]
+    assert set(names) == expected
+    assert len(names) == 1001
+
+
+@mock_aws
+def test_list_namespaces_paginate():
+    seen_tokens = set()
+    client = boto3.client("s3tables", region_name="us-east-1")
+    bucket_arn = client.create_table_bucket(name="pagination-bucket")["arn"]
+    expected = {(f"namespace_{i}",) for i in range(1001)}
+    for namespace in expected:
+        client.create_namespace(tableBucketARN=bucket_arn, namespace=list(namespace))
+
+    page = client.list_namespaces(tableBucketARN=bucket_arn)
+    assert len(page["namespaces"]) == 1000
+    assert page.get("continuationToken")
+    namespaces = list(page["namespaces"])
+    while page.get("continuationToken"):
+        next_token = page["continuationToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_namespaces(
+            tableBucketARN=bucket_arn,
+            continuationToken=next_token,
+        )
+        namespaces.extend(page["namespaces"])
+
+    names = [tuple(item["namespace"]) for item in namespaces]
+    assert set(names) == expected
+    assert len(names) == 1001
+
+
+@mock_aws
+def test_list_tables_paginate():
+    seen_tokens = set()
+    client = boto3.client("s3tables", region_name="us-east-1")
+    bucket_arn = client.create_table_bucket(name="pagination-bucket")["arn"]
+    client.create_namespace(tableBucketARN=bucket_arn, namespace=["pagination"])
+    expected = {f"table_{i}" for i in range(1001)}
+    for name in expected:
+        client.create_table(
+            tableBucketARN=bucket_arn,
+            namespace="pagination",
+            name=name,
+            format="ICEBERG",
+        )
+
+    page = client.list_tables(tableBucketARN=bucket_arn, namespace="pagination")
+    assert len(page["tables"]) == 1000
+    assert page.get("continuationToken")
+    tables = list(page["tables"])
+    while page.get("continuationToken"):
+        next_token = page["continuationToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_tables(
+            tableBucketARN=bucket_arn,
+            namespace="pagination",
+            continuationToken=next_token,
+        )
+        tables.extend(page["tables"])
+
+    names = [table["name"] for table in tables]
+    assert set(names) == expected
+    assert len(names) == 1001

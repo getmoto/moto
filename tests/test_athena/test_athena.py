@@ -695,3 +695,35 @@ def test_get_query_runtime_statistics_with_execution_id():
     )
 
     assert "QueryRuntimeStatistics" in statistics
+
+
+@mock_aws
+def test_list_named_queries_paginate():
+    seen_tokens = set()
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    expected_ids = {
+        client.create_named_query(
+            Name=f"query-{index}",
+            Database="target_db",
+            QueryString="SELECT * FROM table1",
+            WorkGroup="athena_workgroup",
+        )["NamedQueryId"]
+        for index in range(51)
+    }
+    response = client.list_named_queries(WorkGroup="athena_workgroup")
+    pages = [response["NamedQueryIds"]]
+    assert len(pages[0]) == 50
+    while response.get("NextToken"):
+        assert response.get("NextToken") not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_named_queries(
+            WorkGroup="athena_workgroup", NextToken=response["NextToken"]
+        )
+        pages.append(response["NamedQueryIds"])
+    all_ids = [query_id for page in pages for query_id in page]
+    assert [len(page) for page in pages] == [50, 1]
+    assert len(all_ids) == 51
+    assert set(all_ids) == expected_ids
+    list_primary_wg = client.list_named_queries()
+    assert len(list_primary_wg["NamedQueryIds"]) == 0

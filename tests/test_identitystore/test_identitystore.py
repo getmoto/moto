@@ -1200,3 +1200,146 @@ def __create_and_verify_sparse_user(client, store_id: str):
         "ResponseMetadata"
     ]  # strip response metadata and just return user info
     return user_resp
+
+
+@mock_aws
+def test_list_group_memberships_paginate():
+    seen_tokens = set()
+    client = boto3.client("identitystore", region_name="us-east-2")
+    store_id = get_identity_store_id()
+    group_id = client.create_group(
+        IdentityStoreId=store_id, DisplayName="pagination-group", Description="test"
+    )["GroupId"]
+    user_ids = []
+    for idx in range(101):
+        user_id = client.create_user(
+            IdentityStoreId=store_id,
+            UserName=f"pagination-user-{idx}",
+            DisplayName=f"Pagination User {idx}",
+            Name={"GivenName": "Pagination", "FamilyName": f"User{idx}"},
+        )["UserId"]
+        user_ids.append(user_id)
+        client.create_group_membership(
+            IdentityStoreId=store_id, GroupId=group_id, MemberId={"UserId": user_id}
+        )
+
+    page = client.list_group_memberships(IdentityStoreId=store_id, GroupId=group_id)
+    actual = [
+        membership["MemberId"]["UserId"] for membership in page["GroupMemberships"]
+    ]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_group_memberships(
+            IdentityStoreId=store_id,
+            GroupId=group_id,
+            NextToken=page["NextToken"],
+        )
+        actual.extend(
+            membership["MemberId"]["UserId"] for membership in page["GroupMemberships"]
+        )
+
+    assert len(actual) == len(user_ids)
+    assert set(actual) == set(user_ids)
+
+
+@mock_aws
+def test_list_group_memberships_for_member_paginate():
+    seen_tokens = set()
+    client = boto3.client("identitystore", region_name="us-east-2")
+    store_id = get_identity_store_id()
+    user_id = client.create_user(
+        IdentityStoreId=store_id,
+        UserName="pagination-member",
+        DisplayName="Pagination Member",
+        Name={"GivenName": "Pagination", "FamilyName": "Member"},
+    )["UserId"]
+    group_ids = []
+    for idx in range(101):
+        group_id = client.create_group(
+            IdentityStoreId=store_id,
+            DisplayName=f"pagination-group-{idx}",
+            Description="test",
+        )["GroupId"]
+        group_ids.append(group_id)
+        client.create_group_membership(
+            IdentityStoreId=store_id, GroupId=group_id, MemberId={"UserId": user_id}
+        )
+
+    page = client.list_group_memberships_for_member(
+        IdentityStoreId=store_id, MemberId={"UserId": user_id}
+    )
+    actual = [membership["GroupId"] for membership in page["GroupMemberships"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_group_memberships_for_member(
+            IdentityStoreId=store_id,
+            MemberId={"UserId": user_id},
+            NextToken=page["NextToken"],
+        )
+        actual.extend(membership["GroupId"] for membership in page["GroupMemberships"])
+
+    assert len(actual) == len(group_ids)
+    assert set(actual) == set(group_ids)
+
+
+@mock_aws
+def test_list_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("identitystore", region_name="us-east-2")
+    store_id = get_identity_store_id()
+    group_ids = [
+        client.create_group(
+            IdentityStoreId=store_id,
+            DisplayName=f"pagination-group-{idx}",
+            Description="test",
+        )["GroupId"]
+        for idx in range(101)
+    ]
+
+    page = client.list_groups(IdentityStoreId=store_id)
+    actual = [group["GroupId"] for group in page["Groups"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_groups(IdentityStoreId=store_id, NextToken=page["NextToken"])
+        actual.extend(group["GroupId"] for group in page["Groups"])
+
+    assert len(actual) == len(group_ids)
+    assert set(actual) == set(group_ids)
+
+
+@mock_aws
+def test_list_users_paginate():
+    seen_tokens = set()
+    client = boto3.client("identitystore", region_name="us-east-2")
+    store_id = get_identity_store_id()
+    user_ids = [
+        client.create_user(
+            IdentityStoreId=store_id,
+            UserName=f"pagination-user-{idx}",
+            DisplayName=f"Pagination User {idx}",
+            Name={"GivenName": "Pagination", "FamilyName": f"User{idx}"},
+        )["UserId"]
+        for idx in range(101)
+    ]
+
+    page = client.list_users(IdentityStoreId=store_id)
+    actual = [user["UserId"] for user in page["Users"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_users(IdentityStoreId=store_id, NextToken=page["NextToken"])
+        actual.extend(user["UserId"] for user in page["Users"])
+
+    assert len(actual) == len(user_ids)
+    assert set(actual) == set(user_ids)

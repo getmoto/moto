@@ -391,3 +391,30 @@ def test_delete_model_card():
     with pytest.raises(ClientError) as e:
         client.delete_model_card(ModelCardName="my-first-model-card")
     assert e.value.response["Error"]["Code"] == "ResourceNotFound"
+
+
+@mock_aws
+def test_list_model_cards_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"model-card-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_card(
+            ModelCardName=name,
+            ModelCardStatus="Draft",
+            Content='{"model_overview": {"model_description": "pagination test"}}',
+        )
+
+    pagination_response = client.list_model_cards()
+    paginated_items = list(pagination_response["ModelCardSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_model_cards(NextToken=next_token)
+        paginated_items.extend(pagination_response["ModelCardSummaries"])
+    actual_names = [item["ModelCardName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

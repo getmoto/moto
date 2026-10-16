@@ -291,7 +291,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "workflow_run_id",
+            "unique_attribute": "WorkflowRunId",
         },
         "get_ml_transforms": {
             "input_token": "next_token",

@@ -1054,7 +1054,12 @@ class SageMakerResponse(BaseResponse):
         return ActionResult(response)
 
     def list_model_bias_job_definitions(self) -> ActionResult:
-        result, next_token = self.sagemaker_backend.list_model_bias_job_definitions()
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        result, next_token = self.sagemaker_backend.list_model_bias_job_definitions(
+            max_results=max_results,
+            next_token=next_token,
+        )
         return ActionResult({"JobDefinitionSummaries": result, "NextToken": next_token})
 
     def describe_model_bias_job_definition(self) -> ActionResult:
@@ -1100,7 +1105,12 @@ class SageMakerResponse(BaseResponse):
         return ActionResult(response)
 
     def list_data_quality_job_definitions(self) -> ActionResult:
-        result, next_token = self.sagemaker_backend.list_data_quality_job_definitions()
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        result, next_token = self.sagemaker_backend.list_data_quality_job_definitions(
+            max_results=max_results,
+            next_token=next_token,
+        )
         return ActionResult({"JobDefinitionSummaries": result, "NextToken": next_token})
 
     def describe_data_quality_job_definition(self) -> ActionResult:

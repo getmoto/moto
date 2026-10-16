@@ -104,3 +104,27 @@ def test_list_key_rotations_pagination():
     assert len(final_page["Rotations"]) == 2
     assert final_page["Truncated"] is False
     assert "NextMarker" not in final_page
+
+
+@mock_aws
+def test_list_key_rotations_paginate():
+    seen_tokens = set()
+    client = boto3.client("kms", region_name="us-east-2")
+    key_id = client.create_key(Policy="my policy")["KeyMetadata"]["KeyId"]
+    for _ in range(1001):
+        client.rotate_key_on_demand(KeyId=key_id)
+
+    page = client.list_key_rotations(KeyId=key_id)
+    assert len(page["Rotations"]) == 1000
+    assert page["Truncated"] is True
+    rotations = list(page["Rotations"])
+    while page["Truncated"]:
+        next_marker = page["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        page = client.list_key_rotations(KeyId=key_id, Marker=next_marker)
+        rotations.extend(page["Rotations"])
+
+    dates = [rotation["RotationDate"] for rotation in rotations]
+    assert len(dates) == 1001
+    assert all(rotation["RotationType"] == "ON_DEMAND" for rotation in rotations)

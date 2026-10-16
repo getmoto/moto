@@ -253,3 +253,70 @@ def test_delete_model_bias_job():
     response = client.list_model_bias_job_definitions()
     job_names = [job["JobDefinitionName"] for job in response["JobDefinitionSummaries"]]
     assert "test-bias-job" not in job_names
+
+
+@mock_aws
+def test_list_model_bias_job_definitions_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"bias-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_bias_job_definition(
+            JobDefinitionName=name,
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+            ModelBiasAppSpecification={
+                "ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/image:latest",
+                "ConfigUri": "s3://bucket/bias-config.json",
+            },
+            ModelBiasJobInput={
+                "EndpointInput": {
+                    "EndpointName": "test-endpoint",
+                    "LocalPath": "/opt/ml/processing/input",
+                    "S3InputMode": "File",
+                    "S3DataDistributionType": "FullyReplicated",
+                },
+                "GroundTruthS3Input": {"S3Uri": "s3://bucket/ground-truth"},
+            },
+            ModelBiasJobOutputConfig={
+                "MonitoringOutputs": [
+                    {
+                        "S3Output": {
+                            "S3Uri": "s3://bucket/bias-output",
+                            "LocalPath": "/opt/ml/processing/output",
+                            "S3UploadMode": "EndOfJob",
+                        }
+                    }
+                ]
+            },
+            JobResources={
+                "ClusterConfig": {
+                    "InstanceCount": 1,
+                    "InstanceType": "ml.m5.xlarge",
+                    "VolumeSizeInGB": 10,
+                }
+            },
+            NetworkConfig={
+                "EnableInterContainerTrafficEncryption": False,
+                "EnableNetworkIsolation": False,
+            },
+        )
+
+    response = client.list_model_bias_job_definitions()
+    assert len(response["JobDefinitionSummaries"]) == 100
+    actual_names = []
+    for _ in range(len(names) + 1):
+        actual_names.extend(
+            job["MonitoringJobDefinitionName"]
+            for job in response["JobDefinitionSummaries"]
+        )
+        if "NextToken" not in response:
+            break
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_model_bias_job_definitions(NextToken=next_token)
+    else:
+        raise AssertionError("list_model_bias_job_definitions did not finish paging")
+
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

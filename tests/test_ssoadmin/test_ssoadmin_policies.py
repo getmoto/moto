@@ -478,3 +478,77 @@ def test_detach_customer_managed_policy_reference_from_permission_set():
     )
 
     assert len(response["CustomerManagedPolicyReferences"]) == 0
+
+
+@mock_aws
+def test_list_managed_policies_in_permission_set_paginate(managed_policies):
+    seen_tokens = set()
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+    expected_names = set(list(managed_policies)[:5])
+    for name in expected_names:
+        client.attach_managed_policy_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            ManagedPolicyArn=f"arn:aws:iam::aws:policy/{name}",
+        )
+
+    response = client.list_managed_policies_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+    )
+    policies = list(response["AttachedManagedPolicies"])
+    assert len(policies) == 2
+    assert response.get("NextToken")
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_managed_policies_in_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            MaxResults=2,
+            NextToken=response["NextToken"],
+        )
+        policies.extend(response["AttachedManagedPolicies"])
+
+    names = {policy["Name"] for policy in policies}
+    assert len(policies) == 5
+    assert names == expected_names
+
+
+@mock_aws
+def test_list_customer_managed_policy_references_in_permission_set_paginate():
+    seen_tokens = set()
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+    expected_names = {f"customer-policy-{idx}" for idx in range(5)}
+    for name in expected_names:
+        client.attach_customer_managed_policy_reference_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            CustomerManagedPolicyReference={"Name": name},
+        )
+
+    response = client.list_customer_managed_policy_references_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+    )
+    policies = list(response["CustomerManagedPolicyReferences"])
+    assert len(policies) == 2
+    assert response.get("NextToken")
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_customer_managed_policy_references_in_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            MaxResults=2,
+            NextToken=response["NextToken"],
+        )
+        policies.extend(response["CustomerManagedPolicyReferences"])
+
+    names = {policy["Name"] for policy in policies}
+    assert len(policies) == 5
+    assert names == expected_names

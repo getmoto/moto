@@ -2511,3 +2511,44 @@ def test_list_target_account_configurations_after_template_delete():
         client.list_target_account_configurations(experimentTemplateId=template["id"])
 
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_experiment_target_account_configurations_paginate():
+    seen_tokens = set()
+    client = boto3.client("fis", region_name="us-east-1")
+    template = _create_template(client, "us-east-1", clientToken="token-many-tac")
+    account_ids = [f"{idx:012d}" for idx in range(101)]
+    for account_id in account_ids:
+        client.create_target_account_configuration(
+            experimentTemplateId=template["id"],
+            accountId=account_id,
+            roleArn=f"arn:aws:iam::{account_id}:role/FISTargetRole",
+        )
+    experiment = client.start_experiment(experimentTemplateId=template["id"])[
+        "experiment"
+    ]
+
+    page = client.list_experiment_target_account_configurations(
+        experimentId=experiment["id"]
+    )
+    actual = [
+        configuration["accountId"]
+        for configuration in page["targetAccountConfigurations"]
+    ]
+    assert len(actual) == 100
+    assert page.get("nextToken")
+    while page.get("nextToken"):
+        next_token = page["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_experiment_target_account_configurations(
+            experimentId=experiment["id"], nextToken=page["nextToken"]
+        )
+        actual.extend(
+            configuration["accountId"]
+            for configuration in page["targetAccountConfigurations"]
+        )
+
+    assert len(actual) == len(account_ids)
+    assert set(actual) == set(account_ids)

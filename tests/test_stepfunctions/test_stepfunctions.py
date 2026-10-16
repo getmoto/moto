@@ -1482,3 +1482,89 @@ def test_activity_list_tags_for_nonexisting_activity():
     response = client.list_tags_for_resource(resourceArn=non_existing_activity)
     tags = response["tags"]
     assert len(tags) == 0
+
+
+@mock_aws
+def test_list_state_machines_paginate():
+    seen_tokens = set()
+    client = boto3.client("stepfunctions", region_name=region)
+    expected_arns = {
+        client.create_state_machine(
+            name=f"PaginationStateMachine-{idx}",
+            definition=str(simple_definition),
+            roleArn=_get_default_role(),
+        )["stateMachineArn"]
+        for idx in range(101)
+    }
+
+    response = client.list_state_machines()
+    state_machines = list(response["stateMachines"])
+    assert len(state_machines) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_state_machines(nextToken=response["nextToken"])
+        state_machines.extend(response["stateMachines"])
+
+    arns = {machine["stateMachineArn"] for machine in state_machines}
+    assert len(state_machines) == 101
+    assert arns == expected_arns
+
+
+@mock_aws
+def test_list_executions_paginate():
+    seen_tokens = set()
+    client = boto3.client("stepfunctions", region_name=region)
+    machine = client.create_state_machine(
+        name="PaginationExecutionMachine",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+    )
+    expected_arns = {
+        client.start_execution(stateMachineArn=machine["stateMachineArn"])[
+            "executionArn"
+        ]
+        for _ in range(101)
+    }
+
+    response = client.list_executions(stateMachineArn=machine["stateMachineArn"])
+    executions = list(response["executions"])
+    assert len(executions) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_executions(
+            stateMachineArn=machine["stateMachineArn"],
+            nextToken=response["nextToken"],
+        )
+        executions.extend(response["executions"])
+
+    arns = {execution["executionArn"] for execution in executions}
+    assert len(executions) == 101
+    assert arns == expected_arns
+
+
+@mock_aws
+def test_list_activities_paginate():
+    seen_tokens = set()
+    client = boto3.client("stepfunctions", region_name=region)
+    expected_arns = {
+        client.create_activity(name=f"pagination-activity-{idx}")["activityArn"]
+        for idx in range(101)
+    }
+
+    response = client.list_activities()
+    activities = list(response["activities"])
+    assert len(activities) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_activities(nextToken=response["nextToken"])
+        activities.extend(response["activities"])
+
+    arns = {activity["activityArn"] for activity in activities}
+    assert len(activities) == 101
+    assert arns == expected_arns

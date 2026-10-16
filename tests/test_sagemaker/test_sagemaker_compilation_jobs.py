@@ -555,3 +555,35 @@ def test_tag_compilation_job():
         {"Key": "testkey", "Value": "testvalue"},
         {"Key": "testkey2", "Value": "testvalue2"},
     ]
+
+
+@mock_aws
+def test_list_compilation_jobs_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"compilation-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_compilation_job(
+            CompilationJobName=name,
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+            ModelPackageVersionArn=f"arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:model-package/Fake",
+            OutputConfig={
+                "S3OutputLocation": "s3://bucket/output",
+                "TargetDevice": "lambda",
+            },
+            StoppingCondition={"MaxRuntimeInSeconds": 123},
+        )
+
+    pagination_response = client.list_compilation_jobs()
+    paginated_items = list(pagination_response["CompilationJobSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_compilation_jobs(NextToken=next_token)
+        paginated_items.extend(pagination_response["CompilationJobSummaries"])
+    actual_names = [item["CompilationJobName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

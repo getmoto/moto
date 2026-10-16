@@ -1040,3 +1040,38 @@ def test_certificate_chain_is_valid_pem():
     # Verify chain is loadable as X.509
     chain_x509 = cryptography.x509.load_pem_x509_certificate(chain.encode("utf-8"))
     assert chain_x509 is not None
+
+
+@mock_aws
+def test_list_certificate_authorities_paginate():
+    seen_tokens = set()
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot verify backend state in server mode")
+    client = boto3.client("acm-pca", region_name="us-east-1")
+    expected_arns = []
+    for index in range(101):
+        expected_arns.append(
+            client.create_certificate_authority(
+                CertificateAuthorityConfiguration={
+                    "KeyAlgorithm": "RSA_4096",
+                    "SigningAlgorithm": "SHA512WITHRSA",
+                    "Subject": {"CommonName": f"ca{index}.test"},
+                },
+                CertificateAuthorityType="ROOT",
+                IdempotencyToken=f"token{index}",
+            )["CertificateAuthorityArn"]
+        )
+    response = client.list_certificate_authorities()
+    pages = [response["CertificateAuthorities"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_certificate_authorities(NextToken=next_token)
+        pages.append(response["CertificateAuthorities"])
+    actual_arns = [ca["Arn"] for page in pages for ca in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(actual_arns) == len(expected_arns)
+    assert set(actual_arns) == set(expected_arns)
+    assert all(ca["Status"] == "PENDING_CERTIFICATE" for page in pages for ca in page)

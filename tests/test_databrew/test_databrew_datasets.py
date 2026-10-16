@@ -279,3 +279,25 @@ def test_update_dataset_that_does_not_exist():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "One or more resources can't be found."
+
+
+@mock_aws
+def test_list_datasets_paginate():
+    seen_tokens = set()
+    client = _create_databrew_client()
+    expected_names = {f"dataset-{index}" for index in range(101)}
+    for name in expected_names:
+        _create_test_dataset(client, dataset_name=name)
+    response = client.list_datasets()
+    pages = [response["Datasets"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_datasets(NextToken=next_token)
+        pages.append(response["Datasets"])
+    names = [dataset["Name"] for page in pages for dataset in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(names) == 101
+    assert set(names) == expected_names

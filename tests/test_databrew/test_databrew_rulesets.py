@@ -173,3 +173,25 @@ def test_update_ruleset(name):
     assert ruleset["Name"] == name
     assert len(ruleset["Rules"]) == 1
     assert ruleset["Rules"][0]["SubstitutionMap"][":val1"] == "10"
+
+
+@mock_aws
+def test_list_rulesets_paginate():
+    seen_tokens = set()
+    client = _create_databrew_client()
+    expected_names = {f"ruleset-{index}" for index in range(101)}
+    for name in expected_names:
+        _create_test_ruleset(client, ruleset_name=name)
+    response = client.list_rulesets()
+    pages = [response["Rulesets"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_rulesets(NextToken=next_token)
+        pages.append(response["Rulesets"])
+    names = [ruleset["Name"] for page in pages for ruleset in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(names) == 101
+    assert set(names) == expected_names

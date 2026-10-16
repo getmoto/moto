@@ -3025,3 +3025,143 @@ def test_tag_policy():
     response = client.list_policies_for_target(TargetId=root_id, Filter="TAG_POLICY")
     assert len(response["Policies"]) == 1
     assert response["Policies"][0]["Id"] == policy_id
+
+
+def collect_pages(client, operation, result_key, page_size, seen_tokens=None, **kwargs):
+    seen_tokens = set()
+    page = getattr(client, operation)(**kwargs)
+    assert len(page[result_key]) == page_size
+    assert page.get("NextToken")
+    results = list(page[result_key])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = getattr(client, operation)(NextToken=next_token, **kwargs)
+        results.extend(page[result_key])
+    return results
+
+
+@mock_aws
+def test_list_organizational_units_for_parent_paginate():
+    seen_tokens = set()
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    expected = {f"page-ou-{i}" for i in range(21)}
+    for name in expected:
+        client.create_organizational_unit(ParentId=root_id, Name=name)
+
+    units = collect_pages(
+        client,
+        "list_organizational_units_for_parent",
+        "OrganizationalUnits",
+        20,
+        ParentId=root_id,
+        seen_tokens=seen_tokens,
+    )
+    names = [unit["Name"] for unit in units]
+    assert set(names) == expected
+    assert len(names) == 21
+
+
+@mock_aws
+def test_list_accounts_paginate():
+    seen_tokens = set()
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    expected = {f"{mockname}{i}" for i in range(101)}
+    for i in range(101):
+        name = f"{mockname}{i}"
+        client.create_account(AccountName=name, Email=f"{name}@{mockdomain}")
+
+    accounts = collect_pages(
+        client, "list_accounts", "Accounts", 100, seen_tokens=seen_tokens
+    )
+    names = [account["Name"] for account in accounts]
+    assert expected.issubset(names)
+    assert len(names) == 102
+
+
+@mock_aws
+def test_list_accounts_for_parent_paginate():
+    seen_tokens = set()
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    expected = {f"{mockname}{i}" for i in range(1, 22)}
+    for i in range(1, 22):
+        name = f"{mockname}{i}"
+        client.create_account(AccountName=name, Email=f"{name}@{mockdomain}")
+
+    accounts = collect_pages(
+        client,
+        "list_accounts_for_parent",
+        "Accounts",
+        20,
+        ParentId=root_id,
+        seen_tokens=seen_tokens,
+    )
+    names = [account["Name"] for account in accounts]
+    assert expected.issubset(names)
+    assert len(names) == 22
+
+
+@mock_aws
+def test_list_policies_paginate():
+    seen_tokens = set()
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    expected = {f"PagePolicy{i}" for i in range(21)}
+    for name in expected:
+        client.create_policy(
+            Content=json.dumps(policy_doc_scp),
+            Description="Pagination test policy",
+            Name=name,
+            Type="SERVICE_CONTROL_POLICY",
+        )
+
+    policies = collect_pages(
+        client,
+        "list_policies",
+        "Policies",
+        20,
+        Filter="SERVICE_CONTROL_POLICY",
+        seen_tokens=seen_tokens,
+    )
+    names = [policy["Name"] for policy in policies]
+    assert expected.issubset(names)
+    assert len(names) == 22
+
+
+@mock_aws
+def test_list_policies_for_target_paginate():
+    seen_tokens = set()
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="page-target")[
+        "OrganizationalUnit"
+    ]["Id"]
+    expected = {f"PageTargetPolicy{i}" for i in range(21)}
+    for name in expected:
+        policy_id = client.create_policy(
+            Content=json.dumps(policy_doc_scp),
+            Description="Pagination test policy",
+            Name=name,
+            Type="SERVICE_CONTROL_POLICY",
+        )["Policy"]["PolicySummary"]["Id"]
+        client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+
+    policies = collect_pages(
+        client,
+        "list_policies_for_target",
+        "Policies",
+        20,
+        TargetId=ou_id,
+        Filter="SERVICE_CONTROL_POLICY",
+        seen_tokens=seen_tokens,
+    )
+    names = [policy["Name"] for policy in policies]
+    assert expected.issubset(names)
+    assert len(names) == 22
