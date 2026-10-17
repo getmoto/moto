@@ -133,6 +133,34 @@ class PrometheusServiceResponse(BaseResponse):
             }
         )
 
+    def create_alert_manager_definition(self) -> tuple[str, dict[str, int]]:
+        workspace_id = unquote(self.path).split("/")[-3]
+        data = self._get_param("data")
+        definition = self.amp_backend.create_alert_manager_definition(
+            workspace_id=workspace_id, data=data
+        )
+        return json.dumps({"status": definition.status}), {"status": 202}
+
+    def describe_alert_manager_definition(self) -> str:
+        workspace_id = unquote(self.path).split("/")[-3]
+        definition = self.amp_backend.describe_alert_manager_definition(
+            workspace_id=workspace_id
+        )
+        return json.dumps({"alertManagerDefinition": definition.to_dict()})
+
+    def put_alert_manager_definition(self) -> tuple[str, dict[str, int]]:
+        workspace_id = unquote(self.path).split("/")[-3]
+        data = self._get_param("data")
+        definition = self.amp_backend.put_alert_manager_definition(
+            workspace_id=workspace_id, data=data
+        )
+        return json.dumps({"status": definition.status}), {"status": 202}
+
+    def delete_alert_manager_definition(self) -> tuple[str, dict[str, int]]:
+        workspace_id = unquote(self.path).split("/")[-3]
+        self.amp_backend.delete_alert_manager_definition(workspace_id=workspace_id)
+        return "", {"status": 202}
+
     def create_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/")[-2]
         log_group_arn = self._get_param("logGroupArn")
