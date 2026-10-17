@@ -503,6 +503,12 @@ class Queue(CloudFormationModel):
         return len(self.messages)
 
     @property
+    def content_based_deduplication_enabled(self) -> bool:
+        # Read the flag directly instead of through self.attributes, which
+        # iterates over every message to calculate the ApproximateNumberOf* values
+        return self.fifo_queue and self.content_based_deduplication  # type: ignore
+
+    @property
     def physical_resource_id(self) -> str:
         return f"https://sqs.{self.region}.amazonaws.com/{self.account_id}/{self.name}"
 
@@ -555,10 +561,7 @@ class Queue(CloudFormationModel):
             # the cases in which we dedupe fifo messages
             # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
             # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
-            if (
-                self.attributes.get("ContentBasedDeduplication") == "true"
-                or message.deduplication_id
-            ):
+            if self.content_based_deduplication_enabled or message.deduplication_id:
                 for m in self._messages:
                     if m.deduplication_id == message.deduplication_id:
                         diff = message.sent_timestamp - m.sent_timestamp  # type: ignore
@@ -778,13 +781,14 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
             raise InvalidAttributeName(invalid_name)
 
         attributes = {}
+        queue_attributes = queue.attributes
 
         if "All" in attribute_names:
-            attributes = queue.attributes
+            attributes = queue_attributes
         else:
-            for name in (name for name in attribute_names if name in queue.attributes):
-                if queue.attributes.get(name) is not None:
-                    attributes[name] = queue.attributes.get(name)
+            for name in attribute_names:
+                if queue_attributes.get(name) is not None:
+                    attributes[name] = queue_attributes[name]
 
         return attributes
 
@@ -805,15 +809,12 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
         validate_group_id: bool = True,
     ) -> None:
         if queue.fifo_queue:
-            if (
-                queue.attributes.get("ContentBasedDeduplication") == "false"
-                and not group_id
-            ):
+            if not queue.content_based_deduplication_enabled and not group_id:
                 msg = "MessageGroupId"
                 raise MissingParameter(msg)
 
             if (
-                queue.attributes.get("ContentBasedDeduplication") == "false"
+                not queue.content_based_deduplication_enabled
                 and group_id
                 and not deduplication_id
             ):
@@ -870,7 +871,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
 
         # if content based deduplication is set then set sha256 hash of the message
         # as the deduplication_id
-        if queue.attributes.get("ContentBasedDeduplication") == "true":
+        if queue.content_based_deduplication_enabled:
             sha256 = hashlib.sha256()
             sha256.update(message_body.encode("utf-8"))
             message.deduplication_id = sha256.hexdigest()
