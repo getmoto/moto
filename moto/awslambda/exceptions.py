@@ -110,6 +110,35 @@ class UnknownEventConfig(LambdaClientError):
         )
 
 
+class UnknownCodeSigningConfig(LambdaClientError):
+    code = 404
+
+    def __init__(self, arn: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException", f"Code signing config not found: {arn}"
+        )
+
+
+class CodeSigningConfigNotFound(LambdaClientError):
+    code = 404
+
+    def __init__(self, arn: str) -> None:
+        super().__init__(
+            "CodeSigningConfigNotFoundException",
+            f"Code signing config not found: {arn}",
+        )
+
+
+class CodeSigningConfigInUse(LambdaClientError):
+    code = 409
+
+    def __init__(self, arn: str) -> None:
+        super().__init__(
+            "ResourceConflictException",
+            f"Code signing config {arn} is attached to one or more functions",
+        )
+
+
 class ValidationException(LambdaClientError):
     def __init__(self, value: str, property_name: str, specific_message: str):
         message = f"1 validation error detected: Value '{value}' at '{property_name}' failed to satisfy constraint: {specific_message}"
