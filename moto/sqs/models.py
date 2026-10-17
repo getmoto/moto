@@ -906,23 +906,11 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[list[Message], list[dict[str, Any]]]:
         queue = self.get_queue(queue_name)
 
-        if any(
-            not re.match(r"^[\w-]{1,80}$", entry["Id"]) for entry in entries.values()
-        ):
-            raise InvalidBatchEntryId()
+        self._validate_batch_entry_ids([entry["Id"] for entry in entries.values()])
 
         body_length = sum(len(entry["MessageBody"]) for entry in entries.values())
         if body_length > MAXIMUM_MESSAGE_LENGTH:
             raise BatchRequestTooLong(body_length)
-
-        duplicate_id = self._get_first_duplicate_id(
-            [entry["Id"] for entry in entries.values()]
-        )
-        if duplicate_id:
-            raise BatchEntryIdsNotDistinct(duplicate_id)
-
-        if len(entries) > 10:
-            raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
         failedInvalidDelay = []
@@ -957,6 +945,17 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                     raise err
 
         return messages, failedInvalidDelay
+
+    def _validate_batch_entry_ids(self, ids: list[str]) -> None:
+        if any(not re.match(r"^[\w-]{1,80}$", _id) for _id in ids):
+            raise InvalidBatchEntryId()
+
+        duplicate_id = self._get_first_duplicate_id(ids)
+        if duplicate_id:
+            raise BatchEntryIdsNotDistinct(duplicate_id)
+
+        if len(ids) > 10:
+            raise TooManyEntriesInBatchRequest(len(ids))
 
     def _get_first_duplicate_id(self, ids: list[str]) -> str | None:
         unique_ids = set()
@@ -1059,6 +1058,8 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     def delete_message_batch(
         self, queue_name: str, receipts: list[dict[str, Any]]
     ) -> tuple[list[str], list[dict[str, str]]]:
+        self._validate_batch_entry_ids([receipt["Id"] for receipt in receipts])
+
         success = []
         errors = []
         for receipt_and_id in receipts:
@@ -1101,6 +1102,8 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     def change_message_visibility_batch(
         self, queue_name: str, entries: list[dict[str, Any]]
     ) -> tuple[list[str], list[dict[str, str]]]:
+        self._validate_batch_entry_ids([entry["Id"] for entry in entries])
+
         success = []
         error = []
         for entry in entries:
