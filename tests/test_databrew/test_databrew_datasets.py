@@ -215,7 +215,9 @@ def test_update_dataset(name):
     # Update the dataset and check response
     dataset = client.update_dataset(
         Name=name,
-        Format="TEST",
+        Format="CSV",
+        FormatOptions={"Csv": {"Delimiter": ",", "HeaderRow": True}},
+        PathOptions={"FilesLimit": {"MaxFiles": 12}},
         Input={
             "S3InputDefinition": {
                 "Bucket": "somerandombucketname",
@@ -240,7 +242,9 @@ def test_update_dataset(name):
     # Describe the dataset and check the changes
     dataset = client.describe_dataset(Name=name)
     assert dataset["Name"] == name
-    assert dataset["Format"] == "TEST"
+    assert dataset["Format"] == "CSV"
+    assert dataset["FormatOptions"] == {"Csv": {"Delimiter": ",", "HeaderRow": True}}
+    assert dataset["PathOptions"] == {"FilesLimit": {"MaxFiles": 12}}
     assert (
         dataset["ResourceArn"]
         == f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{name}"
