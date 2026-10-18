@@ -925,7 +925,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
             raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
-        failedInvalidDelay = []
+        failed = []
 
         for entry in entries.values():
             # validate ALL messages before trying to send any
@@ -952,11 +952,18 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                 messages.append(message)
             except InvalidParameterValue as err:
                 if "DelaySeconds is invalid" in str(err):
-                    failedInvalidDelay.append(entry)
+                    failed.append(
+                        {
+                            "Id": entry["Id"],
+                            "SenderFault": True,
+                            "Code": err.code,
+                            "Message": err.message,
+                        }
+                    )
                 else:
                     raise err
 
-        return messages, failedInvalidDelay
+        return messages, failed
 
     def _get_first_duplicate_id(self, ids: list[str]) -> str | None:
         unique_ids = set()

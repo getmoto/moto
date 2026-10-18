@@ -3450,6 +3450,31 @@ def test_message_delay_is_more_than_15_minutes():
 
 
 @mock_aws
+def test_send_message_batch_reports_invalid_delay_per_entry():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+
+    response = client.send_message_batch(
+        QueueUrl=queue_url,
+        Entries=[
+            {"Id": "valid", "MessageBody": "body_1"},
+            {"Id": "too_late", "MessageBody": "body_2", "DelaySeconds": 901},
+        ],
+    )
+
+    assert [entry["Id"] for entry in response["Successful"]] == ["valid"]
+    assert response["Failed"] == [
+        {
+            "Id": "too_late",
+            "SenderFault": True,
+            "Code": "InvalidParameterValue",
+            "Message": "Value 901 for parameter DelaySeconds is invalid. "
+            "Reason: DelaySeconds must be >= 0 and <= 900.",
+        }
+    ]
+
+
+@mock_aws
 def test_receive_message_that_becomes_visible_while_long_polling():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
