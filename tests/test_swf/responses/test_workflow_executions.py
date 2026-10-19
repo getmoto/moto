@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import boto3
 import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -165,6 +166,62 @@ def test_describe_non_existent_workflow_execution():
         "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId=wrong-run-id]"
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@pytest.mark.parametrize(
+    "operation", ["describe_workflow_execution", "get_workflow_execution_history"]
+)
+@pytest.mark.parametrize(
+    "params, missing_fields",
+    [
+        (
+            {"domain": "test-domain", "execution": {"workflowId": "workflow-id"}},
+            ["execution.runId"],
+        ),
+        (
+            {"domain": "test-domain", "execution": {"runId": "run-id"}},
+            ["execution.workflowId"],
+        ),
+        (
+            {"domain": "test-domain", "execution": {}},
+            ["execution.workflowId", "execution.runId"],
+        ),
+        ({"domain": "test-domain"}, ["execution"]),
+        ({"execution": {"workflowId": "workflow-id", "runId": "run-id"}}, ["domain"]),
+        ({}, ["domain", "execution"]),
+        (
+            {
+                "domain": None,
+                "execution": {
+                    "workflowId": None,
+                    "runId": None,
+                },
+            },
+            ["domain", "execution.workflowId", "execution.runId"],
+        ),
+    ],
+)
+@mock_aws
+def test_workflow_execution_operations_validate_missing_members(
+    operation, params, missing_fields
+):
+    client = boto3.client(
+        "swf",
+        region_name="us-west-1",
+        config=Config(parameter_validation=False),
+    )
+
+    with pytest.raises(ClientError) as ex:
+        getattr(client, operation)(**params)
+
+    error = ex.value.response["Error"]
+    assert error["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert all(
+        f"Value null at '{field}' failed to satisfy constraint: Member must not be null"
+        in error["Message"]
+        for field in missing_fields
+    )
 
 
 # GetWorkflowExecutionHistory endpoint
