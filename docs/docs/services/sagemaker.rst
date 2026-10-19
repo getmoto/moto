@@ -17,6 +17,7 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] attach_cluster_node_network_interface
 - [ ] attach_cluster_node_volume
 - [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes

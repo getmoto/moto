@@ -1,5 +1,4 @@
 import json
-from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -9,13 +8,10 @@ from .utils import vault_from_glacier_url
 
 
 class GlacierResponse(BaseResponse):
+    use_raw_body = True
+
     def __init__(self) -> None:
         super().__init__(service_name="glacier")
-
-    def setup_class(
-        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
-    ) -> None:
-        super().setup_class(request, full_url, headers, use_raw_body=True)
 
     @property
     def glacier_backend(self) -> GlacierBackend:

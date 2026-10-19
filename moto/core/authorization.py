@@ -47,7 +47,7 @@ class ActionAuthenticatorMixin:
             ):
                 return
             parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
-            path = parsed_url.path
+            path = self.raw_path  # type: ignore[attr-defined]
             if parsed_url.query:
                 path += "?" + parsed_url.query
             iam_request = iam_request_cls(
