@@ -2088,3 +2088,102 @@ def test_remove_tags_from_resource():
         assert len(resp["TagList"]) == 1
         assert resp["TagList"][0]["Key"] == "common-key"
         assert resp["TagList"][0]["Value"] == "common-tag"
+
+
+@mock_aws
+def test_modify_replication_group():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        AutomaticFailoverEnabled=False,
+        MultiAZEnabled=False,
+        SnapshotRetentionLimit=0,
+    )
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Engine"] == "redis"
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert replication_group["AutomaticFailover"] == "disabled"
+    assert replication_group["MultiAZ"] == "disabled"
+    assert replication_group["SnapshotRetentionLimit"] == 0
+
+    client.modify_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test_modify_replication_group",
+        Engine="test",
+        CacheNodeType="cache.t4g.small",
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        SnapshotRetentionLimit=1,
+    )
+    describe_resp = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id
+    )
+    replication_group = describe_resp["ReplicationGroups"][0]
+    assert replication_group["Description"] == "test_modify_replication_group"
+    assert replication_group["Engine"] == "test"
+    assert replication_group["CacheNodeType"] == "cache.t4g.small"
+    assert replication_group["AutomaticFailover"] == "enabled"
+    assert replication_group["MultiAZ"] == "enabled"
+    assert replication_group["SnapshotRetentionLimit"] == 1
+
+
+@mock_aws
+def test_modify_replication_group_only_description():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        AutomaticFailoverEnabled=False,
+        MultiAZEnabled=False,
+        SnapshotRetentionLimit=0,
+    )
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Engine"] == "redis"
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert replication_group["AutomaticFailover"] == "disabled"
+    assert replication_group["MultiAZ"] == "disabled"
+    assert replication_group["SnapshotRetentionLimit"] == 0
+
+    client.modify_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test_modify_replication_group",
+    )
+    describe_resp = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id
+    )
+    replication_group = describe_resp["ReplicationGroups"][0]
+    assert replication_group["Description"] == "test_modify_replication_group"
+    assert replication_group["Engine"] == "redis"
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert replication_group["AutomaticFailover"] == "disabled"
+    assert replication_group["MultiAZ"] == "disabled"
+    assert replication_group["SnapshotRetentionLimit"] == 0
+
+
+@mock_aws
+def test_modify_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-not-found"
+    with pytest.raises(ClientError) as exc:
+        client.modify_replication_group(
+            ReplicationGroupId=replication_group_id,
+            MultiAZEnabled=False,
+        )
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ReplicationGroupNotFoundFault"
+        assert err["Message"] == f"Replication group {replication_group_id} not found."

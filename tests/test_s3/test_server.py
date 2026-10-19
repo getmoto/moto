@@ -1,13 +1,17 @@
 import io
+import uuid
+from unittest import SkipTest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import boto3
 import pytest
 import requests
 import xmltodict
 from flask.testing import FlaskClient
 
 import moto.server as server
+from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 
@@ -470,3 +474,37 @@ def test_s3_server_post_cors_multiple_origins():
         assert preflight_response.headers["Access-Control-Allow-Origin"] == origin
 
     thread.stop()
+
+
+def test_s3_metadata_keys_with_underscores():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("No point testing the ThreadedMotoServer in Server/Proxy-mode")
+    # Werkzeug's dev server drops headers with underscores in their names;
+    # MotoRequestHandler has to keep them, and keep their original spelling.
+    thread = ThreadedMotoServer(port=0, verbose=False)
+    thread.start()
+    host, port = thread.get_host_and_port()
+    bucket_name = str(uuid.uuid4())
+    try:
+        s3 = boto3.client(
+            "s3",
+            region_name="us-east-1",
+            endpoint_url=f"http://{host}:{port}",
+            aws_access_key_id="ak",
+            aws_secret_access_key="sk",
+        )
+        s3.create_bucket(Bucket=bucket_name)
+        s3.put_object(
+            Bucket=bucket_name,
+            Key="test-key",
+            Body=b"x",
+            Metadata={"transform_watermark": "t", "source": "s", "has_underscore": "h"},
+        )
+        metadata = s3.get_object(Bucket=bucket_name, Key="test-key")["Metadata"]
+        assert metadata == {
+            "transform_watermark": "t",
+            "source": "s",
+            "has_underscore": "h",
+        }
+    finally:
+        thread.stop()
