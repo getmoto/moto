@@ -230,6 +230,28 @@ def test_update_state_machine():
 
 
 @mock_aws
+def test_state_machine_creation_stores_the_requested_type():
+    client = boto3.client("stepfunctions", region_name=region)
+    standard = client.create_state_machine(
+        name="standard", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    express = client.create_state_machine(
+        name="express",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        type="EXPRESS",
+        publish=True,
+    )
+
+    for arn, expected in [
+        (standard["stateMachineArn"], "STANDARD"),
+        (express["stateMachineArn"], "EXPRESS"),
+        (express["stateMachineVersionArn"], "EXPRESS"),
+    ]:
+        assert client.describe_state_machine(stateMachineArn=arn)["type"] == expected
+
+
+@mock_aws
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
