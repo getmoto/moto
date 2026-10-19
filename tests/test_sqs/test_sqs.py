@@ -2207,6 +2207,31 @@ def test_send_message_batch_with_empty_list():
 
 
 @mock_aws
+def test_send_message_batch_reports_an_invalid_delay_per_entry():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+
+    response = client.send_message_batch(
+        QueueUrl=queue_url,
+        Entries=[
+            {"Id": "ok", "MessageBody": "body"},
+            {"Id": "too_late", "MessageBody": "body", "DelaySeconds": 901},
+        ],
+    )
+
+    assert [entry["Id"] for entry in response["Successful"]] == ["ok"]
+    assert response["Failed"] == [
+        {
+            "Id": "too_late",
+            "SenderFault": True,
+            "Code": "InvalidParameterValue",
+            "Message": "Value 901 for parameter DelaySeconds is invalid. "
+            "Reason: DelaySeconds must be >= 0 and <= 900.",
+        }
+    ]
+
+
+@mock_aws
 def test_batch_change_message_visibility():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
