@@ -47,6 +47,13 @@ class BotocoreStubber:
     def process_prepared_request(
         self, request: PreparedRequest
     ) -> TYPE_RESPONSE | None:
+        """
+        This is the callback method provided to Responses.
+
+        It receives a requests.PreparedRequest object, which is converted to
+        a botocore.awsrequest.AWSPreparedRequest object and passed along to
+        main request handler.
+        """
         assert request.method and request.url
         headers = HTTPHeaders()
         for key, value in request.headers.items():

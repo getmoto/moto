@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import requests
@@ -59,18 +60,23 @@ class TestThreadedMotoServer(unittest.TestCase):
 
     @mock_aws
     def test_streamed_body_reaches_server_while_mock_aws_is_active(self):
-        # The in-memory mock sees this request first and lets it through, as it
-        # isn't for AWS - but it must not consume the body on the way
+        in_mem_client = boto3.client("s3")
+        bucket_name = str(uuid4())
+        in_mem_client.create_bucket(Bucket=bucket_name)
         server_client = boto3.client(
             "s3",
             endpoint_url="http://127.0.0.1:5000",
             config=Config(read_timeout=5, retries={"max_attempts": 0}),
         )
-        server_client.create_bucket(Bucket="test")
-        server_client.put_object(Bucket="test", Key="k", Body=BytesIO(b"x" * 2048))
-
-        obj = server_client.get_object(Bucket="test", Key="k")
-        assert obj["Body"].read() == b"x" * 2048
+        key_name = str(uuid4())
+        object_data = b"x" * 2048
+        # The in-memory mock will see this request first and pass it through to the
+        # ThreadedMotoServer, but it must not consume the body in the process.
+        server_client.put_object(
+            Bucket=bucket_name, Key=key_name, Body=BytesIO(object_data)
+        )
+        obj = in_mem_client.get_object(Bucket=bucket_name, Key=key_name)
+        assert obj["Body"].read() == object_data
 
 
 def test_threaded_moto_server__different_port():
