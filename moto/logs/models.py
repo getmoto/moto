@@ -72,7 +72,7 @@ class LogQuery(BaseModel):
         self.end_time = end_time
         self.query = query
         self.log_group_names = [lg.name for lg in log_groups]
-        self.create_time = unix_time_millis()
+        self.create_time = int(unix_time_millis())
         self.status = "Running"
         self.results = execute_query(
             log_groups=log_groups, query=query, start_time=start_time, end_time=end_time
