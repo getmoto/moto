@@ -287,6 +287,27 @@ def test_state_machine_list_returns_created_state_machines():
 
 
 @mock_aws
+def test_state_machine_list_returns_the_type_of_each_state_machine():
+    client = boto3.client("stepfunctions", region_name=region)
+    client.create_state_machine(
+        name="standard", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    client.create_state_machine(
+        name="express",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        type="EXPRESS",
+    )
+
+    sm_list = client.list_state_machines()["stateMachines"]
+
+    assert {sm["name"]: sm["type"] for sm in sm_list} == {
+        "standard": "STANDARD",
+        "express": "EXPRESS",
+    }
+
+
+@mock_aws
 def test_state_machine_list_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):

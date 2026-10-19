@@ -92,6 +92,7 @@ class StepFunctionResponse(BaseResponse):
                 "creationDate": sm.creation_date,
                 "name": sm.name,
                 "stateMachineArn": sm.arn,
+                "type": sm.type,
             }
             for sm in results
         ]
