@@ -952,7 +952,14 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                 messages.append(message)
             except InvalidParameterValue as err:
                 if "DelaySeconds is invalid" in str(err):
-                    failedInvalidDelay.append(entry)
+                    failedInvalidDelay.append(
+                        {
+                            "Id": entry["Id"],
+                            "SenderFault": True,
+                            "Code": err.code,
+                            "Message": err.message,
+                        }
+                    )
                 else:
                     raise err
 
