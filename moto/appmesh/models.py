@@ -399,6 +399,10 @@ class AppMeshBackend(BaseBackend):
             resource.tags.extend(tags)
         return
 
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_with_arn(resource_arn=resource_arn)
+        resource.tags = [tag for tag in resource.tags if tag["key"] not in tag_keys]
+
     def describe_virtual_router(
         self, mesh_name: str, mesh_owner: str | None, virtual_router_name: str
     ) -> VirtualRouter:
