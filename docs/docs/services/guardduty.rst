@@ -17,6 +17,8 @@ guardduty
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
 - [ ] archive_findings
+- [ ] create_custom_detection_rule_association
+- [ ] create_custom_detection_rule_org_configuration
 - [X] create_detector
 - [X] create_filter
 - [ ] create_investigation
@@ -29,6 +31,8 @@ guardduty
 - [ ] create_threat_intel_set
 - [ ] create_trusted_entity_set
 - [ ] decline_invitations
+- [ ] delete_custom_detection_rule_association
+- [ ] delete_custom_detection_rule_org_configuration
 - [X] delete_detector
 - [X] delete_filter
 - [ ] delete_invitations
@@ -51,6 +55,9 @@ guardduty
   Get administrator account details.
 
 - [ ] get_coverage_statistics
+- [ ] get_custom_detection_rule
+- [ ] get_custom_detection_rule_association
+- [ ] get_custom_detection_rule_org_configuration
 - [X] get_detector
 - [X] get_filter
 - [ ] get_findings
@@ -72,6 +79,9 @@ guardduty
 - [ ] get_usage_statistics
 - [ ] invite_members
 - [ ] list_coverage
+- [ ] list_custom_detection_rule_associations
+- [ ] list_custom_detection_rule_org_configurations
+- [ ] list_custom_detection_rules
 - [X] list_detectors
   
 The MaxResults and NextToken-parameter have not yet been implemented.
@@ -102,6 +112,8 @@ Pagination is not yet implemented
 - [ ] tag_resource
 - [ ] unarchive_findings
 - [ ] untag_resource
+- [ ] update_custom_detection_rule_association
+- [ ] update_custom_detection_rule_org_configuration
 - [X] update_detector
 - [X] update_filter
 - [ ] update_findings_feedback

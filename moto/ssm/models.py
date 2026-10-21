@@ -1871,6 +1871,15 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
                 f"{count} validation error{plural} detected: {errors}"
             )
 
+    def _strip_parameter_arn(self, name: str) -> str:
+        """Reduce a full parameter ARN to the bare parameter name.
+
+        Names that are not ARNs are returned unchanged.
+        """
+        if name.startswith(self.ssm_prefix):
+            return name.replace(self.ssm_prefix, "")
+        return name
+
     def get_parameters(self, names: list[str]) -> dict[str, Parameter]:
         result = {}
 
@@ -1882,7 +1891,11 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
             )
 
         for name in set(names):
-            if name.split(":")[0] in self._parameters:
+            # Names may be full ARNs, as when reading a parameter shared from
+            # another account. Strip the prefix for the lookup, but keep the
+            # caller's original string as the key, so that the response layer
+            # reports InvalidParameters using what was actually requested.
+            if self._strip_parameter_arn(name).split(":")[0] in self._parameters:
                 try:
                     param = self.get_parameter(name)
 
@@ -2050,8 +2063,7 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         return True
 
     def get_parameter(self, name: str) -> Parameter | None:
-        if name.startswith(self.ssm_prefix):
-            name = name.replace(self.ssm_prefix, "")
+        name = self._strip_parameter_arn(name)
 
         name_parts = name.split(":")
         name_prefix = name_parts[0]

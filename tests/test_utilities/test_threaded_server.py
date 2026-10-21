@@ -1,8 +1,11 @@
 import unittest
+from io import BytesIO
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import requests
+from botocore.config import Config
 
 from moto import mock_aws, settings
 from moto.server import ThreadedMotoServer
@@ -54,6 +57,26 @@ class TestThreadedMotoServer(unittest.TestCase):
         in_mem_client = boto3.client("s3")
         buckets = in_mem_client.list_buckets()["Buckets"]
         assert [b["Name"] for b in buckets] == ["test"]
+
+    @mock_aws
+    def test_streamed_body_reaches_server_while_mock_aws_is_active(self):
+        in_mem_client = boto3.client("s3")
+        bucket_name = str(uuid4())
+        in_mem_client.create_bucket(Bucket=bucket_name)
+        server_client = boto3.client(
+            "s3",
+            endpoint_url="http://127.0.0.1:5000",
+            config=Config(read_timeout=5, retries={"max_attempts": 0}),
+        )
+        key_name = str(uuid4())
+        object_data = b"x" * 2048
+        # The in-memory mock will see this request first and pass it through to the
+        # ThreadedMotoServer, but it must not consume the body in the process.
+        server_client.put_object(
+            Bucket=bucket_name, Key=key_name, Body=BytesIO(object_data)
+        )
+        obj = in_mem_client.get_object(Bucket=bucket_name, Key=key_name)
+        assert obj["Body"].read() == object_data
 
 
 def test_threaded_moto_server__different_port():

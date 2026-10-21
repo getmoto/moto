@@ -2858,6 +2858,14 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         use_latest_restorable_time: bool = False,
         **overrides: dict[str, Any],
     ) -> DBCluster:
+        if restore_to_time is not None and use_latest_restorable_time:
+            raise InvalidParameterCombination(
+                "Cannot specify both RestoreToTime and UseLatestRestorableTime"
+            )
+        if restore_to_time is not None and restore_type == "copy-on-write":
+            raise InvalidParameterCombination(
+                "RestoreToTime cannot be specified when RestoreType is copy-on-write"
+            )
         db_cluster = self.describe_db_clusters(
             db_cluster_identifier=source_db_cluster_identifier
         )[0]

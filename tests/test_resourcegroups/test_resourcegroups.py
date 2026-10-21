@@ -432,6 +432,54 @@ def test_list_tag_sync_tasks():
 
 
 @mock_aws
+def test_list_tag_sync_tasks_with_filters():
+    client = boto3.client("resource-groups", region_name="us-east-2")
+    account_id = boto3.client("sts", region_name="us-east-2").get_caller_identity()[
+        "Account"
+    ]
+    role_arn = f"arn:aws:iam::{account_id}:role/role"
+    arns = {}
+    for name in ["group_one", "group_two"]:
+        arns[name] = client.create_group(
+            Name=name,
+            ResourceQuery={
+                "Type": "TAG_FILTERS_1_0",
+                "Query": json.dumps(
+                    {
+                        "ResourceTypeFilters": ["AWS::AllSupported"],
+                        "TagFilters": [{"Key": "foo", "Values": ["bar"]}],
+                    }
+                ),
+            },
+        )["Group"]["GroupArn"]
+        client.start_tag_sync_task(
+            Group=arns[name], TagKey="foo", TagValue="bar", RoleArn=role_arn
+        )
+
+    tasks = client.list_tag_sync_tasks()["TagSyncTasks"]
+    assert sorted(t["GroupName"] for t in tasks) == ["group_one", "group_two"]
+
+    tasks = client.list_tag_sync_tasks(Filters=[{"GroupName": "group_one"}])[
+        "TagSyncTasks"
+    ]
+    assert [t["GroupName"] for t in tasks] == ["group_one"]
+
+    tasks = client.list_tag_sync_tasks(Filters=[{"GroupArn": arns["group_two"]}])[
+        "TagSyncTasks"
+    ]
+    assert [t["GroupName"] for t in tasks] == ["group_two"]
+
+    # Several filters match the union of what each one matches on its own.
+    tasks = client.list_tag_sync_tasks(
+        Filters=[{"GroupName": "group_one"}, {"GroupName": "group_two"}]
+    )["TagSyncTasks"]
+    assert sorted(t["GroupName"] for t in tasks) == ["group_one", "group_two"]
+
+    tasks = client.list_tag_sync_tasks(Filters=[{"GroupName": "nope"}])["TagSyncTasks"]
+    assert tasks == []
+
+
+@mock_aws
 def test_cancel_tag_sync_task():
     client = boto3.client("resource-groups", region_name="us-east-2")
     resource_group = create_group(client)["Group"]["GroupArn"]

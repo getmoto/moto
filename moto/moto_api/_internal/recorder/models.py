@@ -6,7 +6,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from botocore.awsrequest import AWSPreparedRequest
+
+from moto.core.request import Request
 
 
 class Recorder:
@@ -15,43 +16,39 @@ class Recorder:
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 
-    def _record_request(self, request: Any, body: bytes | None = None) -> None:
+    def _record_request(self, request: Request, body: bytes | None = None) -> None:
         """
         Record the current request
         """
         if not self._user_enabled:
             return
 
-        if urlparse(request.url).path.startswith("/moto-api/recorder/"):
+        if request.raw_path.startswith("/moto-api/recorder/"):
             return
 
-        entry = {
+        entry: dict[str, Any] = {
             "headers": dict(request.headers),
             "method": request.method,
-            "url": request.url,
+            # raw_url, not url - werkzeug's url is percent-decoded, which would
+            # corrupt any request whose path contains encoded characters (an S3
+            # key containing a literal '/', for example) when it is replayed.
+            "url": request.raw_url,
         }
 
         if body is None:
-            if isinstance(request, AWSPreparedRequest):
-                if hasattr(request.body, "read"):
-                    body = request.body.read()  # type: ignore
-                else:
-                    body = request.body  # type: ignore
-                body_str, body_encoded = self._encode_body(body)
-            else:
-                try:
-                    request_body = None
-                    request_body_size = int(request.headers["Content-Length"])
-                    request_body = request.environ["wsgi.input"].read(request_body_size)
-                    body_str, body_encoded = self._encode_body(body=request_body)
-                except (AttributeError, KeyError):
-                    body_str = ""
-                    body_encoded = False
-                finally:
-                    if request_body is not None:
-                        if isinstance(request_body, str):
-                            request_body = request_body.encode("utf-8")
-                        request.environ["wsgi.input"] = io.BytesIO(request_body)
+            try:
+                request_body = None
+                request_body_size = int(request.headers["Content-Length"])
+                request_body = request.environ["wsgi.input"].read(request_body_size)
+                body_str, body_encoded = self._encode_body(body=request_body)
+            except (AttributeError, KeyError):
+                body_str = ""
+                body_encoded = False
+            finally:
+                if request_body is not None:
+                    if isinstance(request_body, str):
+                        request_body = request_body.encode("utf-8")
+                    request.environ["wsgi.input"] = io.BytesIO(request_body)
         else:
             body_str, body_encoded = self._encode_body(body)
         entry.update({"body": body_str, "body_encoded": body_encoded})

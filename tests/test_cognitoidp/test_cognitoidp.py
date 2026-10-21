@@ -3152,9 +3152,9 @@ def test_authentication_flow_invalid_user_flow():
     assert err["Message"] == "Initiate Auth method not supported"
 
 
-# Patch TOTP verify to check +/- 30-second time window in case of clock drift in server mode.
+# Patch TOTP verify to check +/- 60-second time window in case of clock drift in server mode.
 @patch.object(
-    moto.cognitoidp.models, "verify_totp", new=partial(verify_totp, valid_window=1)
+    moto.cognitoidp.models, "verify_totp", new=partial(verify_totp, valid_window=2)
 )
 def user_authentication_flow(
     conn, user_pool=None, user_pool_client=None, with_mfa=True, use_email=False

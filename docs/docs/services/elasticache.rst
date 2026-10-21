@@ -82,7 +82,7 @@ Pagination is not yet implemented.
 - [ ] modify_cache_parameter_group
 - [ ] modify_cache_subnet_group
 - [ ] modify_global_replication_group
-- [ ] modify_replication_group
+- [X] modify_replication_group
 - [ ] modify_replication_group_shard_configuration
 - [ ] modify_serverless_cache
 - [ ] modify_user

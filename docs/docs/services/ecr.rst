@@ -14,7 +14,7 @@ ecr
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_check_layer_availability
+- [X] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
   
@@ -22,7 +22,7 @@ The parameter AcceptedMediaTypes has not yet been implemented
 
 
 - [X] batch_get_repository_scanning_configuration
-- [ ] complete_layer_upload
+- [X] complete_layer_upload
 - [ ] create_pull_through_cache_rule
 - [X] create_repository
 - [ ] create_repository_creation_template
@@ -106,11 +106,12 @@ maxResults and nextToken not implemented
 - [X] get_registry_scanning_configuration
 - [X] get_repository_policy
 - [ ] get_signing_configuration
-- [ ] initiate_layer_upload
+- [X] initiate_layer_upload
 - [ ] list_image_referrers
 - [X] list_images
   
-maxResults and filtering not implemented
+The tagStatus filter is supported. maxResults, nextToken, and the
+imageStatus filter are not implemented.
 
 
 - [ ] list_pull_time_update_exclusions
@@ -133,6 +134,6 @@ maxResults and filtering not implemented
 - [ ] update_image_storage_class
 - [ ] update_pull_through_cache_rule
 - [ ] update_repository_creation_template
-- [ ] upload_layer_part
+- [X] upload_layer_part
 - [ ] validate_pull_through_cache_rule
 

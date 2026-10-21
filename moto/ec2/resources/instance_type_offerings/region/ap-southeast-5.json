@@ -1824,6 +1824,22 @@
   "Location": "ap-southeast-5"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "ap-southeast-5"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "ap-southeast-5"
  },

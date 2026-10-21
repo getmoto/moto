@@ -1,10 +1,8 @@
 """EBSBackend class with methods for supported APIs."""
 
-from typing import Any
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import utcnow
 from moto.ec2.models import EC2Backend, ec2_backends
 from moto.ec2.models.elastic_block_store import Snapshot
 from moto.moto_api._internal import mock_random
@@ -12,7 +10,11 @@ from moto.moto_api._internal import mock_random
 
 class Block(BaseModel):
     def __init__(
-        self, block_data: str, checksum: str, checksum_algorithm: str, data_length: str
+        self,
+        block_data: bytes,
+        checksum: str | None,
+        checksum_algorithm: str | None,
+        data_length: int | None,
     ):
         self.block_data = block_data
         self.checksum = checksum
@@ -26,7 +28,7 @@ class EBSSnapshot(BaseModel):
         self.account_id = account_id
         self.snapshot_id = snapshot.id
         self.status = "pending"
-        self.start_time = unix_time()
+        self.start_time = utcnow()
         self.volume_size = snapshot.volume.size
         self.block_size = 512
         self.tags = [
@@ -34,30 +36,18 @@ class EBSSnapshot(BaseModel):
         ]
         self.description = snapshot.description
 
-        self.blocks: dict[str, Block] = {}
+        self.blocks: dict[int, Block] = {}
 
     def put_block(
         self,
-        block_idx: str,
-        block_data: str,
-        checksum: str,
-        checksum_algorithm: str,
-        data_length: str,
+        block_idx: int,
+        block_data: bytes,
+        checksum: str | None,
+        checksum_algorithm: str | None,
+        data_length: int | None,
     ) -> None:
         block = Block(block_data, checksum, checksum_algorithm, data_length)
         self.blocks[block_idx] = block
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "SnapshotId": self.snapshot_id,
-            "OwnerId": self.account_id,
-            "Status": self.status,
-            "StartTime": self.start_time,
-            "VolumeSize": self.volume_size,
-            "BlockSize": self.block_size,
-            "Tags": self.tags,
-            "Description": self.description,
-        }
 
 
 class EBSBackend(BaseBackend):
@@ -88,22 +78,22 @@ class EBSBackend(BaseBackend):
         self.snapshots[ebs_snapshot.snapshot_id] = ebs_snapshot
         return ebs_snapshot
 
-    def complete_snapshot(self, snapshot_id: str) -> dict[str, str]:
+    def complete_snapshot(self, snapshot_id: str) -> str:
         """
         The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
         """
         self.snapshots[snapshot_id].status = "completed"
-        return {"Status": "completed"}
+        return "completed"
 
     def put_snapshot_block(
         self,
         snapshot_id: str,
-        block_index: str,
-        block_data: str,
-        checksum: str,
-        checksum_algorithm: str,
-        data_length: str,
-    ) -> tuple[str, str]:
+        block_index: int,
+        block_data: bytes,
+        checksum: str | None,
+        checksum_algorithm: str | None,
+        data_length: int | None,
+    ) -> tuple[str | None, str | None]:
         """
         The following parameters are currently not taken into account: DataLength, Progress.
         The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
@@ -114,7 +104,7 @@ class EBSBackend(BaseBackend):
         )
         return checksum, checksum_algorithm
 
-    def get_snapshot_block(self, snapshot_id: str, block_index: str) -> Block:
+    def get_snapshot_block(self, snapshot_id: str, block_index: int) -> Block:
         """
         The BlockToken-parameter is not yet implemented
         """
@@ -123,14 +113,14 @@ class EBSBackend(BaseBackend):
 
     def list_changed_blocks(
         self, first_snapshot_id: str, second_snapshot_id: str
-    ) -> tuple[dict[str, tuple[str, str | None]], EBSSnapshot]:
+    ) -> tuple[dict[int, tuple[str, str | None]], EBSSnapshot]:
         """
         The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
         """
         snapshot1 = self.snapshots[first_snapshot_id]
         snapshot2 = self.snapshots[second_snapshot_id]
         changed_blocks: dict[
-            str, tuple[str, str | None]
+            int, tuple[str, str | None]
         ] = {}  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]

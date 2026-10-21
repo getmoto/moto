@@ -24,6 +24,7 @@ bedrock-agentcore-control
 - [ ] create_capacity_provider
 - [ ] create_code_interpreter
 - [ ] create_configuration_bundle
+- [ ] create_consent_portal
 - [ ] create_dataset
 - [ ] create_dataset_version
 - [ ] create_evaluator
@@ -52,6 +53,7 @@ bedrock-agentcore-control
 - [ ] delete_capacity_provider
 - [ ] delete_code_interpreter
 - [ ] delete_configuration_bundle
+- [ ] delete_consent_portal
 - [ ] delete_dataset
 - [ ] delete_dataset_examples
 - [ ] delete_evaluator
@@ -82,6 +84,7 @@ bedrock-agentcore-control
 - [ ] get_code_interpreter
 - [ ] get_configuration_bundle
 - [ ] get_configuration_bundle_version
+- [ ] get_consent_portal
 - [ ] get_dataset
 - [ ] get_evaluator
 - [X] get_gateway
@@ -118,6 +121,7 @@ bedrock-agentcore-control
 - [ ] list_code_interpreters
 - [ ] list_configuration_bundle_versions
 - [ ] list_configuration_bundles
+- [ ] list_consent_portals
 - [ ] list_dataset_examples
 - [ ] list_dataset_versions
 - [ ] list_datasets
@@ -147,6 +151,7 @@ bedrock-agentcore-control
 - [X] list_tags_for_resource
 - [ ] list_workload_identities
 - [ ] put_resource_policy
+- [ ] rotate_payment_connector_credentials
 - [ ] set_token_vault_cmk
 - [ ] start_policy_generation
 - [ ] submit_registry_record_for_approval
@@ -158,6 +163,7 @@ bedrock-agentcore-control
 - [ ] update_api_key_credential_provider
 - [ ] update_capacity_provider
 - [ ] update_configuration_bundle
+- [ ] update_consent_portal
 - [ ] update_dataset
 - [ ] update_dataset_examples
 - [ ] update_evaluator

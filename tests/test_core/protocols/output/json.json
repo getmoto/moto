@@ -31,6 +31,9 @@
           },
           "Char": {
             "shape": "CharType"
+          },
+          "Coerced": {
+            "shape": "StringType"
           }
         }
       },
@@ -72,12 +75,13 @@
           "Float": 1.2,
           "Double": 1.3,
           "Long": 200,
-          "Char": "a"
+          "Char": "a",
+          "Coerced": 1024
         },
         "response": {
           "status_code": 200,
           "headers": {},
-          "body": "{\"Str\": \"myname\", \"Num\": 123, \"FalseBool\": false, \"TrueBool\": true, \"Float\": 1.2, \"Double\": 1.3, \"Long\": 200, \"Char\": \"a\"}"
+          "body": "{\"Str\": \"myname\", \"Num\": 123, \"FalseBool\": false, \"TrueBool\": true, \"Float\": 1.2, \"Double\": 1.3, \"Long\": 200, \"Char\": \"a\", \"Coerced\": \"1024\"}"
         }
       }
     ]

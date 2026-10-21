@@ -2207,6 +2207,31 @@ def test_send_message_batch_with_empty_list():
 
 
 @mock_aws
+def test_send_message_batch_reports_an_invalid_delay_per_entry():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
+
+    response = client.send_message_batch(
+        QueueUrl=queue_url,
+        Entries=[
+            {"Id": "ok", "MessageBody": "body"},
+            {"Id": "too_late", "MessageBody": "body", "DelaySeconds": 901},
+        ],
+    )
+
+    assert [entry["Id"] for entry in response["Successful"]] == ["ok"]
+    assert response["Failed"] == [
+        {
+            "Id": "too_late",
+            "SenderFault": True,
+            "Code": "InvalidParameterValue",
+            "Message": "Value 901 for parameter DelaySeconds is invalid. "
+            "Reason: DelaySeconds must be >= 0 and <= 900.",
+        }
+    ]
+
+
+@mock_aws
 def test_batch_change_message_visibility():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -2920,6 +2945,43 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
     )
 
     queue.receive_messages()
+
+
+@mock_aws
+def test_list_queues_paginated():
+    client = boto3.client("sqs", region_name=REGION)
+
+    prefix = str(uuid4())[0:6]
+    queue_urls = [
+        client.create_queue(QueueName=f"{prefix}-{i}")["QueueUrl"] for i in range(5)
+    ]
+
+    page1 = client.list_queues(QueueNamePrefix=prefix, MaxResults=2)
+    assert page1["QueueUrls"] == queue_urls[0:2]
+    assert "NextToken" in page1
+
+    page2 = client.list_queues(
+        QueueNamePrefix=prefix, MaxResults=2, NextToken=page1["NextToken"]
+    )
+    assert page2["QueueUrls"] == queue_urls[2:4]
+    assert "NextToken" in page2
+
+    page3 = client.list_queues(
+        QueueNamePrefix=prefix, MaxResults=2, NextToken=page2["NextToken"]
+    )
+    assert page3["QueueUrls"] == queue_urls[4:]
+    assert "NextToken" not in page3
+
+    # NextToken is only returned when MaxResults is supplied
+    assert "NextToken" not in client.list_queues(QueueNamePrefix=prefix)
+
+    paginator = client.get_paginator("list_queues")
+    pages = paginator.paginate(QueueNamePrefix=prefix, PaginationConfig={"PageSize": 2})
+    assert [page["QueueUrls"] for page in pages] == [
+        queue_urls[0:2],
+        queue_urls[2:4],
+        queue_urls[4:],
+    ]
 
 
 @mock_aws

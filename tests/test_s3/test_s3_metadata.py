@@ -1,9 +1,38 @@
 from uuid import uuid4
 
 import boto3
+import pytest
 
 from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
+
+from . import s3_aws_verified
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_s3_metadata_keys_with_underscores(bucket_name=None):
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.put_object(
+        Bucket=bucket_name,
+        Key="test-key",
+        Body=b"x",
+        Metadata={
+            "transform_watermark": "t",
+            "no-underscore": "s",
+            "has_underscore": "h",
+        },
+    )
+    resp = s3.get_object(Bucket=bucket_name, Key="test-key")
+    metadata = resp["Metadata"]
+    assert metadata["transform_watermark"] == "t"
+    assert metadata["no-underscore"] == "s"
+    assert metadata["has_underscore"] == "h"
+    resp = s3.head_object(Bucket=bucket_name, Key="test-key")
+    metadata = resp["Metadata"]
+    assert metadata["transform_watermark"] == "t"
+    assert metadata["no-underscore"] == "s"
+    assert metadata["has_underscore"] == "h"
 
 
 @mock_aws

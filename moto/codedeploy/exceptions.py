@@ -54,3 +54,12 @@ class DeploymentGroupDoesNotExistException(CodeDeployException):
 
     def __init__(self, message: str):
         super().__init__("DeploymentGroupDoesNotExistException", message)
+
+
+class InvalidTimeRangeException(CodeDeployException):
+    code = 400
+
+    def __init__(
+        self, message: str = "The start time must be earlier than the end time."
+    ):
+        super().__init__("InvalidTimeRangeException", message)

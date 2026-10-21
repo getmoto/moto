@@ -119,7 +119,7 @@ def _create_request_dict(given, serialized):
 
 
 @pytest.mark.parametrize(
-    "json_description, case, protocol", _compliance_tests(TestType.INPUT)
+    "json_description, case, protocol", list(_compliance_tests(TestType.INPUT))
 )
 def test_input_compliance(json_description: dict, case: dict, protocol: str):
     service_description = copy.deepcopy(json_description)
@@ -137,7 +137,7 @@ def test_input_compliance(json_description: dict, case: dict, protocol: str):
 
 
 @pytest.mark.parametrize(
-    "json_description, case, protocol", _compliance_tests(TestType.OUTPUT)
+    "json_description, case, protocol", list(_compliance_tests(TestType.OUTPUT))
 )
 def test_output_compliance(json_description: dict, case: dict, protocol):
     service_description = copy.deepcopy(json_description)
