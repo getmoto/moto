@@ -13,7 +13,6 @@ from . import s3_aws_verified
 @pytest.mark.aws_verified
 def test_s3_metadata_keys_with_underscores(bucket_name=None):
     s3 = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket=bucket_name)
     s3.put_object(
         Bucket=bucket_name,
         Key="test-key",
