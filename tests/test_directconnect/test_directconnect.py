@@ -18,6 +18,8 @@ def test_create_connection(client):
     )
     assert "dx-moto" in connection["connectionId"]
     assert connection["connectionState"] == "available"
+    assert connection["hasLogicalRedundancy"] == "no"
+    assert connection["jumboFrameCapable"] is False
 
 
 def test_describe_connections(client):

@@ -51,7 +51,7 @@ class Connection(BaseModel):
     connection_name: str
     connection_state: ConnectionStateType
     encryption_mode: EncryptionModeType
-    has_logical_redundancy: bool
+    has_logical_redundancy: str
     jumbo_frame_capable: bool
     lag_id: str | None
     loa_issue_time: str
@@ -112,7 +112,7 @@ class LAG(BaseModel):
     lag_name: str
     lag_state: LagStateType
     encryption_mode: EncryptionModeType
-    has_logical_redundancy: bool
+    has_logical_redundancy: str
     jumbo_frame_capable: bool
     location: str
     mac_sec_capable: bool | None
@@ -203,7 +203,7 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             connection_name=connection_name,
             connection_state=ConnectionStateType.AVAILABLE,
             encryption_mode=encryption_mode,
-            has_logical_redundancy=False,
+            has_logical_redundancy="no",
             jumbo_frame_capable=False,
             lag_id=lag_id,
             loa_issue_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -354,7 +354,7 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             lag_state=LagStateType.AVAILABLE,
             minimum_links=0,
             encryption_mode=encryption_mode,
-            has_logical_redundancy=False,
+            has_logical_redundancy="no",
             jumbo_frame_capable=False,
             number_of_connections=number_of_connections,
             connections=[],
