@@ -23,6 +23,7 @@ directconnect
 - [ ] allocate_public_virtual_interface
 - [ ] allocate_transit_virtual_interface
 - [ ] associate_connection_with_lag
+- [ ] associate_connections_to_resiliency_group
 - [ ] associate_hosted_connection
 - [X] associate_mac_sec_key
 - [ ] associate_virtual_interface
@@ -40,6 +41,7 @@ directconnect
 - [X] create_lag
 - [ ] create_private_virtual_interface
 - [ ] create_public_virtual_interface
+- [ ] create_resiliency_group
 - [ ] create_transit_virtual_interface
 - [ ] delete_bgp_peer
 - [X] delete_connection
@@ -48,6 +50,7 @@ directconnect
 - [ ] delete_direct_connect_gateway_association_proposal
 - [ ] delete_interconnect
 - [ ] delete_lag
+- [ ] delete_resiliency_group
 - [ ] delete_virtual_interface
 - [ ] describe_connection_loa
 - [X] describe_connections
@@ -68,7 +71,11 @@ directconnect
 - [ ] describe_virtual_gateways
 - [ ] describe_virtual_interfaces
 - [ ] disassociate_connection_from_lag
+- [ ] disassociate_connections_from_resiliency_group
 - [X] disassociate_mac_sec_key
+- [ ] get_resiliency_group
+- [ ] list_resiliency_group_associations
+- [ ] list_resiliency_groups
 - [ ] list_virtual_interface_routes
 - [ ] list_virtual_interface_test_history
 - [ ] start_bgp_failover_test
@@ -76,8 +83,10 @@ directconnect
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_connection
+- [ ] update_connections_billing_mode
 - [ ] update_direct_connect_gateway
 - [ ] update_direct_connect_gateway_association
 - [ ] update_lag
+- [ ] update_resiliency_group
 - [ ] update_virtual_interface_attributes
 

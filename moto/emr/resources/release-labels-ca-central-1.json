@@ -133,5 +133,6 @@
   "emr-4.8.4",
   "emr-4.8.3",
   "emr-4.8.2",
-  "emr-spark-8.0.0"
+  "emr-spark-8.0.0",
+  "emr-spark-8.1.0"
 ]

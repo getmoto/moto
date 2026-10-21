@@ -1,5 +1,4 @@
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -8,13 +7,10 @@ from .models import IoTDataPlaneBackend, iotdata_backends
 
 
 class IoTDataPlaneResponse(BaseResponse):
+    use_raw_body = True
+
     def __init__(self) -> None:
         super().__init__(service_name="iot-data")
-
-    def setup_class(
-        self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
-    ) -> None:
-        super().setup_class(request, full_url, headers, use_raw_body=True)
 
     @property
     def iotdata_backend(self) -> IoTDataPlaneBackend:

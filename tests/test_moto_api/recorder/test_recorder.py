@@ -194,6 +194,29 @@ class TestRecorder(TestCase):
         resp = s3.get_object(Bucket="mybucket", Key="data")
         assert resp["Body"].read() == b"ABCD"
 
+    def test_s3_upload_data_with_an_encoded_key(self):
+        # The key survives a round-trip only if the recorded URL keeps its
+        # percent-encoding - decoding it first would turn '?draft=true' into a
+        # querystring and truncate the key.
+        key = "reports/q1?draft=true"
+
+        self._start_recording()
+        s3 = boto3.client(
+            "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
+        s3.create_bucket(Bucket="encodedbucket")
+        s3.put_object(Bucket="encodedbucket", Body=b"ABCD", Key=key)
+        self._stop_recording()
+
+        rows = [json.loads(x) for x in self._download_recording().splitlines()]
+        assert any("/reports/q1%3Fdraft%3Dtrue" in row["url"] for row in rows)
+
+        s3.delete_object(Bucket="encodedbucket", Key=key)
+        s3.delete_bucket(Bucket="encodedbucket")
+
+        self._replay_recording()
+        assert s3.get_object(Bucket="encodedbucket", Key=key)["Body"].read() == b"ABCD"
+
     def test_s3_upload_file_using_requests(self):
         s3 = boto3.client(
             "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
@@ -219,6 +242,24 @@ class TestRecorder(TestCase):
         assert resp["Body"].read() == b"test"
         # cleanup
         os.remove("text.txt")
+
+    def test_s3_presigned_request_using_requests_is_recorded_once(self):
+        s3 = boto3.client(
+            "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
+        s3.create_bucket(Bucket="mybucket")
+
+        params = {"Bucket": "mybucket", "Key": "data"}
+        put_url = s3.generate_presigned_url("put_object", params, ExpiresIn=900)
+        get_url = s3.generate_presigned_url("get_object", params, ExpiresIn=900)
+
+        self._start_recording()
+        requests.put(put_url, data=b"ABCD")
+        requests.get(get_url)
+        self._stop_recording()
+
+        rows = [json.loads(x) for x in self._download_recording().splitlines()]
+        assert [row["method"] for row in rows] == ["PUT", "GET"]
 
     def _create_ddb_table(self, ddb, table_name):
         ddb.create_table(

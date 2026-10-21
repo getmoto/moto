@@ -1,11 +1,9 @@
 import types
 from http.client import responses as http_responses
-from io import BytesIO
 from typing import Any
-from urllib.parse import urlparse
 
 import responses
-from werkzeug.wrappers import Request
+from requests import PreparedRequest
 
 from moto.backends import get_service_from_url
 from moto.core.config import passthrough_service, passthrough_url
@@ -24,35 +22,11 @@ class CallbackResponse(responses.CallbackResponse):
             return self.method == other.method and self.url.pattern == other.url.pattern  # type: ignore
         return super().__eq__(other)
 
-    def get_response(self, request: Any) -> responses.HTTPResponse:
+    def get_response(self, request: PreparedRequest) -> responses.HTTPResponse:
         """
         Need to override this so we can pass decode_content=False
         """
-        if not isinstance(request, Request):
-            url = urlparse(request.url)
-            if request.body is None:
-                body = None
-            elif isinstance(request.body, str):
-                body = request.body.encode("UTF-8")
-            elif hasattr(request.body, "read"):
-                body = request.body.read()
-            else:
-                body = request.body
-            req = Request.from_values(
-                path="?".join([url.path, url.query]),
-                input_stream=BytesIO(body) if body else None,
-                content_length=request.headers.get("Content-Length"),
-                content_type=request.headers.get("Content-Type"),
-                method=request.method,
-                base_url=f"{url.scheme}://{url.netloc}",
-                headers=[(k, v) for k, v in request.headers.items()],
-            )
-            request = req
         headers = self.get_headers()
-
-        from moto.moto_api import recorder
-
-        recorder._record_request(request, body)
 
         result = self.callback(request)
         if isinstance(result, Exception):
@@ -106,7 +80,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
+def not_implemented_callback(request: PreparedRequest) -> TYPE_RESPONSE:
     status = 400
     headers: dict[str, str] = {}
     response = "The method is not implemented"

@@ -2312,6 +2312,94 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "m9g.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.24xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.2xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.48xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.4xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.8xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.large",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.metal-48xl",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9g.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.24xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.2xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.48xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.4xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.8xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.large",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.metal-48xl",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m9gd.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-southeast-1"
  },
@@ -3293,6 +3381,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "t8i.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "t8i.small",
   "Location": "ap-southeast-1"
  },
  {

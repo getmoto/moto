@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import copy
 from collections import OrderedDict
-from collections.abc import ItemsView
 from typing import Any
 
 from moto import settings
@@ -353,8 +352,10 @@ class Instance(TaggedEC2Resource, CloudFormationModel):
                 self.ec2_backend.delete_volume(volume_id)
 
     @property
-    def get_block_device_mapping(self) -> ItemsView[str, Any]:  # type: ignore[misc]
-        return self.block_device_mapping.items()
+    def get_block_device_mapping(self) -> list[tuple[str, Any]]:  # type: ignore[misc]
+        # Return a snapshot, so callers can safely iterate while other threads
+        # attach/detach volumes
+        return list(self.block_device_mapping.items())
 
     @staticmethod
     def get_block_device_status(volume_status: str) -> str:
