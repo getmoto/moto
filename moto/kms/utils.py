@@ -21,6 +21,7 @@ from moto.moto_api._internal import mock_random
 from .exceptions import (
     AccessDeniedException,
     InvalidCiphertextException,
+    KMSInvalidStateException,
     NotFoundException,
     ValidationException,
 )
@@ -243,6 +244,51 @@ class RSAPrivateKey(AbstractPrivateKey):
         )
 
 
+class RSAWrappingKey:
+    """RSA key used for wrapping (encrypting) key material during KMS import."""
+
+    __supported_key_sizes = [2048, 3072, 4096]
+
+    def __init__(self, key_size: int):
+        if key_size not in self.__supported_key_sizes:
+            raise ValidationException(
+                f"1 validation error detected: Value '{key_size}' at 'wrappingKeySpec' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                f"{self.__supported_key_sizes}"
+            )
+        self.key_size = key_size
+        self.private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=self.key_size
+        )
+
+    def public_key(self) -> bytes:
+        return self.private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+    def unwrap(self, encrypted_material: bytes, wrapping_algorithm: str) -> bytes:
+        if wrapping_algorithm == "RSAES_OAEP_SHA_256":
+            pad = padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None,
+            )
+        elif wrapping_algorithm == "RSAES_OAEP_SHA_1":
+            pad = padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                algorithm=hashes.SHA1(),
+                label=None,
+            )
+        else:
+            raise ValidationException(
+                f"1 validation error detected: Value '{wrapping_algorithm}' at 'wrappingAlgorithm' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "[RSAES_OAEP_SHA_256, RSAES_OAEP_SHA_1]"
+            )
+        return self.private_key.decrypt(encrypted_material, pad)
+
+
 class ECDSAPrivateKey(AbstractPrivateKey):
     def __init__(self, key_spec: str):
         validate_key_spec(key_spec, KeySpec.ecc_key_specs())
@@ -372,6 +418,11 @@ def encrypt(
         id_type = "Alias" if is_alias else "keyId"
         raise NotFoundException(f"{id_type} {key_id} is not found.")
 
+    if key.key_material is None:
+        raise KMSInvalidStateException(
+            f"{key_id} is not in a valid state for this operation."
+        )
+
     if plaintext == b"":
         raise ValidationException(
             "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
@@ -426,6 +477,11 @@ def decrypt(
         raise AccessDeniedException(
             "The ciphertext refers to a customer master key that does not exist, "
             "does not exist in this region, or you are not allowed to access."
+        )
+
+    if key.key_material is None:
+        raise KMSInvalidStateException(
+            f"{ciphertext.key_id} is not in a valid state for this operation."
         )
 
     try:
