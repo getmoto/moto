@@ -228,6 +228,7 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
 @pytest.mark.parametrize(
     "parameter,bad_value",
     [("domain", 123), ("execution.runId", 123), ("execution.workflowId", [])],
+    ids=["domain", "execution.runId", "execution.workflowId"],
 )
 @pytest.mark.parametrize("case", ["missing", "null", "invalid-type"])
 def test_workflow_execution_invalid_parameters(operation, parameter, bad_value, case):
@@ -279,6 +280,7 @@ def test_workflow_execution_invalid_parameters(operation, parameter, bad_value, 
             "2 validation errors detected: Value null at 'execution.runId' failed to satisfy constraint: Member must not be null; Value null at 'execution.workflowId' failed to satisfy constraint: Member must not be null",
         ),
     ],
+    ids=["no-parameters", "no-execution", "empty-execution"],
 )
 def test_workflow_execution_missing_execution(operation, parameters, message):
     config = Config(parameter_validation=False)
