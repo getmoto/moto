@@ -40,15 +40,14 @@ class SWFResponse(BaseResponse):
     def _get_workflow_execution_params(self) -> tuple[str, str, str]:
         params = self._params
         execution = params.get("execution")
-        if isinstance(execution, dict):
+        if execution is None:
+            required = {"execution": None}
+        else:
+            assert isinstance(execution, dict)
             required = {
                 "execution.runId": execution.get("runId"),
                 "execution.workflowId": execution.get("workflowId"),
             }
-        elif execution is None:
-            required = {"execution": None}
-        else:
-            raise SWFSerializationException(execution)
         required["domain"] = params.get("domain")
 
         errors = []
