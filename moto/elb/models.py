@@ -346,6 +346,7 @@ class ELBBackend(BaseBackend, TaggableResourcesMixin):
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
+            zones = self._zones_for_subnets(subnets)
         elif zones:
             default_subnets = ec2_backend.get_default_subnets()
             subnets = [default_subnets[zone].id for zone in zones]
@@ -700,11 +701,20 @@ class ELBBackend(BaseBackend, TaggableResourcesMixin):
         )
         return load_balancer.availability_zones
 
+    def _zones_for_subnets(self, subnets: list[str]) -> list[str]:
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        return sorted(
+            {ec2_backend.get_subnet(subnet).availability_zone for subnet in subnets}
+        )
+
     def attach_load_balancer_to_subnets(
         self, load_balancer_name: str, subnets: list[str]
     ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = list(set(load_balancer.subnets + subnets))
+        load_balancer.availability_zones = self._zones_for_subnets(
+            load_balancer.subnets
+        )
         return load_balancer.subnets
 
     def detach_load_balancer_from_subnets(
@@ -712,6 +722,9 @@ class ELBBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
+        load_balancer.availability_zones = self._zones_for_subnets(
+            load_balancer.subnets
+        )
         return load_balancer.subnets
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
