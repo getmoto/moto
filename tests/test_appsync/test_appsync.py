@@ -821,6 +821,55 @@ def test_create_channel_namespace_invalid_name():
 
 
 @mock_aws
+def test_create_channel_namespace_invalid_api_id():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_channel_namespace(
+            apiId="test",
+            name="test-channel",
+            subscribeAuthModes=[{"authType": "API_KEY"}],
+            publishAuthModes=[{"authType": "API_KEY"}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Events API test not found."
+
+
+@mock_aws
+def test_list_channel_namespaces_invalid_api_id():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.list_channel_namespaces(apiId="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Events API test not found."
+
+
+@mock_aws
+def test_delete_channel_namespace_invalid_api_id():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_channel_namespace(apiId="test", name="test-channel")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Events API test not found."
+
+
+@mock_aws
+def test_get_api_invalid_api_id():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_channel_namespace(apiId="test", name="test-channel")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Events API test not found."
+
+
+@mock_aws
 def test_create_api_invalid_name():
     client = boto3.client("appsync", region_name="us-east-2")
 
