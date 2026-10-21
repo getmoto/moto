@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import abc
 import copy
+import datetime
 import logging
 from typing import Any, Final
 
-from botocore.model import ListShape, Shape, StringShape, StructureShape
+import botocore.session
+from botocore.model import (
+    ListShape,
+    OperationModel,
+    Shape,
+    StringShape,
+    StructureShape,
+)
 from botocore.response import StreamingBody
 
 from moto.stepfunctions.parser.api import (
@@ -99,6 +107,27 @@ class StateTaskService(StateTask, abc.ABC):
             ),
         )
 
+    @staticmethod
+    def _get_boto_operation_model(
+        boto_service_name: str, service_action_name: str
+    ) -> OperationModel:
+        norm_service_action_name = camel_to_snake_case(service_action_name)
+
+        service = botocore.session.get_session().get_service_model(boto_service_name)
+
+        boto_operation_names = {
+            camel_to_snake_case(operation_name): operation_name
+            for operation_name in service.operation_names
+        }  # noqa
+        boto_operation_name = boto_operation_names.get(norm_service_action_name)
+        if boto_operation_name is None:
+            raise RuntimeError(
+                f"No api action named '{service_action_name}' available for service '{boto_service_name}'."
+            )
+
+        operation_model = service.operation_model(boto_operation_name)
+        return operation_model
+
     def _to_boto_request_value(self, request_value: Any, value_shape: Shape) -> Any:
         boto_request_value = request_value
         if isinstance(value_shape, StructureShape):
@@ -159,6 +188,10 @@ class StateTaskService(StateTask, abc.ABC):
         if isinstance(response_value, StreamingBody):
             body_str = to_str(response_value.read())
             return body_str
+        if isinstance(response_value, datetime.datetime):
+            # Match the AWS JSON protocol representation of timestamps:
+            # the number of seconds since the epoch.
+            return response_value.timestamp()
         return response_value
 
     def _from_boto_response(
@@ -211,7 +244,18 @@ class StateTaskService(StateTask, abc.ABC):
         boto_service_name: str | None = None,
         service_action_name: str | None = None,
     ) -> None:
-        pass
+        boto_service_name = self._get_boto_service_name(
+            boto_service_name=boto_service_name
+        )
+        service_action_name = self._get_boto_service_action(
+            service_action_name=service_action_name
+        )
+        input_shape = self._get_boto_operation_model(
+            boto_service_name=boto_service_name,
+            service_action_name=service_action_name,
+        ).input_shape
+        if input_shape is not None:
+            self._to_boto_request(parameters, input_shape)  # noqa
 
     def _normalise_response(
         self,
@@ -219,7 +263,18 @@ class StateTaskService(StateTask, abc.ABC):
         boto_service_name: str | None = None,
         service_action_name: str | None = None,
     ) -> None:
-        pass
+        boto_service_name = self._get_boto_service_name(
+            boto_service_name=boto_service_name
+        )
+        service_action_name = self._get_boto_service_action(
+            service_action_name=service_action_name
+        )
+        output_shape = self._get_boto_operation_model(
+            boto_service_name=boto_service_name,
+            service_action_name=service_action_name,
+        ).output_shape
+        if output_shape is not None:
+            self._from_boto_response(response, output_shape)  # noqa
 
     def _verify_size_quota(self, env: Environment, value: Any) -> None:
         is_within: bool = is_within_size_quota(value)
