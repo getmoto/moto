@@ -2061,10 +2061,10 @@ class S3Response(BaseResponse):
 
         attributes_to_get = self.headers.get("x-amz-object-attributes", "").split(",")
         response_keys = self.backend.get_object_attributes(key, attributes_to_get)
-        response_headers["Last-Modified"] = key.last_modified_ISO8601
 
         checksum = response_keys["checksum"]
         result: dict[str, Any] = {
+            "LastModified": key.last_modified,
             "ETag": response_keys["etag"],
             "Checksum": {f"Checksum{algo}": value for algo, value in checksum.items()}
             if checksum
