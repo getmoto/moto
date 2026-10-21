@@ -603,7 +603,7 @@ class FakeLoadBalancer(CloudFormationModel):
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds()
-        self.scheme = scheme
+        self.scheme = scheme or "internet-facing"
         self.security_groups = security_groups
         self.subnets = subnets or []
         self.vpc_id = vpc_id
