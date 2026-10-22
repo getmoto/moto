@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
+from moto.elb.hosted_zone_ids import get_hosted_zone_id
 from tests import EXAMPLE_AMI_ID
 
 
@@ -14,8 +15,6 @@ from tests import EXAMPLE_AMI_ID
 @mock_aws
 def test_create_load_balancer(zones, region_name):
     zones = [f"{region_name}{z}" for z in zones]
-    # Both regions and availability zones are parametrized
-    # This does not seem to have an effect on the DNS name
     client = boto3.client("elb", region_name=region_name)
     ec2 = boto3.resource("ec2", region_name=region_name)
 
@@ -33,14 +32,18 @@ def test_create_load_balancer(zones, region_name):
         Scheme="internal",
         SecurityGroups=[security_group.id],
     )
-    assert lb["DNSName"] == "my-lb.us-east-1.elb.amazonaws.com"
+    assert lb["DNSName"] == f"my-lb.{region_name}.elb.amazonaws.com"
 
     describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
         "LoadBalancerDescriptions"
     ][0]
     assert describe["LoadBalancerName"] == "my-lb"
-    assert describe["DNSName"] == "my-lb.us-east-1.elb.amazonaws.com"
-    assert describe["CanonicalHostedZoneName"] == "my-lb.us-east-1.elb.amazonaws.com"
+    assert describe["DNSName"] == f"my-lb.{region_name}.elb.amazonaws.com"
+    assert (
+        describe["CanonicalHostedZoneName"] == f"my-lb.{region_name}.elb.amazonaws.com"
+    )
+    zone_ids = {"us-east-1": "Z35SXDOTRQ7X7K", "ap-south-1": "ZP97RAFLXTNZK"}
+    assert describe["CanonicalHostedZoneNameID"] == zone_ids[region_name]
     assert describe["AvailabilityZones"] == zones
     assert "VPCId" in describe
     assert len(describe["Subnets"]) == len(zones)  # Default subnet for each zone
@@ -1176,3 +1179,8 @@ def test_create_load_balancer_duplicate():
         err["Message"]
         == f"The specified load balancer name already exists for this account: {lb_name}"
     )
+
+
+def test_hosted_zone_id_falls_back_for_unknown_region():
+    assert get_hosted_zone_id("us-not-a-region-1") == "Z2P70J7EXAMPLE"
+    assert get_hosted_zone_id("us-not-a-region-1", "network") == "Z2P70J7EXAMPLE"
