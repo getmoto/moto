@@ -148,24 +148,12 @@ def test_list_things_with_next_token():
         client.create_thing(thingName=str(i + 1))
 
     things = client.list_things()
-    assert len(things["things"]) == 50
+    assert "nextToken" in things
+    assert len(things["things"]) == 100
     assert things["things"][0]["thingName"] == "1"
     assert (
         things["things"][0]["thingArn"]
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/1"
-    )
-    assert things["things"][-1]["thingName"] == "50"
-    assert (
-        things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/50"
-    )
-
-    things = client.list_things(nextToken=things["nextToken"])
-    assert len(things["things"]) == 50
-    assert things["things"][0]["thingName"] == "51"
-    assert (
-        things["things"][0]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/51"
     )
     assert things["things"][-1]["thingName"] == "100"
     assert (
@@ -174,25 +162,12 @@ def test_list_things_with_next_token():
     )
 
     things = client.list_things(nextToken=things["nextToken"])
-    assert len(things["things"]) == 50
+    assert "nextToken" not in things
+    assert len(things["things"]) == 100
     assert things["things"][0]["thingName"] == "101"
     assert (
         things["things"][0]["thingArn"]
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/101"
-    )
-    assert things["things"][-1]["thingName"] == "150"
-    assert (
-        things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
-    )
-
-    things = client.list_things(nextToken=things["nextToken"])
-    assert "nextToken" not in things
-    assert len(things["things"]) == 50
-    assert things["things"][0]["thingName"] == "151"
-    assert (
-        things["things"][0]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/151"
     )
     assert things["things"][-1]["thingName"] == "200"
     assert (
@@ -206,7 +181,7 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     client = boto3.client("iot", region_name="ap-northeast-1")
     client.create_thing_type(thingTypeName="my-thing-type")
 
-    for i in range(0, 200):
+    for i in range(0, 400):
         if not (i + 1) % 3:
             attribute_payload = {"attributes": {"foo": "bar"}}
         elif not (i + 1) % 5:
@@ -229,28 +204,11 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     # Test filter for thingTypeName
     things = client.list_things(thingTypeName=thing_type_name)
     assert "nextToken" in things
-    assert len(things["things"]) == 50
+    assert len(things["things"]) == 100
     assert things["things"][0]["thingName"] == "2"
     assert (
         things["things"][0]["thingArn"]
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/2"
-    )
-    assert things["things"][-1]["thingName"] == "100"
-    assert (
-        things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
-    )
-    assert all(item["thingTypeName"] == thing_type_name for item in things["things"])
-
-    things = client.list_things(
-        nextToken=things["nextToken"], thingTypeName=thing_type_name
-    )
-    assert "nextToken" not in things
-    assert len(things["things"]) == 50
-    assert things["things"][0]["thingName"] == "102"
-    assert (
-        things["things"][0]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/102"
     )
     assert things["things"][-1]["thingName"] == "200"
     assert (
@@ -259,19 +217,36 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     )
     assert all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
+    things = client.list_things(
+        nextToken=things["nextToken"], thingTypeName=thing_type_name
+    )
+    assert "nextToken" not in things
+    assert len(things["things"]) == 100
+    assert things["things"][0]["thingName"] == "202"
+    assert (
+        things["things"][0]["thingArn"]
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/202"
+    )
+    assert things["things"][-1]["thingName"] == "400"
+    assert (
+        things["things"][-1]["thingArn"]
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/400"
+    )
+    assert all(item["thingTypeName"] == thing_type_name for item in things["things"])
+
     # Test filter for attributes
     things = client.list_things(attributeName="foo", attributeValue="bar")
     assert "nextToken" in things
-    assert len(things["things"]) == 50
+    assert len(things["things"]) == 100
     assert things["things"][0]["thingName"] == "3"
     assert (
         things["things"][0]["thingArn"]
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/3"
     )
-    assert things["things"][-1]["thingName"] == "150"
+    assert things["things"][-1]["thingName"] == "300"
     assert (
         things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/300"
     )
     assert all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -279,16 +254,16 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
         nextToken=things["nextToken"], attributeName="foo", attributeValue="bar"
     )
     assert "nextToken" not in things
-    assert len(things["things"]) == 16
-    assert things["things"][0]["thingName"] == "153"
+    assert len(things["things"]) == 33
+    assert things["things"][0]["thingName"] == "303"
     assert (
         things["things"][0]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/153"
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/303"
     )
-    assert things["things"][-1]["thingName"] == "198"
+    assert things["things"][-1]["thingName"] == "399"
     assert (
         things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/399"
     )
     assert all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -297,16 +272,16 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
         thingTypeName=thing_type_name, attributeName="foo", attributeValue="bar"
     )
     assert "nextToken" not in things
-    assert len(things["things"]) == 33
+    assert len(things["things"]) == 66
     assert things["things"][0]["thingName"] == "6"
     assert (
         things["things"][0]["thingArn"]
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/6"
     )
-    assert things["things"][-1]["thingName"] == "198"
+    assert things["things"][-1]["thingName"] == "396"
     assert (
         things["things"][-1]["thingArn"]
-        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/396"
     )
     assert all(
         item["attributes"] == {"foo": "bar"}
