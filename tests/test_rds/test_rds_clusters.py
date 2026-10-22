@@ -403,6 +403,19 @@ def test_create_db_cluster_additional_parameters(client):
 
 
 @mock_aws
+def test_create_db_cluster_aurora_storage_type(client):
+    resp = client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        StorageType="aurora-iopt1",
+    )
+
+    assert resp["DBCluster"]["StorageType"] == "aurora-iopt1"
+
+
+@mock_aws
 def test_modify_db_cluster_serverless_v2_scaling_configuration(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",

@@ -943,9 +943,27 @@ class DBCluster(RDSBaseModel):
     @staticmethod
     def default_allocated_storage(engine: str, storage_type: str) -> int:
         return {
-            "aurora": {"gp2": 1, "io1": 1, "standard": 1},
-            "aurora-mysql": {"gp2": 1, "io1": 1, "standard": 1},
-            "aurora-postgresql": {"gp2": 1, "io1": 1, "standard": 1},
+            "aurora": {
+                "gp2": 1,
+                "io1": 1,
+                "standard": 1,
+                "aurora": 1,
+                "aurora-iopt1": 1,
+            },
+            "aurora-mysql": {
+                "gp2": 1,
+                "io1": 1,
+                "standard": 1,
+                "aurora": 1,
+                "aurora-iopt1": 1,
+            },
+            "aurora-postgresql": {
+                "gp2": 1,
+                "io1": 1,
+                "standard": 1,
+                "aurora": 1,
+                "aurora-iopt1": 1,
+            },
             "mysql": {"gp2": 20, "io1": 100, "standard": 5},
             "neptune": {"gp2": 0, "io1": 0, "standard": 0},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
