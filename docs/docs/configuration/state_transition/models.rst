@@ -136,6 +136,22 @@ Available States:
 
 Transition type: Immediate - transitions immediately
 
+Service: SQS
+-----------------
+
+**Model**: `sqs::messagemovetask`   :raw-html:`<br />`
+Available States:
+
+    "RUNNING" --> "COMPLETED"   :raw-html:`<br />`
+    "CANCELLING" --> "CANCELLED"
+
+Transition type: Immediate - transitions immediately   :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("sqs").list_message_move_tasks(..)`
+
+    The messages are moved when the task transitions to COMPLETED. With the default transition, this happens before `start_message_move_task(..)` returns.
+
 Service: Support
 ------------------
 
