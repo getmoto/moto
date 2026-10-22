@@ -55,7 +55,7 @@ class FSxResponse(BaseResponse):
     def describe_file_systems(self) -> str:
         params = json.loads(self.body)
         file_system_ids = params.get("FileSystemIds")
-        max_results = params.get("MaxResults")
+        max_results = min(params.get("MaxResults", 50), 50)
         next_token = params.get("NextToken")
         file_systems, next_token = self.fsx_backend.describe_file_systems(
             file_system_ids=file_system_ids,
@@ -124,7 +124,7 @@ class FSxResponse(BaseResponse):
         params = json.loads(self.body)
         backup_ids = params.get("BackupIds")
         filters = params.get("Filters")
-        max_results = params.get("MaxResults")
+        max_results = min(params.get("MaxResults", 50), 50)
         next_token = params.get("NextToken")
         backups, next_token = self.fsx_backend.describe_backups(
             backup_ids=backup_ids,
