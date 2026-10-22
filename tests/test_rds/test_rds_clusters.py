@@ -370,6 +370,8 @@ def test_create_db_cluster_additional_parameters(client):
         VpcSecurityGroupIds=["sg1", "sg2"],
         EnableIAMDatabaseAuthentication=True,
         AutoMinorVersionUpgrade=False,
+        EnablePerformanceInsights=True,
+        PerformanceInsightsRetentionPeriod=7,
     )
 
     cluster = resp["DBCluster"]
@@ -400,6 +402,8 @@ def test_create_db_cluster_additional_parameters(client):
     assert {"VpcSecurityGroupId": "sg1", "Status": "active"} in security_groups
     assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
     assert cluster["IAMDatabaseAuthenticationEnabled"] is True
+    assert cluster["PerformanceInsightsEnabled"] is True
+    assert cluster["PerformanceInsightsRetentionPeriod"] == 7
 
 
 @mock_aws
@@ -2260,4 +2264,38 @@ def test_add_role_to_db_cluster_cluster_in_invalid_state_throws_InvalidDBInstanc
     assert (
         ex.value.response["Error"]["Message"]
         == f"Cluster {db_cluster_identifier} should be in a valid state to add role."
+    )
+
+
+@mock_aws
+def test_create_db_cluster_with_performance_insights_options_but_disabled_throws_InvalidParameterCombination():
+    with pytest.raises(ClientError) as ex:
+        create_db_cluster(
+            PerformanceInsightsRetentionPeriod=31,
+        )
+
+    assert ex.value.operation_name == "CreateDBCluster"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"] == "To enable Performance Insights, "
+        "EnablePerformanceInsights must be set to 'true'"
+    )
+
+
+@mock_aws
+def test_create_db_cluster_with_invalid_performance_insights_retention_period_throws_InvalidParameterValue():
+    with pytest.raises(ClientError) as ex:
+        create_db_cluster(
+            EnablePerformanceInsights=True,
+            PerformanceInsightsRetentionPeriod=13,
+        )
+
+    assert ex.value.operation_name == "CreateDBCluster"
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid Performance Insights retention period. "
+        "Valid values are: [7, 31, 62, 93, 124, 155, 186, 217, "
+        "248, 279, 310, 341, 372, 403, 434, 465, 496, 527, "
+        "558, 589, 620, 651, 682, 713, 731]"
     )
