@@ -617,9 +617,7 @@ class DBCluster(RDSBaseModel):
                 f"{self.region}b",
                 f"{self.region}c",
             ]
-        default_pg = (
-            "default.neptune1.3" if self.engine == "neptune" else "default.aurora8.0"
-        )
+        default_pg = DBCluster.default_parameter_group(self.engine)
         self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.db_subnet_group_name = db_subnet_group_name or "default"
         self.port = port or DBCluster.default_port(self.engine)
@@ -920,10 +918,18 @@ class DBCluster(RDSBaseModel):
             "aurora": "5.6.mysql_aurora.1.22.5",
             "aurora-mysql": "5.7.mysql_aurora.2.07.2",
             "aurora-postgresql": "12.7",
+            "docdb": "5.0.0",
             "mysql": "8.0.23",
             "neptune": "1.3.2.1",
             "postgres": "13.4",
         }[engine]
+
+    @staticmethod
+    def default_parameter_group(engine: str) -> str:
+        return {
+            "docdb": "default.docdb5.0",
+            "neptune": "default.neptune1.3",
+        }.get(engine, "default.aurora8.0")
 
     @staticmethod
     def default_port(engine: str) -> int:
@@ -931,6 +937,7 @@ class DBCluster(RDSBaseModel):
             "aurora": 3306,
             "aurora-mysql": 3306,
             "aurora-postgresql": 5432,
+            "docdb": 27017,
             "mysql": 3306,
             "neptune": 8182,
             "postgres": 5432,
@@ -946,6 +953,7 @@ class DBCluster(RDSBaseModel):
             "aurora": {"gp2": 1, "io1": 1, "standard": 1},
             "aurora-mysql": {"gp2": 1, "io1": 1, "standard": 1},
             "aurora-postgresql": {"gp2": 1, "io1": 1, "standard": 1},
+            "docdb": {"gp2": 1, "io1": 1, "standard": 1},
             "mysql": {"gp2": 20, "io1": 100, "standard": 5},
             "neptune": {"gp2": 0, "io1": 0, "standard": 0},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
@@ -1080,6 +1088,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     default_engine_versions = {
         "MySQL": "5.6.21",
+        "docdb": "5.0.0",
         "mysql": "5.6.21",
         "neptune": "1.3.2.1",
         "oracle-ee": "11.2.0.4.v3",
@@ -1606,6 +1615,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             "aurora": 3306,
             "aurora-mysql": 3306,
             "aurora-postgresql": 5432,
+            "docdb": 27017,
             "mysql": 3306,
             "mariadb": 3306,
             "neptune": 8182,
@@ -2185,7 +2195,7 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         ec2_backend = ec2_backends[account_id][region_name]
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds_backend = rds_backends[account_id][region_name]
-        subnet_group = rds_backend.create_subnet_group(
+        subnet_group = rds_backend.create_db_subnet_group(
             resource_name,
             description,
             subnets,
@@ -2195,7 +2205,7 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_subnet_group(self.name)
+        backend.delete_db_subnet_group(self.name)
 
 
 class DBProxy(RDSBaseModel):
@@ -3084,7 +3094,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_subnet_group(
+    def create_db_subnet_group(
         self,
         subnet_name: str,
         description: str,
@@ -3106,7 +3116,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def modify_db_subnet_group(
         self, subnet_name: str, description: str, subnets: list[Subnet]
     ) -> DBSubnetGroup:
-        subnet_group = self.subnet_groups.pop(subnet_name)
+        subnet_group = self.subnet_groups.get(subnet_name)
         if not subnet_group:
             raise DBSubnetGroupNotFoundError(subnet_name)
         subnet_group.name = subnet_name
@@ -3115,7 +3125,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
             subnet_group.description = description
         return subnet_group
 
-    def delete_subnet_group(self, subnet_name: str) -> DBSubnetGroup:
+    def delete_db_subnet_group(self, subnet_name: str) -> DBSubnetGroup:
         if subnet_name in self.subnet_groups:
             return self.subnet_groups.pop(subnet_name)
         else:
@@ -3425,6 +3435,26 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
             db_cluster_parameter_group_parameters=iterable_source_parameters,
         )
         return target_db_cluster_parameter_group
+
+    def reset_db_cluster_parameter_group(
+        self,
+        db_cluster_parameter_group_name: str,
+        reset_all_parameters: bool,
+        parameters: Iterable[dict[str, Any]],
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBClusterParameterGroupNotFoundError(db_cluster_parameter_group_name)
+        db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            db_cluster_parameter_group_name
+        ]
+        if reset_all_parameters:
+            db_cluster_parameter_group.parameters.clear()
+        else:
+            for parameter in parameters:
+                db_cluster_parameter_group.parameters.pop(
+                    parameter["ParameterName"], None
+                )
+        return db_cluster_parameter_group
 
     def describe_db_cluster_parameters(
         self, db_cluster_parameter_group_name: str
@@ -3888,6 +3918,55 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
                 ]
             return self.db_cluster_options(engine)
         return []
+
+    def describe_db_engine_versions(
+        self,
+        engine: str | None = None,
+        engine_version: str | None = None,
+        db_parameter_group_family: str | None = None,
+        default_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        """
+        Only a small, static set of engine versions is returned. These are the
+        default versions for the engines that Moto supports, plus the
+        DocumentDB versions (3.6.0, 4.0.0, 5.0.0).
+        """
+        versions = load_resource("rds/resources/engine_versions.json")
+        results = []
+        for version in versions:
+            if engine and version["Engine"] != engine:
+                continue
+            if engine_version and version["EngineVersion"] != engine_version:
+                continue
+            if (
+                db_parameter_group_family
+                and version["DBParameterGroupFamily"] != db_parameter_group_family
+            ):
+                continue
+            if default_only and not version["Default"]:
+                continue
+            version = dict(version)
+            version.pop("Default")
+            version["DBEngineVersionArn"] = (
+                f"arn:{self.partition}:rds::{self.account_id}:engine-version/"
+                f"{version['Engine']}/{version['EngineVersion']}"
+            )
+            results.append(version)
+        return results
+
+    def describe_engine_default_cluster_parameters(
+        self, db_parameter_group_family: str
+    ) -> dict[str, Any]:
+        """
+        Default parameters are only returned for the DocumentDB families.
+        Other families return an empty parameter list.
+        """
+        defaults = load_resource("rds/resources/engine_default_cluster_parameters.json")
+        engine = db_parameter_group_family.rstrip("0123456789.")
+        return {
+            "DBParameterGroupFamily": db_parameter_group_family,
+            "Parameters": defaults.get(engine, []),
+        }
 
     def create_db_cluster_parameter_group(
         self,

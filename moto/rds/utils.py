@@ -49,6 +49,7 @@ class DbInstanceEngine(str, Enum):
     CUSTOM_SQLSERVER_EE = "custom-sqlserver-ee"
     CUSTOM_SQLSERVER_SE = "custom-sqlserver-se"
     CUSTOM_SQLSERVER_WEB = "custom-sqlserver-web"
+    DOCDB = "docdb"
     MARIADB = "mariadb"
     MYSQL = "mysql"
     NEPTUNE = "neptune"
@@ -70,6 +71,7 @@ class DbInstanceEngine(str, Enum):
 class ClusterEngine(str, Enum):
     AURORA_POSTGRESQL = "aurora-postgresql"
     AURORA_MYSQL = "aurora-mysql"
+    DOCDB = "docdb"
     NEPTUNE = "neptune"
     RDS_POSTGRESQL = "postgres"
     RDS_MYSQL = "mysql"
