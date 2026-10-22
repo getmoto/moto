@@ -94,3 +94,44 @@ def test_delete_db_cluster_parameter_group():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "DBParameterGroupNotFound"
+
+
+@mock_aws
+def test_reset_db_cluster_parameter_group():
+    client = boto3.client("docdb", region_name="us-east-1")
+    client.create_db_cluster_parameter_group(
+        DBClusterParameterGroupName="my-docdb-params",
+        DBParameterGroupFamily="docdb5.0",
+        Description="DocDB params",
+    )
+    client.modify_db_cluster_parameter_group(
+        DBClusterParameterGroupName="my-docdb-params",
+        Parameters=[
+            {"ParameterName": "tls", "ParameterValue": "disabled"},
+            {"ParameterName": "audit_logs", "ParameterValue": "enabled"},
+        ],
+    )
+
+    resp = client.reset_db_cluster_parameter_group(
+        DBClusterParameterGroupName="my-docdb-params",
+        Parameters=[{"ParameterName": "tls"}],
+    )
+    assert resp["DBClusterParameterGroupName"] == "my-docdb-params"
+    params = client.describe_db_cluster_parameters(
+        DBClusterParameterGroupName="my-docdb-params"
+    )["Parameters"]
+    assert [p["ParameterName"] for p in params] == ["audit_logs"]
+
+    client.reset_db_cluster_parameter_group(
+        DBClusterParameterGroupName="my-docdb-params", ResetAllParameters=True
+    )
+    params = client.describe_db_cluster_parameters(
+        DBClusterParameterGroupName="my-docdb-params"
+    )["Parameters"]
+    assert params == []
+
+    with pytest.raises(ClientError) as exc:
+        client.reset_db_cluster_parameter_group(
+            DBClusterParameterGroupName="unknown", ResetAllParameters=True
+        )
+    assert exc.value.response["Error"]["Code"] == "DBParameterGroupNotFound"

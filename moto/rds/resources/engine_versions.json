@@ -1,0 +1,114 @@
+[
+  {
+    "Engine": "aurora-mysql",
+    "EngineVersion": "5.7.mysql_aurora.2.07.2",
+    "DBParameterGroupFamily": "aurora-mysql5.7",
+    "DBEngineDescription": "Aurora MySQL",
+    "DBEngineVersionDescription": "Aurora (MySQL 5.7) 2.07.2",
+    "ExportableLogTypes": ["audit", "error", "general", "slowquery"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": true,
+    "Default": true
+  },
+  {
+    "Engine": "aurora-postgresql",
+    "EngineVersion": "12.7",
+    "DBParameterGroupFamily": "aurora-postgresql12",
+    "DBEngineDescription": "Aurora (PostgreSQL)",
+    "DBEngineVersionDescription": "Aurora PostgreSQL (Compatible with PostgreSQL 12.7)",
+    "ExportableLogTypes": ["postgresql"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": true,
+    "Default": true
+  },
+  {
+    "Engine": "docdb",
+    "EngineVersion": "3.6.0",
+    "DBParameterGroupFamily": "docdb3.6",
+    "DBEngineDescription": "Amazon DocumentDB (with MongoDB compatibility)",
+    "DBEngineVersionDescription": "DocDB version 1.0.200837",
+    "ValidUpgradeTarget": [
+      {"Engine": "docdb", "EngineVersion": "4.0.0", "Description": "DocDB version 2.0.0", "AutoUpgrade": false, "IsMajorVersionUpgrade": true},
+      {"Engine": "docdb", "EngineVersion": "5.0.0", "Description": "DocDB version 3.0.0", "AutoUpgrade": false, "IsMajorVersionUpgrade": true}
+    ],
+    "ExportableLogTypes": ["audit", "profiler"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": false,
+    "Default": false
+  },
+  {
+    "Engine": "docdb",
+    "EngineVersion": "4.0.0",
+    "DBParameterGroupFamily": "docdb4.0",
+    "DBEngineDescription": "Amazon DocumentDB (with MongoDB compatibility)",
+    "DBEngineVersionDescription": "DocDB version 2.0.0",
+    "ValidUpgradeTarget": [
+      {"Engine": "docdb", "EngineVersion": "5.0.0", "Description": "DocDB version 3.0.0", "AutoUpgrade": false, "IsMajorVersionUpgrade": true}
+    ],
+    "ExportableLogTypes": ["audit", "profiler"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": true,
+    "Default": false
+  },
+  {
+    "Engine": "docdb",
+    "EngineVersion": "5.0.0",
+    "DBParameterGroupFamily": "docdb5.0",
+    "DBEngineDescription": "Amazon DocumentDB (with MongoDB compatibility)",
+    "DBEngineVersionDescription": "DocDB version 3.0.0",
+    "ValidUpgradeTarget": [],
+    "ExportableLogTypes": ["audit", "profiler"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": true,
+    "Default": true
+  },
+  {
+    "Engine": "mysql",
+    "EngineVersion": "8.0.23",
+    "DBParameterGroupFamily": "mysql8.0",
+    "DBEngineDescription": "MySQL Community Edition",
+    "DBEngineVersionDescription": "MySQL 8.0.23",
+    "ExportableLogTypes": ["audit", "error", "general", "slowquery"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": true,
+    "SupportedEngineModes": [],
+    "SupportsGlobalDatabases": false,
+    "Default": true
+  },
+  {
+    "Engine": "neptune",
+    "EngineVersion": "1.3.2.1",
+    "DBParameterGroupFamily": "neptune1.3",
+    "DBEngineDescription": "Amazon Neptune",
+    "DBEngineVersionDescription": "Neptune 1.3.2.1",
+    "ExportableLogTypes": ["audit", "slowquery"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": false,
+    "SupportedEngineModes": ["provisioned"],
+    "SupportsGlobalDatabases": true,
+    "Default": true
+  },
+  {
+    "Engine": "postgres",
+    "EngineVersion": "13.4",
+    "DBParameterGroupFamily": "postgres13",
+    "DBEngineDescription": "PostgreSQL",
+    "DBEngineVersionDescription": "PostgreSQL 13.4-R1",
+    "ExportableLogTypes": ["postgresql", "upgrade"],
+    "SupportsLogExportsToCloudwatchLogs": true,
+    "SupportsReadReplica": true,
+    "SupportedEngineModes": [],
+    "SupportsGlobalDatabases": false,
+    "Default": true
+  }
+]
