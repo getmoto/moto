@@ -954,3 +954,103 @@ def test_create_launch_template_with_non_base64_encoded_user_data_fails():
     error = exc.value.response["Error"]
     assert error["Code"] == "InvalidUserData.Malformed"
     assert error["Message"] == "Invalid BASE64 encoding of user data."
+
+
+@mock_aws
+def test_delete_launch_template_versions():
+    cli = boto3.client("ec2", region_name="us-east-1")
+    template_name = str(uuid4())
+
+    template_id = cli.create_launch_template(
+        LaunchTemplateName=template_name,
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )["LaunchTemplate"]["LaunchTemplateId"]
+    for image_id in ("ami-00000002", "ami-00000003"):
+        cli.create_launch_template_version(
+            LaunchTemplateId=template_id,
+            LaunchTemplateData={"ImageId": image_id},
+        )
+
+    # version 2 exists, 99 does not, 1 is the default and cannot be deleted
+    resp = cli.delete_launch_template_versions(
+        LaunchTemplateId=template_id, Versions=["2", "99", "1"]
+    )
+
+    deleted = resp["SuccessfullyDeletedLaunchTemplateVersions"]
+    assert [item["VersionNumber"] for item in deleted] == [2]
+    assert deleted[0]["LaunchTemplateId"] == template_id
+    assert deleted[0]["LaunchTemplateName"] == template_name
+
+    failed = resp["UnsuccessfullyDeletedLaunchTemplateVersions"]
+    assert [item["VersionNumber"] for item in failed] == [99, 1]
+    assert (
+        failed[0]["ResponseError"]["Code"] == "InvalidLaunchTemplateId.VersionNotFound"
+    )
+    assert failed[1]["ResponseError"]["Code"] == "OperationNotPermitted"
+
+    remaining = cli.describe_launch_template_versions(LaunchTemplateId=template_id)
+    assert [v["VersionNumber"] for v in remaining["LaunchTemplateVersions"]] == [1, 3]
+
+    template = cli.describe_launch_templates(LaunchTemplateIds=[template_id])[
+        "LaunchTemplates"
+    ][0]
+    assert template["DefaultVersionNumber"] == 1
+    assert template["LatestVersionNumber"] == 3
+
+
+@mock_aws
+def test_delete_launch_template_versions__numbers_not_reused():
+    cli = boto3.client("ec2", region_name="us-east-1")
+    template_id = cli.create_launch_template(
+        LaunchTemplateName=str(uuid4()),
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )["LaunchTemplate"]["LaunchTemplateId"]
+    cli.create_launch_template_version(
+        LaunchTemplateId=template_id, LaunchTemplateData={"ImageId": "ami-00000002"}
+    )
+
+    cli.delete_launch_template_versions(LaunchTemplateId=template_id, Versions=["2"])
+
+    # a new version must not reuse the deleted version number
+    cli.create_launch_template_version(
+        LaunchTemplateId=template_id, LaunchTemplateData={"ImageId": "ami-00000003"}
+    )
+    remaining = cli.describe_launch_template_versions(LaunchTemplateId=template_id)
+    assert [v["VersionNumber"] for v in remaining["LaunchTemplateVersions"]] == [1, 3]
+
+
+@mock_aws
+def test_delete_launch_template_versions__by_name_and_unknown_template():
+    cli = boto3.client("ec2", region_name="us-east-1")
+    template_name = str(uuid4())
+    cli.create_launch_template(
+        LaunchTemplateName=template_name,
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )
+    cli.create_launch_template_version(
+        LaunchTemplateName=template_name,
+        LaunchTemplateData={"ImageId": "ami-00000002"},
+    )
+
+    resp = cli.delete_launch_template_versions(
+        LaunchTemplateName=template_name, Versions=["2"]
+    )
+    assert [
+        item["VersionNumber"]
+        for item in resp["SuccessfullyDeletedLaunchTemplateVersions"]
+    ] == [2]
+
+    with pytest.raises(ClientError) as exc:
+        cli.delete_launch_template_versions(
+            LaunchTemplateId="lt-00000000000000000", Versions=["1"]
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidLaunchTemplateId.NotFound"
+
+    with pytest.raises(ClientError) as exc:
+        cli.delete_launch_template_versions(
+            LaunchTemplateName="does-not-exist", Versions=["1"]
+        )
+    assert (
+        exc.value.response["Error"]["Code"]
+        == "InvalidLaunchTemplateName.NotFoundException"
+    )
