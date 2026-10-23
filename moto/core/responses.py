@@ -15,7 +15,6 @@ from typing import (
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
-from botocore.exceptions import UnknownServiceError
 from botocore.model import OperationNotFoundError
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import http_date
@@ -374,8 +373,6 @@ class BaseResponse(ActionAuthenticatorMixin):
             operation, uri_params = service_router.match(request)
             self.uri_match = uri_params
             return operation.name
-        except UnknownServiceError:
-            pass
         except (NotFound, NotImplementedError):
             pass
         return None  # type: ignore[return-value]
