@@ -241,8 +241,7 @@ class DomainDispatcherApplication:
                 resp = response_class()
                 resp.region = region
                 action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
+                    Request(environ.copy())
                 )
                 if action:
                     service = service_name
@@ -266,8 +265,7 @@ class DomainDispatcherApplication:
                 resp = response_class()
                 resp.region = region
                 action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
+                    Request(environ.copy())
                 )
                 if action:
                     service = service_name
