@@ -11,7 +11,12 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
+from .exceptions import (
+    AlertManagerDefinitionAlreadyExists,
+    AlertManagerDefinitionNotFound,
+    RuleGroupNamespaceNotFound,
+    WorkspaceNotFound,
+)
 from .utils import PAGINATION_MODEL
 
 
@@ -48,6 +53,26 @@ class RuleGroupNamespace(BaseModel):
         }
 
 
+class AlertManagerDefinition(BaseModel):
+    def __init__(self, data: str):
+        self.data = data
+        self.created_at = unix_time()
+        self.modified_at = self.created_at
+        self.status = {"statusCode": "ACTIVE"}
+
+    def update(self, data: str) -> None:
+        self.data = data
+        self.modified_at = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "data": self.data,
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
+            "status": self.status,
+        }
+
+
 class Workspace(BaseModel):
     def __init__(
         self,
@@ -65,6 +90,7 @@ class Workspace(BaseModel):
         self.tag_fn = tag_fn
         self.rule_group_namespaces: dict[str, RuleGroupNamespace] = {}
         self.logging_config: dict[str, Any] | None = None
+        self.alert_manager_definition: AlertManagerDefinition | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -189,6 +215,44 @@ class PrometheusServiceBackend(BaseBackend):
                 if ns_name.startswith(name)
             ]
         return list(ws.rule_group_namespaces.values())
+
+    def create_alert_manager_definition(
+        self, workspace_id: str, data: str
+    ) -> AlertManagerDefinition:
+        """
+        The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
+        """
+        workspace = self.describe_workspace(workspace_id)
+        if workspace.alert_manager_definition is not None:
+            raise AlertManagerDefinitionAlreadyExists(workspace_id)
+        definition = AlertManagerDefinition(data)
+        workspace.alert_manager_definition = definition
+        return definition
+
+    def describe_alert_manager_definition(
+        self, workspace_id: str
+    ) -> AlertManagerDefinition:
+        workspace = self.describe_workspace(workspace_id)
+        if workspace.alert_manager_definition is None:
+            raise AlertManagerDefinitionNotFound(workspace_id)
+        return workspace.alert_manager_definition
+
+    def put_alert_manager_definition(
+        self, workspace_id: str, data: str
+    ) -> AlertManagerDefinition:
+        """
+        The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
+        """
+        definition = self.describe_alert_manager_definition(workspace_id)
+        definition.update(data)
+        return definition
+
+    def delete_alert_manager_definition(self, workspace_id: str) -> None:
+        """
+        The ClientToken-parameter is not yet implemented
+        """
+        workspace = self.describe_workspace(workspace_id)
+        workspace.alert_manager_definition = None
 
     def create_logging_configuration(
         self, workspace_id: str, log_group_arn: str

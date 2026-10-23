@@ -11,6 +11,7 @@ url_paths = {
     "{0}/workspaces$": PrometheusServiceResponse.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)$": PrometheusServiceResponse.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/alias$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/alertmanager/definition$": PrometheusServiceResponse.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/logging$": PrometheusServiceResponse.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces$": PrometheusServiceResponse.dispatch,
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": PrometheusServiceResponse.dispatch,
