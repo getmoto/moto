@@ -200,6 +200,11 @@ class SmithyRule(Rule):
         methods: list[str],
         **kwargs: Any,
     ) -> None:
+        # Rules that don't end in a slash are strict, since werkzeug < 2.2 would
+        # otherwise strip a significant trailing slash from the last label (e.g.
+        # an S3 key like `folder/`). `_match_path` falls back to the path
+        # without the trailing slash instead.
+        kwargs.setdefault("strict_slashes", not string.endswith("/"))
         super().__init__(string, methods=methods, **kwargs)
         # Candidates are sorted by weight once, so constraints must not be added after this.
         self._action_selector = ActionSelector(self._initialize_candidates(operations))
