@@ -972,7 +972,7 @@ class Route53Domain(BaseModel):
         abuse_contact_email: str | None = None,
         abuse_contact_phone: str | None = None,
         registry_domain_id: str | None = None,
-        expiration_date: datetime | None = None,
+        duration_in_years: int = 10,
         reseller: str | None = None,
         dns_sec_keys: list[dict[str, Any]] | None = None,
         extra_params: list[dict[str, Any]] | None = None,
@@ -996,22 +996,19 @@ class Route53Domain(BaseModel):
 
         creation_date = datetime.now(timezone.utc)
         updated_date = datetime.now(timezone.utc)
-        expiration_date = expiration_date or datetime.now(timezone.utc) + timedelta(
-            days=365 * 10
+
+        if duration_in_years < 1 or duration_in_years > 10:
+            input_errors.append("DurationInYears must be between 1 and 10")
+
+        expiration_date = datetime.now(timezone.utc) + timedelta(
+            days=365 * duration_in_years
         )
+
         registrar_name = registrar_name or "GANDI SAS"
         whois_server = whois_server or "whois.gandi.net"
         registrar_url = registrar_url or "http://www.gandi.net"
         abuse_contact_email = abuse_contact_email or "abuse@support.gandi.net"
         status_list = ["SUCCEEDED"]
-
-        time_until_expiration = expiration_date - datetime.now(timezone.utc)
-        if time_until_expiration < timedelta(
-            days=365
-        ) or time_until_expiration > timedelta(days=365 * 10):
-            input_errors.append(
-                "ExpirationDate must by between 1 and 10 years from now"
-            )
 
         if input_errors:
             raise ValidationException(input_errors)
