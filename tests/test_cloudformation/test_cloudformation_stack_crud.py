@@ -817,6 +817,21 @@ def test_bad_list_stack_resources():
 
 
 @mock_aws
+def test_list_stack_resources_returns_last_updated_timestamp():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+
+    summaries = cf.list_stack_resources(StackName=TEST_STACK_NAME)[
+        "StackResourceSummaries"
+    ]
+    assert len(summaries) == 1
+    timestamp = summaries[0]["LastUpdatedTimestamp"]
+    assert isinstance(timestamp, datetime)
+    assert timestamp >= stack["CreationTime"]
+
+
+@mock_aws
 def test_delete_stack_set_by_name():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_stack_set(StackSetName="teststackset", TemplateBody=dummy_template_json)

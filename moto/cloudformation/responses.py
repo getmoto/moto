@@ -349,14 +349,16 @@ class CloudFormationResponse(BaseResponse):
 
     def list_stack_resources(self) -> ActionResult:
         stack_name_or_id = self._get_param("StackName")
-        resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
+        stack, resources = self.cloudformation_backend.list_stack_resources(
+            stack_name_or_id
+        )
         # FIXME: This was migrated from the original XML template, including hardcoded values.
         result = {
             "StackResourceSummaries": [
                 {
                     "ResourceStatus": "CREATE_COMPLETE",
                     "LogicalResourceId": getattr(resource, "logical_resource_id", ""),
-                    "LastUpdateTimestamp": "2011-06-21T20:15:58Z",
+                    "LastUpdatedTimestamp": stack.creation_time,
                     "PhysicalResourceId": getattr(resource, "physical_resource_id", ""),
                     "ResourceType": getattr(resource, "cf_resource_type", ""),
                 }
