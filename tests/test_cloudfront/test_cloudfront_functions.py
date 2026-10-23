@@ -229,3 +229,29 @@ def test_delete_function_without_if_match():
 
     error = exc.value.response["Error"]
     assert error["Code"] == "InvalidIfMatchVersion"
+
+
+@mock_aws
+def test_list_functions_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    expected_names = {f"test-function-{index}" for index in range(101)}
+    for name in expected_names:
+        client.create_function(
+            Name=name,
+            FunctionConfig={"Comment": name, "Runtime": "cloudfront-js-1.0"},
+            FunctionCode=b"function handler(event) { return event; }",
+        )
+    response = client.list_functions()["FunctionList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_functions(Marker=next_marker)["FunctionList"]
+        pages.append(response["Items"])
+    names = [function["Name"] for page in pages for function in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(names) == 101
+    assert set(names) == expected_names

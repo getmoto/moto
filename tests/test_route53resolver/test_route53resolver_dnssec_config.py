@@ -114,3 +114,29 @@ def test_list_resolver_dnssec_configs_empty():
     response = client.list_resolver_dnssec_configs()
     assert len(response["ResolverDnssecConfigs"]) == 0
     assert "NextToken" not in response
+
+
+@mock_aws
+def test_list_resolver_dnssec_configs_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    expected = {f"vpc-page-dnssec-{i}" for i in range(101)}
+    for resource_id in expected:
+        client.update_resolver_dnssec_config(
+            ResourceId=resource_id, Validation="ENABLE"
+        )
+
+    page = client.list_resolver_dnssec_configs()
+    assert len(page["ResolverDnssecConfigs"]) == 100
+    assert page.get("NextToken")
+    configs = list(page["ResolverDnssecConfigs"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resolver_dnssec_configs(NextToken=next_token)
+        configs.extend(page["ResolverDnssecConfigs"])
+
+    resource_ids = [config["ResourceId"] for config in configs]
+    assert set(resource_ids) == expected
+    assert len(resource_ids) == 101

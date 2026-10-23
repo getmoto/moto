@@ -2843,3 +2843,107 @@ def test_delete_connection_not_present():
     # When/Then
     with pytest.raises(ClientError):
         _ = client.delete_connection(Name=conn_name)
+
+
+@mock_aws
+def test_list_rules_paginate():
+    seen_tokens = set()
+    client = boto3.client("events", region_name="us-west-2")
+    names = [f"paginate-rule-{idx}" for idx in range(51)]
+    for name in names:
+        client.put_rule(Name=name, EventPattern='{"source":["paginate"]}')
+
+    page = client.list_rules()
+    assert len(page["Rules"]) == 50
+    pages = [page]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_rules(NextToken=page["NextToken"])
+        pages.append(page)
+
+    actual = [rule["Name"] for page in pages for rule in page["Rules"]]
+    assert len(actual) == 51
+    assert set(actual) == set(names)
+
+
+@mock_aws
+def test_list_rule_names_by_target_paginate():
+    seen_tokens = set()
+    client = boto3.client("events", region_name="us-west-2")
+    target_arn = "arn:aws:lambda:us-west-2:123456789012:function:paginate"
+    names = [f"paginate-rule-{idx}" for idx in range(51)]
+    for name in names:
+        client.put_rule(Name=name, EventPattern='{"source":["paginate"]}')
+        client.put_targets(Rule=name, Targets=[{"Id": "target", "Arn": target_arn}])
+
+    page = client.list_rule_names_by_target(TargetArn=target_arn)
+    assert len(page["RuleNames"]) == 50
+    actual = list(page["RuleNames"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_rule_names_by_target(
+            TargetArn=target_arn, NextToken=page["NextToken"]
+        )
+        actual.extend(page["RuleNames"])
+
+    assert len(actual) == 51
+    assert set(actual) == set(names)
+
+
+@mock_aws
+def test_list_targets_by_rule_paginate():
+    seen_tokens = set()
+    client = boto3.client("events", region_name="us-west-2")
+    rule_name = "paginate-targets"
+    client.put_rule(Name=rule_name, EventPattern='{"source":["paginate"]}')
+    target_arns = [
+        f"arn:aws:lambda:us-west-2:123456789012:function:paginate-{idx}"
+        for idx in range(51)
+    ]
+    for start_idx in range(0, len(target_arns), 10):
+        client.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {"Id": f"target-{idx}", "Arn": target_arns[idx]}
+                for idx in range(start_idx, min(start_idx + 10, len(target_arns)))
+            ],
+        )
+
+    page = client.list_targets_by_rule(Rule=rule_name)
+    assert len(page["Targets"]) == 50
+    actual = [target["Arn"] for target in page["Targets"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_targets_by_rule(Rule=rule_name, NextToken=page["NextToken"])
+        actual.extend(target["Arn"] for target in page["Targets"])
+
+    assert len(actual) == 51
+    assert set(actual) == set(target_arns)
+
+
+@mock_aws
+def test_list_event_buses_paginate():
+    seen_tokens = set()
+    client = boto3.client("events", region_name="us-west-2")
+    names = [f"paginate-bus-{idx}" for idx in range(51)]
+    for name in names:
+        client.create_event_bus(Name=name)
+
+    page = client.list_event_buses()
+    assert len(page["EventBuses"]) == 50
+    actual = [bus["Name"] for bus in page["EventBuses"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_event_buses(NextToken=page["NextToken"])
+        actual.extend(bus["Name"] for bus in page["EventBuses"])
+
+    assert len(actual) == 52  # account for the default event bus
+    assert set(actual) == set(names + ["default"])

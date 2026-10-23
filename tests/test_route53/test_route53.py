@@ -1958,3 +1958,32 @@ def test_delete_non_existent_tag_no_crash():
         ResourceType="hostedzone", ResourceId=resource_id
     )
     assert len(tags["ResourceTagSet"]["Tags"]) == 0
+
+
+@mock_aws
+def test_list_hosted_zones_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53", region_name="us-east-1")
+    expected = set()
+    for i in range(101):
+        zone = client.create_hosted_zone(
+            Name=f"pagination-{i}.example.com.",
+            CallerReference=f"pagination-ref-{i}",
+        )["HostedZone"]
+        expected.add(zone["Id"])
+
+    first = client.list_hosted_zones()
+    assert len(first["HostedZones"]) == 100
+    assert first["IsTruncated"] is True
+    zones = list(first["HostedZones"])
+    while first.get("NextMarker"):
+        next_marker = first["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        first = client.list_hosted_zones(Marker=next_marker)
+        zones.extend(first["HostedZones"])
+
+    ids = [zone["Id"] for zone in zones]
+    assert set(ids) == expected
+    assert len(ids) == 101
+    assert first["IsTruncated"] is False

@@ -1411,3 +1411,45 @@ def test_untag_resource():
     assert len(tags) == 2
     assert {"Key": "Owner0", "Value": "Moto0"} in tags
     assert {"Key": "Owner2", "Value": "Moto2"} in tags
+
+
+@mock_aws
+def test_list_configuration_sets_paginate():
+    seen_tokens = set()
+    client = boto3.client("sesv2", region_name="us-east-1")
+    expected_names = {f"configuration-set-{index}" for index in range(101)}
+    for name in expected_names:
+        client.create_configuration_set(ConfigurationSetName=name)
+
+    response = client.list_configuration_sets()
+    assert len(response["ConfigurationSets"]) == 100
+    actual_names = response["ConfigurationSets"]
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_configuration_sets(NextToken=response["NextToken"])
+        actual_names.extend(response["ConfigurationSets"])
+
+    assert len(actual_names) == 101
+    assert set(actual_names) == expected_names
+
+
+@mock_aws
+def test_list_dedicated_ip_pools_paginate():
+    seen_tokens = set()
+    client = boto3.client("sesv2", region_name="us-east-1")
+    expected_names = {f"pagination-pool-{index}" for index in range(101)}
+    for name in expected_names:
+        client.create_dedicated_ip_pool(PoolName=name, ScalingMode="STANDARD")
+
+    response = client.list_dedicated_ip_pools()
+    assert len(response["DedicatedIpPools"]) == 100
+    actual_names = response["DedicatedIpPools"]
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_dedicated_ip_pools(NextToken=response["NextToken"])
+        actual_names.extend(response["DedicatedIpPools"])
+
+    assert len(actual_names) == 101
+    assert set(actual_names) == expected_names

@@ -708,3 +708,51 @@ def test_tag_auto_ml_job():
     client.delete_tags(ResourceArn=arn["AutoMLJobArn"], TagKeys=["testkey"])
     resp = client.list_tags(ResourceArn=arn["AutoMLJobArn"])
     assert resp["Tags"] == [{"Key": "testkey2", "Value": "testvalue2"}]
+
+
+@mock_aws
+def test_list_auto_ml_jobs_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"automl-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_auto_ml_job_v2(
+            AutoMLJobName=name,
+            AutoMLJobInputDataConfig=[
+                {
+                    "ChannelType": "training",
+                    "ContentType": "text/csv",
+                    "CompressionType": "None",
+                    "DataSource": {
+                        "S3DataSource": {"S3DataType": "S3Prefix", "S3Uri": "s3://data"}
+                    },
+                }
+            ],
+            OutputDataConfig={"S3OutputPath": "s3://output"},
+            AutoMLProblemTypeConfig={
+                "TextClassificationJobConfig": {
+                    "CompletionCriteria": {
+                        "MaxCandidates": 123,
+                        "MaxRuntimePerTrainingJobInSeconds": 123,
+                        "MaxAutoMLJobRuntimeInSeconds": 123,
+                    },
+                    "ContentColumn": "content",
+                    "TargetLabelColumn": "target",
+                }
+            },
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+        )
+
+    pagination_response = client.list_auto_ml_jobs()
+    paginated_items = list(pagination_response["AutoMLJobSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_auto_ml_jobs(NextToken=next_token)
+        paginated_items.extend(pagination_response["AutoMLJobSummaries"])
+    actual_names = [item["AutoMLJobName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

@@ -306,3 +306,24 @@ def expect_job_state(client, job_name, run_id, expected_state):
         client.get_job_run(JobName=job_name, RunId=run_id)["JobRun"]["JobRunState"]
         == expected_state
     )
+
+
+@mock_aws
+def test_get_job_runs_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    run_ids = [client.start_job_run(JobName=job_name)["JobRunId"] for _ in range(101)]
+
+    page = client.get_job_runs(JobName=job_name)
+    actual = [run["Id"] for run in page["JobRuns"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_job_runs(JobName=job_name, NextToken=page["NextToken"])
+        actual.extend(run["Id"] for run in page["JobRuns"])
+
+    assert len(actual) == len(run_ids)
+    assert set(actual) == set(run_ids)

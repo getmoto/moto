@@ -574,3 +574,38 @@ def test_delete_log_subscription():
     result = client.list_log_subscriptions()
     assert len(result["LogSubscriptions"]) == 1
     assert result["LogSubscriptions"][0]["LogGroupName"] == "test-2"
+
+
+@mock_aws
+def test_describe_trusts_paginate():
+    seen_tokens = set()
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+    trust_ids = [
+        client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        for x in range(101)
+    ]
+    page = client.describe_trusts(DirectoryId=directory_id)
+    assert len(page["Trusts"]) == 100
+    page_sizes = [len(page["Trusts"])]
+    actual_trust_ids = [trust["TrustId"] for trust in page["Trusts"]]
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.describe_trusts(
+            DirectoryId=directory_id,
+            NextToken=next_token,
+        )
+        page_sizes.append(len(page["Trusts"]))
+        actual_trust_ids.extend(trust["TrustId"] for trust in page["Trusts"])
+    assert page_sizes == [100, 1]
+    assert len(actual_trust_ids) == 101
+    assert set(actual_trust_ids) == set(trust_ids)

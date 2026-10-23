@@ -1076,3 +1076,37 @@ def test_tag_hyper_parameter_tuning_job():
     )
     resp3 = client.list_tags(ResourceArn=arn)["Tags"]
     assert resp3 == [{"Key": "testkey2", "Value": "testvalue2"}]
+
+
+@mock_aws
+def test_list_hyper_parameter_tuning_jobs_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"tuning-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_hyper_parameter_tuning_job(
+            HyperParameterTuningJobName=name,
+            HyperParameterTuningJobConfig={
+                "Strategy": "Bayesian",
+                "ResourceLimits": {
+                    "MaxNumberOfTrainingJobs": 10,
+                    "MaxParallelTrainingJobs": 1,
+                },
+            },
+        )
+
+    pagination_response = client.list_hyper_parameter_tuning_jobs()
+    paginated_items = list(pagination_response["HyperParameterTuningJobSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_hyper_parameter_tuning_jobs(
+            NextToken=next_token
+        )
+        paginated_items.extend(pagination_response["HyperParameterTuningJobSummaries"])
+    actual_names = [item["HyperParameterTuningJobName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

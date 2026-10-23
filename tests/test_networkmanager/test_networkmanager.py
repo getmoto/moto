@@ -595,3 +595,124 @@ def test_link_exceptions():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
+
+
+def collect_pages(client, operation, result_key, page_size, seen_tokens=None, **kwargs):
+    seen_tokens = set()
+    page = getattr(client, operation)(**kwargs)
+    assert len(page[result_key]) == page_size
+    assert page.get("NextToken")
+    results = list(page[result_key])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = getattr(client, operation)(NextToken=next_token, **kwargs)
+        results.extend(page[result_key])
+    return results
+
+
+@mock_aws
+def test_list_core_networks_paginate():
+    seen_tokens = set()
+    client = boto3.client("networkmanager", region_name="us-east-1")
+    expected = set()
+    for _ in range(101):
+        network = client.create_core_network(
+            GlobalNetworkId=create_global_network(client)
+        )["CoreNetwork"]
+        expected.add(network["CoreNetworkId"])
+
+    networks = collect_pages(
+        client, "list_core_networks", "CoreNetworks", 100, seen_tokens=seen_tokens
+    )
+    ids = [network["CoreNetworkId"] for network in networks]
+    assert set(ids) == expected
+    assert len(ids) == 101
+
+
+@mock_aws
+def test_describe_global_networks_paginate():
+    seen_tokens = set()
+    client = boto3.client("networkmanager", region_name="us-east-1")
+    expected = {create_global_network(client) for _ in range(101)}
+    networks = collect_pages(
+        client,
+        "describe_global_networks",
+        "GlobalNetworks",
+        100,
+        seen_tokens=seen_tokens,
+    )
+    ids = [network["GlobalNetworkId"] for network in networks]
+    assert set(ids) == expected
+    assert len(ids) == 101
+
+
+@mock_aws
+def test_get_sites_paginate():
+    seen_tokens = set()
+    client = boto3.client("networkmanager", region_name="us-east-1")
+    global_network_id = create_global_network(client)
+    expected = {
+        client.create_site(GlobalNetworkId=global_network_id)["Site"]["SiteId"]
+        for _ in range(101)
+    }
+    sites = collect_pages(
+        client,
+        "get_sites",
+        "Sites",
+        100,
+        GlobalNetworkId=global_network_id,
+        seen_tokens=seen_tokens,
+    )
+    ids = [site["SiteId"] for site in sites]
+    assert set(ids) == expected
+    assert len(ids) == 101
+
+
+@mock_aws
+def test_get_links_paginate():
+    seen_tokens = set()
+    client = boto3.client("networkmanager", region_name="us-east-1")
+    global_network_id = create_global_network(client)
+    expected = {
+        client.create_link(
+            GlobalNetworkId=global_network_id,
+            SiteId="site-id",
+            Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        )["Link"]["LinkId"]
+        for _ in range(101)
+    }
+    links = collect_pages(
+        client,
+        "get_links",
+        "Links",
+        100,
+        GlobalNetworkId=global_network_id,
+        seen_tokens=seen_tokens,
+    )
+    ids = [link["LinkId"] for link in links]
+    assert set(ids) == expected
+    assert len(ids) == 101
+
+
+@mock_aws
+def test_get_devices_paginate():
+    seen_tokens = set()
+    client = boto3.client("networkmanager", region_name="us-east-1")
+    global_network_id = create_global_network(client)
+    expected = {
+        client.create_device(GlobalNetworkId=global_network_id)["Device"]["DeviceId"]
+        for _ in range(101)
+    }
+    devices = collect_pages(
+        client,
+        "get_devices",
+        "Devices",
+        100,
+        GlobalNetworkId=global_network_id,
+        seen_tokens=seen_tokens,
+    )
+    ids = [device["DeviceId"] for device in devices]
+    assert set(ids) == expected
+    assert len(ids) == 101

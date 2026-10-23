@@ -379,3 +379,26 @@ def test_update_trial_component_should_return_an_error_if_trial_component_not_fo
         "Could not find trial component 'arn:aws:sagemaker:us-east-1:123456789012:experiment-trial-component/not-found'"
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_list_trial_components_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"trial-component-{index}" for index in range(101)]
+    for name in names:
+        client.create_trial_component(TrialComponentName=name)
+
+    pagination_response = client.list_trial_components()
+    paginated_items = list(pagination_response["TrialComponentSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_trial_components(NextToken=next_token)
+        paginated_items.extend(pagination_response["TrialComponentSummaries"])
+    actual_names = [item["TrialComponentName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

@@ -190,3 +190,28 @@ def test_list_trial_tags():
     )
     assert len(response["Tags"]) == 30
     assert response["Tags"] == tags[50:]
+
+
+@mock_aws
+def test_list_trials_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    experiment_name = "pagination-experiment"
+    client.create_experiment(ExperimentName=experiment_name)
+    names = [f"trial-{index}" for index in range(101)]
+    for name in names:
+        client.create_trial(ExperimentName=experiment_name, TrialName=name)
+
+    pagination_response = client.list_trials()
+    paginated_items = list(pagination_response["TrialSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_trials(NextToken=next_token)
+        paginated_items.extend(pagination_response["TrialSummaries"])
+    actual_names = [item["TrialName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

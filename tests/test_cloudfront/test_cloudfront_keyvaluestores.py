@@ -113,3 +113,28 @@ def test_delete_key_value_store():
         client.describe_key_value_store(Name="test")
     error = exc.value.response["Error"]
     assert error["Code"] == "EntityNotFound"
+
+
+@mock_aws
+def test_list_key_value_stores_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-east-1")
+    expected_ids = {
+        client.create_key_value_store(
+            Name=f"test{index}", Comment=f"Test key value store {index}"
+        )["KeyValueStore"]["Id"]
+        for index in range(101)
+    }
+    response = client.list_key_value_stores()["KeyValueStoreList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_key_value_stores(Marker=next_marker)["KeyValueStoreList"]
+        pages.append(response["Items"])
+    ids = [store["Id"] for page in pages for store in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids

@@ -1892,3 +1892,27 @@ def test_start_live_tail_backend_rejects_empty_stream_names_with_multiple_groups
         "logStreamNames and logStreamNamePrefixes can only be used with a single log group."
         in str(exc.value)
     )
+
+
+@mock_aws
+def test_describe_log_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("logs", region_name="us-east-1")
+    expected = {f"pagination-group-{i}" for i in range(51)}
+    for name in expected:
+        client.create_log_group(logGroupName=name)
+
+    page = client.describe_log_groups()
+    assert len(page["logGroups"]) == 50
+    assert page.get("nextToken")
+    groups = list(page["logGroups"])
+    while page.get("nextToken"):
+        next_token = page["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.describe_log_groups(nextToken=next_token)
+        groups.extend(page["logGroups"])
+
+    names = [group["logGroupName"] for group in groups]
+    assert set(names) == expected
+    assert len(names) == 51

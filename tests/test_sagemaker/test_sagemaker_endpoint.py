@@ -760,3 +760,87 @@ def _create_endpoint(boto_client, endpoint_name, endpoint_config_name):
     assert re.match(
         rf"^arn:aws:sagemaker:.*:.*:endpoint/{endpoint_name}$", resp["EndpointArn"]
     )
+
+
+def _assert_endpoint_pages(
+    client, operation, result_key, name_key, expected, seen_tokens=None
+):
+    list_operation = getattr(client, operation)
+    response = list_operation()
+    assert len(response[result_key]) == 100
+    names = []
+    seen_tokens = set()
+    for _ in range(len(expected) + 1):
+        names.extend(item[name_key] for item in response[result_key])
+        if "NextToken" not in response:
+            break
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = list_operation(NextToken=next_token)
+    else:
+        raise AssertionError(f"{operation} did not finish paging")
+
+    assert len(names) == len(expected)
+    assert set(names) == set(expected)
+
+
+@mock_aws
+def test_list_endpoints_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    names = [f"endpoint-{index}" for index in range(101)]
+    for index, name in enumerate(names):
+        _set_up_sagemaker_resources(
+            client, name, f"endpoint-config-{index}", f"model-{index}"
+        )
+
+    _assert_endpoint_pages(
+        client, "list_endpoints", "Endpoints", "EndpointName", names, seen_tokens
+    )
+
+
+@mock_aws
+def test_list_endpoint_configs_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    names = []
+    for index in range(101):
+        config_name = f"endpoint-config-{index}"
+        _set_up_sagemaker_resources(
+            client, f"endpoint-{index}", config_name, f"model-{index}"
+        )
+        names.append(config_name)
+
+    _assert_endpoint_pages(
+        client,
+        "list_endpoint_configs",
+        "EndpointConfigs",
+        "EndpointConfigName",
+        names,
+        seen_tokens,
+    )
+
+
+def test_list_tags_paginate(sagemaker_client):
+    seen_tokens = set()
+    experiment_name = "tag-pagination-experiment"
+    arn = sagemaker_client.create_experiment(ExperimentName=experiment_name)[
+        "ExperimentArn"
+    ]
+    tags = [{"Key": f"tag-{index}", "Value": "value"} for index in range(51)]
+    sagemaker_client.add_tags(ResourceArn=arn, Tags=tags)
+
+    response = sagemaker_client.list_tags(ResourceArn=arn)
+    assert len(response["Tags"]) == 50
+    returned_tags = list(response["Tags"])
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = sagemaker_client.list_tags(ResourceArn=arn, NextToken=next_token)
+        returned_tags.extend(response["Tags"])
+
+    assert len(returned_tags) == len(tags)
+    assert len({tag["Key"] for tag in returned_tags}) == len(tags)
+    assert returned_tags == tags

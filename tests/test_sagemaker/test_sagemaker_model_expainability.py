@@ -563,3 +563,66 @@ def test_tag_model_explainability_job_definition():
         ResourceArn=f"arn:aws:sagemaker:eu-west-1:{ACCOUNT_ID}:model-explainability-job-definition/testmodelexplainabilityjobdefinition"
     )
     assert resp3["Tags"] == [{"Key": "testkey2", "Value": "testvalue2"}]
+
+
+@mock_aws
+def test_list_model_explainability_job_definitions_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    names = [f"explainability-job-{index}" for index in range(101)]
+    for name in names:
+        client.create_model_explainability_job_definition(
+            JobDefinitionName=name,
+            ModelExplainabilityAppSpecification={
+                "ImageUri": "test-image",
+                "ConfigUri": "s3://config",
+            },
+            ModelExplainabilityJobInput={
+                "EndpointInput": {
+                    "EndpointName": "test-endpoint",
+                    "LocalPath": "/opt/ml/input",
+                }
+            },
+            ModelExplainabilityJobOutputConfig={
+                "MonitoringOutputs": [
+                    {
+                        "S3Output": {
+                            "S3Uri": "s3://bucket/output",
+                            "LocalPath": "/opt/ml/output",
+                        }
+                    }
+                ]
+            },
+            JobResources={
+                "ClusterConfig": {
+                    "InstanceCount": 1,
+                    "InstanceType": "ml.m5.xlarge",
+                    "VolumeSizeInGB": 4,
+                }
+            },
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+        )
+
+    response = client.list_model_explainability_job_definitions()
+    assert len(response["JobDefinitionSummaries"]) == 100
+    actual_names = []
+    for _ in range(len(names) + 1):
+        actual_names.extend(
+            job["MonitoringJobDefinitionName"]
+            for job in response["JobDefinitionSummaries"]
+        )
+        if "NextToken" not in response:
+            break
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_model_explainability_job_definitions(
+            NextToken=next_token
+        )
+    else:
+        raise AssertionError(
+            "list_model_explainability_job_definitions did not finish paging"
+        )
+
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

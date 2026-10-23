@@ -1013,3 +1013,75 @@ def test_get_master_account():
         assert response["Master"]["MemberStatus"] == "ENABLED"
         assert "InvitationId" in response["Master"]
         assert "InvitedAt" in response["Master"]
+
+
+@mock_aws
+def test_get_findings_paginate():
+    seen_tokens = set()
+    client = boto3.client("securityhub", region_name="us-east-1")
+    finding_ids = {f"pagination-finding-{index}" for index in range(101)}
+    product_arn = (
+        f"arn:aws:securityhub:{client.meta.region_name}:{DEFAULT_ACCOUNT_ID}:"
+        f"product/{DEFAULT_ACCOUNT_ID}/default"
+    )
+    for finding_id in finding_ids:
+        client.batch_import_findings(
+            Findings=[
+                {
+                    "AwsAccountId": DEFAULT_ACCOUNT_ID,
+                    "CreatedAt": "2024-01-01T00:00:00.000Z",
+                    "UpdatedAt": "2024-01-01T00:00:00.000Z",
+                    "Description": "Pagination test finding",
+                    "GeneratorId": "pagination-test",
+                    "Id": finding_id,
+                    "ProductArn": product_arn,
+                    "Resources": [{"Id": finding_id, "Type": "AwsEc2Instance"}],
+                    "SchemaVersion": "2018-10-08",
+                    "Severity": {"Label": "HIGH"},
+                    "Title": finding_id,
+                    "Types": ["Software and Configuration Checks"],
+                }
+            ]
+        )
+
+    response = client.get_findings()
+    assert len(response["Findings"]) == 100
+    findings = response["Findings"]
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.get_findings(NextToken=response["NextToken"])
+        findings.extend(response["Findings"])
+
+    ids = {finding["Id"] for finding in findings}
+    assert len(ids) == 101
+    assert set(ids) == finding_ids
+
+
+@mock_aws
+def test_list_members_paginate():
+    seen_tokens = set()
+    client = boto3.client("securityhub", region_name="us-east-1")
+    client.enable_security_hub()
+    account_ids = [str(123456789000 + index) for index in range(51)]
+    expected_ids = set(account_ids)
+    for offset in range(0, len(account_ids), 50):
+        client.create_members(
+            AccountDetails=[
+                {"AccountId": account_id, "Email": f"{account_id}@example.com"}
+                for account_id in account_ids[offset : offset + 50]
+            ]
+        )
+
+    response = client.list_members()
+    assert len(response["Members"]) == 50
+    members = response["Members"]
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_members(NextToken=response["NextToken"])
+        members.extend(response["Members"])
+
+    ids = {member["AccountId"] for member in members}
+    assert len(ids) == 51
+    assert set(ids) == expected_ids

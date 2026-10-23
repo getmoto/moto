@@ -921,3 +921,24 @@ def get_stream_arn(client, stream_name):
     return client.describe_stream(StreamName=stream_name)["StreamDescription"][
         "StreamARN"
     ]
+
+
+@mock_aws
+def test_list_shards_paginate():
+    seen_tokens = set()
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    stream_name = "paginate-shards"
+    client.create_stream(StreamName=stream_name, ShardCount=10_001)
+
+    page = client.list_shards(StreamName=stream_name)
+    actual = [shard["ShardId"] for shard in page["Shards"]]
+    assert len(actual) == 10_000
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_shards(StreamName=stream_name, NextToken=page["NextToken"])
+        actual.extend(shard["ShardId"] for shard in page["Shards"])
+
+    assert len(actual) == 10001
+    assert set(actual) == {f"shardId-{idx:012d}" for idx in range(10_001)}

@@ -532,3 +532,34 @@ def test_delete_product():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == f"Product with Id '{product_id}' not found."
+
+
+@mock_aws
+def test_list_portfolio_access_paginate():
+    seen_tokens = set()
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    portfolio_id = client.create_portfolio(
+        DisplayName="Pagination Portfolio",
+        Description="Test portfolio for pagination",
+        ProviderName="Test Provider",
+        Tags=[],
+        IdempotencyToken="pagination-portfolio",
+    )["PortfolioDetail"]["Id"]
+    expected_ids = {str(111111111111 + index) for index in range(21)}
+    for account_id in expected_ids:
+        client.create_portfolio_share(PortfolioId=portfolio_id, AccountId=account_id)
+
+    response = client.list_portfolio_access(PortfolioId=portfolio_id)
+    assert len(response["AccountIds"]) == 20
+    actual_ids = response["AccountIds"]
+    while response.get("NextPageToken"):
+        assert response["NextPageToken"] not in seen_tokens
+        seen_tokens.add(response["NextPageToken"])
+        response = client.list_portfolio_access(
+            PortfolioId=portfolio_id,
+            PageToken=response["NextPageToken"],
+        )
+        actual_ids.extend(response["AccountIds"])
+
+    assert len(actual_ids) == 21
+    assert set(actual_ids) == expected_ids

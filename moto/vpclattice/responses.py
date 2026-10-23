@@ -32,8 +32,8 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(service.to_dict())
 
     def list_services(self) -> str:
-        max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
         services, next_token = self.backend.list_services(
             max_results=max_results, next_token=next_token
         )
@@ -61,8 +61,8 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(service_network.to_dict())
 
     def list_service_networks(self) -> str:
-        max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
         service_networks, next_token = self.backend.list_service_networks(
             max_results=max_results, next_token=next_token
         )

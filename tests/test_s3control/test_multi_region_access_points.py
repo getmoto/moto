@@ -487,3 +487,37 @@ def test_multi_region_access_point_with_multiple_buckets():
     )
 
     assert len(response["AccessPoint"]["Regions"]) == 3
+
+
+@mock_aws
+def test_list_multi_region_access_points_paginate():
+    seen_tokens = set()
+    client = boto3.client("s3control", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    expected = {f"page-mrap-{i}" for i in range(101)}
+    for i, name in enumerate(sorted(expected)):
+        bucket = f"page-mrap-bucket-{i}"
+        s3_client.create_bucket(Bucket=bucket)
+        client.create_multi_region_access_point(
+            AccountId=ACCOUNT_ID,
+            ClientToken=f"page-mrap-token-{i}",
+            Details={"Name": name, "Regions": [{"Bucket": bucket}]},
+        )
+
+    first = client.list_multi_region_access_points(AccountId=ACCOUNT_ID)
+    assert len(first["AccessPoints"]) == 100
+    assert first.get("NextToken")
+    access_points = list(first["AccessPoints"])
+    while first.get("NextToken"):
+        next_token = first["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        first = client.list_multi_region_access_points(
+            AccountId=ACCOUNT_ID,
+            NextToken=next_token,
+        )
+        access_points.extend(first["AccessPoints"])
+
+    names = [access_point["Name"] for access_point in access_points]
+    assert set(names) == expected
+    assert len(names) == 101

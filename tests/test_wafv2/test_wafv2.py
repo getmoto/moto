@@ -442,3 +442,205 @@ def test_list_ip_sets_pagination():
 
     page3 = client.list_ip_sets(Scope="CLOUDFRONT", NextMarker=page2["NextMarker"])
     assert len(page3["IPSets"]) == 3
+
+
+def _create_pagination_web_acl(client, name, tags=None):
+    request = {
+        "Name": name,
+        "Scope": "REGIONAL",
+        "DefaultAction": {"Allow": {}},
+        "VisibilityConfig": {
+            "SampledRequestsEnabled": True,
+            "CloudWatchMetricsEnabled": True,
+            "MetricName": name.replace(" ", ""),
+        },
+        "Rules": [],
+    }
+    if tags:
+        request["Tags"] = tags
+    return client.create_web_acl(**request)["Summary"]
+
+
+@mock_aws
+def test_list_web_acls_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    expected_arns = {
+        _create_pagination_web_acl(client, f"pagination-acl-{idx}")["ARN"]
+        for idx in range(101)
+    }
+
+    response = client.list_web_acls(Scope="REGIONAL")
+    web_acls = list(response["WebACLs"])
+    assert len(web_acls) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_web_acls(
+            Scope="REGIONAL", NextMarker=response["NextMarker"]
+        )
+        web_acls.extend(response["WebACLs"])
+
+    arns = {web_acl["ARN"] for web_acl in web_acls}
+    assert len(web_acls) == 101
+    assert arns == expected_arns
+
+
+@mock_aws
+def test_list_rule_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    expected_arns = set()
+    for idx in range(101):
+        response = client.create_rule_group(
+            Capacity=100,
+            Name=f"pagination-rule-group-{idx}",
+            Scope="REGIONAL",
+            VisibilityConfig={
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": f"pagination-rule-group-{idx}",
+            },
+        )
+        expected_arns.add(response["Summary"]["ARN"])
+
+    response = client.list_rule_groups(Scope="REGIONAL")
+    groups = list(response["RuleGroups"])
+    assert len(groups) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_rule_groups(
+            Scope="REGIONAL", NextMarker=response["NextMarker"]
+        )
+        groups.extend(response["RuleGroups"])
+
+    arns = {group["ARN"] for group in groups}
+    assert len(groups) == 101
+    assert arns == expected_arns
+
+
+@mock_aws
+def test_list_tags_for_resource_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    acl_arn = _create_pagination_web_acl(
+        client,
+        "pagination-tagged-acl",
+        tags=[{"Key": f"key-{idx}", "Value": f"value-{idx}"} for idx in range(101)],
+    )["ARN"]
+
+    response = client.list_tags_for_resource(ResourceARN=acl_arn)
+    tags = list(response["TagInfoForResource"]["TagList"])
+    assert len(tags) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_tags_for_resource(
+            ResourceARN=acl_arn, Limit=2, NextMarker=response["NextMarker"]
+        )
+        tags.extend(response["TagInfoForResource"]["TagList"])
+
+    keys = {tag["Key"] for tag in tags}
+    assert len(tags) == 101
+    assert keys == {f"key-{idx}" for idx in range(101)}
+
+
+@mock_aws
+def test_list_ip_sets_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    expected_ids = set()
+    for idx in range(101):
+        response = client.create_ip_set(
+            Name=f"pagination-ip-set-{idx}",
+            Scope="REGIONAL",
+            Description="Pagination test",
+            IPAddressVersion="IPV4",
+            Addresses=["192.168.0.1/32"],
+        )
+        expected_ids.add(response["Summary"]["Id"])
+
+    response = client.list_ip_sets(Scope="REGIONAL")
+    ip_sets = list(response["IPSets"])
+    assert len(ip_sets) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_ip_sets(
+            Scope="REGIONAL", NextMarker=response["NextMarker"]
+        )
+        ip_sets.extend(response["IPSets"])
+
+    ids = {ip_set["Id"] for ip_set in ip_sets}
+    assert len(ip_sets) == 101
+    assert ids == expected_ids
+
+
+@mock_aws
+def test_list_logging_configurations_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    expected_arns = set()
+    for idx in range(101):
+        acl_arn = _create_pagination_web_acl(client, f"pagination-logging-acl-{idx}")[
+            "ARN"
+        ]
+        client.put_logging_configuration(
+            LoggingConfiguration={
+                "ResourceArn": acl_arn,
+                "LogDestinationConfigs": ["arn:aws:us-east-1:logs:arn"],
+            }
+        )
+        expected_arns.add(acl_arn)
+
+    response = client.list_logging_configurations(Scope="REGIONAL")
+    configurations = list(response["LoggingConfigurations"])
+    assert len(configurations) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_logging_configurations(
+            Scope="REGIONAL", NextMarker=response["NextMarker"]
+        )
+        configurations.extend(response["LoggingConfigurations"])
+
+    arns = {configuration["ResourceArn"] for configuration in configurations}
+    assert len(configurations) == 101
+    assert arns == expected_arns
+
+
+@mock_aws
+def test_list_regex_pattern_sets_paginate():
+    seen_tokens = set()
+    client = boto3.client("wafv2", region_name="us-east-1")
+    expected_arns = set()
+    for idx in range(101):
+        response = client.create_regex_pattern_set(
+            Name=f"pagination-regex-set-{idx}",
+            Scope="REGIONAL",
+            Description="Pagination test",
+            RegularExpressionList=[{"RegexString": f"pattern-{idx}"}],
+        )
+        expected_arns.add(response["Summary"]["ARN"])
+
+    response = client.list_regex_pattern_sets(Scope="REGIONAL")
+    pattern_sets = list(response["RegexPatternSets"])
+    assert len(pattern_sets) == 100
+    assert response.get("NextMarker")
+    while response.get("NextMarker"):
+        assert response["NextMarker"] not in seen_tokens
+        seen_tokens.add(response["NextMarker"])
+        response = client.list_regex_pattern_sets(
+            Scope="REGIONAL", NextMarker=response["NextMarker"]
+        )
+        pattern_sets.extend(response["RegexPatternSets"])
+
+    arns = {pattern_set["ARN"] for pattern_set in pattern_sets}
+    assert len(pattern_sets) == 101
+    assert arns == expected_arns

@@ -317,3 +317,57 @@ def test_describe_backups_pagination():
     response2 = client.describe_backups(MaxResults=2, NextToken=response["NextToken"])
     assert len(response2["Backups"]) == 1
     assert "NextToken" not in response2
+
+
+@mock_aws
+def test_describe_clusters_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
+    expected_ids = set()
+    for i in range(101):
+        expected_ids.add(
+            client.create_cluster(
+                HsmType="hsm1.medium",
+                SubnetIds=[f"subnet-{i}"],
+                NetworkType="IPV4",
+                Mode="FIPS",
+            )["Cluster"]["ClusterId"]
+        )
+    response = client.describe_clusters()
+    pages = [response["Clusters"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.describe_clusters(NextToken=next_token)
+        pages.append(response["Clusters"])
+    cluster_ids = [cluster["ClusterId"] for page in pages for cluster in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(cluster_ids) == 101
+    assert set(cluster_ids) == expected_ids
+
+
+@mock_aws
+def test_describe_backups_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
+    for i in range(101):
+        client.create_cluster(
+            HsmType="hsm1.medium",
+            SubnetIds=[f"subnet-{i}"],
+            NetworkType="IPV4",
+            Mode="FIPS",
+        )
+    response = client.describe_backups()
+    pages = [response["Backups"]]
+    assert len(pages[0]) == 100
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.describe_backups(NextToken=next_token)
+        pages.append(response["Backups"])
+    backup_arns = [backup["BackupArn"] for page in pages for backup in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(backup_arns) == 101
