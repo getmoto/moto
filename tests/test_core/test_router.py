@@ -89,13 +89,10 @@ def test_s3_bucket_routing(url: str, expected_op: str, expected_bucket: str) -> 
     "url,expected_op,expected_args",
     [
         pytest.param(
-            "https://123456789012.s3-control.us-east-1.amazonaws.com/v20180820/tags/arn%3Aaws%3As3%3A%3A%3Abd054ad3-6778-4f25-91a5-c7c84db350e2",
-            "ListTagsForResource",
+            "https://123456789012.s3-control.us-east-1.amazonaws.com/v20180820/accesspoint/my-access-point",
+            "GetAccessPoint",
             # AccountId comes from the host prefix, when the host has it.
-            {
-                "resourceArn": "arn:aws:s3:::bd054ad3-6778-4f25-91a5-c7c84db350e2",
-                "AccountId": "123456789012",
-            },
+            {"name": "my-access-point", "AccountId": "123456789012"},
             id="aws host",
         ),
         pytest.param(
@@ -170,12 +167,12 @@ def test_uri_params_are_decoded_once() -> None:
 
 
 def test_last_label_is_implicitly_greedy() -> None:
-    router = get_service_router("bedrock-agentcore-control")
-    arn = "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/abc"
+    router = get_service_router("mwaa")
+    arn = "arn:aws:airflow:us-east-1:123456789012:environment/my-env"
     req = Request.from_primitives("GET", f"https://localhost/tags/{arn}", {})
     op, args = router.match(req)
     assert op.name == "ListTagsForResource"
-    assert args["resourceArn"] == arn
+    assert args["ResourceArn"] == arn
 
 
 def test_implicitly_greedy_label_excludes_trailing_slash() -> None:
