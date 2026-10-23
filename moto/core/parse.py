@@ -382,6 +382,18 @@ class BaseRestParser(RequestParser):
         member_shapes = shape.members
         self._parse_non_payload_attrs(request_dict, shape, member_shapes, final_parsed)
         self._parse_payload(request_dict, shape, member_shapes, final_parsed)
+        self._parse_host_labels(request_dict, member_shapes, final_parsed)
+
+    def _parse_host_labels(self, request_dict, member_shapes, final_parsed):
+        # The router includes host label values (e.g. AccountId from
+        # {AccountId}.s3-control.<region>.amazonaws.com) in `url_params` when the
+        # request host has them.  They take precedence over an alternate location
+        # (e.g. the x-amz-account-id header) when present, but fallback to the
+        # alternate location if the host doesn't have them (e.g. localhost/server mode).
+        url_params = request_dict["url_params"]
+        for name, member_shape in member_shapes.items():
+            if member_shape.serialization.get("hostLabel") and name in url_params:
+                final_parsed[name] = self._parse_shape(member_shape, url_params[name])
 
     def _parse_payload(self, response, shape, member_shapes, final_parsed):
         if "payload" in shape.serialization:
