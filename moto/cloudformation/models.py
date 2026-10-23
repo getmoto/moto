@@ -1284,9 +1284,9 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
 
     def list_stack_resources(
         self, stack_name_or_id: str
-    ) -> Iterable[type[CloudFormationModel]]:
+    ) -> tuple[Stack, Iterable[type[CloudFormationModel]]]:
         stack = self.get_stack(stack_name_or_id)
-        return stack.stack_resources
+        return stack, stack.stack_resources
 
     def delete_stack(self, name_or_stack_id: str) -> None:
         if name_or_stack_id in self.stacks:
