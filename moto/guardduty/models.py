@@ -6,7 +6,11 @@ from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
-from .exceptions import DetectorNotFoundException, FilterNotFoundException
+from .exceptions import (
+    DetectorNotFoundException,
+    FilterNotFoundException,
+    IPSetNotFoundException,
+)
 
 
 class GuardDutyBackend(BaseBackend):
@@ -59,12 +63,38 @@ class GuardDutyBackend(BaseBackend):
         _filter = Filter(name, action, description, finding_criteria, rank)
         detector.add_filter(_filter)
 
+    def create_ip_set(
+        self,
+        detector_id: str,
+        name: str,
+        ip_set_format: str,
+        location: str,
+        activate: bool,
+        tags: dict[str, str],
+        expected_bucket_owner: str | None,
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        ip_set = IPSet(
+            name=name,
+            ip_set_format=ip_set_format,
+            location=location,
+            activate=activate,
+            tags=tags,
+            expected_bucket_owner=expected_bucket_owner,
+        )
+        detector.add_ip_set(ip_set)
+        return ip_set.id
+
     def delete_detector(self, detector_id: str) -> None:
         self.detectors.pop(detector_id, None)
 
     def delete_filter(self, detector_id: str, filter_name: str) -> None:
         detector = self.get_detector(detector_id)
         detector.delete_filter(filter_name)
+
+    def delete_ip_set(self, detector_id: str, ip_set_id: str) -> None:
+        detector = self.get_detector(detector_id)
+        detector.delete_ip_set(ip_set_id)
 
     def enable_organization_admin_account(self, admin_account_id: str) -> None:
         self.admin_account_ids.append(admin_account_id)
@@ -83,6 +113,13 @@ class GuardDutyBackend(BaseBackend):
         for detector in self.detectors:
             detectorids.append(self.detectors[detector].id)
         return detectorids
+
+    def list_ip_sets(self, detector_id: str) -> list[str]:
+        """
+        The MaxResults and NextToken-parameter have not yet been implemented.
+        """
+        detector = self.get_detector(detector_id)
+        return list(detector.ip_sets.keys())
 
     def get_detector(self, detector_id: str) -> "Detector":
         if detector_id not in self.detectors:
@@ -106,6 +143,10 @@ class GuardDutyBackend(BaseBackend):
     def get_filter(self, detector_id: str, filter_name: str) -> "Filter":
         detector = self.get_detector(detector_id)
         return detector.get_filter(filter_name)
+
+    def get_ip_set(self, detector_id: str, ip_set_id: str) -> "IPSet":
+        detector = self.get_detector(detector_id)
+        return detector.get_ip_set(ip_set_id)
 
     def update_detector(
         self,
@@ -134,6 +175,19 @@ class GuardDutyBackend(BaseBackend):
             description=description,
             finding_criteria=finding_criteria,
             rank=rank,
+        )
+
+    def update_ip_set(
+        self,
+        detector_id: str,
+        ip_set_id: str,
+        name: str | None,
+        location: str | None,
+        activate: bool | None,
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        detector.update_ip_set(
+            ip_set_id, name=name, location=location, activate=activate
         )
 
 
@@ -178,6 +232,50 @@ class Filter(BaseModel):
         }
 
 
+class IPSet(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        ip_set_format: str,
+        location: str,
+        activate: bool,
+        tags: dict[str, str],
+        expected_bucket_owner: str | None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.name = name
+        self.format = ip_set_format
+        self.location = location
+        self.status = "ACTIVE" if activate else "INACTIVE"
+        self.tags = tags or {}
+        self.expected_bucket_owner = expected_bucket_owner
+
+    def update(
+        self,
+        name: str | None,
+        location: str | None,
+        activate: bool | None,
+    ) -> None:
+        if name is not None:
+            self.name = name
+        if location is not None:
+            self.location = location
+        if activate is not None:
+            self.status = "ACTIVE" if activate else "INACTIVE"
+
+    def to_json(self) -> dict[str, Any]:
+        resp = {
+            "name": self.name,
+            "format": self.format,
+            "location": self.location,
+            "status": self.status,
+            "tags": self.tags,
+        }
+        if self.expected_bucket_owner:
+            resp["expectedBucketOwner"] = self.expected_bucket_owner
+        return resp
+
+
 class Detector(BaseModel):
     def __init__(
         self,
@@ -203,9 +301,31 @@ class Detector(BaseModel):
         self.features = features or []
 
         self.filters: dict[str, Filter] = {}
+        self.ip_sets: dict[str, IPSet] = {}
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter
+
+    def add_ip_set(self, ip_set: IPSet) -> None:
+        self.ip_sets[ip_set.id] = ip_set
+
+    def delete_ip_set(self, ip_set_id: str) -> None:
+        self.ip_sets.pop(ip_set_id, None)
+
+    def get_ip_set(self, ip_set_id: str) -> IPSet:
+        if ip_set_id not in self.ip_sets:
+            raise IPSetNotFoundException
+        return self.ip_sets[ip_set_id]
+
+    def update_ip_set(
+        self,
+        ip_set_id: str,
+        name: str | None,
+        location: str | None,
+        activate: bool | None,
+    ) -> None:
+        ip_set = self.get_ip_set(ip_set_id)
+        ip_set.update(name=name, location=location, activate=activate)
 
     def delete_filter(self, filter_name: str) -> None:
         self.filters.pop(filter_name, None)
