@@ -925,6 +925,56 @@ class GlueResponse(BaseResponse):
         transform_id = self.glue_backend.delete_ml_transform(transform_id)
         return ActionResult({"TransformId": transform_id})
 
+    def create_data_quality_ruleset(self) -> ActionResult:
+        name = self.glue_backend.create_data_quality_ruleset(
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            ruleset=self._get_param("Ruleset"),
+            tags=self._get_param("Tags"),
+            target_table=self._get_param("TargetTable"),
+            data_quality_security_configuration=self._get_param(
+                "DataQualitySecurityConfiguration"
+            ),
+        )
+        return ActionResult({"Name": name})
+
+    def get_data_quality_ruleset(self) -> ActionResult:
+        name = self._get_param("Name")
+        dq_ruleset = self.glue_backend.get_data_quality_ruleset(name)
+        return ActionResult(dq_ruleset.as_dict())
+
+    def list_data_quality_rulesets(self) -> ActionResult:
+        rulesets, next_token = self.glue_backend.list_data_quality_rulesets(
+            filter_criteria=self._get_param("Filter"),
+            tags=self._get_param("Tags"),
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_int_param("MaxResults"),
+        )
+        return ActionResult(
+            {
+                "Rulesets": [ruleset.as_list_item() for ruleset in rulesets],
+                "NextToken": next_token,
+            }
+        )
+
+    def update_data_quality_ruleset(self) -> ActionResult:
+        dq_ruleset = self.glue_backend.update_data_quality_ruleset(
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            ruleset=self._get_param("Ruleset"),
+        )
+        return ActionResult(
+            {
+                "Name": dq_ruleset.name,
+                "Description": dq_ruleset.description,
+                "Ruleset": dq_ruleset.ruleset,
+            }
+        )
+
+    def delete_data_quality_ruleset(self) -> ActionResult:
+        self.glue_backend.delete_data_quality_ruleset(self._get_param("Name"))
+        return EmptyResult()
+
     def create_connection(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId")
         connection_input = self._get_param("ConnectionInput")

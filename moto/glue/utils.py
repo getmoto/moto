@@ -1,7 +1,7 @@
 import abc
 import operator
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from itertools import repeat
 from typing import Any
@@ -567,3 +567,50 @@ class PartitionFilter:
             part_keys=versions[-1].get("PartitionKeys", []),
             part_input=fake_partition.partition_input,
         )
+
+
+def to_naive_utc_datetime(value: Any) -> datetime:
+    """Convert a timestamp from a JSON request (epoch seconds) to a naive UTC datetime, as returned by `utcnow()`"""
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+    return datetime.fromtimestamp(float(value), tz=timezone.utc).replace(tzinfo=None)
+
+
+def count_dqdl_rules(ruleset: str) -> int | None:
+    """
+    Count the rules in the `Rules = [ ... ]` block of a DQDL ruleset.
+
+    Rules are separated by top-level commas, so commas inside quotes,
+    brackets or parentheses (e.g. `ColumnValues "col" in ["a", "b"]`) are ignored.
+    Returns None if the ruleset has no `Rules` block.
+    """
+    match = re.search(r"\bRules\s*=\s*\[", ruleset)
+    if not match:
+        return None
+    count = 0
+    depth = 0
+    quote: str | None = None
+    has_content = False
+    for char in ruleset[match.end() :]:
+        if quote:
+            if char == quote:
+                quote = None
+            continue
+        if char in "\"'":
+            quote = char
+            has_content = True
+        elif char in "[(":
+            depth += 1
+            has_content = True
+        elif char == ")" or (char == "]" and depth > 0):
+            depth -= 1
+        elif char == "]":
+            break
+        elif char == "," and depth == 0:
+            count += int(has_content)
+            has_content = False
+        elif not char.isspace():
+            has_content = True
+    return count + int(has_content)
