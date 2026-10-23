@@ -43,7 +43,7 @@ The ExternalId alternate identifier is not yet implemented
 - [X] list_groups
 - [ ] list_identity_stores
 - [X] list_users
-- [ ] update_group
+- [X] update_group
 - [ ] update_identity_store
-- [ ] update_user
+- [X] update_user
 
