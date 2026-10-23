@@ -10,7 +10,6 @@ from collections import OrderedDict
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, TypedDict
-from urllib.parse import unquote
 from xml.etree import ElementTree as ETree
 from xml.etree.ElementTree import ParseError as XMLParseError
 
@@ -431,10 +430,7 @@ class BaseRestParser(RequestParser):
             elif location == "uri":
                 member_name = member_shape.serialization.get("name", name)
                 uri_params = response["url_params"]
-                # URI regex group names can't contain hyphens, so BaseResponse.uri_to_regexp
-                # converts e.g. {broker-id} into the group name broker_id.
-                value = uri_params.get(member_name.replace("-", "_"))
-                value = unquote(value)
+                value = uri_params.get(member_name)
                 final_parsed[name] = self._parse_shape(member_shape, value)
             elif location == "querystring":
                 qs = response["values"]
