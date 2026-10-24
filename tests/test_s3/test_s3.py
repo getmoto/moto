@@ -2623,6 +2623,42 @@ def test_multiple_delete_markers():
 
 
 @mock_aws
+def test_get_object_on_delete_marker():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid.uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    client.put_object(Bucket=bucket_name, Key="the-key", Body=b"data")
+    marker_id = client.delete_object(Bucket=bucket_name, Key="the-key")["VersionId"]
+
+    # The current version is a delete marker
+    with pytest.raises(ClientError) as exc:
+        client.get_object(Bucket=bucket_name, Key="the-key")
+    err = exc.value.response
+    assert err["Error"]["Code"] == "NoSuchKey"
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 404
+    headers = err["ResponseMetadata"]["HTTPHeaders"]
+    assert headers["x-amz-delete-marker"] == "true"
+    assert headers["x-amz-version-id"] == marker_id
+
+    # The requested version is a delete marker
+    with pytest.raises(ClientError) as exc:
+        client.get_object(Bucket=bucket_name, Key="the-key", VersionId=marker_id)
+    err = exc.value.response
+    assert err["Error"]["Code"] == "MethodNotAllowed"
+    assert err["Error"]["Method"] == "GET"
+    assert err["Error"]["ResourceType"] == "DeleteMarker"
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 405
+    headers = err["ResponseMetadata"]["HTTPHeaders"]
+    assert headers["x-amz-delete-marker"] == "true"
+    assert headers["x-amz-version-id"] == marker_id
+    assert headers["allow"] == "DELETE"
+    assert "last-modified" in headers
+
+
+@mock_aws
 def test_get_stream_gzipped():
     payload = b"this is some stuff here"
     bucket_name = str(uuid.uuid4())
