@@ -290,10 +290,12 @@ class FakeKey(BaseModel, ManagedState):
             self._etag = value_md5.hexdigest()
         return f'"{self._etag}"'
 
+    # TODO: Remove in favor of passing native Python datetime object to core serializer.
     @property
     def last_modified_ISO8601(self) -> str:
         return iso_8601_datetime_without_milliseconds_s3(self.last_modified)  # type: ignore
 
+    # TODO: Remove in favor of passing native Python datetime object to core serializer.
     @property
     def last_modified_RFC1123(self) -> str:
         # Different datetime formats depending on how the key is obtained

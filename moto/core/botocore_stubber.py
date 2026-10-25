@@ -2,14 +2,16 @@ import re
 from io import BytesIO
 from typing import Any
 
-from botocore.awsrequest import AWSResponse
+from botocore.awsrequest import AWSPreparedRequest, AWSResponse
+from botocore.compat import HTTPHeaders
+from requests import PreparedRequest
 
 import moto.backend_index as backend_index
 from moto.core.base_backend import BackendDict
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import passthrough_service, passthrough_url, service_whitelisted
 from moto.core.exceptions import ServiceNotWhitelisted
-from moto.core.request import Request, normalize_request
+from moto.core.request import normalize_request
 from moto.core.utils import get_equivalent_url_in_aws_domain
 
 
@@ -31,11 +33,10 @@ class BotocoreStubber:
         self.enabled = False
 
     def __call__(
-        self, event_name: str, request: Any, **kwargs: Any
+        self, event_name: str, request: AWSPreparedRequest, **kwargs: Any
     ) -> AWSResponse | None:
         if not self.enabled:
             return None
-        request = normalize_request(request)
         response = self.process_request(request)
         if response is not None:
             status, headers, body = response
@@ -43,10 +44,33 @@ class BotocoreStubber:
         else:
             return response
 
-    def process_request(self, request: Request) -> TYPE_RESPONSE | None:
+    def process_prepared_request(
+        self, request: PreparedRequest
+    ) -> TYPE_RESPONSE | None:
+        """
+        This is the callback method provided to Responses.
+
+        It receives a requests.PreparedRequest object, which is converted to
+        a botocore.awsrequest.AWSPreparedRequest object and passed along to
+        main request handler.
+        """
+        assert request.method and request.url
+        headers = HTTPHeaders()
+        for key, value in request.headers.items():
+            headers[key] = value
+        aws_request = AWSPreparedRequest(
+            method=request.method,
+            url=request.url,
+            headers=headers,
+            body=request.body,
+            stream_output=False,
+        )
+        return self.process_request(aws_request)
+
+    def process_request(self, request: AWSPreparedRequest) -> TYPE_RESPONSE | None:
         # Handle non-standard AWS endpoint hostnames from ISO regions or custom
         # S3 endpoints.
-        parsed_url, _ = get_equivalent_url_in_aws_domain(request.raw_url)
+        parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)
         # Remove the querystring from the URL, as we'll never match on that
         clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
@@ -80,10 +104,13 @@ class BotocoreStubber:
                     if re.compile(url).match(clean_url):
                         from moto.moto_api import recorder
 
+                        normalized_request = normalize_request(request)
                         try:
-                            recorder._record_request(request)
+                            recorder._record_request(normalized_request)
                             status, headers, body = method_to_execute(
-                                request, request.raw_url, request.headers
+                                normalized_request,
+                                normalized_request.raw_url,
+                                normalized_request.headers,
                             )
                         except HTTPException as e:
                             status = e.code
