@@ -74,7 +74,8 @@ def get_template_summary_response_from_template(template_body: str) -> dict[str,
 
     resources_types = get_resource_types(template_dict)
     template_dict["ResourceTypes"] = resources_types
-    template_dict["Version"] = template_dict["AWSTemplateFormatVersion"]
+    if "AWSTemplateFormatVersion" in template_dict:
+        template_dict["Version"] = template_dict["AWSTemplateFormatVersion"]
     parameters = []
     for key, value in template_dict.get("Parameters", {}).items():
         parameter = {

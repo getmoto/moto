@@ -1171,6 +1171,27 @@ def test_get_template_summary():
 
 
 @mock_aws
+def test_get_template_summary_without_template_format_version():
+    conn = boto3.client("cloudformation", region_name=REGION_NAME)
+    template = {"Resources": {"Queue": {"Type": "AWS::SQS::Queue"}}}
+
+    result = conn.get_template_summary(TemplateBody=json.dumps(template))
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
+
+    result = conn.get_template_summary(
+        TemplateBody="Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n"
+    )
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
+
+    conn.create_stack(StackName=TEST_STACK_NAME, TemplateBody=json.dumps(template))
+    result = conn.get_template_summary(StackName=TEST_STACK_NAME)
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
+
+
+@mock_aws
 def test_get_template_summary_for_stack_created_by_changeset_execution():
     conn = boto3.client("cloudformation", region_name=REGION_NAME)
     conn.create_change_set(
