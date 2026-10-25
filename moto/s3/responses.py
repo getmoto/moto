@@ -280,7 +280,8 @@ class S3Response(BaseResponse):
             )
         )
 
-    def subdomain_based_buckets(self, request: Any) -> bool:
+    @staticmethod
+    def subdomain_based_buckets(request: Any) -> bool:
         if settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME:
             return False
         host = request.headers.get("host", request.headers.get("Host"))

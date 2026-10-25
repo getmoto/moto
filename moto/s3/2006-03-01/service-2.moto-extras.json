@@ -5,6 +5,14 @@
       "xmlNamespace": "http://s3.amazonaws.com/doc/2006-03-01/"
     },
     "operations": {
+      "BucketCORSPreflightCheck": {
+        "name": "BucketCORSPreflightCheck",
+        "http": {
+          "method": "OPTIONS",
+          "requestUri": "/{Bucket}"
+        },
+        "documentation":""
+      },
       "CopyObject": {
         "output": {
           "resultWrapper": "CopyObjectResult"
@@ -129,6 +137,22 @@
         "output": {
           "resultWrapper": "ListBucketResult"
         }
+      },
+      "ObjectCORSPreflightCheck": {
+        "name": "ObjectCORSPreflightCheck",
+        "http": {
+          "method": "OPTIONS",
+          "requestUri": "/{Bucket}/{Key+}"
+        },
+        "documentation":""
+      },
+      "PostObject": {
+        "name": "PostObject",
+        "http": {
+          "method": "POST",
+          "requestUri": "/{Bucket}"
+        },
+        "documentation":""
       }
     },
     "shapes": {
