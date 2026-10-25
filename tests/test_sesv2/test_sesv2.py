@@ -1035,6 +1035,30 @@ def test_get_configuration_set():
 
 
 @mock_aws
+def test_get_configuration_set_sending_options():
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    client.create_configuration_set(
+        ConfigurationSetName="sending-enabled",
+        SendingOptions={"SendingEnabled": True},
+    )
+    client.create_configuration_set(
+        ConfigurationSetName="sending-disabled",
+        SendingOptions={"SendingEnabled": False},
+    )
+    client.create_configuration_set(ConfigurationSetName="sending-default")
+
+    config_set = client.get_configuration_set(ConfigurationSetName="sending-enabled")
+    assert config_set["SendingOptions"] == {"SendingEnabled": True}
+
+    config_set = client.get_configuration_set(ConfigurationSetName="sending-disabled")
+    assert config_set["SendingOptions"] == {"SendingEnabled": False}
+
+    # Sending is enabled by default
+    config_set = client.get_configuration_set(ConfigurationSetName="sending-default")
+    assert config_set["SendingOptions"] == {"SendingEnabled": True}
+
+
+@mock_aws
 def test_list_configuration_sets():
     # Test ListConfigurationSet returns resources created in both ses and sesv2
     # Setup
