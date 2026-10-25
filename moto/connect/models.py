@@ -1,11 +1,13 @@
 """ConnectBackend class with methods for supported APIs."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -122,8 +124,10 @@ class AnalyticsDataAssociation(BaseModel):
         }
 
 
-class ConnectBackend(BaseBackend):
+class ConnectBackend(BaseBackend, TaggableResourcesMixin):
     """Backend for Amazon Connect API."""
+
+    SERVICE_NAMESPACE = "connect"
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
@@ -143,6 +147,15 @@ class ConnectBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for instance in self.instances.values():
+            yield TaggedResource(
+                arn=instance.arn,
+                tags=self.tagger.get_tag_dict_for_resource(instance.arn),
+                resource_type="connect:instance",
+            )
 
     def _get_instance_or_raise(self, instance_id: str) -> Instance:
         """Get instance by ID or raise ResourceNotFoundException."""
