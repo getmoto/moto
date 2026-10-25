@@ -41,7 +41,7 @@ rds
 - [X] create_db_security_group
 - [X] create_db_shard_group
 - [X] create_db_snapshot
-- [ ] create_db_subnet_group
+- [X] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
 - [ ] create_integration
@@ -62,7 +62,7 @@ rds
 - [ ] delete_db_security_group
 - [ ] delete_db_shard_group
 - [X] delete_db_snapshot
-- [ ] delete_db_subnet_group
+- [X] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
 - [ ] delete_integration
@@ -80,7 +80,13 @@ rds
 - [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
-- [ ] describe_db_engine_versions
+- [X] describe_db_engine_versions
+  
+Only a small, static set of engine versions is returned. These are the
+default versions for the engines that Moto supports, plus the
+DocumentDB versions (3.6.0, 4.0.0, 5.0.0).
+
+
 - [X] describe_db_instance_automated_backups
 - [X] describe_db_instances
 - [X] describe_db_log_files
@@ -102,7 +108,12 @@ The filters-argument is not yet supported
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
-- [ ] describe_engine_default_cluster_parameters
+- [X] describe_engine_default_cluster_parameters
+  
+Default parameters are only returned for the DocumentDB families.
+Other families return an empty parameter list.
+
+
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
@@ -165,7 +176,7 @@ Only the Aurora-Postgresql and Neptune-engine is currently implemented
 - [ ] remove_role_from_db_instance
 - [ ] remove_source_identifier_from_subscription
 - [X] remove_tags_from_resource
-- [ ] reset_db_cluster_parameter_group
+- [X] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
 - [X] restore_db_cluster_from_snapshot

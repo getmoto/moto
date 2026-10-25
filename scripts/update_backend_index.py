@@ -17,7 +17,7 @@ output_path = os.path.join(script_dir, "..", output_file)
 # Ignore the Moto API/Server/Proxy backends, as they do not represent AWS services
 # Ignore the APIGatewayV2, as it's URL's are managed by APIGateway
 # Ignore S3bucket_path, as the functionality is covered in the S3 service
-# Ignore neptune, as it shares a URL with RDS
+# Ignore docdb and neptune, as they share a URL with RDS
 # Ignore OpenSearch, as it shares a URL with ElasticSearch
 IGNORE_BACKENDS = [
     "moto_server",
@@ -26,6 +26,7 @@ IGNORE_BACKENDS = [
     "awslambda_simple",
     "batch_simple",
     "core",
+    "docdb",
     "dynamodb_v20111205",
     "utilities",
     "s3bucket_path",
