@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.utils import utcnow
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 from moto.utilities.paginator import paginate
@@ -78,9 +79,7 @@ class Route53DomainsBackend(BaseBackend):
 
         self.__validate_duplicate_operations(requested_operation)
 
-        expiration_date = datetime.now(timezone.utc) + timedelta(
-            days=365 * duration_in_years
-        )
+        expiration_date = utcnow() + timedelta(days=365 * duration_in_years)
 
         try:
             domain = Route53Domain.validate(
@@ -200,7 +199,7 @@ class Route53DomainsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_operations(
         self,
-        submitted_since_timestamp: int | None = None,
+        submitted_since: datetime | None = None,
         statuses: list[str] | None = None,
         types: list[str] | None = None,
         sort_by: str | None = None,
@@ -217,12 +216,6 @@ class Route53DomainsBackend(BaseBackend):
 
         if input_errors:
             raise InvalidInputException(input_errors)
-
-        submitted_since = (
-            datetime.fromtimestamp(submitted_since_timestamp, timezone.utc)
-            if submitted_since_timestamp
-            else None
-        )
 
         operations_to_return: list[Route53DomainsOperation] = []
 
