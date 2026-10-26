@@ -4,7 +4,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.route53 import route53_backends
 from moto.utilities.tagging_service import TaggingService
@@ -53,24 +53,8 @@ class Namespace(BaseModel):
         self.dns_properties = dns_properties
         self.http_properties = http_properties
         self.vpc = vpc
-        self.created = unix_time()
-        self.updated = unix_time()
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "Id": self.id,
-            "Name": self.name,
-            "Description": self.description,
-            "Type": self.type,
-            "Properties": {
-                "DnsProperties": self.dns_properties,
-                "HttpProperties": self.http_properties,
-            },
-            "CreateDate": self.created,
-            "UpdateDate": self.updated,
-            "CreatorRequestId": self.creator_request_id,
-        }
+        self.created = utcnow()
+        self.updated = utcnow()
 
 
 class Service(BaseModel):
@@ -98,7 +82,7 @@ class Service(BaseModel):
         self.health_check_config = health_check_config
         self.health_check_custom_config = health_check_custom_config
         self.service_type = service_type
-        self.created = unix_time()
+        self.created = utcnow()
         self.instances: list[ServiceInstance] = []
         self.instances_revision: dict[str, int] = {}
         self.attributes: dict[str, str] = {}
@@ -118,28 +102,6 @@ class Service(BaseModel):
         if "HealthCheckConfig" in details:
             self.health_check_config = details["HealthCheckConfig"]
 
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "Id": self.id,
-            "Name": self.name,
-            "NamespaceId": self.namespace_id,
-            "CreateDate": self.created,
-            "Description": self.description,
-            "CreatorRequestId": self.creator_request_id,
-            "DnsConfig": self.dns_config,
-            "HealthCheckConfig": self.health_check_config,
-            "HealthCheckCustomConfig": self.health_check_custom_config,
-            "Type": self.service_type,
-        }
-
-    def attributes_to_json(self) -> dict[str, Any]:
-        return {
-            "ServiceArn": self.arn,
-            "ResourceOwner": self.account_id,
-            "Attributes": self.attributes,
-        }
-
 
 class ServiceInstance(BaseModel):
     def __init__(
@@ -157,13 +119,6 @@ class ServiceInstance(BaseModel):
         )
         self.health_status = "HEALTHY"
 
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "Id": self.instance_id,
-            "CreatorRequestId": self.creator_request_id,
-            "Attributes": self.attributes,
-        }
-
 
 class Operation(BaseModel):
     def __init__(self, operation_type: str, targets: dict[str, str]):
@@ -171,22 +126,9 @@ class Operation(BaseModel):
         self.id = f"{random_id(32)}-{random_id(8)}"
         self.status = "SUCCESS"
         self.operation_type = operation_type
-        self.created = unix_time()
-        self.updated = unix_time()
+        self.created = utcnow()
+        self.updated = utcnow()
         self.targets = targets
-
-    def to_json(self, short: bool = False) -> dict[str, Any]:
-        if short:
-            return {"Id": self.id, "Status": self.status}
-        else:
-            return {
-                "Id": self.id,
-                "Status": self.status,
-                "Type": self.operation_type,
-                "CreateDate": self.created,
-                "UpdateDate": self.updated,
-                "Targets": self.targets,
-            }
 
 
 class ServiceDiscoveryBackend(BaseBackend):
