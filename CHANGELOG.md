@@ -4,7 +4,7 @@ Moto Changelog
 
 5.2.5
 -----
-Docker Digest for 5.2.5: <autopopulateddigest>
+Docker Digest for 5.2.5: _sha256:59a1965d845249b04def37a0e2565f9cc6c44543cb89b68e90f28f344b3b0d1a_
 
     New Methods:
         * S3Vectors:
