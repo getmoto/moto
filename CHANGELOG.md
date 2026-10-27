@@ -1,6 +1,33 @@
 Moto Changelog
 ==============
 
+
+5.2.5
+-----
+Docker Digest for 5.2.5: <autopopulateddigest>
+
+    New Methods:
+        * S3Vectors:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * AutoScaling: delete_autoscaling_group() now correctly succeeds when an attached ELBv2 target group has been deleted
+        * CloudFormation: get_template_summary() no longer crashes when the optional AWSTemplateFormatVersion-key is not supplied
+        * CloudFormation: list_stack_resources() now returns the correct LastUpdatedTimestamp-attribute
+        * CognitoIDP now serves the OpenID Connect discovery document
+        * Connect: Resources can now be discovered by the ResourceGroupsTagging API
+        * ECS: list_container_instances() now supports the status-parameter
+        * Logs: describe_queries() now returns a correctly formatted createTime, enabling support for the Go SDK
+        * S3: now supports underscores in object metadata keys
+        * S3: get_object_attributes() now returns the LastModified-attribute in the correct format
+        * S3: upload_part() now no longer hangs when using ThreadedMotoServer in conjunction with `@mock_aws` (regression from 5.2.4)
+        * S3Vectors: create_index() and create_vector_bucket() now support the tag-parameter
+        * StepFunctions: create_state_machine() now supports the type-parameter
+        * SQS: send_message_batch() now returns a correctly-formatted 'Failed'-attribute (if appropriate)
+        * SWF: describe_workflow_execution() and get_workflow_execution_history() now have basic parameter validation
+
 5.2.4
 -----
 Docker Digest for 5.2.4: _sha256:120b1589c6df7e35d2092935f6ff724486bb2c4189d0e36ce795baba1400ffd2_
