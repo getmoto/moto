@@ -723,3 +723,54 @@ def test_list_tags_for_resource_agent_not_found():
     with pytest.raises(ClientError) as e:
         client.list_tags_for_resource(resourceArn=agent_arn + "no")
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_agents_paginate():
+    seen_tokens = set()
+    client = boto3.client("bedrock-agent", region_name=DEFAULT_REGION)
+    for index in range(101):
+        client.create_agent(
+            agentName=f"testname{index}",
+            agentResourceRoleArn="test-agent-arn",
+            tags={"Key": "test-tag-key"},
+        )
+    response = client.list_agents()
+    pages = [response["agentSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_agents(nextToken=next_token)
+        pages.append(response["agentSummaries"])
+    names = [summary["agentName"] for page in pages for summary in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert names == [f"testname{index}" for index in range(101)]
+
+
+@mock_aws
+def test_list_knowledge_bases_paginate():
+    seen_tokens = set()
+    client = boto3.client("bedrock-agent", region_name=DEFAULT_REGION)
+    for index in range(101):
+        client.create_knowledge_base(
+            name=f"testkb{index}",
+            description="description",
+            roleArn="test_role_arn",
+            knowledgeBaseConfiguration={"type": "VECTOR"},
+            storageConfiguration={"type": "OPENSEARCH_SERVERLESS"},
+            tags={"Key": "test-tag"},
+        )
+    response = client.list_knowledge_bases()
+    pages = [response["knowledgeBaseSummaries"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_knowledge_bases(nextToken=next_token)
+        pages.append(response["knowledgeBaseSummaries"])
+    names = [summary["name"] for page in pages for summary in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert names == [f"testkb{index}" for index in range(101)]
