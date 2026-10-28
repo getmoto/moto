@@ -32,7 +32,9 @@ class ThreadedMotoServer:
             request_handler=MotoRequestHandler,
         )
         self._server_ready_event.set()
-        self._server.serve_forever()
+        # serve_forever() only notices shutdown() between polls, so the default
+        # 0.5s interval made every stop() take up to half a second.
+        self._server.serve_forever(poll_interval=0.05)
 
     def start(self) -> None:
         if self._verbose:
