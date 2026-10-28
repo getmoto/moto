@@ -374,3 +374,49 @@ def test_put_run_properties_nonexistent_run_id():
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
     assert exc.value.response["Error"]["Message"] == "Entity not found"
+
+
+@mock_aws
+def test_list_workflows_paginate():
+    seen_tokens = set()
+    client = boto3.client("glue", region_name="us-east-1")
+    workflow_names = [f"paginate-workflow-{idx}" for idx in range(21)]
+    for name in workflow_names:
+        client.create_workflow(Name=name)
+
+    page = client.list_workflows()
+    actual = list(page["Workflows"])
+    assert len(actual) == 20
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_workflows(NextToken=page["NextToken"])
+        actual.extend(page["Workflows"])
+
+    assert len(actual) == len(workflow_names)
+    assert set(actual) == set(workflow_names)
+
+
+@mock_aws
+def test_get_workflow_runs_paginate():
+    seen_tokens = set()
+    client = boto3.client("glue", region_name="us-east-1")
+    workflow_name = "paginate-workflow-runs"
+    client.create_workflow(Name=workflow_name)
+    run_ids = [
+        client.start_workflow_run(Name=workflow_name)["RunId"] for _ in range(101)
+    ]
+
+    page = client.get_workflow_runs(Name=workflow_name)
+    actual = [run["WorkflowRunId"] for run in page["Runs"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_workflow_runs(Name=workflow_name, NextToken=page["NextToken"])
+        actual.extend(run["WorkflowRunId"] for run in page["Runs"])
+
+    assert len(actual) == len(run_ids)
+    assert set(actual) == set(run_ids)

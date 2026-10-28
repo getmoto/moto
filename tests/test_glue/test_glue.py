@@ -2101,3 +2101,204 @@ def test_hiding_the_password_does_not_change_the_stored_connection():
     connection = client.get_connection(Name="prod-db")["Connection"]
 
     assert connection["ConnectionProperties"]["PASSWORD"] == "hunter2"
+
+
+@mock_aws
+def test_list_crawlers_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    crawler_names = [create_test_crawler(client) for _ in range(101)]
+
+    page = client.list_crawlers()
+    actual = list(page["CrawlerNames"])
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_crawlers(NextToken=page["NextToken"])
+        actual.extend(page["CrawlerNames"])
+
+    assert len(actual) == len(crawler_names)
+    assert set(actual) == set(crawler_names)
+
+
+@mock_aws
+def test_get_jobs_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    job_names = [create_test_job(client) for _ in range(101)]
+
+    page = client.get_jobs()
+    actual = [job["Name"] for job in page["Jobs"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_jobs(NextToken=page["NextToken"])
+        actual.extend(job["Name"] for job in page["Jobs"])
+
+    assert len(actual) == len(job_names)
+    assert set(actual) == set(job_names)
+
+
+@mock_aws
+def test_list_jobs_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    job_names = [create_test_job(client) for _ in range(101)]
+
+    page = client.list_jobs()
+    actual = list(page["JobNames"])
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_jobs(NextToken=page["NextToken"])
+        actual.extend(page["JobNames"])
+
+    assert len(actual) == len(job_names)
+    assert set(actual) == set(job_names)
+
+
+@mock_aws
+def test_list_sessions_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    session_ids = [create_test_session(client) for _ in range(101)]
+
+    page = client.list_sessions()
+    actual = list(page["Ids"])
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_sessions(NextToken=page["NextToken"])
+        actual.extend(page["Ids"])
+
+    assert len(actual) == len(session_ids)
+    assert set(actual) == set(session_ids)
+
+
+@mock_aws
+def test_get_triggers_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    trigger_names = [create_test_trigger(client) for _ in range(101)]
+
+    page = client.get_triggers()
+    actual = [trigger["Name"] for trigger in page["Triggers"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_triggers(NextToken=page["NextToken"])
+        actual.extend(trigger["Name"] for trigger in page["Triggers"])
+
+    assert len(actual) == len(trigger_names)
+    assert set(actual) == set(trigger_names)
+
+
+@mock_aws
+def test_list_triggers_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    trigger_names = [create_test_trigger(client) for _ in range(101)]
+
+    page = client.list_triggers()
+    actual = list(page["TriggerNames"])
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_triggers(NextToken=page["NextToken"])
+        actual.extend(page["TriggerNames"])
+
+    assert len(actual) == len(trigger_names)
+    assert set(actual) == set(trigger_names)
+
+
+@mock_aws
+def test_get_dev_endpoints_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    endpoint_names = [f"paginate-endpoint-{idx}" for idx in range(101)]
+    for endpoint_name in endpoint_names:
+        client.create_dev_endpoint(
+            EndpointName=endpoint_name,
+            RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        )
+
+    page = client.get_dev_endpoints()
+    actual = [endpoint["EndpointName"] for endpoint in page["DevEndpoints"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_dev_endpoints(NextToken=page["NextToken"])
+        actual.extend(endpoint["EndpointName"] for endpoint in page["DevEndpoints"])
+
+    assert len(actual) == len(endpoint_names)
+    assert set(actual) == set(endpoint_names)
+
+
+@mock_aws
+def test_get_ml_transforms_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    transform_ids = []
+    for idx in range(101):
+        response = client.create_ml_transform(
+            Name=f"paginate-transform-{idx}",
+            InputRecordTables=[{"DatabaseName": "db", "TableName": "tbl"}],
+            Parameters={"TransformType": "FIND_MATCHES"},
+            Role="arn:aws:iam::123456789012:role/GlueMLTransform",
+        )
+        transform_ids.append(response["TransformId"])
+
+    page = client.get_ml_transforms()
+    actual = [transform["TransformId"] for transform in page["Transforms"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_ml_transforms(NextToken=page["NextToken"])
+        actual.extend(transform["TransformId"] for transform in page["Transforms"])
+
+    assert len(actual) == len(transform_ids)
+    assert set(actual) == set(transform_ids)
+
+
+@mock_aws
+def test_get_connections_paginate():
+    seen_tokens = set()
+    client = create_glue_client()
+    connection_names = [f"paginate-connection-{idx}" for idx in range(101)]
+    for name in connection_names:
+        client.create_connection(
+            ConnectionInput={
+                "Name": name,
+                "ConnectionType": "JDBC",
+                "ConnectionProperties": {"key": "value"},
+            }
+        )
+
+    page = client.get_connections()
+    actual = [connection["Name"] for connection in page["ConnectionList"]]
+    assert len(actual) == 100
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.get_connections(NextToken=page["NextToken"])
+        actual.extend(connection["Name"] for connection in page["ConnectionList"])
+
+    assert len(actual) == len(connection_names)
+    assert set(actual) == set(connection_names)
