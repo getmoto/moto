@@ -11,7 +11,7 @@ from moto.codepipeline.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
 from moto.moto_api._internal import mock_random
@@ -36,41 +36,6 @@ class PipelineExecution(BaseModel):
         self.status = "Succeeded"
         self.status_summary: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "pipelineName": self.pipeline_name,
-            "pipelineVersion": self.pipeline_version,
-            "pipelineExecutionId": self.pipeline_execution_id,
-            "status": self.status,
-            "statusSummary": self.status_summary,
-            "artifactRevisions": [],
-            # response shape is ResolvedPipelineVariable (name/resolvedValue),
-            # not PipelineVariable (name/value) used on the request side
-            "variables": [
-                {"name": v["name"], "resolvedValue": v["value"]} for v in self.variables
-            ],
-            "trigger": {
-                "triggerType": "StartPipelineExecution",
-                "triggerDetail": "",
-            },
-        }
-
-    def to_summary_dict(self) -> dict[str, Any]:
-        return {
-            "pipelineExecutionId": self.pipeline_execution_id,
-            "status": self.status,
-            "statusSummary": self.status_summary,
-            "startTime": iso_8601_datetime_with_milliseconds(self.start_time),
-            "lastUpdateTime": iso_8601_datetime_with_milliseconds(
-                self.last_update_time
-            ),
-            "sourceRevisions": [],
-            "trigger": {
-                "triggerType": "StartPipelineExecution",
-                "triggerDetail": "",
-            },
-        }
-
 
 class CodePipeline(BaseModel):
     def __init__(self, account_id: str, region: str, pipeline: dict[str, Any]):
@@ -82,17 +47,9 @@ class CodePipeline(BaseModel):
         # keyed by pipelineExecutionId, insertion order == chronological order
         self.executions: dict[str, PipelineExecution] = {}
 
-        self._arn = f"arn:{get_partition(region)}:codepipeline:{region}:{account_id}:{pipeline['name']}"
-        self._created = utcnow()
-        self._updated = utcnow()
-
-    @property
-    def metadata(self) -> dict[str, str]:
-        return {
-            "pipelineArn": self._arn,
-            "created": iso_8601_datetime_with_milliseconds(self._created),
-            "updated": iso_8601_datetime_with_milliseconds(self._updated),
-        }
+        self.arn = f"arn:{get_partition(region)}:codepipeline:{region}:{account_id}:{pipeline['name']}"
+        self.created = utcnow()
+        self.updated = utcnow()
 
     def add_default_values(self, pipeline: dict[str, Any]) -> dict[str, Any]:
         for stage in pipeline["stages"]:
@@ -118,7 +75,7 @@ class CodePipeline(BaseModel):
                 )
 
         if (len(self.tags) + len(tags)) > 50:
-            raise TooManyTagsException(self._arn)
+            raise TooManyTagsException(self.arn)
 
 
 class CodePipelineBackend(BaseBackend):
@@ -182,7 +139,7 @@ class CodePipelineBackend(BaseBackend):
 
         return pipeline, sorted(tags, key=lambda i: i["key"])
 
-    def get_pipeline(self, name: str) -> tuple[dict[str, Any], dict[str, str]]:
+    def get_pipeline(self, name: str) -> CodePipeline:
         codepipeline = self.pipelines.get(name)
 
         if not codepipeline:
@@ -190,7 +147,7 @@ class CodePipelineBackend(BaseBackend):
                 f"Account '{self.account_id}' does not have a pipeline with name '{name}'"
             )
 
-        return codepipeline.pipeline, codepipeline.metadata
+        return codepipeline
 
     def start_pipeline_execution(
         self, name: str, variables: list[dict[str, str]] | None
@@ -232,7 +189,7 @@ class CodePipelineBackend(BaseBackend):
 
     def list_pipeline_executions(
         self, pipeline_name: str, max_results: int | None
-    ) -> list[dict[str, Any]]:
+    ) -> list[PipelineExecution]:
         codepipeline = self.pipelines.get(pipeline_name)
 
         if not codepipeline:
@@ -245,7 +202,7 @@ class CodePipelineBackend(BaseBackend):
         if max_results:
             executions = executions[:max_results]
 
-        return [execution.to_summary_dict() for execution in executions]
+        return executions
 
     def update_pipeline(self, pipeline: dict[str, Any]) -> dict[str, Any]:
         codepipeline = self.pipelines.get(pipeline["name"])
@@ -257,25 +214,13 @@ class CodePipelineBackend(BaseBackend):
 
         # version number is auto incremented
         pipeline["version"] = codepipeline.pipeline["version"] + 1
-        codepipeline._updated = utcnow()
+        codepipeline.updated = utcnow()
         codepipeline.pipeline = codepipeline.add_default_values(pipeline)
 
         return codepipeline.pipeline
 
-    def list_pipelines(self) -> list[dict[str, str]]:
-        pipelines = []
-
-        for name, codepipeline in self.pipelines.items():
-            pipelines.append(
-                {
-                    "name": name,
-                    "version": codepipeline.pipeline["version"],
-                    "created": codepipeline.metadata["created"],
-                    "updated": codepipeline.metadata["updated"],
-                }
-            )
-
-        return sorted(pipelines, key=lambda i: i["name"])
+    def list_pipelines(self) -> list[CodePipeline]:
+        return sorted(self.pipelines.values(), key=lambda i: i.pipeline["name"])
 
     def delete_pipeline(self, name: str) -> None:
         self.pipelines.pop(name, None)
