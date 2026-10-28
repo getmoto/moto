@@ -391,14 +391,16 @@ def test_delete_objects_if_match_etag(bucket_name=None):
     # First attempt deletions that should fail due to the ETag.
     response = s3.delete_objects(
         Bucket=bucket_name,
-        Delete={"Objects": [
-            # This should fail due to ETag mismatch.
-            {"Key": "test_key", "ETag": "test"},
-            # This should fail since deletions of non-existent objecs are idempotent
-            # only when the ETag is unspecified; with a specified ETag, the deletion
-            # should fail with NoSuchKey.
-            {"Key": "test_key_nonexistent", "ETag": "nonexistent"},
-        ]},
+        Delete={
+            "Objects": [
+                # This should fail due to ETag mismatch.
+                {"Key": "test_key", "ETag": "test"},
+                # This should fail since deletions of non-existent objecs are idempotent
+                # only when the ETag is unspecified; with a specified ETag, the deletion
+                # should fail with NoSuchKey.
+                {"Key": "test_key_nonexistent", "ETag": "nonexistent"},
+            ]
+        },
     )
     errors = response.get("Errors", [])
     assert len(errors) == 2
@@ -409,7 +411,10 @@ def test_delete_objects_if_match_etag(bucket_name=None):
     bad_etag_error = error_by_key.get("test_key")
     assert bad_etag_error is not None
     assert bad_etag_error["Code"] == "PreconditionFailed"
-    assert bad_etag_error["Message"] == "At least one of the pre-conditions you specified did not hold"
+    assert (
+        bad_etag_error["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
 
     nonexistent_error = error_by_key.get("test_key_nonexistent")
     assert nonexistent_error is not None
@@ -419,13 +424,15 @@ def test_delete_objects_if_match_etag(bucket_name=None):
     # Now attempt the same deletions again with the "right" ETag
     response = s3.delete_objects(
         Bucket=bucket_name,
-        Delete={"Objects": [
-            # This should succeed since the ETag matches.
-            {"Key": "test_key", "ETag": etag},
-            # This should succeed since deletions are idempotent for non-existent objects
-            # when the ETag is unspecified.
-            {"Key": "test_key_nonexistent"},
-        ]},
+        Delete={
+            "Objects": [
+                # This should succeed since the ETag matches.
+                {"Key": "test_key", "ETag": etag},
+                # This should succeed since deletions are idempotent for non-existent objects
+                # when the ETag is unspecified.
+                {"Key": "test_key_nonexistent"},
+            ]
+        },
     )
     errors = response.get("Errors", [])
     assert len(errors) == 0
