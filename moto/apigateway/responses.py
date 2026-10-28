@@ -60,6 +60,9 @@ class APIGatewayResponse(BaseResponse):
                 )
         return None
 
+    def import_rest_api(self) -> TYPE_RESPONSE:
+        return self.create_rest_api()
+
     def create_rest_api(self) -> TYPE_RESPONSE:
         api_doc = deserialize_body(self.body)
         if api_doc:

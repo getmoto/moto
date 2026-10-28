@@ -42,7 +42,7 @@ class Destination(BaseModel):
     ):
         self.access_policy = access_policy
         self.arn = f"arn:{get_partition(region)}:logs:{region}:{account_id}:destination:{destination_name}"
-        self.creation_time = int(unix_time_millis())
+        self.creation_time = utcnow()
         self.destination_name = destination_name
         self.role_arn = role_arn
         self.target_arn = target_arn
@@ -51,7 +51,7 @@ class Destination(BaseModel):
         return {
             "accessPolicy": self.access_policy,
             "arn": self.arn,
-            "creationTime": self.creation_time,
+            "creationTime": int(unix_time_millis(self.creation_time)),
             "destinationName": self.destination_name,
             "roleArn": self.role_arn,
             "targetArn": self.target_arn,
@@ -72,7 +72,7 @@ class LogQuery(BaseModel):
         self.end_time = end_time
         self.query = query
         self.log_group_names = [lg.name for lg in log_groups]
-        self.create_time = unix_time_millis()
+        self.create_time = utcnow()
         self.status = "Running"
         self.results = execute_query(
             log_groups=log_groups, query=query, start_time=start_time, end_time=end_time
@@ -84,7 +84,7 @@ class LogQuery(BaseModel):
             "queryId": self.query_id,
             "queryString": self.query,
             "status": self.status,
-            "createTime": self.create_time,
+            "createTime": int(unix_time_millis(self.create_time)),
             "logGroupName": log_group_name,
         }
 
@@ -134,10 +134,10 @@ class LogStream(BaseModel):
         self.region = log_group.region
         self.log_group = log_group
         self.arn = f"arn:{get_partition(self.region)}:logs:{self.region}:{self.account_id}:log-group:{log_group.name}:log-stream:{name}"
-        self.creation_time = int(unix_time_millis())
+        self.creation_time = utcnow()
         self.first_event_timestamp = None
         self.last_event_timestamp = None
-        self.last_ingestion_time: int | None = None
+        self.last_ingestion_time: datetime | None = None
         self.log_stream_name = name
         self.stored_bytes = 0
         # I'm  guessing this is token needed for sequenceToken by put_events
@@ -161,7 +161,7 @@ class LogStream(BaseModel):
 
         res = {
             "arn": self.arn,
-            "creationTime": self.creation_time,
+            "creationTime": int(unix_time_millis(self.creation_time)),
             "logStreamName": self.log_stream_name,
             "storedBytes": self.stored_bytes,
         }
@@ -169,7 +169,7 @@ class LogStream(BaseModel):
             rest = {
                 "firstEventTimestamp": self.first_event_timestamp,
                 "lastEventTimestamp": self.last_event_timestamp,
-                "lastIngestionTime": self.last_ingestion_time,
+                "lastIngestionTime": int(unix_time_millis(self.last_ingestion_time)),
                 "uploadSequenceToken": str(self.upload_sequence_token),
             }
             res.update(rest)
@@ -178,14 +178,13 @@ class LogStream(BaseModel):
     def put_log_events(self, log_events: list[dict[str, Any]]) -> str:
         # TODO: ensure sequence_token
         # TODO: to be thread safe this would need a lock
-        self.last_ingestion_time = int(unix_time_millis())
+        self.last_ingestion_time = utcnow()
         # TODO: make this match AWS if possible
         self.stored_bytes += sum(
             [len(log_event["message"]) for log_event in log_events]
         )
-        events = [
-            LogEvent(self.last_ingestion_time, log_event) for log_event in log_events
-        ]
+        ingestion_time = int(unix_time_millis(self.last_ingestion_time))
+        events = [LogEvent(ingestion_time, log_event) for log_event in log_events]
         self.events += events
         self.upload_sequence_token += 1
 
@@ -364,7 +363,7 @@ class SubscriptionFilter(BaseModel):
         self.filter_pattern = filter_pattern
         self.destination_arn = destination_arn
         self.role_arn = role_arn
-        self.creation_time = int(unix_time_millis())
+        self.creation_time = utcnow()
 
     def update(self, filter_pattern: str, destination_arn: str, role_arn: str) -> None:
         self.filter_pattern = filter_pattern
@@ -379,7 +378,7 @@ class SubscriptionFilter(BaseModel):
             "destinationArn": self.destination_arn,
             "roleArn": self.role_arn,
             "distribution": "ByLogStream",
-            "creationTime": self.creation_time,
+            "creationTime": int(unix_time_millis(self.creation_time)),
         }
 
 
@@ -397,7 +396,7 @@ class LogGroup(CloudFormationModel):
         self.arn = (
             f"arn:{get_partition(region)}:logs:{region}:{account_id}:log-group:{name}"
         )
-        self.creation_time = int(unix_time_millis())
+        self.creation_time = utcnow()
         self.streams: dict[str, LogStream] = {}  # {name: LogStream}
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
@@ -613,7 +612,7 @@ class LogGroup(CloudFormationModel):
         log_group = {
             "arn": f"{self.arn}:*",
             "logGroupArn": self.arn,
-            "creationTime": self.creation_time,
+            "creationTime": int(unix_time_millis(self.creation_time)),
             "logGroupName": self.name,
             "metricFilterCount": 0,
             "storedBytes": sum(s.stored_bytes for s in self.streams.values()),
@@ -666,17 +665,17 @@ class LogResourcePolicy(CloudFormationModel):
     def __init__(self, policy_name: str, policy_document: str):
         self.policy_name = policy_name
         self.policy_document = policy_document
-        self.last_updated_time = int(unix_time_millis())
+        self.last_updated_time = utcnow()
 
     def update(self, policy_document: str) -> None:
         self.policy_document = policy_document
-        self.last_updated_time = int(unix_time_millis())
+        self.last_updated_time = utcnow()
 
     def describe(self) -> dict[str, Any]:
         return {
             "policyName": self.policy_name,
             "policyDocument": self.policy_document,
-            "lastUpdatedTime": self.last_updated_time,
+            "lastUpdatedTime": int(unix_time_millis(self.last_updated_time)),
         }
 
     @property
