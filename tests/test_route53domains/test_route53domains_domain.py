@@ -559,3 +559,37 @@ def test_update_domain_nameservers_for_nonexistent_domain():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_list_operations_paginate(domain_parameters: dict):
+    seen_tokens = set()
+    client = boto3.client("route53domains", region_name="global")
+    expected = set()
+    domain_names = [f"page-operation-{i}.com" for i in range(20)]
+    for domain_name in domain_names:
+        result = client.register_domain(
+            **{**domain_parameters, "DomainName": domain_name}
+        )
+        expected.add(result["OperationId"])
+    for domain_name in domain_names:
+        result = client.update_domain_nameservers(
+            DomainName=domain_name,
+            Nameservers=[{"Name": "ns1.example.net"}, {"Name": "ns2.example.net"}],
+        )
+        expected.add(result["OperationId"])
+
+    page = client.list_operations()
+    assert len(page["Operations"]) == 20
+    assert page.get("NextPageMarker") is not None
+    operations = list(page["Operations"])
+    while page.get("NextPageMarker") is not None:
+        next_marker = page["NextPageMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        page = client.list_operations(Marker=next_marker)
+        operations.extend(page["Operations"])
+
+    ids = [operation["OperationId"] for operation in operations]
+    assert set(ids) == expected
+    assert len(ids) == 40
