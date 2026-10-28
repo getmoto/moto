@@ -392,7 +392,6 @@ def test_route53resolver_list_resolver_rules():
     # List rules when there are none.
     response = client.list_resolver_rules()
     assert len(response["ResolverRules"]) == 0
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
     # Create 4 rules, verify all 4 are listed when no filters, max_results.
@@ -401,7 +400,6 @@ def test_route53resolver_list_resolver_rules():
     response = client.list_resolver_rules()
     rules = response["ResolverRules"]
     assert len(rules) == 4
-    assert response["MaxResults"] == 10
     for idx in range(4):
         assert rules[idx]["Name"].startswith(f"A{idx}")
 
@@ -416,7 +414,6 @@ def test_route53resolver_list_resolver_rules():
     response = client.list_resolver_rules(NextToken=response["NextToken"])
     rules = response["ResolverRules"]
     assert len(rules) == 3
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, rule in enumerate(rules):
         assert rule["Name"].startswith(f"A{idx + 1}")
@@ -537,3 +534,26 @@ def test_route53resolver_bad_list_resolver_rules():
         "Value '250' at 'maxResults' failed to satisfy constraint: Member "
         "must have length less than or equal to 100"
     ) in err["Message"]
+
+
+@mock_aws
+def test_list_resolver_rules_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    expected = {
+        create_test_rule(client, name=f"page-rule-{i}")["Id"] for i in range(101)
+    }
+    page = client.list_resolver_rules()
+    assert len(page["ResolverRules"]) == 100
+    assert page.get("NextToken")
+    rules = list(page["ResolverRules"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resolver_rules(NextToken=next_token)
+        rules.extend(page["ResolverRules"])
+
+    ids = [rule["Id"] for rule in rules]
+    assert set(ids) == expected
+    assert len(ids) == 101

@@ -140,3 +140,30 @@ def test_route53resolver_bad_list_tags_for_resource():
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidNextTokenException"
     assert "Invalid value passed for the NextToken parameter" in err["Message"]
+
+
+@mock_aws
+def test_list_tags_for_resource_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    endpoint = create_test_endpoint(client, ec2_client)
+    expected = [{"Key": f"page-{i}", "Value": str(i)} for i in range(101)]
+    client.tag_resource(ResourceArn=endpoint["Arn"], Tags=expected)
+
+    page = client.list_tags_for_resource(ResourceArn=endpoint["Arn"])
+    assert len(page["Tags"]) == 100
+    assert page.get("NextToken")
+    tags = list(page["Tags"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_tags_for_resource(
+            ResourceArn=endpoint["Arn"], NextToken=next_token
+        )
+        tags.extend(page["Tags"])
+
+    keys = [tag["Key"] for tag in tags]
+    assert set(keys) == {tag["Key"] for tag in expected}
+    assert len(keys) == 101

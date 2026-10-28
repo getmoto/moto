@@ -592,7 +592,6 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
         ResolverEndpointId=endpoint_id
     )
     assert len(response["IpAddresses"]) == 3
-    assert response["MaxResults"] == 10
 
     # Set max_results to return 1 address, use next_token to get remaining.
     response = client.list_resolver_endpoint_ip_addresses(
@@ -614,7 +613,6 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
         ResolverEndpointId=endpoint_id, NextToken=response["NextToken"]
     )
     assert len(response["IpAddresses"]) == 2
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
 
@@ -657,7 +655,6 @@ def test_route53resolver_list_resolver_endpoints():
     # List endpoints when there are none.
     response = client.list_resolver_endpoints()
     assert len(response["ResolverEndpoints"]) == 0
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
     # Create 5 endpoints, verify all 5 are listed when no filters, max_results.
@@ -666,7 +663,6 @@ def test_route53resolver_list_resolver_endpoints():
     response = client.list_resolver_endpoints()
     endpoints = response["ResolverEndpoints"]
     assert len(endpoints) == 4
-    assert response["MaxResults"] == 10
     for idx in range(4):
         assert endpoints[idx]["Name"].startswith(f"A{idx}")
 
@@ -681,7 +677,6 @@ def test_route53resolver_list_resolver_endpoints():
     response = client.list_resolver_endpoints(NextToken=response["NextToken"])
     endpoints = response["ResolverEndpoints"]
     assert len(endpoints) == 3
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, endpoint in enumerate(endpoints):
         assert endpoint["Name"].startswith(f"A{idx + 1}")

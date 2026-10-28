@@ -258,7 +258,6 @@ def test_route53resolver_list_resolver_rule_associations():
     # List rule associations when there are none.
     response = client.list_resolver_rule_associations()
     assert len(response["ResolverRuleAssociations"]) == 0
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
     # Create 4 associations, verify all are listed when no filters, max_results.
@@ -267,7 +266,6 @@ def test_route53resolver_list_resolver_rule_associations():
     response = client.list_resolver_rule_associations()
     associations = response["ResolverRuleAssociations"]
     assert len(associations) == 4
-    assert response["MaxResults"] == 10
     for idx in range(4):
         assert associations[idx]["Name"].startswith(f"A{idx}")
 
@@ -283,7 +281,6 @@ def test_route53resolver_list_resolver_rule_associations():
     response = client.list_resolver_rule_associations(NextToken=response["NextToken"])
     associations = response["ResolverRuleAssociations"]
     assert len(associations) == 3
-    assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, association in enumerate(associations):
         assert association["Name"].startswith(f"A{idx + 1}")
@@ -399,3 +396,30 @@ def test_route53resolver_bad_list_resolver_rule_associations():
         "Value '250' at 'maxResults' failed to satisfy constraint: Member "
         "must have length less than or equal to 100"
     ) in err["Message"]
+
+
+@mock_aws
+def test_list_resolver_rule_associations_paginate():
+    seen_tokens = set()
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    expected = {
+        create_test_rule_association(client, ec2_client, name=f"page-association-{i}")[
+            "Id"
+        ]
+        for i in range(101)
+    }
+    page = client.list_resolver_rule_associations()
+    assert len(page["ResolverRuleAssociations"]) == 100
+    assert page.get("NextToken")
+    associations = list(page["ResolverRuleAssociations"])
+    while page.get("NextToken"):
+        next_token = page["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        page = client.list_resolver_rule_associations(NextToken=next_token)
+        associations.extend(page["ResolverRuleAssociations"])
+
+    ids = [association["Id"] for association in associations]
+    assert set(ids) == expected
+    assert len(ids) == 101

@@ -138,7 +138,7 @@ class Route53ResolverResponse(BaseResponse):
         """Returns list of IP addresses for specified Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10)
+        max_results = self._get_param("MaxResults")
         validate_args([("maxResults", max_results)])
         try:
             (
@@ -164,7 +164,7 @@ class Route53ResolverResponse(BaseResponse):
         """Returns list of all Resolver endpoints, filtered if specified."""
         filters = self._get_param("Filters")
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10)
+        max_results = self._get_param("MaxResults")
         validate_args([("maxResults", max_results)])
         endpoints, next_token = self.route53resolver_backend.list_resolver_endpoints(
             filters, next_token=next_token, max_results=max_results
@@ -182,7 +182,7 @@ class Route53ResolverResponse(BaseResponse):
         """Returns list of all Resolver rules, filtered if specified."""
         filters = self._get_param("Filters")
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10)
+        max_results = self._get_param("MaxResults")
         validate_args([("maxResults", max_results)])
         try:
             (rules, next_token) = self.route53resolver_backend.list_resolver_rules(
@@ -203,7 +203,7 @@ class Route53ResolverResponse(BaseResponse):
         """Returns list of all Resolver associations, filtered if specified."""
         filters = self._get_param("Filters")
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10)
+        max_results = self._get_param("MaxResults")
         validate_args([("maxResults", max_results)])
         try:
             (
