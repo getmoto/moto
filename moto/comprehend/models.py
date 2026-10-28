@@ -3,12 +3,13 @@
 import random
 import uuid
 from collections.abc import Iterable, Iterator
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.utils import utcnow
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -98,20 +99,6 @@ class EntityRecognizer(BaseModel):
         self.model_policy = model_policy
         self.status = "TRAINED"
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "EntityRecognizerArn": self.arn,
-            "LanguageCode": self.language_code,
-            "Status": self.status,
-            "InputDataConfig": self.input_data_config,
-            "DataAccessRoleArn": self.data_access_role_arn,
-            "VersionName": self.version_name,
-            "VolumeKmsKeyId": self.volume_kms_key_id,
-            "VpcConfig": self.vpc_config,
-            "ModelKmsKeyId": self.model_kms_key_id,
-            "ModelPolicy": self.model_policy,
-        }
-
 
 class DocumentClassifier(BaseModel):
     def __init__(
@@ -146,20 +133,6 @@ class DocumentClassifier(BaseModel):
         self.model_policy = model_policy
         self.status = "TRAINING"
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "DocumentClassifierArn": self.arn,
-            "LanguageCode": self.language_code,
-            "Status": self.status,
-            "InputDataConfig": self.input_data_config,
-            "DataAccessRoleArn": self.data_access_role_arn,
-            "VolumeKmsKeyId": self.volume_kms_key_id,
-            "Mode": self.mode,
-            "VpcConfig": self.vpc_config,
-            "ModelKmsKeyId": self.model_kms_key_id,
-            "ModelPolicy": self.model_policy,
-        }
-
 
 class Endpoint(BaseModel):
     def __init__(
@@ -181,17 +154,6 @@ class Endpoint(BaseModel):
         self.flywheel_arn = flywheel_arn
         self.desired_inference_units = desired_inference_units
         self.status = "IN_SERVICE"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "EndpointArn": self.arn,
-            "ModelArn": self.model_arn,
-            "ClientRequestToken": self.client_request_token,
-            "DataAccessRoleArn": self.data_access_role_arn,
-            "FlywheelArn": self.flywheel_arn,
-            "DesiredInferenceUnits": self.desired_inference_units,
-            "Status": self.status,
-        }
 
 
 class Flywheel(BaseModel):
@@ -219,18 +181,6 @@ class Flywheel(BaseModel):
         self.client_request_token = client_request_token
         self.status = "ACTIVE"
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "FlywheelArn": self.arn,
-            "ActiveModelArn": self.active_model_arn,
-            "DataAccessRoleArn": self.data_access_role_arn,
-            "TaskConfig": self.task_config,
-            "ModelType": self.model_type,
-            "DataLakeS3Uri": self.data_lake_s3_uri,
-            "DataSecurityConfig": self.data_security_config,
-            "ClientRequestToken": self.client_request_token,
-        }
-
 
 class ComprehendJob(BaseModel):
     """Generic model for any Comprehend asynchronous job."""
@@ -241,48 +191,44 @@ class ComprehendJob(BaseModel):
         region_name: str,
         job_type: str,
         job_name: str | None,
-        input_s3_config: dict[str, Any],
-        output_s3_config: dict[str, Any],
+        input_data_config: dict[str, Any],
+        output_data_config: dict[str, Any],
         data_access_role_arn: str,
         language_code: str | None,
-        **kwargs: Any,
+        volume_kms_key_id: str | None = None,
+        vpc_config: dict[str, list[str]] | None = None,
+        mode: str | None = None,
+        redaction_config: dict[str, Any] | None = None,
+        number_of_topics: int | None = None,
+        document_classifier_arn: str | None = None,
+        entity_recognizer_arn: str | None = None,
+        flywheel_arn: str | None = None,
+        target_event_types: list[str] | None = None,
     ):
         self.job_id = str(uuid.uuid4())
         self.job_name = job_name or f"moto-job-{self.job_id}"
         self.job_status = "SUBMITTED"
-        self.submit_time = datetime.now(timezone.utc)
-        self.end_time = None
+        self.submit_time = utcnow()
+        self.end_time: datetime | None = None
         self.job_type = job_type
-        self.input_s3_config = input_s3_config
-        self.output_s3_config = output_s3_config
+        self.input_data_config = input_data_config
+        self.output_data_config = output_data_config
         self.data_access_role_arn = data_access_role_arn
         self.language_code = language_code
-        self.extra_args = kwargs
+        self.volume_kms_key_id = volume_kms_key_id
+        self.vpc_config = vpc_config
+        self.mode = mode
+        self.redaction_config = redaction_config
+        self.number_of_topics = number_of_topics
+        self.document_classifier_arn = document_classifier_arn
+        self.entity_recognizer_arn = entity_recognizer_arn
+        self.flywheel_arn = flywheel_arn
+        self.target_event_types = target_event_types
 
         job_type_path = "".join(
             f"-{c.lower()}" if c.isupper() else c for c in self.job_type
         ).lstrip("-")
         self.job_arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:{job_type_path}-job/{self.job_id}"
-
-    def to_dict(self) -> dict[str, Any]:
-        base_dict = {
-            "JobId": self.job_id,
-            "JobArn": self.job_arn,
-            "JobName": self.job_name,
-            "JobStatus": self.job_status,
-            "SubmitTime": self.submit_time,
-            "EndTime": self.end_time,
-            "InputDataConfig": self.input_s3_config,
-            "OutputDataConfig": self.output_s3_config,
-            "DataAccessRoleArn": self.data_access_role_arn,
-        }
-        if self.language_code:
-            base_dict["LanguageCode"] = self.language_code
-
-        base_dict.update(self.extra_args)
-        # Add internal job_type for response handler to use
-        base_dict["job_type"] = self.job_type
-        return base_dict
 
     def stop(self) -> None:
         if self.job_status in ["SUBMITTED", "IN_PROGRESS"]:
@@ -542,7 +488,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         filter: dict[str, Any] | None = None,
         next_token: str | None = None,
         max_results: int | None = None,
-    ) -> tuple[list[dict[str, Any]], None]:
+    ) -> tuple[list[DocumentClassifier], None]:
         """
         List document classifiers with optional filtering.
         Pagination is not yet implemented.
@@ -551,20 +497,18 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
 
         if "DocumentClassifierName" in filter:
             classifiers = [
-                classifier.to_dict()
+                classifier
                 for classifier in self.classifiers.values()
                 if classifier.name == filter["DocumentClassifierName"]
             ]
         elif "Status" in filter:
             classifiers = [
-                classifier.to_dict()
+                classifier
                 for classifier in self.classifiers.values()
                 if classifier.status == filter["Status"]
             ]
         else:
-            classifiers = [
-                classifier.to_dict() for classifier in self.classifiers.values()
-            ]
+            classifiers = list(self.classifiers.values())
 
         return classifiers, None
 
@@ -573,7 +517,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         filter: dict[str, Any] | None = None,
         next_token: str | None = None,
         max_results: int | None = None,
-    ) -> tuple[list[dict[str, Any]], None]:
+    ) -> tuple[list[Endpoint], None]:
         """
         List endpoints with optional filtering.
         Pagination is not yet implemented.
@@ -582,18 +526,18 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
 
         if "ModelArn" in filter:
             endpoints = [
-                endpoint.to_dict()
+                endpoint
                 for endpoint in self.endpoints.values()
                 if endpoint.model_arn == filter["ModelArn"]
             ]
         elif "Status" in filter:
             endpoints = [
-                endpoint.to_dict()
+                endpoint
                 for endpoint in self.endpoints.values()
                 if endpoint.status == filter["Status"]
             ]
         else:
-            endpoints = [endpoint.to_dict() for endpoint in self.endpoints.values()]
+            endpoints = list(self.endpoints.values())
 
         return endpoints, None
 
@@ -602,7 +546,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         filter: dict[str, Any] | None = None,
         next_token: str | None = None,
         max_results: int | None = None,
-    ) -> tuple[list[dict[str, Any]], None]:
+    ) -> tuple[list[Flywheel], None]:
         """
         List flywheels with optional filtering.
         Pagination is not yet implemented.
@@ -613,12 +557,12 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         # Apply filtering based on Status
         if "Status" in filter:
             flywheels = [
-                flywheel.to_dict()
+                flywheel
                 for flywheel in self.flywheels.values()
                 if flywheel.status == filter["Status"]
             ]
         else:
-            flywheels = [flywheel.to_dict() for flywheel in self.flywheels.values()]
+            flywheels = list(self.flywheels.values())
 
         # Return the list of flywheels and a placeholder for next_token
         return flywheels, None
@@ -632,17 +576,17 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
 
     def start_flywheel_iteration(
         self, flywheel_arn: str, client_request_token: str
-    ) -> tuple[str, int]:
+    ) -> tuple[str, str]:
         if flywheel_arn not in self.flywheels:
             raise ResourceNotFound
-        flywheel_iteration_id = int(random.randint(0, 1000000))
+        flywheel_iteration_id = str(random.randint(0, 1000000))
         return flywheel_arn, flywheel_iteration_id
 
     def update_endpoint(
         self,
         endpoint_arn: str,
         desired_model_arn: str,
-        desired_inference_units: str,
+        desired_inference_units: int,
         desired_data_access_role_arn: str,
         flywheel_arn: str,
     ) -> str:
@@ -659,7 +603,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         A check for whether the resource itself exists is also not yet implemented.
         """
         revision_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = utcnow()
 
         creation_time = self.resource_policies.get(resource_arn, {}).get(
             "CreationTime", now
@@ -690,28 +634,29 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         self.resource_policies.pop(resource_arn)
 
     def _start_job(self, job_type: str, **kwargs: Any) -> ComprehendJob:
-        input_config = kwargs.pop("InputDataConfig")
-        output_config = kwargs.pop("OutputDataConfig")
-        role_arn = kwargs.pop("DataAccessRoleArn")
-        job_name = kwargs.pop("JobName", None)
-        # LanguageCode is optional for DominantLanguageDetectionJob
-        language_code = kwargs.pop("LanguageCode", None)
-
         job = ComprehendJob(
             account_id=self.account_id,
             region_name=self.region_name,
             job_type=job_type,
-            job_name=job_name,
-            input_s3_config=input_config,
-            output_s3_config=output_config,
-            data_access_role_arn=role_arn,
-            language_code=language_code,
-            **kwargs,
+            job_name=kwargs.get("JobName"),
+            input_data_config=kwargs["InputDataConfig"],
+            output_data_config=kwargs["OutputDataConfig"],
+            data_access_role_arn=kwargs["DataAccessRoleArn"],
+            # LanguageCode is optional for DominantLanguageDetectionJob
+            language_code=kwargs.get("LanguageCode"),
+            volume_kms_key_id=kwargs.get("VolumeKmsKeyId"),
+            vpc_config=kwargs.get("VpcConfig"),
+            mode=kwargs.get("Mode"),
+            redaction_config=kwargs.get("RedactionConfig"),
+            number_of_topics=kwargs.get("NumberOfTopics"),
+            document_classifier_arn=kwargs.get("DocumentClassifierArn"),
+            entity_recognizer_arn=kwargs.get("EntityRecognizerArn"),
+            flywheel_arn=kwargs.get("FlywheelArn"),
+            target_event_types=kwargs.get("TargetEventTypes"),
         )
         self.jobs[job.job_id] = job
 
-        if "Tags" in kwargs:
-            self.tagger.tag_resource(job.job_arn, kwargs["Tags"])
+        self.tagger.tag_resource(job.job_arn, kwargs.get("Tags"))
 
         return job
 
@@ -842,7 +787,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
         return self._list_jobs("DocumentClassification", filter)
 
     def start_events_detection_job(self, **kwargs: Any) -> ComprehendJob:
-        if "TargetEventTypes" not in kwargs:
+        if not kwargs.get("TargetEventTypes"):
             raise InvalidRequestException(
                 "The request is missing the required parameter: TargetEventTypes."
             )

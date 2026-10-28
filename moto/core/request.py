@@ -14,7 +14,6 @@ except ModuleNotFoundError:
 
 
 from botocore.awsrequest import AWSPreparedRequest
-from requests import PreparedRequest
 from werkzeug.datastructures import EnvironHeaders as WerkzeugEnvironHeaders
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
@@ -140,15 +139,14 @@ class Request(WerkzeugRequest):
 
 
 def normalize_request(
-    request: AWSPreparedRequest | LocalProxy[Request] | PreparedRequest | Request,
+    request: AWSPreparedRequest | LocalProxy[Request] | Request,
 ) -> Request:
     """Turn however this request reached us into the one type the core acts on."""
     if isinstance(request, LocalProxy):
         request = request._get_current_object()
     if isinstance(request, Request):
         return request
-    if isinstance(request, (AWSPreparedRequest, PreparedRequest)):
-        assert request.method and request.url
+    if isinstance(request, AWSPreparedRequest):
         return Request.from_primitives(
             request.method, request.url, request.headers, request.body
         )
