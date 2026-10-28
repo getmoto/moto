@@ -50,9 +50,9 @@ class MemoryDBCluster(BaseModel):
         region: str,
         account_id: str,
         security_group_ids: list[str],
-        auto_minor_version_upgrade: bool,
-        data_tiering: bool,
-        tls_enabled: bool,
+        auto_minor_version_upgrade: bool | None,
+        data_tiering: bool | None,
+        tls_enabled: bool | None,
     ):
         self.cluster_name = cluster_name
         self.node_type = node_type
@@ -192,42 +192,6 @@ class MemoryDBCluster(BaseModel):
         if acl_name is not None:
             self.acl_name = acl_name
 
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "Name": self.cluster_name,
-            "Description": self.description,
-            "Status": self.status,
-            "PendingUpdates": self.pending_updates,
-            "NumberOfShards": self.num_shards,
-            "AvailabilityMode": self.availability_mode,
-            "ClusterEndpoint": self.cluster_endpoint,
-            "NodeType": self.node_type,
-            "EngineVersion": self.engine_version,
-            "EnginePatchVersion": self.engine_patch_version,
-            "ParameterGroupName": self.parameter_group_name,
-            "ParameterGroupStatus": self.parameter_group_status,
-            "SecurityGroups": self.security_groups,
-            "SubnetGroupName": self.subnet_group_name,
-            "KmsKeyId": self.kms_key_id,
-            "ARN": self.arn,
-            "SnsTopicArn": self.sns_topic_arn,
-            "SnsTopicStatus": self.sns_topic_status,
-            "MaintenanceWindow": self.maintenance_window,
-            "SnapshotWindow": self.snapshot_window,
-            "ACLName": self.acl_name,
-            "DataTiering": self.data_tiering,
-        }
-        dct_items = {k: v for k, v in dct.items() if v}
-        dct_items["TLSEnabled"] = self.tls_enabled
-        dct_items["AutoMinorVersionUpgrade"] = self.auto_minor_version_upgrade
-        dct_items["SnapshotRetentionLimit"] = self.snapshot_retention_limit
-        return dct_items
-
-    def to_desc_dict(self) -> dict[str, Any]:
-        dct = self.to_dict()
-        dct["Shards"] = self.shards
-        return dct
-
 
 class MemoryDBSubnetGroup(BaseModel):
     def __init__(
@@ -255,21 +219,6 @@ class MemoryDBSubnetGroup(BaseModel):
     @property
     def vpc_id(self) -> str:
         return self.subnets[0].vpc_id
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "Name": self.subnet_group_name,
-            "Description": self.description,
-            "VpcId": self.vpc_id,
-            "Subnets": [
-                {
-                    "Identifier": subnet.id,
-                    "AvailabilityZone": {"Name": subnet.availability_zone},
-                }
-                for subnet in self.subnets
-            ],
-            "ARN": self.arn,
-        }
 
 
 class MemoryDBSnapshot(BaseModel):
@@ -305,37 +254,6 @@ class MemoryDBSnapshot(BaseModel):
                 "SnapshotCreationTime": utcnow(),
             }
             self.shards.append(shard)
-
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "Name": self.snapshot_name,
-            "Status": self.status,
-            "Source": self.source,
-            "KmsKeyId": self.kms_key_id,
-            "ARN": self.arn,
-            "ClusterConfiguration": {
-                "Name": self.cluster_name,
-                "Description": self.cluster.description,
-                "NodeType": self.cluster.node_type,
-                "EngineVersion": self.cluster.engine_version,
-                "MaintenanceWindow": self.cluster.maintenance_window,
-                "TopicArn": self.cluster.sns_topic_arn,
-                "Port": self.cluster.port,
-                "ParameterGroupName": self.cluster.parameter_group_name,
-                "SubnetGroupName": self.cluster.subnet_group_name,
-                "VpcId": self.vpc_id,
-                "SnapshotRetentionLimit": self.cluster.snapshot_retention_limit,
-                "SnapshotWindow": self.cluster.snapshot_window,
-                "NumShards": self.cluster.num_shards,
-            },
-            "DataTiering": self.cluster.data_tiering,
-        }
-        return {k: v for k, v in dct.items() if v}
-
-    def to_desc_dict(self) -> dict[str, Any]:
-        dct = self.to_dict()
-        dct["ClusterConfiguration"]["Shards"] = self.shards
-        return dct
 
 
 class MemoryDBUser(BaseModel):
@@ -380,17 +298,6 @@ class MemoryDBUser(BaseModel):
             self.set_authentication(authentication_mode)
         if access_string is not None:
             self.access_string = access_string
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "Name": self.user_name,
-            "Status": self.status,
-            "AccessString": self.access_string,
-            "ACLNames": self.acl_names,
-            "MinimumEngineVersion": self.minimum_engine_version,
-            "Authentication": self.authentication,
-            "ARN": self.arn,
-        }
 
 
 class MemoryDBBackend(BaseBackend):
@@ -453,7 +360,7 @@ class MemoryDBBackend(BaseBackend):
         maintenance_window: str,
         port: int,
         sns_topic_arn: str,
-        tls_enabled: bool,
+        tls_enabled: bool | None,
         kms_key_id: str,
         snapshot_arns: list[str],
         snapshot_name: str,
@@ -462,8 +369,8 @@ class MemoryDBBackend(BaseBackend):
         snapshot_window: str,
         acl_name: str,
         engine_version: str,
-        auto_minor_version_upgrade: bool,
-        data_tiering: bool,
+        auto_minor_version_upgrade: bool | None,
+        data_tiering: bool | None,
         num_shards: int,
         num_replicas_per_shard: int,
     ) -> MemoryDBCluster:

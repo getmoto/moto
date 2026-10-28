@@ -8,6 +8,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.shield.exceptions import (
     InvalidParameterException,
@@ -26,24 +27,15 @@ class Limit:
     type: str
     max: int
 
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {"Type": self.type, "Max": self.max}
-
 
 @dataclass
 class ArbitraryPatternLimits:
     max_members: int
 
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {"MaxMembers": self.max_members}
-
 
 @dataclass
 class PatternTypeLimits:
     arbitrary_pattern_limits: ArbitraryPatternLimits
-
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {"ArbitraryPatternLimits": self.arbitrary_pattern_limits.to_dict()}
 
 
 @dataclass
@@ -51,35 +43,16 @@ class ProtectionGroupLimits:
     max_protection_groups: int
     pattern_type_limits: PatternTypeLimits
 
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {
-            "MaxProtectionGroups": self.max_protection_groups,
-            "PatternTypeLimits": self.pattern_type_limits.to_dict(),
-        }
-
 
 @dataclass
 class ProtectionLimits:
     protected_resource_type_limits: list[Limit]
-
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {
-            "ProtectedResourceTypeLimits": [
-                limit.to_dict() for limit in self.protected_resource_type_limits
-            ]
-        }
 
 
 @dataclass
 class SubscriptionLimits:
     protection_limits: ProtectionLimits
     protection_group_limits: ProtectionGroupLimits
-
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {
-            "ProtectionLimits": self.protection_limits.to_dict(),
-            "ProtectionGroupLimits": self.protection_group_limits.to_dict(),
-        }
 
 
 def default_subscription_limits() -> SubscriptionLimits:
@@ -104,10 +77,8 @@ def default_subscription_limits() -> SubscriptionLimits:
 @dataclass
 class Subscription:
     account_id: str
-    start_time: datetime = field(default_factory=datetime.now)
-    end_time: datetime = field(
-        default_factory=lambda: datetime.now() + timedelta(days=365)
-    )
+    start_time: datetime = field(default_factory=utcnow)
+    end_time: datetime = field(default_factory=lambda: utcnow() + timedelta(days=365))
     auto_renew: str = field(default="ENABLED")
     limits: list[Limit] = field(
         default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)]
@@ -127,18 +98,6 @@ class Subscription:
             )
             self.subscription_arn = f"arn:aws:shield::{self.account_id}:subscription/{subscription_id_formatted}"
         return
-
-    def to_dict(self) -> dict[str, Any]:  # type: ignore
-        return {
-            "StartTime": self.start_time.strftime("%d/%m/%Y, %H:%M:%S"),
-            "EndTime": self.end_time.strftime("%d/%m/%Y, %H:%M:%S"),
-            "TimeCommitmentInSeconds": self.time_commitment_in_seconds,
-            "AutoRenew": self.auto_renew,
-            "Limits": [limit.to_dict() for limit in self.limits],
-            "ProactiveEngagementStatus": self.proactive_engagement_status,
-            "SubscriptionLimits": self.subscription_limits.to_dict(),
-            "SubscriptionArn": self.subscription_arn,
-        }
 
 
 class Protection(BaseModel):
@@ -170,17 +129,6 @@ class Protection(BaseModel):
                 self.resource_type = "CLASSIC_LOAD_BALANCER"
         else:
             self.resource_type = resource_types[res_type]
-
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "Id": self.protection_id,
-            "Name": self.name,
-            "ResourceArn": self.resource_arn,
-            "HealthCheckIds": self.health_check_ids,
-            "ProtectionArn": self.protection_arn,
-            "ApplicationLayerAutomaticResponseConfiguration": self.application_layer_automatic_response_configuration,
-        }
-        return {k: v for k, v in dct.items() if v}
 
 
 class ShieldBackend(BaseBackend):
