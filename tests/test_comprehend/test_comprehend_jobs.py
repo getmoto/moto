@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import boto3
 
 from moto import mock_aws
@@ -87,6 +89,31 @@ def test_pii_entities_detection_job_lifecycle():
     assert (
         desc_resp["PiiEntitiesDetectionJobProperties"]["JobStatus"] == "STOP_REQUESTED"
     )
+
+
+@mock_aws
+def test_list_jobs_filtered_by_submit_time():
+    client = boto3.client("comprehend", region_name="us-east-1")
+    client.start_pii_entities_detection_job(
+        InputDataConfig=INPUT_DATA_CONFIG["Documents"],
+        OutputDataConfig=OUTPUT_DATA_CONFIG,
+        DataAccessRoleArn="arn:aws:iam::123456789012:role/testing-role",
+        JobName="test-pii-job",
+        LanguageCode="en",
+        Mode="ONLY_REDACTION",
+        RedactionConfig={"MaskCharacter": "*", "MaskMode": "MASK"},
+    )
+    now = datetime.now(timezone.utc)
+    hour = timedelta(hours=1)
+
+    def count(job_filter):
+        resp = client.list_pii_entities_detection_jobs(Filter=job_filter)
+        return len(resp["PiiEntitiesDetectionJobPropertiesList"])
+
+    assert count({"SubmitTimeBefore": now + hour}) == 1
+    assert count({"SubmitTimeBefore": now - hour}) == 0
+    assert count({"SubmitTimeAfter": now - hour}) == 1
+    assert count({"SubmitTimeAfter": now + hour}) == 0
 
 
 @mock_aws
