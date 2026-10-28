@@ -34,26 +34,16 @@ class KinesisResponse(BaseResponse):
         return ActionResult(stream.to_json_summary())
 
     def list_streams(self) -> ActionResult:
-        streams = self.kinesis_backend.list_streams()
-        stream_names = [stream.stream_name for stream in streams]
-        max_streams = self._get_param("Limit", 10)
-        try:
-            token = self._get_param("ExclusiveStartStreamName")
-        except ValueError:
-            token = self._get_param("ExclusiveStartStreamName")
-        if token:
-            start = stream_names.index(token) + 1
-        else:
-            start = 0
-        streams_resp = stream_names[start : start + max_streams]
-        has_more_streams = False
-        if start + max_streams < len(stream_names):
-            has_more_streams = True
-
+        streams, next_token = self.kinesis_backend.list_streams(
+            exclusive_start_stream_name=self._get_param("ExclusiveStartStreamName"),
+            limit=self._get_param("Limit"),
+            next_token=self._get_param("NextToken"),
+        )
         return ActionResult(
             {
-                "HasMoreStreams": has_more_streams,
-                "StreamNames": streams_resp,
+                "HasMoreStreams": next_token is not None,
+                "NextToken": next_token,
+                "StreamNames": [stream.stream_name for stream in streams],
                 "StreamSummaries": [
                     stream.to_json_summary()["StreamDescriptionSummary"]
                     for stream in streams
