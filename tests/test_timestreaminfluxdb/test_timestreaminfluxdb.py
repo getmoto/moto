@@ -519,3 +519,67 @@ def test_create_db_cluster():
 
     assert "dbClusterId" in response
     assert response["dbClusterStatus"] == "AVAILABLE"
+
+
+@mock_aws
+def test_list_db_parameter_groups_paginate():
+    seen_tokens = set()
+    client = boto3.client("timestream-influxdb", region_name="us-east-1")
+    expected_ids = {
+        client.create_db_parameter_group(
+            name=f"pagination-group-{idx}",
+            description=f"Pagination group {idx}",
+            parameters={
+                "InfluxDBv2": {
+                    "fluxLogEnabled": False,
+                    "logLevel": "info",
+                }
+            },
+        )["id"]
+        for idx in range(101)
+    }
+
+    response = client.list_db_parameter_groups()
+    groups = list(response["items"])
+    assert len(groups) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_db_parameter_groups(nextToken=response["nextToken"])
+        groups.extend(response["items"])
+
+    ids = {group["id"] for group in groups}
+    assert len(groups) == 101
+    assert ids == expected_ids
+
+
+@mock_aws
+def test_list_db_clusters_paginate():
+    seen_tokens = set()
+    client = boto3.client("timestream-influxdb", region_name="us-east-1")
+    expected_ids = set()
+    for idx in range(101):
+        response = client.create_db_cluster(
+            name=f"pagination-cluster-{idx}",
+            dbInstanceType="db.influx.medium",
+            allocatedStorage=100,
+            vpcSubnetIds=["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"],
+            vpcSecurityGroupIds=["sg-0123456789abcdef0"],
+            deploymentType="MULTI_NODE_READ_REPLICAS",
+        )
+        expected_ids.add(response["dbClusterId"])
+
+    response = client.list_db_clusters()
+    clusters = list(response["items"])
+    assert len(clusters) == 100
+    assert response.get("nextToken")
+    while response.get("nextToken"):
+        assert response["nextToken"] not in seen_tokens
+        seen_tokens.add(response["nextToken"])
+        response = client.list_db_clusters(nextToken=response["nextToken"])
+        clusters.extend(response["items"])
+
+    ids = {cluster["id"] for cluster in clusters}
+    assert len(clusters) == 101
+    assert ids == expected_ids
