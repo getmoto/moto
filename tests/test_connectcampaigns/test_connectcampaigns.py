@@ -567,3 +567,41 @@ def test_resume_campaign_invalid_id():
 
     with pytest.raises(client.exceptions.ResourceNotFoundException):
         client.resume_campaign(id="non-existent-id")
+
+
+@mock_aws
+def test_list_campaigns_paginate():
+    seen_tokens = set()
+    client = boto3.client("connectcampaigns", region_name="us-east-1")
+    expected_ids = set()
+    for index in range(101):
+        expected_ids.add(
+            client.create_campaign(
+                name=f"Campaign{index}",
+                connectInstanceId="12345678-1234-1234-1234-123456789012",
+                dialerConfig={
+                    "progressiveDialerConfig": {
+                        "bandwidthAllocation": 1.0,
+                        "dialingCapacity": 2.0,
+                    }
+                },
+                outboundCallConfig={
+                    "connectContactFlowId": "12345678-1234-1234-1234-123456789012"
+                },
+            )["id"]
+        )
+    response = client.list_campaigns()
+    pages = [response["campaignSummaryList"]]
+    assert len(pages[0]) == 100
+    while response.get("nextToken"):
+        next_token = response["nextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_campaigns(nextToken=next_token)
+        pages.append(response["campaignSummaryList"])
+    ids = [campaign["id"] for page in pages for campaign in page]
+    names = [campaign["name"] for page in pages for campaign in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids
+    assert set(names) == {f"Campaign{index}" for index in range(101)}
