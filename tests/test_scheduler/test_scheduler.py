@@ -335,3 +335,30 @@ def test_list_schedules_with_filters():
     assert len(schedules) == 2
     assert all(s["Name"].startswith("blabla") for s in schedules)
     assert "NextToken" in client.list_schedules(NamePrefix="blabla", MaxResults=2)
+
+
+@mock_aws
+def test_list_schedules_paginate():
+    seen_tokens = set()
+    client = boto3.client("scheduler", region_name="us-east-1")
+    expected_names = {f"schedule-{index}" for index in range(51)}
+    for name in expected_names:
+        client.create_schedule(
+            Name=name,
+            ScheduleExpression="rate(1 minute)",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={"Arn": "not-supported", "RoleArn": "n/a"},
+        )
+
+    response = client.list_schedules()
+    assert len(response["Schedules"]) == 50
+    actual_names = [schedule["Name"] for schedule in response["Schedules"]]
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = client.list_schedules(NextToken=next_token)
+        actual_names.extend(schedule["Name"] for schedule in response["Schedules"])
+
+    assert len(actual_names) == len(expected_names)
+    assert set(actual_names) == expected_names
