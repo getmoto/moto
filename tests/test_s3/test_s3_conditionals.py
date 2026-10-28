@@ -388,26 +388,50 @@ def test_delete_objects_if_match_etag(bucket_name=None):
     s3 = boto3.client("s3", region_name="us-east-1")
     etag = s3.put_object(Bucket=bucket_name, Key="test_key", Body=b"test")["ETag"]
 
+    # First attempt deletions that should fail due to the ETag.
     response = s3.delete_objects(
         Bucket=bucket_name,
-        Delete={"Objects": [{"Key": "test_key", "ETag": "test"}]},
+        Delete={"Objects": [
+            # This should fail due to ETag mismatch.
+            {"Key": "test_key", "ETag": "test"},
+            # This should fail since deletions of non-existent objecs are idempotent
+            # only when the ETag is unspecified; with a specified ETag, the deletion
+            # should fail with NoSuchKey.
+            {"Key": "test_key_nonexistent", "ETag": "nonexistent"},
+        ]},
     )
     errors = response.get("Errors", [])
-    assert len(errors) == 1
-    err = errors[0]
-    assert err["Code"] == "PreconditionFailed"
-    assert (
-        err["Message"]
-        == "At least one of the pre-conditions you specified did not hold"
-    )
+    assert len(errors) == 2
+    # We can't assume the order of the errors, so we need to analyze each of them
+    # by its key.
+    error_by_key = {error["Key"]: error for error in errors}
 
-    # We can if we match the etag
+    bad_etag_error = error_by_key.get("test_key")
+    assert bad_etag_error is not None
+    assert bad_etag_error["Code"] == "PreconditionFailed"
+    assert bad_etag_error["Message"] == "At least one of the pre-conditions you specified did not hold"
+
+    nonexistent_error = error_by_key.get("test_key_nonexistent")
+    assert nonexistent_error is not None
+    assert nonexistent_error["Code"] == "NoSuchKey"
+    assert nonexistent_error["Message"] == "The specified key does not exist."
+
+    # Now attempt the same deletions again with the "right" ETag
     response = s3.delete_objects(
         Bucket=bucket_name,
-        Delete={"Objects": [{"Key": "test_key", "ETag": etag}]},
+        Delete={"Objects": [
+            # This should succeed since the ETag matches.
+            {"Key": "test_key", "ETag": etag},
+            # This should succeed since deletions are idempotent for non-existent objects
+            # when the ETag is unspecified.
+            {"Key": "test_key_nonexistent"},
+        ]},
     )
     errors = response.get("Errors", [])
     assert len(errors) == 0
     deleted = response.get("Deleted", [])
-    assert len(deleted) == 1
-    assert deleted[0]["Key"] == "test_key"
+    assert len(deleted) == 2
+    # We can't assume the order of the deleted objects, so we need to compare the keys
+    # through an order-independent collection (a set).
+    deleted_keys_set = {item["Key"] for item in deleted}
+    assert deleted_keys_set == {"test_key", "test_key_nonexistent"}
