@@ -58,6 +58,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] create_auth_code
 - [ ] create_contact
 - [ ] create_contact_flow
+- [ ] create_contact_flow_alias
 - [ ] create_contact_flow_module
 - [ ] create_contact_flow_module_alias
 - [ ] create_contact_flow_module_version
@@ -101,6 +102,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] delete_contact_data
 - [ ] delete_contact_evaluation
 - [ ] delete_contact_flow
+- [ ] delete_contact_flow_alias
 - [ ] delete_contact_flow_module
 - [ ] delete_contact_flow_module_alias
 - [ ] delete_contact_flow_module_version
@@ -143,6 +145,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] describe_contact
 - [ ] describe_contact_evaluation
 - [ ] describe_contact_flow
+- [ ] describe_contact_flow_alias
 - [ ] describe_contact_flow_module
 - [ ] describe_contact_flow_module_alias
 - [ ] describe_data_table
@@ -227,6 +230,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_bots
 - [ ] list_child_hours_of_operations
 - [ ] list_contact_evaluations
+- [ ] list_contact_flow_aliases
 - [ ] list_contact_flow_module_aliases
 - [ ] list_contact_flow_module_versions
 - [ ] list_contact_flow_modules
@@ -263,6 +267,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] list_queues
 - [ ] list_quick_connects
 - [ ] list_realtime_contact_analysis_segments_v2
+- [ ] list_replication_findings
 - [ ] list_routing_profile_manual_assignment_queues
 - [ ] list_routing_profile_queues
 - [ ] list_routing_profiles
@@ -363,6 +368,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] update_contact
 - [ ] update_contact_attributes
 - [ ] update_contact_evaluation
+- [ ] update_contact_flow_alias
 - [ ] update_contact_flow_content
 - [ ] update_contact_flow_metadata
 - [ ] update_contact_flow_module_alias

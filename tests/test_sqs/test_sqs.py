@@ -1776,6 +1776,26 @@ def test_purge_queue_twice_raises_purge_in_progress():
 
 
 @mock_aws
+@mock.patch.dict(os.environ, {"MOTO_SQS_ENFORCE_STRICT_QUEUE_PURGE_BEHAVIOUR": "false"})
+def test_purge_queue_twice_allowed_when_strict_behaviour_disabled():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant set environment variables in server mode")
+
+    client = boto3.client("sqs", region_name=REGION)
+    name = f"purge-{str(uuid4())[0:6]}"
+    queue_url = client.create_queue(QueueName=name)["QueueUrl"]
+
+    client.send_message(QueueUrl=queue_url, MessageBody="first")
+    client.purge_queue(QueueUrl=queue_url)
+
+    client.send_message(QueueUrl=queue_url, MessageBody="second")
+    client.purge_queue(QueueUrl=queue_url)
+
+    resp = client.receive_message(QueueUrl=queue_url)
+    assert resp.get("Messages", []) == []
+
+
+@mock_aws
 def test_purge_queue_allowed_after_60_seconds():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")

@@ -671,6 +671,7 @@ The DryRun parameter is ignored.
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [X] get_subnet_cidr_reservations
+- [ ] get_transit_gateway_attachment_nat_configuration
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
@@ -752,6 +753,7 @@ The DryRun parameter is ignored.
 - [ ] modify_traffic_mirror_filter_rule
 - [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
+- [ ] modify_transit_gateway_attachment_nat_configuration
 - [ ] modify_transit_gateway_metering_policy
 - [ ] modify_transit_gateway_policy_table_entry
 - [ ] modify_transit_gateway_prefix_list_reference

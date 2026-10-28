@@ -34,6 +34,7 @@ autoscaling
 - [X] delete_tags
 - [X] delete_warm_pool
 - [ ] describe_account_limits
+- [ ] describe_account_settings
 - [ ] describe_adjustment_types
 - [X] describe_auto_scaling_groups
 - [X] describe_auto_scaling_instances
@@ -73,6 +74,7 @@ Pagination is not yet implemented. Does not create/return any Instances currentl
 - [ ] exit_standby
 - [ ] get_predictive_scaling_forecast
 - [ ] launch_instances
+- [ ] put_account_setting
 - [ ] put_lifecycle_hook
 - [ ] put_notification_configuration
 - [X] put_scaling_policy
