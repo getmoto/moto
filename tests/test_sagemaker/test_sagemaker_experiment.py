@@ -103,3 +103,26 @@ def test_delete_tags_to_experiment(sagemaker_client):
     resp = sagemaker_client.list_tags(ResourceArn=arn)
 
     assert resp["Tags"] == []
+
+
+@mock_aws
+def test_list_experiments_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"experiment-{index}" for index in range(101)]
+    for name in names:
+        client.create_experiment(ExperimentName=name)
+
+    pagination_response = client.list_experiments()
+    paginated_items = list(pagination_response["ExperimentSummaries"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_experiments(NextToken=next_token)
+        paginated_items.extend(pagination_response["ExperimentSummaries"])
+    actual_names = [item["ExperimentName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)

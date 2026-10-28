@@ -325,3 +325,30 @@ def test_list_notebook_instances(client):
     instances = resp["NotebookInstances"]
     assert [i["NotebookInstanceName"] for i in instances] == ["Name1", "Name2"]
     assert "NextToken" not in resp
+
+
+@mock_aws
+def test_list_notebook_instances_paginate():
+    seen_tokens = set()
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    names = [f"notebook-{index}" for index in range(101)]
+    for name in names:
+        client.create_notebook_instance(
+            NotebookInstanceName=name,
+            InstanceType="ml.t2.medium",
+            RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole",
+        )
+
+    pagination_response = client.list_notebook_instances()
+    paginated_items = list(pagination_response["NotebookInstances"])
+    assert len(paginated_items) == 100
+    assert pagination_response.get("NextToken")
+    while pagination_response.get("NextToken"):
+        next_token = pagination_response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        pagination_response = client.list_notebook_instances(NextToken=next_token)
+        paginated_items.extend(pagination_response["NotebookInstances"])
+    actual_names = [item["NotebookInstanceName"] for item in paginated_items]
+    assert len(actual_names) == len(names)
+    assert set(actual_names) == set(names)
