@@ -6181,3 +6181,151 @@ def fetch_public_keys():
     }
     response = requests.get(keys_url, headers=headers).json()
     return response["keys"]
+
+
+@mock_aws
+def test_list_user_pool_clients_paginate():
+    seen_tokens = set()
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_count = 61
+    expected_ids = set()
+    for _ in range(client_count):
+        client_name = str(uuid.uuid4())
+        expected_ids.add(
+            conn.create_user_pool_client(
+                UserPoolId=user_pool_id, ClientName=client_name
+            )["UserPoolClient"]["ClientId"]
+        )
+    response = conn.list_user_pool_clients(UserPoolId=user_pool_id)
+    pages = [response["UserPoolClients"]]
+    assert len(pages[0]) == 60
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = conn.list_user_pool_clients(
+            UserPoolId=user_pool_id, NextToken=next_token
+        )
+        pages.append(response["UserPoolClients"])
+    client_ids = [item["ClientId"] for page in pages for item in page]
+    assert [len(page) for page in pages] == [60, 1]
+    assert len(client_ids) == client_count
+    assert set(client_ids) == expected_ids
+
+
+@mock_aws
+def test_list_groups_paginate():
+    seen_tokens = set()
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_count = 61
+    expected_names = set()
+    for _ in range(group_count):
+        group_name = str(uuid.uuid4())
+        expected_names.add(group_name)
+        conn.create_group(UserPoolId=user_pool_id, GroupName=group_name)
+    response = conn.list_groups(UserPoolId=user_pool_id)
+    pages = [response["Groups"]]
+    assert len(pages[0]) == 60
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = conn.list_groups(UserPoolId=user_pool_id, NextToken=next_token)
+        pages.append(response["Groups"])
+    group_names = [group["GroupName"] for page in pages for group in page]
+    assert [len(page) for page in pages] == [60, 1]
+    assert len(group_names) == group_count
+    assert set(group_names) == expected_names
+
+
+@mock_aws
+def test_list_users_in_group_paginate():
+    seen_tokens = set()
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+    usernames = [str(uuid.uuid4()) for _ in range(61)]
+    for username in usernames:
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+        conn.admin_add_user_to_group(
+            UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        )
+    response = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
+    pages = [response["Users"]]
+    assert len(pages[0]) == 60
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = conn.list_users_in_group(
+            UserPoolId=user_pool_id, GroupName=group_name, NextToken=next_token
+        )
+        pages.append(response["Users"])
+    actual_usernames = [user["Username"] for page in pages for user in page]
+    assert [len(page) for page in pages] == [60, 1]
+    assert len(actual_usernames) == len(usernames)
+    assert set(actual_usernames) == set(usernames)
+
+
+@mock_aws
+def test_admin_list_groups_for_user_paginate():
+    seen_tokens = set()
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    group_count = 61
+    expected_names = set()
+    for idx in range(group_count):
+        group_name = f"group_{idx}"
+        expected_names.add(group_name)
+        conn.create_group(UserPoolId=user_pool_id, GroupName=group_name)
+        conn.admin_add_user_to_group(
+            UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        )
+    response = conn.admin_list_groups_for_user(
+        UserPoolId=user_pool_id, Username=username
+    )
+    pages = [response["Groups"]]
+    assert len(pages[0]) == 60
+    while response.get("NextToken"):
+        next_token = response["NextToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = conn.admin_list_groups_for_user(
+            UserPoolId=user_pool_id, Username=username, NextToken=next_token
+        )
+        pages.append(response["Groups"])
+    actual_names = [group["GroupName"] for page in pages for group in page]
+    assert [len(page) for page in pages] == [60, 1]
+    assert len(actual_names) == group_count
+    assert set(actual_names) == expected_names
+
+
+@mock_aws
+def test_list_users_paginate():
+    seen_tokens = set()
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_count = 61
+    expected_usernames = set()
+    for _ in range(user_count):
+        username = str(uuid.uuid4())
+        expected_usernames.add(username)
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    response = conn.list_users(UserPoolId=user_pool_id)
+    pages = [response["Users"]]
+    assert len(pages[0]) == 60
+    while response.get("PaginationToken"):
+        next_token = response["PaginationToken"]
+        assert next_token not in seen_tokens
+        seen_tokens.add(next_token)
+        response = conn.list_users(UserPoolId=user_pool_id, PaginationToken=next_token)
+        pages.append(response["Users"])
+    usernames = [user["Username"] for page in pages for user in page]
+    assert [len(page) for page in pages] == [60, 1]
+    assert len(usernames) == user_count
+    assert set(usernames) == expected_usernames
