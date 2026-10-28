@@ -148,3 +148,39 @@ def test_get_invalidation_id_not_found():
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchInvalidation"
     assert err["Message"] == "The specified invalidation does not exist."
+
+
+@mock_aws
+def test_list_invalidations_paginate():
+    seen_tokens = set()
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    resp = client.create_distribution(DistributionConfig=config)
+    dist_id = resp["Distribution"]["Id"]
+    expected_ids = set()
+    for index in range(101):
+        expected_ids.add(
+            client.create_invalidation(
+                DistributionId=dist_id,
+                InvalidationBatch={
+                    "Paths": {"Quantity": 1, "Items": [f"/path{index}"]},
+                    "CallerReference": f"ref{index}",
+                },
+            )["Invalidation"]["Id"]
+        )
+    response = client.list_invalidations(DistributionId=dist_id)["InvalidationList"]
+    pages = [response["Items"]]
+    assert len(pages[0]) == 100
+    while response.get("NextMarker"):
+        next_marker = response["NextMarker"]
+        assert next_marker not in seen_tokens
+        seen_tokens.add(next_marker)
+        response = client.list_invalidations(
+            DistributionId=dist_id, Marker=next_marker
+        )["InvalidationList"]
+        pages.append(response["Items"])
+    ids = [item["Id"] for page in pages for item in page]
+    assert [len(page) for page in pages] == [100, 1]
+    assert len(ids) == 101
+    assert set(ids) == expected_ids
+    assert all(item["Status"] == "COMPLETED" for page in pages for item in page)
