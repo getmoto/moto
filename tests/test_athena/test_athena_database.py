@@ -242,3 +242,30 @@ def test_create_database_with_catalog_context():
     with pytest.raises(ClientError) as exc:
         client.get_database(CatalogName="AwsDataCatalog", DatabaseName="ctx_db")
     assert exc.value.response["Error"]["Code"] == "MetadataException"
+
+
+@mock_aws
+def test_list_databases_paginate():
+    """ListDatabases should support MaxResults pagination."""
+    seen_tokens = set()
+    client = boto3.client("athena", region_name="us-east-1")
+    config = {"OutputLocation": "s3://bucket/key"}
+    for i in range(50):
+        client.start_query_execution(
+            QueryString=f"CREATE DATABASE pag_db_{i:02d}", ResultConfiguration=config
+        )
+    expected_names = {"default", *(f"pag_db_{i:02d}" for i in range(50))}
+    response = client.list_databases(CatalogName="AwsDataCatalog")
+    pages = [response["DatabaseList"]]
+    assert len(pages[0]) == 50
+    while response.get("NextToken"):
+        assert response["NextToken"] not in seen_tokens
+        seen_tokens.add(response["NextToken"])
+        response = client.list_databases(
+            CatalogName="AwsDataCatalog", NextToken=response.get("NextToken")
+        )
+        pages.append(response["DatabaseList"])
+    names = [database["Name"] for page in pages for database in page]
+    assert [len(page) for page in pages] == [50, 1]
+    assert len(names) == len(expected_names)
+    assert set(names) == expected_names
