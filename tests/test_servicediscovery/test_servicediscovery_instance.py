@@ -59,6 +59,24 @@ def test_register_instance(client, ns_resp, srv_resp):
 
 
 @mock_aws
+def test_register_existing_instance(client, ns_resp, srv_resp):
+    service_id = srv_resp["Service"]["Id"]
+    client.register_instance(
+        ServiceId=service_id, InstanceId="i-123", Attributes={"attr1": "value1"}
+    )
+    client.register_instance(
+        ServiceId=service_id, InstanceId="i-123", Attributes={"attr1": "value2"}
+    )
+
+    instances = client.list_instances(ServiceId=service_id)["Instances"]
+    assert len(instances) == 1
+    assert instances[0]["Attributes"] == {"attr1": "value2"}
+
+    client.deregister_instance(ServiceId=service_id, InstanceId="i-123")
+    assert client.list_instances(ServiceId=service_id)["Instances"] == []
+
+
+@mock_aws
 def test_deregister_instance(client, ns_resp, srv_resp):
     instance_id = "i-123"
     creator_request_id = "crid"
