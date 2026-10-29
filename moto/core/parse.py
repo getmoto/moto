@@ -17,6 +17,8 @@ from botocore import xform_name
 from botocore.utils import is_json_value_header
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
+from moto.core import cbor
+
 if TYPE_CHECKING:
     from werkzeug.datastructures import Headers, MultiDict
 
@@ -41,6 +43,10 @@ def default_blob_parser(value):
     # We don't decode this to a str because it's possible that
     # the blob contains binary data that can't be decoded.
     return base64.b64decode(value)
+
+
+def default_cbor_blob_parser(value):
+    return value
 
 
 def _text_content(func):
@@ -370,6 +376,39 @@ class JSONParser(BaseJSONParser):
         return self._parse_shape(shape, parsed_json)
 
 
+class RpcV2CBORParser(BaseJSONParser):
+    # https://smithy.io/2.0/additional-specs/protocols/smithy-rpc-v2-cbor.html
+    # The decoded CBOR body is a tree of plain Python values, just like a decoded
+    # JSON body, so the JSON structure/list/map handling can be reused as-is.
+
+    def __init__(
+        self,
+        operation_model: OperationModel,
+        timestamp_parser=None,
+        blob_parser=None,
+        map_type=None,
+    ):
+        # Blobs are sent as raw CBOR byte strings, not base64-encoded text.
+        if blob_parser is None:
+            blob_parser = default_cbor_blob_parser
+        super().__init__(operation_model, timestamp_parser, blob_parser, map_type)
+
+    def _do_parse(self, request_dict, shape):
+        body = request_dict["body"]
+        try:
+            parsed_cbor = cbor.loads(body) if body else {}
+        except (cbor.CBORDecodeError, UnicodeDecodeError) as e:
+            raise RequestParserError(f"Unable to parse CBOR request body: {e}")
+        return self._parse_shape(shape, parsed_cbor)
+
+    def _parse_timestamp(self, shape, value):
+        # Timestamps arrive as tag 1 (epoch seconds), which the decoder turns into
+        # an aware datetime.  The timestamp parser expects the epoch value.
+        if isinstance(value, datetime):
+            value = value.timestamp()
+        return self._timestamp_parser(value)
+
+
 class BaseRestParser(RequestParser):
     def _do_parse(self, request_dict, shape):
         final_parsed = {}
@@ -686,6 +725,7 @@ PROTOCOL_PARSERS = {
     "query": QueryParser,
     "rest-json": RestJSONParser,
     "rest-xml": RestXMLParser,
+    "smithy-rpc-v2-cbor": RpcV2CBORParser,
 }
 
 

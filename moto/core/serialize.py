@@ -71,6 +71,7 @@ from botocore import xform_name
 from botocore.compat import formatdate
 from botocore.utils import is_json_value_header, parse_to_aware_datetime
 
+from moto.core import cbor
 from moto.core.errors import ErrorShape, get_error_model
 from moto.core.eventstream import EventStream, EventStreamEncoder
 from moto.core.model import (
@@ -921,6 +922,93 @@ class JSONSerializer(BaseJSONSerializer):
         return self.APPLICATION_AMZ_JSON.format(version=json_version)
 
 
+class RpcV2CBORSerializer(BaseJSONSerializer):
+    # https://smithy.io/2.0/additional-specs/protocols/smithy-rpc-v2-cbor.html
+    # The JSON serializer builds a tree of plain Python values, which is exactly
+    # what we need here, so only the scalar types and the encoding are different.
+    CONTENT_TYPE = "application/cbor"
+    SMITHY_PROTOCOL = "rpc-v2-cbor"
+
+    def _serialized_result_to_response(
+        self,
+        resp: ResponseDict,
+        result: Any,
+        shape: StructureShape | None,
+        serialized_result: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        resp["headers"]["smithy-protocol"] = self.SMITHY_PROTOCOL
+        # Operations without output have no body and no Content-Type.
+        if shape is not None:
+            resp["body"] = self._serialize_body(serialized_result)
+            resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        else:
+            resp["body"] = b""
+        return resp
+
+    def _serialized_error_to_response(
+        self,
+        resp: ResponseDict,
+        error: Exception,
+        shape: ErrorShape,
+        serialized_error: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        resp["body"] = self._serialize_body(serialized_error)
+        resp["status_code"] = shape.metadata.get("error", {}).get(
+            "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
+        )
+        resp["headers"]["smithy-protocol"] = self.SMITHY_PROTOCOL
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        self._serialize_query_compatible_error_to_response(resp, shape)
+        return resp
+
+    def _serialize_error_metadata(
+        self,
+        serialized: Serialized,
+        error: Exception,
+        shape: ErrorShape,
+    ) -> None:
+        # The __type is the absolute shape ID of the error.  Clients only use the
+        # part after the '#', so any namespace will do if we don't know the real one.
+        namespace = (
+            shape.namespace
+            or self.service_model.metadata.get("errorNamespace")
+            or self.service_model.metadata.get("targetPrefix")
+        )
+        serialized["__type"] = f"{namespace}#{shape.name}" if namespace else shape.name
+        message = getattr(error, "message", None) or str(error)
+        if shape is not None:
+            self._serialize(serialized, error, shape, "")
+        if message:
+            # The message member is usually modeled, but its case varies.
+            message_key = next(
+                (key for key in serialized if key.lower() == "message"), "message"
+            )
+            serialized[message_key] = message
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> bytes:  # type: ignore[override]
+        return cbor.dumps(body)
+
+    def _serialize_type_timestamp(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # The encoder writes datetimes as tag 1 (epoch seconds).
+        # The timestampFormat trait MUST NOT be respected.
+        timestamp = parse_to_aware_datetime(value)
+        self._default_serialize(serialized, timestamp, shape, key)
+
+    def _serialize_type_blob(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        if isinstance(value, str):
+            value = value.encode(self.DEFAULT_ENCODING)
+        self._default_serialize(serialized, value, shape, key)
+
+    def _serialize_type_boolean(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        self._default_serialize(serialized, bool(value), shape, key)
+
+
 class QuerySerializer(BaseXMLSerializer):
     def _serialized_error_to_response(
         self,
@@ -1242,6 +1330,7 @@ SERIALIZERS = {
     "query-json": QueryJSONSerializer,
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
+    "smithy-rpc-v2-cbor": RpcV2CBORSerializer,
 }
 SERVICE_SPECIFIC_SERIALIZERS: dict[str, dict[str, type[ResponseSerializer]]] = {
     "s3": {"rest-xml": S3Serializer},
