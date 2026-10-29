@@ -43,6 +43,7 @@ from moto.core.utils import (
     utcnow,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.constants import APPLICATION_CBOR
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -204,6 +205,9 @@ class BaseResponse(ActionAuthenticatorMixin):
         use_raw_body overrides the class-level default for a single call.
         """
         use_raw_body = self.use_raw_body if use_raw_body is None else use_raw_body
+        if request.mimetype == APPLICATION_CBOR:
+            # Binary body, which must not be decoded or parsed as a querystring
+            use_raw_body = True
         # Only a real WSGI server supplies its own Date header - in every other
         # mode moto is the entire stack and has to supply it itself.  This used
         # to be inferred from the type name, which stopped working once every
