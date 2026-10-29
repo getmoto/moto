@@ -79,6 +79,49 @@ def test_aws_query_compatible_error() -> None:
     assert headers.get("x-amzn-query-error") == "PreservedErrorCode;Sender"
 
 
+def test_json_content_type_when_json_is_not_default_protocol() -> None:
+    model = {
+        "metadata": {
+            "protocol": "query",
+            "protocols": ["query", "json"],
+            "jsonVersion": "1.1",
+            "apiVersion": "2014-01-01",
+        },
+        "documentation": "",
+        "operations": {
+            "TestOperation": {
+                "name": "TestOperation",
+                "http": {"method": "POST", "requestUri": "/"},
+                "output": {"shape": "OutputShape"},
+            }
+        },
+        "shapes": {
+            "OutputShape": {
+                "type": "structure",
+                "members": {"Value": {"shape": "StringType"}},
+            },
+            "TestError": {
+                "type": "structure",
+                "members": {"message": {"shape": "StringType"}},
+                "error": {"code": "TestError", "httpStatusCode": 400},
+                "exception": True,
+            },
+            "StringType": {"type": "string"},
+        },
+    }
+
+    class TestError(ServiceException):
+        pass
+
+    service_model = ServiceModel(model)
+    operation_model = service_model.operation_model("TestOperation")
+    serializer = JSONSerializer(operation_model)
+    serialized = serializer.serialize({"Value": "test-value"})
+    assert serialized["headers"]["Content-Type"] == "application/x-amz-json-1.1"
+    serialized = serializer.serialize(TestError("TestError", "test-message"))
+    assert serialized["headers"]["Content-Type"] == "application/x-amz-json-1.1"
+
+
 def test_serialize_from_object() -> None:
     model = {
         "metadata": {"protocol": "query", "apiVersion": "2014-01-01"},

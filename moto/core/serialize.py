@@ -504,13 +504,7 @@ class BaseJSONSerializer(ResponseSerializer):
         resp["headers"]["x-amzn-query-error"] = f"{shape.error_code};{fault}"
 
     def _get_protocol_specific_content_type(self) -> str:
-        content_type = self.CONTENT_TYPE
-        service_model = self.operation_model.service_model
-        protocol = service_model.protocol
-        if protocol == "json":
-            json_version = service_model.metadata.get("jsonVersion", "1.0")
-            content_type = self.APPLICATION_AMZ_JSON.format(version=json_version)
-        return content_type
+        return self.CONTENT_TYPE
 
     def _get_protocol_specific_error_code(
         self,
@@ -919,6 +913,12 @@ class RestJSONSerializer(BaseRestSerializer, BaseJSONSerializer):
 
 class JSONSerializer(BaseJSONSerializer):
     EVENT_STREAM_SERIALIZER_CLS = EventStreamJSONSerializer
+
+    def _get_protocol_specific_content_type(self) -> str:
+        # Services that support multiple protocols (e.g. CloudWatch) may not have
+        # "json" as their default protocol, so we can't rely on the service model.
+        json_version = self.service_model.metadata.get("jsonVersion", "1.0")
+        return self.APPLICATION_AMZ_JSON.format(version=json_version)
 
 
 class QuerySerializer(BaseXMLSerializer):
