@@ -31,11 +31,11 @@ def _setup(ec2_client, iam_client):
     )
     subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
+        Description="test_sg_desc", GroupName=f"sg-{uuid4()}", VpcId=vpc_id
     )
     sg_id = resp["GroupId"]
 
-    role_name = str(uuid4())[0:6]
+    role_name = f"batch-role-{uuid4()}"
     resp = iam_client.create_role(
         RoleName=role_name, AssumeRolePolicyDocument="some_policy"
     )
@@ -67,7 +67,7 @@ def test_create_env_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
+                        "InstanceRole": iam_arn.replace(":role/", ":instance-profile/"),
                     },
                     "ServiceRole": iam_arn,
                 },
@@ -110,7 +110,7 @@ def test_create_job_queue_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
+                        "InstanceRole": iam_arn.replace(":role/", ":instance-profile/"),
                     },
                     "ServiceRole": iam_arn,
                 },
@@ -173,7 +173,7 @@ def test_create_job_def_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
+                        "InstanceRole": iam_arn.replace(":role/", ":instance-profile/"),
                     },
                     "ServiceRole": iam_arn,
                 },
