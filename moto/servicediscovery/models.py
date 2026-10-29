@@ -205,7 +205,7 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def get_operation(self, operation_id: str) -> Operation:
         if operation_id not in self.operations:
-            raise OperationNotFound()
+            raise OperationNotFound(operation_id)
         return self.operations[operation_id]
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
