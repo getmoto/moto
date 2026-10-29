@@ -415,6 +415,35 @@ class JSONRouter(RPCRouter):
         return operation, self._get_path_params(request)
 
 
+class RPCv2CBORRouter(ProtocolRouter):
+    """Routes Smithy RPC v2 CBOR protocol requests by their path.
+
+    Requests are POSTed to `{prefix?}/service/{serviceName}/operation/{operationName}`,
+    where serviceName is the service's shape name (the `targetPrefix` in botocore):
+    https://smithy.io/2.0/additional-specs/protocols/smithy-rpc-v2-cbor.html#requests
+    """
+
+    PATH_REGEX = re.compile(
+        r"/service/(?P<service>[^/]+)/operation/(?P<operation>[^/]+)$"
+    )
+
+    def __init__(self, service_model: ServiceModel):
+        super().__init__(service_model)
+        self._service_name = service_model.metadata.get("targetPrefix")
+        self._operations_by_name = {
+            name: service_model.operation_model(name)
+            for name in service_model.operation_names
+        }
+
+    def _match(self, request: Request) -> tuple[OperationModel | None, dict[str, Any]]:
+        if request.method != "POST":
+            return None, {}
+        match = self.PATH_REGEX.search(request.path)
+        if match is None or match["service"] != self._service_name:
+            return None, {}
+        return self._operations_by_name.get(match["operation"]), {}
+
+
 class RestRouter(ProtocolRouter):
     """Routes REST protocol (rest-json, rest-xml) requests by their path and method,
     using a Werkzeug Map, then by their query string and headers (see SmithyRule).
@@ -501,6 +530,7 @@ PROTOCOL_ROUTERS: dict[str, type[ProtocolRouter]] = {
     "query": QueryRouter,
     "rest-json": RestRouter,
     "rest-xml": RestRouter,
+    "smithy-rpc-v2-cbor": RPCv2CBORRouter,
 }
 SERVICE_SPECIFIC_ROUTERS: dict[str, dict[str, type[ProtocolRouter]]] = {
     "s3": {"rest-xml": S3RestRouter},

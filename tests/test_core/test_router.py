@@ -11,6 +11,7 @@ from moto.core.routing import (
     ServiceOperationRouter,
     get_service_router,
 )
+from moto.core.utils import get_service_model
 from moto.s3control.responses import S3ControlResponse
 
 
@@ -358,12 +359,85 @@ def test_rest_method_not_allowed_is_not_found() -> None:
         router.match(req)
 
 
-def test_protocol_without_router_is_not_found() -> None:
+CBOR_HEADERS = {"Content-Type": "application/cbor", "Smithy-Protocol": "rpc-v2-cbor"}
+requires_cloudwatch_cbor = pytest.mark.skipif(
+    "smithy-rpc-v2-cbor"
+    not in get_service_model("cloudwatch").metadata.get("protocols", []),
+    reason="This botocore version predates CloudWatch's smithy-rpc-v2-cbor support",
+)
+
+
+@requires_cloudwatch_cbor
+@pytest.mark.parametrize(
+    "url,headers",
+    [
+        pytest.param(
+            "https://monitoring.us-east-1.amazonaws.com/service/GraniteServiceVersion20100801/operation/ListMetrics",
+            CBOR_HEADERS,
+            id="path",
+        ),
+        pytest.param(
+            "https://monitoring.us-east-1.amazonaws.com/v1/service/GraniteServiceVersion20100801/operation/ListMetrics",
+            CBOR_HEADERS,
+            id="path prefix",
+        ),
+        pytest.param(
+            # Operations without input don't send a body or Content-Type.
+            "https://monitoring.us-east-1.amazonaws.com/service/GraniteServiceVersion20100801/operation/ListMetrics",
+            {"Smithy-Protocol": "rpc-v2-cbor"},
+            id="no content type",
+        ),
+    ],
+)
+def test_rpc_v2_cbor_protocol_routes_by_path(url: str, headers: dict[str, str]) -> None:
     router = get_service_router("cloudwatch")
-    headers = {"Content-Type": "application/cbor", "Smithy-Protocol": "rpc-v2-cbor"}
-    req = Request.from_primitives(
-        "POST", "/service/GraniteServiceVersion20100801/operation/ListMetrics", headers
+    op, args = router.match(Request.from_primitives("POST", url, headers, b"\xa0"))
+    assert op.name == "ListMetrics"
+    assert args == {}
+
+
+@requires_cloudwatch_cbor
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        pytest.param(
+            "POST", "/service/WrongService/operation/ListMetrics", id="wrong service"
+        ),
+        pytest.param(
+            "POST",
+            "/service/GraniteServiceVersion20100801/operation/NotAnOperation",
+            id="unknown operation",
+        ),
+        pytest.param(
+            "POST",
+            "/service/GraniteServiceVersion20100801/operation/ListMetrics/extra",
+            id="extra path segment",
+        ),
+        pytest.param(
+            "GET",
+            "/service/GraniteServiceVersion20100801/operation/ListMetrics",
+            id="not a post",
+        ),
+    ],
+)
+def test_rpc_v2_cbor_protocol_not_found(method: str, path: str) -> None:
+    router = get_service_router("cloudwatch")
+    url = f"https://monitoring.us-east-1.amazonaws.com{path}"
+    with pytest.raises(NotFound):
+        router.match(Request.from_primitives(method, url, CBOR_HEADERS))
+
+
+def test_protocol_without_router_is_not_found() -> None:
+    model = ServiceModel(
+        {
+            "metadata": {"protocol": "not-a-protocol", "serviceId": "Test"},
+            "operations": {},
+            "shapes": {},
+        },
+        service_name="test",
     )
+    router = ServiceOperationRouter(model)
+    req = Request.from_primitives("POST", "/", {})
     with pytest.raises(NotFound):
         router.match(req)
 
