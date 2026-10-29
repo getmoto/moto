@@ -16,11 +16,13 @@ ecs
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_gateway_with_cluster
 - [ ] continue_service_deployment
 - [X] create_capacity_provider
 - [X] create_cluster
 - [ ] create_daemon
 - [ ] create_express_gateway_service
+- [ ] create_gateway
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
@@ -30,6 +32,7 @@ ecs
 - [ ] delete_daemon
 - [ ] delete_daemon_task_definition
 - [ ] delete_express_gateway_service
+- [ ] delete_gateway
 - [X] delete_service
 - [X] delete_task_definitions
 - [X] delete_task_set
@@ -47,6 +50,9 @@ The Force-parameter is not yet implemented
 - [ ] describe_daemon_revisions
 - [ ] describe_daemon_task_definition
 - [ ] describe_express_gateway_service
+- [ ] describe_gateway
+- [ ] describe_gateway_resources
+- [ ] describe_gateway_route
 - [ ] describe_service_deployments
 - [ ] describe_service_revisions
 - [X] describe_services
@@ -57,6 +63,7 @@ The Force-parameter is not yet implemented
 Only include=TAGS is currently supported.
 
 
+- [ ] disassociate_gateway_from_cluster
 - [ ] discover_poll_endpoint
 - [ ] execute_command
 - [ ] get_task_protection
@@ -72,9 +79,16 @@ maxSize and pagination not implemented
 
 
 - [X] list_container_instances
+  
+The filter-parameter (cluster query language) is not yet implemented
+
+
 - [ ] list_daemon_deployments
 - [ ] list_daemon_task_definitions
 - [ ] list_daemons
+- [ ] list_gateway_cluster_associations
+- [ ] list_gateway_routes
+- [ ] list_gateways
 - [ ] list_service_deployments
 - [X] list_services
 - [ ] list_services_by_namespace
@@ -115,6 +129,7 @@ The serviceConnectDefaults-parameter is not yet implemented
 - [X] update_container_instances_state
 - [ ] update_daemon
 - [ ] update_express_gateway_service
+- [ ] update_gateway
 - [X] update_service
 - [X] update_service_primary_task_set
   Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets

@@ -3152,9 +3152,9 @@ def test_authentication_flow_invalid_user_flow():
     assert err["Message"] == "Initiate Auth method not supported"
 
 
-# Patch TOTP verify to check +/- 30-second time window in case of clock drift in server mode.
+# Patch TOTP verify to check +/- 60-second time window in case of clock drift in server mode.
 @patch.object(
-    moto.cognitoidp.models, "verify_totp", new=partial(verify_totp, valid_window=1)
+    moto.cognitoidp.models, "verify_totp", new=partial(verify_totp, valid_window=2)
 )
 def user_authentication_flow(
     conn, user_pool=None, user_pool_client=None, with_mfa=True, use_email=False
@@ -3552,6 +3552,31 @@ def test_token_legitimacy():
         assert access_claims["client_id"] == client_id
         assert access_claims["token_use"] == "access"
         assert access_claims["username"] == username
+
+
+@mock_aws
+def test_openid_configuration():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Server mode is covered in test_server.py")
+    conn = boto3.client("cognito-idp", "us-west-2")
+    pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    base_url = f"https://cognito-idp.us-west-2.amazonaws.com/{pool_id}"
+    response = requests.get(f"{base_url}/.well-known/openid-configuration")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    config = response.json()
+
+    # The issuer has to match the 'iss' claim of the tokens that Moto creates
+    assert config["issuer"] == base_url
+    assert config["jwks_uri"] == f"{base_url}/.well-known/jwks.json"
+    assert config["id_token_signing_alg_values_supported"] == ["RS256"]
+    assert "code" in config["response_types_supported"]
+    assert "openid" in config["scopes_supported"]
+
+    # OIDC clients go on to fetch the keys from the advertised location
+    keys = requests.get(config["jwks_uri"]).json()["keys"]
+    assert len(keys) >= 1
 
 
 @mock_aws

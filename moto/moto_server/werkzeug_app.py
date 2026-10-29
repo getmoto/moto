@@ -5,6 +5,8 @@ from collections.abc import Callable
 from threading import Lock
 from typing import Any
 
+from werkzeug.serving import WSGIRequestHandler
+
 try:
     from flask import Flask
     from flask import Request as FlaskRequest
@@ -22,7 +24,12 @@ import moto.backend_index as backend_index
 import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
-from moto.core.request import Request
+from moto.core.request import (
+    PRESERVED_HEADER_NAMES_ENVIRON_KEY,
+    Request,
+    environ_key_for_header,
+    should_preserve_original_header_name,
+)
 from moto.core.utils import convert_to_flask_response
 from moto.settings import DISABLE_GLOBAL_CORS
 
@@ -35,6 +42,41 @@ class BackendRequest(Request, FlaskRequest):
     """Set as the Moto Flask app's request class to ensure that server mode requests arrive already normalized."""
 
     from_wsgi_server = True
+
+
+class MotoRequestHandler(WSGIRequestHandler):
+    """Moto customizations for WSGI request handling."""
+
+    def make_environ(self) -> dict[str, Any]:
+        """Werkzeug's dev server drops every header with an underscore in its name,
+        since WSGI can't tell ``X_Foo`` from ``X-Foo`` and one could otherwise
+        spoof the other.  S3 metadata keys may contain underscores though, so we
+        preserve their original spelling for ``Request.headers`` to report.
+
+        Werkzeug < 2.1 doesn't drop them, but folds them into the environ like
+        any other header, so we write these entries ourselves either way.
+        """
+        environ = super().make_environ()
+        dashed_keys = {
+            environ_key_for_header(name)
+            for name in self.headers.keys()
+            if "_" not in name
+        }
+        names: dict[str, str] = {}
+        values: dict[str, list[str]] = {}
+        for name, value in self.headers.items():
+            if not should_preserve_original_header_name(name):
+                continue
+            key = environ_key_for_header(name)
+            # Never let an underscored header stand in for a dashed one.
+            if key in dashed_keys:
+                continue
+            names.setdefault(key, name)
+            values.setdefault(key, []).append(value.replace("\r\n", ""))
+        for key, key_values in values.items():
+            environ[key] = ",".join(key_values)
+        environ[PRESERVED_HEADER_NAMES_ENVIRON_KEY] = names
+        return environ
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")
@@ -199,8 +241,7 @@ class DomainDispatcherApplication:
                 resp = response_class()
                 resp.region = region
                 action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
+                    Request(environ.copy())
                 )
                 if action:
                     service = service_name
@@ -224,8 +265,7 @@ class DomainDispatcherApplication:
                 resp = response_class()
                 resp.region = region
                 action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
+                    Request(environ.copy())
                 )
                 if action:
                     service = service_name
@@ -332,8 +372,11 @@ class DomainDispatcherApplication:
         # Some unsigned GET requests can be routed based on the URL path alone.
         # For example, Cognito JWKS endpoint:
         #   GET /{user_pool_id}/.well-known/jwks.json
+        #   GET /{user_pool_id}/.well-known/openid-configuration
         # The user_pool_id starts with the region (e.g. us-east-1_abc123).
-        if path_info.rstrip("/").endswith("/.well-known/jwks.json"):
+        if path_info.rstrip("/").endswith(
+            ("/.well-known/jwks.json", "/.well-known/openid-configuration")
+        ):
             # Extract region from user pool ID (format: {region}_{id})
             pool_id = path_info.strip("/").split("/")[0]
             if "_" not in pool_id:

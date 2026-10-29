@@ -1,6 +1,5 @@
 """ACMPCABackend class with methods for supported APIs."""
 
-import base64
 import contextlib
 import datetime
 from typing import Any, cast
@@ -47,8 +46,8 @@ class CertificateAuthority(BaseModel):
             "CrlConfiguration": {"Enabled": False}
         }
         self.set_revocation_configuration(revocation_configuration)
-        self.created_at = unix_time()
-        self.updated_at: float | None = None
+        self.created_at = utcnow()
+        self.updated_at: datetime.datetime | None = None
         self.status = "PENDING_CERTIFICATE"
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
@@ -154,7 +153,7 @@ class CertificateAuthority(BaseModel):
         return csr.public_bytes(serialization.Encoding.PEM)
 
     def issue_certificate(self, csr_bytes: bytes, template_arn: str | None) -> str:
-        csr = x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
+        csr = x509.load_pem_x509_csr(csr_bytes)
         extensions = self._x509_extensions(csr, template_arn)
         new_cert = self.generate_cert(
             subject=csr.subject,
@@ -300,22 +299,22 @@ class CertificateAuthority(BaseModel):
                         raise InvalidS3ObjectAclInCrlConfiguration(acl)
 
     @property
-    def not_valid_after(self) -> float | None:
+    def not_valid_after(self) -> datetime.datetime | None:
         if self.certificate is None:
             return None
         try:
-            return unix_time(self.certificate.not_valid_after_utc.replace(tzinfo=None))
+            return self.certificate.not_valid_after_utc.replace(tzinfo=None)
         except AttributeError:
-            return unix_time(self.certificate.not_valid_after)
+            return self.certificate.not_valid_after
 
     @property
-    def not_valid_before(self) -> float | None:
+    def not_valid_before(self) -> datetime.datetime | None:
         if self.certificate is None:
             return None
         try:
-            return unix_time(self.certificate.not_valid_before_utc.replace(tzinfo=None))
+            return self.certificate.not_valid_before_utc.replace(tzinfo=None)
         except AttributeError:
-            return unix_time(self.certificate.not_valid_before)
+            return self.certificate.not_valid_before
 
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: bytes | None
@@ -328,30 +327,7 @@ class CertificateAuthority(BaseModel):
         self.certificate_bytes = certificate
         self.certificate_chain = certificate_chain
         self.status = "ACTIVE"
-        self.updated_at = unix_time()
-
-    def to_json(self) -> dict[str, Any]:
-        dct = {
-            "Arn": self.arn,
-            "OwnerAccount": self.account_id,
-            "CertificateAuthorityConfiguration": self.certificate_authority_configuration,
-            "Type": self.certificate_authority_type,
-            "RevocationConfiguration": self.revocation_configuration,
-            "CreatedAt": self.created_at,
-            "Status": self.status,
-            "UsageMode": self.usage_mode,
-            "KeyStorageSecurityStandard": self.security_standard,
-        }
-        if self.updated_at:
-            dct["LastStateChangeAt"] = self.updated_at
-        if self.certificate:
-            dct.update(
-                {
-                    "NotBefore": self.not_valid_before,
-                    "NotAfter": self.not_valid_after,
-                }
-            )
-        return dct
+        self.updated_at = utcnow()
 
 
 class ACMPCABackend(BaseBackend):
@@ -432,7 +408,7 @@ class ACMPCABackend(BaseBackend):
         if status is not None:
             ca.status = status
         ca.set_revocation_configuration(revocation_configuration)
-        ca.updated_at = unix_time()
+        ca.updated_at = utcnow()
 
     def delete_certificate_authority(self, certificate_authority_arn: str) -> None:
         ca = self.describe_certificate_authority(certificate_authority_arn)

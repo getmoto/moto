@@ -12,6 +12,7 @@ from moto.moto_server.threaded_moto_server import (
 )
 from moto.moto_server.werkzeug_app import (
     DomainDispatcherApplication,
+    MotoRequestHandler,
     create_backend_app,
 )
 
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> None:
         threaded=True,
         use_reloader=args.reload,
         ssl_context=ssl_context,
+        request_handler=MotoRequestHandler,
     )
 
 

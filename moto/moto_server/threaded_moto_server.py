@@ -2,7 +2,11 @@ from threading import Event, Thread
 
 from werkzeug.serving import BaseWSGIServer, make_server
 
-from .werkzeug_app import DomainDispatcherApplication, create_backend_app
+from .werkzeug_app import (
+    DomainDispatcherApplication,
+    MotoRequestHandler,
+    create_backend_app,
+)
 
 
 class ThreadedMotoServer:
@@ -20,7 +24,13 @@ class ThreadedMotoServer:
     def _server_entry(self) -> None:
         app = DomainDispatcherApplication(create_backend_app)
 
-        self._server = make_server(self._ip_address, self._port, app, True)
+        self._server = make_server(
+            self._ip_address,
+            self._port,
+            app,
+            True,
+            request_handler=MotoRequestHandler,
+        )
         self._server_ready_event.set()
         self._server.serve_forever()
 
