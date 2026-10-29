@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import pytest
 from botocore.model import ServiceModel
 
@@ -14,8 +12,6 @@ def cloudwatch_protocol(request, monkeypatch):
     Botocore picks the first protocol from its own priority list that the service
     supports, so we override the resolved protocol for CloudWatch clients only.
     """
-    if request.param == "smithy-rpc-v2-cbor":
-        raise SkipTest("smithy-rpc-v2-cbor is not yet supported in Moto")
     protocol = request.param
     original = ServiceModel.__dict__["resolved_protocol"]
 
