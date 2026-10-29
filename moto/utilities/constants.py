@@ -1,5 +1,8 @@
 APPLICATION_AMZ_JSON_1_0 = "application/x-amz-json-1.0"
 APPLICATION_AMZ_JSON_1_1 = "application/x-amz-json-1.1"
 APPLICATION_JSON = "application/json"
+APPLICATION_CBOR = "application/cbor"
 
 JSON_TYPES = [APPLICATION_JSON, APPLICATION_AMZ_JSON_1_0, APPLICATION_AMZ_JSON_1_1]
+
+SMITHY_PROTOCOL_RPC_V2_CBOR = "rpc-v2-cbor"
