@@ -5,6 +5,7 @@ import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.ses.SesClient;
@@ -26,6 +27,14 @@ public class DependencyFactory {
 
     public static CognitoIdentityProviderClient cognitoIdpClient() {
         return CognitoIdentityProviderClient.builder()
+                .region(Region.US_EAST_1)
+                .httpClientBuilder(ApacheHttpClient.builder())
+                .endpointOverride(MOTO_URI)
+                .build();
+    }
+
+    public static CloudWatchClient cloudWatchClient() {
+        return CloudWatchClient.builder()
                 .region(Region.US_EAST_1)
                 .httpClientBuilder(ApacheHttpClient.builder())
                 .endpointOverride(MOTO_URI)
