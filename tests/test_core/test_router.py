@@ -11,8 +11,8 @@ from moto.core.routing import (
     ServiceOperationRouter,
     get_service_router,
 )
-from moto.core.utils import get_service_model
 from moto.s3control.responses import S3ControlResponse
+from tests.test_cloudwatch import requires_cloudwatch_cbor
 
 
 @pytest.mark.parametrize(
@@ -360,11 +360,6 @@ def test_rest_method_not_allowed_is_not_found() -> None:
 
 
 CBOR_HEADERS = {"Content-Type": "application/cbor", "Smithy-Protocol": "rpc-v2-cbor"}
-requires_cloudwatch_cbor = pytest.mark.skipif(
-    "smithy-rpc-v2-cbor"
-    not in get_service_model("cloudwatch").metadata.get("protocols", []),
-    reason="This botocore version predates CloudWatch's smithy-rpc-v2-cbor support",
-)
 
 
 @requires_cloudwatch_cbor
