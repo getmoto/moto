@@ -108,6 +108,11 @@ KMS_ARN_PATTERN = re.compile(
 )
 
 
+# Valid values are 7 (the default), month * 31 for months 1-23, and 731 (2 years).
+# https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS = [7, *range(31, 714, 31), 731]
+
+
 class SnapshotAttributesMixin:
     ALLOWED_ATTRIBUTE_NAMES = ["restore"]
 
@@ -672,13 +677,12 @@ class DBCluster(RDSBaseModel):
             self.performance_insights_retention_period = (
                 performance_insights_retention_period or 7
             )
-            if not (
-                self.performance_insights_retention_period == 731
-                or 7 <= self.performance_insights_retention_period <= 713
-                and (self.performance_insights_retention_period - 7) % 31 == 0
+            if (
+                self.performance_insights_retention_period
+                not in VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS
             ):
                 raise InvalidParameterValue(
-                    "Invalid Performance Insights retention period. Valid values are: [7, 31, 62, 93, 124, 155, 186, 217, 248, 279, 310, 341, 372, 403, 434, 465, 496, 527, 558, 589, 620, 651, 682, 713, 731]"
+                    f"Invalid Performance Insights retention period. Valid values are: {VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS}"
                 )
             self.performance_insights_kms_key_id = (
                 performance_insights_kms_key_id or "default_kms_key_id"
@@ -1241,13 +1245,12 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.performance_insights_retention_period = (
                 performance_insights_retention_period or 7
             )
-            if not (
-                self.performance_insights_retention_period == 731
-                or 7 <= self.performance_insights_retention_period <= 713
-                and (self.performance_insights_retention_period - 7) % 31 == 0
+            if (
+                self.performance_insights_retention_period
+                not in VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS
             ):
                 raise InvalidParameterValue(
-                    "Invalid Performance Insights retention period. Valid values are: [7, 31, 62, 93, 124, 155, 186, 217, 248, 279, 310, 341, 372, 403, 434, 465, 496, 527, 558, 589, 620, 651, 682, 713, 731]"
+                    f"Invalid Performance Insights retention period. Valid values are: {VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS}"
                 )
             self.performance_insights_kms_key_id = (
                 performance_insights_kms_key_id or "default_kms_key_id"

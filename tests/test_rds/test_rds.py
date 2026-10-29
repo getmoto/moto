@@ -3871,7 +3871,7 @@ def test_create_database_without_monitoring_role_and_with_interval_throws_Invali
 
 
 @mock_aws
-def test_create_database_with_performance_insights_options_but_disabled_throws_InvalidParameterCombination():
+def test_create_database_with_performance_insights_options_but_disabled_raises_error():
     with pytest.raises(ClientError) as ex:
         create_db_instance(
             PerformanceInsightsRetentionPeriod=31,
@@ -3886,7 +3886,7 @@ def test_create_database_with_performance_insights_options_but_disabled_throws_I
 
 
 @mock_aws
-def test_create_database_with_invalid_performance_insights_retention_period_throws_InvalidParameterValue():
+def test_create_database_with_invalid_performance_insights_retention_period_raises_error():
     with pytest.raises(ClientError) as ex:
         create_db_instance(
             EnablePerformanceInsights=True,

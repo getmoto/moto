@@ -2268,7 +2268,7 @@ def test_add_role_to_db_cluster_cluster_in_invalid_state_throws_InvalidDBInstanc
 
 
 @mock_aws
-def test_create_db_cluster_with_performance_insights_options_but_disabled_throws_InvalidParameterCombination():
+def test_create_db_cluster_with_performance_insights_options_but_disabled_raises_error():
     with pytest.raises(ClientError) as ex:
         create_db_cluster(
             PerformanceInsightsRetentionPeriod=31,
@@ -2283,7 +2283,7 @@ def test_create_db_cluster_with_performance_insights_options_but_disabled_throws
 
 
 @mock_aws
-def test_create_db_cluster_with_invalid_performance_insights_retention_period_throws_InvalidParameterValue():
+def test_create_db_cluster_with_invalid_performance_insights_retention_period_raises_error():
     with pytest.raises(ClientError) as ex:
         create_db_cluster(
             EnablePerformanceInsights=True,
