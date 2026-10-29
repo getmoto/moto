@@ -26,6 +26,8 @@ COMMON_ERROR_CODES = [
     "InvalidParameterCombination",
     "InvalidParameterException",
     "InvalidParameterValue",
+    # Raised by Moto's @paginate decorator for any service.
+    "InvalidToken",
     "ValidationError",
     "ValidationException",
 ]
@@ -102,6 +104,9 @@ def get_exception_service_model(exception: Exception) -> ServiceModel | None:
     if not exception_module.startswith("moto"):
         return None
     package = exception_module.split(".")[1]
+    if package == "core":
+        # Core exceptions (e.g. InvalidToken) are shared by all services.
+        return None
     service_name = utils.service_name_from_moto_package_name(package)
     service_model = get_service_model(service_name)
     return service_model
