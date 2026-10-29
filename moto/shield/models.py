@@ -164,18 +164,6 @@ class ProtectionGroup(BaseModel):
         self.resource_type = resource_type
         self.members = members or []
 
-    def to_dict(self) -> dict[str, Any]:
-        dct: dict[str, Any] = {
-            "ProtectionGroupId": self.protection_group_id,
-            "Aggregation": self.aggregation,
-            "Pattern": self.pattern,
-            "Members": self.members,
-            "ProtectionGroupArn": self.protection_group_arn,
-        }
-        if self.resource_type:
-            dct["ResourceType"] = self.resource_type
-        return dct
-
 
 class ShieldBackend(BaseBackend):
     """Implementation of Shield APIs."""
