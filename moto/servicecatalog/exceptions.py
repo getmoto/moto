@@ -1,15 +1,15 @@
-from moto.core.exceptions import JsonRESTError
+"""Exceptions raised by the servicecatalog service."""
+
+from moto.core.exceptions import ServiceException
 
 
-class ResourceNotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+class ServiceCatalogException(ServiceException):
+    pass
 
 
-class InvalidParametersException(JsonRESTError):
-    code = 400
+class ResourceNotFoundException(ServiceCatalogException):
+    code = "ResourceNotFoundException"
 
-    def __init__(self, message: str):
-        super().__init__("InvalidParametersException", message)
+
+class InvalidParametersException(ServiceCatalogException):
+    code = "InvalidParametersException"
