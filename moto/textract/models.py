@@ -27,9 +27,6 @@ class TextractJob(BaseModel):
         self.notification_channel = notification_channel
         self.job_id = str(mock_random.uuid4())
 
-    def to_dict(self) -> dict[str, Any]:
-        return self.job
-
     def send_completion_notification(
         self, account_id: str, region_name: str, document_location: dict[str, Any]
     ) -> None:
@@ -72,7 +69,7 @@ class TextractBackend(BaseBackend):
     """Implementation of Textract APIs."""
 
     JOB_STATUS = TextractJobStatus.succeeded
-    PAGES = {"Pages": mock_random.randint(5, 500)}
+    PAGES = mock_random.randint(5, 500)
     BLOCKS: list[dict[str, Any]] = []
 
     def __init__(self, region_name: str, account_id: str):
@@ -138,7 +135,7 @@ class TextractBackend(BaseBackend):
         self.async_document_analysis_jobs[job_id] = TextractJob(
             {
                 "Blocks": TextractBackend.BLOCKS,
-                "DetectDocumentTextModelVersion": "1.0",
+                "AnalyzeDocumentModelVersion": "1.0",
                 "DocumentMetadata": {"Pages": TextractBackend.PAGES},
                 "JobStatus": TextractBackend.JOB_STATUS,
             }

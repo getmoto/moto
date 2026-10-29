@@ -86,6 +86,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         tracingConfiguration: TracingConfiguration | None = None,
         encryptionConfiguration: EncryptionConfiguration | None = None,
         version_description: str | None = None,
+        sm_type: str | None = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -99,6 +100,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             tracingConfiguration=tracingConfiguration,
             encryptionConfiguration=encryptionConfiguration,
             version_description=version_description,
+            sm_type=sm_type,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:

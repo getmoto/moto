@@ -20,6 +20,7 @@ from moto.ec2.models.instances import Instance
 from moto.ec2.models.launch_templates import LaunchTemplate
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from moto.elb.models import ELBBackend, elb_backends
+from moto.elbv2.exceptions import TargetGroupNotFoundError
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
@@ -1500,8 +1501,27 @@ class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
                 f"AutoScalingGroup name not found - AutoScalingGroup '{group_name}' not found"
             )
 
-        self.set_desired_capacity(group_name, 0)
-        self.autoscaling_groups.pop(group_name, None)
+        group = self.autoscaling_groups[group_name]
+        attached_target_groups = group.target_group_arns
+        remaining_target_groups = []
+        for arn in attached_target_groups:
+            try:
+                self.elbv2_backend.describe_target_groups(
+                    target_group_arns=[arn], load_balancer_arn=None, names=None
+                )
+            except TargetGroupNotFoundError:
+                # Target groups can be deleted before their Auto Scaling group.
+                continue
+            remaining_target_groups.append(arn)
+
+        # Scaling down refreshes target registrations. A deleted target group
+        # must not prevent the instances and the Auto Scaling group being deleted.
+        group.target_group_arns = remaining_target_groups
+        try:
+            self.set_desired_capacity(group_name, 0)
+            self.autoscaling_groups.pop(group_name, None)
+        finally:
+            group.target_group_arns = attached_target_groups
 
     def describe_auto_scaling_instances(
         self, instance_ids: list[str]

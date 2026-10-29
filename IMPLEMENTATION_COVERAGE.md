@@ -680,7 +680,7 @@
 
 ## autoscaling
 <details>
-<summary>59% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -702,6 +702,7 @@
 - [X] delete_tags
 - [X] delete_warm_pool
 - [ ] describe_account_limits
+- [ ] describe_account_settings
 - [ ] describe_adjustment_types
 - [X] describe_auto_scaling_groups
 - [X] describe_auto_scaling_instances
@@ -733,6 +734,7 @@
 - [ ] exit_standby
 - [ ] get_predictive_scaling_forecast
 - [ ] launch_instances
+- [ ] put_account_setting
 - [ ] put_lifecycle_hook
 - [ ] put_notification_configuration
 - [X] put_scaling_policy
@@ -1041,7 +1043,7 @@
 
 ## bedrock-agent
 <details>
-<summary>13% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] associate_agent_collaborator
 - [ ] associate_agent_knowledge_base
@@ -1055,6 +1057,8 @@
 - [X] create_knowledge_base
 - [ ] create_prompt
 - [ ] create_prompt_version
+- [ ] create_retrieval_instruction
+- [ ] create_retrieval_instruction_version
 - [ ] create_vpc_configuration
 - [X] delete_agent
 - [ ] delete_agent_action_group
@@ -1068,6 +1072,7 @@
 - [ ] delete_knowledge_base_documents
 - [ ] delete_prompt
 - [ ] delete_resource_policy
+- [ ] delete_retrieval_instruction
 - [ ] delete_vpc_configuration
 - [ ] disassociate_agent_collaborator
 - [ ] disassociate_agent_knowledge_base
@@ -1086,6 +1091,7 @@
 - [ ] get_knowledge_base_documents
 - [ ] get_prompt
 - [ ] get_resource_policy
+- [ ] get_retrieval_instruction
 - [ ] get_vpc_configuration
 - [ ] ingest_knowledge_base_documents
 - [ ] list_agent_action_groups
@@ -1102,6 +1108,8 @@
 - [ ] list_knowledge_base_documents
 - [X] list_knowledge_bases
 - [ ] list_prompts
+- [ ] list_retrieval_instruction_versions
+- [ ] list_retrieval_instructions
 - [X] list_tags_for_resource
 - [ ] list_vpc_configurations
 - [ ] prepare_agent
@@ -1121,6 +1129,7 @@
 - [ ] update_flow_alias
 - [ ] update_knowledge_base
 - [ ] update_prompt
+- [ ] update_retrieval_instruction
 - [ ] validate_flow_definition
 </details>
 
@@ -2738,6 +2747,7 @@
 - [ ] create_auth_code
 - [ ] create_contact
 - [ ] create_contact_flow
+- [ ] create_contact_flow_alias
 - [ ] create_contact_flow_module
 - [ ] create_contact_flow_module_alias
 - [ ] create_contact_flow_module_version
@@ -2779,6 +2789,7 @@
 - [ ] delete_contact_data
 - [ ] delete_contact_evaluation
 - [ ] delete_contact_flow
+- [ ] delete_contact_flow_alias
 - [ ] delete_contact_flow_module
 - [ ] delete_contact_flow_module_alias
 - [ ] delete_contact_flow_module_version
@@ -2821,6 +2832,7 @@
 - [ ] describe_contact
 - [ ] describe_contact_evaluation
 - [ ] describe_contact_flow
+- [ ] describe_contact_flow_alias
 - [ ] describe_contact_flow_module
 - [ ] describe_contact_flow_module_alias
 - [ ] describe_data_table
@@ -2899,6 +2911,7 @@
 - [ ] list_bots
 - [ ] list_child_hours_of_operations
 - [ ] list_contact_evaluations
+- [ ] list_contact_flow_aliases
 - [ ] list_contact_flow_module_aliases
 - [ ] list_contact_flow_module_versions
 - [ ] list_contact_flow_modules
@@ -2935,6 +2948,7 @@
 - [ ] list_queues
 - [ ] list_quick_connects
 - [ ] list_realtime_contact_analysis_segments_v2
+- [ ] list_replication_findings
 - [ ] list_routing_profile_manual_assignment_queues
 - [ ] list_routing_profile_queues
 - [ ] list_routing_profiles
@@ -3035,6 +3049,7 @@
 - [ ] update_contact
 - [ ] update_contact_attributes
 - [ ] update_contact_evaluation
+- [ ] update_contact_flow_alias
 - [ ] update_contact_flow_content
 - [ ] update_contact_flow_metadata
 - [ ] update_contact_flow_module_alias
@@ -4375,6 +4390,7 @@
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [X] get_subnet_cidr_reservations
+- [ ] get_transit_gateway_attachment_nat_configuration
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
@@ -4456,6 +4472,7 @@
 - [ ] modify_traffic_mirror_filter_rule
 - [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
+- [ ] modify_transit_gateway_attachment_nat_configuration
 - [ ] modify_transit_gateway_metering_policy
 - [ ] modify_transit_gateway_policy_table_entry
 - [ ] modify_transit_gateway_prefix_list_reference
@@ -4643,13 +4660,15 @@
 
 ## ecs
 <details>
-<summary>58% implemented</summary>
+<summary>51% implemented</summary>
 
+- [ ] associate_gateway_with_cluster
 - [ ] continue_service_deployment
 - [X] create_capacity_provider
 - [X] create_cluster
 - [ ] create_daemon
 - [ ] create_express_gateway_service
+- [ ] create_gateway
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
@@ -4659,6 +4678,7 @@
 - [ ] delete_daemon
 - [ ] delete_daemon_task_definition
 - [ ] delete_express_gateway_service
+- [ ] delete_gateway
 - [X] delete_service
 - [X] delete_task_definitions
 - [X] delete_task_set
@@ -4672,12 +4692,16 @@
 - [ ] describe_daemon_revisions
 - [ ] describe_daemon_task_definition
 - [ ] describe_express_gateway_service
+- [ ] describe_gateway
+- [ ] describe_gateway_resources
+- [ ] describe_gateway_route
 - [ ] describe_service_deployments
 - [ ] describe_service_revisions
 - [X] describe_services
 - [X] describe_task_definition
 - [X] describe_task_sets
 - [X] describe_tasks
+- [ ] disassociate_gateway_from_cluster
 - [ ] discover_poll_endpoint
 - [ ] execute_command
 - [ ] get_task_protection
@@ -4688,6 +4712,9 @@
 - [ ] list_daemon_deployments
 - [ ] list_daemon_task_definitions
 - [ ] list_daemons
+- [ ] list_gateway_cluster_associations
+- [ ] list_gateway_routes
+- [ ] list_gateways
 - [ ] list_service_deployments
 - [X] list_services
 - [ ] list_services_by_namespace
@@ -4718,6 +4745,7 @@
 - [X] update_container_instances_state
 - [ ] update_daemon
 - [ ] update_express_gateway_service
+- [ ] update_gateway
 - [X] update_service
 - [X] update_service_primary_task_set
 - [ ] update_task_protection
@@ -4839,7 +4867,7 @@
 
 ## elasticache
 <details>
-<summary>24% implemented</summary>
+<summary>23% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
@@ -4907,6 +4935,7 @@
 - [ ] modify_serverless_cache
 - [ ] modify_user
 - [ ] modify_user_group
+- [ ] prepare_migration
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] rebalance_slots_in_global_replication_group
 - [ ] reboot_cache_cluster
@@ -4914,6 +4943,7 @@
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
+- [ ] stop_migration
 - [ ] test_failover
 - [ ] test_migration
 </details>
@@ -5527,7 +5557,7 @@
 
 ## glue
 <details>
-<summary>33% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] associate_glossary_terms
 - [X] batch_create_partition
@@ -5539,6 +5569,7 @@
 - [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
+- [ ] batch_get_data_quality_result_v2
 - [ ] batch_get_data_quality_ruleset_evaluation_run
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_iterable_forms
@@ -5658,6 +5689,7 @@
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
+- [ ] get_data_quality_result_v2
 - [ ] get_data_quality_rule_recommendation_run
 - [ ] get_data_quality_ruleset
 - [ ] get_data_quality_ruleset_evaluation_run
@@ -5729,6 +5761,7 @@
 - [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
+- [ ] list_data_quality_results_v2
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
 - [ ] list_data_quality_rulesets
@@ -5755,6 +5788,7 @@
 - [ ] list_usage_profiles
 - [X] list_workflows
 - [ ] modify_integration
+- [ ] publish_data_quality_result_v2
 - [ ] put_asset
 - [ ] put_asset_type
 - [ ] put_attachment
@@ -6954,10 +6988,11 @@
 
 ## lakeformation
 <details>
-<summary>32% implemented</summary>
+<summary>28% implemented</summary>
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
+- [ ] attach_rls_policy
 - [X] batch_grant_permissions
 - [X] batch_revoke_permissions
 - [ ] cancel_transaction
@@ -6967,16 +7002,19 @@
 - [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
 - [ ] create_lf_tag_expression
+- [ ] create_rls_policy
 - [ ] delete_data_cells_filter
 - [ ] delete_lake_formation_identity_center_configuration
 - [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
 - [ ] delete_lf_tag_expression
 - [ ] delete_objects_on_cancel
+- [ ] delete_rls_policy
 - [X] deregister_resource
 - [ ] describe_lake_formation_identity_center_configuration
 - [X] describe_resource
 - [ ] describe_transaction
+- [ ] detach_rls_policy
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
 - [ ] get_data_lake_principal
@@ -6987,6 +7025,7 @@
 - [ ] get_query_state
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
+- [ ] get_rls_policy
 - [ ] get_table_objects
 - [ ] get_temporary_data_location_credentials
 - [ ] get_temporary_glue_partition_credentials
@@ -7000,6 +7039,8 @@
 - [X] list_lf_tags
 - [X] list_permissions
 - [X] list_resources
+- [ ] list_rls_policies
+- [ ] list_rls_policy_attachments
 - [ ] list_table_storage_optimizers
 - [ ] list_transactions
 - [X] put_data_lake_settings
@@ -7015,6 +7056,7 @@
 - [X] update_lf_tag
 - [ ] update_lf_tag_expression
 - [ ] update_resource
+- [ ] update_rls_policy
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer
 </details>
@@ -8114,6 +8156,7 @@
 - [ ] get_transit_gateway_registrations
 - [ ] get_transit_gateway_route_table_attachment
 - [ ] get_vpc_attachment
+- [ ] list_attachment_nat_configurations
 - [ ] list_attachment_routing_policy_associations
 - [ ] list_attachments
 - [ ] list_connect_peers
@@ -8135,6 +8178,7 @@
 - [ ] start_route_analysis
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_attachment_nat_configuration
 - [ ] update_connection
 - [ ] update_core_network
 - [ ] update_device
@@ -8250,17 +8294,20 @@
 
 ## opensearchserverless
 <details>
-<summary>26% implemented</summary>
+<summary>22% implemented</summary>
 
 - [X] batch_get_collection
 - [ ] batch_get_collection_group
 - [ ] batch_get_effective_lifecycle_policy
 - [ ] batch_get_lifecycle_policy
 - [ ] batch_get_vpc_endpoint
+- [ ] cancel_ingestion_job
 - [ ] create_access_policy
 - [X] create_collection
 - [ ] create_collection_group
 - [ ] create_index
+- [ ] create_ingestion_job
+- [ ] create_ingestion_stream
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
 - [X] create_security_policy
@@ -8269,6 +8316,7 @@
 - [X] delete_collection
 - [ ] delete_collection_group
 - [ ] delete_index
+- [ ] delete_ingestion_stream
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
 - [ ] delete_security_policy
@@ -8276,12 +8324,16 @@
 - [ ] get_access_policy
 - [ ] get_account_settings
 - [ ] get_index
+- [ ] get_ingestion_job
+- [ ] get_ingestion_stream
 - [ ] get_policies_stats
 - [ ] get_security_config
 - [X] get_security_policy
 - [ ] list_access_policies
 - [ ] list_collection_groups
 - [X] list_collections
+- [ ] list_ingestion_jobs
+- [ ] list_ingestion_streams
 - [ ] list_lifecycle_policies
 - [ ] list_security_configs
 - [X] list_security_policies
@@ -9020,7 +9072,7 @@
 
 ## rds
 <details>
-<summary>51% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] add_role_to_db_cluster
 - [X] add_role_to_db_instance
@@ -9029,6 +9081,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
+- [ ] cancel_db_capacity_reservation
 - [X] cancel_export_task
 - [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
@@ -9037,6 +9090,7 @@
 - [ ] copy_option_group
 - [X] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
+- [ ] create_db_capacity_reservation
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -9080,6 +9134,7 @@
 - [ ] describe_account_attributes
 - [X] describe_blue_green_deployments
 - [ ] describe_certificates
+- [ ] describe_db_capacity_reservations
 - [ ] describe_db_cluster_automated_backups
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
@@ -9134,6 +9189,7 @@
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
 - [ ] modify_custom_db_engine_version
+- [ ] modify_db_capacity_reservation
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [X] modify_db_cluster_parameter_group
@@ -9658,6 +9714,7 @@
 - [ ] enable_domain_transfer_lock
 - [ ] get_contact_reachability_status
 - [ ] get_domain_detail
+- [ ] get_domain_prices
 - [ ] get_domain_suggestions
 - [ ] get_operation_detail
 - [X] list_domains
@@ -10147,6 +10204,7 @@
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_training_plan
+- [ ] create_training_session
 - [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
@@ -10210,6 +10268,7 @@
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
 - [ ] delete_training_job
+- [ ] delete_training_session
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -10286,6 +10345,7 @@
 - [X] describe_training_job
 - [ ] describe_training_plan
 - [ ] describe_training_plan_extension_history
+- [ ] describe_training_session
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
@@ -10387,6 +10447,7 @@
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_training_plans
+- [ ] list_training_sessions
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
@@ -10429,6 +10490,7 @@
 - [ ] stop_pipeline_execution
 - [X] stop_processing_job
 - [ ] stop_training_job
+- [ ] stop_training_session
 - [ ] stop_transform_job
 - [ ] update_action
 - [ ] update_app_image_config
@@ -12252,6 +12314,7 @@
 - connectcases
 - connecthealth
 - connectparticipant
+- continuum
 - controlcatalog
 - controltower
 - cost-optimization-hub
@@ -12276,8 +12339,6 @@
 - entityresolution
 - eventbridgev2
 - evs
-- finspace
-- finspace-data
 - fms
 - forecastquery
 - frauddetector
@@ -12413,6 +12474,7 @@
 - sagemaker-featurestore-runtime
 - sagemaker-geospatial
 - sagemakerjobruntime
+- sagemakertrainingsessionruntime
 - savingsplans
 - schemas
 - security-ir
@@ -12439,7 +12501,6 @@
 - supportauthz
 - sustainability
 - taxsettings
-- tnb
 - translate
 - trustedadvisor
 - uxc

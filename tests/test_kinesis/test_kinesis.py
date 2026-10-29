@@ -112,6 +112,33 @@ def test_list_many_streams():
 
 
 @mock_aws
+def test_list_streams_paginates_with_next_token():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    names = [f"stream{i}" for i in range(5)]
+    for name in names:
+        conn.create_stream(StreamName=name, ShardCount=1)
+
+    resp = conn.list_streams(Limit=2)
+    assert resp["StreamNames"] == names[:2]
+    assert [s["StreamName"] for s in resp["StreamSummaries"]] == names[:2]
+    assert resp["HasMoreStreams"] is True
+
+    resp = conn.list_streams(Limit=2, NextToken=resp["NextToken"])
+    assert resp["StreamNames"] == names[2:4]
+    assert resp["HasMoreStreams"] is True
+
+    resp = conn.list_streams(Limit=2, NextToken=resp["NextToken"])
+    assert resp["StreamNames"] == names[4:]
+    assert resp["HasMoreStreams"] is False
+    assert "NextToken" not in resp
+
+    pages = conn.get_paginator("list_streams").paginate(
+        PaginationConfig={"PageSize": 2}
+    )
+    assert [name for page in pages for name in page["StreamNames"]] == names
+
+
+@mock_aws
 def test_describe_stream_summary():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream_summary"

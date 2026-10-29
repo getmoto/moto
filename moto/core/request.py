@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 
@@ -13,7 +14,7 @@ except ModuleNotFoundError:
 
 
 from botocore.awsrequest import AWSPreparedRequest
-from requests import PreparedRequest
+from werkzeug.datastructures import EnvironHeaders as WerkzeugEnvironHeaders
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
 
@@ -24,6 +25,46 @@ if TYPE_CHECKING:
     from moto.core.model import ServiceModel
 
 
+#: Environ key holding the original spelling of preserved header names, keyed
+#: by the WSGI name each was stored under (e.g. ``HTTP_X_AMZ_META_MY_KEY``).
+PRESERVED_HEADER_NAMES_ENVIRON_KEY = "moto.preserved_header_names"
+
+
+def should_preserve_original_header_name(header_name: str) -> bool:
+    """Whether underscores in a header name should be preserved."""
+    if "_" in header_name:
+        # Right now we're only preserving S3 object metadata headers.
+        if header_name.lower().startswith("x-amz-meta-"):
+            return True
+    return False
+
+
+def environ_key_for_header(header_name: str) -> str:
+    key = header_name.upper().replace("-", "_")
+    if key in ("CONTENT_TYPE", "CONTENT_LENGTH"):
+        return key
+    return f"HTTP_{key}"
+
+
+class EnvironHeaders(WerkzeugEnvironHeaders):
+    """EnvironHeaders that report any preserved headers under their original names.
+
+    WSGI folds both ``-`` and ``_`` into ``_`` in environ keys, so werkzeug
+    rebuilds every name with dashes: ``x-amz-meta-my_key`` comes back as
+    ``X-Amz-Meta-My-Key``.  S3 treats the two as distinct for user metadata
+    keys, so for those headers we report the name as originally sent.
+
+    Lookups are unaffected - werkzeug already maps either spelling to the same key.
+    """
+
+    def __iter__(self) -> Iterator[tuple[str, str]]:
+        names: dict[str, str] = (
+            self.environ.get(PRESERVED_HEADER_NAMES_ENVIRON_KEY) or {}
+        )
+        for key, value in super().__iter__():
+            yield names.get(environ_key_for_header(key), key), value
+
+
 class Request(WerkzeugRequest):
     #: True when this request was received by a real WSGI server (Moto Server).
     from_wsgi_server = False
@@ -31,6 +72,7 @@ class Request(WerkzeugRequest):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.max_form_memory_size = MAX_FORM_MEMORY_SIZE
+        self.headers = EnvironHeaders(self.environ)
 
     @classmethod
     def from_primitives(
@@ -39,6 +81,13 @@ class Request(WerkzeugRequest):
         """Build a request from the basic components of an HTTP message."""
         if isinstance(body, AwsChunkedWrapper):
             body = body.read()
+        # The proxy de-chunks before we ever see the request, and we (above) read
+        # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
+        header_items = [
+            (key, value.decode("utf-8") if isinstance(value, bytes) else value)
+            for key, value in headers.items()
+            if key.lower() not in ["transfer-encoding"]
+        ]
         parsed_url = urlparse(url)
         request = cast(
             Request,
@@ -48,15 +97,15 @@ class Request(WerkzeugRequest):
                 path=parsed_url.path,
                 query_string=parsed_url.query,
                 data=body if body is not None else b"",
-                # The proxy de-chunks before we ever see the request, and we (above) read
-                # an AwsChunkedWrapper out in full, so Transfer-Encoding no longer applies.
-                headers=[
-                    (key, value.decode("utf-8") if isinstance(value, bytes) else value)
-                    for key, value in headers.items()
-                    if key.lower() not in ["transfer-encoding"]
-                ],
+                headers=header_items,
             ),
         )
+        # Preserve original header names in the environment for later lookup.
+        request.environ[PRESERVED_HEADER_NAMES_ENVIRON_KEY] = {
+            environ_key_for_header(key): key
+            for key, _ in header_items
+            if should_preserve_original_header_name(key)
+        }
         # Ensure a Content-Length header is present, even for bodiless requests.
         # (Some S3 endpoints return a 411 if this header is missing.)
         request.environ.setdefault("CONTENT_LENGTH", "0")
@@ -90,15 +139,14 @@ class Request(WerkzeugRequest):
 
 
 def normalize_request(
-    request: AWSPreparedRequest | LocalProxy[Request] | PreparedRequest | Request,
+    request: AWSPreparedRequest | LocalProxy[Request] | Request,
 ) -> Request:
     """Turn however this request reached us into the one type the core acts on."""
     if isinstance(request, LocalProxy):
         request = request._get_current_object()
     if isinstance(request, Request):
         return request
-    if isinstance(request, (AWSPreparedRequest, PreparedRequest)):
-        assert request.method and request.url
+    if isinstance(request, AWSPreparedRequest):
         return Request.from_primitives(
             request.method, request.url, request.headers, request.body
         )

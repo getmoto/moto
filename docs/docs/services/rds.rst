@@ -21,6 +21,7 @@ rds
 - [ ] apply_pending_maintenance_action
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
+- [ ] cancel_db_capacity_reservation
 - [X] cancel_export_task
 - [X] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
@@ -29,6 +30,7 @@ rds
 - [ ] copy_option_group
 - [X] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
+- [ ] create_db_capacity_reservation
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -72,6 +74,7 @@ rds
 - [ ] describe_account_attributes
 - [X] describe_blue_green_deployments
 - [ ] describe_certificates
+- [ ] describe_db_capacity_reservations
 - [ ] describe_db_cluster_automated_backups
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
@@ -134,6 +137,7 @@ Only the Aurora-Postgresql and Neptune-engine is currently implemented
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
 - [ ] modify_custom_db_engine_version
+- [ ] modify_db_capacity_reservation
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [X] modify_db_cluster_parameter_group

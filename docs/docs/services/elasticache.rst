@@ -87,6 +87,7 @@ Pagination is not yet implemented.
 - [ ] modify_serverless_cache
 - [ ] modify_user
 - [ ] modify_user_group
+- [ ] prepare_migration
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] rebalance_slots_in_global_replication_group
 - [ ] reboot_cache_cluster
@@ -94,6 +95,7 @@ Pagination is not yet implemented.
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
+- [ ] stop_migration
 - [ ] test_failover
 - [ ] test_migration
 
