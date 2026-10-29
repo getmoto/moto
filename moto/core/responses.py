@@ -395,7 +395,7 @@ class BaseResponse(ActionAuthenticatorMixin):
     def parse_parameters(self, request: Request) -> None:
         service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = determine_request_protocol(service_model, request.content_type)
+        protocol = determine_request_protocol(service_model, request)
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(operation_model, map_type=self.PROTOCOL_PARSER_MAP_TYPE)
         parsed = parser.parse(
@@ -411,8 +411,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self.params = cast(Any, parsed)
 
     def determine_response_protocol(self, service_model: ServiceModel) -> str:
-        content_type = self.headers.get("Content-Type", "")
-        protocol = determine_request_protocol(service_model, content_type)
+        protocol = determine_request_protocol(service_model, self.normalized_request)
         if protocol == "query" and self.request_json:
             protocol = "query-json"
         return protocol

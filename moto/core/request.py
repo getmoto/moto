@@ -153,16 +153,14 @@ def normalize_request(
     raise TypeError(f"Cannot normalize request of type {type(request).__name__}")
 
 
-def determine_request_protocol(
-    service_model: ServiceModel, content_type: str | None = None
-) -> str:
+def determine_request_protocol(service_model: ServiceModel, request: Request) -> str:
     protocol = str(service_model.protocol)
     # Short circuit protocol detection for S3 because the ContentType header
     # is often set based on the MIME type of the object data being uploaded.
     if service_model.service_name == "s3":
         return protocol
     supported_protocols = service_model.metadata.get("protocols", [protocol])
-    content_type = content_type if content_type is not None else ""
+    content_type = request.content_type or ""
     if content_type in JSON_TYPES:
         protocol = "rest-json" if content_type == APPLICATION_JSON else "json"
     elif content_type.startswith("application/x-www-form-urlencoded"):

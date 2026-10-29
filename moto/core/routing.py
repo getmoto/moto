@@ -536,7 +536,7 @@ class ServiceOperationRouter:
         :return: A tuple with the matched operation and the (already parsed) path params
         :raises: Werkzeug's NotFound exception in case the given request does not match any operation
         """
-        protocol = determine_request_protocol(self._service_model, request.content_type)
+        protocol = determine_request_protocol(self._service_model, request)
         return self._get_router(protocol).match(request)
 
     def _get_router(self, protocol: str) -> ProtocolRouter:
