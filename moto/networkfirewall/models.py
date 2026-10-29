@@ -4,9 +4,10 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.es.exceptions import ResourceNotFound
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+
+from .exceptions import ResourceNotFoundException
 
 PAGINATION_MODEL = {
     "list_firewalls": {
@@ -118,7 +119,7 @@ class NetworkFirewallBackend(BaseBackend):
         for firewall in self.firewalls.values():
             if firewall.firewall_name == firewall_name:
                 return firewall
-        raise ResourceNotFound("NetworkFirewall", str(firewall_arn or firewall_name))
+        raise ResourceNotFoundException(str(firewall_arn or firewall_name))
 
     def describe_logging_configuration(
         self, firewall_arn: str, firewall_name: str

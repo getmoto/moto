@@ -1,15 +1,14 @@
 """Exceptions raised by the networkfirewall service."""
 
-import json
-
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class ResourceNotFound(JsonRESTError):
+class NetworkFirewallException(ServiceException):
+    pass
+
+
+class ResourceNotFoundException(NetworkFirewallException):
+    code = "ResourceNotFoundException"
+
     def __init__(self, resource_id: str):
-        super().__init__("NotFoundException", "Resource not found.")
-        body = {
-            "ResourceId": resource_id,
-            "Message": "Resource not found.",
-        }
-        self.description = json.dumps(body)
+        super().__init__(f"NetworkFirewall not found: {resource_id}")
