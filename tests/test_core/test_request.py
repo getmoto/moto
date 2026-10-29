@@ -2,8 +2,10 @@ import pytest
 
 from moto.core.request import Request, determine_request_protocol
 from moto.core.utils import get_service_model
+from tests.test_cloudwatch import requires_cloudwatch_cbor
 
 
+@requires_cloudwatch_cbor
 @pytest.mark.parametrize(
     "content_type,smithy_protocol,expected",
     [
