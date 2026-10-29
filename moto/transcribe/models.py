@@ -498,13 +498,13 @@ class TranscribeBackend(BaseBackend):
     ) -> dict[str, Any]:
         if transcription_job_name in self.transcriptions:
             raise ConflictException(
-                message="The requested job name already exists. Use a different job name."
+                "The requested job name already exists. Use a different job name."
             )
 
         vocabulary_name = settings.get("VocabularyName") if settings else None
         if vocabulary_name and vocabulary_name not in self.vocabularies:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. "
+                "The requested vocabulary couldn't be found. "
                 "Check the vocabulary name and try your request again."
             )
 
@@ -547,13 +547,13 @@ class TranscribeBackend(BaseBackend):
     ) -> dict[str, Any]:
         if medical_transcription_job_name in self.medical_transcriptions:
             raise ConflictException(
-                message="The requested job name already exists. Use a different job name."
+                "The requested job name already exists. Use a different job name."
             )
 
         vocabulary_name = settings.get("VocabularyName") if settings else None
         if vocabulary_name and vocabulary_name not in self.medical_vocabularies:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. "
+                "The requested vocabulary couldn't be found. "
                 "Check the vocabulary name and try your request again."
             )
 
@@ -584,7 +584,7 @@ class TranscribeBackend(BaseBackend):
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
-                message="The requested job couldn't be found. "
+                "The requested job couldn't be found. "
                 "Check the job name and try your request again."
             )
 
@@ -597,7 +597,7 @@ class TranscribeBackend(BaseBackend):
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
-                message="The requested job couldn't be found. "
+                "The requested job couldn't be found. "
                 "Check the job name and try your request again."
             )
 
@@ -606,7 +606,7 @@ class TranscribeBackend(BaseBackend):
             del self.transcriptions[transcription_job_name]
         except KeyError:
             raise BadRequestException(
-                message="The requested job couldn't be found. "
+                "The requested job couldn't be found. "
                 "Check the job name and try your request again."
             )
 
@@ -617,7 +617,7 @@ class TranscribeBackend(BaseBackend):
             del self.medical_transcriptions[medical_transcription_job_name]
         except KeyError:
             raise BadRequestException(
-                message="The requested job couldn't be found. "
+                "The requested job couldn't be found. "
                 "Check the job name and try your request again."
             )
 
@@ -701,17 +701,17 @@ class TranscribeBackend(BaseBackend):
             and vocabulary_file_uri is None
         ):
             raise BadRequestException(
-                message="Either Phrases or VocabularyFileUri field should be provided."
+                "Either Phrases or VocabularyFileUri field should be provided."
             )
         if phrases is not None and len(phrases) < 1:
             raise BadRequestException(
-                message="1 validation error detected: Value '[]' at 'phrases' failed to "
+                "1 validation error detected: Value '[]' at 'phrases' failed to "
                 "satisfy constraint: Member must have length greater than or "
                 "equal to 1"
             )
         if vocabulary_name in self.vocabularies:
             raise ConflictException(
-                message="The requested vocabulary name already exists. "
+                "The requested vocabulary name already exists. "
                 "Use a different vocabulary name."
             )
 
@@ -736,7 +736,7 @@ class TranscribeBackend(BaseBackend):
     ) -> dict[str, Any]:
         if vocabulary_name in self.medical_vocabularies:
             raise ConflictException(
-                message="The requested vocabulary name already exists. "
+                "The requested vocabulary name already exists. "
                 "Use a different vocabulary name."
             )
 
@@ -759,7 +759,7 @@ class TranscribeBackend(BaseBackend):
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. "
+                "The requested vocabulary couldn't be found. "
                 "Check the vocabulary name and try your request again."
             )
 
@@ -770,7 +770,7 @@ class TranscribeBackend(BaseBackend):
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. "
+                "The requested vocabulary couldn't be found. "
                 "Check the vocabulary name and try your request again."
             )
 
@@ -779,7 +779,7 @@ class TranscribeBackend(BaseBackend):
             del self.vocabularies[vocabulary_name]
         except KeyError:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
+                "The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
     def delete_medical_vocabulary(self, vocabulary_name: str) -> None:
@@ -787,7 +787,7 @@ class TranscribeBackend(BaseBackend):
             del self.medical_vocabularies[vocabulary_name]
         except KeyError:
             raise BadRequestException(
-                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
+                "The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
     def list_vocabularies(
